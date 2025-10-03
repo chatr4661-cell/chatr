@@ -4,7 +4,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ServiceCard from '@/components/ServiceCard';
-import { Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, MessageCircle, Heart, Mic, Paperclip, LogOut, Briefcase } from 'lucide-react';
+import { 
+  Bot, 
+  Stethoscope, 
+  AlertTriangle, 
+  Activity, 
+  Trophy, 
+  ShoppingBag, 
+  MessageCircle, 
+  Heart, 
+  Mic, 
+  Paperclip, 
+  LogOut, 
+  Briefcase 
+} from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
 const Index = () => {
