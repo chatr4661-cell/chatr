@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Stethoscope, Pill, Activity, Ambulance, User, Phone, MessageCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Search, Stethoscope, Pill, Activity, Ambulance, User, Phone, MessageCircle, Video, Star, MapPin, IndianRupee, ChevronLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/chatr-logo.png';
@@ -18,6 +19,7 @@ interface Provider {
   total_reviews: number;
   is_verified: boolean;
   specializations: { name: string }[];
+  services?: Array<{ name: string; price: number; duration_minutes: number }>;
 }
 
 const AlliedHealthcare = () => {
@@ -74,6 +76,11 @@ const AlliedHealthcare = () => {
             specializations (
               name
             )
+          ),
+          services (
+            name,
+            price,
+            duration_minutes
           )
         `)
         .eq('is_verified', true)
@@ -145,74 +152,93 @@ const AlliedHealthcare = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">HealthMessenger</h1>
-              <p className="text-sm text-muted-foreground">Business</p>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Compact Header */}
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50 shadow-sm">
+        <div className="px-3 py-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="h-8 w-8 rounded-full hover:bg-muted"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-base font-semibold">Healthcare</h1>
+                <p className="text-[10px] text-muted-foreground">Business Directory</p>
+              </div>
             </div>
-            <Avatar className="h-12 w-12">
+            <Avatar className="h-8 w-8 ring-1 ring-border">
               <AvatarImage src={logo} alt="User" />
-              <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
+              <AvatarFallback className="text-xs"><User className="h-4 w-4" /></AvatarFallback>
             </Avatar>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          {/* Compact Search */}
+          <div className="relative mt-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search"
+              placeholder="Search doctors, specialists..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-lg bg-muted/50"
+              className="pl-8 h-8 text-xs rounded-full bg-muted/50 border-border/50"
             />
           </div>
         </div>
       </header>
 
-      {/* Category Tabs */}
-      <div className="px-4 py-4 border-b border-border">
-        <h2 className="text-lg font-bold mb-3">Category</h2>
+      {/* Compact Category Tabs */}
+      <div className="px-3 py-2 bg-background/50 backdrop-blur-sm border-b border-border/30">
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-auto">
-            <TabsTrigger value="all" className="rounded-lg py-3">All</TabsTrigger>
-            <TabsTrigger value="doctor" className="rounded-lg py-3">Doctors</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 h-8 bg-muted/50">
+            <TabsTrigger value="all" className="text-xs rounded-md">All</TabsTrigger>
+            <TabsTrigger value="doctor" className="text-xs rounded-md">Doctors</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      {/* Healthcare Providers */}
-      <div className="px-4 py-4">
-        <h2 className="text-lg font-bold mb-4">Healthcare Providers</h2>
-        
+      {/* Healthcare Providers Grid */}
+      <div className="px-3 py-3">
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading providers...</div>
+          <div className="text-center py-8 text-xs text-muted-foreground">Loading...</div>
         ) : filteredProviders.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">No providers found</div>
+          <div className="text-center py-8 text-xs text-muted-foreground">No providers found</div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-2 mb-4">
             {filteredProviders.slice(0, 6).map((provider) => (
               <div
                 key={provider.id}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => navigate('/booking')}
+                className="flex flex-col gap-2 p-2.5 rounded-2xl bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl border border-border/30 hover:border-primary/30 hover:shadow-lg transition-all cursor-pointer"
               >
-                <Avatar className="h-24 w-24">
+                <Avatar className="h-16 w-16 mx-auto ring-2 ring-border/20">
                   <AvatarImage src="" alt={provider.business_name} />
-                  <AvatarFallback className={`${getSpecialtyColor(provider.specializations[0]?.name || '')} text-white text-xl`}>
+                  <AvatarFallback className={`${getSpecialtyColor(provider.specializations[0]?.name || '')} text-white text-sm font-medium`}>
                     {getProviderInitials(provider.business_name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-center">
-                  <p className="font-semibold text-sm line-clamp-1">
+                <div className="text-center space-y-0.5">
+                  <p className="font-medium text-[11px] leading-tight line-clamp-1">
                     {provider.business_name.split(' - ')[0]}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {provider.specializations[0]?.name || 'Healthcare'}
+                  <p className="text-[9px] text-muted-foreground line-clamp-1">
+                    {provider.specializations[0]?.name}
                   </p>
+                  <div className="flex items-center justify-center gap-1">
+                    <Star className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" />
+                    <span className="text-[10px] font-medium">{provider.rating}</span>
+                    <span className="text-[9px] text-muted-foreground">({provider.total_reviews})</span>
+                  </div>
+                  {provider.services && provider.services[0] && (
+                    <div className="flex items-center justify-center gap-0.5 text-primary">
+                      <IndianRupee className="h-2.5 w-2.5" />
+                      <span className="text-[10px] font-medium">{provider.services[0].price}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -220,55 +246,61 @@ const AlliedHealthcare = () => {
         )}
       </div>
 
-      {/* Services */}
-      <div className="px-4 py-4">
-        <h2 className="text-lg font-bold mb-4">Services</h2>
+      {/* Compact Services */}
+      <div className="px-3 py-2">
+        <h2 className="text-xs font-semibold mb-2">Quick Services</h2>
         
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-              <Stethoscope className="h-6 w-6 text-primary-foreground" />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-colors cursor-pointer">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+              <Stethoscope className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-medium">Consultation</span>
+            <span className="text-[11px] font-medium">Consult</span>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-              <Pill className="h-6 w-6 text-primary-foreground" />
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 backdrop-blur-sm border border-green-500/20 hover:border-green-500/40 transition-colors cursor-pointer">
+            <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+              <Pill className="h-4 w-4 text-white" />
             </div>
-            <span className="font-medium">Medicine</span>
+            <span className="text-[11px] font-medium">Medicine</span>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-              <Activity className="h-6 w-6 text-primary-foreground" />
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 backdrop-blur-sm border border-blue-500/20 hover:border-blue-500/40 transition-colors cursor-pointer">
+            <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <Activity className="h-4 w-4 text-white" />
             </div>
-            <span className="font-medium">Diagnostics</span>
+            <span className="text-[11px] font-medium">Lab Tests</span>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-              <Ambulance className="h-6 w-6 text-primary-foreground" />
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-gradient-to-br from-red-500/10 to-red-500/5 backdrop-blur-sm border border-red-500/20 hover:border-red-500/40 transition-colors cursor-pointer">
+            <div className="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+              <Ambulance className="h-4 w-4 text-white" />
             </div>
-            <span className="font-medium">Ambulance</span>
+            <span className="text-[11px] font-medium">Emergency</span>
           </div>
         </div>
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="flex items-center justify-around py-2">
-          <button className="flex flex-col items-center gap-1 px-6 py-2">
-            <MessageCircle className="h-6 w-6 text-primary" />
-            <span className="text-xs font-medium text-primary">Home</span>
+      <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border/50 shadow-lg z-50">
+        <div className="flex items-center justify-around py-1.5 max-w-md mx-auto">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex flex-col items-center gap-0.5 px-4 py-1"
+          >
+            <MessageCircle className="h-4 w-4 text-primary" />
+            <span className="text-[9px] font-medium text-primary">Home</span>
           </button>
-          <button className="flex flex-col items-center gap-1 px-6 py-2">
-            <Phone className="h-6 w-6 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Appointments</span>
+          <button 
+            onClick={() => navigate('/booking')}
+            className="flex flex-col items-center gap-0.5 px-4 py-1"
+          >
+            <Phone className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[9px] text-muted-foreground">Book</span>
           </button>
-          <button className="flex flex-col items-center gap-1 px-6 py-2">
-            <Activity className="h-6 w-6 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Analytics</span>
+          <button className="flex flex-col items-center gap-0.5 px-4 py-1">
+            <Activity className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[9px] text-muted-foreground">Track</span>
           </button>
         </div>
       </nav>
