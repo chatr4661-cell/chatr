@@ -176,7 +176,7 @@ const Chat = () => {
 
     const { data: newConversation, error } = await supabase
       .from('conversations')
-      .insert({})
+      .insert({ created_by: user.id })
       .select()
       .single();
 
@@ -528,10 +528,10 @@ const Chat = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden rounded-full"
+                    className="md:hidden rounded-full bg-primary/10 hover:bg-primary/20"
                     onClick={() => setSelectedContact(null)}
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-6 w-6 text-primary" />
                   </Button>
                   <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                     <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
