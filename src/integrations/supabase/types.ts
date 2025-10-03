@@ -330,6 +330,106 @@ export type Database = {
         }
         Relationships: []
       }
+      lab_reports: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          file_type: string | null
+          file_url: string
+          id: string
+          notes: string | null
+          report_name: string
+          test_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          notes?: string | null
+          report_name: string
+          test_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          notes?: string | null
+          report_name?: string
+          test_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medication_reminders: {
+        Row: {
+          created_at: string | null
+          dosage: string
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean | null
+          medicine_name: string
+          notes: string | null
+          start_date: string
+          time_slots: string[]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dosage: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean | null
+          medicine_name: string
+          notes?: string | null
+          start_date: string
+          time_slots: string[]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dosage?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          medicine_name?: string
+          notes?: string | null
+          start_date?: string
+          time_slots?: string[]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_reactions: {
         Row: {
           created_at: string | null
@@ -523,38 +623,134 @@ export type Database = {
           },
         ]
       }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          post_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          post_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "youth_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "youth_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          age: number | null
           avatar_url: string | null
           created_at: string | null
+          gender: string | null
+          health_goals: string[] | null
           id: string
           is_online: boolean | null
           is_phone_verified: boolean | null
           last_seen: string | null
+          lifestyle: Json | null
+          medical_history: Json | null
+          onboarding_completed: boolean | null
           phone_number: string | null
           status: string | null
           updated_at: string | null
           username: string
         }
         Insert: {
+          age?: number | null
           avatar_url?: string | null
           created_at?: string | null
+          gender?: string | null
+          health_goals?: string[] | null
           id: string
           is_online?: boolean | null
           is_phone_verified?: boolean | null
           last_seen?: string | null
+          lifestyle?: Json | null
+          medical_history?: Json | null
+          onboarding_completed?: boolean | null
           phone_number?: string | null
           status?: string | null
           updated_at?: string | null
           username: string
         }
         Update: {
+          age?: number | null
           avatar_url?: string | null
           created_at?: string | null
+          gender?: string | null
+          health_goals?: string[] | null
           id?: string
           is_online?: boolean | null
           is_phone_verified?: boolean | null
           last_seen?: string | null
+          lifestyle?: Json | null
+          medical_history?: Json | null
+          onboarding_completed?: boolean | null
           phone_number?: string | null
           status?: string | null
           updated_at?: string | null
@@ -891,6 +1087,50 @@ export type Database = {
           weight_kg?: number | null
         }
         Relationships: []
+      }
+      youth_posts: {
+        Row: {
+          comments_count: number | null
+          content: string
+          created_at: string | null
+          id: string
+          likes_count: number | null
+          media_types: string[] | null
+          media_urls: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          comments_count?: number | null
+          content: string
+          created_at?: string | null
+          id?: string
+          likes_count?: number | null
+          media_types?: string[] | null
+          media_urls?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          comments_count?: number | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          likes_count?: number | null
+          media_types?: string[] | null
+          media_urls?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youth_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

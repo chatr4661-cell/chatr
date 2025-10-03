@@ -16,7 +16,10 @@ import {
   Mic, 
   Paperclip, 
   LogOut, 
-  Briefcase 
+  Briefcase,
+  FileText,
+  Pill,
+  Users
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
@@ -75,6 +78,20 @@ const Index = () => {
       route: '/ai-assistant'
     },
     {
+      icon: FileText,
+      title: 'Lab Reports',
+      description: 'Upload and manage medical test results',
+      iconColor: 'bg-gradient-to-br from-cyan-400 to-cyan-600',
+      route: '/lab-reports'
+    },
+    {
+      icon: Pill,
+      title: 'Medicine Reminders',
+      description: 'Never miss your medication schedule',
+      iconColor: 'bg-gradient-to-br from-orange-400 to-orange-600',
+      route: '/medicine-reminders'
+    },
+    {
       icon: Stethoscope,
       title: 'Doctor/Nurse Booking',
       description: 'Book appointments with healthcare professionals',
@@ -94,6 +111,13 @@ const Index = () => {
       description: 'Track your health metrics and goals',
       iconColor: 'bg-gradient-to-br from-pink-400 to-pink-600',
       route: '/wellness'
+    },
+    {
+      icon: Users,
+      title: 'Youth Feed',
+      description: 'Share wellness journey with community',
+      iconColor: 'bg-gradient-to-br from-violet-400 to-violet-600',
+      route: '/youth-feed'
     },
     {
       icon: Trophy,

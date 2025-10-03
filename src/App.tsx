@@ -7,6 +7,10 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
 import ChatEnhanced from "./pages/ChatEnhanced";
+import Onboarding from "./pages/Onboarding";
+import LabReports from "./pages/LabReports";
+import MedicineReminders from "./pages/MedicineReminders";
+import YouthFeed from "./pages/YouthFeed";
 import ProviderRegister from "./pages/ProviderRegister";
 import AIAssistant from "./pages/AIAssistant";
 import BookingPage from "./pages/BookingPage";
@@ -37,9 +41,13 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/chat" element={<Chat />} />
-        <Route path="/contacts" element={<ChatEnhanced />} />
-        <Route path="/provider-register" element={<ProviderRegister />} />
+          <Route path="/contacts" element={<ChatEnhanced />} />
+          <Route path="/lab-reports" element={<LabReports />} />
+          <Route path="/medicine-reminders" element={<MedicineReminders />} />
+          <Route path="/youth-feed" element={<YouthFeed />} />
+          <Route path="/provider-register" element={<ProviderRegister />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/emergency" element={<EmergencyButton />} />
