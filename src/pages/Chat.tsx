@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,13 +6,38 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, Check, CheckCheck } from 'lucide-react';
+import { 
+  MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, 
+  Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
+  Reply, Forward, Star, Copy, Trash2, Edit2, Download, X
+} from 'lucide-react';
+import { MessageAction } from '@/components/MessageAction';
+import { PollCreator } from '@/components/PollCreator';
+import { PollMessage } from '@/components/PollMessage';
+import { MessageReactions } from '@/components/MessageReactions';
+import { TypingIndicator, setTypingStatus } from '@/components/TypingIndicator';
+import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
   status: string;
+  last_seen?: string;
+  is_online?: boolean;
 }
 
 interface Message {
@@ -21,6 +46,19 @@ interface Message {
   sender_id: string;
   created_at: string;
   read_at: string | null;
+  message_type: string;
+  media_url?: string;
+  file_name?: string;
+  duration?: number;
+  reply_to_id?: string;
+  is_edited?: boolean;
+  is_deleted?: boolean;
+  is_starred?: boolean;
+  location_latitude?: number;
+  location_longitude?: number;
+  location_name?: string;
+  poll_question?: string;
+  poll_options?: any;
   sender?: Profile;
 }
 
@@ -32,8 +70,13 @@ const Chat = () => {
   const [selectedContact, setSelectedContact] = useState<Profile | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [showMediaActions, setShowMediaActions] = useState(false);
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -90,7 +133,6 @@ const Chat = () => {
   const selectContact = async (contact: Profile) => {
     setSelectedContact(contact);
     
-    // Find or create conversation
     const { data: existingConversation } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
@@ -112,7 +154,6 @@ const Chat = () => {
       }
     }
 
-    // Create new conversation
     const { data: newConversation, error } = await supabase
       .from('conversations')
       .insert({})
@@ -121,10 +162,14 @@ const Chat = () => {
 
     if (error || !newConversation) {
       console.error('Error creating conversation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create conversation',
+        variant: 'destructive'
+      });
       return;
     }
 
-    // Add participants
     await supabase.from('conversation_participants').insert([
       { conversation_id: newConversation.id, user_id: user.id },
       { conversation_id: newConversation.id, user_id: contact.id },
@@ -142,6 +187,7 @@ const Chat = () => {
         sender:profiles(*)
       `)
       .eq('conversation_id', convId)
+      .eq('is_deleted', false)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -186,16 +232,40 @@ const Chat = () => {
     };
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
+  const handleInputChange = (value: string) => {
+    setMessageInput(value);
+    
+    if (conversationId && user) {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      setTypingStatus(conversationId, user.id, true);
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        setTypingStatus(conversationId, user.id, false);
+      }, 2000);
+    }
+  };
+
+  const sendMessage = async (e: React.FormEvent, messageType: string = 'text', additionalData: any = {}) => {
     e.preventDefault();
     
-    if (!messageInput.trim() || !conversationId || !user) return;
+    if ((!messageInput.trim() && messageType === 'text') || !conversationId || !user) return;
 
-    const { error } = await supabase.from('messages').insert({
-      content: messageInput,
+    const messageData: any = {
       sender_id: user.id,
       conversation_id: conversationId,
-    });
+      message_type: messageType,
+      reply_to_id: replyToMessage?.id || null,
+      ...additionalData
+    };
+
+    if (messageType === 'text') {
+      messageData.content = messageInput;
+    }
+
+    const { error } = await supabase.from('messages').insert(messageData);
 
     if (error) {
       toast({
@@ -207,11 +277,88 @@ const Chat = () => {
     }
 
     setMessageInput('');
+    setReplyToMessage(null);
+    if (conversationId && user) {
+      setTypingStatus(conversationId, user.id, false);
+    }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
+  const handleImagePick = async () => {
+    const imageUrl = await pickImage();
+    if (imageUrl) {
+      sendMessage(new Event('submit') as any, 'image', { media_url: imageUrl, content: 'Photo' });
+    }
+    setShowMediaActions(false);
+  };
+
+  const handleLocationShare = async () => {
+    const location = await getCurrentLocation();
+    if (location) {
+      sendMessage(new Event('submit') as any, 'location', {
+        content: 'Location',
+        location_latitude: location.latitude,
+        location_longitude: location.longitude,
+        location_name: 'Current Location'
+      });
+    }
+    setShowMediaActions(false);
+  };
+
+  const handleVoiceRecord = async () => {
+    if (!isRecording) {
+      setIsRecording(true);
+      startVoiceRecording();
+      toast({
+        title: 'Recording...',
+        description: 'Tap to stop recording'
+      });
+    } else {
+      stopVoiceRecording();
+      setIsRecording(false);
+      toast({
+        title: 'Voice message sent!',
+      });
+      // TODO: Upload voice blob and send
+    }
+  };
+
+  const handlePollSend = (question: string, options: string[]) => {
+    const pollOptions = options.map(text => ({ text, votes: 0 }));
+    sendMessage(new Event('submit') as any, 'poll', {
+      content: question,
+      poll_question: question,
+      poll_options: pollOptions
+    });
+  };
+
+  const handleReact = async (messageId: string, emoji: string) => {
+    const { error } = await supabase
+      .from('message_reactions')
+      .upsert({
+        message_id: messageId,
+        user_id: user.id,
+        emoji
+      });
+
+    if (error) {
+      console.error('Error adding reaction:', error);
+    }
+  };
+
+  const handleStarMessage = async (messageId: string, isStarred: boolean) => {
+    await supabase
+      .from('messages')
+      .update({ is_starred: !isStarred })
+      .eq('id', messageId);
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    await supabase
+      .from('messages')
+      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+      .eq('id', messageId);
+    
+    setMessages(prev => prev.filter(m => m.id !== messageId));
   };
 
   const formatTime = (timestamp: string) => {
@@ -219,11 +366,15 @@ const Chat = () => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
+
   return (
     <div className="h-screen flex bg-background">
-      {/* Sidebar - Contacts List */}
+      {/* Sidebar */}
       <div className={`${selectedContact ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-glass-border backdrop-blur-glass bg-gradient-glass`}>
-        {/* Sidebar Header */}
         <div className="p-4 border-b border-glass-border backdrop-blur-glass bg-background/50">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -237,14 +388,24 @@ const Chat = () => {
                 <p className="text-xs text-muted-foreground">{profile?.status || 'Available'}</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSignOut}
-              className="rounded-full hover:bg-destructive/10 hover:text-destructive"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/status')}
+                className="rounded-full"
+              >
+                <BarChart3 className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSignOut}
+                className="rounded-full hover:bg-destructive/10 hover:text-destructive"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
           
           <div className="relative">
@@ -256,7 +417,6 @@ const Chat = () => {
           </div>
         </div>
 
-        {/* Contacts List */}
         <ScrollArea className="flex-1">
           <div className="p-2">
             {contacts.map((contact) => (
@@ -267,11 +427,16 @@ const Chat = () => {
                   selectedContact?.id === contact.id ? 'bg-primary/10' : ''
                 }`}
               >
-                <Avatar className="h-12 w-12 ring-2 ring-primary/20">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
-                    {contact.username[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
+                      {contact.username[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {contact.is_online && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                  )}
+                </div>
                 <div className="flex-1 text-left">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-foreground">{contact.username}</p>
@@ -289,7 +454,7 @@ const Chat = () => {
       <div className="flex-1 flex flex-col">
         {selectedContact ? (
           <>
-            {/* Chat Header */}
+            {/* Header */}
             <div className="p-4 border-b border-glass-border backdrop-blur-glass bg-gradient-glass">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -308,7 +473,9 @@ const Chat = () => {
                   </Avatar>
                   <div>
                     <h3 className="font-semibold text-foreground">{selectedContact.username}</h3>
-                    <p className="text-xs text-muted-foreground">Online</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedContact.is_online ? 'Online' : `Last seen ${selectedContact.last_seen || 'recently'}`}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -325,62 +492,181 @@ const Chat = () => {
               </div>
             </div>
 
-            {/* Messages Area */}
+            {/* Messages */}
             <ScrollArea className="flex-1 p-4 bg-gradient-to-br from-background via-primary/5 to-accent/5">
               <div className="space-y-4 max-w-4xl mx-auto">
                 {messages.map((message) => {
                   const isOwn = message.sender_id === user?.id;
+                  
                   return (
-                    <div
-                      key={message.id}
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                          isOwn
-                            ? 'bg-primary text-primary-foreground rounded-br-sm shadow-glow'
-                            : 'bg-card text-card-foreground rounded-bl-sm shadow-card backdrop-blur-glass border border-glass-border'
-                        }`}
-                      >
-                        <p className="text-sm break-words">{message.content}</p>
-                        <div className="flex items-center gap-1 justify-end mt-1">
-                          <span className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                            {formatTime(message.created_at)}
-                          </span>
-                          {isOwn && (
-                            <span className="text-primary-foreground/70">
-                              {message.read_at ? (
-                                <CheckCheck className="h-3 w-3" />
-                              ) : (
-                                <Check className="h-3 w-3" />
-                              )}
-                            </span>
-                          )}
+                    <ContextMenu key={message.id}>
+                      <ContextMenuTrigger>
+                        <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[70%] space-y-1`}>
+                            {message.reply_to_id && (
+                              <div className="text-xs text-muted-foreground italic px-2">
+                                Replying to message
+                              </div>
+                            )}
+                            
+                            {message.message_type === 'poll' && message.poll_options ? (
+                              <PollMessage
+                                question={message.poll_question || ''}
+                                options={message.poll_options}
+                                totalVotes={0}
+                                onVote={(index) => {}}
+                              />
+                            ) : message.message_type === 'image' ? (
+                              <div className={`rounded-2xl overflow-hidden ${isOwn ? 'rounded-br-sm' : 'rounded-bl-sm'}`}>
+                                <img src={message.media_url} alt="Shared image" className="max-w-full" />
+                              </div>
+                            ) : message.message_type === 'location' ? (
+                              <div className={`rounded-2xl p-3 ${
+                                isOwn ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground'
+                              }`}>
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{message.location_name}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className={`rounded-2xl px-4 py-2 ${
+                                isOwn
+                                  ? 'bg-primary text-primary-foreground rounded-br-sm shadow-glow'
+                                  : 'bg-card text-card-foreground rounded-bl-sm shadow-card backdrop-blur-glass border border-glass-border'
+                              }`}>
+                                <p className="text-sm break-words">{message.content}</p>
+                                <div className="flex items-center gap-1 justify-end mt-1">
+                                  {message.is_edited && (
+                                    <span className="text-xs opacity-70">edited</span>
+                                  )}
+                                  {message.is_starred && (
+                                    <Star className="h-3 w-3 fill-current" />
+                                  )}
+                                  <span className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                                    {formatTime(message.created_at)}
+                                  </span>
+                                  {isOwn && (
+                                    <span className="text-primary-foreground/70">
+                                      {message.read_at ? (
+                                        <CheckCheck className="h-3 w-3" />
+                                      ) : (
+                                        <Check className="h-3 w-3" />
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            <MessageReactions
+                              reactions={[]}
+                              onReact={(emoji) => handleReact(message.id, emoji)}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onClick={() => setReplyToMessage(message)}>
+                          <Reply className="h-4 w-4 mr-2" />
+                          Reply
+                        </ContextMenuItem>
+                        <ContextMenuItem>
+                          <Forward className="h-4 w-4 mr-2" />
+                          Forward
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => handleStarMessage(message.id, message.is_starred || false)}>
+                          <Star className="h-4 w-4 mr-2" />
+                          {message.is_starred ? 'Unstar' : 'Star'}
+                        </ContextMenuItem>
+                        <ContextMenuItem>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </ContextMenuItem>
+                        {isOwn && (
+                          <>
+                            <ContextMenuItem>
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Edit
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleDeleteMessage(message.id)} className="text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </ContextMenuItem>
+                          </>
+                        )}
+                      </ContextMenuContent>
+                    </ContextMenu>
                   );
                 })}
               </div>
+              {conversationId && <TypingIndicator conversationId={conversationId} currentUserId={user?.id} />}
             </ScrollArea>
 
-            {/* Message Input */}
+            {/* Reply Preview */}
+            {replyToMessage && (
+              <div className="px-4 py-2 bg-muted/50 border-t border-glass-border flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">Replying to {replyToMessage.sender?.username}</p>
+                  <p className="text-sm truncate">{replyToMessage.content}</p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setReplyToMessage(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Input */}
             <div className="p-4 border-t border-glass-border backdrop-blur-glass bg-gradient-glass">
               <form onSubmit={sendMessage} className="flex items-center gap-2 max-w-4xl mx-auto">
+                <Sheet open={showMediaActions} onOpenChange={setShowMediaActions}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-auto">
+                    <SheetHeader>
+                      <SheetTitle>Send</SheetTitle>
+                    </SheetHeader>
+                    <div className="grid grid-cols-4 gap-4 py-4">
+                      <MessageAction icon={ImageIcon} label="Photo" onClick={handleImagePick} color="text-blue-500" />
+                      <MessageAction icon={File} label="Document" onClick={() => {}} color="text-purple-500" />
+                      <MessageAction icon={MapPin} label="Location" onClick={handleLocationShare} color="text-green-500" />
+                      <MessageAction icon={BarChart3} label="Poll" onClick={() => { setShowMediaActions(false); setShowPollCreator(true); }} color="text-orange-500" />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
                 <Input
                   value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
+                  onChange={(e) => handleInputChange(e.target.value)}
                   placeholder="Type a message..."
                   className="flex-1 rounded-full bg-background/50 border-glass-border"
                 />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="rounded-full h-11 w-11 shadow-glow"
-                  disabled={!messageInput.trim()}
-                >
-                  <Send className="h-5 w-5" />
+                
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Smile className="h-5 w-5" />
                 </Button>
+
+                {messageInput.trim() ? (
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="rounded-full h-11 w-11 shadow-glow"
+                  >
+                    <Send className="h-5 w-5" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="icon"
+                    className={`rounded-full h-11 w-11 ${isRecording ? 'bg-red-500' : ''}`}
+                    onClick={handleVoiceRecord}
+                  >
+                    <Mic className="h-5 w-5" />
+                  </Button>
+                )}
               </form>
             </div>
           </>
@@ -392,12 +678,18 @@ const Chat = () => {
               </div>
               <h2 className="text-2xl font-bold text-foreground">HealthMessenger</h2>
               <p className="text-muted-foreground max-w-md">
-                Select a contact to start chatting with healthcare providers and manage your health.
+                Select a contact to start chatting with healthcare providers.
               </p>
             </div>
           </div>
         )}
       </div>
+
+      <PollCreator
+        open={showPollCreator}
+        onClose={() => setShowPollCreator(false)}
+        onSend={handlePollSend}
+      />
     </div>
   );
 };
