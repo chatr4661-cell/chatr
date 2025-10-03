@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { MessageCircle, Phone } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 const Auth = () => {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -31,51 +31,41 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phoneNumber,
-      });
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/chat`
+          }
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setOtpSent(true);
-      toast({
-        title: 'OTP Sent',
-        description: 'Please check your phone for the verification code.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+        toast({
+          title: 'Account created!',
+          description: 'You can now sign in.',
+        });
+        setIsSignUp(false);
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+        if (error) throw error;
 
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone: phoneNumber,
-        token: otp,
-        type: 'sms',
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: 'Welcome!',
-        description: 'Signed in successfully.',
-      });
-      navigate('/chat');
+        toast({
+          title: 'Welcome!',
+          description: 'Signed in successfully.',
+        });
+        navigate('/chat');
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -94,67 +84,52 @@ const Auth = () => {
       <Card className="w-full max-w-md relative backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass rounded-3xl">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-glow">
-            <Phone className="w-8 h-8 text-primary-foreground" />
+            <Mail className="w-8 h-8 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold">HealthMessenger</CardTitle>
           <CardDescription className="text-base">
-            {otpSent ? 'Enter verification code' : 'Sign in with phone'}
+            {isSignUp ? 'Create your account' : 'Sign in to continue'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!otpSent ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  type="tel"
-                  placeholder="Phone number (+1234567890)"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                  className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-12 text-base rounded-xl shadow-glow"
-                disabled={loading}
-              >
-                {loading ? 'Sending...' : 'Send Verification Code'}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  required
-                  maxLength={6}
-                  className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border text-center text-lg tracking-wider"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-12 text-base rounded-xl shadow-glow"
-                disabled={loading}
-              >
-                {loading ? 'Verifying...' : 'Verify & Sign In'}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full rounded-xl"
-                onClick={() => {
-                  setOtpSent(false);
-                  setOtp('');
-                }}
-              >
-                Use different number
-              </Button>
-            </form>
-          )}
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full h-12 text-base rounded-xl shadow-glow"
+              disabled={loading}
+            >
+              {loading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full rounded-xl"
+              onClick={() => setIsSignUp(!isSignUp)}
+            >
+              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
