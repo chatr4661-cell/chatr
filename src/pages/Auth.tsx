@@ -18,13 +18,13 @@ const Auth = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/chat');
+        navigate('/');
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        navigate('/chat');
+        navigate('/');
       }
     });
 
@@ -64,7 +64,7 @@ const Auth = () => {
           title: 'Welcome!',
           description: 'Signed in successfully.',
         });
-        navigate('/chat');
+        navigate('/');
       }
     } catch (error: any) {
       toast({

@@ -1,12 +1,40 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ServiceCard from '@/components/ServiceCard';
-import { Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, MessageCircle, Heart, User, Mic, Paperclip } from 'lucide-react';
+import { Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, MessageCircle, Heart, User, Mic, Paperclip, LogOut } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/auth');
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate('/auth');
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
 
   const services = [
     {
@@ -73,14 +101,16 @@ const Index = () => {
       <div className="p-4 backdrop-blur-glass bg-gradient-glass border-b border-glass-border sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">HealthMessenger</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/auth')}
-            className="rounded-full bg-primary/10 hover:bg-primary/20"
-          >
-            <User className="h-5 w-5 text-primary" />
-          </Button>
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              className="rounded-full bg-destructive/10 hover:bg-destructive/20"
+            >
+              <LogOut className="h-5 w-5 text-destructive" />
+            </Button>
+          )}
         </div>
       </div>
 
