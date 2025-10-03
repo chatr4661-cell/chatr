@@ -817,6 +817,36 @@ export type Database = {
         }
         Relationships: []
       }
+      webrtc_signals: {
+        Row: {
+          call_id: string
+          created_at: string
+          from_user: string
+          id: string
+          signal_data: Json
+          signal_type: string
+          to_user: string
+        }
+        Insert: {
+          call_id: string
+          created_at?: string
+          from_user: string
+          id?: string
+          signal_data: Json
+          signal_type: string
+          to_user: string
+        }
+        Update: {
+          call_id?: string
+          created_at?: string
+          from_user?: string
+          id?: string
+          signal_data?: Json
+          signal_type?: string
+          to_user?: string
+        }
+        Relationships: []
+      }
       wellness_tracking: {
         Row: {
           blood_pressure_diastolic: number | null

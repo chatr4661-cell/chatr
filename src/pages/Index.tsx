@@ -153,7 +153,6 @@ const Index = () => {
                 <MessageCircle className="h-5 w-5 text-green-500" />
                 chatr+ Messaging
               </h2>
-              <p className="text-xs text-muted-foreground">Free Forever • Compete with WhatsApp & Telegram</p>
             </div>
           </div>
           
