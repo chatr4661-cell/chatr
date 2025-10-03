@@ -14,7 +14,14 @@ import YouthEngagement from "./pages/YouthEngagement";
 import Marketplace from "./pages/Marketplace";
 import AlliedHealthcare from "./pages/AlliedHealthcare";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminProviders from "./pages/admin/Providers";
+import AdminPayments from "./pages/admin/Payments";
+import AdminAnalytics from "./pages/admin/Analytics";
+import AdminDocuments from "./pages/admin/Documents";
 import ProviderPortal from "./pages/ProviderPortal";
+import ProviderAppointments from "./pages/provider/Appointments";
+import ProviderServices from "./pages/provider/Services";
+import ProviderPayments from "./pages/provider/Payments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +44,14 @@ const App = () => (
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/providers" element={<AdminProviders />} />
+          <Route path="/admin/payments" element={<AdminPayments />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          <Route path="/admin/documents" element={<AdminDocuments />} />
           <Route path="/provider-portal" element={<ProviderPortal />} />
+          <Route path="/provider/appointments" element={<ProviderAppointments />} />
+          <Route path="/provider/services" element={<ProviderServices />} />
+          <Route path="/provider/payments" element={<ProviderPayments />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

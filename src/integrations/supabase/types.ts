@@ -598,6 +598,7 @@ export type Database = {
           business_name: string
           created_at: string | null
           description: string | null
+          document_urls: string[] | null
           id: string
           is_verified: boolean | null
           latitude: number | null
@@ -612,6 +613,7 @@ export type Database = {
           business_name: string
           created_at?: string | null
           description?: string | null
+          document_urls?: string[] | null
           id?: string
           is_verified?: boolean | null
           latitude?: number | null
@@ -626,6 +628,7 @@ export type Database = {
           business_name?: string
           created_at?: string | null
           description?: string | null
+          document_urls?: string[] | null
           id?: string
           is_verified?: boolean | null
           latitude?: number | null
