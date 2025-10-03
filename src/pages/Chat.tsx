@@ -351,7 +351,6 @@ const Chat = () => {
       toast({
         title: 'Voice message sent!',
       });
-      // TODO: Upload voice blob and send
     }
   };
 
@@ -404,510 +403,330 @@ const Chat = () => {
     navigate('/auth');
   };
 
-  return (
-    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-background p-4">
-      <div className="w-full max-w-[390px] h-[844px] bg-background rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-        {/* Persistent Top Back Button */}
-        <div className="absolute top-2 left-2 z-50">
+  if (viewMode === 'business' && isProvider && !selectedContact) {
+    return (
+      <div className="h-screen flex bg-background relative">
+        <div className="absolute top-4 right-4 z-50">
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="rounded-full bg-primary/20 hover:bg-primary/30 text-primary shadow-lg"
+            variant="outline"
+            size="sm"
+            onClick={() => setViewMode('consumer')}
+            className="rounded-full shadow-lg"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <UsersIcon className="h-4 w-4 mr-2" />
+            Switch to Consumer
           </Button>
         </div>
-        
-        <div className="flex flex-1 overflow-hidden">
-        {/* Show Business Portal if provider and in business mode */}
-        {viewMode === 'business' && !selectedContact ? (
-          <>
-            {/* Add toggle for providers */}
-            {isProvider && (
-              <div className="absolute top-4 right-4 z-50">
+        <BusinessPortal />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex bg-background">
+      {/* Main Container - WhatsApp/Telegram Style */}
+      <div className="flex w-full max-w-full mx-auto">
+        {/* Sidebar - Contact List */}
+        <div className={`${selectedContact ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-border bg-card`}>
+          {/* Header */}
+          <div className="p-3 border-b border-border bg-primary/5">
+            <div className="flex items-center gap-3 mb-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="rounded-full hover:bg-primary/10"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h2 className="text-xl font-bold flex-1">Chats</h2>
+              {isProvider && (
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setViewMode('consumer')}
-                  className="rounded-full shadow-elevated"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('business')}
+                  className="rounded-full"
                 >
-                  <UsersIcon className="h-4 w-4 mr-2" />
-                  Switch to Consumer
+                  <UsersIcon className="h-5 w-5" />
                 </Button>
-              </div>
-            )}
-            <BusinessPortal />
-          </>
-        ) : (
-        <>
-          {/* Add toggle for providers in consumer view */}
-          {isProvider && !selectedContact && (
-            <div className="fixed top-20 right-4 z-50">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setViewMode('business')}
-                className="rounded-full shadow-elevated"
-              >
-                <UsersIcon className="h-4 w-4 mr-2" />
-                Switch to Business
-              </Button>
-            </div>
-          )}
-      {/* Sidebar */}
-      <div className={`${selectedContact ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-glass-border backdrop-blur-glass bg-gradient-glass`}>
-        <div className="p-4 border-b border-glass-border backdrop-blur-glass bg-background/50">
-          <div className="flex items-center gap-3 mb-4">
-            <h2 className="text-lg font-semibold flex-1">Messages</h2>
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                  {profile?.username?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="font-semibold text-foreground">{profile?.username || 'User'}</h2>
-                <p className="text-xs text-muted-foreground">{profile?.status || 'Available'}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/status')}
-                className="rounded-full"
-              >
-                <BarChart3 className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSignOut}
-                className="rounded-full hover:bg-destructive/10 hover:text-destructive"
-              >
+              )}
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search or start new chat"
+                className="pl-10 rounded-lg bg-background border-border"
+              />
+            </div>
           </div>
-          
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contacts..."
-              className="pl-10 rounded-full bg-background/50 border-glass-border"
-            />
-          </div>
+
+          {/* Contacts List */}
+          <ScrollArea className="flex-1">
+            <div className="p-1">
+              {contacts.map((contact) => (
+                <button
+                  key={contact.id}
+                  onClick={() => selectContact(contact)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/80 transition-all ${
+                    selectedContact?.id === contact.id ? 'bg-primary/10' : ''
+                  }`}
+                >
+                  <div className="relative">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
+                        {contact.username[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {contact.is_online && (
+                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
+                    )}
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="font-semibold text-foreground truncate">{contact.username}</p>
+                      <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">12:30 PM</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <CheckCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      <p className="text-sm text-muted-foreground truncate">{contact.status || 'Hey there!'}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
 
-        <ScrollArea className="flex-1">
-          <div className="p-2">
-            {contacts.map((contact) => (
-              <button
-                key={contact.id}
-                onClick={() => selectContact(contact)}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-muted/50 transition-colors ${
-                  selectedContact?.id === contact.id ? 'bg-primary/10' : ''
-                }`}
-              >
-                <div className="relative">
-                  <Avatar className="h-12 w-12 ring-2 ring-primary/20">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
-                      {contact.username[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  {contact.is_online && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
-                  )}
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-foreground">{contact.username}</p>
-                    <span className="text-xs text-muted-foreground">12:30 PM</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">{contact.status}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {selectedContact ? (
-          <>
-            {/* Header */}
-            <div className="p-4 border-b border-glass-border backdrop-blur-glass bg-gradient-glass">
-              <div className="flex items-center justify-between">
+        {/* Chat Area */}
+        <div className={`${selectedContact ? 'flex' : 'hidden md:flex'} flex-1 flex-col bg-background`}>
+          {selectedContact ? (
+            <>
+              {/* Chat Header */}
+              <div className="p-3 border-b border-border bg-card flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden rounded-full bg-primary/10 hover:bg-primary/20"
+                    className="md:hidden rounded-full"
                     onClick={() => setSelectedContact(null)}
                   >
-                    <ArrowLeft className="h-6 w-6 text-primary" />
+                    <ArrowLeft className="h-5 w-5" />
                   </Button>
-                  <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                       {selectedContact.username[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="font-semibold text-foreground">{selectedContact.username}</h3>
                     <p className="text-xs text-muted-foreground">
-                      {selectedContact.is_online ? 'Online' : `Last seen ${selectedContact.last_seen || 'recently'}`}
+                      {selectedContact.is_online ? 'online' : `last seen ${selectedContact.last_seen || 'recently'}`}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="rounded-full">
                     <Video className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                  <Button variant="ghost" size="icon" className="rounded-full">
                     <Phone className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                  <Button variant="ghost" size="icon" className="rounded-full">
                     <MoreVertical className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
-            </div>
 
-            {/* Messages */}
-            <ScrollArea className="flex-1 p-4 bg-gradient-to-br from-background via-primary/5 to-accent/5">
-              <div className="space-y-4 max-w-4xl mx-auto">
-                {messages.map((message) => {
-                  const isOwn = message.sender_id === user?.id;
-                  
-                  return (
-                    <ContextMenu key={message.id}>
-                      <ContextMenuTrigger>
-                        <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[70%] space-y-1`}>
-                            {message.reply_to_id && (
-                              <div className="text-xs text-muted-foreground italic px-2">
-                                Replying to message
-                              </div>
-                            )}
-                            
-                            {message.message_type === 'poll' && message.poll_options ? (
-                              <PollMessage
-                                question={message.poll_question || ''}
-                                options={message.poll_options}
-                                totalVotes={0}
-                                onVote={(index) => {}}
-                              />
-                            ) : message.message_type === 'image' ? (
-                              <div className={`rounded-2xl overflow-hidden ${isOwn ? 'rounded-br-sm' : 'rounded-bl-sm'}`}>
-                                <img src={message.media_url} alt="Shared image" className="max-w-full" />
-                              </div>
-                            ) : message.message_type === 'location' ? (
-                              <div className={`rounded-2xl p-3 ${
-                                isOwn ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground'
-                              }`}>
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4" />
-                                  <span>{message.location_name}</span>
+              {/* Messages Area */}
+              <ScrollArea className="flex-1 p-4 bg-[#efeae2] dark:bg-[#0b141a]">
+                <div className="space-y-3 max-w-4xl mx-auto">
+                  {messages.map((message) => {
+                    const isOwn = message.sender_id === user?.id;
+                    
+                    return (
+                      <ContextMenu key={message.id}>
+                        <ContextMenuTrigger>
+                          <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[75%]`}>
+                              {message.message_type === 'poll' && message.poll_options ? (
+                                <PollMessage
+                                  question={message.poll_question || ''}
+                                  options={message.poll_options}
+                                  totalVotes={0}
+                                  onVote={(index) => {}}
+                                />
+                              ) : message.message_type === 'image' ? (
+                                <div className={`rounded-lg overflow-hidden shadow-md ${isOwn ? 'rounded-br-sm' : 'rounded-bl-sm'}`}>
+                                  <img src={message.media_url} alt="Shared image" className="max-w-full" />
+                                  <div className="px-2 py-1 bg-black/50 text-white text-xs flex items-center justify-end gap-1">
+                                    <span>{formatTime(message.created_at)}</span>
+                                    {isOwn && (message.read_at ? <CheckCheck className="h-3 w-3 text-blue-400" /> : <Check className="h-3 w-3" />)}
+                                  </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <div className={`rounded-2xl px-4 py-2 ${
-                                isOwn
-                                  ? 'bg-primary text-primary-foreground rounded-br-sm shadow-glow'
-                                  : 'bg-card text-card-foreground rounded-bl-sm shadow-card backdrop-blur-glass border border-glass-border'
-                              }`}>
-                                <p className="text-sm break-words">{message.content}</p>
-                                <div className="flex items-center gap-1 justify-end mt-1">
-                                  {message.is_edited && (
-                                    <span className="text-xs opacity-70">edited</span>
-                                  )}
-                                  {message.is_starred && (
-                                    <Star className="h-3 w-3 fill-current" />
-                                  )}
-                                  <span className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                                    {formatTime(message.created_at)}
-                                  </span>
-                                  {isOwn && (
-                                    <span className="text-primary-foreground/70">
-                                      {message.read_at ? (
-                                        <CheckCheck className="h-3 w-3" />
-                                      ) : (
-                                        <Check className="h-3 w-3" />
-                                      )}
+                              ) : message.message_type === 'location' ? (
+                                <div className={`rounded-lg p-3 shadow-md ${
+                                  isOwn ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-foreground rounded-br-sm' : 'bg-white dark:bg-[#202c33] text-foreground rounded-bl-sm'
+                                }`}>
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    <span>{message.location_name}</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className={`rounded-lg px-3 py-2 shadow-sm ${
+                                  isOwn
+                                    ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-foreground rounded-br-sm'
+                                    : 'bg-white dark:bg-[#202c33] text-foreground rounded-bl-sm'
+                                }`}>
+                                  <p className="text-sm break-words whitespace-pre-wrap">{message.content}</p>
+                                  <div className="flex items-center gap-1 justify-end mt-1">
+                                    {message.is_edited && (
+                                      <span className="text-[10px] opacity-70">edited</span>
+                                    )}
+                                    <span className="text-[11px] opacity-70">
+                                      {formatTime(message.created_at)}
                                     </span>
-                                  )}
+                                    {isOwn && (
+                                      message.read_at ? (
+                                        <CheckCheck className="h-3.5 w-3.5 text-blue-500" />
+                                      ) : (
+                                        <Check className="h-3.5 w-3.5 opacity-70" />
+                                      )
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            
-                            <MessageReactions
-                              reactions={[]}
-                              onReact={(emoji) => handleReact(message.id, emoji)}
-                            />
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </ContextMenuTrigger>
-                      <ContextMenuContent>
-                        <ContextMenuItem onClick={() => setReplyToMessage(message)}>
-                          <Reply className="h-4 w-4 mr-2" />
-                          Reply
-                        </ContextMenuItem>
-                        <ContextMenuItem>
-                          <Forward className="h-4 w-4 mr-2" />
-                          Forward
-                        </ContextMenuItem>
-                        <ContextMenuItem onClick={() => handleStarMessage(message.id, message.is_starred || false)}>
-                          <Star className="h-4 w-4 mr-2" />
-                          {message.is_starred ? 'Unstar' : 'Star'}
-                        </ContextMenuItem>
-                        <ContextMenuItem>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy
-                        </ContextMenuItem>
-                        {isOwn && (
-                          <>
-                            <ContextMenuItem>
-                              <Edit2 className="h-4 w-4 mr-2" />
-                              Edit
-                            </ContextMenuItem>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem onClick={() => setReplyToMessage(message)}>
+                            <Reply className="h-4 w-4 mr-2" />
+                            Reply
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => handleStarMessage(message.id, message.is_starred || false)}>
+                            <Star className="h-4 w-4 mr-2" />
+                            {message.is_starred ? 'Unstar' : 'Star'}
+                          </ContextMenuItem>
+                          <ContextMenuItem>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy
+                          </ContextMenuItem>
+                          {isOwn && (
                             <ContextMenuItem onClick={() => handleDeleteMessage(message.id)} className="text-destructive">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
                             </ContextMenuItem>
-                          </>
-                        )}
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  );
-                })}
-              </div>
-              {conversationId && <TypingIndicator conversationId={conversationId} currentUserId={user?.id} />}
-            </ScrollArea>
-
-            {/* Reply Preview */}
-            {replyToMessage && (
-              <div className="px-4 py-2 bg-muted/50 border-t border-glass-border flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground">Replying to {replyToMessage.sender?.username}</p>
-                  <p className="text-sm truncate">{replyToMessage.content}</p>
+                          )}
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    );
+                  })}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setReplyToMessage(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            {/* Input */}
-            <div className="p-4 border-t border-glass-border backdrop-blur-glass bg-gradient-glass">
-              <form onSubmit={sendMessage} className="flex items-center gap-2 max-w-4xl mx-auto">
-                <Sheet open={showMediaActions} onOpenChange={setShowMediaActions}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <MoreVertical className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-auto">
-                    <SheetHeader>
-                      <SheetTitle>Send</SheetTitle>
-                    </SheetHeader>
-                    <div className="grid grid-cols-4 gap-4 py-4">
-                      <MessageAction icon={ImageIcon} label="Photo" onClick={handleImagePick} color="text-blue-500" />
-                      <MessageAction icon={File} label="Document" onClick={() => {}} color="text-purple-500" />
-                      <MessageAction icon={MapPin} label="Location" onClick={handleLocationShare} color="text-green-500" />
-                      <MessageAction icon={BarChart3} label="Poll" onClick={() => { setShowMediaActions(false); setShowPollCreator(true); }} color="text-orange-500" />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-
-                <Input
-                  value={messageInput}
-                  onChange={(e) => handleInputChange(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 rounded-full bg-background/50 border-glass-border"
-                />
-                
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Smile className="h-5 w-5" />
-                </Button>
-
-                {messageInput.trim() ? (
-                  <Button
-                    type="submit"
-                    size="icon"
-                    className="rounded-full h-11 w-11 shadow-glow"
-                  >
-                    <Send className="h-5 w-5" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    size="icon"
-                    className={`rounded-full h-11 w-11 ${isRecording ? 'bg-red-500' : ''}`}
-                    onClick={handleVoiceRecord}
-                  >
-                    <Mic className="h-5 w-5" />
-                  </Button>
-                )}
-              </form>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col bg-gradient-to-br from-background via-primary/5 to-accent/10">
-            {/* Main Chat Home Screen */}
-            <div className="flex-1 flex flex-col">
-              {/* Header with Profile */}
-              <div className="p-4 backdrop-blur-glass bg-gradient-glass border-b border-glass-border">
-                <div className="max-w-4xl mx-auto flex items-center justify-between">
-                  <h1 className="text-2xl font-bold text-foreground">HealthMessenger</h1>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full bg-primary/10 hover:bg-primary/20"
-                  >
-                    <User className="h-5 w-5 text-primary" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Message Input Bar */}
-              <div className="p-4 max-w-4xl mx-auto w-full">
-                <div className="relative">
-                  <Input
-                    placeholder="Type a message..."
-                    className="rounded-full bg-card/50 backdrop-blur-glass border-glass-border pr-24 shadow-card"
-                    readOnly
-                    onClick={() => {
-                      toast({
-                        title: 'Select a contact',
-                        description: 'Choose a contact from the left to start chatting'
-                      });
-                    }}
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full h-9 w-9"
-                    >
-                      <Paperclip className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full h-9 w-9"
-                    >
-                      <Mic className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Service Cards Grid */}
-              <ScrollArea className="flex-1 p-4">
-                <div className="max-w-4xl mx-auto space-y-3">
-                  <div onClick={() => navigate('/ai-assistant')}>
-                    <ServiceCard
-                      icon={Bot}
-                      title="AI Health Assistant"
-                      description="Get instant health advice and symptom checking"
-                      iconColor="bg-gradient-to-br from-teal-400 to-emerald-500"
-                    />
-                  </div>
-                  
-                  <div onClick={() => navigate('/booking')}>
-                    <ServiceCard
-                      icon={Stethoscope}
-                      title="Doctor/Nurse Booking"
-                      description="Book appointments with healthcare professionals"
-                      iconColor="bg-gradient-to-br from-blue-400 to-blue-600"
-                    />
-                  </div>
-                  
-                  <div onClick={() => navigate('/emergency')}>
-                    <ServiceCard
-                      icon={AlertTriangle}
-                      title="Emergency / Panic Button"
-                      description="Quick access to emergency services"
-                      iconColor="bg-gradient-to-br from-red-400 to-red-600"
-                    />
-                  </div>
-                  
-                  <div onClick={() => navigate('/wellness')}>
-                    <ServiceCard
-                      icon={Activity}
-                      title="Wellness Tracking"
-                      description="Track your health metrics and goals"
-                      iconColor="bg-gradient-to-br from-pink-400 to-pink-600"
-                    />
-                  </div>
-                  
-                  <div onClick={() => navigate('/')}>
-                    <ServiceCard
-                      icon={Trophy}
-                      title="Youth Engagement"
-                      description="Health programs and activities"
-                      iconColor="bg-gradient-to-br from-yellow-400 to-yellow-600"
-                    />
-                  </div>
-                  
-                  <div onClick={() => navigate('/')}>
-                    <ServiceCard
-                      icon={ShoppingBag}
-                      title="Marketplace"
-                      description="Order medicines and health products"
-                      iconColor="bg-gradient-to-br from-purple-400 to-purple-600"
-                    />
-                  </div>
-                  
-                  <div onClick={() => {
-                    toast({
-                      title: 'Messaging',
-                      description: 'Select a contact from the left to start chatting'
-                    });
-                  }}>
-                    <ServiceCard
-                      icon={MessageCircle}
-                      title="Messaging"
-                      description="Chat with healthcare providers"
-                      iconColor="bg-gradient-to-br from-green-400 to-emerald-600"
-                    />
-                  </div>
-                  
-                  <div onClick={() => navigate('/')}>
-                    <ServiceCard
-                      icon={Heart}
-                      title="Allied Healthcare"
-                      description="Access specialized healthcare services"
-                      iconColor="bg-gradient-to-br from-blue-400 to-indigo-600"
-                    />
-                  </div>
-
-                  {/* AI Assistant Message Bubble */}
-                  <div className="flex justify-end px-4 py-2">
-                    <div className="bg-gradient-to-br from-teal-400/20 to-emerald-500/20 backdrop-blur-glass border border-teal-400/30 rounded-2xl rounded-br-sm px-4 py-3 max-w-[85%] shadow-glow">
-                      <p className="text-sm text-foreground">Hi! How can I assist you today?</p>
-                    </div>
-                  </div>
-                </div>
+                {conversationId && <TypingIndicator conversationId={conversationId} currentUserId={user?.id} />}
               </ScrollArea>
-            </div>
-          </div>
-        )}
-      </div>
 
-        <PollCreator
-          open={showPollCreator}
-          onClose={() => setShowPollCreator(false)}
-          onSend={handlePollSend}
-        />
-        </>
-        )}
+              {/* Reply Preview */}
+              {replyToMessage && (
+                <div className="px-4 py-2 bg-muted/50 border-t border-border flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">Replying to {replyToMessage.sender?.username}</p>
+                    <p className="text-sm truncate">{replyToMessage.content}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setReplyToMessage(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Input Area */}
+              <div className="p-3 border-t border-border bg-card">
+                <form onSubmit={sendMessage} className="flex items-center gap-2">
+                  <Sheet open={showMediaActions} onOpenChange={setShowMediaActions}>
+                    <SheetTrigger asChild>
+                      <Button variant="ghost" size="icon" className="rounded-full flex-shrink-0">
+                        <Paperclip className="h-5 w-5" />
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-auto">
+                      <SheetHeader>
+                        <SheetTitle>Send</SheetTitle>
+                      </SheetHeader>
+                      <div className="grid grid-cols-4 gap-4 py-4">
+                        <MessageAction icon={ImageIcon} label="Photo" onClick={handleImagePick} color="text-blue-500" />
+                        <MessageAction icon={File} label="Document" onClick={() => {}} color="text-purple-500" />
+                        <MessageAction icon={MapPin} label="Location" onClick={handleLocationShare} color="text-green-500" />
+                        <MessageAction icon={BarChart3} label="Poll" onClick={() => { setShowMediaActions(false); setShowPollCreator(true); }} color="text-orange-500" />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+
+                  <div className="flex-1 relative">
+                    <Input
+                      value={messageInput}
+                      onChange={(e) => handleInputChange(e.target.value)}
+                      placeholder="Type a message"
+                      className="rounded-full bg-background border-border pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full h-8 w-8"
+                    >
+                      <Smile className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                  </div>
+
+                  {messageInput.trim() ? (
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="rounded-full flex-shrink-0 h-11 w-11"
+                    >
+                      <Send className="h-5 w-5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="icon"
+                      className={`rounded-full flex-shrink-0 h-11 w-11 ${isRecording ? 'bg-red-500 hover:bg-red-600' : ''}`}
+                      onClick={handleVoiceRecord}
+                    >
+                      <Mic className="h-5 w-5" />
+                    </Button>
+                  )}
+                </form>
+              </div>
+            </>
+          ) : (
+            // Empty State - No Chat Selected
+            <div className="flex-1 flex items-center justify-center bg-[#f0f2f5] dark:bg-[#0b141a] p-4">
+              <div className="text-center">
+                <MessageCircle className="h-24 w-24 mx-auto text-muted-foreground/30 mb-4" />
+                <h2 className="text-2xl font-semibold mb-2">HealthMessenger</h2>
+                <p className="text-muted-foreground mb-6">
+                  Send and receive messages securely with healthcare providers
+                </p>
+                <Button onClick={() => navigate('/')} variant="outline">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      <PollCreator
+        open={showPollCreator}
+        onClose={() => setShowPollCreator(false)}
+        onSend={handlePollSend}
+      />
     </div>
   );
 };
