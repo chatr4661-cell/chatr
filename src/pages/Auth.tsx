@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Mail } from 'lucide-react';
+import logo from '@/assets/chatr-logo.png';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -83,10 +83,9 @@ const Auth = () => {
       
       <Card className="w-full max-w-md relative backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass rounded-3xl">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-glow">
-            <Mail className="w-8 h-8 text-primary-foreground" />
+          <div className="mx-auto flex items-center justify-center">
+            <img src={logo} alt="chatr+ Logo" className="h-20 object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold">HealthMessenger</CardTitle>
           <CardDescription className="text-base">
             {isSignUp ? 'Create your account' : 'Sign in to continue'}
           </CardDescription>

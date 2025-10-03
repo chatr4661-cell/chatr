@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ServiceCard from '@/components/ServiceCard';
-import { Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, MessageCircle, Heart, User, Mic, Paperclip, LogOut } from 'lucide-react';
+import { Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, MessageCircle, Heart, Mic, Paperclip, LogOut } from 'lucide-react';
+import logo from '@/assets/chatr-logo.png';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -100,7 +100,7 @@ const Index = () => {
       {/* Header */}
       <div className="p-4 backdrop-blur-glass bg-gradient-glass border-b border-glass-border sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">HealthMessenger</h1>
+          <img src={logo} alt="chatr+ Logo" className="h-12 object-contain" />
           {user && (
             <Button
               variant="ghost"

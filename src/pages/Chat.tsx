@@ -33,6 +33,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import logo from '@/assets/chatr-logo.png';
 
 interface Profile {
   id: string;
@@ -439,7 +440,7 @@ const Chat = () => {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <h2 className="text-xl font-bold flex-1">Chats</h2>
+              <img src={logo} alt="chatr+ Logo" className="h-8 object-contain flex-1" />
               {isProvider && (
                 <Button
                   variant="ghost"
