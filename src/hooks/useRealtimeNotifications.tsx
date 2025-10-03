@@ -1,0 +1,158 @@
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface NotificationPayload {
+  new: any;
+  old?: any;
+  eventType: string;
+}
+
+export const useRealtimeNotifications = (userId: string | undefined) => {
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!userId) return;
+
+    // Subscribe to new messages
+    const messagesChannel = supabase
+      .channel('messages-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=neq.${userId}`
+        },
+        async (payload: NotificationPayload) => {
+          const message = payload.new;
+          
+          // Get conversation participants to check if this message is for the current user
+          const { data: participants } = await supabase
+            .from('conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', message.conversation_id);
+
+          const isForCurrentUser = participants?.some(p => p.user_id === userId);
+          
+          if (isForCurrentUser) {
+            // Get sender info
+            const { data: sender } = await supabase
+              .from('profiles')
+              .select('username, avatar_url')
+              .eq('id', message.sender_id)
+              .single();
+
+            // Show notification
+            toast({
+              title: `${sender?.username || 'Someone'}`,
+              description: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : ''),
+              duration: 5000,
+            });
+
+            // Play notification sound
+            const audio = new Audio('/notification.mp3');
+            audio.play().catch(e => console.log('Could not play sound:', e));
+
+            // Send browser notification if permitted
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification(`${sender?.username || 'New Message'}`, {
+                body: message.content.substring(0, 100),
+                icon: sender?.avatar_url || '/favicon.png',
+                badge: '/favicon.png',
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to new calls
+    const callsChannel = supabase
+      .channel('calls-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'calls',
+          filter: `caller_id=neq.${userId}`
+        },
+        async (payload: NotificationPayload) => {
+          const call = payload.new;
+          
+          // Get conversation participants
+          const { data: participants } = await supabase
+            .from('conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', call.conversation_id);
+
+          const isForCurrentUser = participants?.some(p => p.user_id === userId);
+          
+          if (isForCurrentUser) {
+            // Get caller info
+            const { data: caller } = await supabase
+              .from('profiles')
+              .select('username')
+              .eq('id', call.caller_id)
+              .single();
+
+            toast({
+              title: `Incoming ${call.call_type} call`,
+              description: `${caller?.username || 'Someone'} is calling you`,
+              duration: 10000,
+            });
+
+            // Play ringtone
+            const audio = new Audio('/ringtone.mp3');
+            audio.loop = true;
+            audio.play().catch(e => console.log('Could not play ringtone:', e));
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to appointment updates
+    const appointmentsChannel = supabase
+      .channel('appointments-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `patient_id=eq.${userId}`
+        },
+        async (payload: NotificationPayload) => {
+          const appointment = payload.new;
+          
+          if (payload.eventType === 'UPDATE') {
+            toast({
+              title: "Appointment Updated",
+              description: `Your appointment status: ${appointment.status}`,
+              duration: 5000,
+            });
+          } else if (payload.eventType === 'INSERT') {
+            toast({
+              title: "Appointment Confirmed",
+              description: "Your appointment has been scheduled",
+              duration: 5000,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    return () => {
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(callsChannel);
+      supabase.removeChannel(appointmentsChannel);
+    };
+  }, [userId, toast]);
+};
