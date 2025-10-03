@@ -78,7 +78,7 @@ const BusinessPortal = () => {
   ];
 
   return (
-    <div className="h-full w-full flex flex-col bg-gradient-to-br from-background via-primary/5 to-accent/10">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-background via-primary/5 to-accent/10">
       {/* Header */}
       <div className="p-4 backdrop-blur-glass bg-gradient-glass border-b border-glass-border">
         <div className="max-w-4xl mx-auto">

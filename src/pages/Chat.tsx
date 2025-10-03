@@ -392,8 +392,7 @@ const Chat = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-muted/30 to-muted/50 flex items-center justify-center p-4">
-      <div className="h-screen max-h-[844px] w-full max-w-[390px] bg-background rounded-3xl shadow-2xl overflow-hidden border border-border/50 flex">
+    <div className="h-screen flex bg-background">
       {/* Show Business Portal if provider and in business mode */}
       {viewMode === 'business' && !selectedContact ? (
         <>
@@ -877,7 +876,6 @@ const Chat = () => {
       />
         </>
       )}
-      </div>
     </div>
   );
 };
