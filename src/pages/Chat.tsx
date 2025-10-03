@@ -176,7 +176,9 @@ const Chat = () => {
 
     const { data: newConversation, error } = await supabase
       .from('conversations')
-      .insert({})
+      .insert({
+        created_by: user.id
+      })
       .select()
       .single();
 
