@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_data: {
+        Row: {
+          active_providers: number | null
+          created_at: string | null
+          date: string
+          id: string
+          new_users: number | null
+          total_appointments: number | null
+          total_revenue: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_providers?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          new_users?: number | null
+          total_appointments?: number | null
+          total_revenue?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_providers?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          new_users?: number | null
+          total_appointments?: number | null
+          total_revenue?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -432,6 +465,60 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          appointment_id: string | null
+          created_at: string | null
+          id: string
+          patient_id: string
+          payment_method: string | null
+          payment_status: string | null
+          provider_id: string | null
+          transaction_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          appointment_id?: string | null
+          created_at?: string | null
+          id?: string
+          patient_id: string
+          payment_method?: string | null
+          payment_status?: string | null
+          provider_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string | null
+          created_at?: string | null
+          id?: string
+          patient_id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          provider_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
             referencedColumns: ["id"]
           },
         ]

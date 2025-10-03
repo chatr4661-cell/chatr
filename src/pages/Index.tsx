@@ -98,54 +98,54 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 pb-6">
       {/* Header */}
-      <div className="p-4 backdrop-blur-glass bg-gradient-glass border-b border-glass-border sticky top-0 z-10">
+      <div className="p-2 backdrop-blur-glass bg-gradient-glass border-b border-glass-border sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <img src={logo} alt="chatr+ Logo" className="h-12 object-contain" />
+          <img src={logo} alt="chatr+ Logo" className="h-8 object-contain" />
           {user && (
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={handleSignOut}
-              className="rounded-full bg-destructive/10 hover:bg-destructive/20"
+              className="rounded-full bg-destructive/10 hover:bg-destructive/20 h-7 px-2"
             >
-              <LogOut className="h-5 w-5 text-destructive" />
+              <LogOut className="h-3 w-3 text-destructive" />
             </Button>
           )}
         </div>
       </div>
 
-      {/* Message Input Bar */}
-      <div className="p-4 max-w-4xl mx-auto">
+      {/* Message Input Bar - Now at the top */}
+      <div className="p-2 max-w-4xl mx-auto">
         <div className="relative">
           <Input
             placeholder="Type a message..."
-            className="rounded-full bg-card/50 backdrop-blur-glass border-glass-border pr-24 shadow-card"
+            className="rounded-full bg-card/50 backdrop-blur-glass border-glass-border pr-20 shadow-card h-8 text-xs"
             readOnly
             onClick={() => navigate('/chat')}
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
             <Button
               variant="ghost"
-              size="icon"
-              className="rounded-full h-9 w-9"
+              size="sm"
+              className="rounded-full h-6 w-6 p-0"
               onClick={() => navigate('/chat')}
             >
-              <Paperclip className="h-4 w-4 text-muted-foreground" />
+              <Paperclip className="h-3 w-3 text-muted-foreground" />
             </Button>
             <Button
               variant="ghost"
-              size="icon"
-              className="rounded-full h-9 w-9"
+              size="sm"
+              className="rounded-full h-6 w-6 p-0"
               onClick={() => navigate('/chat')}
             >
-              <Mic className="h-4 w-4 text-muted-foreground" />
+              <Mic className="h-3 w-3 text-muted-foreground" />
             </Button>
           </div>
         </div>
       </div>
 
       {/* Services Grid */}
-      <div className="p-4 max-w-4xl mx-auto space-y-3">
+      <div className="p-2 max-w-4xl mx-auto space-y-2">
         {services.map((service) => (
           <div key={service.title} onClick={() => navigate(service.route)}>
             <ServiceCard {...service} />
@@ -153,9 +153,9 @@ const Index = () => {
         ))}
 
         {/* AI Assistant Message Bubble */}
-        <div className="flex justify-end px-4 py-2">
-          <div className="bg-gradient-to-br from-teal-400/20 to-emerald-500/20 backdrop-blur-glass border border-teal-400/30 rounded-2xl rounded-br-sm px-4 py-3 max-w-[85%] shadow-glow">
-            <p className="text-sm text-foreground">Hi! How can I assist you today?</p>
+        <div className="flex justify-end px-2 py-1">
+          <div className="bg-gradient-to-br from-teal-400/20 to-emerald-500/20 backdrop-blur-glass border border-teal-400/30 rounded-2xl rounded-br-sm px-3 py-2 max-w-[85%] shadow-glow">
+            <p className="text-xs text-foreground">Hi! How can I assist you today?</p>
           </div>
         </div>
       </div>

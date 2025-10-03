@@ -13,6 +13,8 @@ import WellnessTracking from "./pages/WellnessTracking";
 import YouthEngagement from "./pages/YouthEngagement";
 import Marketplace from "./pages/Marketplace";
 import AlliedHealthcare from "./pages/AlliedHealthcare";
+import AdminDashboard from "./pages/AdminDashboard";
+import ProviderPortal from "./pages/ProviderPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
           <Route path="/youth" element={<YouthEngagement />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/provider-portal" element={<ProviderPortal />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
