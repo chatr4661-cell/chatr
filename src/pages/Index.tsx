@@ -38,6 +38,13 @@ const Index = () => {
 
   const services = [
     {
+      icon: MessageCircle,
+      title: 'Messaging',
+      description: 'Chat with healthcare providers',
+      iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
+      route: '/chat'
+    },
+    {
       icon: Bot,
       title: 'AI Health Assistant',
       description: 'Get instant health advice and symptom checking',
@@ -78,13 +85,6 @@ const Index = () => {
       description: 'Order medicines and health products',
       iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
       route: '/marketplace'
-    },
-    {
-      icon: MessageCircle,
-      title: 'Messaging',
-      description: 'Chat with healthcare providers',
-      iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
-      route: '/chat'
     },
     {
       icon: Heart,

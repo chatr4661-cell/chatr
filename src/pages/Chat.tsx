@@ -20,6 +20,7 @@ import { PollMessage } from '@/components/PollMessage';
 import { MessageReactions } from '@/components/MessageReactions';
 import { TypingIndicator, setTypingStatus } from '@/components/TypingIndicator';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -83,6 +84,9 @@ const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Enable real-time notifications
+  useRealtimeNotifications(user?.id);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
