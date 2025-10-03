@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { 
   MessageSquare, 
   Heart, 
@@ -88,9 +89,11 @@ const Index = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6 rounded-xl shadow-elevated">
-                Get Started Free
-              </Button>
+              <Link to="/auth">
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6 rounded-xl shadow-elevated">
+                  Get Started Free
+                </Button>
+              </Link>
               <Button size="lg" variant="outline" className="text-lg px-8 py-6 rounded-xl border-2">
                 For Healthcare Providers
               </Button>
@@ -217,9 +220,11 @@ const Index = () => {
           <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
             Join millions who trust HealthMessenger for their daily health needs. Free to start, premium for $2/month.
           </p>
-          <Button size="lg" variant="secondary" className="text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all">
-            Download App Now
-          </Button>
+          <Link to="/auth">
+            <Button size="lg" variant="secondary" className="text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all">
+              Download App Now
+            </Button>
+          </Link>
         </div>
       </section>
     </div>
