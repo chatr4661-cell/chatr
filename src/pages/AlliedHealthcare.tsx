@@ -31,6 +31,27 @@ const AlliedHealthcare = () => {
 
   useEffect(() => {
     fetchProviders();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('service_providers_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'service_providers'
+        },
+        (payload) => {
+          console.log('Provider changed:', payload);
+          fetchProviders(); // Refresh data on changes
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {

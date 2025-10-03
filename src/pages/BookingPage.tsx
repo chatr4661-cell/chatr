@@ -6,9 +6,11 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Search, Star, MapPin, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Search, Star, MapPin, Calendar, Clock, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface Provider {
   id: string;
@@ -18,22 +20,57 @@ interface Provider {
   rating: number;
   total_reviews: number;
   is_verified: boolean;
+  specializations?: Array<{ name: string }>;
 }
 
 const BookingPage = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     loadProviders();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('appointments_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments'
+        },
+        (payload) => {
+          console.log('Appointment changed:', payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadProviders = async () => {
     const { data, error } = await supabase
       .from('service_providers')
-      .select('*')
+      .select(`
+        *,
+        provider_specializations!inner (
+          specializations (
+            name
+          )
+        )
+      `)
+      .eq('is_verified', true)
       .order('rating', { ascending: false });
 
     if (error) {
@@ -41,7 +78,74 @@ const BookingPage = () => {
       return;
     }
 
-    setProviders(data || []);
+    const formattedData = data?.map(provider => ({
+      ...provider,
+      specializations: provider.provider_specializations.map((ps: any) => ps.specializations)
+    })) || [];
+
+    setProviders(formattedData);
+  };
+
+  const handleBooking = async () => {
+    if (!selectedProvider || !bookingDate || !bookingTime) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please select date and time for your appointment',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsBooking(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to book an appointment',
+        variant: 'destructive',
+      });
+      setIsBooking(false);
+      return;
+    }
+
+    try {
+      const appointmentDateTime = new Date(`${bookingDate}T${bookingTime}`);
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert({
+          patient_id: user.id,
+          provider_id: selectedProvider.id,
+          appointment_date: appointmentDateTime.toISOString(),
+          notes: notes || null,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success!',
+        description: 'Your appointment has been booked successfully',
+      });
+
+      setShowBookingDialog(false);
+      setSelectedProvider(null);
+      setBookingDate('');
+      setBookingTime('');
+      setNotes('');
+    } catch (error) {
+      console.error('Booking error:', error);
+      toast({
+        title: 'Booking Failed',
+        description: 'Unable to book appointment. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   const filteredProviders = providers.filter(provider =>
@@ -90,10 +194,8 @@ const BookingPage = () => {
               key={provider.id}
               className="p-4 hover:shadow-elevated transition-all cursor-pointer border-glass-border bg-gradient-card backdrop-blur-glass"
               onClick={() => {
-                toast({
-                  title: 'Coming Soon',
-                  description: 'Booking functionality will be available soon!'
-                });
+                setSelectedProvider(provider);
+                setShowBookingDialog(true);
               }}
             >
               <div className="flex gap-4">
@@ -151,6 +253,88 @@ const BookingPage = () => {
           )}
         </div>
       </ScrollArea>
+
+      {/* Booking Dialog */}
+      <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Book Appointment</DialogTitle>
+            <DialogDescription>
+              Schedule your appointment with {selectedProvider?.business_name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {selectedProvider && (
+              <Card className="p-3 bg-muted/50">
+                <div className="flex gap-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                      {selectedProvider.business_name[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm">{selectedProvider.business_name}</h4>
+                    <p className="text-xs text-muted-foreground">{selectedProvider.address}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <span className="text-xs font-medium">{selectedProvider.rating}</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Appointment Date</label>
+              <Input
+                type="date"
+                value={bookingDate}
+                onChange={(e) => setBookingDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="rounded-lg"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Appointment Time</label>
+              <Input
+                type="time"
+                value={bookingTime}
+                onChange={(e) => setBookingTime(e.target.value)}
+                className="rounded-lg"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notes (Optional)</label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any specific concerns or requirements..."
+                className="rounded-lg min-h-[80px]"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowBookingDialog(false)}
+                className="flex-1 rounded-lg"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleBooking}
+                disabled={isBooking || !bookingDate || !bookingTime}
+                className="flex-1 rounded-lg shadow-glow"
+              >
+                {isBooking ? 'Booking...' : 'Confirm Booking'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
