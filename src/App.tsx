@@ -10,6 +10,9 @@ import AIAssistant from "./pages/AIAssistant";
 import BookingPage from "./pages/BookingPage";
 import EmergencyButton from "./pages/EmergencyButton";
 import WellnessTracking from "./pages/WellnessTracking";
+import YouthEngagement from "./pages/YouthEngagement";
+import Marketplace from "./pages/Marketplace";
+import AlliedHealthcare from "./pages/AlliedHealthcare";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +31,9 @@ const App = () => (
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/emergency" element={<EmergencyButton />} />
           <Route path="/wellness" element={<WellnessTracking />} />
+          <Route path="/youth" element={<YouthEngagement />} />
+          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

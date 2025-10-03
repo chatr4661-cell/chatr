@@ -70,14 +70,14 @@ const Index = () => {
       title: 'Youth Engagement',
       description: 'Health programs and activities',
       iconColor: 'bg-gradient-to-br from-yellow-400 to-yellow-600',
-      route: '/'
+      route: '/youth'
     },
     {
       icon: ShoppingBag,
       title: 'Marketplace',
       description: 'Order medicines and health products',
       iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
-      route: '/'
+      route: '/marketplace'
     },
     {
       icon: MessageCircle,
@@ -91,7 +91,7 @@ const Index = () => {
       title: 'Allied Healthcare',
       description: 'Access specialized healthcare services',
       iconColor: 'bg-gradient-to-br from-blue-400 to-indigo-600',
-      route: '/'
+      route: '/allied-healthcare'
     },
   ];
 
