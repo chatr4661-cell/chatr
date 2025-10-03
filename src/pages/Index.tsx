@@ -49,21 +49,24 @@ const Index = () => {
     navigate('/auth');
   };
 
-  const services = [
+  const messagingServices = [
     {
       icon: MessageCircle,
       title: 'Messaging',
-      description: 'Chat with healthcare providers',
+      description: 'Chat with anyone, anywhere',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
       route: '/chat'
     },
     {
-      icon: Briefcase,
-      title: 'Become a Provider',
-      description: 'Register as a healthcare provider',
+      icon: MessageCircle,
+      title: 'Contacts',
+      description: 'View and manage contacts',
       iconColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
-      route: '/provider-register'
+      route: '/contacts'
     },
+  ];
+
+  const healthcareServices = [
     {
       icon: Bot,
       title: 'AI Health Assistant',
@@ -113,6 +116,13 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-blue-400 to-indigo-600',
       route: '/allied-healthcare'
     },
+    {
+      icon: Briefcase,
+      title: 'Become a Provider',
+      description: 'Register as a healthcare provider',
+      iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
+      route: '/provider-register'
+    },
   ];
 
   return (
@@ -134,48 +144,86 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Message Input Bar - Now at the top */}
-      <div className="p-2 max-w-4xl mx-auto">
-        <div className="relative">
-          <Input
-            placeholder="Type a message..."
-            className="rounded-full bg-card/50 backdrop-blur-glass border-glass-border pr-20 shadow-card h-8 text-xs"
-            readOnly
-            onClick={() => navigate('/chat')}
-          />
-          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full h-6 w-6 p-0"
+      <div className="p-4 max-w-4xl mx-auto space-y-6">
+        {/* Messaging Product Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-green-500" />
+                chatr+ Messaging
+              </h2>
+              <p className="text-xs text-muted-foreground">Free Forever • Compete with WhatsApp & Telegram</p>
+            </div>
+          </div>
+          
+          {/* Quick Message Input */}
+          <div className="relative">
+            <Input
+              placeholder="Start a new message..."
+              className="rounded-full bg-card/50 backdrop-blur-glass border-glass-border pr-20 shadow-card h-10 text-sm"
+              readOnly
               onClick={() => navigate('/chat')}
-            >
-              <Paperclip className="h-3 w-3 text-muted-foreground" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full h-6 w-6 p-0"
-              onClick={() => navigate('/chat')}
-            >
-              <Mic className="h-3 w-3 text-muted-foreground" />
-            </Button>
+            />
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full h-7 w-7 p-0"
+                onClick={() => navigate('/chat')}
+              >
+                <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full h-7 w-7 p-0"
+                onClick={() => navigate('/chat')}
+              >
+                <Mic className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Messaging Features */}
+          <div className="grid grid-cols-2 gap-2">
+            {messagingServices.map((service) => (
+              <div key={service.title} onClick={() => navigate(service.route)}>
+                <ServiceCard {...service} />
+              </div>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* Services Grid */}
-      <div className="p-2 max-w-4xl mx-auto space-y-2">
-        {services.map((service) => (
-          <div key={service.title} onClick={() => navigate(service.route)}>
-            <ServiceCard {...service} />
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-glass-border"></div>
           </div>
-        ))}
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">Separate Business</span>
+          </div>
+        </div>
 
-        {/* AI Assistant Message Bubble */}
-        <div className="flex justify-end px-2 py-1">
-          <div className="bg-gradient-to-br from-teal-400/20 to-emerald-500/20 backdrop-blur-glass border border-teal-400/30 rounded-2xl rounded-br-sm px-3 py-2 max-w-[85%] shadow-glow">
-            <p className="text-xs text-foreground">Hi! How can I assist you today?</p>
+        {/* Healthcare Product Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                Healthcare Platform
+              </h2>
+              <p className="text-xs text-muted-foreground">Professional Health Services & Wellness</p>
+            </div>
+          </div>
+
+          {/* Healthcare Services Grid */}
+          <div className="space-y-2">
+            {healthcareServices.map((service) => (
+              <div key={service.title} onClick={() => navigate(service.route)}>
+                <ServiceCard {...service} />
+              </div>
+            ))}
           </div>
         </div>
       </div>
