@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ServiceCard from '@/components/ServiceCard';
-import { Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, MessageCircle, Heart, Mic, Paperclip, LogOut } from 'lucide-react';
+import { Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, MessageCircle, Heart, Mic, Paperclip, LogOut, Briefcase } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
 const Index = () => {
@@ -43,6 +43,13 @@ const Index = () => {
       description: 'Chat with healthcare providers',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
       route: '/chat'
+    },
+    {
+      icon: Briefcase,
+      title: 'Become a Provider',
+      description: 'Register as a healthcare provider',
+      iconColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
+      route: '/provider-register'
     },
     {
       icon: Bot,

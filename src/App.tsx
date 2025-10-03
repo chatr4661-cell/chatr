@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
 import ChatEnhanced from "./pages/ChatEnhanced";
+import ProviderRegister from "./pages/ProviderRegister";
 import AIAssistant from "./pages/AIAssistant";
 import BookingPage from "./pages/BookingPage";
 import EmergencyButton from "./pages/EmergencyButton";
@@ -37,7 +38,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/contacts" element={<ChatEnhanced />} />
+        <Route path="/contacts" element={<ChatEnhanced />} />
+        <Route path="/provider-register" element={<ProviderRegister />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/emergency" element={<EmergencyButton />} />
