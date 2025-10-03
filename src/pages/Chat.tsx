@@ -7,11 +7,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import ServiceCard from '@/components/ServiceCard';
+import BusinessPortal from '@/components/BusinessPortal';
 import { 
   MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, 
   Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
   Reply, Forward, Star, Copy, Trash2, Edit2, Download, X, Paperclip, User,
-  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart
+  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon
 } from 'lucide-react';
 import { MessageAction } from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
@@ -76,6 +77,8 @@ const Chat = () => {
   const [showMediaActions, setShowMediaActions] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [viewMode, setViewMode] = useState<'consumer' | 'business'>('consumer');
+  const [isProvider, setIsProvider] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -87,6 +90,7 @@ const Chat = () => {
       } else {
         setUser(session.user);
         loadProfile(session.user.id);
+        checkProviderStatus(session.user.id);
       }
     });
 
@@ -96,11 +100,25 @@ const Chat = () => {
       } else {
         setUser(session.user);
         loadProfile(session.user.id);
+        checkProviderStatus(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const checkProviderStatus = async (userId: string) => {
+    const { data } = await supabase
+      .from('service_providers')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (data) {
+      setIsProvider(true);
+      setViewMode('business');
+    }
+  };
 
   const loadProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -375,6 +393,41 @@ const Chat = () => {
 
   return (
     <div className="h-screen flex bg-background">
+      {/* Show Business Portal if provider and in business mode */}
+      {viewMode === 'business' && !selectedContact ? (
+        <>
+          {/* Add toggle for providers */}
+          {isProvider && (
+            <div className="fixed top-4 right-4 z-50">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode('consumer')}
+                className="rounded-full shadow-elevated"
+              >
+                <UsersIcon className="h-4 w-4 mr-2" />
+                Switch to Consumer
+              </Button>
+            </div>
+          )}
+          <BusinessPortal />
+        </>
+      ) : (
+        <>
+          {/* Add toggle for providers in consumer view */}
+          {isProvider && !selectedContact && (
+            <div className="fixed top-20 right-4 z-50">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode('business')}
+                className="rounded-full shadow-elevated"
+              >
+                <UsersIcon className="h-4 w-4 mr-2" />
+                Switch to Business
+              </Button>
+            </div>
+          )}
       {/* Sidebar */}
       <div className={`${selectedContact ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-glass-border backdrop-blur-glass bg-gradient-glass`}>
         <div className="p-4 border-b border-glass-border backdrop-blur-glass bg-background/50">
@@ -821,6 +874,8 @@ const Chat = () => {
         onClose={() => setShowPollCreator(false)}
         onSend={handlePollSend}
       />
+        </>
+      )}
     </div>
   );
 };
