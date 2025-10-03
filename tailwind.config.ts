@@ -61,10 +61,17 @@ export default {
       backgroundImage: {
         'gradient-hero': 'var(--gradient-hero)',
         'gradient-card': 'var(--gradient-card)',
+        'gradient-glass': 'var(--gradient-glass)',
       },
       boxShadow: {
         'card': 'var(--shadow-card)',
         'elevated': 'var(--shadow-elevated)',
+        'glass': 'var(--shadow-glass)',
+        'glow': 'var(--shadow-glow)',
+      },
+      backdropBlur: {
+        'xs': '2px',
+        'glass': '12px',
       },
       borderRadius: {
         lg: "var(--radius)",

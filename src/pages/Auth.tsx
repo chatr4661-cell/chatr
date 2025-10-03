@@ -1,56 +1,85 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { MessageSquare } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { MessageCircle } from 'lucide-react';
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleAuth = async (e: React.FormEvent) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/chat');
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate('/chat');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        navigate("/chat");
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              username: username || email.split("@")[0],
-            },
-            emailRedirectTo: `${window.location.origin}/chat`,
-          },
-        });
-        if (error) throw error;
-        toast({
-          title: "Account created!",
-          description: "You can now start chatting.",
-        });
-        navigate("/chat");
-      }
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: phoneNumber,
+      });
+
+      if (error) throw error;
+
+      setOtpSent(true);
+      toast({
+        title: 'OTP Sent',
+        description: 'Check your phone for the verification code',
+      });
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: 'Error',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        phone: phoneNumber,
+        token: otp,
+        type: 'sms',
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Welcome to HealthMessenger!',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -58,73 +87,74 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 space-y-6">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
-              <MessageSquare className="w-7 h-7 text-white" />
-            </div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-hero">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-background/50 backdrop-blur-3xl" />
+      
+      <Card className="w-full max-w-md relative backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass rounded-3xl">
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-glow">
+            <MessageCircle className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-            HealthMessenger
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            {isLogin ? "Welcome back!" : "Create your account"}
-          </p>
-        </div>
-
-        <form onSubmit={handleAuth} className="space-y-4">
-          {!isLogin && (
-            <div>
-              <label className="text-sm font-medium text-foreground">Username</label>
-              <Input
-                type="text"
-                placeholder="johndoe"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="mt-1"
-              />
-            </div>
+          <CardTitle className="text-2xl font-bold">HealthMessenger</CardTitle>
+          <CardDescription className="text-base">
+            {otpSent ? 'Enter the verification code' : 'Enter your phone number to continue'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!otpSent ? (
+            <form onSubmit={handleSendOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  type="tel"
+                  placeholder="+1 234 567 8900"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  required
+                  className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-12 text-base rounded-xl shadow-glow"
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Send Code'}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  required
+                  maxLength={6}
+                  className="h-12 text-base text-center tracking-widest font-semibold rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-12 text-base rounded-xl shadow-glow"
+                disabled={loading}
+              >
+                {loading ? 'Verifying...' : 'Verify & Continue'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full rounded-xl"
+                onClick={() => {
+                  setOtpSent(false);
+                  setOtp('');
+                }}
+              >
+                Change phone number
+              </Button>
+            </form>
           )}
-          <div>
-            <label className="text-sm font-medium text-foreground">Email</label>
-            <Input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-foreground">Password</label>
-            <Input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-1"
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
-          </Button>
-        </form>
-
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-primary hover:underline"
-          >
-            {isLogin
-              ? "Don't have an account? Sign up"
-              : "Already have an account? Sign in"}
-          </button>
-        </div>
+        </CardContent>
       </Card>
     </div>
   );

@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          appointment_date: string
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          notes: string | null
+          patient_id: string
+          provider_id: string
+          service_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_date: string
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          provider_id: string
+          service_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          provider_id?: string
+          service_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          contact_name: string | null
+          contact_phone: string
+          contact_user_id: string | null
+          created_at: string | null
+          id: string
+          is_registered: boolean | null
+          user_id: string
+        }
+        Insert: {
+          contact_name?: string | null
+          contact_phone: string
+          contact_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_registered?: boolean | null
+          user_id: string
+        }
+        Update: {
+          contact_name?: string | null
+          contact_phone?: string
+          contact_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_registered?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_participants: {
         Row: {
           conversation_id: string | null
@@ -68,6 +152,36 @@ export type Database = {
         }
         Relationships: []
       }
+      emergency_contacts: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          name: string
+          phone_number: string
+          relationship: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          name: string
+          phone_number: string
+          relationship?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          name?: string
+          phone_number?: string
+          relationship?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -115,6 +229,8 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           id: string
+          is_phone_verified: boolean | null
+          phone_number: string | null
           status: string | null
           updated_at: string | null
           username: string
@@ -123,6 +239,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           id: string
+          is_phone_verified?: boolean | null
+          phone_number?: string | null
           status?: string | null
           updated_at?: string | null
           username: string
@@ -131,9 +249,217 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           id?: string
+          is_phone_verified?: boolean | null
+          phone_number?: string | null
           status?: string | null
           updated_at?: string | null
           username?: string
+        }
+        Relationships: []
+      }
+      provider_specializations: {
+        Row: {
+          provider_id: string
+          specialization_id: string
+        }
+        Insert: {
+          provider_id: string
+          specialization_id: string
+        }
+        Update: {
+          provider_id?: string
+          specialization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_specializations_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_specializations_specialization_id_fkey"
+            columns: ["specialization_id"]
+            isOneToOne: false
+            referencedRelation: "specializations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_providers: {
+        Row: {
+          address: string | null
+          business_name: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_verified: boolean | null
+          latitude: number | null
+          longitude: number | null
+          rating: number | null
+          total_reviews: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number | null
+          provider_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price?: number | null
+          provider_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number | null
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      specializations: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wellness_tracking: {
+        Row: {
+          blood_pressure_diastolic: number | null
+          blood_pressure_systolic: number | null
+          created_at: string | null
+          date: string
+          heart_rate: number | null
+          id: string
+          mood: string | null
+          notes: string | null
+          sleep_hours: number | null
+          steps: number | null
+          user_id: string
+          weight_kg: number | null
+        }
+        Insert: {
+          blood_pressure_diastolic?: number | null
+          blood_pressure_systolic?: number | null
+          created_at?: string | null
+          date?: string
+          heart_rate?: number | null
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          sleep_hours?: number | null
+          steps?: number | null
+          user_id: string
+          weight_kg?: number | null
+        }
+        Update: {
+          blood_pressure_diastolic?: number | null
+          blood_pressure_systolic?: number | null
+          created_at?: string | null
+          date?: string
+          heart_rate?: number | null
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          sleep_hours?: number | null
+          steps?: number | null
+          user_id?: string
+          weight_kg?: number | null
         }
         Relationships: []
       }
@@ -142,10 +468,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "consumer" | "doctor" | "nurse" | "pharmacy" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -272,6 +604,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["consumer", "doctor", "nurse", "pharmacy", "admin"],
+    },
   },
 } as const
