@@ -151,6 +151,17 @@ const Chat = () => {
   };
 
   const selectContact = async (contact: Profile) => {
+    // Critical: Check if user is authenticated before proceeding
+    if (!user?.id) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please wait for authentication to complete',
+        variant: 'destructive'
+      });
+      console.error('User not authenticated when selecting contact');
+      return;
+    }
+
     setSelectedContact(contact);
     
     const { data: existingConversation } = await supabase
@@ -182,9 +193,11 @@ const Chat = () => {
 
     if (error || !newConversation) {
       console.error('Error creating conversation:', error);
+      console.error('Full error details:', JSON.stringify(error, null, 2));
+      console.error('User ID:', user.id);
       toast({
-        title: 'Error',
-        description: 'Failed to create conversation',
+        title: 'Failed to Create Conversation',
+        description: error?.message || 'Unable to start chat. Please try again.',
         variant: 'destructive'
       });
       return;
@@ -393,7 +406,20 @@ const Chat = () => {
 
   return (
     <div className="h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-background p-4">
-      <div className="w-full max-w-[390px] h-[844px] bg-background rounded-3xl shadow-2xl overflow-hidden flex">
+      <div className="w-full max-w-[390px] h-[844px] bg-background rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        {/* Persistent Top Back Button */}
+        <div className="absolute top-2 left-2 z-50">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+            className="rounded-full bg-primary/20 hover:bg-primary/30 text-primary shadow-lg"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        <div className="flex flex-1 overflow-hidden">
         {/* Show Business Portal if provider and in business mode */}
         {viewMode === 'business' && !selectedContact ? (
           <>
@@ -433,14 +459,6 @@ const Chat = () => {
       <div className={`${selectedContact ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-glass-border backdrop-blur-glass bg-gradient-glass`}>
         <div className="p-4 border-b border-glass-border backdrop-blur-glass bg-background/50">
           <div className="flex items-center gap-3 mb-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="rounded-full hover:bg-muted"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <h2 className="text-lg font-semibold flex-1">Messages</h2>
           </div>
           <div className="flex items-center justify-between mb-4">
@@ -886,8 +904,9 @@ const Chat = () => {
           onClose={() => setShowPollCreator(false)}
           onSend={handlePollSend}
         />
-          </>
+        </>
         )}
+        </div>
       </div>
     </div>
   );
