@@ -15,7 +15,7 @@ const Marketplace = () => {
       id: 1,
       name: 'First Aid Kit',
       category: 'Medical Supplies',
-      price: 29.99,
+      price: 599,
       rating: 4.8,
       reviews: 234,
       inStock: true,
@@ -25,7 +25,7 @@ const Marketplace = () => {
       id: 2,
       name: 'Digital Thermometer',
       category: 'Medical Devices',
-      price: 19.99,
+      price: 399,
       rating: 4.5,
       reviews: 567,
       inStock: true,
@@ -35,7 +35,7 @@ const Marketplace = () => {
       id: 3,
       name: 'Vitamin D Supplement',
       category: 'Supplements',
-      price: 15.99,
+      price: 299,
       rating: 4.6,
       reviews: 892,
       inStock: true,
@@ -45,7 +45,7 @@ const Marketplace = () => {
       id: 4,
       name: 'Blood Pressure Monitor',
       category: 'Medical Devices',
-      price: 49.99,
+      price: 1499,
       rating: 4.7,
       reviews: 432,
       inStock: true,
@@ -55,7 +55,7 @@ const Marketplace = () => {
       id: 5,
       name: 'Pain Relief Gel',
       category: 'Over-the-Counter',
-      price: 12.99,
+      price: 199,
       rating: 4.4,
       reviews: 321,
       inStock: false,
@@ -65,7 +65,7 @@ const Marketplace = () => {
       id: 6,
       name: 'Face Masks (50 pack)',
       category: 'Protection',
-      price: 24.99,
+      price: 499,
       rating: 4.9,
       reviews: 1203,
       inStock: true,
@@ -167,7 +167,7 @@ const Marketplace = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-primary">
-                      ${product.price}
+                      ₹{product.price}
                     </span>
                     <Button
                       size="sm"

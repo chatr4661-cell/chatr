@@ -10,13 +10,13 @@ const AlliedHealthcare = () => {
   const providers = [
     {
       id: 1,
-      name: 'City Physical Therapy Center',
+      name: 'Apollo Physical Therapy Center',
       specialty: 'Physical Therapy',
       rating: 4.8,
       reviews: 342,
       distance: '2.3 km',
       availability: 'Available Today',
-      phone: '+1 (555) 123-4567',
+      phone: '+91 98765 43210',
       color: 'from-blue-400 to-blue-600',
       icon: '🏃'
     },
@@ -28,7 +28,7 @@ const AlliedHealthcare = () => {
       reviews: 567,
       distance: '1.8 km',
       availability: 'Next: Tomorrow 10AM',
-      phone: '+1 (555) 234-5678',
+      phone: '+91 98765 43211',
       color: 'from-green-400 to-green-600',
       icon: '🥗'
     },
@@ -40,19 +40,19 @@ const AlliedHealthcare = () => {
       reviews: 234,
       distance: '3.5 km',
       availability: 'Available Today',
-      phone: '+1 (555) 345-6789',
+      phone: '+91 98765 43212',
       color: 'from-purple-400 to-purple-600',
       icon: '🗣️'
     },
     {
       id: 4,
       name: 'Mindful Counseling Services',
-      specialty: 'Mental Health',
+      specialty: 'Mental Health Counseling',
       rating: 4.9,
       reviews: 892,
       distance: '1.2 km',
       availability: 'Available Today',
-      phone: '+1 (555) 456-7890',
+      phone: '+91 98765 43213',
       color: 'from-pink-400 to-pink-600',
       icon: '🧠'
     },
@@ -64,7 +64,7 @@ const AlliedHealthcare = () => {
       reviews: 187,
       distance: '4.1 km',
       availability: 'Next: Friday 2PM',
-      phone: '+1 (555) 567-8901',
+      phone: '+91 98765 43214',
       color: 'from-yellow-400 to-yellow-600',
       icon: '✋'
     }

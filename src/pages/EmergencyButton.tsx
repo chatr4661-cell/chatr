@@ -140,8 +140,9 @@ const EmergencyButton = () => {
                 onClick={() => {
                   toast({
                     title: 'Calling Emergency Services',
-                    description: 'Connecting to 911...'
+                    description: 'Connecting to 112 (National Emergency Number)...'
                   });
+                  // In production: window.location.href = 'tel:112';
                 }}
               >
                 <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
@@ -149,7 +150,7 @@ const EmergencyButton = () => {
                 </div>
                 <div className="text-left flex-1">
                   <p className="font-semibold text-foreground">Call Emergency Services</p>
-                  <p className="text-sm text-muted-foreground">Dial 911</p>
+                  <p className="text-sm text-muted-foreground">Dial 112 / 102 (Ambulance) / 100 (Police)</p>
                 </div>
               </Button>
             </Card>
