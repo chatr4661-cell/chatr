@@ -8,10 +8,11 @@ import { useToast } from '@/hooks/use-toast';
 import { MessageCircle } from 'lucide-react';
 
 const Auth = () => {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -31,50 +32,44 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phoneNumber,
-      });
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              username: username || email.split('@')[0],
+            },
+            emailRedirectTo: `${window.location.origin}/chat`,
+          },
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setOtpSent(true);
-      toast({
-        title: 'OTP Sent',
-        description: 'Check your phone for the verification code',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+        toast({
+          title: 'Welcome!',
+          description: 'Account created successfully. You can now start chatting.',
+        });
+        navigate('/chat');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+        if (error) throw error;
 
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone: phoneNumber,
-        token: otp,
-        type: 'sms',
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: 'Welcome to HealthMessenger!',
-      });
+        toast({
+          title: 'Welcome back!',
+          description: 'Signed in successfully.',
+        });
+        navigate('/chat');
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -97,63 +92,59 @@ const Auth = () => {
           </div>
           <CardTitle className="text-2xl font-bold">HealthMessenger</CardTitle>
           <CardDescription className="text-base">
-            {otpSent ? 'Enter the verification code' : 'Enter your phone number to continue'}
+            {isSignUp ? 'Create your account' : 'Welcome back'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!otpSent ? (
-            <form onSubmit={handleSendOTP} className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  type="tel"
-                  placeholder="+1 234 567 8900"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                  className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-12 text-base rounded-xl shadow-glow"
-                disabled={loading}
-              >
-                {loading ? 'Sending...' : 'Send Code'}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOTP} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-4">
+            {isSignUp && (
               <div className="space-y-2">
                 <Input
                   type="text"
-                  placeholder="Enter 6-digit code"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  required
-                  maxLength={6}
-                  className="h-12 text-base text-center tracking-widest font-semibold rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
                 />
               </div>
-              <Button
-                type="submit"
-                className="w-full h-12 text-base rounded-xl shadow-glow"
-                disabled={loading}
-              >
-                {loading ? 'Verifying...' : 'Verify & Continue'}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full rounded-xl"
-                onClick={() => {
-                  setOtpSent(false);
-                  setOtp('');
-                }}
-              >
-                Change phone number
-              </Button>
-            </form>
-          )}
+            )}
+            <div className="space-y-2">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="h-12 text-base rounded-xl bg-background/50 backdrop-blur-sm border-glass-border"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full h-12 text-base rounded-xl shadow-glow"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full rounded-xl"
+              onClick={() => setIsSignUp(!isSignUp)}
+            >
+              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
@@ -161,3 +152,4 @@ const Auth = () => {
 };
 
 export default Auth;
+
