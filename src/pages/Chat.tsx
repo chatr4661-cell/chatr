@@ -392,27 +392,28 @@ const Chat = () => {
   };
 
   return (
-    <div className="h-screen flex bg-background">
-      {/* Show Business Portal if provider and in business mode */}
-      {viewMode === 'business' && !selectedContact ? (
-        <>
-          {/* Add toggle for providers */}
-          {isProvider && (
-            <div className="fixed top-4 right-4 z-50">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setViewMode('consumer')}
-                className="rounded-full shadow-elevated"
-              >
-                <UsersIcon className="h-4 w-4 mr-2" />
-                Switch to Consumer
-              </Button>
-            </div>
-          )}
-          <BusinessPortal />
-        </>
-      ) : (
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-background p-4">
+      <div className="w-full max-w-[390px] h-[844px] bg-background rounded-3xl shadow-2xl overflow-hidden flex">
+        {/* Show Business Portal if provider and in business mode */}
+        {viewMode === 'business' && !selectedContact ? (
+          <>
+            {/* Add toggle for providers */}
+            {isProvider && (
+              <div className="absolute top-4 right-4 z-50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode('consumer')}
+                  className="rounded-full shadow-elevated"
+                >
+                  <UsersIcon className="h-4 w-4 mr-2" />
+                  Switch to Consumer
+                </Button>
+              </div>
+            )}
+            <BusinessPortal />
+          </>
+        ) : (
         <>
           {/* Add toggle for providers in consumer view */}
           {isProvider && !selectedContact && (
@@ -869,13 +870,14 @@ const Chat = () => {
         )}
       </div>
 
-      <PollCreator
-        open={showPollCreator}
-        onClose={() => setShowPollCreator(false)}
-        onSend={handlePollSend}
-      />
-        </>
-      )}
+        <PollCreator
+          open={showPollCreator}
+          onClose={() => setShowPollCreator(false)}
+          onSend={handlePollSend}
+        />
+          </>
+        )}
+      </div>
     </div>
   );
 };
