@@ -623,6 +623,174 @@ export type Database = {
           },
         ]
       }
+      point_expirations: {
+        Row: {
+          created_at: string
+          earned_at: string
+          expires_at: string
+          id: string
+          points_amount: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          earned_at: string
+          expires_at: string
+          id?: string
+          points_amount: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          earned_at?: string
+          expires_at?: string
+          id?: string
+          points_amount?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      point_packages: {
+        Row: {
+          badge_text: string | null
+          bonus_points: number | null
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          points: number
+          popular: boolean | null
+          price_usd: number
+          updated_at: string
+        }
+        Insert: {
+          badge_text?: string | null
+          bonus_points?: number | null
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          points: number
+          popular?: boolean | null
+          price_usd: number
+          updated_at?: string
+        }
+        Update: {
+          badge_text?: string | null
+          bonus_points?: number | null
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          points?: number
+          popular?: boolean | null
+          price_usd?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      point_rewards: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          icon: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          max_redemptions_per_user: number | null
+          name: string
+          points_required: number
+          reward_type: string
+          stock_quantity: number | null
+          terms: string | null
+          updated_at: string
+          validity_days: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          max_redemptions_per_user?: number | null
+          name: string
+          points_required: number
+          reward_type: string
+          stock_quantity?: number | null
+          terms?: string | null
+          updated_at?: string
+          validity_days?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          max_redemptions_per_user?: number | null
+          name?: string
+          points_required?: number
+          reward_type?: string
+          stock_quantity?: number | null
+          terms?: string | null
+          updated_at?: string
+          validity_days?: number | null
+        }
+        Relationships: []
+      }
+      point_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          reference_type: string | null
+          source: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          source: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          source?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           content: string
@@ -952,6 +1120,93 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_points: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          lifetime_earned: number
+          lifetime_spent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_earned?: number
+          lifetime_spent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_earned?: number
+          lifetime_spent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_reward_redemptions: {
+        Row: {
+          expires_at: string
+          id: string
+          metadata: Json | null
+          points_spent: number
+          redeemed_at: string
+          redemption_code: string | null
+          reward_id: string
+          status: string
+          transaction_id: string | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at: string
+          id?: string
+          metadata?: Json | null
+          points_spent: number
+          redeemed_at?: string
+          redemption_code?: string | null
+          reward_id: string
+          status?: string
+          transaction_id?: string | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          id?: string
+          metadata?: Json | null
+          points_spent?: number
+          redeemed_at?: string
+          redemption_code?: string | null
+          reward_id?: string
+          status?: string
+          transaction_id?: string | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_reward_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "point_rewards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_reward_redemptions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "point_transactions"
             referencedColumns: ["id"]
           },
         ]

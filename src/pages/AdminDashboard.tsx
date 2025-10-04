@@ -14,7 +14,8 @@ import {
   Upload,
   Plus,
   BarChart3,
-  CreditCard
+  CreditCard,
+  Coins
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -220,6 +221,24 @@ const AdminDashboard = () => {
               </div>
               <Button size="sm" variant="ghost" className="h-6 text-[10px]">
                 Upload
+              </Button>
+            </div>
+          </Card>
+
+          <Card 
+            className="p-3 backdrop-blur-xl bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border-yellow-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            onClick={() => navigate("/admin/points")}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Coins className="h-4 w-4 text-yellow-500" />
+                <div>
+                  <h3 className="text-xs font-semibold">Chatr Points</h3>
+                  <p className="text-[10px] text-muted-foreground">Manage points economy</p>
+                </div>
+              </div>
+              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
+                Open
               </Button>
             </div>
           </Card>

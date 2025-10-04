@@ -19,7 +19,8 @@ import {
   Briefcase,
   FileText,
   Pill,
-  Users
+  Users,
+  Coins
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
@@ -70,6 +71,13 @@ const Index = () => {
   ];
 
   const healthcareServices = [
+    {
+      icon: Coins,
+      title: 'Chatr Points',
+      description: 'Earn, redeem & buy rewards',
+      iconColor: 'bg-gradient-to-br from-amber-400 to-yellow-500',
+      route: '/chatr-points'
+    },
     {
       icon: Bot,
       title: 'AI Health Assistant',
