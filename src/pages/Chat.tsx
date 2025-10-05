@@ -12,7 +12,7 @@ import {
   MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, 
   Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
   Reply, Forward, Star, Copy, Trash2, Edit2, Download, X, Paperclip, User,
-  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus, QrCode, Bug
+  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus, QrCode, Bug, Info
 } from 'lucide-react';
 import { MessageAction } from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
@@ -23,6 +23,9 @@ import { VoiceMessageRecorder } from '@/components/VoiceMessageRecorder';
 import { GroupChatCreator } from '@/components/GroupChatCreator';
 import { MessageForwarding } from '@/components/MessageForwarding';
 import { ContactManager } from '@/components/ContactManager';
+import { UserProfileDialog } from '@/components/UserProfileDialog';
+import { UserInfoSidebar } from '@/components/UserInfoSidebar';
+import { ProfileEditDialog } from '@/components/ProfileEditDialog';
 import VoiceCall from '@/components/VoiceCall';
 import VideoCall from '@/components/VideoCall';
 import { CallInterface } from '@/components/CallInterface';
@@ -99,7 +102,10 @@ const Chat = () => {
   const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video', callId: string, partnerId: string } | null>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showDeviceSessions, setShowDeviceSessions] = useState(false);
-  const [showDebugPanel, setShowDebugPanel] = useState(true); // Start with debug panel visible
+  const [showDebugPanel, setShowDebugPanel] = useState(true);
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [showUserInfoSidebar, setShowUserInfoSidebar] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -640,6 +646,15 @@ const Chat = () => {
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={() => setShowProfileEdit(true)}
+                className="rounded-full hover:bg-primary/10"
+                title="Edit Profile"
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setViewMode(viewMode === 'contacts' ? 'consumer' : 'contacts')}
                 className="rounded-full hover:bg-primary/10"
                 title="Contacts"
@@ -725,9 +740,15 @@ const Chat = () => {
                     <button
                       key={contact.id}
                       onClick={() => selectContact(contact)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setSelectedContact(contact);
+                        setShowUserProfile(true);
+                      }}
                       className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/80 transition-all ${
                       selectedContact?.id === contact.id ? 'bg-primary/10' : ''
                     }`}
+                    title="Right-click to view profile"
                   >
                     <div className="relative">
                       <Avatar className="h-12 w-12">
@@ -761,38 +782,53 @@ const Chat = () => {
         <div className={`${selectedContact ? 'flex' : 'hidden md:flex'} flex-1 flex-col bg-background`}>
           {selectedContact ? (
             <>
-              {/* Chat Header */}
+              {/* Chat Header - Enhanced */}
               <div className="p-3 border-b border-border bg-card flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden rounded-full"
+                    className="md:hidden rounded-full flex-shrink-0"
                     onClick={() => setSelectedContact(null)}
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                      {selectedContact.username[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{selectedContact.username}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedContact.is_online ? 'online' : `last seen ${selectedContact.last_seen || 'recently'}`}
-                    </p>
+                  <div 
+                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer hover:bg-muted/50 -ml-2 pl-2 pr-3 py-2 rounded-lg transition-colors"
+                    onClick={() => setShowUserProfile(true)}
+                  >
+                    <div className="relative flex-shrink-0">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                          {selectedContact.username[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedContact.is_online && (
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-card" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-foreground truncate">{selectedContact.username}</h3>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {selectedContact.is_online ? '● online' : `last seen ${selectedContact.last_seen || 'recently'}`}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Button variant="ghost" size="icon" className="rounded-full" onClick={startVideoCall}>
                     <Video className="h-5 w-5" />
                   </Button>
                   <Button variant="ghost" size="icon" className="rounded-full" onClick={startVoiceCall}>
                     <Phone className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <MoreVertical className="h-5 w-5" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full"
+                    onClick={() => setShowUserInfoSidebar(true)}
+                  >
+                    <Info className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
@@ -1068,6 +1104,30 @@ const Chat = () => {
       >
         <Bug className="h-5 w-5" />
       </Button>
+
+      {/* User Profile Dialog */}
+      <UserProfileDialog
+        user={selectedContact as any}
+        open={showUserProfile}
+        onOpenChange={setShowUserProfile}
+      />
+
+      {/* User Info Sidebar */}
+      <UserInfoSidebar
+        contact={selectedContact as any}
+        open={showUserInfoSidebar}
+        onOpenChange={setShowUserInfoSidebar}
+      />
+
+      {/* Profile Edit Dialog */}
+      {profile && (
+        <ProfileEditDialog
+          profile={profile as any}
+          open={showProfileEdit}
+          onOpenChange={setShowProfileEdit}
+          onProfileUpdated={() => loadProfile(user?.id)}
+        />
+      )}
     </div>
   );
 };
