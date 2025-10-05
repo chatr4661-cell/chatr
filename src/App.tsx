@@ -1,8 +1,11 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { GlobalCallNotifications } from "@/components/GlobalCallNotifications";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
@@ -38,49 +41,96 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/lab-reports" element={<LabReports />} />
-          <Route path="/medicine-reminders" element={<MedicineReminders />} />
-          <Route path="/youth-feed" element={<YouthFeed />} />
-          <Route path="/provider-register" element={<ProviderRegister />} />
-          <Route path="/ai-assistant" element={<AIAssistant />} />
-          <Route path="/booking" element={<BookingPage />} />
-          <Route path="/emergency" element={<EmergencyButton />} />
-          <Route path="/wellness" element={<WellnessTracking />} />
-          <Route path="/youth" element={<YouthEngagement />} />
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/providers" element={<AdminProviders />} />
-          <Route path="/admin/payments" element={<AdminPayments />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="/admin/documents" element={<AdminDocuments />} />
-          <Route path="/admin/points" element={<AdminPoints />} />
-          <Route path="/provider-portal" element={<ProviderPortal />} />
-          <Route path="/provider/appointments" element={<ProviderAppointments />} />
-          <Route path="/provider/services" element={<ProviderServices />} />
-          <Route path="/provider/payments" element={<ProviderPayments />} />
-          <Route path="/chatr-points" element={<ChatrPoints />} />
-          <Route path="/qr-login" element={<QRLogin />} />
-          <Route path="/health-passport" element={<HealthPassport />} />
-          <Route path="/contacts" element={<Contacts />} />
-          <Route path="/download" element={<Download />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    // Get current user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      
+      if (user) {
+        // Get user profile
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+          .then(({ data }) => setProfile(data));
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => setProfile(data));
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        {/* Global Call Notifications - appears anywhere in the app */}
+        {user && profile && (
+          <GlobalCallNotifications 
+            userId={user.id} 
+            username={profile.username || 'User'} 
+          />
+        )}
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/lab-reports" element={<LabReports />} />
+            <Route path="/medicine-reminders" element={<MedicineReminders />} />
+            <Route path="/youth-feed" element={<YouthFeed />} />
+            <Route path="/provider-register" element={<ProviderRegister />} />
+            <Route path="/ai-assistant" element={<AIAssistant />} />
+            <Route path="/booking" element={<BookingPage />} />
+            <Route path="/emergency" element={<EmergencyButton />} />
+            <Route path="/wellness" element={<WellnessTracking />} />
+            <Route path="/youth" element={<YouthEngagement />} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/providers" element={<AdminProviders />} />
+            <Route path="/admin/payments" element={<AdminPayments />} />
+            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin/documents" element={<AdminDocuments />} />
+            <Route path="/admin/points" element={<AdminPoints />} />
+            <Route path="/provider-portal" element={<ProviderPortal />} />
+            <Route path="/provider/appointments" element={<ProviderAppointments />} />
+            <Route path="/provider/services" element={<ProviderServices />} />
+            <Route path="/provider/payments" element={<ProviderPayments />} />
+            <Route path="/chatr-points" element={<ChatrPoints />} />
+            <Route path="/qr-login" element={<QRLogin />} />
+            <Route path="/health-passport" element={<HealthPassport />} />
+            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/download" element={<Download />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

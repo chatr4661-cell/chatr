@@ -334,7 +334,12 @@ const Chat = () => {
   const sendMessage = async (e: React.FormEvent, messageType: string = 'text', additionalData: any = {}) => {
     e.preventDefault();
     
-    if ((!messageInput.trim() && messageType === 'text') || !conversationId || !user) return;
+    console.log('📤 Sending message:', { messageType, conversationId, userId: user?.id, messageInput });
+    
+    if ((!messageInput.trim() && messageType === 'text') || !conversationId || !user) {
+      console.error('❌ Cannot send - missing data:', { hasInput: !!messageInput.trim(), conversationId, userId: user?.id });
+      return;
+    }
 
     const messageData: any = {
       sender_id: user.id,
@@ -348,17 +353,21 @@ const Chat = () => {
       messageData.content = messageInput;
     }
 
-    const { error } = await supabase.from('messages').insert(messageData);
+    console.log('📝 Message data:', messageData);
+
+    const { error, data } = await supabase.from('messages').insert(messageData).select();
 
     if (error) {
+      console.error('❌ Error sending message:', error);
       toast({
         title: 'Error',
-        description: 'Failed to send message',
+        description: 'Failed to send message: ' + error.message,
         variant: 'destructive',
       });
       return;
     }
 
+    console.log('✅ Message sent successfully:', data);
     setMessageInput('');
     setReplyToMessage(null);
     if (conversationId && user) {
