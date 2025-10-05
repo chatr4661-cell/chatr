@@ -12,7 +12,7 @@ import {
   MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, 
   Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
   Reply, Forward, Star, Copy, Trash2, Edit2, Download, X, Paperclip, User,
-  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon
+  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus
 } from 'lucide-react';
 import { MessageAction } from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
@@ -165,30 +165,32 @@ const Chat = () => {
         .filter(c => c.contact_user_id)
         .map(c => c.contact_user_id);
 
-      const { data: profilesData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', contactUserIds);
+      if (contactUserIds.length > 0) {
+        const { data: profilesData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', contactUserIds);
 
-      if (error) {
-        console.error('Error loading contact profiles:', error);
-        return;
+        if (error) {
+          console.error('Error loading contact profiles:', error);
+          return;
+        }
+
+        setContacts(profilesData || []);
+      } else {
+        setContacts([]);
       }
-
-      setContacts(profilesData || []);
     } else {
-      // If no contacts, show some sample profiles to get started
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', user.id)
-        .limit(10);
-
-      if (!error) {
-        setContacts(data || []);
-      }
+      setContacts([]);
     }
   };
+
+  // Reload contacts when switching back to consumer view
+  useEffect(() => {
+    if (viewMode === 'consumer' && user?.id) {
+      loadContacts();
+    }
+  }, [viewMode, user?.id]);
 
   const selectContact = async (contact: Profile) => {
     // Critical: Check if user is authenticated before proceeding
@@ -563,36 +565,51 @@ const Chat = () => {
           ) : (
             <ScrollArea className="flex-1">
               <div className="p-1">
-                {contacts.map((contact) => (
-                  <button
-                    key={contact.id}
-                    onClick={() => selectContact(contact)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/80 transition-all ${
-                    selectedContact?.id === contact.id ? 'bg-primary/10' : ''
-                  }`}
-                >
-                  <div className="relative">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
-                        {contact.username[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    {contact.is_online && (
-                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
-                    )}
+                {contacts.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <UsersIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-medium">No contacts yet</p>
+                    <p className="text-sm mt-2">Click the contacts icon to add people</p>
+                    <Button 
+                      onClick={() => setViewMode('contacts')}
+                      className="mt-4"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Add Contacts
+                    </Button>
                   </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <p className="font-semibold text-foreground truncate">{contact.username}</p>
-                      <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">12:30 PM</span>
+                ) : (
+                  contacts.map((contact) => (
+                    <button
+                      key={contact.id}
+                      onClick={() => selectContact(contact)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/80 transition-all ${
+                      selectedContact?.id === contact.id ? 'bg-primary/10' : ''
+                    }`}
+                  >
+                    <div className="relative">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
+                          {contact.username[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {contact.is_online && (
+                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
+                      )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                      <p className="text-sm text-muted-foreground truncate">{contact.status || 'Hey there!'}</p>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="font-semibold text-foreground truncate">{contact.username}</p>
+                        <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">12:30 PM</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <CheckCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                        <p className="text-sm text-muted-foreground truncate">{contact.status || 'Hey there!'}</p>
+                      </div>
                     </div>
-                  </div>
-                </button>
-                ))}
+                  </button>
+                  ))
+                )}
               </div>
             </ScrollArea>
           )}

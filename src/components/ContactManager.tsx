@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,11 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Auto-load contacts on mount
+  useEffect(() => {
+    loadContacts();
+  }, [userId]);
 
   const loadContacts = async () => {
     setIsLoading(true);
@@ -148,13 +153,62 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
   };
 
   const syncContacts = async () => {
-    toast({
-      title: 'Syncing Contacts',
-      description: 'This feature requires device permissions. Coming soon!',
-    });
-    // In a real implementation, this would use Capacitor to access device contacts
-    // For now, just reload existing contacts
-    loadContacts();
+    setIsLoading(true);
+    
+    try {
+      // Get all contacts for this user
+      const { data: existingContacts } = await supabase
+        .from('contacts')
+        .select('contact_phone, contact_user_id')
+        .eq('user_id', userId);
+
+      let syncedCount = 0;
+
+      // For each contact, check if they're now registered
+      for (const contact of existingContacts || []) {
+        if (!contact.contact_user_id) {
+          // Check if user exists with this phone/email
+          const { data: matchedUser } = await supabase
+            .from('profiles')
+            .select('id')
+            .or(`email.eq.${contact.contact_phone},phone_number.eq.${contact.contact_phone}`)
+            .maybeSingle();
+
+          if (matchedUser) {
+            // Update contact to mark as registered
+            await supabase
+              .from('contacts')
+              .update({
+                contact_user_id: matchedUser.id,
+                is_registered: true
+              })
+              .eq('user_id', userId)
+              .eq('contact_phone', contact.contact_phone);
+            
+            syncedCount++;
+          }
+        }
+      }
+
+      toast({
+        title: 'Contacts Synced',
+        description: syncedCount > 0 
+          ? `${syncedCount} contacts joined Chatr!` 
+          : 'All contacts are up to date',
+      });
+      
+      // Reload contacts to show updated data
+      await loadContacts();
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast({
+        title: 'Sync Failed',
+        description: error.message || 'Failed to sync contacts',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filteredContacts = contacts.filter(contact => 
