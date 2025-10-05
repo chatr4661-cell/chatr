@@ -1096,31 +1096,7 @@ const Chat = () => {
         onSend={handlePollSend}
       />
 
-      {/* Voice Call */}
-      {activeCall?.type === 'voice' && selectedContact && user && conversationId && (
-        <VoiceCall
-          conversationId={conversationId}
-          callId={activeCall.callId}
-          contactName={selectedContact.username}
-          contactAvatar={selectedContact.avatar_url || undefined}
-          isInitiator={true}
-          userId={user.id}
-          partnerId={activeCall.partnerId}
-          onEnd={endCall}
-        />
-      )}
-
-      {/* Video Call */}
-      {activeCall?.type === 'video' && selectedContact && user && conversationId && (
-        <VideoCall
-          conversationId={conversationId}
-          callId={activeCall.callId}
-          isInitiator={true}
-          userId={user.id}
-          partnerId={activeCall.partnerId}
-          onEnd={endCall}
-        />
-      )}
+      {/* Calls are now fully handled by GlobalCallNotifications component */}
 
       {/* QR Scanner for linking devices */}
       <QRScanner open={showQRScanner} onOpenChange={setShowQRScanner} />

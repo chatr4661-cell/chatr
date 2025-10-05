@@ -25,6 +25,106 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
   const localStreamRef = useRef<MediaStream | null>(null);
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
 
+  // Start outgoing call (when we initiate)
+  const startOutgoingCall = async (call: any) => {
+    try {
+      console.log('📞 Starting outgoing call:', call);
+      setCallType(call.call_type);
+      setActiveCall(call);
+
+      // Get user media
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: call.call_type === 'video'
+      });
+
+      localStreamRef.current = stream;
+      if (localVideoRef.current && call.call_type === 'video') {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      // Create peer connection
+      const configuration = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      };
+
+      const peerConnection = new RTCPeerConnection(configuration);
+      peerConnectionRef.current = peerConnection;
+
+      // Add local stream
+      stream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, stream);
+      });
+
+      // Handle remote stream
+      peerConnection.ontrack = (event) => {
+        console.log('📥 Received remote track');
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        } else if (call.call_type === 'voice') {
+          const audio = new Audio();
+          audio.srcObject = event.streams[0];
+          audio.play();
+        }
+      };
+
+      // Handle ICE candidates
+      peerConnection.onicecandidate = async (event) => {
+        if (event.candidate) {
+          console.log('📡 Sending ICE candidate');
+          await sendSignal({
+            type: 'ice-candidate',
+            callId: call.id,
+            data: event.candidate,
+            to: call.receiver_id
+          });
+        }
+      };
+
+      // Create and send offer
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      
+      console.log('📤 Sending offer');
+      await sendSignal({
+        type: 'offer',
+        callId: call.id,
+        data: offer,
+        to: call.receiver_id
+      });
+
+      // Subscribe to signaling for answer
+      subscribeToCallSignals(call.id, async (signal: any) => {
+        try {
+          console.log('📥 Received signal:', signal.signal_type);
+          
+          if (signal.signal_type === 'answer') {
+            console.log('📥 Processing answer');
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+          } else if (signal.signal_type === 'ice-candidate') {
+            if (peerConnection.remoteDescription) {
+              console.log('📥 Adding ICE candidate');
+              await peerConnection.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+            }
+          }
+        } catch (error) {
+          console.error('Error handling signal:', error);
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Start call error:', error);
+      toast({
+        title: 'Failed to start call',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Answer incoming call
   const answerCall = async (call: any) => {
     try {
@@ -257,11 +357,12 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
     }
   };
 
-  // Listen for incoming calls
+  // Listen for incoming calls AND outgoing calls
   useEffect(() => {
     console.log('📞 Setting up global call listener for user:', userId);
     
-    const channel = supabase
+    // Listen for incoming calls (where we are the receiver)
+    const incomingChannel = supabase
       .channel('global-incoming-calls')
       .on('postgres_changes', {
         event: 'INSERT',
@@ -294,12 +395,32 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         console.log('📡 Global incoming calls subscription status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('✅ Successfully subscribed to global incoming calls');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error subscribing to global incoming calls');
         }
       });
 
-    // Listen for call updates (when caller ends call)
+    // Listen for outgoing calls (where we are the caller) - auto-start when created
+    const outgoingChannel = supabase
+      .channel('global-outgoing-calls')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'calls',
+        filter: `caller_id=eq.${userId}`
+      }, (payload) => {
+        const call = payload.new as any;
+        console.log('📞 OUTGOING CALL CREATED:', call);
+        
+        if (call.status === 'ringing' && !activeCall) {
+          console.log('📱 Auto-starting outgoing call');
+          // Auto-start the outgoing call
+          startOutgoingCall(call);
+        }
+      })
+      .subscribe((status) => {
+        console.log('📡 Global outgoing calls subscription status:', status);
+      });
+
+    // Listen for call updates (when caller/receiver ends call)
     const updatesChannel = supabase
       .channel('global-call-updates')
       .on('postgres_changes', {
@@ -328,18 +449,14 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       })
       .subscribe((status) => {
         console.log('📡 Global call updates subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to global call updates');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error subscribing to global call updates');
-        }
       });
 
     return () => {
       if (ringtoneRef.current) {
         ringtoneRef.current.pause();
       }
-      supabase.removeChannel(channel);
+      supabase.removeChannel(incomingChannel);
+      supabase.removeChannel(outgoingChannel);
       supabase.removeChannel(updatesChannel);
     };
   }, [userId, activeCall, incomingCall]);
