@@ -220,6 +220,7 @@ const Chat = () => {
       return;
     }
 
+    console.log('🎯 Selecting contact:', contact.username);
     setSelectedContact(contact);
     
     const { data: existingConversation } = await supabase
@@ -237,12 +238,15 @@ const Chat = () => {
         .in('conversation_id', conversationIds);
 
       if (otherParticipant && otherParticipant.length > 0) {
-        setConversationId(otherParticipant[0].conversation_id);
-        loadMessages(otherParticipant[0].conversation_id);
+        const foundConvId = otherParticipant[0].conversation_id;
+        console.log('✅ Found existing conversation:', foundConvId);
+        setConversationId(foundConvId);
+        loadMessages(foundConvId);
         return;
       }
     }
 
+    console.log('➕ Creating new conversation');
     const { data: newConversation, error } = await supabase
       .from('conversations')
       .insert({ created_by: user.id })
@@ -266,6 +270,7 @@ const Chat = () => {
       { conversation_id: newConversation.id, user_id: contact.id },
     ]);
 
+    console.log('✅ Created new conversation:', newConversation.id);
     setConversationId(newConversation.id);
     loadMessages(newConversation.id);
   };

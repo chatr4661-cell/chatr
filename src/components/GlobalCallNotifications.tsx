@@ -313,6 +313,14 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       peerConnectionRef.current = null;
     }
 
+    // Clear video elements
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+
     // Update call status
     if (activeCall) {
       supabase
@@ -354,6 +362,57 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoOff(!videoTrack.enabled);
       }
+    }
+  };
+
+  // Toggle between video and voice
+  const toggleCallType = async () => {
+    if (!localStreamRef.current || !peerConnectionRef.current) return;
+
+    const newType = callType === 'video' ? 'voice' : 'video';
+    
+    try {
+      if (newType === 'video') {
+        // Enable video - get video stream
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true
+        });
+        
+        // Replace tracks
+        const videoTrack = stream.getVideoTracks()[0];
+        const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) {
+          await sender.replaceTrack(videoTrack);
+        } else {
+          peerConnectionRef.current.addTrack(videoTrack, stream);
+        }
+        
+        localStreamRef.current.getVideoTracks().forEach(t => t.stop());
+        localStreamRef.current = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+      } else {
+        // Disable video
+        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.stop();
+          localStreamRef.current.removeTrack(videoTrack);
+        }
+      }
+      
+      setCallType(newType);
+      toast({
+        title: newType === 'video' ? 'Video enabled' : 'Video disabled',
+      });
+    } catch (error) {
+      console.error('Error toggling call type:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not toggle video',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -433,7 +492,12 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         // If the call was ended and it matches our active/incoming call
         if (updatedCall.status === 'ended') {
           if (activeCall?.id === updatedCall.id) {
+            console.log('📞 Other party ended the call');
             endCall();
+            toast({
+              title: 'Call ended',
+              description: 'The other party ended the call',
+            });
           } else if (incomingCall?.id === updatedCall.id) {
             if (ringtoneRef.current) {
               ringtoneRef.current.pause();
@@ -463,23 +527,23 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
   return (
     <>
-      {/* Incoming Call Overlay */}
-      {incomingCall && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl p-8 max-w-md w-full shadow-2xl border">
+      {/* Incoming Call Overlay - Only show if NO active call */}
+      {incomingCall && !activeCall && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-background rounded-3xl p-8 max-w-md w-full shadow-2xl border border-primary/20">
             <div className="flex flex-col items-center space-y-6">
               <div className="flex items-center gap-2 text-muted-foreground">
                 {incomingCall.call_type === 'video' ? (
-                  <Video className="h-5 w-5" />
+                  <Video className="h-5 w-5 text-primary animate-pulse" />
                 ) : (
-                  <Phone className="h-5 w-5" />
+                  <Phone className="h-5 w-5 text-primary animate-pulse" />
                 )}
                 <span className="text-sm font-medium">
                   Incoming {incomingCall.call_type} call
                 </span>
               </div>
 
-              <Avatar className="h-28 w-28 ring-4 ring-primary/20">
+              <Avatar className="h-28 w-28 ring-4 ring-primary/30 animate-pulse">
                 <AvatarFallback className="text-3xl bg-primary/10">
                   {incomingCall.caller_name?.[0]?.toUpperCase()}
                 </AvatarFallback>
@@ -487,7 +551,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
               <div className="text-center">
                 <h3 className="text-2xl font-bold">{incomingCall.caller_name}</h3>
-                <p className="text-muted-foreground mt-1">Calling you...</p>
+                <p className="text-muted-foreground mt-1 animate-pulse">Ringing...</p>
               </div>
 
               <div className="flex gap-6 pt-4">
@@ -495,13 +559,13 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
                   onClick={() => rejectCall(incomingCall)}
                   variant="destructive"
                   size="lg"
-                  className="rounded-full h-16 w-16"
+                  className="rounded-full h-16 w-16 shadow-lg hover:scale-110 transition-transform"
                 >
                   <PhoneOff className="h-7 w-7" />
                 </Button>
                 <Button
                   onClick={() => answerCall(incomingCall)}
-                  className="bg-green-500 hover:bg-green-600 rounded-full h-16 w-16"
+                  className="bg-green-500 hover:bg-green-600 rounded-full h-16 w-16 shadow-lg hover:scale-110 transition-transform"
                   size="lg"
                 >
                   <Phone className="h-7 w-7" />
@@ -514,7 +578,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
       {/* Active Call Interface */}
       {activeCall && (
-        <div className="fixed inset-0 bg-black z-[100] flex flex-col">
+        <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-in fade-in duration-300">
           {/* Remote Video/Audio */}
           <div className="flex-1 relative bg-gradient-to-b from-gray-900 to-black">
             {callType === 'video' ? (
@@ -563,32 +627,40 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
           {/* Controls */}
           <div className="p-6 bg-gradient-to-t from-black via-black/95 to-transparent">
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-4 flex-wrap">
               <Button
                 onClick={toggleMute}
                 variant={isMuted ? 'destructive' : 'secondary'}
                 size="lg"
-                className="rounded-full h-14 w-14"
+                className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
               >
                 {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
               </Button>
 
-              {callType === 'video' && (
-                <Button
-                  onClick={toggleVideo}
-                  variant={isVideoOff ? 'destructive' : 'secondary'}
-                  size="lg"
-                  className="rounded-full h-14 w-14"
-                >
-                  {isVideoOff ? <VideoOff className="h-6 w-6" /> : <Video className="h-6 w-6" />}
-                </Button>
-              )}
+              <Button
+                onClick={toggleVideo}
+                variant={isVideoOff ? 'destructive' : 'secondary'}
+                size="lg"
+                className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
+              >
+                {isVideoOff ? <VideoOff className="h-6 w-6" /> : <Video className="h-6 w-6" />}
+              </Button>
+
+              <Button
+                onClick={toggleCallType}
+                variant="outline"
+                size="lg"
+                className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform border-white/20 text-white hover:bg-white/10"
+                title={callType === 'video' ? 'Switch to voice call' : 'Switch to video call'}
+              >
+                {callType === 'video' ? <Phone className="h-6 w-6" /> : <Video className="h-6 w-6" />}
+              </Button>
 
               <Button
                 onClick={endCall}
                 variant="destructive"
                 size="lg"
-                className="rounded-full h-14 w-14"
+                className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
               >
                 <PhoneOff className="h-6 w-6" />
               </Button>
