@@ -12,7 +12,7 @@ import {
   MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, 
   Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
   Reply, Forward, Star, Copy, Trash2, Edit2, Download, X, Paperclip, User,
-  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus
+  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus, QrCode
 } from 'lucide-react';
 import { MessageAction } from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
@@ -25,6 +25,8 @@ import { MessageForwarding } from '@/components/MessageForwarding';
 import { ContactManager } from '@/components/ContactManager';
 import VoiceCall from '@/components/VoiceCall';
 import VideoCall from '@/components/VideoCall';
+import { QRScanner } from '@/components/QRScanner';
+import { DeviceSessions } from '@/components/DeviceSessions';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import {
@@ -93,6 +95,8 @@ const Chat = () => {
   const [isProvider, setIsProvider] = useState(false);
   const [allConversations, setAllConversations] = useState<any[]>([]);
   const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video', callId: string, partnerId: string } | null>(null);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showDeviceSessions, setShowDeviceSessions] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -616,6 +620,30 @@ const Chat = () => {
                   <Stethoscope className="h-5 w-5" />
                 </Button>
               )}
+              <Sheet open={showDeviceSessions} onOpenChange={setShowDeviceSessions}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full" title="Linked Devices">
+                    <QrCode className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Device Management</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6">
+                    <DeviceSessions />
+                    <Button 
+                      className="w-full mt-4" 
+                      onClick={() => {
+                        setShowDeviceSessions(false);
+                        setShowQRScanner(true);
+                      }}
+                    >
+                      Link New Device
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
               <Button variant="ghost" size="icon" className="rounded-full" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -982,6 +1010,9 @@ const Chat = () => {
           onEnd={endCall}
         />
       )}
+
+      {/* QR Scanner for linking devices */}
+      <QRScanner open={showQRScanner} onOpenChange={setShowQRScanner} />
     </div>
   );
 };

@@ -51,37 +51,46 @@ export type Database = {
         Row: {
           appointment_date: string
           created_at: string | null
+          diagnosis: string | null
           duration_minutes: number | null
+          follow_up_date: string | null
           id: string
           notes: string | null
           patient_id: string
           provider_id: string
           service_id: string | null
           status: string | null
+          treatment_plan: Json | null
           updated_at: string | null
         }
         Insert: {
           appointment_date: string
           created_at?: string | null
+          diagnosis?: string | null
           duration_minutes?: number | null
+          follow_up_date?: string | null
           id?: string
           notes?: string | null
           patient_id: string
           provider_id: string
           service_id?: string | null
           status?: string | null
+          treatment_plan?: Json | null
           updated_at?: string | null
         }
         Update: {
           appointment_date?: string
           created_at?: string | null
+          diagnosis?: string | null
           duration_minutes?: number | null
+          follow_up_date?: string | null
           id?: string
           notes?: string | null
           patient_id?: string
           provider_id?: string
           service_id?: string | null
           status?: string | null
+          treatment_plan?: Json | null
           updated_at?: string | null
         }
         Relationships: [
@@ -303,6 +312,59 @@ export type Database = {
         }
         Relationships: []
       }
+      device_sessions: {
+        Row: {
+          created_at: string | null
+          device_name: string
+          device_type: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          last_active: string | null
+          qr_token: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_name: string
+          device_type: string
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_active?: string | null
+          qr_token?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_name?: string
+          device_type?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_active?: string | null
+          qr_token?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emergency_contacts: {
         Row: {
           created_at: string | null
@@ -332,6 +394,69 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      health_passport: {
+        Row: {
+          allergies: Json | null
+          blood_type: string | null
+          chronic_conditions: Json | null
+          created_at: string | null
+          emergency_contact_id: string | null
+          id: string
+          insurance_number: string | null
+          insurance_provider: string | null
+          passport_number: string
+          photo_url: string | null
+          qr_code_data: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allergies?: Json | null
+          blood_type?: string | null
+          chronic_conditions?: Json | null
+          created_at?: string | null
+          emergency_contact_id?: string | null
+          id?: string
+          insurance_number?: string | null
+          insurance_provider?: string | null
+          passport_number?: string
+          photo_url?: string | null
+          qr_code_data?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allergies?: Json | null
+          blood_type?: string | null
+          chronic_conditions?: Json | null
+          created_at?: string | null
+          emergency_contact_id?: string | null
+          id?: string
+          insurance_number?: string | null
+          insurance_provider?: string | null
+          passport_number?: string
+          photo_url?: string | null
+          qr_code_data?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_passport_emergency_contact_id_fkey"
+            columns: ["emergency_contact_id"]
+            isOneToOne: false
+            referencedRelation: "emergency_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_passport_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lab_reports: {
         Row: {
@@ -911,6 +1036,66 @@ export type Database = {
           },
         ]
       }
+      prescriptions: {
+        Row: {
+          created_at: string | null
+          dosage: string
+          duration: string | null
+          frequency: string
+          id: string
+          medication_name: string
+          notes: string | null
+          prescribed_date: string
+          prescription_file_url: string | null
+          provider_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dosage: string
+          duration?: string | null
+          frequency: string
+          id?: string
+          medication_name: string
+          notes?: string | null
+          prescribed_date?: string
+          prescription_file_url?: string | null
+          provider_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dosage?: string
+          duration?: string | null
+          frequency?: string
+          id?: string
+          medication_name?: string
+          notes?: string | null
+          prescribed_date?: string
+          prescription_file_url?: string | null
+          provider_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           age: number | null
@@ -1312,6 +1497,53 @@ export type Database = {
           views_count?: number | null
         }
         Relationships: []
+      }
+      vaccination_records: {
+        Row: {
+          administered_by: string | null
+          batch_number: string | null
+          certificate_url: string | null
+          created_at: string | null
+          date_administered: string
+          dose_number: number
+          id: string
+          next_dose_date: string | null
+          user_id: string
+          vaccine_name: string
+        }
+        Insert: {
+          administered_by?: string | null
+          batch_number?: string | null
+          certificate_url?: string | null
+          created_at?: string | null
+          date_administered: string
+          dose_number?: number
+          id?: string
+          next_dose_date?: string | null
+          user_id: string
+          vaccine_name: string
+        }
+        Update: {
+          administered_by?: string | null
+          batch_number?: string | null
+          certificate_url?: string | null
+          created_at?: string | null
+          date_administered?: string
+          dose_number?: number
+          id?: string
+          next_dose_date?: string | null
+          user_id?: string
+          vaccine_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaccination_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webrtc_signals: {
         Row: {

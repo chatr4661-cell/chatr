@@ -30,6 +30,8 @@ import ProviderAppointments from "./pages/provider/Appointments";
 import ProviderServices from "./pages/provider/Services";
 import ProviderPayments from "./pages/provider/Payments";
 import ChatrPoints from "./pages/ChatrPoints";
+import QRLogin from "./pages/QRLogin";
+import HealthPassport from "./pages/HealthPassport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +70,8 @@ const App = () => (
           <Route path="/provider/services" element={<ProviderServices />} />
           <Route path="/provider/payments" element={<ProviderPayments />} />
           <Route path="/chatr-points" element={<ChatrPoints />} />
+          <Route path="/qr-login" element={<QRLogin />} />
+          <Route path="/health-passport" element={<HealthPassport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

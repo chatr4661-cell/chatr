@@ -20,7 +20,9 @@ import {
   FileText,
   Pill,
   Users,
-  Coins
+  Coins,
+  Shield,
+  QrCode
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
@@ -98,6 +100,20 @@ const Index = () => {
       description: 'Never miss your medication schedule',
       iconColor: 'bg-gradient-to-br from-orange-400 to-orange-600',
       route: '/medicine-reminders'
+    },
+    {
+      icon: Shield,
+      title: 'Health Passport',
+      description: 'Your complete digital health identity',
+      iconColor: 'bg-gradient-to-br from-emerald-400 to-green-600',
+      route: '/health-passport'
+    },
+    {
+      icon: QrCode,
+      title: 'QR Login',
+      description: 'Link desktop and mobile devices',
+      iconColor: 'bg-gradient-to-br from-slate-400 to-slate-600',
+      route: '/qr-login'
     },
     {
       icon: Stethoscope,
