@@ -89,6 +89,9 @@ interface Message {
   poll_question?: string;
   poll_options?: any;
   sender?: Profile;
+  status?: 'sent' | 'delivered' | 'read';
+  reactions?: Array<{ userId: string; emoji: string }>;
+  scheduled_for?: string;
 }
 
 const Chat = () => {
@@ -337,7 +340,34 @@ const Chat = () => {
     }
 
     console.log(`✅ Loaded ${data?.length || 0} messages for conversation ${convId}`);
-    setMessages(data || []);
+    setMessages((data as any) || []);
+    
+    // Mark received messages as delivered
+    if (data && data.length > 0) {
+      const receivedUndelivered = data.filter(
+        msg => msg.sender_id !== user?.id && msg.status === 'sent'
+      );
+      if (receivedUndelivered.length > 0) {
+        await supabase
+          .from('messages')
+          .update({ status: 'delivered' })
+          .in('id', receivedUndelivered.map(m => m.id));
+      }
+      
+      // Mark visible messages as read
+      const unreadMessages = data.filter(
+        msg => msg.sender_id !== user?.id && !msg.read_at
+      );
+      if (unreadMessages.length > 0) {
+        await supabase
+          .from('messages')
+          .update({ 
+            read_at: new Date().toISOString(),
+            status: 'read'
+          })
+          .in('id', unreadMessages.map(m => m.id));
+      }
+    }
   };
 
   // Separate useEffect to manage message subscription
@@ -382,15 +412,40 @@ const Chat = () => {
                 console.log('⚠️ Message already exists, skipping');
                 return prev;
               }
-              return [...prev, newMessage];
+              return [...prev, newMessage as any];
             });
             
-            // Play notification sound if message is from someone else
+            // Mark as read if from someone else
             if (newMessage.sender_id !== user?.id) {
+              await supabase
+                .from('messages')
+                .update({ 
+                  read_at: new Date().toISOString(),
+                  status: 'read'
+                })
+                .eq('id', newMessage.id);
+              
               const audio = new Audio('/notification.mp3');
               audio.play().catch(e => console.log('Could not play sound:', e));
             }
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          // Update message status and reactions in realtime
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === payload.new.id ? { ...msg, ...payload.new as any } : msg
+            )
+          );
         }
       )
       .subscribe((status) => {
@@ -527,13 +582,23 @@ const Chat = () => {
   };
 
   const handleReact = async (messageId: string, emoji: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+
+    const reactions = message.reactions || [];
+    const existingIndex = reactions.findIndex(r => r.userId === user.id && r.emoji === emoji);
+    
+    let newReactions;
+    if (existingIndex >= 0) {
+      newReactions = reactions.filter((_, i) => i !== existingIndex);
+    } else {
+      newReactions = [...reactions, { userId: user.id, emoji }];
+    }
+
     const { error } = await supabase
-      .from('message_reactions')
-      .upsert({
-        message_id: messageId,
-        user_id: user.id,
-        emoji
-      });
+      .from('messages')
+      .update({ reactions: newReactions })
+      .eq('id', messageId);
 
     if (error) {
       console.error('Error adding reaction:', error);
@@ -951,7 +1016,15 @@ const Chat = () => {
                                   <img src={message.media_url} alt="Shared image" className="max-w-full" />
                                   <div className="px-2 py-1 bg-black/50 text-white text-xs flex items-center justify-end gap-1">
                                     <span>{formatTime(message.created_at)}</span>
-                                    {isOwn && (message.read_at ? <CheckCheck className="h-3 w-3 text-blue-400" /> : <Check className="h-3 w-3" />)}
+                                    {isOwn && (
+                                      message.status === 'read' || message.read_at ? (
+                                        <CheckCheck className="h-3 w-3 text-blue-400" />
+                                      ) : message.status === 'delivered' ? (
+                                        <CheckCheck className="h-3 w-3" />
+                                      ) : (
+                                        <Check className="h-3 w-3" />
+                                      )
+                                    )}
                                   </div>
                                 </div>
                               ) : message.message_type === 'location' ? (
@@ -1000,13 +1073,32 @@ const Chat = () => {
                                       {formatTime(message.created_at)}
                                     </span>
                                     {isOwn && (
-                                      message.read_at ? (
+                                      message.status === 'read' || message.read_at ? (
                                         <CheckCheck className="h-3.5 w-3.5 text-blue-500" />
+                                      ) : message.status === 'delivered' ? (
+                                        <CheckCheck className="h-3.5 w-3.5 opacity-70" />
                                       ) : (
                                         <Check className="h-3.5 w-3.5 opacity-70" />
                                       )
                                     )}
                                   </div>
+                                  
+                                  {/* Message Reactions */}
+                                  {message.reactions && message.reactions.length > 0 && (
+                                    <MessageReactions
+                                      reactions={message.reactions.reduce((acc, r) => {
+                                        const existing = acc.find(item => item.emoji === r.emoji);
+                                        if (existing) {
+                                          existing.count++;
+                                          if (r.userId === user?.id) existing.userReacted = true;
+                                        } else {
+                                          acc.push({ emoji: r.emoji, count: 1, userReacted: r.userId === user?.id });
+                                        }
+                                        return acc;
+                                      }, [] as Array<{ emoji: string; count: number; userReacted: boolean }>)}
+                                      onReact={(emoji) => handleReact(message.id, emoji)}
+                                    />
+                                  )}
                                   
                                   {/* Message Translator */}
                                   {!isOwn && (
@@ -1021,7 +1113,11 @@ const Chat = () => {
                           </div>
                         </ContextMenuTrigger>
                         <ContextMenuContent>
-                        <ContextMenuItem onClick={() => setReplyToMessage(message)}>
+                          <ContextMenuItem onClick={() => handleReact(message.id, '👍')}>
+                            <Smile className="h-4 w-4 mr-2" />
+                            React
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => setReplyToMessage(message)}>
                             <Reply className="h-4 w-4 mr-2" />
                             Reply
                           </ContextMenuItem>

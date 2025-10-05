@@ -676,9 +676,12 @@ export type Database = {
           message_type: string | null
           poll_options: Json | null
           poll_question: string | null
+          reactions: Json | null
           read_at: string | null
           reply_to_id: string | null
+          scheduled_for: string | null
           sender_id: string | null
+          status: string | null
         }
         Insert: {
           content: string
@@ -701,9 +704,12 @@ export type Database = {
           message_type?: string | null
           poll_options?: Json | null
           poll_question?: string | null
+          reactions?: Json | null
           read_at?: string | null
           reply_to_id?: string | null
+          scheduled_for?: string | null
           sender_id?: string | null
+          status?: string | null
         }
         Update: {
           content?: string
@@ -726,9 +732,12 @@ export type Database = {
           message_type?: string | null
           poll_options?: Json | null
           poll_question?: string | null
+          reactions?: Json | null
           read_at?: string | null
           reply_to_id?: string | null
+          scheduled_for?: string | null
           sender_id?: string | null
+          status?: string | null
         }
         Relationships: [
           {
