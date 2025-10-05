@@ -441,10 +441,18 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
             )}
 
             {filteredContacts.length === 0 && !isLoading && (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-12 text-muted-foreground space-y-4">
                 <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No contacts yet</p>
+                <p className="font-medium">No contacts yet</p>
                 <p className="text-sm">Add contacts to start chatting</p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open('/download', '_blank')}
+                  className="mt-2"
+                >
+                  Invite Friends to Chatr
+                </Button>
               </div>
             )}
           </div>

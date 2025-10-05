@@ -179,16 +179,26 @@ const Index = () => {
       <div className="p-2 backdrop-blur-glass bg-gradient-glass border-b border-glass-border sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <img src={logo} alt="chatr+ Logo" className="h-8 object-contain" />
-          {user && (
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleSignOut}
-              className="rounded-full bg-destructive/10 hover:bg-destructive/20 h-7 px-2"
+              onClick={() => navigate('/download')}
+              className="rounded-full h-7 px-3"
             >
-              <LogOut className="h-3 w-3 text-destructive" />
+              Download App
             </Button>
-          )}
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="rounded-full bg-destructive/10 hover:bg-destructive/20 h-7 px-2"
+              >
+                <LogOut className="h-3 w-3 text-destructive" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
