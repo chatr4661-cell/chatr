@@ -137,6 +137,23 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  // Keep user online with periodic heartbeat
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const updateOnlineStatus = async () => {
+      await supabase
+        .from('profiles')
+        .update({ is_online: true, last_seen: new Date().toISOString() })
+        .eq('id', user.id);
+    };
+    
+    // Update every 30 seconds
+    const interval = setInterval(updateOnlineStatus, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -146,6 +163,13 @@ const Chat = () => {
         setUser(session.user);
         loadProfile(session.user.id);
         checkProviderStatus(session.user.id);
+        
+        // Set user online status
+        supabase
+          .from('profiles')
+          .update({ is_online: true, last_seen: new Date().toISOString() })
+          .eq('id', session.user.id)
+          .then(() => console.log('✅ User set to online'));
       }
     });
 
@@ -159,7 +183,30 @@ const Chat = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Set user offline when page unloads
+    const handleBeforeUnload = () => {
+      if (user?.id) {
+        navigator.sendBeacon(
+          `${supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', user.id)}`
+        );
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Set offline when component unmounts
+      if (user?.id) {
+        supabase
+          .from('profiles')
+          .update({ is_online: false, last_seen: new Date().toISOString() })
+          .eq('id', user.id)
+          .then(() => console.log('✅ User set to offline'));
+      }
+    };
   }, [navigate]);
 
   const checkProviderStatus = async (userId: string) => {
@@ -189,6 +236,25 @@ const Chat = () => {
 
     setProfile(data);
     loadContacts();
+    
+    // Subscribe to online status changes for contacts
+    const channel = supabase.channel('online-users')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'profiles' 
+      }, (payload) => {
+        console.log('👤 Profile updated:', payload.new);
+        // Update contacts list if this profile is in contacts
+        setContacts(prev => prev.map(c => 
+          c.id === payload.new.id ? { ...c, ...payload.new } : c
+        ));
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   };
 
   const loadContacts = async () => {
