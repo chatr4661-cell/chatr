@@ -22,6 +22,7 @@ import { TypingIndicator, setTypingStatus } from '@/components/TypingIndicator';
 import { VoiceMessageRecorder } from '@/components/VoiceMessageRecorder';
 import { GroupChatCreator } from '@/components/GroupChatCreator';
 import { MessageForwarding } from '@/components/MessageForwarding';
+import { ContactManager } from '@/components/ContactManager';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import {
@@ -86,7 +87,7 @@ const Chat = () => {
   const [showMessageForwarding, setShowMessageForwarding] = useState(false);
   const [messageToForward, setMessageToForward] = useState<Message | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
-  const [viewMode, setViewMode] = useState<'consumer' | 'business'>('consumer');
+  const [viewMode, setViewMode] = useState<'consumer' | 'business' | 'contacts'>('consumer');
   const [isProvider, setIsProvider] = useState(false);
   const [allConversations, setAllConversations] = useState<any[]>([]);
   const navigate = useNavigate();
@@ -150,17 +151,43 @@ const Chat = () => {
   };
 
   const loadContacts = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
+    if (!user?.id) return;
+
+    // Get user's contacts with profile info
+    const { data: contactsData } = await supabase
+      .from('contacts')
       .select('*')
-      .limit(20);
+      .eq('user_id', user.id)
+      .eq('is_registered', true);
 
-    if (error) {
-      console.error('Error loading contacts:', error);
-      return;
+    if (contactsData && contactsData.length > 0) {
+      const contactUserIds = contactsData
+        .filter(c => c.contact_user_id)
+        .map(c => c.contact_user_id);
+
+      const { data: profilesData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', contactUserIds);
+
+      if (error) {
+        console.error('Error loading contact profiles:', error);
+        return;
+      }
+
+      setContacts(profilesData || []);
+    } else {
+      // If no contacts, show some sample profiles to get started
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', user.id)
+        .limit(10);
+
+      if (!error) {
+        setContacts(data || []);
+      }
     }
-
-    setContacts(data || []);
   };
 
   const selectContact = async (contact: Profile) => {
@@ -494,9 +521,9 @@ const Chat = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowGroupCreator(true)}
+                onClick={() => setViewMode(viewMode === 'contacts' ? 'consumer' : 'contacts')}
                 className="rounded-full hover:bg-primary/10"
-                title="Create Group"
+                title="Contacts"
               >
                 <UsersIcon className="h-5 w-5" />
               </Button>
@@ -524,14 +551,23 @@ const Chat = () => {
             </div>
           </div>
 
-          {/* Contacts List */}
-          <ScrollArea className="flex-1">
-            <div className="p-1">
-              {contacts.map((contact) => (
-                <button
-                  key={contact.id}
-                  onClick={() => selectContact(contact)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/80 transition-all ${
+          {/* Contacts List or Contact Manager */}
+          {viewMode === 'contacts' ? (
+            <ContactManager 
+              userId={user?.id || ''} 
+              onContactSelect={(contact) => {
+                setViewMode('consumer');
+                selectContact(contact);
+              }}
+            />
+          ) : (
+            <ScrollArea className="flex-1">
+              <div className="p-1">
+                {contacts.map((contact) => (
+                  <button
+                    key={contact.id}
+                    onClick={() => selectContact(contact)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/80 transition-all ${
                     selectedContact?.id === contact.id ? 'bg-primary/10' : ''
                   }`}
                 >
@@ -556,9 +592,10 @@ const Chat = () => {
                     </div>
                   </div>
                 </button>
-              ))}
-            </div>
-          </ScrollArea>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
         </div>
 
         {/* Chat Area */}

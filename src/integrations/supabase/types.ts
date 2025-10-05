@@ -916,6 +916,7 @@ export type Database = {
           age: number | null
           avatar_url: string | null
           created_at: string | null
+          email: string | null
           gender: string | null
           health_goals: string[] | null
           id: string
@@ -934,6 +935,7 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           created_at?: string | null
+          email?: string | null
           gender?: string | null
           health_goals?: string[] | null
           id: string
@@ -952,6 +954,7 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           created_at?: string | null
+          email?: string | null
           gender?: string | null
           health_goals?: string[] | null
           id?: string
@@ -1440,6 +1443,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      sync_user_contacts: {
+        Args: { contact_list: Json; user_uuid: string }
+        Returns: undefined
       }
     }
     Enums: {
