@@ -260,6 +260,7 @@ export type Database = {
       }
       conversations: {
         Row: {
+          admin_id: string | null
           created_at: string | null
           created_by: string | null
           custom_wallpaper: string | null
@@ -273,6 +274,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          admin_id?: string | null
           created_at?: string | null
           created_by?: string | null
           custom_wallpaper?: string | null
@@ -286,6 +288,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          admin_id?: string | null
           created_at?: string | null
           created_by?: string | null
           custom_wallpaper?: string | null
@@ -426,6 +429,45 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_forwards: {
+        Row: {
+          created_at: string | null
+          forwarded_by: string
+          forwarded_message_id: string
+          id: string
+          original_message_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          forwarded_by: string
+          forwarded_message_id: string
+          id?: string
+          original_message_id: string
+        }
+        Update: {
+          created_at?: string | null
+          forwarded_by?: string
+          forwarded_message_id?: string
+          id?: string
+          original_message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_forwards_forwarded_message_id_fkey"
+            columns: ["forwarded_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_forwards_original_message_id_fkey"
+            columns: ["original_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]

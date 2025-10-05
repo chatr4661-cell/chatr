@@ -3,14 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Video, VideoOff, Mic, MicOff, PhoneOff, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { sendSignal, subscribeToCallSignals } from "@/utils/webrtcSignaling";
 
 interface VideoCallProps {
   conversationId: string;
+  callId: string;
   isInitiator: boolean;
+  userId: string;
+  partnerId: string;
   onEnd: () => void;
 }
 
-export default function VideoCall({ conversationId, isInitiator, onEnd }: VideoCallProps) {
+export default function VideoCall({ conversationId, callId, isInitiator, userId, partnerId, onEnd }: VideoCallProps) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -24,8 +29,13 @@ export default function VideoCall({ conversationId, isInitiator, onEnd }: VideoC
 
   useEffect(() => {
     initializeCall();
+    
+    // Subscribe to signaling messages
+    const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+    
     return () => {
       cleanup();
+      unsubscribe();
     };
   }, []);
 
@@ -73,10 +83,14 @@ export default function VideoCall({ conversationId, isInitiator, onEnd }: VideoC
       };
 
       // Handle ICE candidates
-      pc.onicecandidate = (event) => {
+      pc.onicecandidate = async (event) => {
         if (event.candidate) {
-          // In production, send this to signaling server
-          console.log("ICE candidate:", event.candidate);
+          await sendSignal({
+            type: 'ice-candidate',
+            callId,
+            data: event.candidate,
+            to: partnerId
+          });
         }
       };
 
@@ -91,8 +105,13 @@ export default function VideoCall({ conversationId, isInitiator, onEnd }: VideoC
       if (isInitiator) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        // In production, send offer to signaling server
-        console.log("Created offer:", offer);
+        
+        await sendSignal({
+          type: 'offer',
+          callId,
+          data: offer,
+          to: partnerId
+        });
       }
 
     } catch (error: any) {
@@ -102,6 +121,32 @@ export default function VideoCall({ conversationId, isInitiator, onEnd }: VideoC
         description: "Failed to start video call",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleSignal = async (signal: any) => {
+    const pc = peerConnectionRef.current;
+    if (!pc) return;
+
+    try {
+      if (signal.signal_type === 'offer') {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        
+        await sendSignal({
+          type: 'answer',
+          callId,
+          data: answer,
+          to: partnerId
+        });
+      } else if (signal.signal_type === 'answer') {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+      } else if (signal.signal_type === 'ice-candidate') {
+        await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+      }
+    } catch (error) {
+      console.error("Error handling signal:", error);
     }
   };
 

@@ -20,7 +20,7 @@ export default function ChatEnhanced() {
   const [user, setUser] = useState<any>(null);
   const [contacts, setContacts] = useState<any[]>([]);
   const [selectedContact, setSelectedContact] = useState<any>(null);
-  const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video'; conversationId: string } | null>(null);
+  const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video'; conversationId: string; callId: string; partnerId: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('chats');
   const [recentChats, setRecentChats] = useState<any[]>([]);
@@ -159,18 +159,26 @@ export default function ChatEnhanced() {
       const conversation = await getOrCreateConversation(contact.id);
       
       // Create call record
-      const { error } = await supabase
+      const { data: call, error } = await supabase
         .from('calls')
         .insert({
           conversation_id: conversation.id,
           caller_id: user.id,
           call_type: 'voice',
           status: 'ringing'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setActiveCall({ type: 'voice', conversationId: conversation.id });
+      setActiveCall({ 
+        type: 'voice', 
+        conversationId: conversation.id,
+        callId: call.id,
+        partnerId: contact.id
+      });
+      setSelectedContact(contact);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -184,18 +192,26 @@ export default function ChatEnhanced() {
     try {
       const conversation = await getOrCreateConversation(contact.id);
       
-      const { error } = await supabase
+      const { data: call, error } = await supabase
         .from('calls')
         .insert({
           conversation_id: conversation.id,
           caller_id: user.id,
           call_type: 'video',
           status: 'ringing'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setActiveCall({ type: 'video', conversationId: conversation.id });
+      setActiveCall({ 
+        type: 'video', 
+        conversationId: conversation.id,
+        callId: call.id,
+        partnerId: contact.id
+      });
+      setSelectedContact(contact);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -250,23 +266,29 @@ export default function ChatEnhanced() {
     navigate('/chat', { state: { selectedContact: contact } });
   };
 
-  if (activeCall?.type === 'video') {
+  if (activeCall?.type === 'video' && user) {
     return (
       <VideoCall
         conversationId={activeCall.conversationId}
+        callId={activeCall.callId}
         isInitiator={true}
+        userId={user.id}
+        partnerId={activeCall.partnerId}
         onEnd={() => setActiveCall(null)}
       />
     );
   }
 
-  if (activeCall?.type === 'voice' && selectedContact) {
+  if (activeCall?.type === 'voice' && selectedContact && user) {
     return (
       <VoiceCall
         conversationId={activeCall.conversationId}
+        callId={activeCall.callId}
         contactName={selectedContact.username}
         contactAvatar={selectedContact.avatar_url}
         isInitiator={true}
+        userId={user.id}
+        partnerId={activeCall.partnerId}
         onEnd={() => setActiveCall(null)}
       />
     );

@@ -19,6 +19,9 @@ import { PollCreator } from '@/components/PollCreator';
 import { PollMessage } from '@/components/PollMessage';
 import { MessageReactions } from '@/components/MessageReactions';
 import { TypingIndicator, setTypingStatus } from '@/components/TypingIndicator';
+import { VoiceMessageRecorder } from '@/components/VoiceMessageRecorder';
+import { GroupChatCreator } from '@/components/GroupChatCreator';
+import { MessageForwarding } from '@/components/MessageForwarding';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import {
@@ -78,9 +81,14 @@ const Chat = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [showMediaActions, setShowMediaActions] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [showGroupCreator, setShowGroupCreator] = useState(false);
+  const [showMessageForwarding, setShowMessageForwarding] = useState(false);
+  const [messageToForward, setMessageToForward] = useState<Message | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [viewMode, setViewMode] = useState<'consumer' | 'business'>('consumer');
   const [isProvider, setIsProvider] = useState(false);
+  const [allConversations, setAllConversations] = useState<any[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -398,6 +406,44 @@ const Chat = () => {
     setMessages(prev => prev.filter(m => m.id !== messageId));
   };
 
+  const handleVoiceMessageSend = async (audioBlob: Blob, duration: number) => {
+    if (!conversationId || !user) return;
+
+    try {
+      // Upload audio to storage
+      const fileName = `voice-${Date.now()}.webm`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('social-media')
+        .upload(fileName, audioBlob);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('social-media')
+        .getPublicUrl(fileName);
+
+      // Send message
+      await sendMessage(new Event('submit') as any, 'voice', {
+        content: 'Voice message',
+        media_url: publicUrl,
+        duration: duration
+      });
+
+      setShowVoiceRecorder(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Failed to send voice message',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleForwardMessage = (message: Message) => {
+    setMessageToForward(message);
+    setShowMessageForwarding(true);
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -445,6 +491,15 @@ const Chat = () => {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <img src={logo} alt="chatr+ Logo" className="h-8 object-contain flex-1" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowGroupCreator(true)}
+                className="rounded-full hover:bg-primary/10"
+                title="Create Group"
+              >
+                <UsersIcon className="h-5 w-5" />
+              </Button>
               {isProvider && (
                 <Button
                   variant="ghost"
@@ -452,7 +507,7 @@ const Chat = () => {
                   onClick={() => setViewMode('business')}
                   className="rounded-full"
                 >
-                  <UsersIcon className="h-5 w-5" />
+                  <Stethoscope className="h-5 w-5" />
                 </Button>
               )}
               <Button variant="ghost" size="icon" className="rounded-full" onClick={handleSignOut}>
@@ -609,9 +664,13 @@ const Chat = () => {
                           </div>
                         </ContextMenuTrigger>
                         <ContextMenuContent>
-                          <ContextMenuItem onClick={() => setReplyToMessage(message)}>
+                        <ContextMenuItem onClick={() => setReplyToMessage(message)}>
                             <Reply className="h-4 w-4 mr-2" />
                             Reply
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => handleForwardMessage(message)}>
+                            <Forward className="h-4 w-4 mr-2" />
+                            Forward
                           </ContextMenuItem>
                           <ContextMenuItem onClick={() => handleStarMessage(message.id, message.is_starred || false)}>
                             <Star className="h-4 w-4 mr-2" />
@@ -699,8 +758,8 @@ const Chat = () => {
                     <Button
                       type="button"
                       size="icon"
-                      className={`rounded-full flex-shrink-0 h-11 w-11 ${isRecording ? 'bg-red-500 hover:bg-red-600' : ''}`}
-                      onClick={handleVoiceRecord}
+                      className="rounded-full flex-shrink-0 h-11 w-11"
+                      onClick={() => setShowVoiceRecorder(true)}
                     >
                       <Mic className="h-5 w-5" />
                     </Button>
@@ -726,6 +785,40 @@ const Chat = () => {
           )}
         </div>
       </div>
+
+      {/* Voice Message Recorder */}
+      {showVoiceRecorder && (
+        <VoiceMessageRecorder
+          onSend={handleVoiceMessageSend}
+          onCancel={() => setShowVoiceRecorder(false)}
+        />
+      )}
+
+      {/* Group Chat Creator */}
+      <GroupChatCreator
+        open={showGroupCreator}
+        onOpenChange={setShowGroupCreator}
+        contacts={contacts}
+        userId={user?.id || ''}
+        onGroupCreated={(groupId) => {
+          toast({
+            title: "Success",
+            description: "Group created successfully"
+          });
+          setShowGroupCreator(false);
+        }}
+      />
+
+      {/* Message Forwarding */}
+      {messageToForward && (
+        <MessageForwarding
+          open={showMessageForwarding}
+          onOpenChange={setShowMessageForwarding}
+          message={messageToForward}
+          conversations={allConversations}
+          userId={user?.id || ''}
+        />
+      )}
 
       <PollCreator
         open={showPollCreator}

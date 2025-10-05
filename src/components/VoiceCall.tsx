@@ -4,16 +4,21 @@ import { Card } from "@/components/ui/card";
 import { Mic, MicOff, PhoneOff, Phone, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { sendSignal, subscribeToCallSignals } from "@/utils/webrtcSignaling";
 
 interface VoiceCallProps {
   conversationId: string;
+  callId: string;
   contactName: string;
   contactAvatar?: string;
   isInitiator: boolean;
+  userId: string;
+  partnerId: string;
   onEnd: () => void;
 }
 
-export default function VoiceCall({ conversationId, contactName, contactAvatar, isInitiator, onEnd }: VoiceCallProps) {
+export default function VoiceCall({ conversationId, callId, contactName, contactAvatar, isInitiator, userId, partnerId, onEnd }: VoiceCallProps) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [callStatus, setCallStatus] = useState<"connecting" | "ringing" | "connected" | "ended">("connecting");
@@ -25,8 +30,13 @@ export default function VoiceCall({ conversationId, contactName, contactAvatar, 
 
   useEffect(() => {
     initializeCall();
+    
+    // Subscribe to signaling messages
+    const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+    
     return () => {
       cleanup();
+      unsubscribe();
     };
   }, []);
 
@@ -84,9 +94,14 @@ export default function VoiceCall({ conversationId, contactName, contactAvatar, 
       };
 
       // Handle ICE candidates
-      pc.onicecandidate = (event) => {
+      pc.onicecandidate = async (event) => {
         if (event.candidate) {
-          console.log("ICE candidate:", event.candidate);
+          await sendSignal({
+            type: 'ice-candidate',
+            callId,
+            data: event.candidate,
+            to: partnerId
+          });
         }
       };
 
@@ -101,13 +116,14 @@ export default function VoiceCall({ conversationId, contactName, contactAvatar, 
       if (isInitiator) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        console.log("Created offer:", offer);
+        
+        await sendSignal({
+          type: 'offer',
+          callId,
+          data: offer,
+          to: partnerId
+        });
       }
-
-      // Simulate connection after 2 seconds (in production, this would be handled by signaling)
-      setTimeout(() => {
-        setCallStatus("connected");
-      }, 2000);
 
     } catch (error: any) {
       console.error("Error initializing call:", error);
@@ -116,6 +132,34 @@ export default function VoiceCall({ conversationId, contactName, contactAvatar, 
         description: "Failed to start voice call",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleSignal = async (signal: any) => {
+    const pc = peerConnectionRef.current;
+    if (!pc) return;
+
+    try {
+      if (signal.signal_type === 'offer') {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        
+        await sendSignal({
+          type: 'answer',
+          callId,
+          data: answer,
+          to: partnerId
+        });
+        setCallStatus("connected");
+      } else if (signal.signal_type === 'answer') {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+        setCallStatus("connected");
+      } else if (signal.signal_type === 'ice-candidate') {
+        await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+      }
+    } catch (error) {
+      console.error("Error handling signal:", error);
     }
   };
 
