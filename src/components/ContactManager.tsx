@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Users, Search, RefreshCw } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Contacts } from '@capacitor-community/contacts';
 
 interface Contact {
   id: string;
@@ -156,56 +157,112 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
     setIsLoading(true);
     
     try {
-      // Get all contacts for this user
-      const { data: existingContacts } = await supabase
-        .from('contacts')
-        .select('contact_phone, contact_user_id')
-        .eq('user_id', userId);
+      // Request permission and get device contacts
+      const permission = await Contacts.requestPermissions();
+      
+      if (permission.contacts === 'denied') {
+        toast({
+          title: 'Permission Denied',
+          description: 'Please enable contacts permission in your device settings',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
 
-      let syncedCount = 0;
-
-      // For each contact, check if they're now registered
-      for (const contact of existingContacts || []) {
-        if (!contact.contact_user_id) {
-          // Check if user exists with this phone/email
-          const { data: matchedUser } = await supabase
-            .from('profiles')
-            .select('id')
-            .or(`email.eq.${contact.contact_phone},phone_number.eq.${contact.contact_phone}`)
-            .maybeSingle();
-
-          if (matchedUser) {
-            // Update contact to mark as registered
-            await supabase
-              .from('contacts')
-              .update({
-                contact_user_id: matchedUser.id,
-                is_registered: true
-              })
-              .eq('user_id', userId)
-              .eq('contact_phone', contact.contact_phone);
-            
-            syncedCount++;
-          }
+      // Get all contacts from device
+      const result = await Contacts.getContacts({
+        projection: {
+          name: true,
+          phones: true,
+          emails: true
         }
+      });
+
+      if (!result.contacts || result.contacts.length === 0) {
+        toast({
+          title: 'No Contacts Found',
+          description: 'No contacts found on your device',
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      let importedCount = 0;
+      let registeredCount = 0;
+
+      // Process each device contact
+      for (const contact of result.contacts) {
+        const name = contact.name?.display || 'Unknown';
+        const phone = contact.phones?.[0]?.number;
+        const email = contact.emails?.[0]?.address;
+
+        if (!phone && !email) continue;
+
+        const identifier = email || phone || '';
+        
+        // Check if user is registered
+        let matchedUser = null;
+        
+        if (email) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .eq('email', email)
+            .maybeSingle();
+          matchedUser = data;
+        }
+        
+        if (!matchedUser && phone) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .eq('phone_number', phone)
+            .maybeSingle();
+          matchedUser = data;
+        }
+
+        // Insert or update contact
+        await supabase
+          .from('contacts')
+          .upsert({
+            user_id: userId,
+            contact_name: name,
+            contact_phone: identifier,
+            contact_user_id: matchedUser?.id || null,
+            is_registered: !!matchedUser
+          }, {
+            onConflict: 'user_id,contact_phone'
+          });
+
+        importedCount++;
+        if (matchedUser) registeredCount++;
       }
 
       toast({
-        title: 'Contacts Synced',
-        description: syncedCount > 0 
-          ? `${syncedCount} contacts joined Chatr!` 
-          : 'All contacts are up to date',
+        title: 'Contacts Synced!',
+        description: `Imported ${importedCount} contacts. ${registeredCount} are on Chatr!`,
       });
       
       // Reload contacts to show updated data
       await loadContacts();
     } catch (error: any) {
       console.error('Sync error:', error);
-      toast({
-        title: 'Sync Failed',
-        description: error.message || 'Failed to sync contacts',
-        variant: 'destructive'
-      });
+      
+      // Check if it's a web environment
+      if (error.message?.includes('not implemented')) {
+        toast({
+          title: 'Feature Not Available',
+          description: 'Contact syncing is only available on mobile devices. Please use "Add Contact" to add contacts manually.',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Sync Failed',
+          description: error.message || 'Failed to sync contacts',
+          variant: 'destructive'
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -226,6 +283,7 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
         <div className="flex gap-2">
           <Button 
             onClick={() => setShowAddContact(true)}
+            variant="outline"
             className="flex-1"
           >
             <UserPlus className="w-4 h-4 mr-2" />
@@ -233,9 +291,11 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
           </Button>
           <Button 
             onClick={syncContacts}
-            variant="outline"
+            disabled={isLoading}
+            className="flex-1"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Sync Contacts
           </Button>
         </div>
         
