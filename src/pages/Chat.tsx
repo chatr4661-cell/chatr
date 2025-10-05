@@ -287,21 +287,23 @@ const Chat = () => {
     }
 
     setMessages(data || []);
-    subscribeToMessages(convId);
   };
 
-  const subscribeToMessages = (convId: string) => {
-    console.log('📡 Setting up realtime subscription for conversation:', convId);
+  // Separate useEffect to manage message subscription
+  useEffect(() => {
+    if (!conversationId) return;
+
+    console.log('📡 Setting up realtime subscription for conversation:', conversationId);
     
     const channel = supabase
-      .channel(`messages:${convId}`)
+      .channel(`messages:${conversationId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `conversation_id=eq.${convId}`,
+          filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
           console.log('🔔 NEW MESSAGE RECEIVED via realtime:', payload);
@@ -322,7 +324,15 @@ const Chat = () => {
 
           if (newMessage) {
             console.log('✅ Adding message to state:', newMessage);
-            setMessages((prev) => [...prev, newMessage]);
+            // Only add if message belongs to current conversation
+            setMessages((prev) => {
+              // Prevent duplicates
+              if (prev.some(m => m.id === newMessage.id)) {
+                console.log('⚠️ Message already exists, skipping');
+                return prev;
+              }
+              return [...prev, newMessage];
+            });
             
             // Play notification sound if message is from someone else
             if (newMessage.sender_id !== user?.id) {
@@ -335,17 +345,17 @@ const Chat = () => {
       .subscribe((status) => {
         console.log('📡 Message subscription status:', status);
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to messages for conversation:', convId);
+          console.log('✅ Successfully subscribed to messages for conversation:', conversationId);
         } else if (status === 'CHANNEL_ERROR') {
           console.error('❌ Error subscribing to messages channel');
         }
       });
 
     return () => {
-      console.log('🔌 Unsubscribing from messages:', convId);
+      console.log('🔌 Unsubscribing from messages:', conversationId);
       supabase.removeChannel(channel);
     };
-  };
+  }, [conversationId, user?.id]);
 
   const handleInputChange = (value: string) => {
     setMessageInput(value);
