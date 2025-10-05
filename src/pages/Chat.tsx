@@ -124,9 +124,19 @@ const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Enable real-time notifications
   useRealtimeNotifications(user?.id);
+  
+  // Auto-scroll to bottom when messages change
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1144,6 +1154,7 @@ const Chat = () => {
                       </ContextMenu>
                     );
                   })}
+                  <div ref={messagesEndRef} />
                 </div>
                 {conversationId && user?.id && <TypingIndicator conversationId={conversationId} currentUserId={user.id} />}
               </ScrollArea>
