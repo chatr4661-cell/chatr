@@ -96,6 +96,7 @@ export default function VoiceCall({ conversationId, callId, contactName, contact
       // Handle ICE candidates
       pc.onicecandidate = async (event) => {
         if (event.candidate) {
+          console.log('📡 Sending ICE candidate');
           await sendSignal({
             type: 'ice-candidate',
             callId,
@@ -109,14 +110,22 @@ export default function VoiceCall({ conversationId, callId, contactName, contact
         console.log("Connection state:", pc.connectionState);
         if (pc.connectionState === "connected") {
           setCallStatus("connected");
+        } else if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+          toast({
+            title: "Connection lost",
+            description: "The call connection was lost",
+            variant: "destructive"
+          });
         }
       };
 
       // If initiator, create offer
       if (isInitiator) {
+        console.log('📞 Creating offer as initiator');
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         
+        console.log('📤 Sending offer:', offer);
         await sendSignal({
           type: 'offer',
           callId,
@@ -124,6 +133,7 @@ export default function VoiceCall({ conversationId, callId, contactName, contact
           to: partnerId
         });
       }
+
 
     } catch (error: any) {
       console.error("Error initializing call:", error);
@@ -140,11 +150,15 @@ export default function VoiceCall({ conversationId, callId, contactName, contact
     if (!pc) return;
 
     try {
+      console.log('📥 Received signal:', signal.signal_type);
+      
       if (signal.signal_type === 'offer') {
+        console.log('📥 Processing offer');
         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         
+        console.log('📤 Sending answer');
         await sendSignal({
           type: 'answer',
           callId,
@@ -153,13 +167,20 @@ export default function VoiceCall({ conversationId, callId, contactName, contact
         });
         setCallStatus("connected");
       } else if (signal.signal_type === 'answer') {
+        console.log('📥 Processing answer');
         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
         setCallStatus("connected");
       } else if (signal.signal_type === 'ice-candidate') {
+        console.log('📥 Adding ICE candidate');
         await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
       }
     } catch (error) {
       console.error("Error handling signal:", error);
+      toast({
+        title: "Signaling error",
+        description: "Failed to process call signal",
+        variant: "destructive"
+      });
     }
   };
 
