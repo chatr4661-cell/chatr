@@ -4,10 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Users, Search, RefreshCw } from 'lucide-react';
+import { UserPlus, Users, Search, RefreshCw, MessageCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Contacts } from '@capacitor-community/contacts';
+import { Browser } from '@capacitor/browser';
+
+// Hash phone number for privacy (SHA-256)
+const hashPhoneNumber = async (phone: string): Promise<string> => {
+  const normalized = phone.replace(/\D/g, ''); // Remove non-digits
+  const msgBuffer = new TextEncoder().encode(normalized);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
 
 interface Contact {
   id: string;
@@ -150,6 +160,31 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
       setContactIdentifier('');
       setShowAddContact(false);
       loadContacts();
+    }
+  };
+
+  const inviteViaWhatsApp = async (name: string, phone: string) => {
+    const inviteMessage = `Hey ${name} 👋 I'm on Chatr — the next-gen all-in-one app for chat, healthcare, and more! Join me here 👉 https://chatr.chat/download`;
+    const encodedMessage = encodeURIComponent(inviteMessage);
+    const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMessage}`;
+    
+    try {
+      await Browser.open({ url: whatsappUrl });
+    } catch (error) {
+      // Fallback to web version
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
+  const inviteAllViaWhatsApp = () => {
+    const inviteMessage = `Hey 👋 I'm on Chatr — the next-gen all-in-one app for chat, healthcare, jobs, payments, and more! Join me here 👉 https://chatr.chat/download`;
+    const encodedMessage = encodeURIComponent(inviteMessage);
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    
+    try {
+      Browser.open({ url: whatsappUrl });
+    } catch (error) {
+      window.open(whatsappUrl, '_blank');
     }
   };
 
@@ -359,9 +394,19 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
             {/* Unregistered Contacts */}
             {unregisteredContacts.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground px-3 py-2">
-                  Invite to Chatr
-                </h3>
+                <div className="flex items-center justify-between px-3 py-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">
+                    Invite to Chatr
+                  </h3>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={inviteAllViaWhatsApp}
+                    className="text-xs"
+                  >
+                    📤 Invite All
+                  </Button>
+                </div>
                 {unregisteredContacts.map((contact) => (
                   <div
                     key={contact.id}
@@ -378,7 +423,16 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
                         {contact.contact_phone}
                       </div>
                     </div>
-                    <Button size="sm" variant="ghost">
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        inviteViaWhatsApp(contact.contact_name, contact.contact_phone);
+                      }}
+                    >
+                      <MessageCircle className="w-3 h-3 mr-1" />
                       Invite
                     </Button>
                   </div>
