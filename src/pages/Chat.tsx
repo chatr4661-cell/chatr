@@ -271,6 +271,8 @@ const Chat = () => {
   };
 
   const loadMessages = async (convId: string) => {
+    console.log('📥 Loading messages for conversation:', convId);
+    
     const { data, error } = await supabase
       .from('messages')
       .select(`
@@ -282,10 +284,16 @@ const Chat = () => {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error loading messages:', error);
+      console.error('❌ Error loading messages:', error);
+      toast({
+        title: 'Error loading messages',
+        description: error.message,
+        variant: 'destructive'
+      });
       return;
     }
 
+    console.log(`✅ Loaded ${data?.length || 0} messages`);
     setMessages(data || []);
   };
 
