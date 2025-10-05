@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceCard from '@/components/ServiceCard';
 import { setupTestUserContacts, isTestUser } from '@/utils/testUserSetup';
 import { 
@@ -24,7 +25,8 @@ import {
   Coins,
   Shield,
   QrCode,
-  Phone
+  Phone,
+  Sparkles
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
@@ -57,7 +59,6 @@ const Index = () => {
 
   const checkAndSetupTestUser = async (user: any) => {
     if (user?.email && await isTestUser()) {
-      // Auto-setup contacts for test users
       const hasSetup = localStorage.getItem(`contacts_setup_${user.email}`);
       if (!hasSetup) {
         setIsSettingUpContacts(true);
@@ -76,28 +77,28 @@ const Index = () => {
   const messagingServices = [
     {
       icon: MessageCircle,
-      title: 'Messaging',
+      title: 'Messages',
       description: 'Chat with anyone, anywhere',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
       route: '/chat'
     },
     {
       icon: Phone,
-      title: 'Voice & Video Calls',
-      description: 'HD calling with anyone',
+      title: 'Calls',
+      description: 'Voice & video calling',
       iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
       route: '/chat'
     },
     {
-      icon: MessageCircle,
+      icon: Users,
       title: 'Contacts',
-      description: 'View and manage contacts',
+      description: 'Manage your contacts',
       iconColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
       route: '/contacts'
     },
   ];
 
-  const healthcareServices = [
+  const chatrPlatformServices = [
     {
       icon: Coins,
       title: 'Chatr Points',
@@ -106,217 +107,249 @@ const Index = () => {
       route: '/chatr-points'
     },
     {
+      icon: QrCode,
+      title: 'QR Login',
+      description: 'Link desktop and mobile',
+      iconColor: 'bg-gradient-to-br from-slate-400 to-slate-600',
+      route: '/qr-login'
+    },
+  ];
+
+  const healthcareServices = [
+    {
       icon: Bot,
       title: 'AI Health Assistant',
-      description: 'Get instant health advice and symptom checking',
+      description: 'Get instant health advice',
       iconColor: 'bg-gradient-to-br from-teal-400 to-emerald-500',
       route: '/ai-assistant'
     },
     {
+      icon: Stethoscope,
+      title: 'Doctor Booking',
+      description: 'Book healthcare appointments',
+      iconColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
+      route: '/booking'
+    },
+    {
       icon: FileText,
       title: 'Lab Reports',
-      description: 'Upload and manage medical test results',
+      description: 'Manage medical test results',
       iconColor: 'bg-gradient-to-br from-cyan-400 to-cyan-600',
       route: '/lab-reports'
     },
     {
       icon: Pill,
       title: 'Medicine Reminders',
-      description: 'Never miss your medication schedule',
+      description: 'Never miss your medication',
       iconColor: 'bg-gradient-to-br from-orange-400 to-orange-600',
       route: '/medicine-reminders'
     },
     {
       icon: Shield,
       title: 'Health Passport',
-      description: 'Your complete digital health identity',
+      description: 'Digital health identity',
       iconColor: 'bg-gradient-to-br from-emerald-400 to-green-600',
       route: '/health-passport'
     },
     {
-      icon: QrCode,
-      title: 'QR Login',
-      description: 'Link desktop and mobile devices',
-      iconColor: 'bg-gradient-to-br from-slate-400 to-slate-600',
-      route: '/qr-login'
-    },
-    {
-      icon: Stethoscope,
-      title: 'Doctor/Nurse Booking',
-      description: 'Book appointments with healthcare professionals',
-      iconColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
-      route: '/booking'
-    },
-    {
       icon: AlertTriangle,
-      title: 'Emergency / Panic Button',
-      description: 'Quick access to emergency services',
+      title: 'Emergency Button',
+      description: 'Quick emergency access',
       iconColor: 'bg-gradient-to-br from-red-400 to-red-600',
       route: '/emergency'
     },
     {
       icon: Activity,
       title: 'Wellness Tracking',
-      description: 'Track your health metrics and goals',
+      description: 'Track health metrics',
       iconColor: 'bg-gradient-to-br from-pink-400 to-pink-600',
       route: '/wellness'
     },
     {
-      icon: Users,
-      title: 'Youth Feed',
-      description: 'Share wellness journey with community',
-      iconColor: 'bg-gradient-to-br from-violet-400 to-violet-600',
-      route: '/youth-feed'
-    },
-    {
-      icon: Trophy,
-      title: 'Youth Engagement',
-      description: 'Health programs and activities',
-      iconColor: 'bg-gradient-to-br from-yellow-400 to-yellow-600',
-      route: '/youth'
-    },
-    {
       icon: ShoppingBag,
       title: 'Marketplace',
-      description: 'Order medicines and health products',
+      description: 'Order medicines & products',
       iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
       route: '/marketplace'
     },
     {
       icon: Heart,
       title: 'Allied Healthcare',
-      description: 'Access specialized healthcare services',
+      description: 'Specialized health services',
       iconColor: 'bg-gradient-to-br from-blue-400 to-indigo-600',
       route: '/allied-healthcare'
     },
     {
       icon: Briefcase,
       title: 'Become a Provider',
-      description: 'Register as a healthcare provider',
+      description: 'Register as healthcare provider',
       iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
       route: '/provider-register'
     },
   ];
 
+  const youthServices = [
+    {
+      icon: Users,
+      title: 'Youth Feed',
+      description: 'Share wellness journey',
+      iconColor: 'bg-gradient-to-br from-violet-400 to-violet-600',
+      route: '/youth-feed'
+    },
+    {
+      icon: Trophy,
+      title: 'Youth Engagement',
+      description: 'Health programs & activities',
+      iconColor: 'bg-gradient-to-br from-yellow-400 to-yellow-600',
+      route: '/youth'
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 pb-6">
-      {/* Header */}
-      <div className="p-2 backdrop-blur-glass bg-gradient-glass border-b border-glass-border sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <img src={logo} alt="chatr+ Logo" className="h-8 object-contain" />
+    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#000000]">
+      {/* iOS-style Header */}
+      <div className="bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
+          <img src={logo} alt="chatr+ Logo" className="h-7 object-contain" />
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/download')}
-              className="rounded-full h-7 px-3"
+              className="rounded-full h-8 px-3 text-[15px] text-primary"
             >
-              Download App
+              Download
             </Button>
             {user && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={handleSignOut}
-                className="rounded-full bg-destructive/10 hover:bg-destructive/20 h-7 px-2"
+                className="rounded-full h-8 w-8"
               >
-                <LogOut className="h-3 w-3 text-destructive" />
+                <LogOut className="h-4 w-4 text-destructive" />
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      <div className="p-4 max-w-4xl mx-auto space-y-6">
-        {/* Test User Setup Banner */}
+      <div className="max-w-2xl mx-auto">
         {isSettingUpContacts && (
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-center">
-            <p className="text-sm text-primary font-medium">
-              Setting up test contacts... Please wait
-            </p>
+          <div className="mx-4 mt-4 bg-primary/10 border border-primary/20 rounded-xl p-3">
+            <p className="text-[15px] text-primary text-center">Setting up test contacts...</p>
           </div>
         )}
 
-        {/* Messaging Product Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-green-500" />
-                chatr+ Messaging
-              </h2>
-            </div>
-          </div>
-          
-          {/* Quick Message Input */}
-          <div className="relative">
-            <Input
-              placeholder="Start a new message..."
-              className="rounded-full bg-card/50 backdrop-blur-glass border-glass-border pr-20 shadow-card h-10 text-sm"
-              readOnly
-              onClick={() => navigate('/chat')}
-            />
-            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full h-7 w-7 p-0"
-                onClick={() => navigate('/chat')}
-              >
-                <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full h-7 w-7 p-0"
-                onClick={() => navigate('/chat')}
-              >
-                <Mic className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </div>
-          </div>
+        {/* Tabs for Different Platforms */}
+        <Tabs defaultValue="messaging" className="w-full mt-4">
+          <TabsList className="w-full grid grid-cols-3 mx-4 mb-4 bg-muted/50">
+            <TabsTrigger value="messaging" className="text-[15px] data-[state=active]:bg-background">
+              Messaging
+            </TabsTrigger>
+            <TabsTrigger value="healthcare" className="text-[15px] data-[state=active]:bg-background">
+              Healthcare
+            </TabsTrigger>
+            <TabsTrigger value="youth" className="text-[15px] data-[state=active]:bg-background">
+              Youth
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Messaging Features */}
-          <div className="grid grid-cols-2 gap-2">
-            {messagingServices.map((service) => (
-              <div key={service.title} onClick={() => navigate(service.route)}>
-                <ServiceCard {...service} />
+          {/* Messaging Tab */}
+          <TabsContent value="messaging" className="px-4 space-y-4">
+            <div className="space-y-3">
+              <h2 className="text-[28px] font-bold text-foreground">chatr+ Messaging</h2>
+              
+              <div className="relative">
+                <Input
+                  placeholder="Start a new message..."
+                  className="rounded-2xl bg-muted/50 dark:bg-muted/30 border-0 pr-20 h-11 text-[15px]"
+                  readOnly
+                  onClick={() => navigate('/chat')}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full h-8 w-8"
+                    onClick={() => navigate('/chat')}
+                  >
+                    <Paperclip className="h-4 w-4 text-primary" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full h-8 w-8"
+                    onClick={() => navigate('/chat')}
+                  >
+                    <Mic className="h-4 w-4 text-primary" />
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-glass-border"></div>
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Separate Business</span>
-          </div>
-        </div>
-
-        {/* Healthcare Product Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <Heart className="h-5 w-5 text-red-500" />
-                Healthcare Platform
-              </h2>
-              <p className="text-xs text-muted-foreground">Professional Health Services & Wellness</p>
-            </div>
-          </div>
-
-          {/* Healthcare Services Grid */}
-          <div className="space-y-2">
-            {healthcareServices.map((service) => (
-              <div key={service.title} onClick={() => navigate(service.route)}>
-                <ServiceCard {...service} />
+              <div className="grid grid-cols-2 gap-3">
+                {messagingServices.map((service) => (
+                  <div key={service.title} onClick={() => navigate(service.route)}>
+                    <ServiceCard {...service} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+
+              <div className="pt-4">
+                <h3 className="text-[17px] font-semibold mb-3">Chatr Platform</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {chatrPlatformServices.map((service) => (
+                    <div key={service.title} onClick={() => navigate(service.route)}>
+                      <ServiceCard {...service} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Healthcare Tab */}
+          <TabsContent value="healthcare" className="px-4 space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Heart className="h-7 w-7 text-red-500" />
+                <div>
+                  <h2 className="text-[28px] font-bold text-foreground leading-none">Healthcare</h2>
+                  <p className="text-[13px] text-muted-foreground">Professional Health Services</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {healthcareServices.map((service) => (
+                  <div key={service.title} onClick={() => navigate(service.route)}>
+                    <ServiceCard {...service} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Youth Tab */}
+          <TabsContent value="youth" className="px-4 space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-7 w-7 text-yellow-500" />
+                <div>
+                  <h2 className="text-[28px] font-bold text-foreground leading-none">Youth</h2>
+                  <p className="text-[13px] text-muted-foreground">Wellness & Community</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {youthServices.map((service) => (
+                  <div key={service.title} onClick={() => navigate(service.route)}>
+                    <ServiceCard {...service} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

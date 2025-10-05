@@ -355,57 +355,59 @@ const Chat = () => {
   }, [viewMode, user?.id]);
 
   const selectContact = async (contact: Profile) => {
-    // Critical: Check if user is authenticated before proceeding
     if (!user?.id) {
       toast({
         title: 'Authentication Required',
         description: 'Please wait for authentication to complete',
         variant: 'destructive'
       });
-      console.error('❌ User not authenticated when selecting contact');
       return;
     }
 
-    console.log('🎯 Selecting contact:', contact.username, 'Contact ID:', contact.id);
+    console.log('🎯 Selecting contact:', contact.username);
     setSelectedContact(contact);
-    // DON'T clear messages here - let loadMessages handle it to prevent flash
     
-    // Get all conversations for current user
-    const { data: myConversations, error: myConvError } = await supabase
+    // Find ALL conversations where BOTH users are participants
+    const { data: userConversations, error: userError } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
       .eq('user_id', user.id);
 
-    if (myConvError) {
-      console.error('❌ Error fetching my conversations:', myConvError);
+    if (userError) {
+      console.error('❌ Error fetching user conversations:', userError);
+      return;
     }
 
-    if (myConversations && myConversations.length > 0) {
-      const conversationIds = myConversations.map((c) => c.conversation_id);
-      console.log('📋 My conversation IDs:', conversationIds);
-      
-      // Get all conversations where the contact is also a participant
-      const { data: sharedConversations, error: sharedError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', contact.id)
-        .in('conversation_id', conversationIds);
-
-      if (sharedError) {
-        console.error('❌ Error finding shared conversation:', sharedError);
-      }
-
-      if (sharedConversations && sharedConversations.length > 0) {
-        const foundConvId = sharedConversations[0].conversation_id;
-        console.log('✅ Found existing conversation:', foundConvId);
-        setConversationId(foundConvId);
-        // Load messages immediately
-        await loadMessages(foundConvId);
-        return;
-      }
+    if (!userConversations || userConversations.length === 0) {
+      console.log('ℹ️ No conversations found for user, creating new');
+      await createNewConversation(contact);
+      return;
     }
 
-    console.log('ℹ️ No shared conversation found, creating new one');
+    const userConvIds = userConversations.map(c => c.conversation_id);
+    
+    // Find conversations where contact is also a participant
+    const { data: sharedConvs, error: sharedError } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id, conversation:conversations(*)')
+      .eq('user_id', contact.id)
+      .in('conversation_id', userConvIds)
+      .eq('conversations.is_group', false); // Only 1-on-1 chats
+
+    if (sharedError) {
+      console.error('❌ Error finding shared conversations:', sharedError);
+      return;
+    }
+
+    if (sharedConvs && sharedConvs.length > 0) {
+      const foundConvId = sharedConvs[0].conversation_id;
+      console.log('✅ Found existing 1-on-1 conversation:', foundConvId);
+      setConversationId(foundConvId);
+      await loadMessages(foundConvId);
+      return;
+    }
+
+    console.log('ℹ️ No shared 1-on-1 conversation, creating new');
     await createNewConversation(contact);
   };
   
