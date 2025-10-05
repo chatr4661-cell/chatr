@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { sendSignal, subscribeToCallSignals } from '@/utils/webrtcSignaling';
 
 interface GlobalCallNotificationsProps {
   userId: string;
@@ -33,6 +34,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         ringtoneRef.current = null;
       }
 
+      console.log('📞 Answering call:', call);
       setCallType(call.call_type);
       setActiveCall(call);
       setIncomingCall(null);
@@ -68,23 +70,53 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       peerConnection.ontrack = (event) => {
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
+        } else if (call.call_type === 'voice') {
+          // For voice calls, play audio
+          const audio = new Audio();
+          audio.srcObject = event.streams[0];
+          audio.play();
         }
       };
 
-      // Set remote description and create answer
-      await peerConnection.setRemoteDescription(
-        new RTCSessionDescription(call.caller_signal)
-      );
+      // Handle ICE candidates
+      peerConnection.onicecandidate = async (event) => {
+        if (event.candidate) {
+          await sendSignal({
+            type: 'ice-candidate',
+            callId: call.id,
+            data: event.candidate,
+            to: call.caller_id
+          });
+        }
+      };
 
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
+      // Subscribe to signaling
+      const unsubscribe = subscribeToCallSignals(call.id, async (signal: any) => {
+        try {
+          if (signal.signal_type === 'offer' && !peerConnection.currentRemoteDescription) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            await sendSignal({
+              type: 'answer',
+              callId: call.id,
+              data: answer,
+              to: call.caller_id
+            });
+          } else if (signal.signal_type === 'ice-candidate') {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+          }
+        } catch (error) {
+          console.error('Error handling signal:', error);
+        }
+      });
 
-      // Update call with answer
+      // Update call status
       await supabase
         .from('calls')
         .update({
           status: 'active',
-          receiver_signal: answer as any,
           started_at: new Date().toISOString()
         })
         .eq('id', call.id);
