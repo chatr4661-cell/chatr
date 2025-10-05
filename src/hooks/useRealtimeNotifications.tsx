@@ -68,50 +68,7 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
       )
       .subscribe();
 
-    // Subscribe to new calls
-    const callsChannel = supabase
-      .channel('calls-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'calls',
-          filter: `caller_id=neq.${userId}`
-        },
-        async (payload: NotificationPayload) => {
-          const call = payload.new;
-          
-          // Get conversation participants
-          const { data: participants } = await supabase
-            .from('conversation_participants')
-            .select('user_id')
-            .eq('conversation_id', call.conversation_id);
-
-          const isForCurrentUser = participants?.some(p => p.user_id === userId);
-          
-          if (isForCurrentUser) {
-            // Get caller info
-            const { data: caller } = await supabase
-              .from('profiles')
-              .select('username')
-              .eq('id', call.caller_id)
-              .single();
-
-            toast({
-              title: `Incoming ${call.call_type} call`,
-              description: `${caller?.username || 'Someone'} is calling you`,
-              duration: 10000,
-            });
-
-            // Play ringtone
-            const audio = new Audio('/ringtone.mp3');
-            audio.loop = true;
-            audio.play().catch(e => console.log('Could not play ringtone:', e));
-          }
-        }
-      )
-      .subscribe();
+    // Call notifications are handled by CallInterface component
 
     // Subscribe to appointment updates
     const appointmentsChannel = supabase
@@ -151,7 +108,6 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
 
     return () => {
       supabase.removeChannel(messagesChannel);
-      supabase.removeChannel(callsChannel);
       supabase.removeChannel(appointmentsChannel);
     };
   }, [userId, toast]);

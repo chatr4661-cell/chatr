@@ -317,13 +317,14 @@ export const CallInterface = ({ userId, username }: CallInterfaceProps) => {
         filter: `receiver_id=eq.${userId}`
       }, (payload) => {
         const call = payload.new as any;
+        console.log('Incoming call received:', call);
         if (call.status === 'ringing') {
           setIncomingCall(call);
           
           // Play ringtone
           const audio = new Audio('/ringtone.mp3');
           audio.loop = true;
-          audio.play();
+          audio.play().catch(e => console.log('Could not play ringtone:', e));
         }
       })
       .subscribe();
