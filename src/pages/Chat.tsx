@@ -350,6 +350,7 @@ const Chat = () => {
     }
 
     console.log(`✅ Loaded ${data?.length || 0} messages for conversation ${convId}`);
+    console.log('📊 Messages data from database:', data);
     setMessages((data as any) || []);
     
     // Mark received messages as delivered
@@ -415,14 +416,18 @@ const Chat = () => {
 
           if (newMessage) {
             console.log('✅ Adding message to state:', newMessage);
+            console.log('📊 Current messages array before add:', messages);
             // Only add if message belongs to current conversation
             setMessages((prev) => {
+              console.log('📊 Previous messages in setState:', prev);
               // Prevent duplicates
               if (prev.some(m => m.id === newMessage.id)) {
                 console.log('⚠️ Message already exists, skipping');
                 return prev;
               }
-              return [...prev, newMessage as any];
+              const updated = [...prev, newMessage as any];
+              console.log('📊 Updated messages array:', updated);
+              return updated;
             });
             
             // Mark as read if from someone else
@@ -1007,6 +1012,10 @@ const Chat = () => {
               {/* Messages Area */}
               <ScrollArea className="flex-1 p-4 bg-[#efeae2] dark:bg-[#0b141a]">
                 <div className="space-y-3 max-w-4xl mx-auto">
+                  {(() => {
+                    console.log('🎨 Rendering messages. Total count:', messages.length, 'Messages:', messages);
+                    return null;
+                  })()}
                   {messages.map((message) => {
                     const isOwn = message.sender_id === user?.id;
                     
