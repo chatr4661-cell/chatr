@@ -90,27 +90,38 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         }
       };
 
-      // First, fetch any existing signals (like the offer that was already sent)
+      // CRITICAL: Fetch and process existing signals IN ORDER
       const { getSignals } = await import('@/utils/webrtcSignaling');
       const existingSignals = await getSignals(call.id);
-      console.log('📥 Fetched existing signals:', existingSignals);
+      console.log('📥 Fetched existing signals:', existingSignals.length, 'signals');
 
-      // Process existing signals
-      for (const signal of existingSignals) {
-        if (signal.signal_type === 'offer' && !peerConnection.currentRemoteDescription) {
-          console.log('📥 Processing existing offer');
-          await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-          
-          console.log('📤 Sending answer to existing offer');
-          await sendSignal({
-            type: 'answer',
-            callId: call.id,
-            data: answer,
-            to: call.caller_id
-          });
-        } else if (signal.signal_type === 'ice-candidate') {
+      // Sort signals by created_at to ensure correct order
+      const sortedSignals = existingSignals.sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      // Separate offer from ICE candidates
+      const offerSignal = sortedSignals.find(s => s.signal_type === 'offer');
+      const iceCandidates = sortedSignals.filter(s => s.signal_type === 'ice-candidate');
+
+      // Process offer FIRST
+      if (offerSignal && !peerConnection.currentRemoteDescription) {
+        console.log('📥 Processing existing offer');
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offerSignal.signal_data));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        console.log('📤 Sending answer to existing offer');
+        await sendSignal({
+          type: 'answer',
+          callId: call.id,
+          data: answer,
+          to: call.caller_id
+        });
+
+        // THEN process ICE candidates (only after remote description is set)
+        for (const signal of iceCandidates) {
+          console.log('📥 Adding buffered ICE candidate');
           await peerConnection.addIceCandidate(new RTCIceCandidate(signal.signal_data));
         }
       }

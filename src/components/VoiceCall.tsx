@@ -171,8 +171,13 @@ export default function VoiceCall({ conversationId, callId, contactName, contact
         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
         setCallStatus("connected");
       } else if (signal.signal_type === 'ice-candidate') {
-        console.log('📥 Adding ICE candidate');
-        await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+        // Only add ICE candidate if remote description is already set
+        if (pc.remoteDescription) {
+          console.log('📥 Adding ICE candidate');
+          await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+        } else {
+          console.log('⚠️ Skipping ICE candidate (no remote description yet)');
+        }
       }
     } catch (error) {
       console.error("Error handling signal:", error);
