@@ -23,6 +23,8 @@ import { VoiceMessageRecorder } from '@/components/VoiceMessageRecorder';
 import { GroupChatCreator } from '@/components/GroupChatCreator';
 import { MessageForwarding } from '@/components/MessageForwarding';
 import { ContactManager } from '@/components/ContactManager';
+import VoiceCall from '@/components/VoiceCall';
+import VideoCall from '@/components/VideoCall';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import {
@@ -90,6 +92,7 @@ const Chat = () => {
   const [viewMode, setViewMode] = useState<'consumer' | 'business' | 'contacts'>('consumer');
   const [isProvider, setIsProvider] = useState(false);
   const [allConversations, setAllConversations] = useState<any[]>([]);
+  const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video', callId: string, partnerId: string } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -473,6 +476,80 @@ const Chat = () => {
     setShowMessageForwarding(true);
   };
 
+  const startVoiceCall = async () => {
+    if (!selectedContact || !conversationId || !user) return;
+
+    const { data: call, error } = await supabase
+      .from('calls')
+      .insert({
+        conversation_id: conversationId,
+        caller_id: user.id,
+        call_type: 'voice',
+        status: 'ringing'
+      })
+      .select()
+      .single();
+
+    if (error || !call) {
+      toast({
+        title: 'Error',
+        description: 'Failed to start call',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setActiveCall({
+      type: 'voice',
+      callId: call.id,
+      partnerId: selectedContact.id
+    });
+  };
+
+  const startVideoCall = async () => {
+    if (!selectedContact || !conversationId || !user) return;
+
+    const { data: call, error } = await supabase
+      .from('calls')
+      .insert({
+        conversation_id: conversationId,
+        caller_id: user.id,
+        call_type: 'video',
+        status: 'ringing'
+      })
+      .select()
+      .single();
+
+    if (error || !call) {
+      toast({
+        title: 'Error',
+        description: 'Failed to start call',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setActiveCall({
+      type: 'video',
+      callId: call.id,
+      partnerId: selectedContact.id
+    });
+  };
+
+  const endCall = async () => {
+    if (!activeCall) return;
+
+    await supabase
+      .from('calls')
+      .update({
+        status: 'ended',
+        ended_at: new Date().toISOString()
+      })
+      .eq('id', activeCall.callId);
+
+    setActiveCall(null);
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -643,10 +720,10 @@ const Chat = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="rounded-full">
+                  <Button variant="ghost" size="icon" className="rounded-full" onClick={startVideoCall}>
                     <Video className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="rounded-full">
+                  <Button variant="ghost" size="icon" className="rounded-full" onClick={startVoiceCall}>
                     <Phone className="h-5 w-5" />
                   </Button>
                   <Button variant="ghost" size="icon" className="rounded-full">
@@ -879,6 +956,32 @@ const Chat = () => {
         onClose={() => setShowPollCreator(false)}
         onSend={handlePollSend}
       />
+
+      {/* Voice Call */}
+      {activeCall?.type === 'voice' && selectedContact && user && conversationId && (
+        <VoiceCall
+          conversationId={conversationId}
+          callId={activeCall.callId}
+          contactName={selectedContact.username}
+          contactAvatar={selectedContact.avatar_url || undefined}
+          isInitiator={true}
+          userId={user.id}
+          partnerId={activeCall.partnerId}
+          onEnd={endCall}
+        />
+      )}
+
+      {/* Video Call */}
+      {activeCall?.type === 'video' && selectedContact && user && conversationId && (
+        <VideoCall
+          conversationId={conversationId}
+          callId={activeCall.callId}
+          isInitiator={true}
+          userId={user.id}
+          partnerId={activeCall.partnerId}
+          onEnd={endCall}
+        />
+      )}
     </div>
   );
 };
