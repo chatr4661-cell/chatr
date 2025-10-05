@@ -158,30 +158,48 @@ export type Database = {
         Row: {
           call_type: string
           caller_id: string
+          caller_name: string | null
+          caller_signal: Json | null
           conversation_id: string
           duration: number | null
           ended_at: string | null
+          ice_servers: Json | null
           id: string
+          receiver_id: string | null
+          receiver_name: string | null
+          receiver_signal: Json | null
           started_at: string | null
           status: string | null
         }
         Insert: {
           call_type: string
           caller_id: string
+          caller_name?: string | null
+          caller_signal?: Json | null
           conversation_id: string
           duration?: number | null
           ended_at?: string | null
+          ice_servers?: Json | null
           id?: string
+          receiver_id?: string | null
+          receiver_name?: string | null
+          receiver_signal?: Json | null
           started_at?: string | null
           status?: string | null
         }
         Update: {
           call_type?: string
           caller_id?: string
+          caller_name?: string | null
+          caller_signal?: Json | null
           conversation_id?: string
           duration?: number | null
           ended_at?: string | null
+          ice_servers?: Json | null
           id?: string
+          receiver_id?: string | null
+          receiver_name?: string | null
+          receiver_signal?: Json | null
           started_at?: string | null
           status?: string | null
         }
@@ -191,6 +209,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1112,6 +1137,7 @@ export type Database = {
           medical_history: Json | null
           onboarding_completed: boolean | null
           phone_number: string | null
+          phone_search: string | null
           status: string | null
           updated_at: string | null
           username: string
@@ -1131,6 +1157,7 @@ export type Database = {
           medical_history?: Json | null
           onboarding_completed?: boolean | null
           phone_number?: string | null
+          phone_search?: string | null
           status?: string | null
           updated_at?: string | null
           username: string
@@ -1150,6 +1177,7 @@ export type Database = {
           medical_history?: Json | null
           onboarding_completed?: boolean | null
           phone_number?: string | null
+          phone_search?: string | null
           status?: string | null
           updated_at?: string | null
           username?: string
@@ -1669,6 +1697,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_mutual_contact: {
+        Args: { user1_email: string; user2_email: string }
+        Returns: undefined
+      }
+      find_user_for_call: {
+        Args: { search_term: string }
+        Returns: {
+          avatar_url: string
+          id: string
+          is_online: boolean
+          phone_number: string
+          username: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ServiceCard from '@/components/ServiceCard';
+import { setupTestUserContacts, isTestUser } from '@/utils/testUserSetup';
 import { 
   Bot, 
   Stethoscope, 
@@ -22,13 +23,15 @@ import {
   Users,
   Coins,
   Shield,
-  QrCode
+  QrCode,
+  Phone
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
 const Index = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [isSettingUpContacts, setIsSettingUpContacts] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,6 +39,7 @@ const Index = () => {
         navigate('/auth');
       } else {
         setUser(session.user);
+        checkAndSetupTestUser(session.user);
       }
     });
 
@@ -44,11 +48,25 @@ const Index = () => {
         navigate('/auth');
       } else {
         setUser(session.user);
+        checkAndSetupTestUser(session.user);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const checkAndSetupTestUser = async (user: any) => {
+    if (user?.email && await isTestUser()) {
+      // Auto-setup contacts for test users
+      const hasSetup = localStorage.getItem(`contacts_setup_${user.email}`);
+      if (!hasSetup) {
+        setIsSettingUpContacts(true);
+        await setupTestUserContacts();
+        localStorage.setItem(`contacts_setup_${user.email}`, 'true');
+        setIsSettingUpContacts(false);
+      }
+    }
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -61,6 +79,13 @@ const Index = () => {
       title: 'Messaging',
       description: 'Chat with anyone, anywhere',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
+      route: '/chat'
+    },
+    {
+      icon: Phone,
+      title: 'Voice & Video Calls',
+      description: 'HD calling with anyone',
+      iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
       route: '/chat'
     },
     {
@@ -203,6 +228,15 @@ const Index = () => {
       </div>
 
       <div className="p-4 max-w-4xl mx-auto space-y-6">
+        {/* Test User Setup Banner */}
+        {isSettingUpContacts && (
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-center">
+            <p className="text-sm text-primary font-medium">
+              Setting up test contacts... Please wait
+            </p>
+          </div>
+        )}
+
         {/* Messaging Product Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">

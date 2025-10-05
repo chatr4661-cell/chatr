@@ -25,6 +25,7 @@ import { MessageForwarding } from '@/components/MessageForwarding';
 import { ContactManager } from '@/components/ContactManager';
 import VoiceCall from '@/components/VoiceCall';
 import VideoCall from '@/components/VideoCall';
+import { CallInterface } from '@/components/CallInterface';
 import { QRScanner } from '@/components/QRScanner';
 import { DeviceSessions } from '@/components/DeviceSessions';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
@@ -620,6 +621,7 @@ const Chat = () => {
                   <Stethoscope className="h-5 w-5" />
                 </Button>
               )}
+              <CallInterface userId={user?.id || ''} username={profile?.username || 'User'} />
               <Sheet open={showDeviceSessions} onOpenChange={setShowDeviceSessions}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full" title="Linked Devices">
