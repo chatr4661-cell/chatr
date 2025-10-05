@@ -12,7 +12,7 @@ import {
   MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, 
   Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
   Reply, Forward, Star, Copy, Trash2, Edit2, Download, X, Paperclip, User,
-  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus, QrCode
+  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus, QrCode, Bug
 } from 'lucide-react';
 import { MessageAction } from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
@@ -28,6 +28,7 @@ import VideoCall from '@/components/VideoCall';
 import { CallInterface } from '@/components/CallInterface';
 import { QRScanner } from '@/components/QRScanner';
 import { DeviceSessions } from '@/components/DeviceSessions';
+import { RealtimeDebugPanel } from '@/components/RealtimeDebugPanel';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import {
@@ -98,6 +99,7 @@ const Chat = () => {
   const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video', callId: string, partnerId: string } | null>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showDeviceSessions, setShowDeviceSessions] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(true); // Start with debug panel visible
   const navigate = useNavigate();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -1043,6 +1045,24 @@ const Chat = () => {
 
       {/* QR Scanner for linking devices */}
       <QRScanner open={showQRScanner} onOpenChange={setShowQRScanner} />
+
+      {/* Debug Panel */}
+      {showDebugPanel && user && (
+        <RealtimeDebugPanel 
+          userId={user.id} 
+          conversationId={conversationId}
+        />
+      )}
+
+      {/* Debug Toggle Button */}
+      <Button
+        onClick={() => setShowDebugPanel(!showDebugPanel)}
+        size="icon"
+        variant="ghost"
+        className="fixed bottom-4 left-4 z-50 rounded-full bg-background shadow-lg"
+      >
+        <Bug className="h-5 w-5" />
+      </Button>
     </div>
   );
 };
