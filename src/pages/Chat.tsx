@@ -364,10 +364,10 @@ const Chat = () => {
       return;
     }
 
-    console.log('🎯 Selecting contact:', contact.username);
+    console.log('🎯 Selecting contact:', contact.username, contact.id);
     setSelectedContact(contact);
     
-    // Find ALL conversations where BOTH users are participants
+    // Find existing 1-on-1 conversation between these two users
     const { data: userConversations, error: userError } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
@@ -385,30 +385,69 @@ const Chat = () => {
     }
 
     const userConvIds = userConversations.map(c => c.conversation_id);
+    console.log('📋 User is in', userConvIds.length, 'conversations');
     
-    // Find conversations where contact is also a participant
-    const { data: sharedConvs, error: sharedError } = await supabase
+    // Find conversations where contact is also a participant AND it's not a group
+    const { data: contactConvs, error: contactError } = await supabase
       .from('conversation_participants')
-      .select('conversation_id, conversation:conversations(*)')
+      .select('conversation_id')
       .eq('user_id', contact.id)
-      .in('conversation_id', userConvIds)
-      .eq('conversations.is_group', false); // Only 1-on-1 chats
+      .in('conversation_id', userConvIds);
 
-    if (sharedError) {
-      console.error('❌ Error finding shared conversations:', sharedError);
+    if (contactError) {
+      console.error('❌ Error finding contact conversations:', contactError);
       return;
     }
 
-    if (sharedConvs && sharedConvs.length > 0) {
-      const foundConvId = sharedConvs[0].conversation_id;
-      console.log('✅ Found existing 1-on-1 conversation:', foundConvId);
-      setConversationId(foundConvId);
-      await loadMessages(foundConvId);
+    if (!contactConvs || contactConvs.length === 0) {
+      console.log('ℹ️ No shared conversations, creating new');
+      await createNewConversation(contact);
       return;
     }
 
-    console.log('ℹ️ No shared 1-on-1 conversation, creating new');
-    await createNewConversation(contact);
+    const sharedConvIds = contactConvs.map(c => c.conversation_id);
+    console.log('🔗 Found', sharedConvIds.length, 'shared conversations');
+
+    // Filter for non-group conversations and find the one with messages
+    const { data: conversations, error: convError } = await supabase
+      .from('conversations')
+      .select('id, is_group, created_at')
+      .in('id', sharedConvIds)
+      .eq('is_group', false)
+      .order('created_at', { ascending: false });
+
+    if (convError || !conversations || conversations.length === 0) {
+      console.log('ℹ️ No 1-on-1 conversations found, creating new');
+      await createNewConversation(contact);
+      return;
+    }
+
+    console.log('💬 Found', conversations.length, '1-on-1 conversation(s)');
+
+    // If multiple conversations exist, find the one with the most messages
+    let bestConvId = conversations[0].id;
+    
+    if (conversations.length > 1) {
+      console.log('⚠️ Multiple 1-on-1 conversations detected, finding one with messages');
+      
+      const { data: messagesCount } = await supabase
+        .from('messages')
+        .select('conversation_id')
+        .in('conversation_id', conversations.map(c => c.id))
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (messagesCount && messagesCount.length > 0) {
+        bestConvId = messagesCount[0].conversation_id;
+        console.log('✅ Using conversation with messages:', bestConvId);
+      } else {
+        console.log('ℹ️ No messages in any conversation, using newest');
+      }
+    }
+
+    console.log('✅ Selected conversation:', bestConvId);
+    setConversationId(bestConvId);
+    await loadMessages(bestConvId);
   };
   
   const createNewConversation = async (contact: Profile) => {
