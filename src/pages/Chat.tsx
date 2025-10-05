@@ -399,13 +399,17 @@ const Chat = () => {
         const foundConvId = sharedConversations[0].conversation_id;
         console.log('✅ Found existing conversation:', foundConvId);
         setConversationId(foundConvId);
+        // Load messages immediately
         await loadMessages(foundConvId);
         return;
-      } else {
-        console.log('ℹ️ No shared conversation found, creating new one');
       }
     }
 
+    console.log('ℹ️ No shared conversation found, creating new one');
+    await createNewConversation(contact);
+  };
+  
+  const createNewConversation = async (contact: Profile) => {
     console.log('➕ Creating new conversation');
     const { data: newConversation, error } = await supabase
       .from('conversations')
@@ -448,12 +452,29 @@ const Chat = () => {
   const loadMessages = async (convId: string) => {
     if (!convId) {
       console.log('⚠️ Cannot load messages: no conversation ID');
+      setMessages([]);
       return;
     }
     
     console.log('📥 Loading messages for conversation:', convId);
     
     try {
+      // First check if this conversation exists and user is a participant
+      const { data: participation, error: participationError } = await supabase
+        .from('conversation_participants')
+        .select('*')
+        .eq('conversation_id', convId)
+        .eq('user_id', user?.id)
+        .maybeSingle();
+        
+      if (participationError) {
+        console.error('❌ Error checking participation:', participationError);
+      }
+      
+      if (!participation) {
+        console.warn('⚠️ User is not a participant in this conversation');
+      }
+      
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -471,19 +492,19 @@ const Chat = () => {
           description: error.message,
           variant: 'destructive'
         });
-        setMessages([]); // Clear on error
+        setMessages([]);
         return;
       }
 
-      console.log(`✅ Loaded ${data?.length || 0} messages for conversation ${convId}`);
+      console.log(`✅ FOUND ${data?.length || 0} messages for conversation ${convId}`);
       if (data && data.length > 0) {
-        console.log('📊 First message:', data[0]);
-        console.log('📊 Last message:', data[data.length - 1]);
+        console.log('📊 Sample message:', data[0]);
       }
       
-      // CRITICAL: Set messages state with the loaded data
-      setMessages((data as any) || []);
-      console.log('✅ Messages state updated with', data?.length || 0, 'messages');
+      // CRITICAL: Set messages state IMMEDIATELY
+      const messagesToSet = (data as any) || [];
+      setMessages(messagesToSet);
+      console.log('✅ SET STATE with', messagesToSet.length, 'messages');
     
       // Mark received messages as delivered
       if (data && data.length > 0) {
@@ -1015,11 +1036,11 @@ const Chat = () => {
               </Button>
             </div>
             
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative px-4 pb-2">
+              <Search className="absolute left-7 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search or start new chat"
-                className="pl-10 rounded-lg bg-background border-border"
+                placeholder="Search"
+                className="pl-10 rounded-xl bg-muted/50 dark:bg-muted/30 border-0 h-9 text-[15px]"
               />
             </div>
           </div>
@@ -1050,42 +1071,47 @@ const Chat = () => {
                     </Button>
                   </div>
                 ) : (
-                  contacts.map((contact) => (
-                    <button
-                      key={contact.id}
-                      onClick={() => selectContact(contact)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setSelectedContact(contact);
-                        setShowUserProfile(true);
-                      }}
-                      className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/80 transition-all ${
-                      selectedContact?.id === contact.id ? 'bg-primary/10' : ''
-                    }`}
-                    title="Right-click to view profile"
-                  >
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
-                          {contact.username[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      {contact.is_online && (
-                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
-                      )}
-                    </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <p className="font-semibold text-foreground truncate">{contact.username}</p>
-                        <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">12:30 PM</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <CheckCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                        <p className="text-sm text-muted-foreground truncate">{contact.status || 'Hey there!'}</p>
-                      </div>
-                    </div>
-                  </button>
-                  ))
+                  <div className="divide-y divide-border/50">
+                    {contacts.map((contact) => (
+                      <button
+                        key={contact.id}
+                        onClick={() => selectContact(contact)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setSelectedContact(contact);
+                          setShowUserProfile(true);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 active:bg-muted/50 transition-all ${
+                          selectedContact?.id === contact.id ? 'bg-muted/30' : ''
+                        }`}
+                        title="Long press to view profile"
+                      >
+                        <div className="relative flex-shrink-0">
+                          <Avatar className="h-14 w-14 ring-2 ring-background">
+                            <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground font-semibold text-lg">
+                              {contact.username[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          {contact.is_online && (
+                            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[2.5px] border-background" />
+                          )}
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="flex items-baseline justify-between mb-0.5">
+                            <p className="font-semibold text-[17px] text-foreground truncate">{contact.username}</p>
+                            <span className="text-[15px] text-muted-foreground flex-shrink-0 ml-2">
+                              {contact.is_online ? 'now' : formatTime(contact.last_seen || '')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <p className="text-[15px] text-muted-foreground truncate leading-tight">
+                              {contact.status || 'Hey there! I am using Chatr'}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </ScrollArea>
@@ -1097,78 +1123,79 @@ const Chat = () => {
           {selectedContact ? (
             <>
               {/* Chat Header - Enhanced */}
-              <div className="p-3 border-b border-border bg-card flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur-md flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden rounded-full flex-shrink-0"
+                    className="md:hidden rounded-full flex-shrink-0 h-8 w-8"
                     onClick={() => setSelectedContact(null)}
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-5 w-5 text-primary" />
                   </Button>
                   <div 
-                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer hover:bg-muted/50 -ml-2 pl-2 pr-3 py-2 rounded-lg transition-colors"
+                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer active:opacity-70 transition-opacity"
                     onClick={() => setShowUserProfile(true)}
                   >
                     <div className="relative flex-shrink-0">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground font-semibold text-sm">
                           {selectedContact.username[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       {selectedContact.is_online && (
-                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-card" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-foreground truncate">{selectedContact.username}</h3>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {selectedContact.is_online ? '● online' : `last seen ${selectedContact.last_seen || 'recently'}`}
+                      <h3 className="font-semibold text-[17px] text-foreground truncate">{selectedContact.username}</h3>
+                      <p className="text-[13px] text-muted-foreground truncate">
+                        {selectedContact.is_online ? 'Active now' : `Active ${formatTime(selectedContact.last_seen || '')}`}
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-0.5 flex-shrink-0">
                   {/* AI Summary Button */}
                   <ChatSummarizer messages={messages} />
                   
-                  <Button variant="ghost" size="icon" className="rounded-full" onClick={startVideoCall}>
-                    <Video className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8" onClick={startVideoCall}>
+                    <Video className="h-5 w-5 text-primary" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="rounded-full" onClick={startVoiceCall}>
-                    <Phone className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8" onClick={startVoiceCall}>
+                    <Phone className="h-5 w-5 text-primary" />
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="rounded-full"
+                    className="rounded-full h-8 w-8"
                     onClick={() => setShowUserInfoSidebar(true)}
                   >
-                    <Info className="h-5 w-5" />
+                    <Info className="h-5 w-5 text-primary" />
                   </Button>
                 </div>
               </div>
 
-              {/* Messages Area */}
-              <ScrollArea className="flex-1 p-4 bg-[#efeae2] dark:bg-[#0b141a]">
-                <div className="space-y-3 max-w-4xl mx-auto">
+              {/* Messages Area - Apple iOS inspired */}
+              <ScrollArea className="flex-1 p-3 bg-[#f2f2f7] dark:bg-[#000000]">
+                <div className="space-y-1 max-w-4xl mx-auto">
                   {(() => {
-                    console.log('🎨 RENDER CHECK - Messages array length:', messages.length);
-                    console.log('🎨 RENDER CHECK - First 3 messages:', messages.slice(0, 3));
-                    console.log('🎨 RENDER CHECK - Selected contact:', selectedContact?.username);
-                    console.log('🎨 RENDER CHECK - Current user ID:', user?.id);
+                    console.log('🎨 RENDER - Messages:', messages.length, 'Conversation:', conversationId);
                     return null;
                   })()}
-                  {messages.map((message) => {
-                    const isOwn = message.sender_id === user?.id;
-                    console.log('🖼️ Rendering message:', message.id, 'Type:', message.message_type, 'IsOwn:', isOwn, 'Content:', message.content);
-                    
-                    return (
-                      <ContextMenu key={message.id}>
-                        <ContextMenuTrigger>
-                          <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[75%]`}>
+                  {messages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
+                      <p className="text-sm">No messages yet. Start the conversation!</p>
+                    </div>
+                  ) : (
+                    messages.map((message) => {
+                      const isOwn = message.sender_id === user?.id;
+                      
+                      return (
+                        <ContextMenu key={message.id}>
+                          <ContextMenuTrigger>
+                            <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-1`}>
+                              <div className={`max-w-[85%] md:max-w-[75%]`}>
                               {message.message_type === 'poll' && message.poll_options ? (
                                 <PollMessage
                                   question={message.poll_question || ''}
@@ -1202,15 +1229,11 @@ const Chat = () => {
                                   </div>
                                 </div>
                               ) : (
-                                <div className={`rounded-lg px-3 py-2 shadow-sm ${
+                                <div className={`rounded-2xl px-3.5 py-2 shadow-sm ${
                                   isOwn
-                                    ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-foreground rounded-br-sm'
-                                    : 'bg-white dark:bg-[#202c33] text-foreground rounded-bl-sm'
+                                    ? 'bg-[#007AFF] text-white rounded-br-md'
+                                    : 'bg-[#E5E5EA] dark:bg-[#3A3A3C] text-foreground rounded-bl-md'
                                 }`}>
-                                  {(() => {
-                                    console.log('💬 Rendering text message bubble:', message.content);
-                                    return null;
-                                  })()}
                                   {/* Reply Preview in Message */}
                                   {message.reply_to_id && (
                                     <div className="mb-2 pl-2 border-l-4 border-primary/50 bg-muted/30 rounded p-2">
@@ -1233,21 +1256,21 @@ const Chat = () => {
                                     </div>
                                   )}
                                   
-                                  <p className="text-sm break-words whitespace-pre-wrap">{message.content}</p>
-                                  <div className="flex items-center gap-1 justify-end mt-1">
+                                  <p className="text-[15px] break-words whitespace-pre-wrap leading-[1.4]">{message.content}</p>
+                                  <div className="flex items-center gap-1 justify-end mt-0.5">
                                     {message.is_edited && (
-                                      <span className="text-[10px] opacity-70">edited</span>
+                                      <span className={`text-[11px] ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>edited</span>
                                     )}
-                                    <span className="text-[11px] opacity-70">
+                                    <span className={`text-[11px] ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>
                                       {formatTime(message.created_at)}
                                     </span>
                                     {isOwn && (
                                       message.status === 'read' || message.read_at ? (
-                                        <CheckCheck className="h-3.5 w-3.5 text-blue-500" />
+                                        <CheckCheck className="h-3.5 w-3.5 text-white/90" />
                                       ) : message.status === 'delivered' ? (
-                                        <CheckCheck className="h-3.5 w-3.5 opacity-70" />
+                                        <CheckCheck className="h-3.5 w-3.5 text-white/70" />
                                       ) : (
-                                        <Check className="h-3.5 w-3.5 opacity-70" />
+                                        <Check className="h-3.5 w-3.5 text-white/70" />
                                       )
                                     )}
                                   </div>
@@ -1278,9 +1301,9 @@ const Chat = () => {
                                   )}
                                 </div>
                               )}
+                              </div>
                             </div>
-                          </div>
-                        </ContextMenuTrigger>
+                          </ContextMenuTrigger>
                         <ContextMenuContent>
                           <ContextMenuItem onClick={() => handleReact(message.id, '👍')}>
                             <Smile className="h-4 w-4 mr-2" />
@@ -1309,9 +1332,10 @@ const Chat = () => {
                             </ContextMenuItem>
                           )}
                         </ContextMenuContent>
-                      </ContextMenu>
-                    );
-                  })}
+                          </ContextMenu>
+                      );
+                    })
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
                 {conversationId && user?.id && <TypingIndicator conversationId={conversationId} currentUserId={user.id} />}
