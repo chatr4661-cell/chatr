@@ -24,13 +24,23 @@ export const TypingIndicator = ({ conversationId, currentUserId }: TypingIndicat
           // Fetch current typing users
           const { data } = await supabase
             .from('typing_indicators')
-            .select('user_id, profiles(username)')
+            .select('user_id')
             .eq('conversation_id', conversationId)
             .neq('user_id', currentUserId)
             .gte('updated_at', new Date(Date.now() - 3000).toISOString()); // Last 3 seconds
 
-          if (data) {
-            setTypingUsers(data.map((d: any) => d.profiles?.username || 'Someone'));
+          if (data && data.length > 0) {
+            // Fetch usernames separately
+            const userIds = data.map(d => d.user_id);
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, username')
+              .in('id', userIds);
+            
+            const usernameMap = new Map(profiles?.map(p => [p.id, p.username]) || []);
+            setTypingUsers(data.map(d => usernameMap.get(d.user_id) || 'Someone'));
+          } else {
+            setTypingUsers([]);
           }
         }
       )

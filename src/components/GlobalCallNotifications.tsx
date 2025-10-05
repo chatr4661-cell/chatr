@@ -216,7 +216,14 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
           });
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Global incoming calls subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to global incoming calls');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Error subscribing to global incoming calls');
+        }
+      });
 
     // Listen for call updates (when caller ends call)
     const updatesChannel = supabase
@@ -245,7 +252,14 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
           }
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Global call updates subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to global call updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Error subscribing to global call updates');
+        }
+      });
 
     return () => {
       if (ringtoneRef.current) {

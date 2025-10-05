@@ -327,7 +327,12 @@ const Chat = () => {
         }
       )
       .subscribe((status) => {
-        console.log('📡 Subscription status changed:', status);
+        console.log('📡 Message subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to messages for conversation:', convId);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Error subscribing to messages channel');
+        }
       });
 
     return () => {
