@@ -541,19 +541,28 @@ const Chat = () => {
   };
 
   const startVoiceCall = async () => {
-    if (!selectedContact || !conversationId || !user) return;
+    if (!selectedContact || !conversationId || !user || !profile) return;
+
+    console.log('📞 Starting voice call with:', {
+      receiver: selectedContact,
+      caller: profile
+    });
 
     const { data: call, error } = await supabase
       .from('calls')
       .insert({
         conversation_id: conversationId,
         caller_id: user.id,
+        caller_name: profile.username,
         receiver_id: selectedContact.id,
+        receiver_name: selectedContact.username,
         call_type: 'voice',
         status: 'ringing'
       })
       .select()
       .single();
+
+    console.log('📞 Voice call created:', call, 'Error:', error);
 
     if (error || !call) {
       toast({
@@ -572,19 +581,28 @@ const Chat = () => {
   };
 
   const startVideoCall = async () => {
-    if (!selectedContact || !conversationId || !user) return;
+    if (!selectedContact || !conversationId || !user || !profile) return;
+
+    console.log('📹 Starting video call with:', {
+      receiver: selectedContact,
+      caller: profile
+    });
 
     const { data: call, error } = await supabase
       .from('calls')
       .insert({
         conversation_id: conversationId,
         caller_id: user.id,
+        caller_name: profile.username,
         receiver_id: selectedContact.id,
+        receiver_name: selectedContact.username,
         call_type: 'video',
         status: 'ringing'
       })
       .select()
       .single();
+
+    console.log('📹 Video call created:', call, 'Error:', error);
 
     if (error || !call) {
       toast({
