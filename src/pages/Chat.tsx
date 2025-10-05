@@ -1013,11 +1013,15 @@ const Chat = () => {
               <ScrollArea className="flex-1 p-4 bg-[#efeae2] dark:bg-[#0b141a]">
                 <div className="space-y-3 max-w-4xl mx-auto">
                   {(() => {
-                    console.log('🎨 Rendering messages. Total count:', messages.length, 'Messages:', messages);
+                    console.log('🎨 RENDER CHECK - Messages array length:', messages.length);
+                    console.log('🎨 RENDER CHECK - First 3 messages:', messages.slice(0, 3));
+                    console.log('🎨 RENDER CHECK - Selected contact:', selectedContact?.username);
+                    console.log('🎨 RENDER CHECK - Current user ID:', user?.id);
                     return null;
                   })()}
                   {messages.map((message) => {
                     const isOwn = message.sender_id === user?.id;
+                    console.log('🖼️ Rendering message:', message.id, 'Type:', message.message_type, 'IsOwn:', isOwn, 'Content:', message.content);
                     
                     return (
                       <ContextMenu key={message.id}>
@@ -1062,6 +1066,10 @@ const Chat = () => {
                                     ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-foreground rounded-br-sm'
                                     : 'bg-white dark:bg-[#202c33] text-foreground rounded-bl-sm'
                                 }`}>
+                                  {(() => {
+                                    console.log('💬 Rendering text message bubble:', message.content);
+                                    return null;
+                                  })()}
                                   {/* Reply Preview in Message */}
                                   {message.reply_to_id && (
                                     <div className="mb-2 pl-2 border-l-4 border-primary/50 bg-muted/30 rounded p-2">
