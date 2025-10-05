@@ -90,14 +90,44 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         }
       };
 
-      // Subscribe to signaling
+      // First, fetch any existing signals (like the offer that was already sent)
+      const { getSignals } = await import('@/utils/webrtcSignaling');
+      const existingSignals = await getSignals(call.id);
+      console.log('📥 Fetched existing signals:', existingSignals);
+
+      // Process existing signals
+      for (const signal of existingSignals) {
+        if (signal.signal_type === 'offer' && !peerConnection.currentRemoteDescription) {
+          console.log('📥 Processing existing offer');
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          
+          console.log('📤 Sending answer to existing offer');
+          await sendSignal({
+            type: 'answer',
+            callId: call.id,
+            data: answer,
+            to: call.caller_id
+          });
+        } else if (signal.signal_type === 'ice-candidate') {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+        }
+      }
+
+
+      // Subscribe to new signaling messages
       const unsubscribe = subscribeToCallSignals(call.id, async (signal: any) => {
         try {
+          console.log('📥 Received new signal:', signal.signal_type);
+          
           if (signal.signal_type === 'offer' && !peerConnection.currentRemoteDescription) {
+            console.log('📥 Processing new offer');
             await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
             
+            console.log('📤 Sending answer to new offer');
             await sendSignal({
               type: 'answer',
               callId: call.id,
@@ -105,6 +135,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
               to: call.caller_id
             });
           } else if (signal.signal_type === 'ice-candidate') {
+            console.log('📥 Adding new ICE candidate');
             await peerConnection.addIceCandidate(new RTCIceCandidate(signal.signal_data));
           }
         } catch (error) {
