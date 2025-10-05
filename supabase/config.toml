@@ -2,3 +2,6 @@ project_id = "sbayuqgomlflmxgicplz"
 
 [functions.ai-health-assistant]
 verify_jwt = false
+
+[functions.transcribe-voice]
+verify_jwt = true

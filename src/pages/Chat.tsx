@@ -20,6 +20,7 @@ import { PollMessage } from '@/components/PollMessage';
 import { MessageReactions } from '@/components/MessageReactions';
 import { TypingIndicator, setTypingStatus } from '@/components/TypingIndicator';
 import { VoiceMessageRecorder } from '@/components/VoiceMessageRecorder';
+import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { GroupChatCreator } from '@/components/GroupChatCreator';
 import { MessageForwarding } from '@/components/MessageForwarding';
 import { ContactManager } from '@/components/ContactManager';
@@ -69,6 +70,13 @@ interface Message {
   file_name?: string;
   duration?: number;
   reply_to_id?: string;
+  reply_message?: {
+    id: string;
+    content: string;
+    reply_sender?: {
+      username: string;
+    };
+  };
   is_edited?: boolean;
   is_deleted?: boolean;
   is_starred?: boolean;
@@ -92,6 +100,7 @@ const Chat = () => {
   const [showMediaActions, setShowMediaActions] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
   const [showGroupCreator, setShowGroupCreator] = useState(false);
   const [showMessageForwarding, setShowMessageForwarding] = useState(false);
   const [messageToForward, setMessageToForward] = useState<Message | null>(null);
@@ -222,6 +231,7 @@ const Chat = () => {
 
     console.log('🎯 Selecting contact:', contact.username, 'Contact ID:', contact.id);
     setSelectedContact(contact);
+    setMessages([]); // Clear messages immediately for smooth transition
     
     // Get all conversations for current user
     const { data: myConversations, error: myConvError } = await supabase
@@ -252,7 +262,7 @@ const Chat = () => {
         const foundConvId = sharedConversations[0].conversation_id;
         console.log('✅ Found existing conversation:', foundConvId);
         setConversationId(foundConvId);
-        loadMessages(foundConvId);
+        await loadMessages(foundConvId);
         return;
       } else {
         console.log('ℹ️ No shared conversation found, creating new one');
@@ -295,17 +305,19 @@ const Chat = () => {
 
     console.log('✅ Created new conversation:', newConversation.id);
     setConversationId(newConversation.id);
-    loadMessages(newConversation.id);
+    await loadMessages(newConversation.id);
   };
 
   const loadMessages = async (convId: string) => {
+    if (!convId) return;
+    
     console.log('📥 Loading messages for conversation:', convId);
     
     const { data, error } = await supabase
       .from('messages')
       .select(`
         *,
-        sender:profiles(*)
+        sender:profiles!messages_sender_id_fkey(*)
       `)
       .eq('conversation_id', convId)
       .eq('is_deleted', false)
@@ -321,7 +333,7 @@ const Chat = () => {
       return;
     }
 
-    console.log(`✅ Loaded ${data?.length || 0} messages`);
+    console.log(`✅ Loaded ${data?.length || 0} messages for conversation ${convId}`);
     setMessages(data || []);
   };
 
@@ -451,6 +463,17 @@ const Chat = () => {
     if (conversationId && user) {
       setTypingStatus(conversationId, user.id, false);
     }
+  };
+
+  const handleVoiceTranscription = async (text: string, audioUrl?: string) => {
+    if (!conversationId) return;
+    
+    await sendMessage(new Event('submit') as any, 'voice', {
+      content: text,
+      media_url: audioUrl || ''
+    });
+    
+    setShowVoiceRecorder(false);
   };
 
   const handleImagePick = async () => {
@@ -940,6 +963,28 @@ const Chat = () => {
                                     ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-foreground rounded-br-sm'
                                     : 'bg-white dark:bg-[#202c33] text-foreground rounded-bl-sm'
                                 }`}>
+                                  {/* Reply Preview in Message */}
+                                  {message.reply_to_id && (
+                                    <div className="mb-2 pl-2 border-l-4 border-primary/50 bg-muted/30 rounded p-2">
+                                      <p className="text-xs font-medium text-primary">
+                                        Reply to message
+                                      </p>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        Tap to view original
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Voice Message Audio Player */}
+                                  {message.message_type === 'voice' && message.media_url && (
+                                    <div className="mb-2">
+                                      <audio controls className="w-full max-w-xs">
+                                        <source src={message.media_url} type="audio/webm" />
+                                        Your browser does not support audio playback.
+                                      </audio>
+                                    </div>
+                                  )}
+                                  
                                   <p className="text-sm break-words whitespace-pre-wrap">{message.content}</p>
                                   <div className="flex items-center gap-1 justify-end mt-1">
                                     {message.is_edited && (
@@ -1086,10 +1131,14 @@ const Chat = () => {
 
       {/* Voice Message Recorder */}
       {showVoiceRecorder && (
-        <VoiceMessageRecorder
-          onSend={handleVoiceMessageSend}
-          onCancel={() => setShowVoiceRecorder(false)}
-        />
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg max-w-md w-full p-6">
+            <VoiceRecorder
+              onTranscription={handleVoiceTranscription}
+              onCancel={() => setShowVoiceRecorder(false)}
+            />
+          </div>
+        </div>
       )}
 
       {/* Group Chat Creator */}
