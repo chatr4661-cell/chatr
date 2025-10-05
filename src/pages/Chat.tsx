@@ -143,13 +143,18 @@ const Chat = () => {
     if (!user?.id) return;
     
     const updateOnlineStatus = async () => {
-      await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ is_online: true, last_seen: new Date().toISOString() })
         .eq('id', user.id);
+      
+      if (error) {
+        console.error('❌ Error updating online status:', error);
+      }
     };
     
-    // Update every 30 seconds
+    // Update immediately and then every 30 seconds
+    updateOnlineStatus();
     const interval = setInterval(updateOnlineStatus, 30000);
     
     return () => clearInterval(interval);
@@ -183,12 +188,23 @@ const Chat = () => {
       }
     });
 
-    // Set user offline when page unloads
-    const handleBeforeUnload = () => {
+    // Set user offline when page unloads - FIXED: Use proper API endpoint
+    const handleBeforeUnload = async () => {
       if (user?.id) {
-        navigator.sendBeacon(
-          `${supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', user.id)}`
-        );
+        // Use fetch with keepalive for beacon-like behavior
+        await fetch(`https://sbayuqgomlflmxgicplz.supabase.co/rest/v1/profiles?id=eq.${user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiYXl1cWdvbWxmbG14Z2ljcGx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTc2MDAsImV4cCI6MjA3NDk5MzYwMH0.gVSObpMtsv5W2nuLBHKT8G1_hXIprWXdn5l7Bnnj7jw',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ 
+            is_online: false, 
+            last_seen: new Date().toISOString() 
+          }),
+          keepalive: true
+        }).catch(err => console.error('Error setting offline:', err));
       }
     };
     
@@ -204,7 +220,13 @@ const Chat = () => {
           .from('profiles')
           .update({ is_online: false, last_seen: new Date().toISOString() })
           .eq('id', user.id)
-          .then(() => console.log('✅ User set to offline'));
+          .then(({ error }) => {
+            if (error) {
+              console.error('❌ Error setting offline:', error);
+            } else {
+              console.log('✅ User set to offline');
+            }
+          });
       }
     };
   }, [navigate]);
@@ -230,42 +252,39 @@ const Chat = () => {
       .single();
 
     if (error) {
-      console.error('Error loading profile:', error);
+      console.error('❌ Error loading profile:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load profile',
+        variant: 'destructive'
+      });
       return;
     }
 
+    console.log('✅ Profile loaded:', data);
     setProfile(data);
     loadContacts();
-    
-    // Subscribe to online status changes for contacts
-    const channel = supabase.channel('online-users')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'profiles' 
-      }, (payload) => {
-        console.log('👤 Profile updated:', payload.new);
-        // Update contacts list if this profile is in contacts
-        setContacts(prev => prev.map(c => 
-          c.id === payload.new.id ? { ...c, ...payload.new } : c
-        ));
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
   };
 
   const loadContacts = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('⚠️ Cannot load contacts: user not authenticated');
+      return;
+    }
+
+    console.log('📇 Loading contacts for user:', user.id);
 
     // Get user's contacts with profile info
-    const { data: contactsData } = await supabase
+    const { data: contactsData, error: contactsError } = await supabase
       .from('contacts')
       .select('*')
       .eq('user_id', user.id)
       .eq('is_registered', true);
+
+    if (contactsError) {
+      console.error('❌ Error loading contacts:', contactsError);
+      return;
+    }
 
     if (contactsData && contactsData.length > 0) {
       const contactUserIds = contactsData
@@ -279,18 +298,54 @@ const Chat = () => {
           .in('id', contactUserIds);
 
         if (error) {
-          console.error('Error loading contact profiles:', error);
+          console.error('❌ Error loading contact profiles:', error);
           return;
         }
 
+        console.log(`✅ Loaded ${profilesData?.length || 0} contact profiles`);
+        console.log('👥 Contact online statuses:', profilesData?.map(p => ({ 
+          username: p.username, 
+          is_online: p.is_online,
+          last_seen: p.last_seen 
+        })));
         setContacts(profilesData || []);
       } else {
+        console.log('ℹ️ No contact user IDs found');
         setContacts([]);
       }
     } else {
+      console.log('ℹ️ No registered contacts found');
       setContacts([]);
     }
   };
+
+  // Subscribe to profile updates for real-time online status - FIXED
+  useEffect(() => {
+    if (!user?.id || contacts.length === 0) return;
+    
+    console.log('📡 Setting up profile realtime subscription for contacts');
+    const contactIds = contacts.map(c => c.id);
+    
+    const channel = supabase
+      .channel('profile-updates')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'profiles',
+        filter: `id=in.(${contactIds.join(',')})`
+      }, (payload) => {
+        console.log('👤 Contact profile updated:', payload.new);
+        setContacts(prev => prev.map(c => 
+          c.id === payload.new.id ? { ...c, ...payload.new as any } : c
+        ));
+      })
+      .subscribe();
+      
+    return () => {
+      console.log('🔌 Unsubscribing from profile updates');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, contacts.map(c => c.id).join(',')]);
 
   // Reload contacts when switching back to consumer view
   useEffect(() => {
@@ -307,13 +362,13 @@ const Chat = () => {
         description: 'Please wait for authentication to complete',
         variant: 'destructive'
       });
-      console.error('User not authenticated when selecting contact');
+      console.error('❌ User not authenticated when selecting contact');
       return;
     }
 
     console.log('🎯 Selecting contact:', contact.username, 'Contact ID:', contact.id);
     setSelectedContact(contact);
-    setMessages([]); // Clear messages immediately for smooth transition
+    // DON'T clear messages here - let loadMessages handle it to prevent flash
     
     // Get all conversations for current user
     const { data: myConversations, error: myConvError } = await supabase
@@ -391,59 +446,79 @@ const Chat = () => {
   };
 
   const loadMessages = async (convId: string) => {
-    if (!convId) return;
+    if (!convId) {
+      console.log('⚠️ Cannot load messages: no conversation ID');
+      return;
+    }
     
     console.log('📥 Loading messages for conversation:', convId);
     
-    const { data, error } = await supabase
-      .from('messages')
-      .select(`
-        *,
-        sender:profiles!messages_sender_id_fkey(*)
-      `)
-      .eq('conversation_id', convId)
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:profiles!messages_sender_id_fkey(*)
+        `)
+        .eq('conversation_id', convId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('❌ Error loading messages:', error);
-      toast({
-        title: 'Error loading messages',
-        description: error.message,
-        variant: 'destructive'
-      });
-      return;
-    }
+      if (error) {
+        console.error('❌ Error loading messages:', error);
+        toast({
+          title: 'Error loading messages',
+          description: error.message,
+          variant: 'destructive'
+        });
+        setMessages([]); // Clear on error
+        return;
+      }
 
-    console.log(`✅ Loaded ${data?.length || 0} messages for conversation ${convId}`);
-    console.log('📊 Messages data from database:', data);
-    setMessages((data as any) || []);
-    
-    // Mark received messages as delivered
-    if (data && data.length > 0) {
-      const receivedUndelivered = data.filter(
-        msg => msg.sender_id !== user?.id && msg.status === 'sent'
-      );
-      if (receivedUndelivered.length > 0) {
-        await supabase
-          .from('messages')
-          .update({ status: 'delivered' })
-          .in('id', receivedUndelivered.map(m => m.id));
+      console.log(`✅ Loaded ${data?.length || 0} messages for conversation ${convId}`);
+      if (data && data.length > 0) {
+        console.log('📊 First message:', data[0]);
+        console.log('📊 Last message:', data[data.length - 1]);
       }
       
-      // Mark visible messages as read
-      const unreadMessages = data.filter(
-        msg => msg.sender_id !== user?.id && !msg.read_at
-      );
-      if (unreadMessages.length > 0) {
-        await supabase
-          .from('messages')
-          .update({ 
-            read_at: new Date().toISOString(),
-            status: 'read'
-          })
-          .in('id', unreadMessages.map(m => m.id));
+      // CRITICAL: Set messages state with the loaded data
+      setMessages((data as any) || []);
+      console.log('✅ Messages state updated with', data?.length || 0, 'messages');
+    
+      // Mark received messages as delivered
+      if (data && data.length > 0) {
+        const receivedUndelivered = data.filter(
+          msg => msg.sender_id !== user?.id && msg.status === 'sent'
+        );
+        if (receivedUndelivered.length > 0) {
+          await supabase
+            .from('messages')
+            .update({ status: 'delivered' })
+            .in('id', receivedUndelivered.map(m => m.id));
+        }
+        
+        // Mark visible messages as read
+        const unreadMessages = data.filter(
+          msg => msg.sender_id !== user?.id && !msg.read_at
+        );
+        if (unreadMessages.length > 0) {
+          await supabase
+            .from('messages')
+            .update({ 
+              read_at: new Date().toISOString(),
+              status: 'read'
+            })
+            .in('id', unreadMessages.map(m => m.id));
+        }
       }
+    } catch (err) {
+      console.error('❌ Unexpected error in loadMessages:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to load messages',
+        variant: 'destructive'
+      });
+      setMessages([]);
     }
   };
 
