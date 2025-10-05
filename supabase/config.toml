@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.transcribe-voice]
 verify_jwt = true
+
+[functions.smart-compose]
+verify_jwt = true
+
+[functions.translate-message]
+verify_jwt = true
+
+[functions.summarize-chat]
+verify_jwt = true

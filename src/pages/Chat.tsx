@@ -21,6 +21,9 @@ import { MessageReactions } from '@/components/MessageReactions';
 import { TypingIndicator, setTypingStatus } from '@/components/TypingIndicator';
 import { VoiceMessageRecorder } from '@/components/VoiceMessageRecorder';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
+import { SmartCompose } from '@/components/SmartCompose';
+import { MessageTranslator } from '@/components/MessageTranslator';
+import { ChatSummarizer } from '@/components/ChatSummarizer';
 import { GroupChatCreator } from '@/components/GroupChatCreator';
 import { MessageForwarding } from '@/components/MessageForwarding';
 import { ContactManager } from '@/components/ContactManager';
@@ -905,6 +908,9 @@ const Chat = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* AI Summary Button */}
+                  <ChatSummarizer messages={messages} />
+                  
                   <Button variant="ghost" size="icon" className="rounded-full" onClick={startVideoCall}>
                     <Video className="h-5 w-5" />
                   </Button>
@@ -1001,6 +1007,14 @@ const Chat = () => {
                                       )
                                     )}
                                   </div>
+                                  
+                                  {/* Message Translator */}
+                                  {!isOwn && (
+                                    <MessageTranslator 
+                                      text={message.content} 
+                                      messageId={message.id}
+                                    />
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1048,6 +1062,14 @@ const Chat = () => {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
+              )}
+
+              {/* Smart Compose - AI Quick Replies */}
+              {messages.length > 0 && !showVoiceRecorder && (
+                <SmartCompose 
+                  messages={messages}
+                  onSelectSuggestion={(text) => setMessageInput(text)}
+                />
               )}
 
               {/* Input Area */}
