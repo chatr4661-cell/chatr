@@ -128,16 +128,19 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
   // Answer incoming call
   const answerCall = async (call: any) => {
     try {
-      // Stop ringtone
+      // Stop ringtone immediately
       if (ringtoneRef.current) {
         ringtoneRef.current.pause();
+        ringtoneRef.current.currentTime = 0;
         ringtoneRef.current = null;
       }
 
       console.log('📞 Answering call:', call);
+      
+      // Update UI immediately to hide ringing screen
+      setIncomingCall(null);
       setCallType(call.call_type);
       setActiveCall(call);
-      setIncomingCall(null);
 
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -301,9 +304,14 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
   // End call
   const endCall = () => {
-    // Stop all tracks
+    console.log('🔴 Ending call and cleaning up');
+    
+    // Stop all tracks immediately
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log('🛑 Stopped track:', track.kind);
+      });
       localStreamRef.current = null;
     }
 
@@ -313,12 +321,14 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       peerConnectionRef.current = null;
     }
 
-    // Clear video elements
+    // Clear video elements immediately
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = null;
+      localVideoRef.current.pause();
     }
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = null;
+      remoteVideoRef.current.pause();
     }
 
     // Update call status
@@ -333,6 +343,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         .eq('id', activeCall.id);
     }
 
+    // Reset all state immediately
     setActiveCall(null);
     setCallType('voice');
     setIsMuted(false);
@@ -418,11 +429,13 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
   // Listen for incoming calls AND outgoing calls
   useEffect(() => {
+    if (!userId) return;
+    
     console.log('📞 Setting up global call listener for user:', userId);
     
     // Listen for incoming calls (where we are the receiver)
     const incomingChannel = supabase
-      .channel('global-incoming-calls')
+      .channel(`global-incoming-calls-${userId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -432,7 +445,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         const call = payload.new as any;
         console.log('🔔 INCOMING CALL RECEIVED:', call);
         
-        if (call.status === 'ringing') {
+        if (call.status === 'ringing' && !activeCall && !incomingCall) {
           console.log('📱 Showing incoming call dialog for:', call.caller_name);
           setIncomingCall(call);
           
@@ -452,14 +465,11 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       })
       .subscribe((status) => {
         console.log('📡 Global incoming calls subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to global incoming calls');
-        }
       });
 
     // Listen for outgoing calls (where we are the caller) - auto-start when created
     const outgoingChannel = supabase
-      .channel('global-outgoing-calls')
+      .channel(`global-outgoing-calls-${userId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -471,7 +481,6 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         
         if (call.status === 'ringing' && !activeCall) {
           console.log('📱 Auto-starting outgoing call');
-          // Auto-start the outgoing call
           startOutgoingCall(call);
         }
       })
@@ -481,7 +490,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
     // Listen for call updates (when caller/receiver ends call)
     const updatesChannel = supabase
-      .channel('global-call-updates')
+      .channel(`global-call-updates-${userId}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -518,12 +527,13 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
     return () => {
       if (ringtoneRef.current) {
         ringtoneRef.current.pause();
+        ringtoneRef.current = null;
       }
       supabase.removeChannel(incomingChannel);
       supabase.removeChannel(outgoingChannel);
       supabase.removeChannel(updatesChannel);
     };
-  }, [userId, activeCall, incomingCall]);
+  }, [userId]);
 
   return (
     <>

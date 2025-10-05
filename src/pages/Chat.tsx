@@ -220,29 +220,42 @@ const Chat = () => {
       return;
     }
 
-    console.log('🎯 Selecting contact:', contact.username);
+    console.log('🎯 Selecting contact:', contact.username, 'Contact ID:', contact.id);
     setSelectedContact(contact);
     
-    const { data: existingConversation } = await supabase
+    // Get all conversations for current user
+    const { data: myConversations, error: myConvError } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
       .eq('user_id', user.id);
 
-    if (existingConversation && existingConversation.length > 0) {
-      const conversationIds = existingConversation.map((c) => c.conversation_id);
+    if (myConvError) {
+      console.error('❌ Error fetching my conversations:', myConvError);
+    }
+
+    if (myConversations && myConversations.length > 0) {
+      const conversationIds = myConversations.map((c) => c.conversation_id);
+      console.log('📋 My conversation IDs:', conversationIds);
       
-      const { data: otherParticipant } = await supabase
+      // Get all conversations where the contact is also a participant
+      const { data: sharedConversations, error: sharedError } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
         .eq('user_id', contact.id)
         .in('conversation_id', conversationIds);
 
-      if (otherParticipant && otherParticipant.length > 0) {
-        const foundConvId = otherParticipant[0].conversation_id;
+      if (sharedError) {
+        console.error('❌ Error finding shared conversation:', sharedError);
+      }
+
+      if (sharedConversations && sharedConversations.length > 0) {
+        const foundConvId = sharedConversations[0].conversation_id;
         console.log('✅ Found existing conversation:', foundConvId);
         setConversationId(foundConvId);
         loadMessages(foundConvId);
         return;
+      } else {
+        console.log('ℹ️ No shared conversation found, creating new one');
       }
     }
 
@@ -254,9 +267,7 @@ const Chat = () => {
       .single();
 
     if (error || !newConversation) {
-      console.error('Error creating conversation:', error);
-      console.error('Full error details:', JSON.stringify(error, null, 2));
-      console.error('User ID:', user.id);
+      console.error('❌ Error creating conversation:', error);
       toast({
         title: 'Failed to Create Conversation',
         description: error?.message || 'Unable to start chat. Please try again.',
@@ -265,10 +276,22 @@ const Chat = () => {
       return;
     }
 
-    await supabase.from('conversation_participants').insert([
-      { conversation_id: newConversation.id, user_id: user.id },
-      { conversation_id: newConversation.id, user_id: contact.id },
-    ]);
+    const { error: participantsError } = await supabase
+      .from('conversation_participants')
+      .insert([
+        { conversation_id: newConversation.id, user_id: user.id },
+        { conversation_id: newConversation.id, user_id: contact.id },
+      ]);
+
+    if (participantsError) {
+      console.error('❌ Error adding participants:', participantsError);
+      toast({
+        title: 'Error',
+        description: 'Failed to add participants to conversation',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     console.log('✅ Created new conversation:', newConversation.id);
     setConversationId(newConversation.id);
