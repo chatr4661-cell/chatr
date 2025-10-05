@@ -540,6 +540,7 @@ const Chat = () => {
       .insert({
         conversation_id: conversationId,
         caller_id: user.id,
+        receiver_id: selectedContact.id,
         call_type: 'voice',
         status: 'ringing'
       })
@@ -570,6 +571,7 @@ const Chat = () => {
       .insert({
         conversation_id: conversationId,
         caller_id: user.id,
+        receiver_id: selectedContact.id,
         call_type: 'video',
         status: 'ringing'
       })
