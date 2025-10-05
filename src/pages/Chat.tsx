@@ -283,6 +283,8 @@ const Chat = () => {
   };
 
   const subscribeToMessages = (convId: string) => {
+    console.log('📡 Setting up realtime subscription for conversation:', convId);
+    
     const channel = supabase
       .channel(`messages:${convId}`)
       .on(
@@ -294,7 +296,9 @@ const Chat = () => {
           filter: `conversation_id=eq.${convId}`,
         },
         async (payload) => {
-          const { data: newMessage } = await supabase
+          console.log('🔔 NEW MESSAGE RECEIVED via realtime:', payload);
+          
+          const { data: newMessage, error } = await supabase
             .from('messages')
             .select(`
               *,
@@ -303,14 +307,29 @@ const Chat = () => {
             .eq('id', payload.new.id)
             .single();
 
+          if (error) {
+            console.error('❌ Error fetching message details:', error);
+            return;
+          }
+
           if (newMessage) {
+            console.log('✅ Adding message to state:', newMessage);
             setMessages((prev) => [...prev, newMessage]);
+            
+            // Play notification sound if message is from someone else
+            if (newMessage.sender_id !== user?.id) {
+              const audio = new Audio('/notification.mp3');
+              audio.play().catch(e => console.log('Could not play sound:', e));
+            }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Subscription status changed:', status);
+      });
 
     return () => {
+      console.log('🔌 Unsubscribing from messages:', convId);
       supabase.removeChannel(channel);
     };
   };

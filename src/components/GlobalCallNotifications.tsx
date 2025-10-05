@@ -185,6 +185,8 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
   // Listen for incoming calls
   useEffect(() => {
+    console.log('📞 Setting up global call listener for user:', userId);
+    
     const channel = supabase
       .channel('global-incoming-calls')
       .on('postgres_changes', {
@@ -194,9 +196,10 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         filter: `receiver_id=eq.${userId}`
       }, (payload) => {
         const call = payload.new as any;
-        console.log('🔔 Incoming call received:', call);
+        console.log('🔔 INCOMING CALL RECEIVED:', call);
         
         if (call.status === 'ringing') {
+          console.log('📱 Showing incoming call dialog for:', call.caller_name);
           setIncomingCall(call);
           
           // Play ringtone
