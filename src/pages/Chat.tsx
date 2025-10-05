@@ -466,7 +466,8 @@ const Chat = () => {
   const handleInputChange = (value: string) => {
     setMessageInput(value);
     
-    if (conversationId && user) {
+    // Only set typing status if we have valid IDs
+    if (conversationId && user?.id && conversationId.trim() !== '' && user.id.trim() !== '') {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
@@ -492,6 +493,8 @@ const Chat = () => {
     const messageData: any = {
       sender_id: user.id,
       conversation_id: conversationId,
+      topic: 'chat_message',
+      extension: messageType, // Add required extension field
       message_type: messageType,
       reply_to_id: replyToMessage?.id || null,
       ...additionalData
@@ -1144,7 +1147,7 @@ const Chat = () => {
                     );
                   })}
                 </div>
-                {conversationId && <TypingIndicator conversationId={conversationId} currentUserId={user?.id} />}
+                {conversationId && user?.id && <TypingIndicator conversationId={conversationId} currentUserId={user.id} />}
               </ScrollArea>
 
               {/* Reply Preview */}

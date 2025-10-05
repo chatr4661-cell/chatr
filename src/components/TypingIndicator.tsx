@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TypingIndicatorProps {
-  conversationId: string;
+  conversationId: string | null;
   currentUserId: string;
 }
 
@@ -10,6 +10,8 @@ export const TypingIndicator = ({ conversationId, currentUserId }: TypingIndicat
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   useEffect(() => {
+    // Don't set up subscription if conversationId is null or empty
+    if (!conversationId || conversationId.trim() === '') return;
     const channel = supabase
       .channel(`typing:${conversationId}`)
       .on(
@@ -63,19 +65,29 @@ export const TypingIndicator = ({ conversationId, currentUserId }: TypingIndicat
 };
 
 export const setTypingStatus = async (conversationId: string, userId: string, isTyping: boolean) => {
-  if (isTyping) {
-    await supabase
-      .from('typing_indicators')
-      .upsert({
-        conversation_id: conversationId,
-        user_id: userId,
-        updated_at: new Date().toISOString()
-      });
-  } else {
-    await supabase
-      .from('typing_indicators')
-      .delete()
-      .eq('conversation_id', conversationId)
-      .eq('user_id', userId);
+  // Validate inputs to prevent UUID errors
+  if (!conversationId || !userId || conversationId.trim() === '' || userId.trim() === '') {
+    console.warn('Invalid conversationId or userId for typing status');
+    return;
+  }
+
+  try {
+    if (isTyping) {
+      await supabase
+        .from('typing_indicators')
+        .upsert({
+          conversation_id: conversationId,
+          user_id: userId,
+          updated_at: new Date().toISOString()
+        });
+    } else {
+      await supabase
+        .from('typing_indicators')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId);
+    }
+  } catch (error) {
+    console.error('Error setting typing status:', error);
   }
 };
