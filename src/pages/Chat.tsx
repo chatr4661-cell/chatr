@@ -493,8 +493,6 @@ const Chat = () => {
     const messageData: any = {
       sender_id: user.id,
       conversation_id: conversationId,
-      topic: 'chat_message',
-      extension: messageType, // Add required extension field
       message_type: messageType,
       reply_to_id: replyToMessage?.id || null,
       ...additionalData
