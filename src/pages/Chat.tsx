@@ -461,28 +461,21 @@ const Chat = () => {
     console.log('📥 Loading messages for conversation:', convId);
     
     try {
-      // First check if this conversation exists and user is a participant
-      const { data: participation, error: participationError } = await supabase
+      // First check participation
+      const { data: participation } = await supabase
         .from('conversation_participants')
         .select('*')
         .eq('conversation_id', convId)
         .eq('user_id', user?.id)
         .maybeSingle();
         
-      if (participationError) {
-        console.error('❌ Error checking participation:', participationError);
-      }
-      
       if (!participation) {
-        console.warn('⚠️ User is not a participant in this conversation');
+        console.warn('⚠️ User not participant in conversation:', convId);
       }
       
       const { data, error } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey(*)
-        `)
+        .select('*')
         .eq('conversation_id', convId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true });
@@ -498,15 +491,17 @@ const Chat = () => {
         return;
       }
 
-      console.log(`✅ FOUND ${data?.length || 0} messages for conversation ${convId}`);
-      if (data && data.length > 0) {
-        console.log('📊 Sample message:', data[0]);
-      }
+      console.log(`✅ LOADED ${data?.length || 0} messages for ${convId}`);
       
-      // CRITICAL: Set messages state IMMEDIATELY
-      const messagesToSet = (data as any) || [];
-      setMessages(messagesToSet);
-      console.log('✅ SET STATE with', messagesToSet.length, 'messages');
+      // Map messages with proper typing
+      const mappedMessages = (data || []).map(msg => ({
+        ...msg,
+        status: msg.status as 'sent' | 'delivered' | 'read',
+        sender: null,
+      }));
+      
+      setMessages(mappedMessages as any);
+      console.log('✅ STATE SET with', mappedMessages.length, 'messages');
     
       // Mark received messages as delivered
       if (data && data.length > 0) {

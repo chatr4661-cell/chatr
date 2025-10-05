@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceCard from '@/components/ServiceCard';
 import { setupTestUserContacts, isTestUser } from '@/utils/testUserSetup';
 import { 
@@ -25,8 +24,7 @@ import {
   Coins,
   Shield,
   QrCode,
-  Phone,
-  Sparkles
+  Phone
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
@@ -74,7 +72,7 @@ const Index = () => {
     navigate('/auth');
   };
 
-  const messagingServices = [
+  const chatrServices = [
     {
       icon: MessageCircle,
       title: 'Messages',
@@ -96,9 +94,6 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
       route: '/contacts'
     },
-  ];
-
-  const chatrPlatformServices = [
     {
       icon: Coins,
       title: 'Chatr Points',
@@ -113,9 +108,6 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-slate-400 to-slate-600',
       route: '/qr-login'
     },
-  ];
-
-  const healthcareServices = [
     {
       icon: Bot,
       title: 'AI Health Assistant',
@@ -186,9 +178,6 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
       route: '/provider-register'
     },
-  ];
-
-  const youthServices = [
     {
       icon: Users,
       title: 'Youth Feed',
@@ -206,11 +195,11 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#000000]">
+    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#000000] pb-6">
       {/* iOS-style Header */}
       <div className="bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50">
         <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
-          <img src={logo} alt="chatr+ Logo" className="h-7 object-contain" />
+          <img src={logo} alt="Chatr Logo" className="h-7 object-contain" />
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -234,122 +223,55 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
         {isSettingUpContacts && (
-          <div className="mx-4 mt-4 bg-primary/10 border border-primary/20 rounded-xl p-3">
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-3">
             <p className="text-[15px] text-primary text-center">Setting up test contacts...</p>
           </div>
         )}
 
-        {/* Tabs for Different Platforms */}
-        <Tabs defaultValue="messaging" className="w-full mt-4">
-          <TabsList className="w-full grid grid-cols-3 mx-4 mb-4 bg-muted/50">
-            <TabsTrigger value="messaging" className="text-[15px] data-[state=active]:bg-background">
-              Messaging
-            </TabsTrigger>
-            <TabsTrigger value="healthcare" className="text-[15px] data-[state=active]:bg-background">
-              Healthcare
-            </TabsTrigger>
-            <TabsTrigger value="youth" className="text-[15px] data-[state=active]:bg-background">
-              Youth
-            </TabsTrigger>
-          </TabsList>
+        {/* Chatr Brand Header */}
+        <div className="space-y-2">
+          <h1 className="text-[34px] font-bold text-foreground tracking-tight">Chatr</h1>
+          <p className="text-[15px] text-muted-foreground">All-in-one messaging & health platform</p>
+        </div>
 
-          {/* Messaging Tab */}
-          <TabsContent value="messaging" className="px-4 space-y-4">
-            <div className="space-y-3">
-              <h2 className="text-[28px] font-bold text-foreground">chatr+ Messaging</h2>
-              
-              <div className="relative">
-                <Input
-                  placeholder="Start a new message..."
-                  className="rounded-2xl bg-muted/50 dark:bg-muted/30 border-0 pr-20 h-11 text-[15px]"
-                  readOnly
-                  onClick={() => navigate('/chat')}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full h-8 w-8"
-                    onClick={() => navigate('/chat')}
-                  >
-                    <Paperclip className="h-4 w-4 text-primary" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full h-8 w-8"
-                    onClick={() => navigate('/chat')}
-                  >
-                    <Mic className="h-4 w-4 text-primary" />
-                  </Button>
-                </div>
-              </div>
+        {/* Quick Message Input */}
+        <div className="relative">
+          <Input
+            placeholder="Start a new message..."
+            className="rounded-2xl bg-muted/50 dark:bg-muted/30 border-0 pr-20 h-11 text-[15px]"
+            readOnly
+            onClick={() => navigate('/chat')}
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={() => navigate('/chat')}
+            >
+              <Paperclip className="h-4 w-4 text-primary" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={() => navigate('/chat')}
+            >
+              <Mic className="h-4 w-4 text-primary" />
+            </Button>
+          </div>
+        </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {messagingServices.map((service) => (
-                  <div key={service.title} onClick={() => navigate(service.route)}>
-                    <ServiceCard {...service} />
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-4">
-                <h3 className="text-[17px] font-semibold mb-3">Chatr Platform</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {chatrPlatformServices.map((service) => (
-                    <div key={service.title} onClick={() => navigate(service.route)}>
-                      <ServiceCard {...service} />
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {/* All Services Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {chatrServices.map((service) => (
+            <div key={service.title} onClick={() => navigate(service.route)}>
+              <ServiceCard {...service} />
             </div>
-          </TabsContent>
-
-          {/* Healthcare Tab */}
-          <TabsContent value="healthcare" className="px-4 space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Heart className="h-7 w-7 text-red-500" />
-                <div>
-                  <h2 className="text-[28px] font-bold text-foreground leading-none">Healthcare</h2>
-                  <p className="text-[13px] text-muted-foreground">Professional Health Services</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {healthcareServices.map((service) => (
-                  <div key={service.title} onClick={() => navigate(service.route)}>
-                    <ServiceCard {...service} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Youth Tab */}
-          <TabsContent value="youth" className="px-4 space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-7 w-7 text-yellow-500" />
-                <div>
-                  <h2 className="text-[28px] font-bold text-foreground leading-none">Youth</h2>
-                  <p className="text-[13px] text-muted-foreground">Wellness & Community</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {youthServices.map((service) => (
-                  <div key={service.title} onClick={() => navigate(service.route)}>
-                    <ServiceCard {...service} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+          ))}
+        </div>
       </div>
     </div>
   );
