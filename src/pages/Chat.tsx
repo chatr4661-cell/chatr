@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,6 +142,7 @@ const Chat = () => {
   const [showUserInfoSidebar, setShowUserInfoSidebar] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -400,6 +401,57 @@ const Chat = () => {
       loadContacts();
     }
   }, [viewMode, user?.id]);
+
+  // Handle contact selection from URL query parameter (from global search)
+  useEffect(() => {
+    if (!user?.id || !profile) return;
+
+    const searchParams = new URLSearchParams(location.search);
+    const contactId = searchParams.get('contact');
+    
+    if (contactId) {
+      console.log('📍 Contact ID from URL:', contactId);
+      
+      // Fetch the contact profile and select it
+      const loadAndSelectContact = async () => {
+        try {
+          const { data: contactProfile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', contactId)
+            .maybeSingle();
+
+          if (error) {
+            console.error('❌ Error loading contact from URL:', error);
+            toast({
+              title: 'Error',
+              description: 'Could not load contact',
+              variant: 'destructive'
+            });
+            return;
+          }
+
+          if (contactProfile) {
+            console.log('✅ Loaded contact from URL:', contactProfile.username);
+            await selectContact(contactProfile as Profile);
+            
+            // Clear the URL parameter after selecting
+            navigate('/chat', { replace: true });
+          } else {
+            toast({
+              title: 'Contact Not Found',
+              description: 'The contact you are looking for does not exist',
+              variant: 'destructive'
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error in loadAndSelectContact:', error);
+        }
+      };
+
+      loadAndSelectContact();
+    }
+  }, [location.search, user?.id, profile]);
 
   const selectContact = async (contact: Profile) => {
     if (!user?.id) {
