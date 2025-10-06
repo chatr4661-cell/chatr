@@ -68,8 +68,9 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
               duration: 5000,
             });
 
-            // Play notification sound
+            // Play notification sound once
             const audio = new Audio(userNotificationTone);
+            audio.loop = false;
             audio.play().catch(e => console.log('Could not play sound:', e));
 
             // Send browser notification if permitted
