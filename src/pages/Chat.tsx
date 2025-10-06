@@ -44,6 +44,7 @@ import { OfflineChat } from '@/components/OfflineChat';
 import { ImprovedCallNotifications } from '@/components/ImprovedCallNotifications';
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { GlobalSearch } from '@/components/GlobalSearch';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Camera as CapCamera } from '@capacitor/camera';
@@ -1082,6 +1083,11 @@ const Chat = () => {
                 currentUserId={user?.id || ''}
                 currentUsername={profile?.username}
               />
+            </div>
+
+            {/* Announcements Banner */}
+            <div className="px-3">
+              <AnnouncementBanner />
             </div>
           </div>
 
