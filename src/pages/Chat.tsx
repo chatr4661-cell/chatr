@@ -406,7 +406,13 @@ const Chat = () => {
         .eq('user_id', contact.id)
         .in('conversation_id', myConvIds);
 
-      if (theirError || !theirParticipations || theirParticipations.length === 0) {
+      if (theirError) {
+        console.error('❌ Error querying contact participations:', theirError);
+        await createNewConversation(contact);
+        return;
+      }
+
+      if (!theirParticipations || theirParticipations.length === 0) {
         console.log('ℹ️ No shared conversations, creating new');
         await createNewConversation(contact);
         return;
@@ -421,45 +427,31 @@ const Chat = () => {
         .in('id', sharedConvIds)
         .eq('is_group', false);
 
-      if (convError || !sharedConvs || sharedConvs.length === 0) {
-        console.log('ℹ️ No valid 1-on-1 conversations, creating new');
+      if (convError) {
+        console.error('❌ Error fetching conversations:', convError);
+        await createNewConversation(contact);
+        return;
+      }
+
+      if (!sharedConvs || sharedConvs.length === 0) {
+        console.log('ℹ️ No valid 1-on-1 conversations found, creating new');
         await createNewConversation(contact);
         return;
       }
 
       console.log('🔗 Found', sharedConvs.length, 'shared 1-on-1 conversation(s)');
+      
+      // CRITICAL FIX: Use the existing conversation instead of always creating new ones
+      // If we found conversations, reuse the most recent one
+      const mostRecentConv = sharedConvs.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )[0];
+      
+      console.log(`✅ Reusing existing conversation: ${mostRecentConv.id}`);
+      setConversationId(mostRecentConv.id);
+      await loadMessages(mostRecentConv.id);
+      return;
 
-      // Count messages in each conversation
-      const { data: allMessages, error: msgError } = await supabase
-        .from('messages')
-        .select('conversation_id')
-        .in('conversation_id', sharedConvs.map(c => c.id))
-        .eq('is_deleted', false);
-
-      if (msgError) {
-        console.error('❌ Error counting messages:', msgError);
-      }
-
-      const messageCounts: Record<string, number> = {};
-      (allMessages || []).forEach(m => {
-        messageCounts[m.conversation_id] = (messageCounts[m.conversation_id] || 0) + 1;
-      });
-
-      // Select conversation with most messages
-      let bestConv = sharedConvs[0];
-      let maxMessages = messageCounts[bestConv.id] || 0;
-
-      sharedConvs.forEach(conv => {
-        const count = messageCounts[conv.id] || 0;
-        if (count > maxMessages) {
-          maxMessages = count;
-          bestConv = conv;
-        }
-      });
-
-      console.log(`✅ Selected conversation ${bestConv.id} with ${maxMessages} messages`);
-      setConversationId(bestConv.id);
-      await loadMessages(bestConv.id);
 
     } catch (error) {
       console.error('❌ Error in selectContact:', error);
