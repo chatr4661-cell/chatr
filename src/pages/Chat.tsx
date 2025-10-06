@@ -22,7 +22,7 @@ import { TypingIndicator, setTypingStatus } from '@/components/TypingIndicator';
 import { VoiceMessageRecorder } from '@/components/VoiceMessageRecorder';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { SmartCompose } from '@/components/SmartCompose';
-import { MessageTranslator } from '@/components/MessageTranslator';
+import { AutoTranslatedMessage } from '@/components/AutoTranslatedMessage';
 import { ChatSummarizer } from '@/components/ChatSummarizer';
 import { GroupChatCreator } from '@/components/GroupChatCreator';
 import { MessageForwarding } from '@/components/MessageForwarding';
@@ -62,6 +62,7 @@ interface Profile {
   status: string;
   last_seen?: string;
   is_online?: boolean;
+  preferred_language?: string;
 }
 
 interface Message {
@@ -1285,7 +1286,17 @@ const Chat = () => {
                                     </div>
                                   )}
                                   
-                                  <p className="text-[15px] break-words whitespace-pre-wrap leading-[1.4]">{message.content}</p>
+                                  {/* Message Content with Auto Translation */}
+                                  {!isOwn ? (
+                                    <AutoTranslatedMessage
+                                      messageId={message.id}
+                                      originalText={message.content}
+                                      userLanguage={profile?.preferred_language || 'en'}
+                                      className="text-[15px] break-words whitespace-pre-wrap leading-[1.4]"
+                                    />
+                                  ) : (
+                                    <p className="text-[15px] break-words whitespace-pre-wrap leading-[1.4]">{message.content}</p>
+                                  )}
                                   <div className="flex items-center gap-1 justify-end mt-0.5">
                                     {message.is_edited && (
                                       <span className={`text-[11px] ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>edited</span>
@@ -1318,14 +1329,6 @@ const Chat = () => {
                                         return acc;
                                       }, [] as Array<{ emoji: string; count: number; userReacted: boolean }>)}
                                       onReact={(emoji) => handleReact(message.id, emoji)}
-                                    />
-                                  )}
-                                  
-                                  {/* Message Translator */}
-                                  {!isOwn && (
-                                    <MessageTranslator 
-                                      text={message.content} 
-                                      messageId={message.id}
                                     />
                                   )}
                                 </div>

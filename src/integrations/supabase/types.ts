@@ -654,6 +654,41 @@ export type Database = {
           },
         ]
       }
+      message_translations: {
+        Row: {
+          created_at: string | null
+          id: string
+          message_id: string | null
+          original_language: string
+          target_language: string
+          translated_text: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message_id?: string | null
+          original_language: string
+          target_language: string
+          translated_text: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message_id?: string | null
+          original_language?: string
+          target_language?: string
+          translated_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_translations_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -1147,6 +1182,7 @@ export type Database = {
           onboarding_completed: boolean | null
           phone_number: string | null
           phone_search: string | null
+          preferred_language: string | null
           status: string | null
           updated_at: string | null
           username: string
@@ -1167,6 +1203,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone_number?: string | null
           phone_search?: string | null
+          preferred_language?: string | null
           status?: string | null
           updated_at?: string | null
           username: string
@@ -1187,6 +1224,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone_number?: string | null
           phone_search?: string | null
+          preferred_language?: string | null
           status?: string | null
           updated_at?: string | null
           username?: string
