@@ -177,9 +177,9 @@ export const ConnectionRequestButton = ({
 
   if (status === 'accepted') {
     return (
-      <Button variant="outline" size="sm" disabled>
-        <UserCheck className="h-4 w-4 mr-2" />
-        Connected
+      <Button variant="outline" size="sm" disabled className="gap-2">
+        <UserCheck className="h-4 w-4" />
+        <span>Connected</span>
       </Button>
     );
   }
@@ -191,9 +191,10 @@ export const ConnectionRequestButton = ({
         size="sm" 
         onClick={cancelRequest}
         disabled={loading}
+        className="gap-2"
       >
-        <Clock className="h-4 w-4 mr-2" />
-        Pending
+        <Clock className="h-4 w-4" />
+        <span>Pending</span>
       </Button>
     );
   }
@@ -206,9 +207,10 @@ export const ConnectionRequestButton = ({
           size="sm" 
           onClick={acceptRequest}
           disabled={loading}
+          className="gap-2"
         >
-          <UserCheck className="h-4 w-4 mr-2" />
-          Accept
+          <UserCheck className="h-4 w-4" />
+          <span>Accept</span>
         </Button>
         <Button 
           variant="outline" 
@@ -216,8 +218,7 @@ export const ConnectionRequestButton = ({
           onClick={rejectRequest}
           disabled={loading}
         >
-          <UserX className="h-4 w-4 mr-2" />
-          Reject
+          <UserX className="h-4 w-4" />
         </Button>
       </div>
     );
@@ -229,9 +230,10 @@ export const ConnectionRequestButton = ({
       size="sm" 
       onClick={sendRequest}
       disabled={loading}
+      className="gap-2"
     >
-      <UserPlus className="h-4 w-4 mr-2" />
-      Connect
+      <UserPlus className="h-4 w-4" />
+      <span>Connect</span>
     </Button>
   );
 };
