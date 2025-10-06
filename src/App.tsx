@@ -28,6 +28,7 @@ import AdminPayments from "./pages/admin/Payments";
 import AdminAnalytics from "./pages/admin/Analytics";
 import AdminDocuments from "./pages/admin/Documents";
 import AdminPoints from "./pages/admin/Points";
+import AdminSettings from "./pages/admin/Settings";
 import ProviderPortal from "./pages/ProviderPortal";
 import ProviderAppointments from "./pages/provider/Appointments";
 import ProviderServices from "./pages/provider/Services";
@@ -115,6 +116,7 @@ const App = () => {
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
             <Route path="/admin/documents" element={<AdminDocuments />} />
             <Route path="/admin/points" element={<AdminPoints />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/provider-portal" element={<ProviderPortal />} />
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
             <Route path="/provider/services" element={<ProviderServices />} />

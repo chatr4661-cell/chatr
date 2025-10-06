@@ -15,7 +15,8 @@ import {
   Plus,
   BarChart3,
   CreditCard,
-  Coins
+  Coins,
+  Settings
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -235,6 +236,24 @@ const AdminDashboard = () => {
                 <div>
                   <h3 className="text-xs font-semibold">Chatr Points</h3>
                   <p className="text-[10px] text-muted-foreground">Manage points economy</p>
+                </div>
+              </div>
+              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
+                Open
+              </Button>
+            </div>
+          </Card>
+
+          <Card 
+            className="p-3 backdrop-blur-xl bg-gradient-to-r from-pink-500/10 to-pink-600/10 border-pink-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            onClick={() => navigate("/admin/settings")}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings className="h-4 w-4 text-pink-500" />
+                <div>
+                  <h3 className="text-xs font-semibold">Ringtone Settings</h3>
+                  <p className="text-[10px] text-muted-foreground">Customize notification sounds</p>
                 </div>
               </div>
               <Button size="sm" variant="ghost" className="h-6 text-[10px]">
