@@ -43,6 +43,7 @@ import { AIDocumentSearch } from '@/components/AIDocumentSearch';
 import { OfflineChat } from '@/components/OfflineChat';
 import { ImprovedCallNotifications } from '@/components/ImprovedCallNotifications';
 import { EmojiPicker } from '@/components/EmojiPicker';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Camera as CapCamera } from '@capacitor/camera';
@@ -1073,10 +1074,13 @@ const Chat = () => {
             </div>
             
             <div className="relative px-4 pb-2">
-              <Search className="absolute left-7 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search"
-                className="pl-10 rounded-xl glass border-border/30 h-9 text-[15px] backdrop-blur-sm"
+              <GlobalSearch 
+                onUserSelect={(user) => {
+                  selectContact(user);
+                  setViewMode('consumer');
+                }}
+                currentUserId={user?.id || ''}
+                currentUsername={profile?.username}
               />
             </div>
           </div>
