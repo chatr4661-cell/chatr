@@ -46,6 +46,22 @@ interface HealthPassportData {
   insurance_provider?: string;
   insurance_number?: string;
   qr_code_data?: string;
+  full_name?: string;
+  date_of_birth?: string;
+  home_address?: string;
+  current_address?: string;
+  emergency_contacts?: any[];
+  current_medications?: any[];
+  past_medical_history?: any;
+  primary_physician_name?: string;
+  primary_physician_contact?: string;
+  specialists?: any[];
+  preferred_hospital?: string;
+  family_medical_history?: string;
+  implanted_devices?: string;
+  dnr_order?: boolean;
+  organ_donor?: boolean;
+  special_medical_needs?: string;
 }
 
 interface Prescription {
@@ -125,7 +141,7 @@ const HealthPassport = () => {
           .single();
         passportData = newPassport;
       }
-      setPassport(passportData);
+      setPassport(passportData as any);
 
       // Load prescriptions
       const { data: prescData } = await supabase
@@ -364,6 +380,175 @@ const HealthPassport = () => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4 mt-6">
+            {/* Personal Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Full Name</p>
+                  <p className="font-medium">{passport?.full_name || profile?.username || 'Not set'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Date of Birth</p>
+                  <p className="font-medium">{passport?.date_of_birth || 'Not set'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Gender</p>
+                  <p className="font-medium capitalize">{profile?.gender || 'Not set'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Blood Group</p>
+                  <p className="font-medium">{passport?.blood_type || 'Not set'}</p>
+                </div>
+                {passport?.home_address && (
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-muted-foreground">Home Address</p>
+                    <p className="font-medium">{passport.home_address}</p>
+                  </div>
+                )}
+                {passport?.current_address && (
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-muted-foreground">Current Address</p>
+                    <p className="font-medium">{passport.current_address}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Emergency Contacts */}
+            {passport?.emergency_contacts && passport.emergency_contacts.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                    Emergency Contacts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {passport.emergency_contacts.map((contact: any, i: number) => (
+                    <div key={i} className="p-3 bg-muted rounded-lg">
+                      <p className="font-semibold">{contact.name}</p>
+                      <p className="text-sm text-muted-foreground">{contact.phone}</p>
+                      <p className="text-sm text-muted-foreground capitalize">{contact.relationship}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Current Medications */}
+            {passport?.current_medications && passport.current_medications.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Pill className="h-5 w-5" />
+                    Current Medications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {passport.current_medications.map((med: any, i: number) => (
+                    <div key={i} className="p-3 bg-muted rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold">{med.name}</p>
+                          <p className="text-sm text-muted-foreground">{med.dosage} • {med.frequency}</p>
+                        </div>
+                        <Badge variant="outline">{med.purpose}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Medical History */}
+            {passport?.past_medical_history && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Past Medical History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {passport.past_medical_history.surgeries && passport.past_medical_history.surgeries.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2">Surgeries</p>
+                      <div className="space-y-1">
+                        {passport.past_medical_history.surgeries.map((surgery: string, i: number) => (
+                          <p key={i} className="text-sm text-muted-foreground">• {surgery}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {passport.past_medical_history.hospitalizations && passport.past_medical_history.hospitalizations.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2">Hospitalizations</p>
+                      <div className="space-y-1">
+                        {passport.past_medical_history.hospitalizations.map((hosp: string, i: number) => (
+                          <p key={i} className="text-sm text-muted-foreground">• {hosp}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {passport.past_medical_history.major_illnesses && passport.past_medical_history.major_illnesses.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2">Major Illnesses</p>
+                      <div className="space-y-1">
+                        {passport.past_medical_history.major_illnesses.map((illness: string, i: number) => (
+                          <p key={i} className="text-sm text-muted-foreground">• {illness}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Doctor & Care Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-5 w-5" />
+                  Doctor & Care Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Primary Physician</p>
+                    <p className="font-medium">{passport?.primary_physician_name || 'Not set'}</p>
+                    {passport?.primary_physician_contact && (
+                      <p className="text-sm text-muted-foreground">{passport.primary_physician_contact}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Preferred Hospital</p>
+                    <p className="font-medium">{passport?.preferred_hospital || 'Not set'}</p>
+                  </div>
+                </div>
+                {passport?.specialists && passport.specialists.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Specialists</p>
+                    <div className="space-y-2">
+                      {passport.specialists.map((spec: any, i: number) => (
+                        <div key={i} className="p-2 bg-muted rounded">
+                          <p className="font-medium text-sm">{spec.name}</p>
+                          <p className="text-xs text-muted-foreground">{spec.specialty} • {spec.contact}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Insurance */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -383,6 +568,45 @@ const HealthPassport = () => {
               </CardContent>
             </Card>
 
+            {/* Critical Health Info */}
+            <Card className="border-destructive/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <AlertCircle className="h-5 w-5" />
+                  Critical Health Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {passport?.implanted_devices && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Implanted Devices</p>
+                    <p className="font-medium">{passport.implanted_devices}</p>
+                  </div>
+                )}
+                {passport?.special_medical_needs && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Special Medical Needs</p>
+                    <p className="font-medium">{passport.special_medical_needs}</p>
+                  </div>
+                )}
+                {passport?.family_medical_history && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Family Medical History</p>
+                    <p className="text-sm">{passport.family_medical_history}</p>
+                  </div>
+                )}
+                <div className="flex gap-4">
+                  {passport?.dnr_order && (
+                    <Badge variant="destructive">DNR Order in Place</Badge>
+                  )}
+                  {passport?.organ_donor && (
+                    <Badge variant="secondary">Registered Organ Donor</Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Appointments */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

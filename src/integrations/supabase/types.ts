@@ -569,45 +569,96 @@ export type Database = {
           blood_type: string | null
           chronic_conditions: Json | null
           created_at: string | null
+          current_address: string | null
+          current_medications: Json | null
+          date_of_birth: string | null
+          dnr_order: boolean | null
           emergency_contact_id: string | null
+          emergency_contacts: Json | null
+          family_medical_history: string | null
+          full_name: string | null
+          home_address: string | null
           id: string
+          implanted_devices: string | null
           insurance_number: string | null
           insurance_provider: string | null
+          organ_donor: boolean | null
           passport_number: string
+          past_medical_history: Json | null
           photo_url: string | null
+          preferred_hospital: string | null
+          primary_physician_contact: string | null
+          primary_physician_name: string | null
           qr_code_data: string | null
+          special_medical_needs: string | null
+          specialists: Json | null
           updated_at: string | null
           user_id: string
+          vaccination_history: Json | null
         }
         Insert: {
           allergies?: Json | null
           blood_type?: string | null
           chronic_conditions?: Json | null
           created_at?: string | null
+          current_address?: string | null
+          current_medications?: Json | null
+          date_of_birth?: string | null
+          dnr_order?: boolean | null
           emergency_contact_id?: string | null
+          emergency_contacts?: Json | null
+          family_medical_history?: string | null
+          full_name?: string | null
+          home_address?: string | null
           id?: string
+          implanted_devices?: string | null
           insurance_number?: string | null
           insurance_provider?: string | null
+          organ_donor?: boolean | null
           passport_number?: string
+          past_medical_history?: Json | null
           photo_url?: string | null
+          preferred_hospital?: string | null
+          primary_physician_contact?: string | null
+          primary_physician_name?: string | null
           qr_code_data?: string | null
+          special_medical_needs?: string | null
+          specialists?: Json | null
           updated_at?: string | null
           user_id: string
+          vaccination_history?: Json | null
         }
         Update: {
           allergies?: Json | null
           blood_type?: string | null
           chronic_conditions?: Json | null
           created_at?: string | null
+          current_address?: string | null
+          current_medications?: Json | null
+          date_of_birth?: string | null
+          dnr_order?: boolean | null
           emergency_contact_id?: string | null
+          emergency_contacts?: Json | null
+          family_medical_history?: string | null
+          full_name?: string | null
+          home_address?: string | null
           id?: string
+          implanted_devices?: string | null
           insurance_number?: string | null
           insurance_provider?: string | null
+          organ_donor?: boolean | null
           passport_number?: string
+          past_medical_history?: Json | null
           photo_url?: string | null
+          preferred_hospital?: string | null
+          primary_physician_contact?: string | null
+          primary_physician_name?: string | null
           qr_code_data?: string | null
+          special_medical_needs?: string | null
+          specialists?: Json | null
           updated_at?: string | null
           user_id?: string
+          vaccination_history?: Json | null
         }
         Relationships: [
           {
