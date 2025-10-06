@@ -15,7 +15,7 @@ import {
   Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, 
   UserPlus, QrCode, Bug, Info, WifiOff, Clock, CheckSquare, Camera, Shield, Sparkles
 } from 'lucide-react';
-import MessageAction from '@/components/MessageAction';
+import MessageContextMenu from '@/components/MessageContextMenu';
 import { PollCreator } from '@/components/PollCreator';
 import { PollMessage } from '@/components/PollMessage';
 import { MessageReactions } from '@/components/MessageReactions';
@@ -1095,12 +1095,8 @@ const Chat = () => {
             
             <div className="relative px-4 pb-2">
               <GlobalSearch 
-                onUserSelect={(user) => {
-                  selectContact(user);
-                  setViewMode('consumer');
-                }}
-                currentUserId={user?.id || ''}
-                currentUsername={profile?.username}
+                open={showGlobalSearch}
+                onClose={() => setShowGlobalSearch(false)}
               />
             </div>
 
@@ -1528,7 +1524,27 @@ const Chat = () => {
                         <SheetTitle>Send</SheetTitle>
                       </SheetHeader>
                       <div className="grid grid-cols-4 gap-4 py-4">
-                        <MessageAction icon={Camera} label="Camera" onClick={async () => {
+                        {/* Media Action Button Component */}
+                        {(() => {
+                          const MessageAction = ({ icon: Icon, label, onClick, color }: { 
+                            icon: React.ComponentType<any>; 
+                            label: string; 
+                            onClick: () => void; 
+                            color: string 
+                          }) => (
+                            <button
+                              type="button"
+                              onClick={onClick}
+                              className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-accent transition-colors"
+                            >
+                              <Icon className={`h-6 w-6 ${color}`} />
+                              <span className="text-xs">{label}</span>
+                            </button>
+                          );
+                          
+                          return (
+                            <>
+                              <MessageAction icon={Camera} label="Camera" onClick={async () => {
                           try {
                             const photo = await CapCamera.getPhoto({
                               quality: 90,
@@ -1544,10 +1560,13 @@ const Chat = () => {
                             console.error('Camera error:', error);
                           }
                         }} color="text-pink-500" />
-                        <MessageAction icon={ImageIcon} label="Gallery" onClick={handleImagePick} color="text-blue-500" />
-                        <MessageAction icon={File} label="Document" onClick={() => {}} color="text-purple-500" />
-                        <MessageAction icon={MapPin} label="Location" onClick={handleLocationShare} color="text-green-500" />
-                        <MessageAction icon={BarChart3} label="Poll" onClick={() => { setShowMediaActions(false); setShowPollCreator(true); }} color="text-orange-500" />
+                              <MessageAction icon={ImageIcon} label="Gallery" onClick={handleImagePick} color="text-blue-500" />
+                              <MessageAction icon={File} label="Document" onClick={() => {}} color="text-purple-500" />
+                              <MessageAction icon={MapPin} label="Location" onClick={handleLocationShare} color="text-green-500" />
+                              <MessageAction icon={BarChart3} label="Poll" onClick={() => { setShowMediaActions(false); setShowPollCreator(true); }} color="text-orange-500" />
+                            </>
+                          );
+                        })()}
                       </div>
                     </SheetContent>
                   </Sheet>

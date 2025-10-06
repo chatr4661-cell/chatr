@@ -43,6 +43,7 @@ import QRLogin from "./pages/QRLogin";
 import HealthPassport from "./pages/HealthPassport";
 import Contacts from "./pages/Contacts";
 import Download from "./pages/Download";
+import CallHistory from "./pages/CallHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -138,6 +139,7 @@ const App = () => {
             <Route path="/qr-login" element={<QRLogin />} />
             <Route path="/health-passport" element={<HealthPassport />} />
             <Route path="/contacts" element={<Contacts />} />
+            <Route path="/call-history" element={<CallHistory />} />
             <Route path="/download" element={<Download />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
