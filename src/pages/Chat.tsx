@@ -493,7 +493,15 @@ const Chat = () => {
       
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select(`
+          *,
+          sender:profiles!messages_sender_id_fkey(
+            id,
+            username,
+            avatar_url,
+            status
+          )
+        `)
         .eq('conversation_id', convId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true });
@@ -515,7 +523,6 @@ const Chat = () => {
       const mappedMessages = (data || []).map(msg => ({
         ...msg,
         status: msg.status as 'sent' | 'delivered' | 'read',
-        sender: null,
       }));
       
       setMessages(mappedMessages as any);
