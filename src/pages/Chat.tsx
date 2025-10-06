@@ -47,6 +47,7 @@ import { GlobalSearch } from '@/components/GlobalSearch';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { AISmartReplyPanel } from '@/components/AISmartReplyPanel';
 import { AIChatToolbar } from '@/components/AIChatToolbar';
+import { MessageSearchBar } from '@/components/MessageSearchBar';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Camera as CapCamera } from '@capacitor/camera';
@@ -133,6 +134,8 @@ const Chat = () => {
   const [showDeviceSessions, setShowDeviceSessions] = useState(false);
   const [reminderMessage, setReminderMessage] = useState<Message | null>(null);
   const [taskMessage, setTaskMessage] = useState<Message | null>(null);
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showUserInfoSidebar, setShowUserInfoSidebar] = useState(false);
@@ -148,6 +151,19 @@ const Chat = () => {
   // Auto-scroll to bottom when messages change
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  // Scroll to specific message (for search)
+  const scrollToMessage = (messageId: string) => {
+    const messageElement = messageRefs.current.get(messageId);
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight the message briefly
+      messageElement.classList.add('bg-primary/20', 'transition-colors', 'duration-300');
+      setTimeout(() => {
+        messageElement.classList.remove('bg-primary/20');
+      }, 2000);
+    }
   };
 
   useEffect(() => {
@@ -1218,6 +1234,16 @@ const Chat = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-0.5 flex-shrink-0">
+                  {/* Message Search */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full h-8 w-8"
+                    onClick={() => setShowMessageSearch(!showMessageSearch)}
+                  >
+                    <Search className={`h-5 w-5 ${showMessageSearch ? 'text-primary' : 'text-muted-foreground'}`} />
+                  </Button>
+                  
                   {/* AI Search */}
                   {conversationId && <AIDocumentSearch conversationId={conversationId} />}
                   
@@ -1243,6 +1269,15 @@ const Chat = () => {
                   </Button>
                 </div>
               </div>
+              
+              {/* Message Search Bar */}
+              {showMessageSearch && (
+                <MessageSearchBar
+                  messages={messages}
+                  onResultSelect={scrollToMessage}
+                  onClose={() => setShowMessageSearch(false)}
+                />
+              )}
 
               {/* Messages Area - Glass UI Chat */}
               <ScrollArea className="flex-1 p-3 glass backdrop-blur-md">
@@ -1262,7 +1297,10 @@ const Chat = () => {
                       return (
                         <ContextMenu key={message.id}>
                           <ContextMenuTrigger>
-                            <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 group animate-fade-in`}>
+                            <div 
+                              ref={(el) => el && messageRefs.current.set(message.id, el)}
+                              className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 group animate-fade-in`}
+                            >
                               {!isOwn && (
                                 <div 
                                   className="flex flex-col items-center mr-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
