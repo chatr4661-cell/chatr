@@ -9,7 +9,7 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
 
 @layer base {
   :root {
-    /* Glass UI Theme with gradient background */
+    /* Mobile-First Glass UI Theme */
     --background: 200 25% 96%;
     --foreground: 220 15% 15%;
     
@@ -46,7 +46,8 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     --input: 200 25% 92%;
     --ring: 180 85% 45%;
     
-    --radius: 1.25rem;
+    /* Mobile-First: Extra rounded corners */
+    --radius: 1.5rem;
     
     /* Sidebar */
     --sidebar-background: 200 30% 97%;
@@ -138,19 +139,40 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     @apply border-border;
   }
 
+  /* Mobile-First Typography */
+  html {
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
   body {
     @apply bg-background text-foreground;
     background-image: var(--gradient-mesh);
     background-attachment: fixed;
   }
 
-  /* Glass UI utilities */
+  /* Mobile-First Smooth Transitions */
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  /* Glass UI utilities with extra roundedness */
   .glass {
     background: var(--gradient-glass);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid hsla(var(--glass-border), 0.3);
     box-shadow: var(--shadow-glass);
+    border-radius: 1.5rem;
   }
 
   .glass-card {
@@ -159,5 +181,23 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid hsla(var(--glass-border), 0.2);
     box-shadow: var(--shadow-card);
+    border-radius: 1.5rem;
+  }
+
+  /* Mobile-First Spacing Utilities */
+  .mobile-section {
+    @apply px-4 py-6 md:px-6 md:py-8;
+  }
+
+  .mobile-card {
+    @apply p-4 md:p-6;
+  }
+
+  .mobile-input {
+    @apply px-4 py-3 text-sm rounded-2xl;
+  }
+
+  .mobile-button {
+    @apply px-5 py-3 text-sm rounded-2xl;
   }
 }
