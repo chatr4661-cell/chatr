@@ -89,16 +89,21 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
         .from('social-media')
         .getPublicUrl(filePath);
 
-      // Update profile
+      // Update profile with avatar_url
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ 
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', profile.id);
 
       if (updateError) throw updateError;
 
       toast.success('Avatar updated successfully!');
-      onProfileUpdated();
+      
+      // Force a page reload to refresh all avatar instances
+      window.location.reload();
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to upload avatar: ' + error.message);
