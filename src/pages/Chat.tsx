@@ -1231,15 +1231,20 @@ const Chat = () => {
                           <ContextMenuTrigger>
                             <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2 group`}>
                               {!isOwn && (
-                                <Avatar className="h-8 w-8 mr-2 mt-1 ring-2 ring-border/20 flex-shrink-0">
-                                  {message.sender?.avatar_url ? (
-                                    <img src={message.sender.avatar_url} alt={message.sender.username} className="object-cover" />
-                                  ) : (
-                                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-xs">
-                                      {message.sender?.username?.[0]?.toUpperCase() || 'U'}
-                                    </AvatarFallback>
-                                  )}
-                                </Avatar>
+                                <div className="flex flex-col items-center mr-2 flex-shrink-0">
+                                  <Avatar className="h-8 w-8 ring-2 ring-border/20">
+                                    {message.sender?.avatar_url ? (
+                                      <img src={message.sender.avatar_url} alt={message.sender.username} className="object-cover" />
+                                    ) : (
+                                      <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-xs font-semibold">
+                                        {message.sender?.username?.[0]?.toUpperCase() || 'U'}
+                                      </AvatarFallback>
+                                    )}
+                                  </Avatar>
+                                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5 max-w-[60px] truncate text-center">
+                                    {message.sender?.username || 'User'}
+                                  </span>
+                                </div>
                               )}
                               <div className={`max-w-[85%] md:max-w-[70%]`}>
                               {message.message_type === 'poll' && message.poll_options ? (
