@@ -1465,38 +1465,6 @@ const Chat = () => {
                 </div>
               )}
 
-              {/* AI Chat Toolbar */}
-              {messages.length > 0 && (
-                <AIChatToolbar
-                  messages={messages}
-                  onCreateTask={(task) => {
-                    // Handle task creation from AI
-                    toast({
-                      title: "Task created",
-                      description: task.title
-                    });
-                  }}
-                />
-              )}
-
-              {/* AI Smart Reply Panel */}
-              {messages.length > 0 && !showVoiceRecorder && (
-                <div className="px-3 pb-2">
-                  <AISmartReplyPanel
-                    lastMessage={messages[messages.length - 1]?.content || ''}
-                    onSelectReply={(reply) => setMessageInput(reply)}
-                  />
-                </div>
-              )}
-
-              {/* Smart Compose - AI Quick Replies */}
-              {messages.length > 0 && !showVoiceRecorder && (
-                <SmartCompose 
-                  messages={messages}
-                  onSelectSuggestion={(text) => setMessageInput(text)}
-                />
-              )}
-
               {/* Input Area - Glass UI */}
               <div className="p-3 border-t border-border/30 glass backdrop-blur-xl">
                 <form onSubmit={sendMessage} className="flex items-center gap-2">
