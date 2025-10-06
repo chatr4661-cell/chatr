@@ -16,14 +16,14 @@ export const MessageReactions = ({ reactions, onReact }: MessageReactionsProps) 
         <button
           key={reaction.emoji}
           onClick={() => onReact(reaction.emoji)}
-          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-all shadow-sm ${
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all shadow-md hover:shadow-lg hover:scale-105 ${
             reaction.userReacted
-              ? 'bg-primary/20 border border-primary/50'
-              : 'bg-background/90 backdrop-blur-sm border border-border/50 hover:bg-muted/80'
+              ? 'bg-primary text-primary-foreground border-2 border-primary/20'
+              : 'bg-background/95 backdrop-blur-sm border-2 border-border/40 hover:border-primary/30 text-foreground'
           }`}
         >
-          <span className="text-sm">{reaction.emoji}</span>
-          <span className="font-semibold text-[11px]">{reaction.count}</span>
+          <span className="text-base leading-none">{reaction.emoji}</span>
+          <span className="font-bold text-[10px]">{reaction.count}</span>
         </button>
       ))}
       
@@ -32,9 +32,9 @@ export const MessageReactions = ({ reactions, onReact }: MessageReactionsProps) 
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 w-5 p-0 rounded-full hover:bg-accent/80 transition-colors border border-border/50 bg-background/90 backdrop-blur-sm"
+            className="h-6 w-6 p-0 rounded-full hover:bg-accent transition-all hover:scale-110 border-2 border-border/40 bg-background/95 backdrop-blur-sm shadow-md hover:shadow-lg"
           >
-            <Smile className="h-3 w-3 text-muted-foreground" />
+            <Smile className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-2 bg-popover/95 backdrop-blur-sm">

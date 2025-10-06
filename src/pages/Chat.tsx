@@ -1250,7 +1250,7 @@ const Chat = () => {
                       return (
                         <ContextMenu key={message.id}>
                           <ContextMenuTrigger>
-                            <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2 group`}>
+                            <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 group animate-fade-in`}>
                               {!isOwn && (
                                 <div 
                                   className="flex flex-col items-center mr-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
@@ -1259,16 +1259,16 @@ const Chat = () => {
                                     setShowUserProfile(true);
                                   }}
                                 >
-                                  <Avatar className="h-8 w-8 ring-2 ring-border/20 hover:ring-primary/40 transition-all">
+                                  <Avatar className="h-9 w-9 ring-2 ring-border/10 hover:ring-primary/30 transition-all shadow-sm">
                                     {message.sender?.avatar_url ? (
                                       <img src={message.sender.avatar_url} alt={message.sender.username} className="object-cover" />
                                     ) : (
-                                      <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-xs font-semibold">
+                                      <AvatarFallback className="bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground text-xs font-semibold">
                                         {message.sender?.username?.[0]?.toUpperCase() || 'U'}
                                       </AvatarFallback>
                                     )}
                                   </Avatar>
-                                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5 max-w-[60px] truncate text-center hover:text-primary transition-colors">
+                                  <span className="text-[9px] text-muted-foreground/80 font-medium mt-0.5 max-w-[60px] truncate text-center hover:text-primary transition-colors">
                                     {message.sender?.username || 'User'}
                                   </span>
                                 </div>
@@ -1282,47 +1282,49 @@ const Chat = () => {
                                   onVote={(index) => {}}
                                 />
                               ) : message.message_type === 'image' ? (
-                                <div className={`rounded-lg overflow-hidden shadow-md ${isOwn ? 'rounded-br-sm' : 'rounded-bl-sm'}`}>
+                                <div className={`rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow ${isOwn ? 'rounded-br-md' : 'rounded-bl-md'}`}>
                                   <img src={message.media_url} alt="Shared image" className="max-w-full" />
-                                  <div className="px-2 py-1 bg-black/50 text-white text-xs flex items-center justify-end gap-1">
-                                    <span>{formatTime(message.created_at)}</span>
+                                  <div className="px-3 py-1.5 bg-gradient-to-t from-black/60 to-transparent text-white text-xs flex items-center justify-end gap-1.5">
+                                    <span className="font-medium">{formatTime(message.created_at)}</span>
                                     {isOwn && (
                                       message.status === 'read' || message.read_at ? (
-                                        <CheckCheck className="h-3 w-3 text-blue-400" />
+                                        <CheckCheck className="h-3.5 w-3.5 text-blue-300" />
                                       ) : message.status === 'delivered' ? (
-                                        <CheckCheck className="h-3 w-3" />
+                                        <CheckCheck className="h-3.5 w-3.5" />
                                       ) : (
-                                        <Check className="h-3 w-3" />
+                                        <Check className="h-3.5 w-3.5" />
                                       )
                                     )}
                                   </div>
                                 </div>
                               ) : message.message_type === 'location' ? (
-                                <div className={`rounded-lg p-3 shadow-md ${
-                                  isOwn ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-foreground rounded-br-sm' : 'bg-white dark:bg-[#202c33] text-foreground rounded-bl-sm'
+                                <div className={`rounded-2xl p-3.5 shadow-lg hover:shadow-xl transition-all ${
+                                  isOwn 
+                                    ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-br-md' 
+                                    : 'bg-card text-card-foreground rounded-bl-md border border-border/30'
                                 }`}>
                                   <div className="flex items-center gap-2">
                                     <MapPin className="h-4 w-4" />
-                                    <span>{message.location_name}</span>
+                                    <span className="font-medium">{message.location_name}</span>
                                   </div>
                                 </div>
                               ) : (
-                                 <div className={`rounded-2xl px-3.5 py-2 shadow-card transition-all duration-200 hover:shadow-elevated ${
+                                 <div className={`rounded-2xl px-4 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200 ${
                                   isOwn
-                                    ? 'bg-gradient-to-br from-primary to-primary-glow text-primary-foreground rounded-br-md'
-                                    : 'glass-card text-card-foreground rounded-bl-md border border-border/30'
+                                    ? 'bg-gradient-to-br from-primary via-primary to-primary/95 text-primary-foreground rounded-br-md'
+                                    : 'bg-card text-card-foreground rounded-bl-md border border-border/20 backdrop-blur-sm'
                                 }`}>
                                   {/* Reply Preview in Message */}
                                   {message.reply_to_id && (
-                                    <div className={`mb-2 pl-2 border-l-4 rounded p-2 ${
+                                    <div className={`mb-2 pl-3 border-l-2 rounded-r-lg p-2 ${
                                       isOwn 
-                                        ? 'border-white/40 bg-white/10' 
-                                        : 'border-primary/50 bg-muted/30'
+                                        ? 'border-white/30 bg-white/10 backdrop-blur-sm' 
+                                        : 'border-primary/40 bg-muted/20'
                                     }`}>
-                                      <p className={`text-xs font-medium ${isOwn ? 'text-white' : 'text-primary'}`}>
-                                        Reply to message
+                                      <p className={`text-xs font-semibold ${isOwn ? 'text-white/90' : 'text-primary'}`}>
+                                        Replying to message
                                       </p>
-                                      <p className={`text-xs truncate ${isOwn ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                      <p className={`text-xs truncate mt-0.5 ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>
                                         Tap to view original
                                       </p>
                                     </div>
@@ -1331,7 +1333,7 @@ const Chat = () => {
                                   {/* Voice Message Audio Player */}
                                   {message.message_type === 'voice' && message.media_url && (
                                     <div className="mb-2">
-                                      <audio controls className="w-full max-w-xs">
+                                      <audio controls className="w-full max-w-xs rounded-lg">
                                         <source src={message.media_url} type="audio/webm" />
                                         Your browser does not support audio playback.
                                       </audio>
@@ -1344,25 +1346,25 @@ const Chat = () => {
                                       messageId={message.id}
                                       originalText={message.content}
                                       userLanguage={profile?.preferred_language || 'en'}
-                                      className="text-[15px] font-medium break-words whitespace-pre-wrap leading-[1.4]"
+                                      className="text-[15px] leading-relaxed break-words whitespace-pre-wrap"
                                     />
                                   ) : (
-                                    <p className="text-[15px] font-medium break-words whitespace-pre-wrap leading-[1.4]">{message.content}</p>
+                                    <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{message.content}</p>
                                   )}
-                                  <div className="flex items-center gap-1 justify-end mt-1">
+                                  <div className="flex items-center gap-1.5 justify-end mt-1.5">
                                     {message.is_edited && (
-                                      <span className={`text-[11px] font-medium ${isOwn ? 'text-white/90' : 'text-muted-foreground/90'}`}>edited</span>
+                                      <span className={`text-[10px] italic ${isOwn ? 'text-white/70' : 'text-muted-foreground/70'}`}>edited</span>
                                     )}
-                                    <span className={`text-[11px] font-medium ${isOwn ? 'text-white/90' : 'text-muted-foreground/90'}`}>
+                                    <span className={`text-[10px] ${isOwn ? 'text-white/80' : 'text-muted-foreground/80'}`}>
                                       {formatTime(message.created_at)}
                                     </span>
                                     {isOwn && (
                                       message.status === 'read' || message.read_at ? (
-                                        <CheckCheck className="h-3.5 w-3.5 text-white" />
-                                      ) : message.status === 'delivered' ? (
                                         <CheckCheck className="h-3.5 w-3.5 text-white/90" />
+                                      ) : message.status === 'delivered' ? (
+                                        <CheckCheck className="h-3.5 w-3.5 text-white/70" />
                                       ) : (
-                                        <Check className="h-3.5 w-3.5 text-white/90" />
+                                        <Check className="h-3.5 w-3.5 text-white/70" />
                                       )
                                     )}
                                   </div>
@@ -1371,7 +1373,7 @@ const Chat = () => {
                               
                               {/* Message Reactions - Below message bubble */}
                               {message.reactions && message.reactions.length > 0 && (
-                                <div className={`absolute -bottom-3 ${isOwn ? 'right-2' : 'left-2'}`}>
+                                <div className={`absolute -bottom-2.5 ${isOwn ? 'right-2' : 'left-2'} animate-scale-in`}>
                                   <MessageReactions
                                     reactions={message.reactions.reduce((acc, r) => {
                                       const existing = acc.find(item => item.emoji === r.emoji);
