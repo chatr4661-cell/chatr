@@ -67,7 +67,7 @@ export const AISmartReplyPanel = ({ lastMessage, onSelectReply }: AISmartReplyPa
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
-          AI Smart Replies
+          AI Suggestions
         </Button>
       ) : (
         <Card className="p-4 space-y-3 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
