@@ -515,6 +515,54 @@ export type Database = {
         }
         Relationships: []
       }
+      health_goals: {
+        Row: {
+          created_at: string
+          current_value: number | null
+          goal_name: string
+          goal_type: string
+          id: string
+          notes: string | null
+          start_date: string
+          status: string | null
+          target_date: string | null
+          target_value: number
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number | null
+          goal_name: string
+          goal_type: string
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: string | null
+          target_date?: string | null
+          target_value: number
+          unit: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number | null
+          goal_name?: string
+          goal_type?: string
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: string | null
+          target_date?: string | null
+          target_value?: number
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       health_passport: {
         Row: {
           allergies: Json | null

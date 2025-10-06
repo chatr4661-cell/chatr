@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { QRCodeSVG } from 'qrcode.react';
+import { Progress } from '@/components/ui/progress';
 import {
   ArrowLeft,
   QrCode,
@@ -21,9 +22,19 @@ import {
   Heart,
   AlertCircle,
   Shield,
-  User
+  User,
+  Edit,
+  Plus,
+  Target,
+  TrendingUp,
+  Droplet,
+  Moon,
+  Footprints
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { HealthPassportEdit } from '@/components/HealthPassportEdit';
+import { VaccinationDialog } from '@/components/VaccinationDialog';
+import { HealthGoalsDialog } from '@/components/HealthGoalsDialog';
 
 interface HealthPassportData {
   id: string;
@@ -66,10 +77,13 @@ const HealthPassport = () => {
   const [labReports, setLabReports] = useState<any[]>([]);
   const [wellnessData, setWellnessData] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [healthGoals, setHealthGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [vaccinationDialogOpen, setVaccinationDialogOpen] = useState(false);
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
     loadUserData();
@@ -156,30 +170,29 @@ const HealthPassport = () => {
         .limit(10);
       setAppointments(apptData || []);
 
+      // Load health goals
+      const { data: goalsData } = await supabase
+        .from('health_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+      setHealthGoals(goalsData || []);
+
     } catch (error) {
       console.error('Error loading health data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load health passport data',
-        variant: 'destructive'
-      });
+      toast.error('Failed to load health passport data');
     } finally {
       setLoading(false);
     }
   };
 
   const exportPassport = () => {
-    toast({
-      title: 'Export Feature',
-      description: 'PDF export coming soon!'
-    });
+    toast.info('PDF export coming soon!');
   };
 
   const sharePassport = () => {
-    toast({
-      title: 'Share Feature',
-      description: 'Secure sharing coming soon!'
-    });
+    toast.info('Secure sharing coming soon!');
   };
 
   if (loading) {
@@ -206,6 +219,15 @@ const HealthPassport = () => {
             </Button>
             <h1 className="text-2xl font-bold">Health Passport</h1>
             <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setEditDialogOpen(true)}
+                className="text-white hover:bg-white/20"
+                title="Edit Health Passport"
+              >
+                <Edit className="h-5 w-5" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -400,8 +422,16 @@ const HealthPassport = () => {
           <TabsContent value="prescriptions" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Active Prescriptions</CardTitle>
-                <CardDescription>Your current medications and prescriptions</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Active Prescriptions</CardTitle>
+                    <CardDescription>Your current medications and prescriptions</CardDescription>
+                  </div>
+                  <Button size="sm" onClick={() => navigate('/medicine-reminders')}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Reminder
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[400px]">
@@ -437,8 +467,16 @@ const HealthPassport = () => {
           <TabsContent value="vaccines" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Vaccination Records</CardTitle>
-                <CardDescription>Your immunization history</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Vaccination Records</CardTitle>
+                    <CardDescription>Your immunization history</CardDescription>
+                  </div>
+                  <Button size="sm" onClick={() => setVaccinationDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Vaccination
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[400px]">
@@ -517,51 +555,172 @@ const HealthPassport = () => {
           </TabsContent>
 
           {/* Wellness Tab */}
-          <TabsContent value="wellness" className="mt-6">
+          <TabsContent value="wellness" className="mt-6 space-y-4">
+            {/* Health Goals Section */}
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Wellness Tracking</CardTitle>
-                    <CardDescription>Your recent health metrics</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-primary" />
+                      Health Goals
+                    </CardTitle>
+                    <CardDescription>Track your wellness goals and progress</CardDescription>
                   </div>
-                  <Button onClick={() => navigate('/wellness-tracking')}>
-                    View All
+                  <Button size="sm" onClick={() => setGoalDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Goal
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-3">
+                    {healthGoals.map((goal) => {
+                      const progress = goal.target_value > 0 
+                        ? (goal.current_value / goal.target_value) * 100 
+                        : 0;
+                      return (
+                        <div key={goal.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-semibold">{goal.goal_name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {goal.current_value} / {goal.target_value} {goal.unit}
+                              </p>
+                            </div>
+                            <Badge variant={progress >= 100 ? "default" : "secondary"}>
+                              {Math.round(progress)}%
+                            </Badge>
+                          </div>
+                          <Progress value={Math.min(progress, 100)} className="h-2" />
+                          {goal.target_date && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Target: {new Date(goal.target_date).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {healthGoals.length === 0 && (
+                      <div className="text-center py-8">
+                        <Target className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground">No health goals yet</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => setGoalDialogOpen(true)}
+                        >
+                          Create Your First Goal
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            {/* Wellness Metrics */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      Daily Wellness Metrics
+                    </CardTitle>
+                    <CardDescription>Your recent health tracking data</CardDescription>
+                  </div>
+                  <Button size="sm" onClick={() => navigate('/wellness')}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Log Today
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
                   <div className="space-y-3">
                     {wellnessData.map((data) => (
                       <div key={data.id} className="border rounded-lg p-4">
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {new Date(data.date).toLocaleDateString()}
-                        </p>
-                        <div className="grid grid-cols-3 gap-4">
-                          {data.steps && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Steps</p>
-                              <p className="font-semibold">{data.steps}</p>
-                            </div>
+                        <div className="flex justify-between items-start mb-3">
+                          <p className="font-medium">
+                            {new Date(data.date).toLocaleDateString()}
+                          </p>
+                          {data.mood && (
+                            <Badge variant="secondary">{data.mood}</Badge>
                           )}
-                          {data.heart_rate && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Heart Rate</p>
-                              <p className="font-semibold">{data.heart_rate} bpm</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          {data.steps && (
+                            <div className="flex items-center gap-2">
+                              <Footprints className="h-4 w-4 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Steps</p>
+                                <p className="font-medium">{data.steps.toLocaleString()}</p>
+                              </div>
                             </div>
                           )}
                           {data.sleep_hours && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Sleep</p>
-                              <p className="font-semibold">{data.sleep_hours}h</p>
+                            <div className="flex items-center gap-2">
+                              <Moon className="h-4 w-4 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Sleep</p>
+                                <p className="font-medium">{data.sleep_hours}h</p>
+                              </div>
+                            </div>
+                          )}
+                          {data.water_intake && (
+                            <div className="flex items-center gap-2">
+                              <Droplet className="h-4 w-4 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Water</p>
+                                <p className="font-medium">{data.water_intake} glasses</p>
+                              </div>
+                            </div>
+                          )}
+                          {data.heart_rate && (
+                            <div className="flex items-center gap-2">
+                              <Heart className="h-4 w-4 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Heart Rate</p>
+                                <p className="font-medium">{data.heart_rate} bpm</p>
+                              </div>
+                            </div>
+                          )}
+                          {data.exercise_minutes && (
+                            <div className="flex items-center gap-2">
+                              <Activity className="h-4 w-4 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Exercise</p>
+                                <p className="font-medium">{data.exercise_minutes} min</p>
+                              </div>
+                            </div>
+                          )}
+                          {data.weight && (
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Weight</p>
+                                <p className="font-medium">{data.weight} kg</p>
+                              </div>
                             </div>
                           )}
                         </div>
                       </div>
                     ))}
                     {wellnessData.length === 0 && (
-                      <p className="text-center text-muted-foreground py-8">No wellness data found</p>
+                      <div className="text-center py-8">
+                        <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground mb-2">No wellness data yet</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate('/wellness')}
+                        >
+                          Start Tracking Today
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </ScrollArea>
@@ -570,6 +729,27 @@ const HealthPassport = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Dialogs */}
+      <HealthPassportEdit
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        passportData={passport}
+        profileData={profile}
+        onSuccess={loadUserData}
+      />
+
+      <VaccinationDialog
+        open={vaccinationDialogOpen}
+        onOpenChange={setVaccinationDialogOpen}
+        onSuccess={loadUserData}
+      />
+
+      <HealthGoalsDialog
+        open={goalDialogOpen}
+        onOpenChange={setGoalDialogOpen}
+        onSuccess={loadUserData}
+      />
     </div>
   );
 };
