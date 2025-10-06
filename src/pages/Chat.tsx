@@ -616,9 +616,6 @@ const Chat = () => {
                   status: 'read'
                 })
                 .eq('id', newMessage.id);
-              
-              const audio = new Audio('/notification.mp3');
-              audio.play().catch(e => console.log('Could not play sound:', e));
             }
           }
         }
