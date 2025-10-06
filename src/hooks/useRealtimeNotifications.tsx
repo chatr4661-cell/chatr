@@ -68,10 +68,17 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
               duration: 5000,
             });
 
-            // Play notification sound once
-            const audio = new Audio(userNotificationTone);
+            // Play notification sound once for 2 seconds
+            const audio = new Audio('/ringtones/jetsons.mp3');
             audio.loop = false;
+            audio.volume = 0.7;
             audio.play().catch(e => console.log('Could not play sound:', e));
+            
+            // Stop after 2 seconds
+            setTimeout(() => {
+              audio.pause();
+              audio.currentTime = 0;
+            }, 2000);
 
             // Send browser notification if permitted
             if ('Notification' in window && Notification.permission === 'granted') {
