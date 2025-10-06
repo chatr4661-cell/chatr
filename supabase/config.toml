@@ -14,3 +14,18 @@ verify_jwt = true
 
 [functions.summarize-chat]
 verify_jwt = true
+
+[functions.auto-translate]
+verify_jwt = true
+
+[functions.send-whatsapp-invite]
+verify_jwt = true
+
+[functions.webrtc-signaling]
+verify_jwt = false
+
+[functions.process-daily-login]
+verify_jwt = true
+
+[functions.qr-payment]
+verify_jwt = true

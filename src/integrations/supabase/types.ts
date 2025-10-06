@@ -112,6 +112,7 @@ export type Database = {
       appointments: {
         Row: {
           appointment_date: string
+          cash_amount: number | null
           created_at: string | null
           diagnosis: string | null
           duration_minutes: number | null
@@ -119,6 +120,8 @@ export type Database = {
           id: string
           notes: string | null
           patient_id: string
+          payment_method: string | null
+          points_used: number | null
           provider_id: string
           service_id: string | null
           status: string | null
@@ -127,6 +130,7 @@ export type Database = {
         }
         Insert: {
           appointment_date: string
+          cash_amount?: number | null
           created_at?: string | null
           diagnosis?: string | null
           duration_minutes?: number | null
@@ -134,6 +138,8 @@ export type Database = {
           id?: string
           notes?: string | null
           patient_id: string
+          payment_method?: string | null
+          points_used?: number | null
           provider_id: string
           service_id?: string | null
           status?: string | null
@@ -142,6 +148,7 @@ export type Database = {
         }
         Update: {
           appointment_date?: string
+          cash_amount?: number | null
           created_at?: string | null
           diagnosis?: string | null
           duration_minutes?: number | null
@@ -149,6 +156,8 @@ export type Database = {
           id?: string
           notes?: string | null
           patient_id?: string
+          payment_method?: string | null
+          points_used?: number | null
           provider_id?: string
           service_id?: string | null
           status?: string | null
@@ -930,6 +939,8 @@ export type Database = {
           patient_id: string
           payment_method: string | null
           payment_status: string | null
+          payment_type: string | null
+          points_amount: number | null
           provider_id: string | null
           transaction_id: string | null
           updated_at: string | null
@@ -942,6 +953,8 @@ export type Database = {
           patient_id: string
           payment_method?: string | null
           payment_status?: string | null
+          payment_type?: string | null
+          points_amount?: number | null
           provider_id?: string | null
           transaction_id?: string | null
           updated_at?: string | null
@@ -954,6 +967,8 @@ export type Database = {
           patient_id?: string
           payment_method?: string | null
           payment_status?: string | null
+          payment_type?: string | null
+          points_amount?: number | null
           provider_id?: string | null
           transaction_id?: string | null
           updated_at?: string | null
@@ -974,6 +989,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      point_earning_rules: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_daily_claims: number | null
+          metadata: Json | null
+          points_awarded: number
+          rule_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_daily_claims?: number | null
+          metadata?: Json | null
+          points_awarded: number
+          rule_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_daily_claims?: number | null
+          metadata?: Json | null
+          points_awarded?: number
+          rule_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       point_expirations: {
         Row: {
@@ -1103,6 +1154,50 @@ export type Database = {
           validity_days?: number | null
         }
         Relationships: []
+      }
+      point_settlements: {
+        Row: {
+          created_at: string | null
+          id: string
+          inr_amount: number
+          payment_reference: string | null
+          points_earned: number
+          provider_id: string
+          settlement_date: string | null
+          settlement_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          inr_amount: number
+          payment_reference?: string | null
+          points_earned: number
+          provider_id: string
+          settlement_date?: string | null
+          settlement_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          inr_amount?: number
+          payment_reference?: string | null
+          points_earned?: number
+          provider_id?: string
+          settlement_date?: string | null
+          settlement_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_settlements_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       point_transactions: {
         Row: {
@@ -1301,7 +1396,10 @@ export type Database = {
           phone_number: string | null
           phone_search: string | null
           preferred_language: string | null
+          qr_code_token: string | null
+          referral_code: string | null
           status: string | null
+          streak_count: number | null
           updated_at: string | null
           username: string
         }
@@ -1324,7 +1422,10 @@ export type Database = {
           phone_number?: string | null
           phone_search?: string | null
           preferred_language?: string | null
+          qr_code_token?: string | null
+          referral_code?: string | null
           status?: string | null
+          streak_count?: number | null
           updated_at?: string | null
           username: string
         }
@@ -1347,7 +1448,10 @@ export type Database = {
           phone_number?: string | null
           phone_search?: string | null
           preferred_language?: string | null
+          qr_code_token?: string | null
+          referral_code?: string | null
           status?: string | null
+          streak_count?: number | null
           updated_at?: string | null
           username?: string
         }
@@ -1382,6 +1486,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      qr_payments: {
+        Row: {
+          amount_points: number
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          payer_id: string
+          qr_token: string
+          receiver_id: string
+          status: string | null
+          transaction_type: string
+        }
+        Insert: {
+          amount_points: number
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payer_id: string
+          qr_token: string
+          receiver_id: string
+          status?: string | null
+          transaction_type: string
+        }
+        Update: {
+          amount_points?: number
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payer_id?: string
+          qr_token?: string
+          receiver_id?: string
+          status?: string | null
+          transaction_type?: string
+        }
+        Relationships: []
+      }
+      referral_rewards: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          points_awarded: number | null
+          referral_code: string
+          referred_user_id: string
+          referrer_id: string
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          points_awarded?: number | null
+          referral_code: string
+          referred_user_id: string
+          referrer_id: string
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          points_awarded?: number | null
+          referral_code?: string
+          referred_user_id?: string
+          referrer_id?: string
+          status?: string | null
+        }
+        Relationships: []
       }
       service_providers: {
         Row: {
@@ -1439,7 +1618,9 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          point_discount_percentage: number | null
           price: number | null
+          price_points: number | null
           provider_id: string
         }
         Insert: {
@@ -1449,7 +1630,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          point_discount_percentage?: number | null
           price?: number | null
+          price_points?: number | null
           provider_id: string
         }
         Update: {
@@ -1459,7 +1642,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          point_discount_percentage?: number | null
           price?: number | null
+          price_points?: number | null
           provider_id?: string
         }
         Relationships: [
@@ -1728,6 +1913,39 @@ export type Database = {
           media_url?: string | null
           user_id?: string
           views_count?: number | null
+        }
+        Relationships: []
+      }
+      user_streaks: {
+        Row: {
+          created_at: string | null
+          current_streak: number | null
+          id: string
+          last_login_date: string | null
+          longest_streak: number | null
+          total_logins: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number | null
+          total_logins?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number | null
+          total_logins?: number | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }

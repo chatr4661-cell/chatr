@@ -120,6 +120,10 @@ const BookingPage = () => {
     try {
       const appointmentDateTime = new Date(`${bookingDate}T${bookingTime}`);
 
+      // Get first service price for points (1 point = 1 INR)
+      const servicePrice = selectedProvider.services?.[0]?.price || 300;
+      const cashback = 25;
+
       const { data, error } = await supabase
         .from('appointments')
         .insert({
@@ -128,16 +132,59 @@ const BookingPage = () => {
           appointment_date: appointmentDateTime.toISOString(),
           notes: notes || null,
           status: 'pending',
+          payment_method: 'points',
+          points_used: servicePrice
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      toast({
-        title: 'Success!',
-        description: 'Your appointment has been booked successfully',
-      });
+      // Process points payment
+      const { data: userPoints } = await supabase
+        .from('user_points')
+        .select('balance, lifetime_spent')
+        .eq('user_id', user.id)
+        .single();
+
+      if (userPoints && userPoints.balance >= servicePrice) {
+        // Deduct points and add cashback
+        await supabase
+          .from('user_points')
+          .update({
+            balance: userPoints.balance - servicePrice + cashback,
+            lifetime_spent: userPoints.lifetime_spent + servicePrice
+          })
+          .eq('user_id', user.id);
+
+        // Create transaction records
+        await supabase.from('point_transactions').insert([
+          {
+            user_id: user.id,
+            amount: -servicePrice,
+            transaction_type: 'spend',
+            source: 'appointment_booking',
+            description: `Appointment with ${selectedProvider.business_name}`
+          },
+          {
+            user_id: user.id,
+            amount: cashback,
+            transaction_type: 'earn',
+            source: 'appointment_booking',
+            description: 'Appointment cashback reward'
+          }
+        ]);
+
+        toast({
+          title: 'Appointment Booked!',
+          description: `Paid ${servicePrice} points, earned ${cashback} points cashback!`,
+        });
+      } else {
+        toast({
+          title: 'Success!',
+          description: 'Appointment booked (insufficient points for payment)',
+        });
+      }
 
       setShowBookingDialog(false);
       setSelectedProvider(null);
