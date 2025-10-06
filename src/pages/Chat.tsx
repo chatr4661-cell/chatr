@@ -977,15 +977,15 @@ const Chat = () => {
       {/* Main Container - WhatsApp/Telegram Style */}
       <div className="flex w-full max-w-full mx-auto">
         {/* Sidebar - Contact List */}
-        <div className={`${selectedContact || viewMode === 'offline' ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-border bg-card`}>
-          {/* Header - Enhanced */}
-          <div className="p-3 border-b border-border bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
+        <div className={`${selectedContact || viewMode === 'offline' ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-border/30 glass-card`}>
+          {/* Header - Glass UI Enhanced */}
+          <div className="p-3 border-b border-border/30 glass backdrop-blur-xl shadow-glass">
             <div className="flex items-center gap-3 mb-3">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/')}
-                className="rounded-full hover:bg-primary/10"
+                className="rounded-full hover:bg-primary/20 hover:shadow-glow transition-all"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -994,7 +994,7 @@ const Chat = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowProfileEdit(true)}
-                className="rounded-full hover:bg-primary/10"
+                className="rounded-full hover:bg-primary/20 hover:shadow-glow transition-all"
                 title="Edit Profile"
               >
                 <User className="h-5 w-5" />
@@ -1061,7 +1061,7 @@ const Chat = () => {
               <Search className="absolute left-7 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search"
-                className="pl-10 rounded-xl bg-muted/50 dark:bg-muted/30 border-0 h-9 text-[15px]"
+                className="pl-10 rounded-xl glass border-border/30 h-9 text-[15px] backdrop-blur-sm"
               />
             </div>
           </div>
@@ -1106,19 +1106,23 @@ const Chat = () => {
                           setSelectedContact(contact);
                           setShowUserProfile(true);
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 active:bg-muted/50 transition-all duration-200 rounded-lg ${
-                          selectedContact?.id === contact.id ? 'bg-muted/30 shadow-sm' : ''
+                        className={`w-full flex items-center gap-3 px-4 py-3 glass-card hover:shadow-card active:scale-[0.98] transition-all duration-200 rounded-xl mb-2 ${
+                          selectedContact?.id === contact.id ? 'ring-2 ring-primary/30 shadow-glow' : ''
                         }`}
                         title="Long press to view profile"
                       >
                          <div className="relative flex-shrink-0">
-                          <Avatar className="h-14 w-14 ring-2 ring-primary/10 transition-all hover:ring-primary/20">
-                            <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-primary text-primary-foreground font-semibold text-lg">
-                              {contact.username[0].toUpperCase()}
-                            </AvatarFallback>
+                          <Avatar className="h-14 w-14 ring-2 ring-primary/20 shadow-md transition-all hover:ring-primary/40 hover:shadow-glow">
+                            {contact.avatar_url ? (
+                              <img src={contact.avatar_url} alt={contact.username} className="object-cover" />
+                            ) : (
+                              <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-accent text-primary-foreground font-semibold text-lg">
+                                {contact.username[0].toUpperCase()}
+                              </AvatarFallback>
+                            )}
                           </Avatar>
                           {contact.is_online && (
-                            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[2.5px] border-background shadow-md animate-pulse" />
+                            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[2.5px] border-background shadow-glow animate-pulse" />
                           )}
                         </div>
                         <div className="flex-1 text-left min-w-0">
@@ -1143,35 +1147,39 @@ const Chat = () => {
           )}
         </div>
 
-        {/* Chat Area */}
-        <div className={`${selectedContact || viewMode === 'offline' ? 'flex' : 'hidden md:flex'} flex-1 flex-col bg-background`}>
+        {/* Chat Area - Glass UI */}
+        <div className={`${selectedContact || viewMode === 'offline' ? 'flex' : 'hidden md:flex'} flex-1 flex-col glass-card border-l border-border/30`}>
           {viewMode === 'offline' ? (
             <OfflineChat />
           ) : selectedContact ? (
             <>
-              {/* Chat Header - Modern & Smooth */}
-              <div className="px-4 py-3 border-b border-border/50 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-xl flex items-center justify-between shadow-sm">
+              {/* Chat Header - Glass UI */}
+              <div className="px-4 py-3 border-b border-border/30 glass backdrop-blur-xl flex items-center justify-between shadow-glass">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden rounded-full flex-shrink-0 h-8 w-8"
+                    className="md:hidden rounded-full flex-shrink-0 h-8 w-8 hover:bg-primary/10"
                     onClick={() => setSelectedContact(null)}
                   >
                     <ArrowLeft className="h-5 w-5 text-primary" />
                   </Button>
                   <div 
-                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer active:opacity-70 transition-opacity"
+                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer active:opacity-70 transition-all hover:scale-105 duration-200"
                     onClick={() => setShowUserProfile(true)}
                   >
                     <div className="relative flex-shrink-0">
-                      <Avatar className="h-10 w-10 ring-2 ring-primary/10">
-                        <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-primary text-primary-foreground font-semibold text-sm">
-                          {selectedContact.username[0].toUpperCase()}
-                        </AvatarFallback>
+                      <Avatar className="h-11 w-11 ring-2 ring-primary/20 shadow-md hover:shadow-glow transition-all">
+                        {selectedContact.avatar_url ? (
+                          <img src={selectedContact.avatar_url} alt={selectedContact.username} className="object-cover" />
+                        ) : (
+                          <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-accent text-primary-foreground font-semibold text-sm">
+                            {selectedContact.username[0].toUpperCase()}
+                          </AvatarFallback>
+                        )}
                       </Avatar>
                       {selectedContact.is_online && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background shadow-md animate-pulse" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background shadow-glow animate-pulse" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -1203,8 +1211,8 @@ const Chat = () => {
                 </div>
               </div>
 
-              {/* Messages Area - Modern Chat Design */}
-              <ScrollArea className="flex-1 p-3 bg-background/50 backdrop-blur-sm">
+              {/* Messages Area - Glass UI Chat */}
+              <ScrollArea className="flex-1 p-3 glass backdrop-blur-md">
                 <div className="space-y-1 max-w-4xl mx-auto">
                   {(() => {
                     console.log('🎨 RENDER - Messages:', messages.length, 'Conversation:', conversationId);
@@ -1221,8 +1229,19 @@ const Chat = () => {
                       return (
                         <ContextMenu key={message.id}>
                           <ContextMenuTrigger>
-                            <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-1`}>
-                              <div className={`max-w-[85%] md:max-w-[75%]`}>
+                            <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2 group`}>
+                              {!isOwn && (
+                                <Avatar className="h-8 w-8 mr-2 mt-1 ring-2 ring-border/20 flex-shrink-0">
+                                  {message.sender?.avatar_url ? (
+                                    <img src={message.sender.avatar_url} alt={message.sender.username} className="object-cover" />
+                                  ) : (
+                                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-xs">
+                                      {message.sender?.username?.[0]?.toUpperCase() || 'U'}
+                                    </AvatarFallback>
+                                  )}
+                                </Avatar>
+                              )}
+                              <div className={`max-w-[85%] md:max-w-[70%]`}>
                               {message.message_type === 'poll' && message.poll_options ? (
                                 <PollMessage
                                   question={message.poll_question || ''}
@@ -1256,10 +1275,10 @@ const Chat = () => {
                                   </div>
                                 </div>
                               ) : (
-                                 <div className={`rounded-2xl px-3.5 py-2 shadow-sm transition-all duration-200 hover:shadow-md ${
+                                 <div className={`rounded-2xl px-3.5 py-2 shadow-card transition-all duration-200 hover:shadow-elevated ${
                                   isOwn
-                                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                                    : 'bg-card text-card-foreground rounded-bl-md border border-border'
+                                    ? 'bg-gradient-to-br from-primary to-primary-glow text-primary-foreground rounded-br-md'
+                                    : 'glass-card text-card-foreground rounded-bl-md border border-border/30'
                                 }`}>
                                   {/* Reply Preview in Message */}
                                   {message.reply_to_id && (
@@ -1391,8 +1410,8 @@ const Chat = () => {
                 />
               )}
 
-              {/* Input Area */}
-              <div className="p-3 border-t border-border bg-card">
+              {/* Input Area - Glass UI */}
+              <div className="p-3 border-t border-border/30 glass backdrop-blur-xl">
                 <form onSubmit={sendMessage} className="flex items-center gap-2">
                   <Sheet open={showMediaActions} onOpenChange={setShowMediaActions}>
                     <SheetTrigger asChild>
