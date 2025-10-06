@@ -35,7 +35,7 @@ import VideoCall from '@/components/VideoCall';
 import { CallInterface } from '@/components/CallInterface';
 import { QRScanner } from '@/components/QRScanner';
 import { DeviceSessions } from '@/components/DeviceSessions';
-import { RealtimeDebugPanel } from '@/components/RealtimeDebugPanel';
+
 import { OfflineChat } from '@/components/OfflineChat';
 import { ImprovedCallNotifications } from '@/components/ImprovedCallNotifications';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
@@ -120,7 +120,7 @@ const Chat = () => {
   const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video', callId: string, partnerId: string } | null>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showDeviceSessions, setShowDeviceSessions] = useState(false);
-  const [showDebugPanel, setShowDebugPanel] = useState(true);
+  
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showUserInfoSidebar, setShowUserInfoSidebar] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
@@ -1557,23 +1557,6 @@ const Chat = () => {
       {/* QR Scanner for linking devices */}
       <QRScanner open={showQRScanner} onOpenChange={setShowQRScanner} />
 
-      {/* Debug Panel */}
-      {showDebugPanel && user && (
-        <RealtimeDebugPanel 
-          userId={user.id} 
-          conversationId={conversationId}
-        />
-      )}
-
-      {/* Debug Toggle Button */}
-      <Button
-        onClick={() => setShowDebugPanel(!showDebugPanel)}
-        size="icon"
-        variant="ghost"
-        className="fixed bottom-4 left-4 z-50 rounded-full bg-background shadow-lg"
-      >
-        <Bug className="h-5 w-5" />
-      </Button>
 
       {/* User Profile Dialog */}
       <UserProfileDialog
