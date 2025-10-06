@@ -60,7 +60,9 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
 
       // If no results found and looks like a phone number, offer to invite
       if ((!data || data.length === 0) && /^\+?\d{10,15}$/.test(normalizedSearch)) {
-        setInvitePhone(value);
+        // Ensure phone has + prefix for invite
+        const phoneToInvite = value.startsWith('+') ? value : `+${value}`;
+        setInvitePhone(phoneToInvite);
         setShowInviteDialog(true);
       }
     } catch (error: any) {
@@ -189,7 +191,6 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
         </div>
       )}
 
-      {/* Invite Dialog */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent>
           <DialogHeader>
@@ -203,6 +204,16 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
               <UserPlus className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">{invitePhone}</span>
             </div>
+            
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">📱 Important Phone Format:</p>
+              <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 ml-4">
+                <li>• Must include country code (e.g., +919717845477)</li>
+                <li>• For India: +91 followed by 10 digits</li>
+                <li>• For US: +1 followed by 10 digits</li>
+              </ul>
+            </div>
+
             <p className="text-sm text-muted-foreground">
               We'll send them a WhatsApp message with an invitation link to join Chatr+ and connect with you.
             </p>
