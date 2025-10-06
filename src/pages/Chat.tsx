@@ -382,160 +382,116 @@ const Chat = () => {
     }
 
     console.log('🎯 Selecting contact:', contact.username, contact.id);
-    console.log('📋 Contact object:', JSON.stringify(contact, null, 2));
-    console.log('👤 Current user ID:', user.id);
     setSelectedContact(contact);
     
     try {
-      // Query for conversations where current user is a participant
-      const { data: myParticipations, error: myError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id);
-
-      console.log('📊 My participations:', myParticipations?.length || 0, 'conversations');
-
-      if (myError || !myParticipations || myParticipations.length === 0) {
-        console.log('ℹ️ No conversations found for current user, creating new');
-        await createNewConversation(contact);
-        return;
-      }
-
-      const myConvIds = myParticipations.map(p => p.conversation_id);
-      console.log('🔑 My conversation IDs:', myConvIds);
-
-      // Query for conversations where contact is also a participant
-      console.log('🔍 Looking for participations where user_id =', contact.id);
-      const { data: theirParticipations, error: theirError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', contact.id)
-        .in('conversation_id', myConvIds);
-
-      console.log('📊 Their participations:', theirParticipations?.length || 0, 'conversations');
-      console.log('📋 Their participation data:', JSON.stringify(theirParticipations, null, 2));
-
-      if (theirError) {
-        console.error('❌ Error querying contact participations:', theirError);
-        await createNewConversation(contact);
-        return;
-      }
-
-      if (!theirParticipations || theirParticipations.length === 0) {
-        console.log('ℹ️ No shared conversations, creating new');
-        await createNewConversation(contact);
-        return;
-      }
-
-      const sharedConvIds = theirParticipations.map(p => p.conversation_id);
-      console.log('🔗 Shared conversation IDs:', sharedConvIds);
-
-      // Get full conversation details for shared conversations (only 1-on-1)
-      const { data: sharedConvs, error: convError } = await supabase
-        .from('conversations')
-        .select('id, is_group, created_at')
-        .in('id', sharedConvIds)
-        .eq('is_group', false);
-
-      console.log('📋 Shared conversations found:', sharedConvs?.length || 0);
-
-      if (convError) {
-        console.error('❌ Error fetching conversations:', convError);
-        await createNewConversation(contact);
-        return;
-      }
-
-      if (!sharedConvs || sharedConvs.length === 0) {
-        console.log('ℹ️ No valid 1-on-1 conversations found, creating new');
-        await createNewConversation(contact);
-        return;
-      }
-
-      console.log('🔗 Found', sharedConvs.length, 'shared 1-on-1 conversation(s)');
+      const conversationId = await findOrCreateConversation(user.id, contact.id);
       
-      // CRITICAL FIX: Use the existing conversation instead of always creating new ones
-      // Sort by created_at to get the most recent one
-      const mostRecentConv = sharedConvs.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )[0];
+      if (!conversationId) {
+        toast({
+          title: 'Error',
+          description: 'Failed to start conversation',
+          variant: 'destructive'
+        });
+        return;
+      }
       
-      console.log(`✅ Reusing existing conversation: ${mostRecentConv.id}`);
-      setConversationId(mostRecentConv.id);
-      await loadMessages(mostRecentConv.id);
-
-
+      console.log('✅ Using conversation:', conversationId);
+      setConversationId(conversationId);
+      await loadMessages(conversationId);
+      
     } catch (error) {
       console.error('❌ Error in selectContact:', error);
-      await createNewConversation(contact);
+      toast({
+        title: 'Error',
+        description: 'Failed to start conversation',
+        variant: 'destructive'
+      });
     }
   };
   
-  const createNewConversation = async (contact: Profile) => {
-    console.log('➕ Creating new conversation with contact:', contact.id);
+  const findOrCreateConversation = async (userId1: string, userId2: string): Promise<string | null> => {
+    console.log('🔍 Finding conversation between:', userId1, 'and', userId2);
     
-    // CRITICAL: Before creating, do one final check for existing conversations
-    // This prevents race conditions when both users click at the same time
-    const { data: existingCheck } = await supabase
+    // Get all conversations for user1
+    const { data: user1Convs } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
-      .eq('user_id', user.id);
+      .eq('user_id', userId1);
     
-    if (existingCheck && existingCheck.length > 0) {
-      const myConvIds = existingCheck.map(p => p.conversation_id);
-      const { data: theirCheck } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', contact.id)
-        .in('conversation_id', myConvIds);
-      
-      if (theirCheck && theirCheck.length > 0) {
-        console.log('🔄 Found existing conversation during create, using it instead');
-        const existingConvId = theirCheck[0].conversation_id;
-        setConversationId(existingConvId);
-        await loadMessages(existingConvId);
-        return;
-      }
+    if (!user1Convs || user1Convs.length === 0) {
+      console.log('📝 User has no conversations, creating new');
+      return await createConversation(userId1, userId2);
     }
     
-    const { data: newConversation, error } = await supabase
+    const convIds = user1Convs.map(c => c.conversation_id);
+    console.log('📋 User1 has', convIds.length, 'conversations');
+    
+    // Check which conversations also have user2
+    const { data: user2Convs } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id')
+      .eq('user_id', userId2)
+      .in('conversation_id', convIds);
+    
+    if (!user2Convs || user2Convs.length === 0) {
+      console.log('📝 No shared conversation found, creating new');
+      return await createConversation(userId1, userId2);
+    }
+    
+    const sharedConvIds = user2Convs.map(c => c.conversation_id);
+    console.log('🔗 Found', sharedConvIds.length, 'shared conversations');
+    
+    // Get the conversation details (exclude group chats)
+    const { data: conversations } = await supabase
       .from('conversations')
-      .insert({ created_by: user.id })
-      .select()
-      .single();
-
-    if (error || !newConversation) {
-      console.error('❌ Error creating conversation:', error);
-      toast({
-        title: 'Failed to Create Conversation',
-        description: error?.message || 'Unable to start chat. Please try again.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    console.log('📝 Inserting participants for conversation:', newConversation.id);
-    console.log('👥 Participants:', [user.id, contact.id]);
+      .select('id, is_group, created_at')
+      .in('id', sharedConvIds)
+      .eq('is_group', false)
+      .order('created_at', { ascending: false })
+      .limit(1);
     
-    const { error: participantsError } = await supabase
+    if (conversations && conversations.length > 0) {
+      console.log('✅ Found existing 1-on-1 conversation:', conversations[0].id);
+      return conversations[0].id;
+    }
+    
+    console.log('📝 No 1-on-1 conversation found, creating new');
+    return await createConversation(userId1, userId2);
+  };
+  
+  const createConversation = async (userId1: string, userId2: string): Promise<string | null> => {
+    console.log('➕ Creating conversation between:', userId1, 'and', userId2);
+    
+    // Create the conversation
+    const { data: newConv, error: convError } = await supabase
+      .from('conversations')
+      .insert({ created_by: userId1, is_group: false })
+      .select('id')
+      .single();
+    
+    if (convError || !newConv) {
+      console.error('❌ Failed to create conversation:', convError);
+      return null;
+    }
+    
+    console.log('✅ Created conversation:', newConv.id);
+    
+    // Add both participants
+    const { error: participantError } = await supabase
       .from('conversation_participants')
       .insert([
-        { conversation_id: newConversation.id, user_id: user.id },
-        { conversation_id: newConversation.id, user_id: contact.id },
+        { conversation_id: newConv.id, user_id: userId1 },
+        { conversation_id: newConv.id, user_id: userId2 }
       ]);
-
-    if (participantsError) {
-      console.error('❌ Error adding participants:', participantsError);
-      toast({
-        title: 'Error',
-        description: 'Failed to add participants to conversation',
-        variant: 'destructive'
-      });
-      return;
+    
+    if (participantError) {
+      console.error('❌ Failed to add participants:', participantError);
+      return null;
     }
-
-    console.log('✅ Created new conversation:', newConversation.id, 'with participants');
-    setConversationId(newConversation.id);
-    await loadMessages(newConversation.id);
+    
+    console.log('✅ Added participants to conversation');
+    return newConv.id;
   };
 
   const loadMessages = async (convId: string) => {
