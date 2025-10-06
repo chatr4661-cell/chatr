@@ -1093,12 +1093,14 @@ const Chat = () => {
               </Button>
             </div>
             
-            <div className="relative px-4 pb-2">
-              <GlobalSearch 
-                open={showGlobalSearch}
-                onClose={() => setShowGlobalSearch(false)}
-              />
-            </div>
+            {showGlobalSearch && (
+              <div className="relative px-4 pb-2">
+                <GlobalSearch 
+                  open={showGlobalSearch}
+                  onClose={() => setShowGlobalSearch(false)}
+                />
+              </div>
+            )}
 
             {/* Announcements Banner */}
             <div className="px-3">
