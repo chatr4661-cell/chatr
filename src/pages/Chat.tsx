@@ -12,7 +12,8 @@ import {
   MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, 
   Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
   Reply, Forward, Star, Copy, Trash2, Edit2, Download, X, Paperclip, User,
-  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus, QrCode, Bug, Info, WifiOff
+  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, 
+  UserPlus, QrCode, Bug, Info, WifiOff, Clock, CheckSquare, Camera
 } from 'lucide-react';
 import { MessageAction } from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
@@ -35,11 +36,15 @@ import VideoCall from '@/components/VideoCall';
 import { CallInterface } from '@/components/CallInterface';
 import { QRScanner } from '@/components/QRScanner';
 import { DeviceSessions } from '@/components/DeviceSessions';
-
+import { MessageReminder } from '@/components/MessageReminder';
+import { TaskFromMessage } from '@/components/TaskFromMessage';
+import { CollaborativeNotes } from '@/components/CollaborativeNotes';
+import { AIDocumentSearch } from '@/components/AIDocumentSearch';
 import { OfflineChat } from '@/components/OfflineChat';
 import { ImprovedCallNotifications } from '@/components/ImprovedCallNotifications';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
+import { Camera as CapCamera } from '@capacitor/camera';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -121,6 +126,8 @@ const Chat = () => {
   const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video', callId: string, partnerId: string } | null>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showDeviceSessions, setShowDeviceSessions] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState<Message | null>(null);
+  const [taskMessage, setTaskMessage] = useState<Message | null>(null);
   
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showUserInfoSidebar, setShowUserInfoSidebar] = useState(false);
@@ -1198,6 +1205,12 @@ const Chat = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-0.5 flex-shrink-0">
+                  {/* AI Search */}
+                  {conversationId && <AIDocumentSearch conversationId={conversationId} />}
+                  
+                  {/* Collaborative Notes */}
+                  {conversationId && <CollaborativeNotes conversationId={conversationId} />}
+                  
                   {/* AI Summary Button */}
                   <ChatSummarizer messages={messages} />
                   
@@ -1391,9 +1404,20 @@ const Chat = () => {
                             <Star className="h-4 w-4 mr-2" />
                             {message.is_starred ? 'Unstar' : 'Star'}
                           </ContextMenuItem>
-                          <ContextMenuItem>
+                          <ContextMenuItem onClick={() => {
+                            navigator.clipboard.writeText(message.content);
+                            toast({ title: 'Copied to clipboard' });
+                          }}>
                             <Copy className="h-4 w-4 mr-2" />
                             Copy
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => setReminderMessage(message)}>
+                            <Clock className="h-4 w-4 mr-2" />
+                            Remind Me Later
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => setTaskMessage(message)}>
+                            <CheckSquare className="h-4 w-4 mr-2" />
+                            Create Task
                           </ContextMenuItem>
                           {isOwn && (
                             <ContextMenuItem onClick={() => handleDeleteMessage(message.id)} className="text-destructive">
@@ -1446,7 +1470,23 @@ const Chat = () => {
                         <SheetTitle>Send</SheetTitle>
                       </SheetHeader>
                       <div className="grid grid-cols-4 gap-4 py-4">
-                        <MessageAction icon={ImageIcon} label="Photo" onClick={handleImagePick} color="text-blue-500" />
+                        <MessageAction icon={Camera} label="Camera" onClick={async () => {
+                          try {
+                            const photo = await CapCamera.getPhoto({
+                              quality: 90,
+                              allowEditing: false,
+                              resultType: 'base64' as any
+                            });
+                            if (photo.base64String) {
+                              const imageUrl = `data:image/${photo.format};base64,${photo.base64String}`;
+                              sendMessage(new Event('submit') as any, 'image', { media_url: imageUrl, content: 'Photo' });
+                            }
+                            setShowMediaActions(false);
+                          } catch (error) {
+                            console.error('Camera error:', error);
+                          }
+                        }} color="text-pink-500" />
+                        <MessageAction icon={ImageIcon} label="Gallery" onClick={handleImagePick} color="text-blue-500" />
                         <MessageAction icon={File} label="Document" onClick={() => {}} color="text-purple-500" />
                         <MessageAction icon={MapPin} label="Location" onClick={handleLocationShare} color="text-green-500" />
                         <MessageAction icon={BarChart3} label="Poll" onClick={() => { setShowMediaActions(false); setShowPollCreator(true); }} color="text-orange-500" />
@@ -1589,6 +1629,25 @@ const Chat = () => {
           open={showProfileEdit}
           onOpenChange={setShowProfileEdit}
           onProfileUpdated={() => loadProfile(user?.id)}
+        />
+      )}
+
+      {/* Message Reminder Dialog */}
+      {reminderMessage && (
+        <MessageReminder
+          messageId={reminderMessage.id}
+          messageContent={reminderMessage.content}
+          open={!!reminderMessage}
+          onOpenChange={(open) => !open && setReminderMessage(null)}
+        />
+      )}
+
+      {/* Task from Message Dialog */}
+      {taskMessage && (
+        <TaskFromMessage
+          messageContent={taskMessage.content}
+          open={!!taskMessage}
+          onOpenChange={(open) => !open && setTaskMessage(null)}
         />
       )}
     </div>

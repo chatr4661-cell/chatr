@@ -250,6 +250,30 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_notes: {
+        Row: {
+          content: string | null
+          conversation_id: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       conversation_participants: {
         Row: {
           conversation_id: string | null
@@ -653,6 +677,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      message_reminders: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_completed: boolean | null
+          message_id: string
+          message_preview: string | null
+          reminder_time: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          message_id: string
+          message_preview?: string | null
+          reminder_time: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          message_id?: string
+          message_preview?: string | null
+          reminder_time?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       message_translations: {
         Row: {
@@ -1408,6 +1462,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tasks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       typing_indicators: {
         Row: {
