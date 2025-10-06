@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Search, FileText, Image, Video, File, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { ConnectionRequestButton } from './ConnectionRequestButton';
 
 interface SearchResult {
   id: string;
@@ -24,9 +25,10 @@ interface GlobalSearchProps {
   open: boolean;
   onClose: () => void;
   onNavigate: (path: string) => void;
+  currentUserId?: string;
 }
 
-const GlobalSearch = ({ open, onClose, onNavigate }: GlobalSearchProps) => {
+const GlobalSearch = ({ open, onClose, onNavigate, currentUserId }: GlobalSearchProps) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -111,11 +113,12 @@ const GlobalSearch = ({ open, onClose, onNavigate }: GlobalSearchProps) => {
 
   const handleResultClick = (result: SearchResult) => {
     if (result.type === 'contact' && result.contact_id) {
-      onNavigate(`/chat?contact=${result.contact_id}`);
+      // Don't navigate, let connection button handle it
+      return;
     } else if (result.type === 'message' && result.conversation_id) {
       onNavigate(`/chat?conversation=${result.conversation_id}`);
+      onClose();
     }
-    onClose();
   };
 
   return (
@@ -162,6 +165,16 @@ const GlobalSearch = ({ open, onClose, onNavigate }: GlobalSearchProps) => {
                       <p className="font-medium truncate">{result.content}</p>
                       <Badge variant="secondary" className="text-xs">Contact</Badge>
                     </div>
+                    {currentUserId && result.contact_id && result.contact_id !== currentUserId && (
+                      <ConnectionRequestButton 
+                        userId={result.contact_id}
+                        currentUserId={currentUserId}
+                        onConnectionAccepted={() => {
+                          onNavigate(`/chat?contact=${result.contact_id}`);
+                          onClose();
+                        }}
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-start gap-3">
