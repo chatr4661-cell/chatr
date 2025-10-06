@@ -382,6 +382,8 @@ const Chat = () => {
     }
 
     console.log('🎯 Selecting contact:', contact.username, contact.id);
+    console.log('📋 Contact object:', JSON.stringify(contact, null, 2));
+    console.log('👤 Current user ID:', user.id);
     setSelectedContact(contact);
     
     try {
@@ -391,6 +393,8 @@ const Chat = () => {
         .select('conversation_id')
         .eq('user_id', user.id);
 
+      console.log('📊 My participations:', myParticipations?.length || 0, 'conversations');
+
       if (myError || !myParticipations || myParticipations.length === 0) {
         console.log('ℹ️ No conversations found for current user, creating new');
         await createNewConversation(contact);
@@ -398,13 +402,18 @@ const Chat = () => {
       }
 
       const myConvIds = myParticipations.map(p => p.conversation_id);
+      console.log('🔑 My conversation IDs:', myConvIds);
 
       // Query for conversations where contact is also a participant
+      console.log('🔍 Looking for participations where user_id =', contact.id);
       const { data: theirParticipations, error: theirError } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
         .eq('user_id', contact.id)
         .in('conversation_id', myConvIds);
+
+      console.log('📊 Their participations:', theirParticipations?.length || 0, 'conversations');
+      console.log('📋 Their participation data:', JSON.stringify(theirParticipations, null, 2));
 
       if (theirError) {
         console.error('❌ Error querying contact participations:', theirError);
@@ -419,6 +428,7 @@ const Chat = () => {
       }
 
       const sharedConvIds = theirParticipations.map(p => p.conversation_id);
+      console.log('🔗 Shared conversation IDs:', sharedConvIds);
 
       // Get full conversation details for shared conversations (only 1-on-1)
       const { data: sharedConvs, error: convError } = await supabase
@@ -426,6 +436,8 @@ const Chat = () => {
         .select('id, is_group, created_at')
         .in('id', sharedConvIds)
         .eq('is_group', false);
+
+      console.log('📋 Shared conversations found:', sharedConvs?.length || 0);
 
       if (convError) {
         console.error('❌ Error fetching conversations:', convError);
@@ -442,7 +454,7 @@ const Chat = () => {
       console.log('🔗 Found', sharedConvs.length, 'shared 1-on-1 conversation(s)');
       
       // CRITICAL FIX: Use the existing conversation instead of always creating new ones
-      // If we found conversations, reuse the most recent one
+      // Sort by created_at to get the most recent one
       const mostRecentConv = sharedConvs.sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )[0];
@@ -450,7 +462,6 @@ const Chat = () => {
       console.log(`✅ Reusing existing conversation: ${mostRecentConv.id}`);
       setConversationId(mostRecentConv.id);
       await loadMessages(mostRecentConv.id);
-      return;
 
 
     } catch (error) {
@@ -460,7 +471,32 @@ const Chat = () => {
   };
   
   const createNewConversation = async (contact: Profile) => {
-    console.log('➕ Creating new conversation');
+    console.log('➕ Creating new conversation with contact:', contact.id);
+    
+    // CRITICAL: Before creating, do one final check for existing conversations
+    // This prevents race conditions when both users click at the same time
+    const { data: existingCheck } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id')
+      .eq('user_id', user.id);
+    
+    if (existingCheck && existingCheck.length > 0) {
+      const myConvIds = existingCheck.map(p => p.conversation_id);
+      const { data: theirCheck } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', contact.id)
+        .in('conversation_id', myConvIds);
+      
+      if (theirCheck && theirCheck.length > 0) {
+        console.log('🔄 Found existing conversation during create, using it instead');
+        const existingConvId = theirCheck[0].conversation_id;
+        setConversationId(existingConvId);
+        await loadMessages(existingConvId);
+        return;
+      }
+    }
+    
     const { data: newConversation, error } = await supabase
       .from('conversations')
       .insert({ created_by: user.id })
@@ -477,6 +513,9 @@ const Chat = () => {
       return;
     }
 
+    console.log('📝 Inserting participants for conversation:', newConversation.id);
+    console.log('👥 Participants:', [user.id, contact.id]);
+    
     const { error: participantsError } = await supabase
       .from('conversation_participants')
       .insert([
@@ -494,7 +533,7 @@ const Chat = () => {
       return;
     }
 
-    console.log('✅ Created new conversation:', newConversation.id);
+    console.log('✅ Created new conversation:', newConversation.id, 'with participants');
     setConversationId(newConversation.id);
     await loadMessages(newConversation.id);
   };
