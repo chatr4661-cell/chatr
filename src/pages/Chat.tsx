@@ -1580,7 +1580,7 @@ const Chat = () => {
                 </div>
                 
                 <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  AI-Powered Healthcare Chat
+                  AI-Powered Chatr
                 </h2>
                 
                 <div className="space-y-4 text-left bg-card/50 backdrop-blur rounded-2xl p-6 border border-primary/20 mb-6">
@@ -1596,15 +1596,7 @@ const Chat = () => {
                     <Shield className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-semibold text-foreground">Privacy First</p>
-                      <p className="text-sm text-muted-foreground">End-to-end encrypted, metadata-light, and ephemeral chat options</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <Heart className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-foreground">Personal & Expressive</p>
-                      <p className="text-sm text-muted-foreground">Custom themes, tone-based reactions, and adaptive UI</p>
+                      <p className="text-sm text-muted-foreground">End-to-end encrypted</p>
                     </div>
                   </div>
                   
@@ -1613,14 +1605,6 @@ const Chat = () => {
                     <div>
                       <p className="font-semibold text-foreground">Built for Life + Work</p>
                       <p className="text-sm text-muted-foreground">Turn messages into tasks, notes, or meeting reminders instantly</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <Activity className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-foreground">Powered by Supabase Realtime + Lovable AI</p>
-                      <p className="text-sm text-muted-foreground">Open, fast, and beautifully simple</p>
                     </div>
                   </div>
                 </div>
