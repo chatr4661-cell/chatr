@@ -104,9 +104,16 @@ export const UserProfileDialog = ({ user, open, onOpenChange }: UserProfileDialo
               <span>
                 {user.is_online 
                   ? 'Active now' 
-                  : user.last_seen 
-                    ? `Last seen ${format(new Date(user.last_seen), 'MMM d, yyyy \'at\' h:mm a')}`
-                    : 'Last seen recently'
+                  : (() => {
+                      try {
+                        if (!user.last_seen) return 'Last seen recently';
+                        const date = new Date(user.last_seen);
+                        if (isNaN(date.getTime())) return 'Last seen recently';
+                        return `Last seen ${format(date, 'MMM d, yyyy \'at\' h:mm a')}`;
+                      } catch {
+                        return 'Last seen recently';
+                      }
+                    })()
                 }
               </span>
             </div>
@@ -114,10 +121,16 @@ export const UserProfileDialog = ({ user, open, onOpenChange }: UserProfileDialo
             <div className="flex items-center gap-3 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span>
-                {user.created_at 
-                  ? `Joined ${format(new Date(user.created_at), 'MMMM yyyy')}`
-                  : 'Member'
-                }
+                {(() => {
+                  try {
+                    if (!user.created_at) return 'Member';
+                    const date = new Date(user.created_at);
+                    if (isNaN(date.getTime())) return 'Member';
+                    return `Joined ${format(date, 'MMMM yyyy')}`;
+                  } catch {
+                    return 'Member';
+                  }
+                })()}
               </span>
             </div>
           </div>

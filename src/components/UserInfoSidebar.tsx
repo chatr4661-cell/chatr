@@ -129,9 +129,16 @@ export const UserInfoSidebar = ({ contact, open, onOpenChange }: UserInfoSidebar
                 <p className="text-sm">
                   {contact.is_online 
                     ? 'Active now' 
-                    : contact.last_seen 
-                      ? format(new Date(contact.last_seen), 'MMM d, yyyy \'at\' h:mm a')
-                      : 'Recently'
+                    : (() => {
+                        try {
+                          if (!contact.last_seen) return 'Recently';
+                          const date = new Date(contact.last_seen);
+                          if (isNaN(date.getTime())) return 'Recently';
+                          return format(date, 'MMM d, yyyy \'at\' h:mm a');
+                        } catch {
+                          return 'Recently';
+                        }
+                      })()
                   }
                 </p>
               </div>
@@ -142,10 +149,16 @@ export const UserInfoSidebar = ({ contact, open, onOpenChange }: UserInfoSidebar
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground">Member Since</p>
                 <p className="text-sm">
-                  {contact.created_at 
-                    ? format(new Date(contact.created_at), 'MMMM yyyy')
-                    : 'Recently joined'
-                  }
+                  {(() => {
+                    try {
+                      if (!contact.created_at) return 'Recently joined';
+                      const date = new Date(contact.created_at);
+                      if (isNaN(date.getTime())) return 'Recently joined';
+                      return format(date, 'MMMM yyyy');
+                    } catch {
+                      return 'Recently joined';
+                    }
+                  })()}
                 </p>
               </div>
             </div>
