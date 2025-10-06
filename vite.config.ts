@@ -19,8 +19,17 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    exclude: ['@radix-ui/react-tooltip'],
+    include: ['react', 'react-dom'],
+    esbuildOptions: {
+      mainFields: ['module', 'main'],
+    },
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
   },
 }));
