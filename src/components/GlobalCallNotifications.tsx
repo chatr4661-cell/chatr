@@ -449,9 +449,9 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
           console.log('📱 Showing incoming call dialog for:', call.caller_name);
           setIncomingCall(call);
           
-          // Play ringtone
-          const audio = new Audio('/ringtone.mp3');
-          audio.loop = true;
+          // Play ringtone once
+          const audio = new Audio('/ringtones/perfect-ring.mp3');
+          audio.loop = false;
           audio.play().catch(e => console.log('Could not play ringtone:', e));
           ringtoneRef.current = audio;
 

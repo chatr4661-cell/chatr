@@ -46,7 +46,7 @@ export const ImprovedCallNotifications = ({ userId, username }: ImprovedCallNoti
   const playRingtone = () => {
     try {
       const audio = new Audio(userCallRingtone);
-      audio.loop = true;
+      audio.loop = false;
       audio.volume = 0.8;
       
       audio.play().then(() => {
