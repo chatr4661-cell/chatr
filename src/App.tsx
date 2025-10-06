@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalCallNotifications } from "@/components/GlobalCallNotifications";
+import { NetworkStatus } from "@/components/NetworkStatus";
+import { InstallPWAPrompt } from "@/components/InstallPWAPrompt";
 import Index from "./pages/Index";
 import QRPayment from "./pages/QRPayment";
 import Auth from "./pages/Auth";
@@ -89,6 +91,11 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        
+        {/* PWA Components */}
+        <NetworkStatus />
+        <InstallPWAPrompt />
+        
         {/* Global Call Notifications - appears anywhere in the app */}
         {user && profile && (
           <GlobalCallNotifications 

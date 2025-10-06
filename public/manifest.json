@@ -1,0 +1,51 @@
+{
+  "name": "Chatr - Smart Messaging & Healthcare",
+  "short_name": "Chatr",
+  "description": "Next-generation messaging app with healthcare integration",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#8B5CF6",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/chatr-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/chatr-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/chatr-logo.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["social", "health"],
+  "shortcuts": [
+    {
+      "name": "New Message",
+      "short_name": "Message",
+      "description": "Start a new conversation",
+      "url": "/chat",
+      "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Video Call",
+      "short_name": "Call",
+      "description": "Start a video call",
+      "url": "/chat-enhanced",
+      "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
