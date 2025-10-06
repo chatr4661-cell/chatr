@@ -1465,6 +1465,16 @@ const Chat = () => {
                 </div>
               )}
 
+              {/* AI Suggestions Panel */}
+              {messages.length > 0 && !showVoiceRecorder && (
+                <div className="px-3 pb-2">
+                  <AISmartReplyPanel
+                    lastMessage={messages[messages.length - 1]?.content || ''}
+                    onSelectReply={(reply) => setMessageInput(reply)}
+                  />
+                </div>
+              )}
+
               {/* Input Area - Glass UI */}
               <div className="p-3 border-t border-border/30 glass backdrop-blur-xl">
                 <form onSubmit={sendMessage} className="flex items-center gap-2">
