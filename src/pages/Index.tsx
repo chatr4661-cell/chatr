@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ServiceCard from '@/components/ServiceCard';
 import { setupTestUserContacts, isTestUser } from '@/utils/testUserSetup';
+import { toast } from 'sonner';
 import { 
   Bot, 
   Stethoscope, 
@@ -24,7 +25,8 @@ import {
   Coins,
   Shield,
   QrCode,
-  Phone
+  Phone,
+  Flame
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
@@ -32,6 +34,9 @@ const Index = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isSettingUpContacts, setIsSettingUpContacts] = useState(false);
+  const [pointsBalance, setPointsBalance] = useState<number>(0);
+  const [currentStreak, setCurrentStreak] = useState<number>(0);
+  const [isLoadingPoints, setIsLoadingPoints] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -55,6 +60,52 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const loadPointsData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: pointsData } = await supabase
+        .from('user_points')
+        .select('balance')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const { data: streakData } = await supabase
+        .from('user_streaks')
+        .select('current_streak')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setPointsBalance(pointsData?.balance || 0);
+      setCurrentStreak(streakData?.current_streak || 0);
+    } catch (error) {
+      console.error('Error loading points:', error);
+    } finally {
+      setIsLoadingPoints(false);
+    }
+  };
+
+  const processDailyLogin = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase.functions.invoke('process-daily-login');
+      
+      if (error) throw error;
+      
+      if (data?.pointsAwarded > 0) {
+        toast.success(`🎉 Daily Login Bonus: ${data.pointsAwarded} points!`, {
+          description: data.message
+        });
+        loadPointsData();
+      }
+    } catch (error) {
+      console.error('Error processing daily login:', error);
+    }
+  };
+
   const checkAndSetupTestUser = async (user: any) => {
     if (user?.email && await isTestUser()) {
       const hasSetup = localStorage.getItem(`contacts_setup_${user.email}`);
@@ -65,6 +116,10 @@ const Index = () => {
         setIsSettingUpContacts(false);
       }
     }
+    
+    // Load points and process daily login for all users
+    await loadPointsData();
+    await processDailyLogin();
   };
 
   const handleSignOut = async () => {
@@ -201,6 +256,23 @@ const Index = () => {
         <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
           <img src={logo} alt="Chatr Logo" className="h-7 object-contain" />
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/chatr-points')}
+              className="h-8 px-2 gap-1.5 rounded-full bg-gradient-to-br from-amber-500/10 to-yellow-500/10 hover:from-amber-500/20 hover:to-yellow-500/20 transition-all"
+            >
+              <Coins className="w-4 h-4 text-amber-500" />
+              <span className="text-[15px] font-semibold text-amber-600 dark:text-amber-400">
+                {isLoadingPoints ? '...' : pointsBalance.toLocaleString()}
+              </span>
+              {currentStreak > 0 && (
+                <div className="flex items-center gap-0.5 ml-0.5">
+                  <Flame className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-[13px] font-bold text-orange-600 dark:text-orange-400">{currentStreak}</span>
+                </div>
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="sm"

@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalCallNotifications } from "@/components/GlobalCallNotifications";
 import Index from "./pages/Index";
-import Home from "./pages/Home";
 import QRPayment from "./pages/QRPayment";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
@@ -99,8 +98,7 @@ const App = () => {
         )}
         <BrowserRouter>
           <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/chat" element={<Chat />} />
