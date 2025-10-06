@@ -210,7 +210,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       // Process offer FIRST
       if (offerSignal && !peerConnection.currentRemoteDescription) {
         console.log('📥 Processing existing offer');
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(offerSignal.signal_data));
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offerSignal.signal_data as unknown as RTCSessionDescriptionInit));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         
@@ -225,7 +225,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         // THEN process ICE candidates (only after remote description is set)
         for (const signal of iceCandidates) {
           console.log('📥 Adding buffered ICE candidate');
-          await peerConnection.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+          await peerConnection.addIceCandidate(new RTCIceCandidate(signal.signal_data as unknown as RTCIceCandidateInit));
         }
       }
 

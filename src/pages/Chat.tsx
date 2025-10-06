@@ -37,6 +37,7 @@ import { QRScanner } from '@/components/QRScanner';
 import { DeviceSessions } from '@/components/DeviceSessions';
 import { RealtimeDebugPanel } from '@/components/RealtimeDebugPanel';
 import { OfflineChat } from '@/components/OfflineChat';
+import { ImprovedCallNotifications } from '@/components/ImprovedCallNotifications';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import {
@@ -1539,7 +1540,13 @@ const Chat = () => {
         onSend={handlePollSend}
       />
 
-      {/* Calls are now fully handled by GlobalCallNotifications component */}
+      {/* Improved Call Notifications System */}
+      {profile && (
+        <ImprovedCallNotifications 
+          userId={user.id} 
+          username={profile.username} 
+        />
+      )}
 
       {/* QR Scanner for linking devices */}
       <QRScanner open={showQRScanner} onOpenChange={setShowQRScanner} />
