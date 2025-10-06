@@ -90,22 +90,21 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <Toaster />
-        <Sonner />
-      
-      {/* PWA Components */}
-      <NetworkStatus />
-      <InstallPWAPrompt />
-      
-      {/* Global Call Notifications - appears anywhere in the app */}
-      {user && profile && (
-        <GlobalCallNotifications 
-          userId={user.id} 
-          username={profile.username || 'User'} 
-        />
-      )}
-      <BrowserRouter>
-        <Routes>
+        {/* PWA Components */}
+        <NetworkStatus />
+        <InstallPWAPrompt />
+        
+        {/* Global Call Notifications - appears anywhere in the app */}
+        {user && profile && (
+          <GlobalCallNotifications 
+            userId={user.id} 
+            username={profile.username || 'User'} 
+          />
+        )}
+        <BrowserRouter>
+          <Toaster />
+          <Sonner />
+          <Routes>
         <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/onboarding" element={<Onboarding />} />
@@ -143,8 +142,8 @@ const App = () => {
           <Route path="/download" element={<Download />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
   );
