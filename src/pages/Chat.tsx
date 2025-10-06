@@ -1282,11 +1282,15 @@ const Chat = () => {
                                 }`}>
                                   {/* Reply Preview in Message */}
                                   {message.reply_to_id && (
-                                    <div className="mb-2 pl-2 border-l-4 border-primary/50 bg-muted/30 rounded p-2">
-                                      <p className="text-xs font-medium text-primary">
+                                    <div className={`mb-2 pl-2 border-l-4 rounded p-2 ${
+                                      isOwn 
+                                        ? 'border-white/40 bg-white/10' 
+                                        : 'border-primary/50 bg-muted/30'
+                                    }`}>
+                                      <p className={`text-xs font-medium ${isOwn ? 'text-white' : 'text-primary'}`}>
                                         Reply to message
                                       </p>
-                                      <p className="text-xs text-muted-foreground truncate">
+                                      <p className={`text-xs truncate ${isOwn ? 'text-white/80' : 'text-muted-foreground'}`}>
                                         Tap to view original
                                       </p>
                                     </div>
@@ -1308,25 +1312,25 @@ const Chat = () => {
                                       messageId={message.id}
                                       originalText={message.content}
                                       userLanguage={profile?.preferred_language || 'en'}
-                                      className="text-[15px] break-words whitespace-pre-wrap leading-[1.4]"
+                                      className="text-[15px] font-medium break-words whitespace-pre-wrap leading-[1.4]"
                                     />
                                   ) : (
-                                    <p className="text-[15px] break-words whitespace-pre-wrap leading-[1.4]">{message.content}</p>
+                                    <p className="text-[15px] font-medium break-words whitespace-pre-wrap leading-[1.4]">{message.content}</p>
                                   )}
-                                  <div className="flex items-center gap-1 justify-end mt-0.5">
+                                  <div className="flex items-center gap-1 justify-end mt-1">
                                     {message.is_edited && (
-                                      <span className={`text-[11px] ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>edited</span>
+                                      <span className={`text-[11px] font-medium ${isOwn ? 'text-white/90' : 'text-muted-foreground/90'}`}>edited</span>
                                     )}
-                                    <span className={`text-[11px] ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>
+                                    <span className={`text-[11px] font-medium ${isOwn ? 'text-white/90' : 'text-muted-foreground/90'}`}>
                                       {formatTime(message.created_at)}
                                     </span>
                                     {isOwn && (
                                       message.status === 'read' || message.read_at ? (
-                                        <CheckCheck className="h-3.5 w-3.5 text-white/90" />
+                                        <CheckCheck className="h-3.5 w-3.5 text-white" />
                                       ) : message.status === 'delivered' ? (
-                                        <CheckCheck className="h-3.5 w-3.5 text-white/70" />
+                                        <CheckCheck className="h-3.5 w-3.5 text-white/90" />
                                       ) : (
-                                        <Check className="h-3.5 w-3.5 text-white/70" />
+                                        <Check className="h-3.5 w-3.5 text-white/90" />
                                       )
                                     )}
                                   </div>
