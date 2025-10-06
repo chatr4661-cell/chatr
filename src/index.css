@@ -20,10 +20,10 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     --popover: 200 40% 98%;
     --popover-foreground: 220 15% 15%;
     
-    /* Primary - Vibrant Teal/Cyan */
-    --primary: 180 85% 45%;
+    /* Primary - Deep Teal for better contrast */
+    --primary: 185 75% 35%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 180 85% 60%;
+    --primary-glow: 185 75% 45%;
     
     /* Secondary - Soft glass */
     --secondary: 200 30% 92%;

@@ -1238,8 +1238,14 @@ const Chat = () => {
                           <ContextMenuTrigger>
                             <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2 group`}>
                               {!isOwn && (
-                                <div className="flex flex-col items-center mr-2 flex-shrink-0">
-                                  <Avatar className="h-8 w-8 ring-2 ring-border/20">
+                                <div 
+                                  className="flex flex-col items-center mr-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => {
+                                    setSelectedContact(message.sender as Profile);
+                                    setShowUserProfile(true);
+                                  }}
+                                >
+                                  <Avatar className="h-8 w-8 ring-2 ring-border/20 hover:ring-primary/40 transition-all">
                                     {message.sender?.avatar_url ? (
                                       <img src={message.sender.avatar_url} alt={message.sender.username} className="object-cover" />
                                     ) : (
@@ -1248,7 +1254,7 @@ const Chat = () => {
                                       </AvatarFallback>
                                     )}
                                   </Avatar>
-                                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5 max-w-[60px] truncate text-center">
+                                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5 max-w-[60px] truncate text-center hover:text-primary transition-colors">
                                     {message.sender?.username || 'User'}
                                   </span>
                                 </div>
