@@ -1273,7 +1273,7 @@ const Chat = () => {
                                   </span>
                                 </div>
                               )}
-                              <div className={`max-w-[85%] md:max-w-[70%]`}>
+                              <div className={`max-w-[85%] md:max-w-[70%] relative`}>
                               {message.message_type === 'poll' && message.poll_options ? (
                                 <PollMessage
                                   question={message.poll_question || ''}
@@ -1366,23 +1366,25 @@ const Chat = () => {
                                       )
                                     )}
                                   </div>
-                                  
-                                  {/* Message Reactions */}
-                                  {message.reactions && message.reactions.length > 0 && (
-                                    <MessageReactions
-                                      reactions={message.reactions.reduce((acc, r) => {
-                                        const existing = acc.find(item => item.emoji === r.emoji);
-                                        if (existing) {
-                                          existing.count++;
-                                          if (r.userId === user?.id) existing.userReacted = true;
-                                        } else {
-                                          acc.push({ emoji: r.emoji, count: 1, userReacted: r.userId === user?.id });
-                                        }
-                                        return acc;
-                                      }, [] as Array<{ emoji: string; count: number; userReacted: boolean }>)}
-                                      onReact={(emoji) => handleReact(message.id, emoji)}
-                                    />
-                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Message Reactions - Below message bubble */}
+                              {message.reactions && message.reactions.length > 0 && (
+                                <div className={`absolute -bottom-3 ${isOwn ? 'right-2' : 'left-2'}`}>
+                                  <MessageReactions
+                                    reactions={message.reactions.reduce((acc, r) => {
+                                      const existing = acc.find(item => item.emoji === r.emoji);
+                                      if (existing) {
+                                        existing.count++;
+                                        if (r.userId === user?.id) existing.userReacted = true;
+                                      } else {
+                                        acc.push({ emoji: r.emoji, count: 1, userReacted: r.userId === user?.id });
+                                      }
+                                      return acc;
+                                    }, [] as Array<{ emoji: string; count: number; userReacted: boolean }>)}
+                                    onReact={(emoji) => handleReact(message.id, emoji)}
+                                  />
                                 </div>
                               )}
                               </div>
