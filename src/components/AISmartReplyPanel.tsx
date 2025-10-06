@@ -30,21 +30,12 @@ export const AISmartReplyPanel = ({ lastMessage, onSelectReply }: AISmartReplyPa
   };
 
   if (!lastMessage || replies.length === 0) {
-    return loading ? (
-      <div className="px-3 pb-2 flex items-center gap-2">
-        <Loader2 className="h-3 w-3 animate-spin text-primary" />
-        <span className="text-xs text-muted-foreground">AI Smart Replies...</span>
-      </div>
-    ) : null;
+    return null;
   }
 
   return (
     <div className="px-3 pb-2">
       <div className="flex items-center gap-1.5 flex-wrap">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground mr-1">
-          <Sparkles className="h-3 w-3" />
-          <span className="font-medium">AI Smart Replies</span>
-        </div>
         {replies.map((reply, index) => (
           <Button
             key={index}
