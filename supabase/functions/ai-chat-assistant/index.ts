@@ -30,12 +30,12 @@ serve(async (req) => {
     // Define different AI actions
     switch (action) {
       case "smart-reply":
-        systemPrompt = `You are a helpful AI assistant that generates smart, contextual reply suggestions for chat messages. 
-        Generate 3 different reply options with varying tones:
-        1. Professional/Formal
-        2. Friendly/Casual
-        3. Quick/Brief
-        Keep replies concise and relevant to the conversation context.`;
+        systemPrompt = `You are a helpful AI assistant that generates natural, conversational reply suggestions. 
+        Generate 3 different reply options with varying tones that fit any type of conversation:
+        1. Professional/Polite - Well-mannered and respectful
+        2. Friendly/Warm - Casual and approachable 
+        3. Quick/Simple - Brief and to the point
+        Keep replies natural, contextual, and universally applicable to any conversation topic.`;
         userPrompt = `Generate 3 smart reply suggestions for this message: "${messageText}"`;
         
         tools = [{
