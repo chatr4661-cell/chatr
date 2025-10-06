@@ -13,7 +13,7 @@ import {
   Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
   Reply, Forward, Star, Copy, Trash2, Edit2, Download, X, Paperclip, User,
   Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, 
-  UserPlus, QrCode, Bug, Info, WifiOff, Clock, CheckSquare, Camera
+  UserPlus, QrCode, Bug, Info, WifiOff, Clock, CheckSquare, Camera, Shield, Sparkles
 } from 'lucide-react';
 import { MessageAction } from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
@@ -45,6 +45,8 @@ import { ImprovedCallNotifications } from '@/components/ImprovedCallNotification
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
+import { AISmartReplyPanel } from '@/components/AISmartReplyPanel';
+import { AIChatToolbar } from '@/components/AIChatToolbar';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Camera as CapCamera } from '@capacitor/camera';
@@ -1463,6 +1465,30 @@ const Chat = () => {
                 </div>
               )}
 
+              {/* AI Chat Toolbar */}
+              {messages.length > 0 && (
+                <AIChatToolbar
+                  messages={messages}
+                  onCreateTask={(task) => {
+                    // Handle task creation from AI
+                    toast({
+                      title: "Task created",
+                      description: task.title
+                    });
+                  }}
+                />
+              )}
+
+              {/* AI Smart Reply Panel */}
+              {messages.length > 0 && !showVoiceRecorder && (
+                <div className="px-3 pb-2">
+                  <AISmartReplyPanel
+                    lastMessage={messages[messages.length - 1]?.content || ''}
+                    onSelectReply={(reply) => setMessageInput(reply)}
+                  />
+                </div>
+              )}
+
               {/* Smart Compose - AI Quick Replies */}
               {messages.length > 0 && !showVoiceRecorder && (
                 <SmartCompose 
@@ -1546,16 +1572,61 @@ const Chat = () => {
             </>
           ) : (
             // Empty State - No Chat Selected
-            <div className="flex-1 flex items-center justify-center bg-[#f0f2f5] dark:bg-[#0b141a] p-4">
-              <div className="text-center">
-                <MessageCircle className="h-24 w-24 mx-auto text-muted-foreground/30 mb-4" />
-                <h2 className="text-2xl font-semibold mb-2">Chatr</h2>
-                <p className="text-muted-foreground mb-6">
-                  Send and receive messages securely with healthcare providers.<br />
-                  Features offline Bluetooth mesh chat for local communication.
-                </p>
-                <Button onClick={() => navigate('/')} variant="outline">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+              <div className="text-center max-w-2xl">
+                <div className="relative inline-block mb-6">
+                  <MessageCircle className="h-24 w-24 mx-auto text-primary/30" />
+                  <Sparkles className="h-8 w-8 absolute -top-2 -right-2 text-primary animate-pulse" />
+                </div>
+                
+                <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  AI-Powered Healthcare Chat
+                </h2>
+                
+                <div className="space-y-4 text-left bg-card/50 backdrop-blur rounded-2xl p-6 border border-primary/20 mb-6">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-foreground">AI-Smart Messaging</p>
+                      <p className="text-sm text-muted-foreground">Auto-summaries, smart replies, and reminders so you never lose track</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <Shield className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-foreground">Privacy First</p>
+                      <p className="text-sm text-muted-foreground">End-to-end encrypted, metadata-light, and ephemeral chat options</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <Heart className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-foreground">Personal & Expressive</p>
+                      <p className="text-sm text-muted-foreground">Custom themes, tone-based reactions, and adaptive UI</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <CheckSquare className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-foreground">Built for Life + Work</p>
+                      <p className="text-sm text-muted-foreground">Turn messages into tasks, notes, or meeting reminders instantly</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <Activity className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-foreground">Powered by Supabase Realtime + Lovable AI</p>
+                      <p className="text-sm text-muted-foreground">Open, fast, and beautifully simple</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button onClick={() => navigate('/')} variant="outline" size="lg" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
                   Back to Home
                 </Button>
               </div>
