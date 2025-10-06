@@ -12,7 +12,7 @@ import {
   MessageCircle, Send, LogOut, Search, MoreVertical, Phone, Video, ArrowLeft, 
   Check, CheckCheck, Image as ImageIcon, Mic, MapPin, File, Smile, BarChart3,
   Reply, Forward, Star, Copy, Trash2, Edit2, Download, X, Paperclip, User,
-  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus, QrCode, Bug, Info
+  Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, UserPlus, QrCode, Bug, Info, WifiOff
 } from 'lucide-react';
 import { MessageAction } from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
@@ -36,6 +36,7 @@ import { CallInterface } from '@/components/CallInterface';
 import { QRScanner } from '@/components/QRScanner';
 import { DeviceSessions } from '@/components/DeviceSessions';
 import { RealtimeDebugPanel } from '@/components/RealtimeDebugPanel';
+import { OfflineChat } from '@/components/OfflineChat';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import {
@@ -111,9 +112,10 @@ const Chat = () => {
   const [showMessageForwarding, setShowMessageForwarding] = useState(false);
   const [messageToForward, setMessageToForward] = useState<Message | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
-  const [viewMode, setViewMode] = useState<'consumer' | 'business' | 'contacts'>('consumer');
+  const [viewMode, setViewMode] = useState<'consumer' | 'business' | 'contacts' | 'offline'>('consumer');
   const [isProvider, setIsProvider] = useState(false);
   const [allConversations, setAllConversations] = useState<any[]>([]);
+  const [showOfflineMode, setShowOfflineMode] = useState(false);
   const [activeCall, setActiveCall] = useState<{ type: 'voice' | 'video', callId: string, partnerId: string } | null>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showDeviceSessions, setShowDeviceSessions] = useState(false);
@@ -367,90 +369,77 @@ const Chat = () => {
     console.log('🎯 Selecting contact:', contact.username, contact.id);
     setSelectedContact(contact);
     
-    // Step 1: Get conversations where current user is a participant
-    const { data: myConversations, error: myConvError } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('user_id', user.id);
+    try {
+      // Get ALL conversations where BOTH users are participants (1-on-1 only)
+      const { data: allConversations, error: convError } = await supabase
+        .from('conversations')
+        .select(`
+          id,
+          is_group,
+          created_at,
+          conversation_participants!inner(user_id)
+        `)
+        .eq('is_group', false);
 
-    if (myConvError || !myConversations) {
-      console.error('❌ Error fetching my conversations:', myConvError);
-      return;
-    }
+      if (convError) {
+        console.error('❌ Error fetching conversations:', convError);
+        await createNewConversation(contact);
+        return;
+      }
 
-    const myConvIds = myConversations.map(c => c.conversation_id);
-    console.log('📋 I am in', myConvIds.length, 'conversations');
+      // Filter to find conversations where BOTH users are participants
+      const sharedConversations = (allConversations || []).filter((conv: any) => {
+        const participantIds = conv.conversation_participants.map((p: any) => p.user_id);
+        return participantIds.includes(user.id) && 
+               participantIds.includes(contact.id) &&
+               participantIds.length === 2;
+      });
 
-    if (myConvIds.length === 0) {
-      console.log('ℹ️ No existing conversations, creating new');
-      await createNewConversation(contact);
-      return;
-    }
+      console.log('🔗 Found', sharedConversations.length, 'shared 1-on-1 conversations');
 
-    // Step 2: Get conversations where contact is ALSO a participant
-    const { data: contactConversations, error: contactConvError } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('user_id', contact.id)
-      .in('conversation_id', myConvIds);
+      if (sharedConversations.length === 0) {
+        console.log('ℹ️ No existing conversation, creating new');
+        await createNewConversation(contact);
+        return;
+      }
 
-    if (contactConvError || !contactConversations || contactConversations.length === 0) {
-      console.log('ℹ️ No shared conversations, creating new');
-      await createNewConversation(contact);
-      return;
-    }
-
-    const sharedConvIds = contactConversations.map(c => c.conversation_id);
-    console.log('🔗 Found', sharedConvIds.length, 'shared conversations');
-
-    // Step 3: Filter for 1-on-1 conversations (not groups) and find one with messages
-    const { data: conversations, error: convError } = await supabase
-      .from('conversations')
-      .select('id, is_group, created_at')
-      .in('id', sharedConvIds)
-      .eq('is_group', false);
-
-    if (convError || !conversations || conversations.length === 0) {
-      console.log('ℹ️ No 1-on-1 conversations found, creating new');
-      await createNewConversation(contact);
-      return;
-    }
-
-    console.log('💬 Found', conversations.length, '1-on-1 conversation(s)');
-
-    // Step 4: Find conversation with most messages
-    let selectedConvId = conversations[0].id;
-    
-    if (conversations.length > 1) {
-      console.log('⚠️ Multiple conversations detected, finding one with messages');
-      
-      const conversationIds = conversations.map(c => c.id);
-      const { data: messageCounts } = await supabase
+      // Get message counts for all shared conversations
+      const convIds = sharedConversations.map((c: any) => c.id);
+      const { data: messages, error: msgError } = await supabase
         .from('messages')
         .select('conversation_id')
-        .in('conversation_id', conversationIds);
-      
-      if (messageCounts && messageCounts.length > 0) {
-        const counts: Record<string, number> = {};
-        messageCounts.forEach(m => {
-          counts[m.conversation_id] = (counts[m.conversation_id] || 0) + 1;
-        });
-        
-        let maxCount = 0;
-        Object.entries(counts).forEach(([convId, count]) => {
-          if (count > maxCount) {
-            maxCount = count;
-            selectedConvId = convId;
-          }
-        });
-        
-        console.log('✅ Using conversation with', maxCount, 'messages:', selectedConvId);
-      }
-    }
+        .in('conversation_id', convIds);
 
-    console.log('✅ Selected conversation:', selectedConvId);
-    setConversationId(selectedConvId);
-    await loadMessages(selectedConvId);
+      if (msgError) {
+        console.error('❌ Error counting messages:', msgError);
+      }
+
+      // Count messages per conversation
+      const messageCounts: Record<string, number> = {};
+      (messages || []).forEach(m => {
+        messageCounts[m.conversation_id] = (messageCounts[m.conversation_id] || 0) + 1;
+      });
+
+      // ALWAYS prefer conversation with most messages
+      let selectedConv = sharedConversations[0];
+      let maxMessages = messageCounts[selectedConv.id] || 0;
+
+      sharedConversations.forEach((conv: any) => {
+        const count = messageCounts[conv.id] || 0;
+        if (count > maxMessages) {
+          maxMessages = count;
+          selectedConv = conv;
+        }
+      });
+
+      console.log(`✅ Selected conversation ${selectedConv.id} with ${maxMessages} messages`);
+      setConversationId(selectedConv.id);
+      await loadMessages(selectedConv.id);
+
+    } catch (error) {
+      console.error('❌ Error in selectContact:', error);
+      await createNewConversation(contact);
+    }
   };
   
   const createNewConversation = async (contact: Profile) => {
@@ -1004,7 +993,7 @@ const Chat = () => {
       {/* Main Container - WhatsApp/Telegram Style */}
       <div className="flex w-full max-w-full mx-auto">
         {/* Sidebar - Contact List */}
-        <div className={`${selectedContact ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-border bg-card`}>
+        <div className={`${selectedContact || viewMode === 'offline' ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-border bg-card`}>
           {/* Header */}
           <div className="p-3 border-b border-border bg-primary/5">
             <div className="flex items-center gap-3 mb-3">
@@ -1034,6 +1023,15 @@ const Chat = () => {
                 title="Contacts"
               >
                 <UsersIcon className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode(viewMode === 'offline' ? 'consumer' : 'offline')}
+                className="rounded-full hover:bg-primary/10"
+                title="Offline Chat Mode"
+              >
+                <WifiOff className="h-5 w-5" />
               </Button>
               {isProvider && (
                 <Button
@@ -1084,8 +1082,12 @@ const Chat = () => {
             </div>
           </div>
 
-          {/* Contacts List or Contact Manager */}
-          {viewMode === 'contacts' ? (
+          {/* Contacts List, Contact Manager, or Offline Chat */}
+          {viewMode === 'offline' ? (
+            <div className="flex-1">
+              {/* Offline mode will be rendered in main area */}
+            </div>
+          ) : viewMode === 'contacts' ? (
             <ContactManager 
               userId={user?.id || ''} 
               onContactSelect={(contact) => {
@@ -1158,8 +1160,10 @@ const Chat = () => {
         </div>
 
         {/* Chat Area */}
-        <div className={`${selectedContact ? 'flex' : 'hidden md:flex'} flex-1 flex-col bg-background`}>
-          {selectedContact ? (
+        <div className={`${selectedContact || viewMode === 'offline' ? 'flex' : 'hidden md:flex'} flex-1 flex-col bg-background`}>
+          {viewMode === 'offline' ? (
+            <OfflineChat />
+          ) : selectedContact ? (
             <>
               {/* Chat Header - Enhanced */}
               <div className="px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur-md flex items-center justify-between">
@@ -1466,9 +1470,10 @@ const Chat = () => {
             <div className="flex-1 flex items-center justify-center bg-[#f0f2f5] dark:bg-[#0b141a] p-4">
               <div className="text-center">
                 <MessageCircle className="h-24 w-24 mx-auto text-muted-foreground/30 mb-4" />
-                <h2 className="text-2xl font-semibold mb-2">HealthMessenger</h2>
+                <h2 className="text-2xl font-semibold mb-2">Chatr</h2>
                 <p className="text-muted-foreground mb-6">
-                  Send and receive messages securely with healthcare providers
+                  Send and receive messages securely with healthcare providers.<br />
+                  Features offline Bluetooth mesh chat for local communication.
                 </p>
                 <Button onClick={() => navigate('/')} variant="outline">
                   <ArrowLeft className="h-4 w-4 mr-2" />
