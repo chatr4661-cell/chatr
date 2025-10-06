@@ -42,7 +42,7 @@ export const ImprovedCallNotifications = ({ userId, username }: ImprovedCallNoti
     }
   }, [userId]);
 
-  // Improved ringtone with vibration
+  // Improved ringtone with vibration - short duration
   const playRingtone = () => {
     try {
       const audio = new Audio(userCallRingtone);
@@ -61,6 +61,11 @@ export const ImprovedCallNotifications = ({ userId, username }: ImprovedCallNoti
       });
       
       ringtoneRef.current = audio;
+
+      // Stop ringtone after 3 seconds
+      setTimeout(() => {
+        stopRingtone();
+      }, 3000);
 
       // Add vibration on mobile
       if (Capacitor.isNativePlatform()) {
@@ -187,6 +192,10 @@ export const ImprovedCallNotifications = ({ userId, username }: ImprovedCallNoti
             console.log('🔚 Incoming call ended');
             stopRingtone();
             setIncomingCall(null);
+            toast({
+              title: "Call cancelled",
+              description: "The caller ended the call",
+            });
           }
         }
       })
