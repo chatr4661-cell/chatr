@@ -130,24 +130,10 @@ const Index = () => {
   const chatrServices = [
     {
       icon: MessageCircle,
-      title: 'Messages',
-      description: 'Chat with anyone, anywhere',
+      title: 'Chat',
+      description: 'Messages, calls & contacts',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
       route: '/chat'
-    },
-    {
-      icon: Phone,
-      title: 'Calls',
-      description: 'Voice & video calling',
-      iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
-      route: '/chat'
-    },
-    {
-      icon: Users,
-      title: 'Contacts',
-      description: 'Manage your contacts',
-      iconColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
-      route: '/contacts'
     },
     {
       icon: Coins,
