@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalCallNotifications } from "@/components/GlobalCallNotifications";
 import { NetworkStatus } from "@/components/NetworkStatus";
@@ -88,8 +89,9 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster />
-      <Sonner />
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <Toaster />
+        <Sonner />
       
       {/* PWA Components */}
       <NetworkStatus />
@@ -143,6 +145,7 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
