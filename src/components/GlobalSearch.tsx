@@ -144,33 +144,36 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
 
       {/* Search Results Dropdown */}
       {searchResults.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-96 overflow-y-auto z-50 mx-4">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-background/95 backdrop-blur-xl border border-border rounded-2xl shadow-elevated max-h-96 overflow-y-auto z-50 mx-4">
           {searchResults.map((user) => (
             <button
               key={user.id}
               onClick={() => handleUserSelect(user)}
-              className="w-full flex items-center gap-3 p-3 hover:bg-accent/50 transition-colors first:rounded-t-xl last:rounded-b-xl"
+              className="w-full flex items-center gap-3 p-4 hover:bg-primary/10 transition-colors first:rounded-t-2xl last:rounded-b-2xl border-b border-border/30 last:border-b-0"
             >
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-12 w-12 ring-2 ring-primary/20">
                 {user.avatar_url ? (
                   <img src={user.avatar_url} alt={user.username} />
                 ) : (
-                  <AvatarFallback className="bg-primary/10 text-primary">
+                  <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-accent text-primary-foreground font-semibold">
                     {user.username?.[0]?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 )}
               </Avatar>
               <div className="flex-1 text-left">
-                <p className="font-medium text-foreground">{user.username}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground text-base">{user.username}</p>
+                <p className="text-sm text-muted-foreground">
                   {user.phone_number || user.email}
                 </p>
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs">
                 {user.is_online ? (
-                  <span className="text-green-500">● Online</span>
+                  <span className="flex items-center gap-1.5 text-green-500 font-medium">
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    Online
+                  </span>
                 ) : (
-                  'Offline'
+                  <span className="text-muted-foreground">Offline</span>
                 )}
               </div>
             </button>
