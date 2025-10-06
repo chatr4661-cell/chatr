@@ -47,6 +47,68 @@ export type Database = {
         }
         Relationships: []
       }
+      announcement_reads: {
+        Row: {
+          announcement_id: string | null
+          id: string
+          read_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          announcement_id?: string | null
+          id?: string
+          read_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          announcement_id?: string | null
+          id?: string
+          read_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_reads_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          delivery_method: string | null
+          id: string
+          is_active: boolean | null
+          message: string
+          target_audience: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          delivery_method?: string | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          target_audience?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          delivery_method?: string | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          target_audience?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_date: string

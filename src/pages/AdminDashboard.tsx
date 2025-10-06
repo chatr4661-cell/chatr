@@ -16,7 +16,9 @@ import {
   BarChart3,
   CreditCard,
   Coins,
-  Settings
+  Settings,
+  Megaphone,
+  UserCog
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -155,6 +157,42 @@ const AdminDashboard = () => {
 
         {/* Action Cards */}
         <div className="space-y-2">
+          <Card 
+            className="p-3 backdrop-blur-xl bg-gradient-to-r from-indigo-500/10 to-indigo-600/10 border-indigo-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            onClick={() => navigate("/admin/users")}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserCog className="h-4 w-4 text-indigo-500" />
+                <div>
+                  <h3 className="text-xs font-semibold">User Management</h3>
+                  <p className="text-[10px] text-muted-foreground">View and manage all users</p>
+                </div>
+              </div>
+              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
+                Open
+              </Button>
+            </div>
+          </Card>
+
+          <Card 
+            className="p-3 backdrop-blur-xl bg-gradient-to-r from-cyan-500/10 to-cyan-600/10 border-cyan-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            onClick={() => navigate("/admin/announcements")}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-cyan-500" />
+                <div>
+                  <h3 className="text-xs font-semibold">Announcements</h3>
+                  <p className="text-[10px] text-muted-foreground">Send updates to all users</p>
+                </div>
+              </div>
+              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
+                Open
+              </Button>
+            </div>
+          </Card>
+
           <Card 
             className="p-3 backdrop-blur-xl bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-500/20 cursor-pointer hover:scale-[1.01] transition-all"
             onClick={() => navigate("/admin/providers")}

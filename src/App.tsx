@@ -29,6 +29,8 @@ import AdminAnalytics from "./pages/admin/Analytics";
 import AdminDocuments from "./pages/admin/Documents";
 import AdminPoints from "./pages/admin/Points";
 import AdminSettings from "./pages/admin/Settings";
+import AdminUsers from "./pages/admin/Users";
+import AdminAnnouncements from "./pages/admin/Announcements";
 import ProviderPortal from "./pages/ProviderPortal";
 import ProviderAppointments from "./pages/provider/Appointments";
 import ProviderServices from "./pages/provider/Services";
@@ -111,6 +113,8 @@ const App = () => {
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/announcements" element={<AdminAnnouncements />} />
             <Route path="/admin/providers" element={<AdminProviders />} />
             <Route path="/admin/payments" element={<AdminPayments />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
