@@ -170,15 +170,21 @@ export const ImprovedCallNotifications = ({ userId, username }: ImprovedCallNoti
       }, (payload) => {
         const updatedCall = payload.new as any;
         
+        console.log('📞 Call update received:', updatedCall);
+        
         if (updatedCall.status === 'ended') {
+          // Check if this is our active call or incoming call
           if (activeCall?.id === updatedCall.id) {
+            console.log('🔚 Active call ended by other party');
+            stopRingtone();
             setActiveCall(null);
             toast({
               title: "Call ended",
-              description: "The other person ended the call",
+              description: "The call has ended",
             });
           }
           if (incomingCall?.id === updatedCall.id) {
+            console.log('🔚 Incoming call ended');
             stopRingtone();
             setIncomingCall(null);
           }
