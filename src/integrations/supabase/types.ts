@@ -181,6 +181,30 @@ export type Database = {
           },
         ]
       }
+      blocked_contacts: {
+        Row: {
+          blocked_at: string | null
+          blocked_user_id: string
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          blocked_at?: string | null
+          blocked_user_id: string
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          blocked_at?: string | null
+          blocked_user_id?: string
+          id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       broadcast_lists: {
         Row: {
           created_at: string | null
@@ -1085,6 +1109,45 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pinned_messages: {
+        Row: {
+          conversation_id: string
+          id: string
+          message_id: string
+          pinned_at: string | null
+          pinned_by: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          message_id: string
+          pinned_at?: string | null
+          pinned_by: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          message_id?: string
+          pinned_at?: string | null
+          pinned_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pinned_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_messages_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]

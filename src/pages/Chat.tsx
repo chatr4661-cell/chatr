@@ -15,7 +15,7 @@ import {
   Bot, Stethoscope, AlertTriangle, Activity, Trophy, ShoppingBag, Heart, Users as UsersIcon, 
   UserPlus, QrCode, Bug, Info, WifiOff, Clock, CheckSquare, Camera, Shield, Sparkles
 } from 'lucide-react';
-import { MessageAction } from '@/components/MessageAction';
+import MessageAction from '@/components/MessageAction';
 import { PollCreator } from '@/components/PollCreator';
 import { PollMessage } from '@/components/PollMessage';
 import { MessageReactions } from '@/components/MessageReactions';
@@ -43,7 +43,7 @@ import { AIDocumentSearch } from '@/components/AIDocumentSearch';
 import { OfflineChat } from '@/components/OfflineChat';
 import { ImprovedCallNotifications } from '@/components/ImprovedCallNotifications';
 import { EmojiPicker } from '@/components/EmojiPicker';
-import { GlobalSearch } from '@/components/GlobalSearch';
+import GlobalSearch from '@/components/GlobalSearch';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { AISmartReplyPanel } from '@/components/AISmartReplyPanel';
 import { AIChatToolbar } from '@/components/AIChatToolbar';
@@ -135,6 +135,7 @@ const Chat = () => {
   const [reminderMessage, setReminderMessage] = useState<Message | null>(null);
   const [taskMessage, setTaskMessage] = useState<Message | null>(null);
   const [showMessageSearch, setShowMessageSearch] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   
   const [showUserProfile, setShowUserProfile] = useState(false);

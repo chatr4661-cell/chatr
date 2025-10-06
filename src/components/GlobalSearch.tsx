@@ -1,255 +1,212 @@
-import { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, UserPlus, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Search, FileText, Image, Video, File, User } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
-interface GlobalSearchProps {
-  onUserSelect: (user: any) => void;
-  currentUserId: string;
-  currentUsername?: string;
+interface SearchResult {
+  id: string;
+  type: 'message' | 'contact' | 'file';
+  content: string;
+  sender?: { username: string; avatar_url: string };
+  conversation_id?: string;
+  message_type?: string;
+  created_at?: string;
+  contact_name?: string;
+  contact_avatar?: string;
+  contact_id?: string;
 }
 
-export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: GlobalSearchProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [invitePhone, setInvitePhone] = useState('');
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-  const inputRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+interface GlobalSearchProps {
+  open: boolean;
+  onClose: () => void;
+}
 
-  // Update dropdown position when search results change
+const GlobalSearch = ({ open, onClose }: GlobalSearchProps) => {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    if (searchResults.length > 0 && inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      });
-    }
-  }, [searchResults]);
-
-  const normalizePhone = (phone: string) => {
-    return phone.replace(/[^\d+]/g, '');
-  };
-
-  const handleSearch = async (value: string) => {
-    setSearchTerm(value);
-    
-    if (!value.trim()) {
-      setSearchResults([]);
+    if (!query.trim()) {
+      setResults([]);
       return;
     }
 
-    setIsSearching(true);
+    const searchTimer = setTimeout(() => {
+      performSearch(query);
+    }, 300);
 
+    return () => clearTimeout(searchTimer);
+  }, [query]);
+
+  const performSearch = async (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
+    
+    setLoading(true);
     try {
-      const normalizedSearch = normalizePhone(value);
-      
-      // Search by username, email, or phone
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .or(`username.ilike.%${value}%,email.ilike.%${value}%,phone_number.eq.${value},phone_search.eq.${normalizedSearch}`)
-        .neq('id', currentUserId)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Search messages
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('id, content, message_type, conversation_id, created_at, sender_id')
+        .ilike('content', `%${searchQuery}%`)
+        .limit(20);
+
+      // Search contacts
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('contact_user_id, contact_name')
+        .eq('user_id', user.id)
+        .ilike('contact_name', `%${searchQuery}%`)
         .limit(10);
 
-      if (error) throw error;
+      // Get sender profiles for messages
+      const messageResults: SearchResult[] = await Promise.all((messages || []).map(async (m) => {
+        const { data: sender } = await supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', m.sender_id)
+          .single();
 
-      console.log('🔍 Search results:', data);
-      setSearchResults(data || []);
+        return {
+          id: m.id,
+          type: 'message' as const,
+          content: m.content,
+          sender: sender || undefined,
+          conversation_id: m.conversation_id,
+          message_type: m.message_type,
+          created_at: m.created_at,
+        };
+      }));
 
-      // If no results found and looks like a phone number, offer to invite
-      if ((!data || data.length === 0) && /^\+?\d{10,15}$/.test(normalizedSearch)) {
-        // Ensure phone has + prefix for invite
-        const phoneToInvite = value.startsWith('+') ? value : `+${value}`;
-        setInvitePhone(phoneToInvite);
-        setShowInviteDialog(true);
-      }
-    } catch (error: any) {
+      // Get contact profiles
+      const contactResults: SearchResult[] = await Promise.all((contacts || []).map(async (c) => {
+        if (!c.contact_user_id) return null;
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', c.contact_user_id)
+          .single();
+
+        return {
+          id: c.contact_user_id,
+          type: 'contact' as const,
+          content: c.contact_name || profile?.username || '',
+          contact_name: c.contact_name || profile?.username,
+          contact_avatar: profile?.avatar_url,
+          contact_id: c.contact_user_id,
+        };
+      }));
+
+      setResults([...contactResults.filter(Boolean), ...messageResults] as SearchResult[]);
+    } catch (error) {
       console.error('Search error:', error);
-      toast({
-        title: 'Search failed',
-        description: error.message,
-        variant: 'destructive',
-      });
     } finally {
-      setIsSearching(false);
+      setLoading(false);
     }
   };
 
-  const handleSendInvite = () => {
-    if (!invitePhone) return;
-
-    // Remove + and spaces for WhatsApp URL
-    const cleanPhone = invitePhone.replace(/[^0-9]/g, '');
-    
-    // Create invite message
-    const inviteMessage = `Hey! 👋 ${currentUsername || 'A friend'} invited you to join Chatr+ - a secure messaging platform with healthcare features.\n\nDownload and start chatting: ${window.location.origin}`;
-    
-    // Open WhatsApp with pre-filled message
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(inviteMessage)}`;
-    window.open(whatsappUrl, '_blank');
-
-    toast({
-      title: 'Opening WhatsApp... 💬',
-      description: 'Send the invite message to get them on board!',
-    });
-
-    setShowInviteDialog(false);
-    setSearchTerm('');
-    setInvitePhone('');
+  const getMessageIcon = (messageType?: string) => {
+    switch (messageType) {
+      case 'image': return <Image className="h-4 w-4" />;
+      case 'video': return <Video className="h-4 w-4" />;
+      case 'file': return <File className="h-4 w-4" />;
+      default: return <FileText className="h-4 w-4" />;
+    }
   };
 
-  const handleUserSelect = async (user: any) => {
-    // Add user to contacts if not already
-    try {
-      await supabase
-        .from('contacts')
-        .upsert({
-          user_id: currentUserId,
-          contact_user_id: user.id,
-          contact_name: user.username,
-          contact_phone: user.phone_number,
-          is_registered: true,
-        }, {
-          onConflict: 'user_id,contact_phone',
-        });
-
-      onUserSelect(user);
-      setSearchTerm('');
-      setSearchResults([]);
-    } catch (error: any) {
-      console.error('Error adding contact:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add contact',
-        variant: 'destructive',
-      });
+  const handleResultClick = (result: SearchResult) => {
+    if (result.type === 'contact' && result.contact_id) {
+      navigate(`/chat?contact=${result.contact_id}`);
+    } else if (result.type === 'message' && result.conversation_id) {
+      navigate(`/chat?conversation=${result.conversation_id}`);
     }
+    onClose();
   };
 
   return (
-    <>
-      <div ref={inputRef} className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-        <Input
-          value={searchTerm}
-          onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Search by name, phone, or email..."
-          className="pl-10 rounded-xl glass border-border/30 h-9 text-[15px] backdrop-blur-sm"
-        />
-        {isSearching && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-        )}
-      </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Search Everything</DialogTitle>
+        </DialogHeader>
+        
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search messages, contacts, files..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-10"
+            autoFocus
+          />
+        </div>
 
-      {/* Search Results Dropdown - Rendered via Portal */}
-      {searchResults.length > 0 && createPortal(
-        <div 
-          className="fixed bg-background/95 backdrop-blur-xl border border-border rounded-2xl shadow-elevated max-h-96 overflow-y-auto"
-          style={{
-            top: `${dropdownPosition.top}px`,
-            left: `${dropdownPosition.left}px`,
-            width: `${dropdownPosition.width}px`,
-            zIndex: 9999
-          }}
-        >
-          {searchResults.map((user) => (
-            <button
-              key={user.id}
-              onClick={() => handleUserSelect(user)}
-              className="w-full flex items-center gap-3 p-4 hover:bg-primary/10 transition-colors first:rounded-t-2xl last:rounded-b-2xl border-b border-border/30 last:border-b-0"
-            >
-              <Avatar className="h-12 w-12 ring-2 ring-primary/20">
-                {user.avatar_url ? (
-                  <img src={user.avatar_url} alt={user.username} />
-                ) : (
-                  <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-accent text-primary-foreground font-semibold">
-                    {user.username?.[0]?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <div className="flex-1 text-left">
-                <p className="font-semibold text-foreground text-base">{user.username}</p>
-                <p className="text-sm text-muted-foreground">
-                  {user.phone_number || user.email}
-                </p>
-              </div>
-              <div className="text-xs">
-                {user.is_online ? (
-                  <span className="flex items-center gap-1.5 text-green-500 font-medium">
-                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    Online
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Offline</span>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>,
-        document.body
-      )}
-
-      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>User Not Found</DialogTitle>
-            <DialogDescription>
-              No user found with this phone number. Would you like to invite them to join Chatr+?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="flex items-center gap-2 text-sm">
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{invitePhone}</span>
+        <div className="overflow-y-auto max-h-[400px] space-y-2">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Searching...</div>
+          ) : results.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {query ? 'No results found' : 'Start typing to search'}
             </div>
-            
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 space-y-2">
-              <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">📱 Important Phone Format:</p>
-              <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 ml-4">
-                <li>• Must include country code (e.g., +919717845477)</li>
-                <li>• For India: +91 followed by 10 digits</li>
-                <li>• For US: +1 followed by 10 digits</li>
-              </ul>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              We'll send them a WhatsApp message with an invitation link to join Chatr+ and connect with you.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowInviteDialog(false)}
-                className="flex-1"
+          ) : (
+            results.map((result) => (
+              <div
+                key={`${result.type}-${result.id}`}
+                onClick={() => handleResultClick(result)}
+                className="p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
               >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSendInvite}
-                className="flex-1"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Open WhatsApp
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+                {result.type === 'contact' ? (
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={result.contact_avatar} />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{result.content}</p>
+                      <Badge variant="secondary" className="text-xs">Contact</Badge>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={result.sender?.avatar_url} />
+                      <AvatarFallback>{result.sender?.username?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium">{result.sender?.username}</p>
+                        {getMessageIcon(result.message_type)}
+                        {result.created_at && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(result.created_at), { addSuffix: true })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {result.content}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
+
+export default GlobalSearch;

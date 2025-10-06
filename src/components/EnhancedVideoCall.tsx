@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera, Monitor, MonitorOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { sendSignal, subscribeToCallSignals, getTurnConfig } from "@/utils/webrtcSignaling";
@@ -34,6 +34,7 @@ export default function EnhancedVideoCall({
   const [callDuration, setCallDuration] = useState(0);
   const [connectionQuality, setConnectionQuality] = useState<"excellent" | "good" | "poor">("good");
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -228,6 +229,78 @@ export default function EnhancedVideoCall({
     }
   };
 
+  const startScreenShare = async () => {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: 'always' } as MediaTrackConstraints,
+        audio: false
+      });
+
+      const screenTrack = screenStream.getVideoTracks()[0];
+      
+      const videoSender = peerConnectionRef.current
+        ?.getSenders()
+        .find(sender => sender.track?.kind === 'video');
+
+      if (videoSender && screenTrack) {
+        await videoSender.replaceTrack(screenTrack);
+        setIsScreenSharing(true);
+
+        screenTrack.onended = () => {
+          stopScreenShare();
+        };
+      }
+
+      toast({
+        title: 'Screen sharing started',
+        description: 'Your screen is now visible',
+      });
+    } catch (error) {
+      console.error('Error starting screen share:', error);
+      toast({
+        title: 'Screen share failed',
+        description: 'Could not start screen sharing',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const stopScreenShare = async () => {
+    try {
+      const cameraStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      const cameraTrack = cameraStream.getVideoTracks()[0];
+
+      const videoSender = peerConnectionRef.current
+        ?.getSenders()
+        .find(sender => sender.track?.kind === 'video');
+
+      if (videoSender && cameraTrack) {
+        await videoSender.replaceTrack(cameraTrack);
+        setIsScreenSharing(false);
+
+        const oldVideoTrack = localStream?.getVideoTracks()[0];
+        if (oldVideoTrack) {
+          localStream?.removeTrack(oldVideoTrack);
+          oldVideoTrack.stop();
+        }
+        localStream?.addTrack(cameraTrack);
+      }
+
+      toast({
+        title: 'Screen sharing stopped',
+        description: 'Camera video resumed',
+      });
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+    }
+  };
+
   const switchCamera = async () => {
     if (!localStream || !Capacitor.isNativePlatform()) return;
     
@@ -388,6 +461,15 @@ export default function EnhancedVideoCall({
             className="rounded-full h-14 w-14"
           >
             {audioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+            className="rounded-full h-14 w-14"
+          >
+            {isScreenSharing ? <MonitorOff className="h-6 w-6" /> : <Monitor className="h-6 w-6" />}
           </Button>
 
           <Button
