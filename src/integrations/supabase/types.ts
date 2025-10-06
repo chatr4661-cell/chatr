@@ -1710,6 +1710,10 @@ export type Database = {
         Args: { user1_email: string; user2_email: string }
         Returns: undefined
       }
+      find_shared_conversation: {
+        Args: { user1_id: string; user2_id: string }
+        Returns: string
+      }
       find_user_for_call: {
         Args: { search_term: string }
         Returns: {

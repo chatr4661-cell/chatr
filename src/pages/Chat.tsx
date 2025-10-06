@@ -413,50 +413,24 @@ const Chat = () => {
   const findOrCreateConversation = async (userId1: string, userId2: string): Promise<string | null> => {
     console.log('🔍 Finding conversation between:', userId1, 'and', userId2);
     
-    // Get all conversations for user1
-    const { data: user1Convs } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('user_id', userId1);
+    // Use the database function to find shared conversation
+    const { data, error } = await supabase
+      .rpc('find_shared_conversation', {
+        user1_id: userId1,
+        user2_id: userId2
+      });
     
-    if (!user1Convs || user1Convs.length === 0) {
-      console.log('📝 User has no conversations, creating new');
+    if (error) {
+      console.error('❌ Error calling find_shared_conversation:', error);
       return await createConversation(userId1, userId2);
     }
     
-    const convIds = user1Convs.map(c => c.conversation_id);
-    console.log('📋 User1 has', convIds.length, 'conversations');
-    
-    // Check which conversations also have user2
-    const { data: user2Convs } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('user_id', userId2)
-      .in('conversation_id', convIds);
-    
-    if (!user2Convs || user2Convs.length === 0) {
-      console.log('📝 No shared conversation found, creating new');
-      return await createConversation(userId1, userId2);
+    if (data) {
+      console.log('✅ Found existing conversation:', data);
+      return data;
     }
     
-    const sharedConvIds = user2Convs.map(c => c.conversation_id);
-    console.log('🔗 Found', sharedConvIds.length, 'shared conversations');
-    
-    // Get the conversation details (exclude group chats)
-    const { data: conversations } = await supabase
-      .from('conversations')
-      .select('id, is_group, created_at')
-      .in('id', sharedConvIds)
-      .eq('is_group', false)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    
-    if (conversations && conversations.length > 0) {
-      console.log('✅ Found existing 1-on-1 conversation:', conversations[0].id);
-      return conversations[0].id;
-    }
-    
-    console.log('📝 No 1-on-1 conversation found, creating new');
+    console.log('📝 No shared conversation found, creating new');
     return await createConversation(userId1, userId2);
   };
   
