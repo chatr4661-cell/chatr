@@ -1098,6 +1098,7 @@ const Chat = () => {
                 <GlobalSearch 
                   open={showGlobalSearch}
                   onClose={() => setShowGlobalSearch(false)}
+                  onNavigate={(path) => navigate(path)}
                 />
               </div>
             )}

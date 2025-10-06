@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -24,10 +23,10 @@ interface SearchResult {
 interface GlobalSearchProps {
   open: boolean;
   onClose: () => void;
+  onNavigate: (path: string) => void;
 }
 
-const GlobalSearch = ({ open, onClose }: GlobalSearchProps) => {
-  const navigate = useNavigate();
+const GlobalSearch = ({ open, onClose, onNavigate }: GlobalSearchProps) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -126,9 +125,9 @@ const GlobalSearch = ({ open, onClose }: GlobalSearchProps) => {
 
   const handleResultClick = (result: SearchResult) => {
     if (result.type === 'contact' && result.contact_id) {
-      navigate(`/chat?contact=${result.contact_id}`);
+      onNavigate(`/chat?contact=${result.contact_id}`);
     } else if (result.type === 'message' && result.conversation_id) {
-      navigate(`/chat?conversation=${result.conversation_id}`);
+      onNavigate(`/chat?conversation=${result.conversation_id}`);
     }
     onClose();
   };
