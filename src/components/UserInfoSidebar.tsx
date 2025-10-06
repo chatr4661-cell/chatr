@@ -129,7 +129,9 @@ export const UserInfoSidebar = ({ contact, open, onOpenChange }: UserInfoSidebar
                 <p className="text-sm">
                   {contact.is_online 
                     ? 'Active now' 
-                    : format(new Date(contact.last_seen), 'MMM d, yyyy \'at\' h:mm a')
+                    : contact.last_seen 
+                      ? format(new Date(contact.last_seen), 'MMM d, yyyy \'at\' h:mm a')
+                      : 'Recently'
                   }
                 </p>
               </div>
@@ -139,7 +141,12 @@ export const UserInfoSidebar = ({ contact, open, onOpenChange }: UserInfoSidebar
               <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground">Member Since</p>
-                <p className="text-sm">{format(new Date(contact.created_at), 'MMMM yyyy')}</p>
+                <p className="text-sm">
+                  {contact.created_at 
+                    ? format(new Date(contact.created_at), 'MMMM yyyy')
+                    : 'Recently joined'
+                  }
+                </p>
               </div>
             </div>
           </div>

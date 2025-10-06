@@ -104,14 +104,21 @@ export const UserProfileDialog = ({ user, open, onOpenChange }: UserProfileDialo
               <span>
                 {user.is_online 
                   ? 'Active now' 
-                  : `Last seen ${format(new Date(user.last_seen), 'MMM d, yyyy \'at\' h:mm a')}`
+                  : user.last_seen 
+                    ? `Last seen ${format(new Date(user.last_seen), 'MMM d, yyyy \'at\' h:mm a')}`
+                    : 'Last seen recently'
                 }
               </span>
             </div>
             
             <div className="flex items-center gap-3 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>Joined {format(new Date(user.created_at), 'MMMM yyyy')}</span>
+              <span>
+                {user.created_at 
+                  ? `Joined ${format(new Date(user.created_at), 'MMMM yyyy')}`
+                  : 'Member'
+                }
+              </span>
             </div>
           </div>
         </div>
