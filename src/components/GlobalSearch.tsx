@@ -49,23 +49,19 @@ const GlobalSearch = ({ open, onClose, onNavigate }: GlobalSearchProps) => {
     
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Search messages
+      // Search all messages across all users
       const { data: messages } = await supabase
         .from('messages')
         .select('id, content, message_type, conversation_id, created_at, sender_id')
         .ilike('content', `%${searchQuery}%`)
-        .limit(20);
+        .limit(30);
 
-      // Search contacts
-      const { data: contacts } = await supabase
-        .from('contacts')
-        .select('contact_user_id, contact_name')
-        .eq('user_id', user.id)
-        .ilike('contact_name', `%${searchQuery}%`)
-        .limit(10);
+      // Search all users by username
+      const { data: allUsers } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .ilike('username', `%${searchQuery}%`)
+        .limit(20);
 
       // Get sender profiles for messages
       const messageResults: SearchResult[] = await Promise.all((messages || []).map(async (m) => {
@@ -86,27 +82,17 @@ const GlobalSearch = ({ open, onClose, onNavigate }: GlobalSearchProps) => {
         };
       }));
 
-      // Get contact profiles
-      const contactResults: SearchResult[] = await Promise.all((contacts || []).map(async (c) => {
-        if (!c.contact_user_id) return null;
-        
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username, avatar_url')
-          .eq('id', c.contact_user_id)
-          .single();
-
-        return {
-          id: c.contact_user_id,
-          type: 'contact' as const,
-          content: c.contact_name || profile?.username || '',
-          contact_name: c.contact_name || profile?.username,
-          contact_avatar: profile?.avatar_url,
-          contact_id: c.contact_user_id,
-        };
+      // Format user results
+      const userResults: SearchResult[] = (allUsers || []).map((user) => ({
+        id: user.id,
+        type: 'contact' as const,
+        content: user.username || 'Unknown User',
+        contact_name: user.username,
+        contact_avatar: user.avatar_url,
+        contact_id: user.id,
       }));
 
-      setResults([...contactResults.filter(Boolean), ...messageResults] as SearchResult[]);
+      setResults([...userResults, ...messageResults]);
     } catch (error) {
       console.error('Search error:', error);
     } finally {

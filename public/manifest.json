@@ -1,7 +1,8 @@
 {
+  "id": "app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a",
   "name": "Chatr - Smart Messaging & Healthcare",
   "short_name": "Chatr",
-  "description": "Next-generation messaging app with healthcare integration",
+  "description": "Your complete healthcare ecosystem in one chat-based platform. Connect with doctors, order medicines, track wellness, and access emergency services - all in real-time.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
@@ -25,11 +26,18 @@
   "screenshots": [
     {
       "src": "/chatr-logo.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/chatr-logo.png",
       "sizes": "540x720",
-      "type": "image/png"
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ],
-  "categories": ["social", "health"],
+  "categories": ["social", "health", "medical", "lifestyle"],
   "shortcuts": [
     {
       "name": "New Message",
@@ -44,8 +52,26 @@
       "description": "Start a video call",
       "url": "/chat-enhanced",
       "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Health Passport",
+      "short_name": "Health",
+      "description": "Access your health records",
+      "url": "/health-passport",
+      "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
     }
   ],
+  "share_target": {
+    "action": "/chat",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "lang": "en",
+  "dir": "ltr"
 }
