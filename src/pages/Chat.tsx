@@ -42,6 +42,7 @@ import { CollaborativeNotes } from '@/components/CollaborativeNotes';
 import { AIDocumentSearch } from '@/components/AIDocumentSearch';
 import { OfflineChat } from '@/components/OfflineChat';
 import { ImprovedCallNotifications } from '@/components/ImprovedCallNotifications';
+import { EmojiPicker } from '@/components/EmojiPicker';
 import { pickImage, getCurrentLocation, startVoiceRecording, stopVoiceRecording } from '@/utils/mediaUtils';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Camera as CapCamera } from '@capacitor/camera';
@@ -1499,16 +1500,13 @@ const Chat = () => {
                       value={messageInput}
                       onChange={(e) => handleInputChange(e.target.value)}
                       placeholder="Type a message"
-                      className="rounded-full bg-background border-border pr-10"
+                      className="rounded-full bg-background border-border pr-12"
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full h-8 w-8"
-                    >
-                      <Smile className="h-5 w-5 text-muted-foreground" />
-                    </Button>
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                      <EmojiPicker 
+                        onEmojiSelect={(emoji) => setMessageInput(prev => prev + emoji)}
+                      />
+                    </div>
                   </div>
 
                   {messageInput.trim() ? (
