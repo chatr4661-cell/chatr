@@ -25,7 +25,6 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
   const [isSearching, setIsSearching] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [invitePhone, setInvitePhone] = useState('');
-  const [isSendingInvite, setIsSendingInvite] = useState(false);
   const { toast } = useToast();
 
   const normalizePhone = (phone: string) => {
@@ -77,39 +76,27 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
     }
   };
 
-  const handleSendInvite = async () => {
+  const handleSendInvite = () => {
     if (!invitePhone) return;
 
-    setIsSendingInvite(true);
+    // Remove + and spaces for WhatsApp URL
+    const cleanPhone = invitePhone.replace(/[^0-9]/g, '');
+    
+    // Create invite message
+    const inviteMessage = `Hey! 👋 ${currentUsername || 'A friend'} invited you to join Chatr+ - a secure messaging platform with healthcare features.\n\nDownload and start chatting: ${window.location.origin}`;
+    
+    // Open WhatsApp with pre-filled message
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(inviteMessage)}`;
+    window.open(whatsappUrl, '_blank');
 
-    try {
-      const { data, error } = await supabase.functions.invoke('send-whatsapp-invite', {
-        body: {
-          phoneNumber: invitePhone,
-          inviterName: currentUsername || 'A friend',
-        },
-      });
+    toast({
+      title: 'Opening WhatsApp... 💬',
+      description: 'Send the invite message to get them on board!',
+    });
 
-      if (error) throw error;
-
-      toast({
-        title: 'Invite sent! 🎉',
-        description: `WhatsApp invite sent to ${invitePhone}`,
-      });
-
-      setShowInviteDialog(false);
-      setSearchTerm('');
-      setInvitePhone('');
-    } catch (error: any) {
-      console.error('Invite error:', error);
-      toast({
-        title: 'Failed to send invite',
-        description: error.message || 'Please try again later',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSendingInvite(false);
-    }
+    setShowInviteDialog(false);
+    setSearchTerm('');
+    setInvitePhone('');
   };
 
   const handleUserSelect = async (user: any) => {
@@ -227,20 +214,10 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
               </Button>
               <Button
                 onClick={handleSendInvite}
-                disabled={isSendingInvite}
                 className="flex-1"
               >
-                {isSendingInvite ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Send Invite
-                  </>
-                )}
+                <UserPlus className="h-4 w-4 mr-2" />
+                Open WhatsApp
               </Button>
             </div>
           </div>
