@@ -19,13 +19,33 @@ export const ImprovedCallNotifications = ({ userId, username }: ImprovedCallNoti
   const { toast } = useToast();
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [activeCall, setActiveCall] = useState<any>(null);
+  const [userCallRingtone, setUserCallRingtone] = useState('/ringtone.mp3');
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
   const vibrationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Get user's preferred call ringtone
+  useEffect(() => {
+    const getUserRingtone = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('call_ringtone')
+        .eq('id', userId)
+        .single();
+      
+      if (data?.call_ringtone) {
+        setUserCallRingtone(data.call_ringtone);
+      }
+    };
+
+    if (userId) {
+      getUserRingtone();
+    }
+  }, [userId]);
 
   // Improved ringtone with vibration
   const playRingtone = () => {
     try {
-      const audio = new Audio('/ringtone.mp3');
+      const audio = new Audio(userCallRingtone);
       audio.loop = true;
       audio.volume = 0.8;
       

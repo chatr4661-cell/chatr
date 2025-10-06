@@ -1169,6 +1169,7 @@ export type Database = {
         Row: {
           age: number | null
           avatar_url: string | null
+          call_ringtone: string | null
           created_at: string | null
           email: string | null
           gender: string | null
@@ -1179,6 +1180,7 @@ export type Database = {
           last_seen: string | null
           lifestyle: Json | null
           medical_history: Json | null
+          notification_tone: string | null
           onboarding_completed: boolean | null
           phone_number: string | null
           phone_search: string | null
@@ -1190,6 +1192,7 @@ export type Database = {
         Insert: {
           age?: number | null
           avatar_url?: string | null
+          call_ringtone?: string | null
           created_at?: string | null
           email?: string | null
           gender?: string | null
@@ -1200,6 +1203,7 @@ export type Database = {
           last_seen?: string | null
           lifestyle?: Json | null
           medical_history?: Json | null
+          notification_tone?: string | null
           onboarding_completed?: boolean | null
           phone_number?: string | null
           phone_search?: string | null
@@ -1211,6 +1215,7 @@ export type Database = {
         Update: {
           age?: number | null
           avatar_url?: string | null
+          call_ringtone?: string | null
           created_at?: string | null
           email?: string | null
           gender?: string | null
@@ -1221,6 +1226,7 @@ export type Database = {
           last_seen?: string | null
           lifestyle?: Json | null
           medical_history?: Json | null
+          notification_tone?: string | null
           onboarding_completed?: boolean | null
           phone_number?: string | null
           phone_search?: string | null

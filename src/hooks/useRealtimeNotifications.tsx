@@ -14,6 +14,23 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
   useEffect(() => {
     if (!userId) return;
 
+    let userNotificationTone = '/notification.mp3';
+
+    // Get user's preferred notification tone
+    const getUserTone = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('notification_tone')
+        .eq('id', userId)
+        .single();
+      
+      if (data?.notification_tone) {
+        userNotificationTone = data.notification_tone;
+      }
+    };
+
+    getUserTone();
+
     // Subscribe to new messages
     const messagesChannel = supabase
       .channel('messages-notifications')
@@ -52,7 +69,7 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
             });
 
             // Play notification sound
-            const audio = new Audio('/notification.mp3');
+            const audio = new Audio(userNotificationTone);
             audio.play().catch(e => console.log('Could not play sound:', e));
 
             // Send browser notification if permitted
