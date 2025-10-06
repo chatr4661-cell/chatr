@@ -248,6 +248,7 @@ const Chat = () => {
   };
 
   const loadProfile = async (userId: string) => {
+    console.log('🔍 Loading profile for user ID:', userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -256,15 +257,28 @@ const Chat = () => {
 
     if (error) {
       console.error('❌ Error loading profile:', error);
+      console.error('❌ User ID that failed:', userId);
       toast({
-        title: 'Error',
-        description: 'Failed to load profile',
-        variant: 'destructive'
+        title: 'Authentication Error',
+        description: 'Your session is invalid. Please log out and log back in.',
+        variant: 'destructive',
+        duration: 10000
       });
       return;
     }
 
-    console.log('✅ Profile loaded:', data);
+    if (!data) {
+      console.error('❌ No profile found for user ID:', userId);
+      toast({
+        title: 'Profile Not Found',
+        description: 'Please log out and log back in to fix your session.',
+        variant: 'destructive',
+        duration: 10000
+      });
+      return;
+    }
+
+    console.log('✅ Profile loaded:', data.username, '(', data.id, ')');
     setProfile(data);
     loadContacts();
   };
