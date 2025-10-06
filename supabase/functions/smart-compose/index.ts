@@ -42,13 +42,13 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a smart reply assistant for a healthcare messaging app. Generate 3 SHORT, natural, contextually appropriate reply suggestions. 
+            content: `You are a smart reply assistant for a messaging app. Generate 3 SHORT, natural, contextually appropriate reply suggestions based on the conversation. 
             
 Rules:
 - Keep replies under 10 words each
 - Make them conversational and natural
-- Consider healthcare context when relevant
-- Include variety: professional, friendly, and practical options
+- Match the tone of the conversation
+- Include variety: casual, friendly, and appropriate options
 - Return ONLY a JSON array of 3 strings, nothing else`
           },
           {

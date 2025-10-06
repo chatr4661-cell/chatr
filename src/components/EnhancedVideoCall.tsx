@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { sendSignal, subscribeToCallSignals, getTurnConfig } from "@/utils/webrtcSignaling";
 import { Badge } from "@/components/ui/badge";
+import { Capacitor } from "@capacitor/core";
 
 interface EnhancedVideoCallProps {
   conversationId: string;
@@ -228,14 +229,22 @@ export default function EnhancedVideoCall({
   };
 
   const switchCamera = async () => {
-    if (!localStream) return;
+    if (!localStream || !Capacitor.isNativePlatform()) return;
     
     const newFacingMode = facingMode === "user" ? "environment" : "user";
     
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: newFacingMode },
-        audio: true
+        video: { 
+          facingMode: { exact: newFacingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
 
       const videoTrack = newStream.getVideoTracks()[0];
@@ -251,8 +260,17 @@ export default function EnhancedVideoCall({
         localVideoRef.current.srcObject = newStream;
       }
       setFacingMode(newFacingMode);
+      
+      toast({
+        title: `Switched to ${newFacingMode === 'user' ? 'front' : 'back'} camera`,
+      });
     } catch (error) {
       console.error("Error switching camera:", error);
+      toast({
+        title: "Camera switch failed",
+        description: "Unable to switch camera",
+        variant: "destructive"
+      });
     }
   };
 

@@ -30,7 +30,7 @@ export const SmartCompose = ({ messages, onSelectSuggestion }: SmartComposeProps
       }));
 
       const { data, error } = await supabase.functions.invoke('smart-compose', {
-        body: { recentMessages, context: 'healthcare chat' }
+        body: { recentMessages, context: 'general conversation' }
       });
 
       if (error) throw error;

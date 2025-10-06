@@ -978,8 +978,8 @@ const Chat = () => {
       <div className="flex w-full max-w-full mx-auto">
         {/* Sidebar - Contact List */}
         <div className={`${selectedContact || viewMode === 'offline' ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-border bg-card`}>
-          {/* Header */}
-          <div className="p-3 border-b border-border bg-primary/5">
+          {/* Header - Enhanced */}
+          <div className="p-3 border-b border-border bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-3">
               <Button
                 variant="ghost"
@@ -1106,19 +1106,19 @@ const Chat = () => {
                           setSelectedContact(contact);
                           setShowUserProfile(true);
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 active:bg-muted/50 transition-all ${
-                          selectedContact?.id === contact.id ? 'bg-muted/30' : ''
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 active:bg-muted/50 transition-all duration-200 rounded-lg ${
+                          selectedContact?.id === contact.id ? 'bg-muted/30 shadow-sm' : ''
                         }`}
                         title="Long press to view profile"
                       >
-                        <div className="relative flex-shrink-0">
-                          <Avatar className="h-14 w-14 ring-2 ring-background">
-                            <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground font-semibold text-lg">
+                         <div className="relative flex-shrink-0">
+                          <Avatar className="h-14 w-14 ring-2 ring-primary/10 transition-all hover:ring-primary/20">
+                            <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-primary text-primary-foreground font-semibold text-lg">
                               {contact.username[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           {contact.is_online && (
-                            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[2.5px] border-background" />
+                            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[2.5px] border-background shadow-md animate-pulse" />
                           )}
                         </div>
                         <div className="flex-1 text-left min-w-0">
@@ -1149,8 +1149,8 @@ const Chat = () => {
             <OfflineChat />
           ) : selectedContact ? (
             <>
-              {/* Chat Header - Enhanced */}
-              <div className="px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur-md flex items-center justify-between">
+              {/* Chat Header - Modern & Smooth */}
+              <div className="px-4 py-3 border-b border-border/50 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-xl flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Button
                     variant="ghost"
@@ -1165,13 +1165,13 @@ const Chat = () => {
                     onClick={() => setShowUserProfile(true)}
                   >
                     <div className="relative flex-shrink-0">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground font-semibold text-sm">
+                      <Avatar className="h-10 w-10 ring-2 ring-primary/10">
+                        <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-primary text-primary-foreground font-semibold text-sm">
                           {selectedContact.username[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       {selectedContact.is_online && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background shadow-md animate-pulse" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -1203,8 +1203,8 @@ const Chat = () => {
                 </div>
               </div>
 
-              {/* Messages Area - Apple iOS inspired */}
-              <ScrollArea className="flex-1 p-3 bg-[#f2f2f7] dark:bg-[#000000]">
+              {/* Messages Area - Modern Chat Design */}
+              <ScrollArea className="flex-1 p-3 bg-background/50 backdrop-blur-sm">
                 <div className="space-y-1 max-w-4xl mx-auto">
                   {(() => {
                     console.log('🎨 RENDER - Messages:', messages.length, 'Conversation:', conversationId);
@@ -1256,10 +1256,10 @@ const Chat = () => {
                                   </div>
                                 </div>
                               ) : (
-                                <div className={`rounded-2xl px-3.5 py-2 shadow-sm ${
+                                 <div className={`rounded-2xl px-3.5 py-2 shadow-sm transition-all duration-200 hover:shadow-md ${
                                   isOwn
-                                    ? 'bg-[#007AFF] text-white rounded-br-md'
-                                    : 'bg-[#E5E5EA] dark:bg-[#3A3A3C] text-foreground rounded-bl-md'
+                                    ? 'bg-primary text-primary-foreground rounded-br-md'
+                                    : 'bg-card text-card-foreground rounded-bl-md border border-border'
                                 }`}>
                                   {/* Reply Preview in Message */}
                                   {message.reply_to_id && (
