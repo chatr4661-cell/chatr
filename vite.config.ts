@@ -9,22 +9,18 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react({
+      jsxImportSource: 'react',
+    }), 
+    mode === "development" && componentTagger()
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      'react': path.resolve(__dirname, './node_modules/react'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
   },
   optimizeDeps: {
-    include: [
-      'react', 
-      'react-dom',
-      '@radix-ui/react-tooltip',
-      '@radix-ui/react-toast',
-      'next-themes',
-      'sonner',
-    ],
+    exclude: ['@radix-ui/react-tooltip'],
   },
 }));
