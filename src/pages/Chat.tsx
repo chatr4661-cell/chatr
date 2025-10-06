@@ -1047,6 +1047,15 @@ const Chat = () => {
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={() => setShowGlobalSearch(true)}
+                className="rounded-full hover:bg-primary/10"
+                title="Global Search"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setViewMode(viewMode === 'offline' ? 'consumer' : 'offline')}
                 className="rounded-full hover:bg-primary/10"
                 title="Offline Chat Mode"
