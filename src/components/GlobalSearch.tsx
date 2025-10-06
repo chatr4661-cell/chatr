@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -25,7 +26,21 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
   const [isSearching, setIsSearching] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [invitePhone, setInvitePhone] = useState('');
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const inputRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Update dropdown position when search results change
+  useEffect(() => {
+    if (searchResults.length > 0 && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  }, [searchResults]);
 
   const normalizePhone = (phone: string) => {
     return phone.replace(/[^\d+]/g, '');
@@ -129,7 +144,7 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
 
   return (
     <>
-      <div className="relative">
+      <div ref={inputRef} className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
         <Input
           value={searchTerm}
@@ -142,9 +157,17 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
         )}
       </div>
 
-      {/* Search Results Dropdown */}
-      {searchResults.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-background/95 backdrop-blur-xl border border-border rounded-2xl shadow-elevated max-h-96 overflow-y-auto z-50 mx-4">
+      {/* Search Results Dropdown - Rendered via Portal */}
+      {searchResults.length > 0 && createPortal(
+        <div 
+          className="fixed bg-background/95 backdrop-blur-xl border border-border rounded-2xl shadow-elevated max-h-96 overflow-y-auto"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`,
+            zIndex: 9999
+          }}
+        >
           {searchResults.map((user) => (
             <button
               key={user.id}
@@ -178,7 +201,8 @@ export const GlobalSearch = ({ onUserSelect, currentUserId, currentUsername }: G
               </div>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
 
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
