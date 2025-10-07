@@ -36,5 +36,30 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('SW registered:', registration);
+              
+              // Request notification permission
+              if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+              }
+              
+              // Register periodic sync (if supported)
+              if ('periodicSync' in registration) {
+                registration.periodicSync.register('daily-sync', {
+                  minInterval: 24 * 60 * 60 * 1000 // 24 hours
+                }).catch(err => console.log('Periodic sync not supported'));
+              }
+            })
+            .catch(err => console.log('SW registration failed:', err));
+        });
+      }
+    </script>
   </body>
 </html>

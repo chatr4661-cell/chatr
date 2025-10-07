@@ -103,7 +103,7 @@
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
   },
-  "display_override": ["window-controls-overlay", "tabbed", "standalone"],
+  "display_override": ["tabbed", "window-controls-overlay", "standalone"],
   "edge_side_panel": {
     "preferred_width": 480
   },
