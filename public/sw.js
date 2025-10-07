@@ -120,7 +120,37 @@ self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-messages') {
     event.waitUntil(syncMessages());
   }
+  if (event.tag === 'sync-contacts') {
+    event.waitUntil(syncContacts());
+  }
 });
+
+// Periodic background sync (every 24 hours)
+self.addEventListener('periodicsync', (event) => {
+  console.log('Service Worker: Periodic sync triggered');
+  if (event.tag === 'daily-sync') {
+    event.waitUntil(performDailySync());
+  }
+});
+
+async function performDailySync() {
+  console.log('Performing daily sync...');
+  try {
+    // Sync contacts in background
+    await syncContacts();
+    // Refresh cached data
+    const cache = await caches.open(RUNTIME_CACHE);
+    await cache.add('/');
+  } catch (error) {
+    console.error('Daily sync failed:', error);
+  }
+}
+
+async function syncContacts() {
+  console.log('Syncing contacts...');
+  // Contact sync logic handled by the app
+  return Promise.resolve();
+}
 
 // Push notification handling
 self.addEventListener('push', (event) => {

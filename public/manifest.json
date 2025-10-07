@@ -11,6 +11,7 @@
   "scope": "/",
   "lang": "en",
   "dir": "ltr",
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {
       "src": "/chatr-logo.png",
@@ -102,10 +103,76 @@
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
   },
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": ["window-controls-overlay", "tabbed", "standalone"],
   "edge_side_panel": {
     "preferred_width": 480
   },
-  "related_applications": [],
+  "widgets": [
+    {
+      "name": "Quick Message",
+      "short_name": "Message",
+      "description": "Send a quick message",
+      "tag": "quick-message",
+      "template": "quick-message-template",
+      "ms_ac_template": "widgets/message-widget.json",
+      "data": "widgets/message-data.json",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "/chatr-logo.png",
+          "sizes": "600x400",
+          "label": "Quick message widget"
+        }
+      ],
+      "icons": [
+        {
+          "src": "/chatr-logo.png",
+          "sizes": "192x192"
+        }
+      ],
+      "auth": false,
+      "update": 86400
+    },
+    {
+      "name": "Health Status",
+      "short_name": "Health",
+      "description": "View your health status",
+      "tag": "health-status",
+      "template": "health-status-template",
+      "ms_ac_template": "widgets/health-widget.json",
+      "data": "widgets/health-data.json",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "/chatr-logo.png",
+          "sizes": "600x400",
+          "label": "Health status widget"
+        }
+      ],
+      "icons": [
+        {
+          "src": "/chatr-logo.png",
+          "sizes": "192x192"
+        }
+      ],
+      "auth": true,
+      "update": 3600
+    }
+  ],
+  "note_taking": {
+    "new_note_url": "/chat?note=new"
+  },
+  "scope_extensions": [
+    {
+      "origin": "https://*.chatr.app"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=app.lovable.chatr",
+      "id": "app.lovable.chatr"
+    }
+  ],
   "prefer_related_applications": false
 }
