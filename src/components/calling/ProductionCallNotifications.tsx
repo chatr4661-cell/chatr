@@ -75,6 +75,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
 
   const endActiveCall = async () => {
     if (activeCall) {
+      // Update call status in database
       await supabase
         .from('calls')
         .update({ 
@@ -82,7 +83,11 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
           ended_at: new Date().toISOString() 
         })
         .eq('id', activeCall.id);
+      
+      console.log('📞 Call ended, returning to previous screen');
     }
+    
+    // Clear call states
     setActiveCall(null);
     setIncomingCall(null);
   };

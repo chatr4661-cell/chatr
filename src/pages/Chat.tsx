@@ -463,8 +463,27 @@ const Chat = () => {
       return;
     }
 
-
     console.log('🎯 Selecting contact:', contact.username, contact.id);
+    
+    // Auto-add unknown contacts to local contacts list
+    const isInContacts = contacts.some(c => c.id === contact.id);
+    if (!isInContacts) {
+      console.log('📇 Adding unknown contact to local list:', contact.username);
+      setContacts(prev => [...prev, contact]);
+      
+      // Save to database (use username as identifier if no phone/email)
+      await supabase
+        .from('contacts')
+        .upsert({
+          user_id: user.id,
+          contact_name: contact.username,
+          contact_phone: contact.username, // Use username as identifier
+          contact_user_id: contact.id,
+          is_registered: true
+        }, {
+          onConflict: 'user_id,contact_phone'
+        });
+    }
     
     // WhatsApp/Telegram style - no connection required, anyone can message anyone
     setSelectedContact(contact);

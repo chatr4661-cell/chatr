@@ -22,4 +22,12 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     force: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 }));

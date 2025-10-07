@@ -67,9 +67,9 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
 
             const senderName = sender?.username || 'Someone';
 
-            // Show notification with sender name
+            // Show notification with sender name (clicking opens chat)
             toast({
-              title: `New message from ${senderName}`,
+              title: senderName,
               description: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : ''),
               duration: 5000,
             });
