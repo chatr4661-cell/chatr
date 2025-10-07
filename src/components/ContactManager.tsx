@@ -47,11 +47,42 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const { toast } = useToast();
 
-  // Auto-load contacts on mount
+  // Auto-sync on mount (like WhatsApp)
   useEffect(() => {
-    loadContacts();
+    if (!userId) return;
+    
+    const autoSync = async () => {
+      const lastSync = localStorage.getItem(`last_sync_${userId}`);
+      const now = new Date().getTime();
+      
+      // Auto-sync if never synced or last sync was more than 24 hours ago
+      if (!lastSync || (now - parseInt(lastSync)) > 24 * 60 * 60 * 1000) {
+        console.log('🔄 Auto-syncing contacts (first launch or 24h elapsed)...');
+        await autoSyncContacts();
+      } else {
+        // Just load existing contacts
+        await loadContacts();
+        setLastSyncTime(new Date(parseInt(lastSync)));
+      }
+    };
+    
+    autoSync();
+  }, [userId]);
+
+  // Background periodic sync every 24 hours
+  useEffect(() => {
+    if (!userId) return;
+    
+    const syncInterval = setInterval(async () => {
+      console.log('🔄 Background sync triggered...');
+      await autoSyncContacts();
+    }, 24 * 60 * 60 * 1000); // 24 hours
+    
+    return () => clearInterval(syncInterval);
   }, [userId]);
 
   const loadContacts = async () => {
@@ -188,6 +219,111 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
     }
   };
 
+  // Auto-sync function (silent, no toast on success)
+  const autoSyncContacts = async () => {
+    try {
+      setIsSyncing(true);
+      
+      // Try to get permission (if already granted, it won't prompt)
+      const permission = await Contacts.requestPermissions();
+      
+      if (permission.contacts === 'denied') {
+        console.log('ℹ️ Contacts permission denied, loading from database only');
+        await loadContacts();
+        setIsSyncing(false);
+        return;
+      }
+
+      // Get all contacts from device
+      const result = await Contacts.getContacts({
+        projection: {
+          name: true,
+          phones: true,
+          emails: true
+        }
+      });
+
+      if (!result.contacts || result.contacts.length === 0) {
+        await loadContacts();
+        setIsSyncing(false);
+        return;
+      }
+
+      let importedCount = 0;
+      let registeredCount = 0;
+
+      // Batch processing for efficiency
+      const batchSize = 50;
+      for (let i = 0; i < result.contacts.length; i += batchSize) {
+        const batch = result.contacts.slice(i, i + batchSize);
+        
+        for (const contact of batch) {
+          const name = contact.name?.display || 'Unknown';
+          const phone = contact.phones?.[0]?.number;
+          const email = contact.emails?.[0]?.address;
+
+          if (!phone && !email) continue;
+
+          const identifier = email || phone || '';
+          
+          // Check if user is registered
+          let matchedUser = null;
+          
+          if (email) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('id, username')
+              .eq('email', email)
+              .maybeSingle();
+            matchedUser = data;
+          }
+          
+          if (!matchedUser && phone) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('id, username')
+              .eq('phone_number', phone)
+              .maybeSingle();
+            matchedUser = data;
+          }
+
+          // Insert or update contact
+          await supabase
+            .from('contacts')
+            .upsert({
+              user_id: userId,
+              contact_name: name,
+              contact_phone: identifier,
+              contact_user_id: matchedUser?.id || null,
+              is_registered: !!matchedUser
+            }, {
+              onConflict: 'user_id,contact_phone'
+            });
+
+          importedCount++;
+          if (matchedUser) registeredCount++;
+        }
+      }
+
+      // Update last sync time
+      const now = new Date().getTime();
+      localStorage.setItem(`last_sync_${userId}`, now.toString());
+      setLastSyncTime(new Date(now));
+      
+      console.log(`✅ Auto-sync complete: ${importedCount} contacts, ${registeredCount} on Chatr`);
+      
+      // Reload contacts to show updated data
+      await loadContacts();
+    } catch (error: any) {
+      console.log('ℹ️ Auto-sync not available:', error.message);
+      // Silently fall back to loading from database
+      await loadContacts();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Manual sync function (with user feedback)
   const syncContacts = async () => {
     setIsLoading(true);
     
@@ -274,6 +410,11 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
         if (matchedUser) registeredCount++;
       }
 
+      // Update last sync time
+      const now = new Date().getTime();
+      localStorage.setItem(`last_sync_${userId}`, now.toString());
+      setLastSyncTime(new Date(now));
+
       toast({
         title: 'Contacts Synced!',
         description: `Imported ${importedCount} contacts. ${registeredCount} are on Chatr!`,
@@ -315,6 +456,20 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b space-y-4">
+        {/* Sync Status */}
+        {isSyncing && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-accent/50 p-2 rounded-lg">
+            <RefreshCw className="w-3 h-3 animate-spin" />
+            <span>Syncing contacts in background...</span>
+          </div>
+        )}
+        
+        {lastSyncTime && !isSyncing && (
+          <div className="text-xs text-muted-foreground text-center">
+            Last synced: {lastSyncTime.toLocaleDateString()} {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Button 
             onClick={() => setShowAddContact(true)}
@@ -326,11 +481,11 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
           </Button>
           <Button 
             onClick={syncContacts}
-            disabled={isLoading}
+            disabled={isLoading || isSyncing}
             className="flex-1"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Sync Contacts
+            <RefreshCw className={`w-4 h-4 mr-2 ${(isLoading || isSyncing) ? 'animate-spin' : ''}`} />
+            Sync Now
           </Button>
         </div>
         
