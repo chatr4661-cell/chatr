@@ -463,25 +463,10 @@ const Chat = () => {
       return;
     }
 
+
     console.log('🎯 Selecting contact:', contact.username, contact.id);
     
-    // Check if users are connected
-    const { data: connectionCheck } = await supabase
-      .from('connection_requests')
-      .select('*')
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${contact.id}),and(sender_id.eq.${contact.id},receiver_id.eq.${user.id})`)
-      .maybeSingle();
-
-    // If no connection exists or not accepted, show message
-    if (!connectionCheck || connectionCheck.status !== 'accepted') {
-      toast({
-        title: 'Connection Required',
-        description: 'You need to connect with this user first. Use the search to send a connection request.',
-        variant: 'default'
-      });
-      return;
-    }
-
+    // WhatsApp/Telegram style - no connection required, anyone can message anyone
     setSelectedContact(contact);
     
     try {

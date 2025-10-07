@@ -4,9 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Search, FileText, Image, Video, File, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, FileText, Image, Video, File, User, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { ConnectionRequestButton } from './ConnectionRequestButton';
 
 interface SearchResult {
   id: string;
@@ -166,14 +166,16 @@ const GlobalSearch = ({ open, onClose, onNavigate, currentUserId }: GlobalSearch
                       <Badge variant="secondary" className="text-xs">Contact</Badge>
                     </div>
                     {currentUserId && result.contact_id && result.contact_id !== currentUserId && (
-                      <ConnectionRequestButton 
-                        userId={result.contact_id}
-                        currentUserId={currentUserId}
-                        onConnectionAccepted={() => {
+                      <Button
+                        size="sm"
+                        onClick={() => {
                           onNavigate(`/chat?contact=${result.contact_id}`);
                           onClose();
                         }}
-                      />
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Message
+                      </Button>
                     )}
                   </div>
                 ) : (
