@@ -249,17 +249,83 @@ export type Database = {
           },
         ]
       }
+      call_participants: {
+        Row: {
+          audio_enabled: boolean | null
+          call_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          user_id: string | null
+          video_enabled: boolean | null
+        }
+        Insert: {
+          audio_enabled?: boolean | null
+          call_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          user_id?: string | null
+          video_enabled?: boolean | null
+        }
+        Update: {
+          audio_enabled?: boolean | null
+          call_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          user_id?: string | null
+          video_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "missed_calls_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
+          average_bitrate: number | null
           call_type: string
           caller_id: string
           caller_name: string | null
           caller_signal: Json | null
+          connection_quality: string | null
           conversation_id: string
+          created_at: string | null
           duration: number | null
           ended_at: string | null
           ice_servers: Json | null
           id: string
+          is_group: boolean | null
+          missed: boolean | null
+          packet_loss_percentage: number | null
+          participants: Json | null
+          quality_rating: number | null
           receiver_id: string | null
           receiver_name: string | null
           receiver_signal: Json | null
@@ -267,15 +333,23 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          average_bitrate?: number | null
           call_type: string
           caller_id: string
           caller_name?: string | null
           caller_signal?: Json | null
+          connection_quality?: string | null
           conversation_id: string
+          created_at?: string | null
           duration?: number | null
           ended_at?: string | null
           ice_servers?: Json | null
           id?: string
+          is_group?: boolean | null
+          missed?: boolean | null
+          packet_loss_percentage?: number | null
+          participants?: Json | null
+          quality_rating?: number | null
           receiver_id?: string | null
           receiver_name?: string | null
           receiver_signal?: Json | null
@@ -283,15 +357,23 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          average_bitrate?: number | null
           call_type?: string
           caller_id?: string
           caller_name?: string | null
           caller_signal?: Json | null
+          connection_quality?: string | null
           conversation_id?: string
+          created_at?: string | null
           duration?: number | null
           ended_at?: string | null
           ice_servers?: Json | null
           id?: string
+          is_group?: boolean | null
+          missed?: boolean | null
+          packet_loss_percentage?: number | null
+          participants?: Json | null
+          quality_rating?: number | null
           receiver_id?: string | null
           receiver_name?: string | null
           receiver_signal?: Json | null
@@ -2306,7 +2388,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      missed_calls_view: {
+        Row: {
+          call_type: string | null
+          caller_avatar: string | null
+          caller_id: string | null
+          caller_name: string | null
+          created_at: string | null
+          id: string | null
+          missed: boolean | null
+          receiver_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calls_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_mutual_contact: {
