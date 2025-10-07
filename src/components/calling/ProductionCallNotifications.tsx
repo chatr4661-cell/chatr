@@ -73,8 +73,18 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
     });
   };
 
-  const endActiveCall = () => {
+  const endActiveCall = async () => {
+    if (activeCall) {
+      await supabase
+        .from('calls')
+        .update({ 
+          status: 'ended', 
+          ended_at: new Date().toISOString() 
+        })
+        .eq('id', activeCall.id);
+    }
     setActiveCall(null);
+    setIncomingCall(null);
   };
 
   const sendMessage = (call: any) => {
@@ -84,12 +94,13 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
     navigate(`/chat?contact=${call.caller_id}`);
   };
 
-  // Listen for incoming calls
+  // Listen for incoming and outgoing calls
   useEffect(() => {
     if (!userId) return;
     
     console.log('📞 Setting up production call listener for:', userId);
     
+    // Listen for incoming calls
     const incomingChannel = supabase
       .channel(`production-incoming-${userId}`)
       .on('postgres_changes', {
@@ -109,6 +120,24 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
             description: `${call.caller_name} is calling...`,
             duration: 30000,
           });
+        }
+      })
+      .subscribe();
+    
+    // Listen for outgoing calls and auto-start them
+    const outgoingChannel = supabase
+      .channel(`production-outgoing-${userId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'calls',
+        filter: `caller_id=eq.${userId}`
+      }, (payload) => {
+        const call = payload.new as any;
+        
+        if (call.status === 'ringing' && !activeCall) {
+          console.log('📞 Auto-starting outgoing call:', call.receiver_name);
+          setActiveCall(call);
         }
       })
       .subscribe();
@@ -147,6 +176,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
 
     return () => {
       supabase.removeChannel(incomingChannel);
+      supabase.removeChannel(outgoingChannel);
       supabase.removeChannel(updatesChannel);
     };
   }, [userId, activeCall, incomingCall]);

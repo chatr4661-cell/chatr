@@ -296,6 +296,10 @@ export default function ProductionVoiceCall({
   };
 
   const endCall = async () => {
+    // Clean up media streams and connections first
+    cleanup();
+    
+    // Update call status in database
     await supabase
       .from('calls')
       .update({ 
@@ -305,7 +309,7 @@ export default function ProductionVoiceCall({
       })
       .eq('id', callId);
     
-    cleanup();
+    // Reset call state and return to previous screen
     onEnd();
   };
 

@@ -54,16 +54,22 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
           const isForCurrentUser = participants?.some(p => p.user_id === userId);
           
           if (isForCurrentUser) {
-            // Get sender info
-            const { data: sender } = await supabase
+            // Get sender info with proper error handling
+            const { data: sender, error: senderError } = await supabase
               .from('profiles')
               .select('username, avatar_url')
               .eq('id', message.sender_id)
               .single();
 
-            // Show notification
+            if (senderError) {
+              console.error('Error fetching sender info:', senderError);
+            }
+
+            const senderName = sender?.username || 'Someone';
+
+            // Show notification with sender name
             toast({
-              title: `${sender?.username || 'Someone'}`,
+              title: `New message from ${senderName}`,
               description: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : ''),
               duration: 5000,
             });
