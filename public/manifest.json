@@ -9,6 +9,8 @@
   "theme_color": "#8B5CF6",
   "orientation": "portrait",
   "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/chatr-logo.png",
@@ -28,16 +30,18 @@
       "src": "/chatr-logo.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "Chatr messaging interface"
     },
     {
       "src": "/chatr-logo.png",
       "sizes": "540x720",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Chatr mobile app"
     }
   ],
-  "categories": ["social", "health", "medical", "lifestyle"],
+  "categories": ["social", "health", "medical", "lifestyle", "communication"],
   "shortcuts": [
     {
       "name": "New Message",
@@ -50,7 +54,7 @@
       "name": "Video Call",
       "short_name": "Call",
       "description": "Start a video call",
-      "url": "/chat-enhanced",
+      "url": "/chat",
       "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
     },
     {
@@ -59,19 +63,49 @@
       "description": "Access your health records",
       "url": "/health-passport",
       "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Emergency",
+      "short_name": "SOS",
+      "description": "Access emergency services",
+      "url": "/emergency",
+      "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
     }
   ],
   "share_target": {
     "action": "/chat",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "title",
       "text": "text",
       "url": "url"
     }
   },
+  "file_handlers": [
+    {
+      "action": "/lab-reports",
+      "accept": {
+        "application/pdf": [".pdf"],
+        "image/*": [".jpg", ".jpeg", ".png"]
+      },
+      "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }],
+      "launch_type": "single-client"
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+chatr",
+      "url": "/chat?url=%s"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "display_override": ["window-controls-overlay", "standalone"],
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
   "related_applications": [],
-  "prefer_related_applications": false,
-  "lang": "en",
-  "dir": "ltr"
+  "prefer_related_applications": false
 }
