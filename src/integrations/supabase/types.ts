@@ -567,7 +567,9 @@ export type Database = {
       }
       device_sessions: {
         Row: {
+          biometric_enabled: boolean | null
           created_at: string | null
+          device_fingerprint: string | null
           device_name: string
           device_type: string
           expires_at: string
@@ -575,13 +577,17 @@ export type Database = {
           ip_address: string | null
           is_active: boolean | null
           last_active: string | null
+          pin_hash: string | null
           qr_token: string | null
+          quick_login_enabled: boolean | null
           session_token: string
           user_agent: string | null
           user_id: string
         }
         Insert: {
+          biometric_enabled?: boolean | null
           created_at?: string | null
+          device_fingerprint?: string | null
           device_name: string
           device_type: string
           expires_at: string
@@ -589,13 +595,17 @@ export type Database = {
           ip_address?: string | null
           is_active?: boolean | null
           last_active?: string | null
+          pin_hash?: string | null
           qr_token?: string | null
+          quick_login_enabled?: boolean | null
           session_token: string
           user_agent?: string | null
           user_id: string
         }
         Update: {
+          biometric_enabled?: boolean | null
           created_at?: string | null
+          device_fingerprint?: string | null
           device_name?: string
           device_type?: string
           expires_at?: string
@@ -603,7 +613,9 @@ export type Database = {
           ip_address?: string | null
           is_active?: boolean | null
           last_active?: string | null
+          pin_hash?: string | null
           qr_token?: string | null
+          quick_login_enabled?: boolean | null
           session_token?: string
           user_agent?: string | null
           user_id?: string
@@ -856,6 +868,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      login_attempts: {
+        Row: {
+          attempt_type: string
+          created_at: string | null
+          device_fingerprint: string
+          id: string
+          phone_number: string
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          attempt_type: string
+          created_at?: string | null
+          device_fingerprint: string
+          id?: string
+          phone_number: string
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          attempt_type?: string
+          created_at?: string | null
+          device_fingerprint?: string
+          id?: string
+          phone_number?: string
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
       }
       medication_reminders: {
         Row: {
@@ -1655,6 +1697,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           gender: string | null
+          google_id: string | null
           health_goals: string[] | null
           id: string
           is_online: boolean | null
@@ -1666,6 +1709,8 @@ export type Database = {
           onboarding_completed: boolean | null
           phone_number: string | null
           phone_search: string | null
+          pin_setup_completed: boolean | null
+          preferred_auth_method: string | null
           preferred_language: string | null
           qr_code_token: string | null
           referral_code: string | null
@@ -1681,6 +1726,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           gender?: string | null
+          google_id?: string | null
           health_goals?: string[] | null
           id: string
           is_online?: boolean | null
@@ -1692,6 +1738,8 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone_number?: string | null
           phone_search?: string | null
+          pin_setup_completed?: boolean | null
+          preferred_auth_method?: string | null
           preferred_language?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
@@ -1707,6 +1755,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           gender?: string | null
+          google_id?: string | null
           health_goals?: string[] | null
           id?: string
           is_online?: boolean | null
@@ -1718,6 +1767,8 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone_number?: string | null
           phone_search?: string | null
+          pin_setup_completed?: boolean | null
+          preferred_auth_method?: string | null
           preferred_language?: string | null
           qr_code_token?: string | null
           referral_code?: string | null

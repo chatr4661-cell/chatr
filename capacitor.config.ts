@@ -17,6 +17,9 @@ const config: CapacitorConfig = {
       backgroundColor: '#10b981',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false
+    },
+    Device: {
+      // Device ID will be used for fingerprinting
     }
   }
 };
