@@ -1,19 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useMessageSync } from '@/hooks/useMessageSync';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { ConversationList } from '@/components/chat/ConversationList';
+import { MessageThread } from '@/components/chat/MessageThread';
+import { MessageInput } from '@/components/chat/MessageInput';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const ChatEnhancedContent = () => {
-  const { user, session, isOnline, activeConversationId, setActiveConversationId } = useChatContext();
-  const { messages, isLoading, sendMessage, markAsRead } = useMessageSync(activeConversationId, user?.id);
+  const { user, session } = useChatContext();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const location = useLocation();
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [otherUser, setOtherUser] = useState<any>(null);
+  const { messages, isLoading, sendMessage, markAsRead } = useMessageSync(activeConversationId, user?.id);
+  
+  // Enable push notifications
+  usePushNotifications(user?.id);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -22,9 +32,76 @@ const ChatEnhancedContent = () => {
     }
   }, [session, user, navigate]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
+  // Handle contact selected from location state
+  useEffect(() => {
+    const selectedContact = (location.state as any)?.selectedContact;
+    if (selectedContact && user) {
+      handleStartConversation(selectedContact);
+    }
+  }, [location.state, user]);
+
+  const handleStartConversation = async (contact: any) => {
+    try {
+      // Call the create_direct_conversation function
+      const { data, error } = await supabase.rpc('create_direct_conversation', {
+        other_user_id: contact.contact_user_id || contact.id
+      });
+
+      if (error) throw error;
+
+      setActiveConversationId(data);
+      setOtherUser({
+        id: contact.contact_user_id || contact.id,
+        username: contact.contact_name || contact.username,
+        avatar_url: contact.avatar_url
+      });
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      toast.error('Failed to start conversation');
+    }
+  };
+
+  const handleConversationSelect = (conversationId: string, user?: any) => {
+    setActiveConversationId(conversationId);
+    setOtherUser(user);
+  };
+
+  const handleSendMessage = async (content: string) => {
+    if (!activeConversationId) return;
+
+    await sendMessage({
+      conversation_id: activeConversationId,
+      content,
+      message_type: 'text'
+    });
+  };
+
+  const handleStartCall = async (callType: 'voice' | 'video') => {
+    if (!activeConversationId || !otherUser) {
+      toast.error('Please select a conversation first');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('calls')
+        .insert({
+          conversation_id: activeConversationId,
+          caller_id: user!.id,
+          receiver_id: otherUser.id,
+          call_type: callType,
+          status: 'ringing'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
+    } catch (error) {
+      console.error('Error starting call:', error);
+      toast.error('Failed to start call');
+    }
   };
 
   if (!user) {
@@ -41,75 +118,117 @@ const ChatEnhancedContent = () => {
     <div className="flex flex-col h-screen bg-background">
       <NetworkStatus />
       
-      {/* Header */}
-      <div className="border-b bg-card p-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Chatr</h1>
-          <p className="text-sm text-muted-foreground">
-            {isOnline ? '🟢 Online' : '🔴 Offline'}
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
-        </Button>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto p-4">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <div className="bg-card p-6 rounded-lg border">
-            <h2 className="text-lg font-semibold mb-2">Welcome to Enhanced Chat!</h2>
-            <p className="text-muted-foreground mb-4">
-              The new chat system is now active with improved session management,
-              real-time sync, and offline support.
-            </p>
-            
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span>Session Persistence: Active</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span>Real-time Sync: Connected</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span>Offline Support: Ready</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span>Smart Notifications: Enabled</span>
-              </div>
+      {activeConversationId ? (
+        // Conversation View
+        <>
+          {/* Header */}
+          <div className="border-b bg-card p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setActiveConversationId(null);
+                  setOtherUser(null);
+                }}
+                className="rounded-full"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              
+              {otherUser && (
+                <>
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={otherUser.avatar_url} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {otherUser.username?.[0]?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{otherUser.username}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {otherUser.is_online ? 'Online' : 'Offline'}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
-            {activeConversationId && (
-              <div className="mt-4 p-4 bg-primary/10 rounded">
-                <p className="text-sm">Active Conversation: {activeConversationId}</p>
-                <p className="text-sm">Messages: {messages.length}</p>
-                <p className="text-sm">Loading: {isLoading ? 'Yes' : 'No'}</p>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleStartCall('voice')}
+                className="rounded-full"
+              >
+                <Phone className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleStartCall('video')}
+                className="rounded-full"
+              >
+                <Video className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
 
-          <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg">
-            <h3 className="font-semibold text-amber-700 dark:text-amber-400 mb-2">
-              🚧 Migration in Progress
-            </h3>
-            <p className="text-sm text-amber-600 dark:text-amber-300">
-              We're migrating from the old Chat system to this new enhanced version.
-              The full UI migration will be completed shortly. For now, you can use
-              the basic functionality here or return to <button 
-                onClick={() => navigate('/chat')}
-                className="underline font-semibold"
-              >
-                the legacy chat
-              </button>.
-            </p>
+          {/* Messages */}
+          <div className="flex-1 overflow-hidden">
+            <MessageThread
+              messages={messages}
+              userId={user.id}
+              otherUser={otherUser}
+            />
           </div>
-        </div>
-      </div>
+
+          {/* Input */}
+          <MessageInput
+            onSendMessage={handleSendMessage}
+            disabled={isLoading}
+          />
+        </>
+      ) : (
+        // Conversation List View
+        <>
+          {/* Header */}
+          <div className="border-b bg-card p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="rounded-full"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h1 className="text-xl font-semibold">Chats</h1>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/contacts')}
+            >
+              New Chat
+            </Button>
+          </div>
+
+          {/* Conversations */}
+          <div className="flex-1 overflow-hidden">
+            <ConversationList
+              userId={user.id}
+              onConversationSelect={handleConversationSelect}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };
