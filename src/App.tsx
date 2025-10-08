@@ -12,7 +12,6 @@ import Index from "./pages/Index";
 import QRPayment from "./pages/QRPayment";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
-import ChatEnhanced from "./pages/ChatEnhanced";
 import Onboarding from "./pages/Onboarding";
 import LabReports from "./pages/LabReports";
 import MedicineReminders from "./pages/MedicineReminders";
