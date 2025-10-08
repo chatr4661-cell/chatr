@@ -1,8 +1,7 @@
-import React from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { registerServiceWorker, setupInstallPrompt } from "./utils/pwaUtils";
 
 const rootElement = document.getElementById("root");
 
@@ -10,11 +9,16 @@ if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-const root = createRoot(rootElement);
-root.render(<App />);
+createRoot(rootElement).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
 
-// Register service worker for PWA support
-registerServiceWorker();
-
-// Setup install prompt handler
-setupInstallPrompt();
+// PWA setup moved to after React initialization
+setTimeout(() => {
+  import("./utils/pwaUtils").then(({ registerServiceWorker, setupInstallPrompt }) => {
+    registerServiceWorker();
+    setupInstallPrompt();
+  });
+}, 100);
