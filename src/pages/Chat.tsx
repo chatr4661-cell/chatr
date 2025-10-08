@@ -64,16 +64,31 @@ const ChatEnhancedContent = () => {
 
   const handleStartConversation = async (contact: any) => {
     try {
+      const contactUserId = contact.contact_user_id || contact.id;
+      
+      // First, ensure they're in our contacts
+      await supabase
+        .from('contacts')
+        .upsert({
+          user_id: user!.id,
+          contact_name: contact.contact_name || contact.username,
+          contact_phone: contact.email || contact.phone_number || '',
+          contact_user_id: contactUserId,
+          is_registered: true
+        }, {
+          onConflict: 'user_id,contact_phone'
+        });
+
       // Call the create_direct_conversation function
       const { data, error } = await supabase.rpc('create_direct_conversation', {
-        other_user_id: contact.contact_user_id || contact.id
+        other_user_id: contactUserId
       });
 
       if (error) throw error;
 
       setActiveConversationId(data);
       setOtherUser({
-        id: contact.contact_user_id || contact.id,
+        id: contactUserId,
         username: contact.contact_name || contact.username,
         avatar_url: contact.avatar_url
       });
