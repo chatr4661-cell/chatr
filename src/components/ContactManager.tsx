@@ -240,6 +240,19 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
     try {
       setIsSyncing(true);
       
+      // Check if we're on mobile (Capacitor)
+      const { Capacitor } = await import('@capacitor/core');
+      const isNativePlatform = Capacitor.isNativePlatform();
+      
+      if (!isNativePlatform) {
+        console.log('ℹ️ Contact sync only available on mobile devices');
+        await loadContacts();
+        setIsSyncing(false);
+        return;
+      }
+      
+      const { Contacts } = await import('@capacitor-community/contacts');
+      
       // Try to get permission (if already granted, it won't prompt)
       const permission = await Contacts.requestPermissions();
       
