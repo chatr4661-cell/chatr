@@ -459,7 +459,10 @@ const Chat = () => {
   }, [location.search, user?.id, profile]);
 
   const selectContact = async (contact: Profile) => {
+    console.log('🎯 START selectContact:', contact.username, contact.id, 'User:', user?.id);
+    
     if (!user?.id) {
+      console.error('❌ No user ID available');
       toast({
         title: 'Authentication Required',
         description: 'Please wait for authentication to complete',
@@ -468,7 +471,9 @@ const Chat = () => {
       return;
     }
 
-    console.log('🎯 Selecting contact:', contact.username, contact.id);
+    // CRITICAL: Set selected contact FIRST to immediately show chat window
+    console.log('✅ Setting selected contact:', contact.username);
+    setSelectedContact(contact);
     
     // Auto-add unknown contacts to local contacts list
     const isInContacts = contacts.some(c => c.id === contact.id);
@@ -489,9 +494,6 @@ const Chat = () => {
           onConflict: 'user_id,contact_phone'
         });
     }
-    
-    // WhatsApp/Telegram style - no connection required, anyone can message anyone
-    setSelectedContact(contact);
     
     try {
       const conversationId = await findOrCreateConversation(user.id, contact.id);
