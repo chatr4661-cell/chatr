@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useChatContext } from "@/contexts/ChatContext";
 
 interface NotificationPayload {
   new: any;
@@ -10,6 +11,7 @@ interface NotificationPayload {
 
 export const useRealtimeNotifications = (userId: string | undefined) => {
   const { toast } = useToast();
+  const { activeConversationId } = useChatContext();
 
   useEffect(() => {
     if (!userId) return;
@@ -53,7 +55,10 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
 
           const isForCurrentUser = participants?.some(p => p.user_id === userId);
           
-          if (isForCurrentUser) {
+          // Don't notify if this message is from the active conversation
+          const isFromActiveConversation = message.conversation_id === activeConversationId;
+          
+          if (isForCurrentUser && !isFromActiveConversation) {
             // Get sender info with proper error handling
             const { data: sender, error: senderError } = await supabase
               .from('profiles')

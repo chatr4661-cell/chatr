@@ -1,0 +1,112 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { Session, User } from '@supabase/supabase-js';
+
+interface ChatContextType {
+  activeConversationId: string | null;
+  setActiveConversationId: (id: string | null) => void;
+  session: Session | null;
+  user: User | null;
+  isOnline: boolean;
+}
+
+const ChatContext = createContext<ChatContextType | null>(null);
+
+export const useChatContext = () => {
+  const context = useContext(ChatContext);
+  if (!context) {
+    throw new Error('useChatContext must be used within ChatProvider');
+  }
+  return context;
+};
+
+export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Network status monitoring
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Session management with recovery
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // First, check for existing session
+        const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session retrieval error:', sessionError);
+          return;
+        }
+
+        if (existingSession && mounted) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+          console.log('✅ Session restored:', existingSession.user.id);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      }
+    };
+
+    initializeAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!mounted) return;
+
+      console.log('🔐 Auth event:', event);
+      
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+      } else if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
+        setActiveConversationId(null);
+      } else if (event === 'USER_UPDATED') {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Store active conversation in localStorage for persistence
+  useEffect(() => {
+    if (activeConversationId) {
+      localStorage.setItem('activeConversationId', activeConversationId);
+    } else {
+      localStorage.removeItem('activeConversationId');
+    }
+  }, [activeConversationId]);
+
+  const value: ChatContextType = {
+    activeConversationId,
+    setActiveConversationId,
+    session,
+    user,
+    isOnline,
+  };
+
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+};

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
+import { ChatProvider } from "@/contexts/ChatContext";
 import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import QRPayment from "./pages/QRPayment";
@@ -92,8 +93,9 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <BrowserRouter>
-          <AppLayout user={user} profile={profile}>
+        <ChatProvider>
+          <BrowserRouter>
+            <AppLayout user={user} profile={profile}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -137,6 +139,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </ChatProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
