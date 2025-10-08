@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
@@ -18,9 +18,9 @@ const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [otherUser, setOtherUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
+  const [otherUser, setOtherUser] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
   
   // Only sync messages if we have both a conversation and a valid user ID
   const { messages, isLoading, sendMessage, markAsRead } = useMessageSync(
@@ -32,7 +32,7 @@ const ChatEnhancedContent = () => {
   usePushNotifications(user?.id || undefined);
 
   // Check authentication and verify user data
-  useEffect(() => {
+  React.useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -48,14 +48,14 @@ const ChatEnhancedContent = () => {
   }, [navigate]);
 
   // Redirect if not authenticated
-  useEffect(() => {
+  React.useEffect(() => {
     if (!session) {
       navigate('/auth');
     }
   }, [session, navigate]);
 
   // Handle contact selected from location state
-  useEffect(() => {
+  React.useEffect(() => {
     const selectedContact = (location.state as any)?.selectedContact;
     if (selectedContact && user) {
       handleStartConversation(selectedContact);
