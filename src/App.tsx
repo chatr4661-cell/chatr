@@ -46,6 +46,7 @@ import Download from "./pages/Download";
 import CallHistory from "./pages/CallHistory";
 import GlobalContacts from "./pages/GlobalContacts";
 import Stories from "./pages/Stories";
+import DeviceManagement from "./pages/DeviceManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -143,6 +144,7 @@ const App = () => {
           <Route path="/global-contacts" element={<GlobalContacts />} />
           <Route path="/stories" element={<Stories />} />
           <Route path="/call-history" element={<CallHistory />} />
+          <Route path="/device-management" element={<DeviceManagement />} />
           <Route path="/download" element={<Download />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

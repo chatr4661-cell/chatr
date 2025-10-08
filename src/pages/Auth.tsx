@@ -25,45 +25,79 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check device on mount
+  // Check for OAuth redirect and handle phone setup
   useEffect(() => {
-    checkDevice();
-    
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const handleOAuthCallback = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
       if (session) {
-        navigate('/');
+        // Check if user has completed phone + PIN setup
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone_number, pin_setup_completed')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.pin_setup_completed) {
+          // User already set up, redirect to home
+          navigate('/');
+        } else if (session.user.app_metadata.provider === 'google') {
+          // New Google user, needs to set up phone + PIN
+          setStep('phone-input');
+        }
       }
-    });
+    };
+
+    handleOAuthCallback();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        navigate('/');
+        handleOAuthCallback();
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Initial device check
+  useEffect(() => {
+    checkDevice();
+  }, []);
+
   // Check if this device is recognized
   const checkDevice = async () => {
     setLoading(true);
     try {
+      // First check if user is already logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('pin_setup_completed')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.pin_setup_completed) {
+          navigate('/');
+          return;
+        }
+      }
+
       const fingerprint = await getDeviceFingerprint();
       setDeviceFingerprint(fingerprint);
 
       // Check if device exists in our database
-      const { data: session } = await supabase
+      const { data: deviceSession } = await supabase
         .from('device_sessions')
         .select('*, profiles!inner(*)')
         .eq('device_fingerprint', fingerprint)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (session && session.profiles) {
+      if (deviceSession?.profiles) {
         // Device recognized - offer quick login
         setRecognizedDevice(true);
-        setPhone(session.profiles.phone_number || '');
+        setPhone(deviceSession.profiles.phone_number || '');
         setStep('pin-entry');
       } else {
         // New device - require Google Sign-In
@@ -147,47 +181,51 @@ const Auth = () => {
           variant: 'destructive',
         });
         setLockoutTime(lockout.remainingTime || 0);
+        setLoading(false);
         return;
       }
 
-      // Get device session
-      const { data: session } = await supabase
+      // Get device session with user profile
+      const { data: deviceSession, error: sessionError } = await supabase
         .from('device_sessions')
         .select('*, profiles!inner(*)')
         .eq('device_fingerprint', deviceFingerprint)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (!session) {
-        throw new Error('Device session not found');
+      if (sessionError || !deviceSession) {
+        throw new Error('Device session not found. Please sign in with Google.');
       }
 
       // Verify PIN
-      const isValid = await verifyPin(enteredPin, session.pin_hash);
+      const isValid = await verifyPin(enteredPin, deviceSession.pin_hash);
 
       if (!isValid) {
         setPinError(true);
-        await logLoginAttempt(phone, deviceFingerprint, 'pin', false, session.user_id);
+        await logLoginAttempt(phone, deviceFingerprint, 'pin', false, deviceSession.user_id);
         toast({
           title: 'Incorrect PIN',
           description: 'Please try again',
           variant: 'destructive',
         });
         (window as any).resetPIN?.();
+        setLoading(false);
         return;
       }
 
-      // Successful login
-      await logLoginAttempt(phone, deviceFingerprint, 'pin', true, session.user_id);
+      // Successful PIN verification - now sign in with the stored session
+      await logLoginAttempt(phone, deviceFingerprint, 'pin', true, deviceSession.user_id);
 
-      // Sign in with Supabase
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: session.profiles.email || `${phone}@chatr.app`,
-        password: session.session_token, // Use session token as password
+      // Use the magic link approach - send a one-time login link
+      const { error: signInError } = await supabase.auth.signInWithOtp({
+        phone: phone,
+        options: {
+          shouldCreateUser: false
+        }
       });
 
-      if (error) {
-        // If password login fails, use Google as fallback
+      if (signInError) {
+        // Fallback: redirect to Google sign-in
         toast({
           title: 'Session Expired',
           description: 'Please sign in with Google again',
@@ -200,11 +238,13 @@ const Auth = () => {
         title: 'Welcome back!',
         description: 'Logged in successfully',
       });
+      
+      navigate('/');
     } catch (error: any) {
       console.error('PIN login error:', error);
       toast({
         title: 'Login Failed',
-        description: 'Please try signing in with Google',
+        description: error.message || 'Please try signing in with Google',
         variant: 'destructive',
       });
       setStep('google-signin');
@@ -221,45 +261,58 @@ const Auth = () => {
         description: 'PIN must be 6 digits',
         variant: 'destructive',
       });
+      (window as any).resetPIN?.();
       return;
     }
 
     setLoading(true);
     try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) {
-        throw new Error('No active session');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session. Please sign in with Google first.');
       }
 
-      const userId = session.data.session.user.id;
+      const userId = session.user.id;
       const pinHash = await hashPin(newPin);
+      const deviceName = await getDeviceName();
+      const deviceType = await getDeviceType();
 
-      // Update profile with phone number
-      await supabase
+      // Update profile with phone number and mark PIN as complete
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           phone_number: phone,
           pin_setup_completed: true,
-          preferred_auth_method: 'pin'
+          preferred_auth_method: 'pin',
+          google_id: session.user.user_metadata?.provider_id || session.user.id
         })
         .eq('id', userId);
 
+      if (profileError) throw profileError;
+
       // Create device session
-      await supabase.from('device_sessions').insert({
-        user_id: userId,
-        device_fingerprint: deviceFingerprint,
-        device_name: await getDeviceName(),
-        device_type: await getDeviceType(),
-        pin_hash: pinHash,
-        quick_login_enabled: true,
-        session_token: session.data.session.access_token,
-        is_active: true,
-        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year
-      });
+      const { error: sessionError } = await supabase
+        .from('device_sessions')
+        .insert({
+          user_id: userId,
+          device_fingerprint: deviceFingerprint,
+          device_name: deviceName,
+          device_type: deviceType,
+          pin_hash: pinHash,
+          quick_login_enabled: true,
+          session_token: session.access_token,
+          is_active: true,
+          expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        });
+
+      if (sessionError) throw sessionError;
+
+      // Log successful setup
+      await logLoginAttempt(phone, deviceFingerprint, 'pin', true, userId);
 
       toast({
-        title: 'Setup Complete!',
-        description: 'Your account is ready',
+        title: 'Setup Complete! 🎉',
+        description: 'You can now use your PIN for quick login',
       });
 
       navigate('/');
