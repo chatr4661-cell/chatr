@@ -5,9 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
-import { GlobalCallNotifications } from "@/components/GlobalCallNotifications";
-import { NetworkStatus } from "@/components/NetworkStatus";
-import { InstallPWAPrompt } from "@/components/InstallPWAPrompt";
+import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import QRPayment from "./pages/QRPayment";
 import Auth from "./pages/Auth";
@@ -94,63 +92,49 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <BrowserRouter>
-          <NetworkStatus />
-          <InstallPWAPrompt />
-          
-          {/* Global Call Notifications - appears anywhere in the app */}
-          {user && profile && (
-            <GlobalCallNotifications 
-              userId={user.id} 
-              username={profile.username || 'User'} 
-            />
-          )}
-          
-          <Routes>
-        <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/lab-reports" element={<LabReports />} />
-          <Route path="/medicine-reminders" element={<MedicineReminders />} />
-          <Route path="/youth-feed" element={<YouthFeed />} />
-          <Route path="/qr-payment" element={<QRPayment />} />
-          <Route path="/provider-register" element={<ProviderRegister />} />
-          <Route path="/ai-assistant" element={<AIAssistant />} />
-          <Route path="/booking" element={<BookingPage />} />
-          <Route path="/emergency" element={<EmergencyButton />} />
-          <Route path="/wellness" element={<WellnessTracking />} />
-          <Route path="/youth" element={<YouthEngagement />} />
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/announcements" element={<AdminAnnouncements />} />
-          <Route path="/admin/providers" element={<AdminProviders />} />
-          <Route path="/admin/payments" element={<AdminPayments />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="/admin/documents" element={<AdminDocuments />} />
-          <Route path="/admin/points" element={<AdminPoints />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/provider-portal" element={<ProviderPortal />} />
-          <Route path="/provider/appointments" element={<ProviderAppointments />} />
-          <Route path="/provider/services" element={<ProviderServices />} />
-          <Route path="/provider/payments" element={<ProviderPayments />} />
-          <Route path="/chatr-points" element={<ChatrPoints />} />
-          <Route path="/qr-login" element={<QRLogin />} />
-          <Route path="/health-passport" element={<HealthPassport />} />
-          <Route path="/contacts" element={<Contacts />} />
-          <Route path="/global-contacts" element={<GlobalContacts />} />
-          <Route path="/stories" element={<Stories />} />
-          <Route path="/call-history" element={<CallHistory />} />
-          <Route path="/device-management" element={<DeviceManagement />} />
-          <Route path="/download" element={<Download />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-          </Routes>
-            
-            {/* Toast components at the end, after all providers are initialized */}
-            <Toaster />
-            <Sonner />
+          <AppLayout user={user} profile={profile}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/lab-reports" element={<LabReports />} />
+              <Route path="/medicine-reminders" element={<MedicineReminders />} />
+              <Route path="/youth-feed" element={<YouthFeed />} />
+              <Route path="/qr-payment" element={<QRPayment />} />
+              <Route path="/provider-register" element={<ProviderRegister />} />
+              <Route path="/ai-assistant" element={<AIAssistant />} />
+              <Route path="/booking" element={<BookingPage />} />
+              <Route path="/emergency" element={<EmergencyButton />} />
+              <Route path="/wellness" element={<WellnessTracking />} />
+              <Route path="/youth" element={<YouthEngagement />} />
+              <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+              <Route path="/admin/providers" element={<AdminProviders />} />
+              <Route path="/admin/payments" element={<AdminPayments />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/documents" element={<AdminDocuments />} />
+              <Route path="/admin/points" element={<AdminPoints />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/provider-portal" element={<ProviderPortal />} />
+              <Route path="/provider/appointments" element={<ProviderAppointments />} />
+              <Route path="/provider/services" element={<ProviderServices />} />
+              <Route path="/provider/payments" element={<ProviderPayments />} />
+              <Route path="/chatr-points" element={<ChatrPoints />} />
+              <Route path="/qr-login" element={<QRLogin />} />
+              <Route path="/health-passport" element={<HealthPassport />} />
+              <Route path="/contacts" element={<Contacts />} />
+              <Route path="/global-contacts" element={<GlobalContacts />} />
+              <Route path="/stories" element={<Stories />} />
+              <Route path="/call-history" element={<CallHistory />} />
+              <Route path="/device-management" element={<DeviceManagement />} />
+              <Route path="/download" element={<Download />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppLayout>
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
