@@ -1,12 +1,7 @@
-import React from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-
-// Verify React is loaded
-if (!React || typeof React.createElement !== 'function') {
-  throw new Error('React failed to load properly');
-}
 
 const rootElement = document.getElementById("root");
 
@@ -16,9 +11,9 @@ if (!rootElement) {
 
 const root = createRoot(rootElement);
 root.render(
-  <React.StrictMode>
+  <StrictMode>
     <App />
-  </React.StrictMode>
+  </StrictMode>
 );
 
 // PWA setup - delayed to ensure React is fully initialized
