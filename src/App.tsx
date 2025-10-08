@@ -92,20 +92,20 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        {/* PWA Components */}
-        <NetworkStatus />
-        <InstallPWAPrompt />
-        
-        {/* Global Call Notifications - appears anywhere in the app */}
-        {user && profile && (
-          <GlobalCallNotifications 
-            userId={user.id} 
-            username={profile.username || 'User'} 
-          />
-        )}
         <BrowserRouter>
           <Toaster />
           <Sonner />
+          <NetworkStatus />
+          <InstallPWAPrompt />
+          
+          {/* Global Call Notifications - appears anywhere in the app */}
+          {user && profile && (
+            <GlobalCallNotifications 
+              userId={user.id} 
+              username={profile.username || 'User'} 
+            />
+          )}
+          
           <Routes>
         <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
