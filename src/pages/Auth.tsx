@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
@@ -8,30 +7,25 @@ import { Chrome } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
 const Auth = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   // Handle OAuth callback and redirect
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, session);
       if (session) {
-        console.log('Session found, redirecting to home');
-        navigate('/', { replace: true });
+        window.location.href = '/';
       }
     });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session);
       if (session) {
-        console.log('Initial session found, redirecting to home');
-        navigate('/', { replace: true });
+        window.location.href = '/';
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
 
   const handleGoogleSignIn = async () => {
