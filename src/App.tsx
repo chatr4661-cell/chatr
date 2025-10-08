@@ -91,12 +91,11 @@ const App = () => {
   }, []);
 
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <BrowserRouter>
-            <NetworkStatus />
-            <InstallPWAPrompt />
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <BrowserRouter>
+          <NetworkStatus />
+          <InstallPWAPrompt />
           
           {/* Global Call Notifications - appears anywhere in the app */}
           {user && profile && (
@@ -152,10 +151,9 @@ const App = () => {
             {/* Toast components at the end, after all providers are initialized */}
             <Toaster />
             <Sonner />
-          </BrowserRouter>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </React.StrictMode>
+        </BrowserRouter>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 };
 
