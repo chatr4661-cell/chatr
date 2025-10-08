@@ -2544,6 +2544,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_direct_conversation: {
+        Args: { other_user_id: string }
+        Returns: string
+      }
       create_mutual_contact: {
         Args: { user1_email: string; user2_email: string }
         Returns: undefined
