@@ -8,6 +8,7 @@ interface ChatContextType {
   session: Session | null;
   user: User | null;
   isOnline: boolean;
+  isAuthReady: boolean;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -25,6 +26,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   // Network status monitoring
   useEffect(() => {
@@ -57,7 +59,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (existingSession && mounted) {
           setSession(existingSession);
           setUser(existingSession.user);
+          setIsAuthReady(true);
           console.log('✅ Session restored:', existingSession.user.id);
+        } else if (mounted) {
+          setIsAuthReady(true);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -106,6 +111,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     user,
     isOnline,
+    isAuthReady,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

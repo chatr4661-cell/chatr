@@ -21,6 +21,13 @@ interface PendingMessage {
   retryCount: number;
 }
 
+// UUID validation helper
+const isValidUUID = (uuid: string | null | undefined): boolean => {
+  if (!uuid) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 export const useMessageSync = (conversationId: string | null, userId: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +37,15 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
 
   // Load messages
   const loadMessages = useCallback(async () => {
-    if (!conversationId || !userId) return;
+    if (!conversationId || !userId) {
+      console.log('⏸️ Skipping loadMessages - missing IDs:', { conversationId, userId });
+      return;
+    }
+
+    if (!isValidUUID(conversationId) || !isValidUUID(userId)) {
+      console.error('❌ Invalid UUID format:', { conversationId, userId });
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -72,7 +87,20 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
 
   // Send message with retry logic
   const sendMessage = useCallback(async (messageData: Partial<Message>) => {
-    if (!conversationId || !userId) return null;
+    if (!conversationId || !userId) {
+      console.error('❌ Cannot send message - missing IDs');
+      return null;
+    }
+
+    if (!isValidUUID(conversationId) || !isValidUUID(userId)) {
+      console.error('❌ Invalid UUID format - cannot send message');
+      toast({
+        title: 'Error',
+        description: 'Invalid conversation or user ID',
+        variant: 'destructive',
+      });
+      return null;
+    }
 
     const tempId = `temp-${Date.now()}`;
     const optimisticMessage: Message = {
@@ -186,7 +214,15 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
 
   // Subscribe to real-time updates
   useEffect(() => {
-    if (!conversationId || !userId) return;
+    if (!conversationId || !userId) {
+      console.log('⏸️ Skipping realtime subscription - missing IDs');
+      return;
+    }
+
+    if (!isValidUUID(conversationId) || !isValidUUID(userId)) {
+      console.error('❌ Invalid UUID format - cannot subscribe to realtime');
+      return;
+    }
 
     loadMessages();
 

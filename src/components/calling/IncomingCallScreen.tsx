@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,14 +28,46 @@ export function IncomingCallScreen({
 }: IncomingCallScreenProps) {
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
   const vibrationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [audioEnabled, setAudioEnabled] = useState(false);
 
   useEffect(() => {
-    // Play ringtone
+    // Initialize audio element
     const audio = new Audio(ringtoneUrl);
     audio.loop = true;
     audio.volume = 0.8;
-    audio.play().catch(e => console.log('Ringtone error:', e));
     ringtoneRef.current = audio;
+
+    // Try to play immediately (may fail due to autoplay policy)
+    const playPromise = audio.play();
+    
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log('✅ Ringtone playing');
+          setAudioEnabled(true);
+        })
+        .catch((error) => {
+          console.log('⚠️ Autoplay blocked, waiting for user interaction:', error);
+          setAudioEnabled(false);
+          
+          // Try playing on first user interaction
+          const enableAudioOnInteraction = () => {
+            audio.play()
+              .then(() => {
+                console.log('✅ Ringtone enabled after user interaction');
+                setAudioEnabled(true);
+              })
+              .catch(e => console.log('Failed to play ringtone:', e));
+            
+            // Remove listeners after first successful play
+            document.removeEventListener('click', enableAudioOnInteraction);
+            document.removeEventListener('touchstart', enableAudioOnInteraction);
+          };
+          
+          document.addEventListener('click', enableAudioOnInteraction);
+          document.addEventListener('touchstart', enableAudioOnInteraction);
+        });
+    }
 
     // Vibrate on mobile
     if (Capacitor.isNativePlatform()) {

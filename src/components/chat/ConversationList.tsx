@@ -35,6 +35,15 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
 
   useEffect(() => {
     if (!userId) {
+      console.log('⏸️ ConversationList - no userId yet');
+      setLoading(false);
+      return;
+    }
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      console.error('❌ Invalid userId format:', userId);
       setLoading(false);
       return;
     }
@@ -70,7 +79,16 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
   }, [userId]);
 
   const loadConversations = async () => {
-    if (!userId) return;
+    if (!userId) {
+      console.log('⏸️ loadConversations - no userId');
+      return;
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      console.error('❌ Invalid userId in loadConversations:', userId);
+      return;
+    }
     
     try {
       // Get all conversations user is part of

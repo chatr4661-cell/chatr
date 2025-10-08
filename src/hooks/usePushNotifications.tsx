@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export const usePushNotifications = (userId?: string) => {
   useEffect(() => {
@@ -26,9 +27,31 @@ export const usePushNotifications = (userId?: string) => {
         }
 
         // Handle registration
-        await PushNotifications.addListener('registration', (token) => {
+        await PushNotifications.addListener('registration', async (token) => {
           console.log('Push registration success, token:', token.value);
-          // TODO: Send token to backend to store for this user
+          
+          // Save token to backend
+          try {
+            const platform = Capacitor.getPlatform() as 'ios' | 'android' | 'web';
+            const { error } = await supabase
+              .from('device_tokens')
+              .upsert({
+                user_id: userId,
+                device_token: token.value,
+                platform: platform,
+                last_used_at: new Date().toISOString(),
+              }, {
+                onConflict: 'device_token'
+              });
+
+            if (error) {
+              console.error('Error saving device token:', error);
+            } else {
+              console.log('✅ Device token saved successfully');
+            }
+          } catch (error) {
+            console.error('Error saving device token:', error);
+          }
         });
 
         // Handle registration errors

@@ -630,6 +630,41 @@ export type Database = {
           },
         ]
       }
+      device_tokens: {
+        Row: {
+          created_at: string | null
+          device_token: string
+          id: string
+          last_used_at: string | null
+          platform: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_token: string
+          id?: string
+          last_used_at?: string | null
+          platform: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_token?: string
+          id?: string
+          last_used_at?: string | null
+          platform?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emergency_contacts: {
         Row: {
           created_at: string | null
