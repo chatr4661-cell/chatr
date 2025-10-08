@@ -5,6 +5,7 @@ import { PhoneAuth } from '@/components/PhoneAuth';
 import logo from '@/assets/chatr-logo.png';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 import { hashPin } from '@/utils/pinSecurity';
+import { updateUserPhoneHash } from '@/utils/phoneHashUtil';
 
 const Auth = () => {
   const { toast } = useToast();
@@ -29,21 +30,8 @@ const Auth = () => {
           const deviceType = await getDeviceType();
           const pinHash = await hashPin(pin);
 
-          // Hash phone number for privacy
-          const encoder = new TextEncoder();
-          const data = encoder.encode(phoneNumber);
-          const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-          const hashArray = Array.from(new Uint8Array(hashBuffer));
-          const phoneHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-          // Update profile with phone number and hash
-          await supabase
-            .from('profiles')
-            .update({ 
-              phone_number: phoneNumber,
-              phone_hash: phoneHash 
-            })
-            .eq('id', session.user.id);
+          // Update profile with phone number and hash using utility
+          await updateUserPhoneHash(supabase, session.user.id, phoneNumber);
 
           // Create device session
           const expiresAt = new Date();
@@ -76,6 +64,17 @@ const Auth = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
+        // Ensure existing users have phone_hash if they have a phone_number
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone_number, phone_hash')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profile?.phone_number && !profile.phone_hash) {
+          await updateUserPhoneHash(supabase, session.user.id, profile.phone_number);
+        }
+        
         window.location.href = '/';
       }
     });

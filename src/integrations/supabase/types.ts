@@ -2540,6 +2540,10 @@ export type Database = {
       }
     }
     Functions: {
+      backfill_phone_hashes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_mutual_contact: {
         Args: { user1_email: string; user2_email: string }
         Returns: undefined
