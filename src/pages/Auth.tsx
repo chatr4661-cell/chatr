@@ -1,84 +1,102 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Chrome } from 'lucide-react';
+import { PhoneAuth } from '@/components/PhoneAuth';
 import logo from '@/assets/chatr-logo.png';
+import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
+import { hashPin } from '@/utils/pinSecurity';
 
 const Auth = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
 
-  // Handle OAuth callback and redirect
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const handleAuthCallback = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
       if (session) {
-        window.location.href = '/';
-      }
-    });
+        // Check if this is a registration callback
+        const urlParams = new URLSearchParams(window.location.search);
+        const isRegistration = urlParams.get('registration') === 'true';
+        const phoneNumber = urlParams.get('phone_number');
+        const pin = urlParams.get('pin');
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (isRegistration && phoneNumber && pin) {
+          // Complete registration by storing device session
+          const deviceFingerprint = await getDeviceFingerprint();
+          const { getDeviceName, getDeviceType } = await import('@/utils/deviceFingerprint');
+          const deviceName = await getDeviceName();
+          const deviceType = await getDeviceType();
+          const pinHash = await hashPin(pin);
+
+          // Update profile with phone number
+          await supabase
+            .from('profiles')
+            .update({ phone_number: phoneNumber })
+            .eq('id', session.user.id);
+
+          // Create device session
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+
+          await supabase.from('device_sessions').insert({
+            user_id: session.user.id,
+            device_fingerprint: deviceFingerprint,
+            device_name: deviceName,
+            device_type: deviceType,
+            session_token: session.access_token,
+            pin_hash: pinHash,
+            expires_at: expiresAt.toISOString(),
+            quick_login_enabled: true,
+          });
+
+          toast({
+            title: 'Registration Complete!',
+            description: 'Your account has been created successfully',
+          });
+        }
+
+        window.location.href = '/';
+      } else {
+        setLoading(false);
+      }
+    };
+
+    handleAuthCallback();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         window.location.href = '/';
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [toast]);
 
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth`,
-        }
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-hero">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-background/50 backdrop-blur-3xl" />
+        <div className="text-center">
+          <img src={logo} alt="chatr.chat" className="h-20 mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-hero">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-background/50 backdrop-blur-3xl" />
       
-      <Card className="w-full max-w-md relative backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass rounded-3xl">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto flex items-center justify-center">
-            <img src={logo} alt="chatr+ Logo" className="h-20 object-contain" />
-          </div>
-          <CardDescription className="text-base">
-            Secure Google authentication
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-2">
-            <Chrome className="w-16 h-16 mx-auto text-primary" />
-            <h2 className="text-xl font-semibold">Sign in with Google</h2>
-            <p className="text-sm text-muted-foreground">
-              Quick and secure access to your account
-            </p>
-          </div>
-
-          <Button
-            onClick={handleGoogleSignIn}
-            className="w-full h-12 text-base rounded-xl shadow-glow"
-          >
-            <Chrome className="w-5 h-5 mr-2" />
-            Continue with Google
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="relative w-full max-w-md space-y-4">
+        <div className="text-center mb-8">
+          <img src={logo} alt="chatr.chat" className="h-20 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Secure messaging for everyone</p>
+        </div>
+        
+        <PhoneAuth />
+      </div>
     </div>
   );
 };
