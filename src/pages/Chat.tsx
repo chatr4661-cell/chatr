@@ -804,6 +804,13 @@ const Chat = () => {
     if (messageType === 'text') {
       messageData.content = messageInput;
     }
+    
+    // Ensure no empty strings in UUID fields
+    Object.keys(messageData).forEach(key => {
+      if (messageData[key] === '') {
+        messageData[key] = null;
+      }
+    });
 
     console.log('📝 Message data:', messageData);
 
@@ -976,11 +983,12 @@ const Chat = () => {
       .insert({
         conversation_id: conversationId,
         caller_id: user.id,
-        caller_name: profile.username,
-        receiver_id: selectedContact.id,
-        receiver_name: selectedContact.username,
+        caller_name: profile.username || '',
+        receiver_id: selectedContact.id || null,
+        receiver_name: selectedContact.username || '',
         call_type: 'voice',
-        status: 'ringing'
+        status: 'ringing',
+        ice_servers: []
       })
       .select()
       .single();
@@ -1016,11 +1024,12 @@ const Chat = () => {
       .insert({
         conversation_id: conversationId,
         caller_id: user.id,
-        caller_name: profile.username,
-        receiver_id: selectedContact.id,
-        receiver_name: selectedContact.username,
+        caller_name: profile.username || '',
+        receiver_id: selectedContact.id || null,
+        receiver_name: selectedContact.username || '',
         call_type: 'video',
-        status: 'ringing'
+        status: 'ringing',
+        ice_servers: []
       })
       .select()
       .single();
