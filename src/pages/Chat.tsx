@@ -1377,12 +1377,15 @@ const Chat = () => {
                     console.log('🎨 RENDER - Messages:', messages.length, 'Conversation:', conversationId);
                     return null;
                   })()}
-                  {messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
-                      <p className="text-sm">No messages yet. Start the conversation!</p>
-                    </div>
-                  ) : (
-                    messages.map((message) => {
+                  {(() => {
+                    console.log('🎨 RENDERING MESSAGES:', messages.length, 'messages in state');
+                    return messages.length === 0 ? (
+                      <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
+                        <p className="text-sm">No messages yet. Start the conversation!</p>
+                      </div>
+                    ) : (
+                      messages.map((message) => {
+                        console.log('🎨 Rendering message:', message.id, message.content.substring(0, 20))
                       const isOwn = message.sender_id === user?.id;
                       
                       return (
@@ -1567,10 +1570,11 @@ const Chat = () => {
                             </ContextMenuItem>
                           )}
                         </ContextMenuContent>
-                          </ContextMenu>
+                        </ContextMenu>
                       );
                     })
-                  )}
+                  );
+                  })()}
                   <div ref={messagesEndRef} />
                 </div>
                 {conversationId && user?.id && <TypingIndicator conversationId={conversationId} currentUserId={user.id} />}
