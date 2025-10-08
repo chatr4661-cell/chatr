@@ -45,6 +45,7 @@ import Contacts from "./pages/Contacts";
 import Download from "./pages/Download";
 import CallHistory from "./pages/CallHistory";
 import GlobalContacts from "./pages/GlobalContacts";
+import Stories from "./pages/Stories";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -140,6 +141,7 @@ const App = () => {
           <Route path="/health-passport" element={<HealthPassport />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/global-contacts" element={<GlobalContacts />} />
+          <Route path="/stories" element={<Stories />} />
           <Route path="/call-history" element={<CallHistory />} />
           <Route path="/download" element={<Download />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

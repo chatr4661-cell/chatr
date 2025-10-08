@@ -22,6 +22,7 @@ import { MessageReactions } from '@/components/MessageReactions';
 import { TypingIndicator, setTypingStatus } from '@/components/TypingIndicator';
 import { VoiceMessageRecorder } from '@/components/VoiceMessageRecorder';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
+import { VoiceMessagePlayer } from '@/components/VoiceMessagePlayer';
 import { SmartCompose } from '@/components/SmartCompose';
 import { AutoTranslatedMessage } from '@/components/AutoTranslatedMessage';
 import { ChatSummarizer } from '@/components/ChatSummarizer';
@@ -1464,14 +1465,9 @@ const Chat = () => {
                                     </div>
                                   )}
                                   
-                                  {/* Voice Message Audio Player */}
+                                  {/* Voice Message Player */}
                                   {message.message_type === 'voice' && message.media_url && (
-                                    <div className="mb-2">
-                                      <audio controls className="w-full max-w-xs rounded-lg">
-                                        <source src={message.media_url} type="audio/webm" />
-                                        Your browser does not support audio playback.
-                                      </audio>
-                                    </div>
+                                    <VoiceMessagePlayer audioUrl={message.media_url} duration={message.duration} />
                                   )}
                                   
                                   {/* Message Content with Auto Translation */}
@@ -1599,7 +1595,8 @@ const Chat = () => {
 
               {/* Input Area - Glass UI */}
               <div className="p-3 border-t border-border/30 glass backdrop-blur-xl">
-                <form onSubmit={sendMessage} className="flex items-center gap-2">
+                {!showVoiceRecorder ? (
+                  <form onSubmit={sendMessage} className="flex items-center gap-2">
                   <Sheet open={showMediaActions} onOpenChange={setShowMediaActions}>
                     <SheetTrigger asChild>
                       <Button variant="ghost" size="icon" className="rounded-full flex-shrink-0">
@@ -1690,11 +1687,18 @@ const Chat = () => {
                       <Mic className="h-5 w-5" />
                     </Button>
                   )}
-                </form>
+                  </form>
+                ) : (
+                  <div className="animate-in slide-in-from-bottom-4">
+                    <VoiceRecorder
+                      onTranscription={handleVoiceTranscription}
+                      onCancel={() => setShowVoiceRecorder(false)}
+                    />
+                  </div>
+                )}
               </div>
             </>
           ) : (
-            // Empty State - No Chat Selected
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
               <div className="text-center max-w-2xl">
                 <div className="relative inline-block mb-6">
@@ -1742,17 +1746,6 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Voice Message Recorder */}
-      {showVoiceRecorder && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg max-w-md w-full p-6">
-            <VoiceRecorder
-              onTranscription={handleVoiceTranscription}
-              onCancel={() => setShowVoiceRecorder(false)}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Group Chat Creator */}
       <GroupChatCreator
