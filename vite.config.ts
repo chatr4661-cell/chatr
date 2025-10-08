@@ -16,28 +16,17 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Force single React instance
-      'react': path.resolve(__dirname, './node_modules/react'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
-    dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react/jsx-runtime'],
-    exclude: [],
-    force: true,
-    esbuildOptions: {
-      resolveExtensions: ['.tsx', '.ts', '.jsx', '.js'],
-    },
+    include: ['react', 'react-dom'],
   },
   build: {
-    commonjsOptions: {
-      include: [/node_modules/],
-      transformMixedEsModules: true,
-    },
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+        },
       },
     },
   },
