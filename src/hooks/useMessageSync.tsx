@@ -30,7 +30,7 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
 
   // Load messages
   const loadMessages = useCallback(async () => {
-    if (!conversationId) return;
+    if (!conversationId || !userId) return;
 
     setIsLoading(true);
     try {
@@ -186,7 +186,7 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
 
   // Subscribe to real-time updates
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !userId) return;
 
     loadMessages();
 

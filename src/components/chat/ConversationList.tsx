@@ -34,6 +34,11 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    
     loadConversations();
 
     // Subscribe to new conversations and messages
@@ -65,6 +70,8 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
   }, [userId]);
 
   const loadConversations = async () => {
+    if (!userId) return;
+    
     try {
       // Get all conversations user is part of
       const { data: participations } = await supabase

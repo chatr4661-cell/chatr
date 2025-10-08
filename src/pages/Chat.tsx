@@ -20,17 +20,39 @@ const ChatEnhancedContent = () => {
   const location = useLocation();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
-  const { messages, isLoading, sendMessage, markAsRead } = useMessageSync(activeConversationId, user?.id);
+  const [loading, setLoading] = useState(true);
   
-  // Enable push notifications
-  usePushNotifications(user?.id);
+  // Only sync messages if we have both a conversation and a valid user ID
+  const { messages, isLoading, sendMessage, markAsRead } = useMessageSync(
+    activeConversationId, 
+    user?.id || undefined
+  );
+  
+  // Enable push notifications only if user ID exists
+  usePushNotifications(user?.id || undefined);
+
+  // Check authentication and verify user data
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate('/auth');
+        return;
+      }
+      
+      setLoading(false);
+    };
+    
+    checkAuth();
+  }, [navigate]);
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!session && !user) {
+    if (!session) {
       navigate('/auth');
     }
-  }, [session, user, navigate]);
+  }, [session, navigate]);
 
   // Handle contact selected from location state
   useEffect(() => {
@@ -104,7 +126,7 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  if (!user) {
+  if (loading || !user?.id) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
