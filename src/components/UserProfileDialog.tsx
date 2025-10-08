@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Mail, MapPin, Calendar, Activity } from 'lucide-react';
-import { format } from 'date-fns';
+import { Separator } from '@/components/ui/separator';
+import { Phone, Mail, User, Calendar, MapPin } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -27,111 +27,126 @@ interface UserProfileDialogProps {
 export const UserProfileDialog = ({ user, open, onOpenChange }: UserProfileDialogProps) => {
   if (!user) return null;
 
+  const formatJoinDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Profile Details</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Avatar and Name */}
-          <div className="flex flex-col items-center gap-4">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={user.avatar_url || ''} />
-              <AvatarFallback className="text-2xl">
-                {user.username.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="text-center">
-              <h2 className="text-2xl font-bold">{user.username}</h2>
-              {user.status && (
-                <p className="text-sm text-muted-foreground italic mt-1">{user.status}</p>
-              )}
-              <Badge variant={user.is_online ? "default" : "secondary"} className="mt-2">
-                {user.is_online ? 'Online' : 'Offline'}
-              </Badge>
+      <DialogContent className="max-w-md p-0 gap-0">
+        {/* Header */}
+        <div className="relative bg-gradient-to-br from-primary/20 via-accent/10 to-background p-8 pb-16">
+          <DialogHeader className="space-y-4">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl">
+                  <AvatarImage src={user.avatar_url || ''} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-3xl font-bold">
+                    {user.username.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {user.is_online && (
+                  <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-background shadow-glow" />
+                )}
+              </div>
+              
+              <div className="text-center space-y-2">
+                <DialogTitle className="text-2xl font-bold">{user.username}</DialogTitle>
+                {user.status && (
+                  <p className="text-sm text-muted-foreground italic max-w-xs">
+                    {user.status}
+                  </p>
+                )}
+                <Badge variant={user.is_online ? "default" : "secondary"} className="mt-2">
+                  {user.is_online ? 'Online' : 'Offline'}
+                </Badge>
+              </div>
             </div>
-          </div>
+          </DialogHeader>
+        </div>
 
-          {/* Contact Information */}
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Contact Info */}
           <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase">Contact Info</h3>
-            
-            {user.phone_number && (
-              <div className="flex items-center gap-3 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{user.phone_number}</span>
-              </div>
-            )}
-            
-            {user.email && (
-              <div className="flex items-center gap-3 text-sm">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{user.email}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Personal Information */}
-          {(user.age || user.gender) && (
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+              Contact Info
+            </h3>
             <div className="space-y-3">
-              <h3 className="font-semibold text-sm text-muted-foreground uppercase">Personal Info</h3>
-              
-              {user.age && (
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>{user.age} years old</span>
+              {user.phone_number && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <Phone className="w-5 h-5 text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{user.phone_number}</p>
+                  </div>
                 </div>
               )}
-              
-              {user.gender && (
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="capitalize">{user.gender}</span>
+              {user.email && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <Mail className="w-5 h-5 text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{user.email}</p>
+                  </div>
                 </div>
               )}
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Personal Info */}
+          {(user.age || user.gender) && (
+            <>
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                  Personal Info
+                </h3>
+                <div className="space-y-3">
+                  {user.age && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <User className="w-5 h-5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">{user.age} years old</p>
+                      </div>
+                    </div>
+                  )}
+                  {user.gender && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <User className="w-5 h-5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium capitalize">{user.gender}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Separator />
+            </>
           )}
 
           {/* Activity */}
           <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase">Activity</h3>
-            
-            <div className="flex items-center gap-3 text-sm">
-              <Activity className="h-4 w-4 text-muted-foreground" />
-              <span>
-                {user.is_online 
-                  ? 'Active now' 
-                  : (() => {
-                      try {
-                        if (!user.last_seen) return 'Last seen recently';
-                        const date = new Date(user.last_seen);
-                        if (isNaN(date.getTime())) return 'Last seen recently';
-                        return `Last seen ${format(date, 'MMM d, yyyy \'at\' h:mm a')}`;
-                      } catch {
-                        return 'Last seen recently';
-                      }
-                    })()
-                }
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-3 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>
-                {(() => {
-                  try {
-                    if (!user.created_at) return 'Member';
-                    const date = new Date(user.created_at);
-                    if (isNaN(date.getTime())) return 'Member';
-                    return `Joined ${format(date, 'MMMM yyyy')}`;
-                  } catch {
-                    return 'Member';
-                  }
-                })()}
-              </span>
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+              Activity
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {user.is_online ? 'Active now' : 'Not active'}
+                  </p>
+                </div>
+              </div>
+              {user.created_at && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <Calendar className="w-5 h-5 text-primary flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Joined {formatJoinDate(user.created_at)}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

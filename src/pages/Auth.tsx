@@ -16,13 +16,14 @@ const Auth = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
-        // Check if this is a registration callback
+        // Check for phone number from URL params (from registration flow)
         const urlParams = new URLSearchParams(window.location.search);
-        const isRegistration = urlParams.get('registration') === 'true';
-        const phoneNumber = urlParams.get('phone_number');
+        const phoneNumber = urlParams.get('phone');
         const pin = urlParams.get('pin');
 
-        if (isRegistration && phoneNumber && pin) {
+        if (phoneNumber && pin) {
+          console.log('📱 Completing registration with phone:', phoneNumber);
+          
           // Complete registration by storing device session
           const deviceFingerprint = await getDeviceFingerprint();
           const { getDeviceName, getDeviceType } = await import('@/utils/deviceFingerprint');
@@ -30,7 +31,25 @@ const Auth = () => {
           const deviceType = await getDeviceType();
           const pinHash = await hashPin(pin);
 
-          // Update profile with phone number and hash using utility
+          // Update profile with phone number
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              phone_number: phoneNumber,
+            })
+            .eq('id', session.user.id);
+
+          if (updateError) {
+            console.error('Failed to update profile:', updateError);
+            toast({
+              title: 'Registration Error',
+              description: 'Failed to save phone number',
+              variant: 'destructive'
+            });
+            return;
+          }
+
+          // Update phone hash
           await updateUserPhoneHash(supabase, session.user.id, phoneNumber);
 
           // Create device session
@@ -52,6 +71,30 @@ const Auth = () => {
             title: 'Registration Complete!',
             description: 'Your account has been created successfully',
           });
+        }
+
+        // Ensure user has a phone number before proceeding
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone_number, phone_hash')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        if (!profile?.phone_number) {
+          // Redirect back to auth if no phone number
+          await supabase.auth.signOut();
+          toast({
+            title: 'Phone Number Required',
+            description: 'Please register with a phone number',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Update phone hash if missing
+        if (profile.phone_number && !profile.phone_hash) {
+          await updateUserPhoneHash(supabase, session.user.id, profile.phone_number);
         }
 
         window.location.href = '/';
