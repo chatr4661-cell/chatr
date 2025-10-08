@@ -352,11 +352,24 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
     }
   };
 
-  // Manual sync function (with user feedback)
+  // Manual sync function (with user feedback and platform detection)
   const syncContacts = async () => {
-    setIsLoading(true);
-    
     try {
+      // Check if we're on a native platform
+      const { Capacitor } = await import('@capacitor/core');
+      const isNativePlatform = Capacitor.isNativePlatform();
+      
+      if (!isNativePlatform) {
+        toast({
+          title: 'Mobile App Required',
+          description: 'Contact syncing only works on the mobile app. Download it to sync your contacts automatically.',
+          variant: 'default',
+        });
+        return;
+      }
+
+      setIsLoading(true);
+      
       // Request permission and get device contacts
       const permission = await Contacts.requestPermissions();
       

@@ -26,9 +26,8 @@ export const AppLayout = ({ children, user, profile }: AppLayoutProps) => {
       
       {children}
       
-      {/* Temporarily disabled due to Vite cache issue - will re-enable after hard refresh */}
-      {/* <Toaster /> */}
-      {/* <Sonner /> */}
+      <Toaster />
+      <Sonner />
     </>
   );
 };
