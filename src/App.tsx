@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -91,11 +91,12 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <BrowserRouter>
-          <NetworkStatus />
-          <InstallPWAPrompt />
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <BrowserRouter>
+            <NetworkStatus />
+            <InstallPWAPrompt />
           
           {/* Global Call Notifications - appears anywhere in the app */}
           {user && profile && (
@@ -147,13 +148,14 @@ const App = () => {
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           </Routes>
-          
-          {/* Toast components at the end, after all providers are initialized */}
-          <Toaster />
-          <Sonner />
-        </BrowserRouter>
-      </ThemeProvider>
-    </QueryClientProvider>
+            
+            {/* Toast components at the end, after all providers are initialized */}
+            <Toaster />
+            <Sonner />
+          </BrowserRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 };
 

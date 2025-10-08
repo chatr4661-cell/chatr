@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WifiOff, Wifi } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { addNetworkListeners } from '@/utils/pwaUtils';
