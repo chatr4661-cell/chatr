@@ -523,6 +523,8 @@ export type Database = {
       conversations: {
         Row: {
           admin_id: string | null
+          category: string | null
+          community_description: string | null
           created_at: string | null
           created_by: string | null
           custom_wallpaper: string | null
@@ -531,12 +533,17 @@ export type Database = {
           group_icon_url: string | null
           group_name: string | null
           id: string
+          is_community: boolean | null
           is_group: boolean | null
           is_muted: boolean | null
+          is_public: boolean | null
+          member_count: number | null
           updated_at: string | null
         }
         Insert: {
           admin_id?: string | null
+          category?: string | null
+          community_description?: string | null
           created_at?: string | null
           created_by?: string | null
           custom_wallpaper?: string | null
@@ -545,12 +552,17 @@ export type Database = {
           group_icon_url?: string | null
           group_name?: string | null
           id?: string
+          is_community?: boolean | null
           is_group?: boolean | null
           is_muted?: boolean | null
+          is_public?: boolean | null
+          member_count?: number | null
           updated_at?: string | null
         }
         Update: {
           admin_id?: string | null
+          category?: string | null
+          community_description?: string | null
           created_at?: string | null
           created_by?: string | null
           custom_wallpaper?: string | null
@@ -559,8 +571,11 @@ export type Database = {
           group_icon_url?: string | null
           group_name?: string | null
           id?: string
+          is_community?: boolean | null
           is_group?: boolean | null
           is_muted?: boolean | null
+          is_public?: boolean | null
+          member_count?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -2123,6 +2138,7 @@ export type Database = {
           id: string
           media_type: string
           media_url: string
+          privacy: string | null
           user_id: string
         }
         Insert: {
@@ -2132,6 +2148,7 @@ export type Database = {
           id?: string
           media_type: string
           media_url: string
+          privacy?: string | null
           user_id: string
         }
         Update: {
@@ -2141,9 +2158,46 @@ export type Database = {
           id?: string
           media_type?: string
           media_url?: string
+          privacy?: string | null
           user_id?: string
         }
         Relationships: []
+      }
+      story_views: {
+        Row: {
+          id: string
+          story_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          story_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          story_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_views_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -2607,6 +2661,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_community_members: {
+        Args: { community_id: string }
+        Returns: undefined
       }
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }

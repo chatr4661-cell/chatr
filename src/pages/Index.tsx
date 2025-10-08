@@ -220,6 +220,20 @@ const Index = () => {
       route: '/qr-login'
     },
     {
+      icon: Flame,
+      title: 'Stories',
+      description: 'Share moments with friends',
+      iconColor: 'bg-gradient-to-br from-pink-400 to-purple-600',
+      route: '/stories'
+    },
+    {
+      icon: Users,
+      title: 'Communities',
+      description: 'Join & discover groups',
+      iconColor: 'bg-gradient-to-br from-indigo-400 to-purple-600',
+      route: '/communities'
+    },
+    {
       icon: Bot,
       title: 'AI Health Assistant',
       description: 'Get instant health advice',
