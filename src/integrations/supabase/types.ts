@@ -1728,6 +1728,51 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_access_consents: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          granted_at: string | null
+          id: string
+          is_active: boolean | null
+          patient_id: string
+          provider_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          granted_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          patient_id: string
+          provider_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          granted_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          patient_id?: string
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_access_consents_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_access_consents_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_specializations: {
         Row: {
           provider_id: string

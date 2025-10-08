@@ -17,11 +17,38 @@ export default function AdminDocuments() {
   const [uploading, setUploading] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    checkAdminAccess();
+  }, []);
+
+  const checkAdminAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    const { data: hasAdminRole } = await supabase.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (!hasAdminRole) {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have admin permissions',
+        variant: 'destructive'
+      });
+      navigate('/');
+      return;
+    }
+
+    setIsAdmin(true);
     loadProviders();
     loadDocuments();
-  }, []);
+  };
 
   const loadProviders = async () => {
     try {

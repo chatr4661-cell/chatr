@@ -13,11 +13,43 @@ export default function AdminPayments() {
   const { toast } = useToast();
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
-    loadPayments();
-  }, [statusFilter]);
+    checkAdminAccess();
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadPayments();
+    }
+  }, [statusFilter, isAdmin]);
+
+  const checkAdminAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    const { data: hasAdminRole } = await supabase.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (!hasAdminRole) {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have admin permissions',
+        variant: 'destructive'
+      });
+      navigate('/');
+      return;
+    }
+
+    setIsAdmin(true);
+  };
 
   const loadPayments = async () => {
     try {
@@ -81,7 +113,7 @@ export default function AdminPayments() {
     }
   };
 
-  if (loading) {
+  if (loading || !isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center">
         <div className="text-xs text-muted-foreground">Loading...</div>

@@ -16,6 +16,7 @@ export default function AdminProviders() {
   const { toast } = useToast();
   const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -27,8 +28,34 @@ export default function AdminProviders() {
   });
 
   useEffect(() => {
-    loadProviders();
+    checkAdminAccess();
   }, []);
+
+  const checkAdminAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    const { data: hasAdminRole } = await supabase.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (!hasAdminRole) {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have admin permissions',
+        variant: 'destructive'
+      });
+      navigate('/');
+      return;
+    }
+
+    setIsAdmin(true);
+    loadProviders();
+  };
 
   const loadProviders = async () => {
     try {
@@ -131,7 +158,7 @@ export default function AdminProviders() {
     setIsDialogOpen(true);
   };
 
-  if (loading) {
+  if (loading || !isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center">
         <div className="text-xs text-muted-foreground">Loading...</div>

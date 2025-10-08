@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -40,11 +41,42 @@ interface UserWithRole {
 }
 
 export default function AdminUsers() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserWithRole[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    checkAdminAccess();
+  }, []);
+
+  const checkAdminAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    const { data: hasAdminRole } = await supabase.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (!hasAdminRole) {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have admin permissions',
+        variant: 'destructive'
+      });
+      navigate('/');
+      return;
+    }
+
+    setIsAdmin(true);
+  };
 
   const fetchUsers = async () => {
     try {
@@ -86,8 +118,10 @@ export default function AdminUsers() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -109,6 +143,8 @@ export default function AdminUsers() {
     admins: users.filter(u => u.roles.includes('admin')).length,
     onboarded: users.filter(u => u.onboarding_completed).length,
   };
+
+  if (!isAdmin) return null;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
