@@ -709,16 +709,21 @@ const Chat = () => {
           }
 
           if (newMessage) {
-            console.log('✅ Adding message to state:', newMessage);
+            console.log('✅ Message received:', {
+              id: newMessage.id,
+              content: newMessage.content?.substring(0, 30),
+              sender: newMessage.sender?.username,
+              conversationId: newMessage.conversation_id
+            });
             
             setMessages((prev) => {
               // Prevent duplicates
               if (prev.some(m => m.id === newMessage.id)) {
-                console.log('⚠️ Message already exists, skipping');
+                console.log('⚠️ Duplicate message, skipping');
                 return prev;
               }
               const updated = [...prev, newMessage as any];
-              console.log('📊 Updated messages count:', updated.length);
+              console.log('✅ Messages updated! Total:', updated.length);
               return updated;
             });
             
@@ -1377,15 +1382,12 @@ const Chat = () => {
                     console.log('🎨 RENDER - Messages:', messages.length, 'Conversation:', conversationId);
                     return null;
                   })()}
-                  {(() => {
-                    console.log('🎨 RENDERING MESSAGES:', messages.length, 'messages in state');
-                    return messages.length === 0 ? (
-                      <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
-                        <p className="text-sm">No messages yet. Start the conversation!</p>
-                      </div>
-                    ) : (
-                      messages.map((message) => {
-                        console.log('🎨 Rendering message:', message.id, message.content.substring(0, 20))
+                  {messages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
+                      <p className="text-sm">No messages yet. Start the conversation!</p>
+                    </div>
+                  ) : (
+                    messages.map((message) => {
                       const isOwn = message.sender_id === user?.id;
                       
                       return (
@@ -1573,8 +1575,7 @@ const Chat = () => {
                         </ContextMenu>
                       );
                     })
-                  );
-                  })()}
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
                 {conversationId && user?.id && <TypingIndicator conversationId={conversationId} currentUserId={user.id} />}

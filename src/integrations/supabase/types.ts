@@ -1708,7 +1708,7 @@ export type Database = {
           notification_tone: string | null
           onboarding_completed: boolean | null
           phone_hash: string | null
-          phone_number: string | null
+          phone_number: string
           phone_search: string | null
           pin_setup_completed: boolean | null
           preferred_auth_method: string | null
@@ -1738,7 +1738,7 @@ export type Database = {
           notification_tone?: string | null
           onboarding_completed?: boolean | null
           phone_hash?: string | null
-          phone_number?: string | null
+          phone_number: string
           phone_search?: string | null
           pin_setup_completed?: boolean | null
           preferred_auth_method?: string | null
@@ -1768,7 +1768,7 @@ export type Database = {
           notification_tone?: string | null
           onboarding_completed?: boolean | null
           phone_hash?: string | null
-          phone_number?: string | null
+          phone_number?: string
           phone_search?: string | null
           pin_setup_completed?: boolean | null
           preferred_auth_method?: string | null
