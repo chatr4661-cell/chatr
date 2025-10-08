@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import { WifiOff, Wifi } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { addNetworkListeners } from '@/utils/pwaUtils';
 
 export const NetworkStatus = () => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [showOfflineAlert, setShowOfflineAlert] = useState(!navigator.onLine);
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+  const [showOfflineAlert, setShowOfflineAlert] = React.useState(!navigator.onLine);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const cleanup = addNetworkListeners(
       () => {
         setIsOnline(true);
@@ -23,7 +23,7 @@ export const NetworkStatus = () => {
   }, []);
 
   // Auto-hide online notification after 3 seconds
-  useEffect(() => {
+  React.useEffect(() => {
     if (isOnline && !showOfflineAlert) {
       const timer = setTimeout(() => {
         setShowOfflineAlert(false);
