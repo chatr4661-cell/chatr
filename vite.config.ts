@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
+// Cache bust v3 - force React rebuild
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -21,8 +22,14 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
+    esbuildOptions: {
+      resolveExtensions: ['.tsx', '.ts', '.jsx', '.js'],
+    },
   },
   build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
     rollupOptions: {
       output: {
         manualChunks: {
