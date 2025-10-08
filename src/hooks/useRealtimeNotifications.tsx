@@ -86,13 +86,24 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
               audio.currentTime = 0;
             }, 2000);
 
-            // Send browser notification if permitted
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification(`${sender?.username || 'New Message'}`, {
+            // Send browser notification only if window is not focused
+            if ('Notification' in window && Notification.permission === 'granted' && !document.hasFocus()) {
+              const notification = new Notification(`${sender?.username || 'New Message'}`, {
                 body: message.content.substring(0, 100),
                 icon: sender?.avatar_url || '/favicon.png',
                 badge: '/favicon.png',
+                tag: message.conversation_id, // Prevent duplicate notifications for same conversation
+                requireInteraction: false,
               });
+
+              // Close notification after 5 seconds
+              setTimeout(() => notification.close(), 5000);
+
+              // Click notification to focus window
+              notification.onclick = () => {
+                window.focus();
+                notification.close();
+              };
             }
           }
         }
