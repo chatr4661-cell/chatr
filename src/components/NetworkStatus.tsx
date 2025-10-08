@@ -1,3 +1,4 @@
+// Network status indicator component - v2.0
 import { useState, useEffect } from 'react';
 import { WifiOff, Wifi } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
