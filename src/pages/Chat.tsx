@@ -72,6 +72,8 @@ interface Profile {
   username: string;
   avatar_url: string | null;
   status: string;
+  email?: string | null;
+  phone_number?: string | null;
   last_seen?: string;
   is_online?: boolean;
   preferred_language?: string;
@@ -323,12 +325,13 @@ const Chat = () => {
 
     console.log('📇 Loading contacts for user:', user.id);
 
-    // Get user's contacts with profile info
+    // Get user's contacts with profile info - WhatsApp style
     const { data: contactsData, error: contactsError } = await supabase
       .from('contacts')
       .select('*')
       .eq('user_id', user.id)
-      .eq('is_registered', true);
+      .eq('is_registered', true)
+      .order('contact_name');
 
     if (contactsError) {
       console.error('❌ Error loading contacts:', contactsError);
@@ -343,8 +346,9 @@ const Chat = () => {
       if (contactUserIds.length > 0) {
         const { data: profilesData, error } = await supabase
           .from('profiles')
-          .select('*')
-          .in('id', contactUserIds);
+          .select('id, username, avatar_url, email, phone_number, is_online, last_seen, status')
+          .in('id', contactUserIds)
+          .not('phone_number', 'is', null);
 
         if (error) {
           console.error('❌ Error loading contact profiles:', error);
@@ -352,10 +356,10 @@ const Chat = () => {
         }
 
         console.log(`✅ Loaded ${profilesData?.length || 0} contact profiles`);
-        console.log('👥 Contact online statuses:', profilesData?.map(p => ({ 
+        console.log('👥 Contact phone numbers:', profilesData?.map(p => ({ 
           username: p.username, 
-          is_online: p.is_online,
-          last_seen: p.last_seen 
+          phone: p.phone_number,
+          is_online: p.is_online 
         })));
         setContacts(profilesData || []);
       } else {
@@ -1259,10 +1263,17 @@ const Chat = () => {
                               {contact.is_online ? 'now' : formatTime(contact.last_seen || '')}
                             </span>
                           </div>
+                          {/* WhatsApp-style: Show phone number as subtitle if available */}
                           <div className="flex items-center gap-1">
-                            <p className="text-[15px] text-muted-foreground truncate leading-tight">
-                              {contact.status || 'Hey there! I am using Chatr'}
-                            </p>
+                            {contact.phone_number && !contact.phone_number.startsWith('+000') ? (
+                              <p className="text-[14px] text-muted-foreground/80 truncate leading-tight font-medium">
+                                {contact.phone_number}
+                              </p>
+                            ) : (
+                              <p className="text-[15px] text-muted-foreground truncate leading-tight">
+                                {contact.status || 'Hey there! I am using Chatr'}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -1312,7 +1323,10 @@ const Chat = () => {
                     <div className="min-w-0 flex-1">
                       <h3 className="font-semibold text-[17px] text-foreground truncate">{selectedContact.username}</h3>
                       <p className="text-[13px] text-muted-foreground truncate">
-                        {selectedContact.is_online ? 'Active now' : `Active ${formatTime(selectedContact.last_seen || '')}`}
+                        {selectedContact.phone_number && !selectedContact.phone_number.startsWith('+000') 
+                          ? selectedContact.phone_number 
+                          : selectedContact.is_online ? 'Active now' : `Active ${formatTime(selectedContact.last_seen || '')}`
+                        }
                       </p>
                     </div>
                   </div>
