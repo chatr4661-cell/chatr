@@ -89,8 +89,8 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <ChatProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <ChatProvider>
             <AppLayout user={user} profile={profile}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -134,8 +134,8 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
+          </ChatProvider>
         </BrowserRouter>
-        </ChatProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
