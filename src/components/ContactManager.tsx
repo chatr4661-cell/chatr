@@ -19,6 +19,22 @@ const hashPhoneNumber = async (phone: string): Promise<string> => {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
+// Normalize phone to E.164 format (+countrycode + number)
+const normalizePhoneNumber = (phone: string): string => {
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // If it doesn't start with +, assume India (+91)
+  if (!phone.startsWith('+')) {
+    if (cleaned.length === 10) {
+      return `+91${cleaned}`;
+    } else if (cleaned.length > 10) {
+      return `+${cleaned}`;
+    }
+  }
+  
+  return phone.startsWith('+') ? phone : `+${cleaned}`;
+};
+
 interface Contact {
   id: string;
   contact_name: string;
@@ -257,43 +273,43 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
       for (let i = 0; i < result.contacts.length; i += batchSize) {
         const batch = result.contacts.slice(i, i + batchSize);
         
+        // Collect all phone numbers from this batch and hash them
+        const phoneHashMap: Map<string, { name: string, phone: string, email?: string }> = new Map();
+        
         for (const contact of batch) {
           const name = contact.name?.display || 'Unknown';
           const phone = contact.phones?.[0]?.number;
           const email = contact.emails?.[0]?.address;
 
-          if (!phone && !email) continue;
-
-          const identifier = email || phone || '';
-          
-          // Check if user is registered
-          let matchedUser = null;
-          
-          if (email) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('id, username')
-              .eq('email', email)
-              .maybeSingle();
-            matchedUser = data;
+          if (phone) {
+            const normalized = normalizePhoneNumber(phone);
+            const hash = await hashPhoneNumber(normalized);
+            phoneHashMap.set(hash, { name, phone: normalized, email });
           }
-          
-          if (!matchedUser && phone) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('id, username')
-              .eq('phone_number', phone)
-              .maybeSingle();
-            matchedUser = data;
-          }
+        }
 
-          // Insert or update contact
+        // Query profiles using phone_hash for privacy
+        const hashes = Array.from(phoneHashMap.keys());
+        const { data: matchedProfiles } = await supabase
+          .from('profiles')
+          .select('id, username, phone_hash')
+          .in('phone_hash', hashes);
+
+        // Create a map of hash to user
+        const hashToUser = new Map(
+          (matchedProfiles || []).map(p => [p.phone_hash, p])
+        );
+
+        // Insert or update contacts
+        for (const [hash, contactInfo] of phoneHashMap.entries()) {
+          const matchedUser = hashToUser.get(hash);
+
           await supabase
             .from('contacts')
             .upsert({
               user_id: userId,
-              contact_name: name,
-              contact_phone: identifier,
+              contact_name: contactInfo.name,
+              contact_phone: contactInfo.phone,
               contact_user_id: matchedUser?.id || null,
               is_registered: !!matchedUser
             }, {

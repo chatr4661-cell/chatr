@@ -29,10 +29,20 @@ const Auth = () => {
           const deviceType = await getDeviceType();
           const pinHash = await hashPin(pin);
 
-          // Update profile with phone number
+          // Hash phone number for privacy
+          const encoder = new TextEncoder();
+          const data = encoder.encode(phoneNumber);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const phoneHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+          // Update profile with phone number and hash
           await supabase
             .from('profiles')
-            .update({ phone_number: phoneNumber })
+            .update({ 
+              phone_number: phoneNumber,
+              phone_hash: phoneHash 
+            })
             .eq('id', session.user.id);
 
           // Create device session

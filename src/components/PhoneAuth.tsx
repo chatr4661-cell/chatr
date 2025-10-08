@@ -10,6 +10,15 @@ import { getDeviceFingerprint, getDeviceName, getDeviceType } from '@/utils/devi
 import { hashPin, isValidPin, logLoginAttempt, isUserLockedOut } from '@/utils/pinSecurity';
 import { Chrome, Smartphone } from 'lucide-react';
 
+// Hash phone number using SHA-256
+async function hashPhoneNumber(phone: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(phone);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export const PhoneAuth = () => {
   const { toast } = useToast();
   const [step, setStep] = useState<'phone' | 'pin' | 'login'>('phone');

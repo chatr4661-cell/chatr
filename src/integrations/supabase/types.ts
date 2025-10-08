@@ -1707,6 +1707,7 @@ export type Database = {
           medical_history: Json | null
           notification_tone: string | null
           onboarding_completed: boolean | null
+          phone_hash: string | null
           phone_number: string | null
           phone_search: string | null
           pin_setup_completed: boolean | null
@@ -1736,6 +1737,7 @@ export type Database = {
           medical_history?: Json | null
           notification_tone?: string | null
           onboarding_completed?: boolean | null
+          phone_hash?: string | null
           phone_number?: string | null
           phone_search?: string | null
           pin_setup_completed?: boolean | null
@@ -1765,6 +1767,7 @@ export type Database = {
           medical_history?: Json | null
           notification_tone?: string | null
           onboarding_completed?: boolean | null
+          phone_hash?: string | null
           phone_number?: string | null
           phone_search?: string | null
           pin_setup_completed?: boolean | null
