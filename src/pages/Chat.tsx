@@ -688,11 +688,17 @@ const Chat = () => {
         async (payload) => {
           console.log('🔔 NEW MESSAGE RECEIVED via realtime:', payload);
           
+          // Fetch the full message with sender info
           const { data: newMessage, error } = await supabase
             .from('messages')
             .select(`
               *,
-              sender:profiles(*)
+              sender:profiles!messages_sender_id_fkey(
+                id,
+                username,
+                avatar_url,
+                status
+              )
             `)
             .eq('id', payload.new.id)
             .single();
@@ -704,29 +710,29 @@ const Chat = () => {
 
           if (newMessage) {
             console.log('✅ Adding message to state:', newMessage);
-            console.log('📊 Current messages array before add:', messages);
-            // Only add if message belongs to current conversation
+            
             setMessages((prev) => {
-              console.log('📊 Previous messages in setState:', prev);
               // Prevent duplicates
               if (prev.some(m => m.id === newMessage.id)) {
                 console.log('⚠️ Message already exists, skipping');
                 return prev;
               }
               const updated = [...prev, newMessage as any];
-              console.log('📊 Updated messages array:', updated);
+              console.log('📊 Updated messages count:', updated.length);
               return updated;
             });
             
-            // Mark as read if from someone else
-            if (newMessage.sender_id !== user?.id) {
-              await supabase
-                .from('messages')
-                .update({ 
-                  read_at: new Date().toISOString(),
-                  status: 'read'
-                })
-                .eq('id', newMessage.id);
+            // Mark as read if from someone else and chat is open
+            if (newMessage.sender_id !== user?.id && conversationId === newMessage.conversation_id) {
+              setTimeout(async () => {
+                await supabase
+                  .from('messages')
+                  .update({ 
+                    read_at: new Date().toISOString(),
+                    status: 'read'
+                  })
+                  .eq('id', newMessage.id);
+              }, 100);
             }
           }
         }

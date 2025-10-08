@@ -42,11 +42,30 @@ export default function ProductionVoiceCall({
   const statsIntervalRef = useRef<NodeJS.Timeout>();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
+    // Play ringtone when call starts
+    if (!ringtoneRef.current) {
+      ringtoneRef.current = new Audio('/ringtone.mp3');
+      ringtoneRef.current.loop = true;
+    }
+    
+    if (callStatus === "ringing") {
+      ringtoneRef.current.play().catch(e => console.log('Ringtone play error:', e));
+    } else {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+
     initializeCall();
     const unsubscribe = subscribeToCallSignals(callId, handleSignal);
     
     return () => {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current.currentTime = 0;
+      }
       cleanup();
       unsubscribe();
     };
@@ -113,6 +132,7 @@ export default function ProductionVoiceCall({
 
   const initializeCall = async () => {
     try {
+      console.log('🎤 Initializing voice call...');
       setCallStatus("ringing");
       
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -165,6 +185,13 @@ export default function ProductionVoiceCall({
         }
         remoteAudioRef.current.srcObject = remoteStream;
         remoteAudioRef.current.play().catch(e => console.log('Audio play error:', e));
+        
+        // Stop ringtone when connected
+        if (ringtoneRef.current) {
+          ringtoneRef.current.pause();
+          ringtoneRef.current.currentTime = 0;
+        }
+        
         setCallStatus("connected");
       };
 
