@@ -7,10 +7,20 @@ export async function hashPhoneNumber(phone: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Simple phone normalization - just remove spaces and dashes
+// Normalize phone to E.164 format (+countrycode + number)
 export function normalizePhoneNumber(phone: string): string {
-  // Remove spaces, dashes, and parentheses
-  return phone.replace(/[\s\-\(\)]/g, '');
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // If it doesn't start with +, assume India (+91)
+  if (!phone.startsWith('+')) {
+    if (cleaned.length === 10) {
+      return `+91${cleaned}`;
+    } else if (cleaned.length > 10) {
+      return `+${cleaned}`;
+    }
+  }
+  
+  return phone.startsWith('+') ? phone : `+${cleaned}`;
 }
 
 // Update phone hash for a user profile
