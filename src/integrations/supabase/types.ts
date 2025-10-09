@@ -2487,6 +2487,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          call_notifications: boolean | null
+          created_at: string | null
+          data_usage: string | null
+          email_notifications: boolean | null
+          id: string
+          language: string | null
+          last_seen_visibility: string | null
+          message_notifications: boolean | null
+          profile_visibility: string | null
+          push_notifications: boolean | null
+          read_receipts: boolean | null
+          theme: string | null
+          typing_indicators: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          call_notifications?: boolean | null
+          created_at?: string | null
+          data_usage?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          last_seen_visibility?: string | null
+          message_notifications?: boolean | null
+          profile_visibility?: string | null
+          push_notifications?: boolean | null
+          read_receipts?: boolean | null
+          theme?: string | null
+          typing_indicators?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          call_notifications?: boolean | null
+          created_at?: string | null
+          data_usage?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          last_seen_visibility?: string | null
+          message_notifications?: boolean | null
+          profile_visibility?: string | null
+          push_notifications?: boolean | null
+          read_receipts?: boolean | null
+          theme?: string | null
+          typing_indicators?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_status: {
         Row: {
           background_color: string | null
