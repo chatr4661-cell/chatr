@@ -160,14 +160,14 @@ export const PhoneAuth = () => {
             authError.message?.toLowerCase().includes('already exists') ||
             authError.message?.toLowerCase().includes('user_already_exists')) {
           toast({
-            title: 'Already Registered',
-            description: 'This phone number is already registered. Please login instead.',
+            title: 'Account Recovery Required',
+            description: 'This phone number is registered but not on this device. Please use "Forgot PIN?" to recover your account.',
             variant: 'destructive'
           });
           
-          // Switch to login mode and go back to phone step
-          setIsLoginMode(true);
-          setStep('phone');
+          // Set as existing user and go directly to forgot PIN flow
+          setUserExists(true);
+          setStep('forgot-pin');
           setLoading(false);
           return;
         }
