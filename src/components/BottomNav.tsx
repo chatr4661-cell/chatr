@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import React, { Fragment } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { MessageCircle, Flame, Users, Bell, Grid, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
