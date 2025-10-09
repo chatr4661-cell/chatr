@@ -6,7 +6,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useMessageSync } from '@/hooks/useMessageSync';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ConversationList } from '@/components/chat/ConversationList';
@@ -249,12 +249,53 @@ const ChatEnhancedContent = () => {
               </Button>
               <h1 className="text-xl font-semibold">Chats</h1>
             </div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/contacts')}
-            >
-              New Chat
-            </Button>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/profile')}
+                className="rounded-full"
+                title="Profile"
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/contacts')}
+                className="rounded-full"
+                title="Contacts"
+              >
+                <Users className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/global-contacts')}
+                className="rounded-full"
+                title="Find Users"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/qr-login')}
+                className="rounded-full"
+                title="QR Scan"
+              >
+                <QrCode className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                title="More"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
 
           {/* Conversations */}
