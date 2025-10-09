@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
 import { useMessageSync } from '@/hooks/useMessageSync';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
@@ -341,7 +341,9 @@ const ChatEnhancedContent = () => {
 export default function ChatEnhanced() {
   return (
     <ErrorBoundary>
-      <ChatEnhancedContent />
+      <ChatProvider>
+        <ChatEnhancedContent />
+      </ChatProvider>
     </ErrorBoundary>
   );
 }
