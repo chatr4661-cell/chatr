@@ -75,131 +75,76 @@ export function IncomingCallScreen({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-gradient-to-br from-primary/10 via-background to-secondary/10 backdrop-blur-2xl flex items-center justify-center p-6">
-      {/* Background animated blur circles */}
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div 
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity }}
-        />
-        <motion.div 
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-        />
-      </div>
-
+    <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+      {/* Ringing Status - FaceTime style */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute top-8 left-8 z-20"
       >
-        <Card className="w-full max-w-md backdrop-blur-xl bg-card/60 border-border/50 shadow-2xl p-10 relative">
-        <div className="flex flex-col items-center space-y-8">
-          {/* Avatar with pulsing rings */}
-          <div className="relative">
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-full blur-2xl opacity-30"
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            
-            {/* Multiple pulsing rings */}
-            {[0, 0.3, 0.6].map((delay, i) => (
-              <motion.div
-                key={i}
-                className="absolute inset-0 rounded-full border-4 border-primary/40"
-                animate={{
-                  scale: [1, 2],
-                  opacity: [0.6, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay,
-                  ease: "easeOut"
-                }}
-              />
-            ))}
-            
-            <Avatar className="h-44 w-44 border-4 border-white/20 shadow-2xl relative z-10">
-              <AvatarImage src={callerAvatar} />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-6xl">
-                {callerName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-
-          {/* Caller Info */}
-          <div className="text-center space-y-3">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              {callerName}
-            </h1>
-            <p className="text-lg text-muted-foreground capitalize flex items-center justify-center gap-2">
-              {callType === 'video' ? <Video className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
-              Incoming {callType} call
-            </p>
-            <p className="text-sm text-muted-foreground/70 animate-pulse">Ringing...</p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-8 pt-6">
-            {/* Reject Button */}
-            <div className="flex flex-col items-center gap-3">
-              <Button
-                variant="destructive"
-                size="lg"
-                onClick={handleReject}
-                className={cn(
-                  "rounded-full h-20 w-20 shadow-2xl",
-                  "bg-red-500 hover:bg-red-600",
-                  "hover:scale-110 active:scale-95",
-                  "transition-all duration-200"
-                )}
-              >
-                <PhoneOff className="h-9 w-9" />
-              </Button>
-              <span className="text-sm font-medium text-muted-foreground">Decline</span>
-            </div>
-
-            {/* Accept Button */}
-            <div className="flex flex-col items-center gap-3">
-              <Button
-                size="lg"
-                onClick={handleAnswer}
-                className={cn(
-                  "rounded-full h-20 w-20 shadow-2xl",
-                  "bg-green-500 hover:bg-green-600",
-                  "hover:scale-110 active:scale-95",
-                  "transition-all duration-200",
-                  "animate-pulse"
-                )}
-              >
-                {callType === 'video' ? (
-                  <Video className="h-9 w-9" />
-                ) : (
-                  <Phone className="h-9 w-9" />
-                )}
-              </Button>
-              <span className="text-sm font-medium text-green-500">Accept</span>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          {onSendMessage && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onSendMessage}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Send message
-            </Button>
-          )}
+        <div className="bg-white/10 backdrop-blur-md rounded-full px-5 py-2">
+          <span className="text-white/90 text-sm font-medium">Ringing</span>
         </div>
-        </Card>
+      </motion.div>
+
+      {/* Local video preview - top right rounded rectangle (FaceTime style) */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8, x: 100 }}
+        animate={{ opacity: 1, scale: 1, x: 0 }}
+        transition={{ delay: 0.2, type: "spring", damping: 20 }}
+        className="absolute top-8 right-8 w-40 h-52 rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl z-20"
+      >
+        <div className="relative w-full h-full bg-gray-900">
+          <Avatar className="absolute inset-0 w-full h-full rounded-none">
+            <AvatarImage src={callerAvatar} className="object-cover" />
+            <AvatarFallback className="bg-gradient-to-br from-gray-700 to-gray-800 text-white text-5xl rounded-none">
+              {callerName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      </motion.div>
+
+      {/* Main fullscreen video area - dark background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900" />
+
+      {/* Bottom Controls - FaceTime style */}
+      <motion.div
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="absolute bottom-12 left-0 right-0 flex items-center justify-center gap-12 z-20"
+      >
+        {/* Decline Button */}
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex flex-col items-center gap-3"
+        >
+          <button
+            onClick={handleReject}
+            className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-2xl transition-all"
+          >
+            <PhoneOff className="h-7 w-7 text-white" />
+          </button>
+        </motion.div>
+
+        {/* Accept Button */}
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex flex-col items-center gap-3"
+        >
+          <button
+            onClick={handleAnswer}
+            className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center shadow-2xl transition-all animate-pulse"
+          >
+            {callType === 'video' ? (
+              <Video className="h-7 w-7 text-white" />
+            ) : (
+              <Phone className="h-7 w-7 text-white" />
+            )}
+          </button>
+        </motion.div>
       </motion.div>
     </div>
   );

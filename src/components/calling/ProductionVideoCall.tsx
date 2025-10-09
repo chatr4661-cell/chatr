@@ -433,7 +433,7 @@ export default function ProductionVideoCall({
         callType="video"
       />
 
-      {/* Quality & Duration Badge */}
+      {/* Status Badge - FaceTime style (top left) */}
       <AnimatePresence>
         {callStatus === "connected" && controlsVisible && (
           <motion.div
@@ -441,87 +441,86 @@ export default function ProductionVideoCall({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-4 left-4 z-10 flex flex-col gap-2"
+            className="absolute top-6 left-6 z-10"
           >
-            <div className="flex gap-2">
-              <QualityIndicator quality={connectionQuality} showLabel />
-              <Badge variant="secondary" className="backdrop-blur-md font-mono bg-black/40">
+            <div className="bg-white/10 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2">
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                connectionQuality === "excellent" && "bg-green-400",
+                connectionQuality === "good" && "bg-yellow-400",
+                connectionQuality === "poor" && "bg-red-400",
+                connectionQuality === "reconnecting" && "bg-orange-400 animate-pulse"
+              )} />
+              <span className="text-white/90 text-sm font-medium">
                 {formatDuration(callDuration)}
-              </Badge>
-            </div>
-            <Badge variant="secondary" className="backdrop-blur-md bg-black/50 border-green-500/30">
-              <span className="text-green-400 text-xs font-medium">
-                {QUALITY_PRESETS[currentQuality].label} @ {stats.fps}fps • {(stats.bandwidth / 1000).toFixed(1)}Mbps
               </span>
-            </Badge>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Contact Name */}
-      <AnimatePresence>
-        {controlsVisible && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="absolute top-4 right-4 z-10"
-          >
-            <Badge variant="secondary" className="backdrop-blur-md text-lg px-4 py-2 bg-black/40">
-              {contactName}
-            </Badge>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Remote Video (Full Screen) */}
-      <div className="flex-1 relative bg-gradient-to-br from-gray-900 via-black to-gray-900">
+      {/* Remote Video (Full Screen) - FaceTime black background */}
+      <div className="flex-1 relative bg-black">
         <motion.video
           ref={remoteVideoRef}
           autoPlay
           playsInline
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           initial={{ opacity: 0 }}
           animate={{ opacity: callStatus === 'connected' ? 1 : 0.3 }}
           transition={{ duration: 0.5 }}
         />
       </div>
 
-      {/* Local Video (Draggable PiP) */}
+      {/* Local Video - FaceTime style rounded rectangle (top right) */}
       {!isPiPMode && !isPiPActive && (
-        <DraggableVideoWindow
-          videoRef={localVideoRef}
-          stream={localStream}
-          enabled={videoEnabled}
-          className={cn(
-            "transition-opacity duration-200",
-            isSwitchingCamera && "opacity-0"
-          )}
-        />
-      )}
-
-      {/* Always-visible Camera Switch Button (Mobile/Desktop) */}
-      {videoEnabled && !isScreenSharing && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="absolute top-20 right-4 z-20"
+          initial={{ opacity: 0, scale: 0.8, x: 100 }}
+          animate={{ 
+            opacity: isSwitchingCamera ? 0 : 1, 
+            scale: isSwitchingCamera ? 0.8 : 1,
+            x: 0
+          }}
+          transition={{ type: "spring", damping: 20 }}
+          className="absolute top-20 right-6 w-32 h-44 rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl z-10"
         >
-          <Button
-            variant="secondary"
-            size="lg"
-            onClick={switchCamera}
-            disabled={isSwitchingCamera}
-            className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all bg-black/60 backdrop-blur-md border-2 border-white/20 hover:border-white/40"
-            title={facingMode === 'user' ? 'Switch to Back Camera' : 'Switch to Front Camera'}
-          >
-            <SwitchCamera className={cn("h-7 w-7 text-white", isSwitchingCamera && "animate-spin")} />
-          </Button>
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover transform scale-x-[-1]"
+          />
+          {!videoEnabled && (
+            <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+              <VideoOff className="h-8 w-8 text-white/50" />
+            </div>
+          )}
         </motion.div>
       )}
 
-      {/* Enhanced Bottom Controls Bar */}
+      {/* Camera Switch - Bottom left corner (FaceTime style) */}
+      {videoEnabled && !isScreenSharing && controlsVisible && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          className="absolute bottom-8 left-6 z-20"
+        >
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={switchCamera}
+            disabled={isSwitchingCamera}
+            className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-all disabled:opacity-50"
+            title={facingMode === 'user' ? 'Switch to Back Camera' : 'Switch to Front Camera'}
+          >
+            <SwitchCamera className={cn("h-5 w-5 text-white", isSwitchingCamera && "animate-spin")} />
+          </motion.button>
+        </motion.div>
+      )}
+
+      {/* FaceTime-style Bottom Controls */}
       <AnimatePresence>
         {controlsVisible && (
           <motion.div
@@ -529,134 +528,108 @@ export default function ProductionVideoCall({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="absolute bottom-0 left-0 right-0 z-10"
+            className="absolute bottom-8 left-0 right-0 z-10 px-6"
           >
-            <Card className="backdrop-blur-xl bg-gradient-to-t from-black/90 via-black/80 to-transparent border-t-2 border-white/10 rounded-none">
-              <div className="p-6 pb-8">
-                {/* Primary Controls Row */}
-                <div className="flex items-center justify-center gap-4 mb-4">
-                  {/* Video Toggle */}
-                  <div className="flex flex-col items-center gap-2">
-                    <Button
-                      variant={videoEnabled ? "secondary" : "destructive"}
-                      size="lg"
-                      onClick={toggleVideo}
-                      className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all relative group"
-                    >
-                      {videoEnabled ? 
-                        <Video className="h-7 w-7" /> : 
-                        <VideoOff className="h-7 w-7" />
-                      }
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-primary border-2 border-black" />
-                    </Button>
-                    <span className="text-xs text-white/70 font-medium">Video</span>
-                  </div>
-                  
-                  {/* Audio Toggle */}
-                  <div className="flex flex-col items-center gap-2">
-                    <Button
-                      variant={audioEnabled ? "secondary" : "destructive"}
-                      size="lg"
-                      onClick={toggleAudio}
-                      className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all relative"
-                    >
-                      {audioEnabled ? 
-                        <Mic className="h-7 w-7" /> : 
-                        <MicOff className="h-7 w-7" />
-                      }
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-primary border-2 border-black" />
-                    </Button>
-                    <span className="text-xs text-white/70 font-medium">Mic</span>
-                  </div>
+            {/* Primary Controls - FaceTime style */}
+            <div className="flex items-center justify-center gap-6 mb-6">
+              {/* Video Toggle */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleVideo}
+                className={cn(
+                  "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all backdrop-blur-md",
+                  videoEnabled 
+                    ? "bg-white/20 hover:bg-white/30 border-2 border-white/30" 
+                    : "bg-red-500 hover:bg-red-600"
+                )}
+              >
+                {videoEnabled ? 
+                  <Video className="h-7 w-7 text-white" /> : 
+                  <VideoOff className="h-7 w-7 text-white" />
+                }
+              </motion.button>
+              
+              {/* Audio Toggle */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleAudio}
+                className={cn(
+                  "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all backdrop-blur-md",
+                  audioEnabled 
+                    ? "bg-white/20 hover:bg-white/30 border-2 border-white/30" 
+                    : "bg-red-500 hover:bg-red-600"
+                )}
+              >
+                {audioEnabled ? 
+                  <Mic className="h-7 w-7 text-white" /> : 
+                  <MicOff className="h-7 w-7 text-white" />
+                }
+              </motion.button>
 
-                  {/* End Call - Larger and more prominent */}
-                  <div className="flex flex-col items-center gap-2 mx-2">
-                    <Button
-                      variant="destructive"
-                      size="lg"
-                      onClick={endCall}
-                      className="rounded-full h-20 w-20 shadow-2xl hover:scale-110 transition-all bg-red-500 hover:bg-red-600 border-4 border-red-400/30"
-                    >
-                      <PhoneOff className="h-8 w-8" />
-                    </Button>
-                    <span className="text-xs text-red-400 font-semibold">End</span>
-                  </div>
+              {/* End Call - Red button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={endCall}
+                className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-2xl transition-all"
+              >
+                <PhoneOff className="h-7 w-7 text-white" />
+              </motion.button>
 
-                  {/* Screen Share */}
-                  <div className="flex flex-col items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-                      className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all"
-                    >
-                      {isScreenSharing ? 
-                        <MonitorOff className="h-7 w-7" /> : 
-                        <Monitor className="h-7 w-7" />
-                      }
-                    </Button>
-                    <span className="text-xs text-white/70 font-medium">Share</span>
-                  </div>
+              {/* Effects */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowEffectsPanel(!showEffectsPanel)}
+                className="w-16 h-16 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border-2 border-white/30 flex items-center justify-center shadow-2xl transition-all"
+              >
+                <Wand2 className="h-7 w-7 text-white" />
+              </motion.button>
+            </div>
 
-                  {/* Effects */}
-                  <div className="flex flex-col items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      onClick={() => setShowEffectsPanel(!showEffectsPanel)}
-                      className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all"
-                    >
-                      <Wand2 className="h-7 w-7" />
-                    </Button>
-                    <span className="text-xs text-white/70 font-medium">Effects</span>
-                  </div>
-                </div>
+            {/* Secondary Controls - Smaller icons */}
+            <div className="flex items-center justify-center gap-6">
+              <CallMediaCapture videoRef={remoteVideoRef} />
 
-                {/* Secondary Controls Row */}
-                <div className="flex items-center justify-center gap-3">
-                  <CallMediaCapture videoRef={remoteVideoRef} />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+                className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-all"
+                title={isScreenSharing ? "Stop Sharing" : "Share Screen"}
+              >
+                {isScreenSharing ? 
+                  <MonitorOff className="h-5 w-5 text-white" /> : 
+                  <Monitor className="h-5 w-5 text-white" />
+                }
+              </motion.button>
 
-                  {isPiPSupported && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={toggleBrowserPiP}
-                      className="rounded-full hover:bg-white/10 text-white/70 hover:text-white"
-                      title="Picture in Picture"
-                    >
-                      <PictureInPicture2 className="h-5 w-5 mr-2" />
-                      <span className="text-xs">PiP</span>
-                    </Button>
-                  )}
+              {isPiPSupported && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={toggleBrowserPiP}
+                  className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-all"
+                  title="Picture in Picture"
+                >
+                  <PictureInPicture2 className="h-5 w-5 text-white" />
+                </motion.button>
+              )}
 
-                  {onAddParticipant && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={onAddParticipant}
-                      className="rounded-full hover:bg-white/10 text-white/70 hover:text-white"
-                      title="Add Participant"
-                    >
-                      <UserPlus className="h-5 w-5 mr-2" />
-                      <span className="text-xs">Add</span>
-                    </Button>
-                  )}
-
-                  {!isPiPMode && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={togglePiP}
-                      className="rounded-full hover:bg-white/10 text-white/70 hover:text-white"
-                      title="Minimize"
-                    >
-                      <Minimize2 className="h-5 w-5 mr-2" />
-                      <span className="text-xs">Mini</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
+              {onAddParticipant && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onAddParticipant}
+                  className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-all"
+                  title="Add Participant"
+                >
+                  <UserPlus className="h-5 w-5 text-white" />
+                </motion.button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
