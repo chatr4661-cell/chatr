@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Force complete rebuild - React bundling fix 2025-01-09
+// CRITICAL: Force complete rebuild - cache clear required
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
