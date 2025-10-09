@@ -15,6 +15,7 @@ interface Conversation {
   group_name?: string;
   group_icon_url?: string;
   updated_at: string;
+  created_at: string;
   other_user?: {
     id: string;
     username: string;
@@ -220,16 +221,17 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
             {filteredConversations.map((conv) => {
           const displayName = conv.is_group 
             ? conv.group_name 
-            : (conv.other_user?.username || 
-               conv.other_user?.phone_number || 
-               conv.other_user?.email || 
-               'User');
+            : (conv.other_user?.username && conv.other_user.username.trim() !== '' 
+                ? conv.other_user.username 
+                : conv.other_user?.phone_number?.replace(/^\+/, '') || 
+                  conv.other_user?.email?.split('@')[0] || 
+                  'User');
           const displayAvatar = conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url;
           const lastMessage = conv.last_message;
-          const messagePreview = lastMessage?.content || 'No messages yet';
+          const messagePreview = lastMessage?.content || 'Hey there! I am using Chatr';
           const timestamp = lastMessage?.created_at 
             ? formatDistanceToNow(new Date(lastMessage.created_at), { addSuffix: true })
-            : '';
+            : formatDistanceToNow(new Date(conv.created_at), { addSuffix: true });
           const isRead = lastMessage?.read_at != null;
           const isSent = lastMessage?.sender_id === userId;
 
@@ -270,9 +272,9 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
                       )}
                     </div>
                   )}
-                  <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                    {messagePreview || 'Hey there! I am using Chatr'}
-                  </p>
+                   <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                     {messagePreview}
+                   </p>
                 </div>
               </div>
 
