@@ -108,11 +108,11 @@ export default function ProductionVideoCall({
 
   const initializeCall = async () => {
     try {
-      console.log('🎥 Initializing ultra-HD video call...');
+      console.log('🎥 Initializing ultra-HD 60fps video call...');
       setCallStatus(isInitiator ? "dialing" : "ringing");
       
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: getOptimalVideoConstraints('ultra'),
+        video: getOptimalVideoConstraints('ultra', facingMode),
         audio: getOptimalAudioConstraints()
       });
       
@@ -292,10 +292,7 @@ export default function ProductionVideoCall({
   const stopScreenShare = async () => {
     try {
       const cameraStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          ...getOptimalVideoConstraints('ultra'),
-          facingMode
-        }
+        video: getOptimalVideoConstraints('ultra', facingMode)
       });
       const cameraTrack = cameraStream.getVideoTracks()[0];
 
@@ -320,7 +317,7 @@ export default function ProductionVideoCall({
   };
 
   const switchCamera = async () => {
-    if (!localStream || (!Capacitor.isNativePlatform() && facingMode === "environment")) return;
+    if (!localStream) return;
     
     setIsSwitchingCamera(true);
     const newFacingMode = facingMode === "user" ? "environment" : "user";
@@ -328,10 +325,7 @@ export default function ProductionVideoCall({
     try {
       // Pre-load new camera stream for smooth transition
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          ...getOptimalVideoConstraints('ultra'),
-          facingMode: Capacitor.isNativePlatform() ? { exact: newFacingMode } : newFacingMode
-        },
+        video: getOptimalVideoConstraints('ultra', newFacingMode),
         audio: getOptimalAudioConstraints()
       });
 

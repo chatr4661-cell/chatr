@@ -138,10 +138,19 @@ export default function ProductionVoiceCall({
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
+          sampleRate: { ideal: 48000 },
+          sampleSize: { ideal: 24 },
+          channelCount: { ideal: 2 },
+          latency: { ideal: 0.01 },
+          // @ts-ignore
+          googEchoCancellation: true,
+          googNoiseSuppression: true,
+          googHighpassFilter: true,
+          googAutoGainControl: true,
+          googTypingNoiseDetection: true
         }
       });
       

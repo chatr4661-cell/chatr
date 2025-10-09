@@ -33,10 +33,10 @@ export const useGroupCall = ({ callId, currentUserId, isVideo, onEnd }: UseGroup
   // Initialize local media stream with ultra-HD settings
   const initializeMedia = useCallback(async () => {
     try {
-      console.log('🎥 Initializing group call with ultra-HD...');
+      console.log('🎥 Initializing group call with ultra-HD 60fps...');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: getOptimalAudioConstraints(),
-        video: isVideo ? getOptimalVideoConstraints('high') : false, // Use 'high' for group calls
+        video: isVideo ? getOptimalVideoConstraints('ultra') : false, // Use ultra for best quality
       });
       setLocalStream(stream);
       
@@ -88,7 +88,7 @@ export const useGroupCall = ({ callId, currentUserId, isVideo, onEnd }: UseGroup
 
       // Set quality after connection
       setTimeout(async () => {
-        await setBandwidth(pc, 'high'); // Use 'high' quality for group calls
+        await setBandwidth(pc, 'ultra'); // Use ultra quality for best experience
       }, 1000);
     }
 

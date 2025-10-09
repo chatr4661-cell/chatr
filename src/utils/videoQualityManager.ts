@@ -7,34 +7,34 @@ export interface QualityPreset {
 
 export const QUALITY_PRESETS = {
   ultra: { 
-    bitrate: 4000000, // 4 Mbps
+    bitrate: 8000000, // 8 Mbps - Superior to FaceTime
     resolution: { width: 1920, height: 1080 },
-    fps: 30,
-    label: '1080p Ultra'
+    fps: 60,
+    label: '1080p Ultra @ 60fps'
   },
   high: { 
-    bitrate: 2500000, // 2.5 Mbps
+    bitrate: 5000000, // 5 Mbps
     resolution: { width: 1920, height: 1080 },
     fps: 30,
     label: '1080p High'
   },
   medium: { 
-    bitrate: 1500000, // 1.5 Mbps
+    bitrate: 2500000, // 2.5 Mbps
     resolution: { width: 1280, height: 720 },
-    fps: 24,
+    fps: 30,
     label: '720p'
   },
   low: { 
-    bitrate: 500000, // 500 kbps
+    bitrate: 1000000, // 1 Mbps
     resolution: { width: 640, height: 480 },
-    fps: 15,
+    fps: 24,
     label: '480p'
   }
 } as const;
 
 export type QualityLevel = keyof typeof QUALITY_PRESETS;
 
-export const getOptimalVideoConstraints = (quality: QualityLevel = 'ultra') => {
+export const getOptimalVideoConstraints = (quality: QualityLevel = 'ultra', facingMode: 'user' | 'environment' = 'user') => {
   const preset = QUALITY_PRESETS[quality];
   
   return {
@@ -42,7 +42,7 @@ export const getOptimalVideoConstraints = (quality: QualityLevel = 'ultra') => {
     height: { ideal: preset.resolution.height, max: 1080, min: 480 },
     frameRate: { ideal: preset.fps, max: 60 },
     aspectRatio: 16/9,
-    facingMode: 'user'
+    facingMode: facingMode
   };
 };
 
@@ -51,12 +51,17 @@ export const getOptimalAudioConstraints = () => ({
   noiseSuppression: { ideal: true },
   autoGainControl: { ideal: true },
   sampleRate: { ideal: 48000 },
-  channelCount: { ideal: 1 }, // Mono for better compression
+  sampleSize: { ideal: 24 },
+  channelCount: { ideal: 2 }, // Stereo for better quality
+  latency: { ideal: 0.01 }, // 10ms latency target
   // @ts-ignore - Browser-specific extensions
   googEchoCancellation: true,
   googNoiseSuppression: true,
   googHighpassFilter: true,
-  googAutoGainControl: true
+  googAutoGainControl: true,
+  googTypingNoiseDetection: true,
+  googBeamforming: true,
+  googArrayGeometry: true
 });
 
 export const setBandwidth = async (
