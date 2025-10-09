@@ -3,63 +3,101 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MessageSquare, Phone, UserPlus, Heart, MessageCircle, Settings } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Phone, UserPlus, Heart, MessageCircle, Settings, Calendar } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface Notification {
   id: string;
-  type: 'message' | 'call' | 'like' | 'comment' | 'friend';
+  type: string;
   title: string;
   description: string;
-  timestamp: Date;
+  created_at: string;
   read: boolean;
-  avatar?: string;
+  action_url?: string;
+  metadata?: any;
 }
 
 export default function Notifications() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'message',
-      title: 'New Message',
-      description: 'Sarah sent you a message',
-      timestamp: new Date(Date.now() - 5 * 60000),
-      read: false,
-    },
-    {
-      id: '2',
-      type: 'call',
-      title: 'Missed Call',
-      description: 'John tried to call you',
-      timestamp: new Date(Date.now() - 30 * 60000),
-      read: false,
-    },
-    {
-      id: '3',
-      type: 'like',
-      title: 'New Like',
-      description: 'Emma liked your wellness post',
-      timestamp: new Date(Date.now() - 2 * 60 * 60000),
-      read: true,
-    },
-    {
-      id: '4',
-      type: 'comment',
-      title: 'New Comment',
-      description: 'Mike commented on your post',
-      timestamp: new Date(Date.now() - 5 * 60 * 60000),
-      read: true,
-    },
-    {
-      id: '5',
-      type: 'friend',
-      title: 'Friend Request',
-      description: 'Alex sent you a friend request',
-      timestamp: new Date(Date.now() - 24 * 60 * 60000),
-      read: true,
-    },
-  ]);
+  const { toast } = useToast();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadNotifications();
+
+    // Subscribe to realtime notifications
+    const channel = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${supabase.auth.getUser().then(u => u.data.user?.id)}`,
+        },
+        () => {
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load notifications',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setNotifications(prev =>
+        prev.map(notif => (notif.id === id ? { ...notif, read: true } : notif))
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    markAsRead(notification.id);
+    if (notification.action_url) {
+      navigate(notification.action_url);
+    }
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -73,18 +111,20 @@ export default function Notifications() {
         return <MessageCircle className="w-5 h-5 text-blue-500" />;
       case 'friend':
         return <UserPlus className="w-5 h-5 text-violet-500" />;
+      case 'appointment':
+        return <Calendar className="w-5 h-5 text-amber-500" />;
       default:
-        return null;
+        return <MessageSquare className="w-5 h-5 text-muted-foreground" />;
     }
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notif => (notif.id === id ? { ...notif, read: true } : notif))
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Loading notifications...</p>
+      </div>
     );
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,8 +137,10 @@ export default function Notifications() {
             </Button>
             <div>
               <h1 className="text-xl font-bold">Notifications</h1>
-              {unreadCount > 0 && (
-                <p className="text-sm text-muted-foreground">{unreadCount} unread</p>
+              {notifications.filter(n => !n.read).length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {notifications.filter(n => !n.read).length} unread
+                </p>
               )}
             </div>
           </div>
@@ -123,7 +165,7 @@ export default function Notifications() {
             notifications.map((notification) => (
               <button
                 key={notification.id}
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => handleNotificationClick(notification)}
                 className={`w-full text-left p-4 rounded-xl transition-all ${
                   notification.read
                     ? 'bg-card hover:bg-accent/5'
@@ -145,7 +187,7 @@ export default function Notifications() {
                       {notification.description}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+                      {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                     </p>
                   </div>
                 </div>
