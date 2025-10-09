@@ -107,13 +107,10 @@ export const PhoneAuth = () => {
       });
 
       if (authError) {
+        // If account already exists, this shouldn't happen since we check in handlePhoneSubmit
+        // But if it does, silently handle it by redirecting to login
         if (authError.message?.toLowerCase().includes('already registered')) {
-          toast({
-            title: 'Account Exists',
-            description: 'This phone number is already registered. Please login instead.',
-            variant: 'destructive'
-          });
-          setStep('phone');
+          setStep('login-pin');
           setLoading(false);
           return;
         }
