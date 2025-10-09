@@ -22,6 +22,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
+    console.log('Verifying OTP for phone:', phoneNumber)
+
     // Find valid OTP
     const { data: otpRecords, error: fetchError } = await supabase
       .from('otp_verifications')
@@ -33,9 +35,17 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(1)
 
-    if (fetchError || !otpRecords || otpRecords.length === 0) {
+    if (fetchError) {
+      console.error('Error fetching OTP:', fetchError)
+      throw new Error('Failed to verify OTP')
+    }
+
+    if (!otpRecords || otpRecords.length === 0) {
+      console.log('No valid OTP found')
       throw new Error('Invalid or expired OTP')
     }
+
+    console.log('Valid OTP found, marking as verified')
 
     // Mark OTP as verified
     await supabase
@@ -43,55 +53,65 @@ serve(async (req) => {
       .update({ verified: true })
       .eq('id', otpRecords[0].id)
 
-    // Check if user exists in auth.users
-    const { data: existingUsers } = await supabase.auth.admin.listUsers()
-    const existingUser = existingUsers.users.find(u => u.phone === phoneNumber)
+    // Check if user exists in auth.users by phone
+    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
+    
+    if (listError) {
+      console.error('Error listing users:', listError)
+      throw new Error('Failed to check user existence')
+    }
 
+    const existingUser = users.find(u => u.phone === phoneNumber)
     let userId: string
-    let session
+    let isNewUser = false
 
     if (existingUser) {
-      // User exists, create session
-      const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: existingUser.email || `${phoneNumber.replace(/\+/g, '')}@chatr.local`,
-      })
-
-      if (sessionError) throw sessionError
-      
+      console.log('User exists:', existingUser.id)
       userId = existingUser.id
-      // Return user data for client-side session creation
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          userId,
-          isNewUser: false,
-          phoneNumber 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      
+      // Update profile with phone number if missing
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('phone_number')
+        .eq('id', userId)
+        .maybeSingle()
+      
+      if (profile && !profile.phone_number) {
+        await supabase
+          .from('profiles')
+          .update({ phone_number: phoneNumber })
+          .eq('id', userId)
+      }
     } else {
-      // Create new user
+      console.log('Creating new user')
+      
+      // Create new user with phone
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         phone: phoneNumber,
         phone_confirm: true,
-        email: `${phoneNumber.replace(/\+/g, '')}@chatr.local`,
         email_confirm: true,
+        user_metadata: { phone: phoneNumber }
       })
 
-      if (createError) throw createError
-      userId = newUser.user.id
+      if (createError) {
+        console.error('Error creating user:', createError)
+        throw new Error('Failed to create user account')
+      }
 
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          userId,
-          isNewUser: true,
-          phoneNumber 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      userId = newUser.user.id
+      isNewUser = true
+      console.log('New user created:', userId)
     }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        userId,
+        isNewUser,
+        phoneNumber 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
 
   } catch (error) {
     console.error('Error:', error)
