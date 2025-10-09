@@ -107,6 +107,24 @@ export const PhoneAuth = () => {
 
     setLoading(true);
     try {
+      // First check if user already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone_number', phoneNumber)
+        .maybeSingle();
+
+      if (existingProfile) {
+        toast({
+          title: 'Account Exists',
+          description: 'This phone number is already registered. Please log in.',
+          variant: 'destructive',
+        });
+        setStep('login');
+        setLoading(false);
+        return;
+      }
+
       const deviceFingerprint = await getDeviceFingerprint();
       const deviceName = await getDeviceName();
       const deviceType = await getDeviceType();
