@@ -1,4 +1,4 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { NetworkStatus } from './NetworkStatus';
 import { InstallPWAPrompt } from './InstallPWAPrompt';
 import { GlobalCallNotifications } from './GlobalCallNotifications';
@@ -7,7 +7,7 @@ import { Toaster } from './ui/toaster';
 import { Toaster as Sonner } from './ui/sonner';
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
   user: any;
   profile: any;
 }
