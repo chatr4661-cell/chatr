@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// CRITICAL: Force complete rebuild - React import fix applied 2025-01-09T18:35
+// CRITICAL: Force complete rebuild - React bundling fix 2025-01-09T18:54
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
       '@tanstack/react-query'
     ],
     exclude: [],
-    force: true, // Force re-optimization - timestamp: 2025-01-09T18:35
+    force: true, // Force re-optimization - timestamp: 2025-01-09T18:54
     esbuildOptions: {
       target: 'esnext',
     },
