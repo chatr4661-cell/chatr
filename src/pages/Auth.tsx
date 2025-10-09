@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PhoneAuth } from '@/components/PhoneAuth';
+import { OnboardingDialog } from '@/components/OnboardingDialog';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import logo from '@/assets/chatr-logo.png';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 
 const Auth = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | undefined>();
+  const onboarding = useOnboarding(userId);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -24,8 +30,18 @@ const Auth = () => {
           .maybeSingle();
 
         if (deviceSession) {
-          // Active session exists, redirect to main app
-          window.location.href = '/';
+          setUserId(deviceSession.user_id);
+          
+          // Check onboarding status
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('onboarding_completed')
+            .eq('id', deviceSession.user_id)
+            .single();
+          
+          if (profile?.onboarding_completed) {
+            window.location.href = '/';
+          }
           return;
         }
 
@@ -33,6 +49,8 @@ const Auth = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
+          setUserId(session.user.id);
+          
           // Google OAuth recovery flow
           const { data: profile } = await supabase
             .from('profiles')
@@ -41,14 +59,14 @@ const Auth = () => {
             .maybeSingle();
 
           if (profile) {
-            // User has profile, allow PIN reset for this device
-            toast({
-              title: 'Account Recovered',
-              description: 'Please set a new PIN for this device',
-            });
-            // You can redirect to a PIN reset flow here
-            // For now, redirect to main app
-            window.location.href = '/';
+            // Check onboarding status
+            if (profile.onboarding_completed) {
+              toast({
+                title: 'Account Recovered',
+                description: 'Please set a new PIN for this device',
+              });
+              window.location.href = '/';
+            }
           } else {
             // New Google user, needs to link phone number
             toast({
@@ -71,7 +89,18 @@ const Auth = () => {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        window.location.href = '/';
+        setUserId(session.user.id);
+        
+        // Check onboarding status
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profile?.onboarding_completed) {
+          window.location.href = '/';
+        }
       }
     });
 
@@ -102,9 +131,23 @@ const Auth = () => {
         
         <PhoneAuth />
       </div>
+      
+      {userId && (
+        <OnboardingDialog
+          isOpen={onboarding.isOpen}
+          userId={userId}
+          onComplete={async () => {
+            await onboarding.completeOnboarding();
+            navigate("/");
+          }}
+          onSkip={async () => {
+            await onboarding.skipOnboarding();
+            navigate("/");
+          }}
+        />
+      )}
     </div>
   );
 };
 
 export default Auth;
-

@@ -8,16 +8,13 @@ export async function hashPhoneNumber(phone: string): Promise<string> {
 }
 
 // Normalize phone to E.164 format (+countrycode + number)
-export function normalizePhoneNumber(phone: string): string {
+export function normalizePhoneNumber(phone: string, countryCode: string = '+91'): string {
   const cleaned = phone.replace(/\D/g, '');
   
-  // If it doesn't start with +, assume India (+91)
+  // If it doesn't start with +, add the country code
   if (!phone.startsWith('+')) {
-    if (cleaned.length === 10) {
-      return `+91${cleaned}`;
-    } else if (cleaned.length > 10) {
-      return `+${cleaned}`;
-    }
+    // If phone is just the local number (e.g., 10 digits for India)
+    return `${countryCode}${cleaned}`;
   }
   
   return phone.startsWith('+') ? phone : `+${cleaned}`;

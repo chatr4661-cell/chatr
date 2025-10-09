@@ -872,6 +872,38 @@ export type Database = {
           },
         ]
       }
+      invite_links: {
+        Row: {
+          created_at: string | null
+          id: string
+          invite_code: string
+          user_id: string
+          uses_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invite_code: string
+          user_id: string
+          uses_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invite_code?: string
+          user_id?: string
+          uses_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lab_reports: {
         Row: {
           category: string | null
@@ -1253,6 +1285,71 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      onboarding_progress: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          step_name: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          step_name: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          step_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      otp_verifications: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          otp_code: string
+          phone_number: string
+          verified: boolean | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          otp_code: string
+          phone_number: string
+          verified?: boolean | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          otp_code?: string
+          phone_number?: string
+          verified?: boolean | null
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -1744,14 +1841,17 @@ export type Database = {
           age: number | null
           avatar_url: string | null
           call_ringtone: string | null
+          contacts_synced: boolean | null
           created_at: string | null
           email: string | null
+          full_name: string | null
           gender: string | null
           google_id: string | null
           health_goals: string[] | null
           id: string
           is_online: boolean | null
           is_phone_verified: boolean | null
+          last_contact_sync: string | null
           last_seen: string | null
           lifestyle: Json | null
           medical_history: Json | null
@@ -1762,10 +1862,13 @@ export type Database = {
           phone_search: string | null
           pin_setup_completed: boolean | null
           preferred_auth_method: string | null
+          preferred_country_code: string | null
           preferred_language: string | null
+          profile_completed_at: string | null
           qr_code_token: string | null
           referral_code: string | null
           status: string | null
+          status_message: string | null
           streak_count: number | null
           updated_at: string | null
           username: string
@@ -1774,14 +1877,17 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           call_ringtone?: string | null
+          contacts_synced?: boolean | null
           created_at?: string | null
           email?: string | null
+          full_name?: string | null
           gender?: string | null
           google_id?: string | null
           health_goals?: string[] | null
           id: string
           is_online?: boolean | null
           is_phone_verified?: boolean | null
+          last_contact_sync?: string | null
           last_seen?: string | null
           lifestyle?: Json | null
           medical_history?: Json | null
@@ -1792,10 +1898,13 @@ export type Database = {
           phone_search?: string | null
           pin_setup_completed?: boolean | null
           preferred_auth_method?: string | null
+          preferred_country_code?: string | null
           preferred_language?: string | null
+          profile_completed_at?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
           status?: string | null
+          status_message?: string | null
           streak_count?: number | null
           updated_at?: string | null
           username: string
@@ -1804,14 +1913,17 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           call_ringtone?: string | null
+          contacts_synced?: boolean | null
           created_at?: string | null
           email?: string | null
+          full_name?: string | null
           gender?: string | null
           google_id?: string | null
           health_goals?: string[] | null
           id?: string
           is_online?: boolean | null
           is_phone_verified?: boolean | null
+          last_contact_sync?: string | null
           last_seen?: string | null
           lifestyle?: Json | null
           medical_history?: Json | null
@@ -1822,10 +1934,13 @@ export type Database = {
           phone_search?: string | null
           pin_setup_completed?: boolean | null
           preferred_auth_method?: string | null
+          preferred_country_code?: string | null
           preferred_language?: string | null
+          profile_completed_at?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
           status?: string | null
+          status_message?: string | null
           streak_count?: number | null
           updated_at?: string | null
           username?: string

@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Phone, ArrowLeft, Chrome } from 'lucide-react';
 import { PINInput } from './PINInput';
+import { CountryCodeSelector } from './CountryCodeSelector';
 import { getDeviceFingerprint, getDeviceName, getDeviceType } from '@/utils/deviceFingerprint';
 import { hashPin, verifyPin, isUserLockedOut, logLoginAttempt, clearFailedAttempts, isValidPin } from '@/utils/pinSecurity';
 import { normalizePhoneNumber, hashPhoneNumber } from '@/utils/phoneHashUtil';
+import { formatPhoneDisplay } from '@/utils/countryCodeUtil';
 
 type AuthStep = 'phone' | 'create-pin' | 'confirm-pin' | 'login-pin' | 'forgot-pin';
 
@@ -17,11 +19,13 @@ export const PhoneAuth = () => {
   const { toast } = useToast();
   const [step, setStep] = useState<AuthStep>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [countryCode, setCountryCode] = useState('+91');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [userExists, setUserExists] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoginMode, setIsLoginMode] = useState(false);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -56,16 +60,15 @@ export const PhoneAuth = () => {
       if (!phoneNumber || phoneNumber.length < 10) {
         toast({
           title: 'Invalid Phone Number',
-          description: 'Please enter a valid 10-digit phone number',
+          description: 'Please enter a valid phone number',
           variant: 'destructive'
         });
         setLoading(false);
         return;
       }
 
-      // Normalize to E.164 format (+91)
-      const normalized = normalizePhoneNumber(phoneNumber);
-      setPhoneNumber(normalized);
+      // Normalize to E.164 format with selected country code
+      const normalized = normalizePhoneNumber(phoneNumber, countryCode);
 
       // Check if user exists
       const { data: existingProfile } = await supabase
@@ -131,9 +134,10 @@ export const PhoneAuth = () => {
       const deviceFingerprint = await getDeviceFingerprint();
       const deviceName = await getDeviceName();
       const deviceType = await getDeviceType();
+      const normalized = normalizePhoneNumber(phoneNumber, countryCode);
 
       // Create dummy email for auth
-      const dummyEmail = `${phoneNumber.replace(/\+/g, '')}@chatr.local`;
+      const dummyEmail = `${normalized.replace(/\+/g, '')}@chatr.local`;
       const dummyPassword = crypto.randomUUID();
 
       // Create auth user
@@ -142,8 +146,8 @@ export const PhoneAuth = () => {
         password: dummyPassword,
         options: {
           data: {
-            phone_number: phoneNumber,
-            username: `User_${phoneNumber.slice(-4)}`
+            phone_number: normalized,
+            username: formatPhoneDisplay(normalized, countryCode)
           }
         }
       });
@@ -153,12 +157,15 @@ export const PhoneAuth = () => {
 
       // Hash PIN and phone
       const pinHash = await hashPin(userPin);
-      const phoneHash = await hashPhoneNumber(phoneNumber);
+      const phoneHash = await hashPhoneNumber(normalized);
 
-      // Update profile with phone hash
+      // Update profile with phone hash and country code
       await supabase
         .from('profiles')
-        .update({ phone_hash: phoneHash })
+        .update({ 
+          phone_hash: phoneHash,
+          preferred_country_code: countryCode
+        })
         .eq('id', authData.user.id);
 
       // Create device session
@@ -179,8 +186,8 @@ export const PhoneAuth = () => {
           is_active: true
         });
 
-      await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', true, authData.user.id);
-      await clearFailedAttempts(phoneNumber, deviceFingerprint);
+      await logLoginAttempt(normalized, deviceFingerprint, 'pin', true, authData.user.id);
+      await clearFailedAttempts(normalized, deviceFingerprint);
 
       toast({
         title: 'Account Created!',
@@ -214,9 +221,10 @@ export const PhoneAuth = () => {
 
     try {
       const deviceFingerprint = await getDeviceFingerprint();
+      const normalized = normalizePhoneNumber(phoneNumber, countryCode);
 
       // Check lockout
-      const lockoutStatus = await isUserLockedOut(phoneNumber, deviceFingerprint);
+      const lockoutStatus = await isUserLockedOut(normalized, deviceFingerprint);
       if (lockoutStatus.locked) {
         const remainingMinutes = Math.ceil((lockoutStatus.remainingTime || 0) / 60000);
         toast({
@@ -251,7 +259,7 @@ export const PhoneAuth = () => {
       const pinValid = await verifyPin(enteredPin, session.pin_hash);
 
       if (!pinValid) {
-        await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false, userId!);
+        await logLoginAttempt(normalized, deviceFingerprint, 'pin', false, userId!);
         toast({
           title: 'Incorrect PIN',
           description: 'Please try again',
@@ -270,8 +278,8 @@ export const PhoneAuth = () => {
         })
         .eq('id', session.id);
 
-      await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', true, userId!);
-      await clearFailedAttempts(phoneNumber, deviceFingerprint);
+      await logLoginAttempt(normalized, deviceFingerprint, 'pin', true, userId!);
+      await clearFailedAttempts(normalized, deviceFingerprint);
 
       // Set Supabase auth session
       const { error: authError } = await supabase.auth.setSession({
@@ -340,18 +348,23 @@ export const PhoneAuth = () => {
     setUserExists(false);
   };
 
+  const displayPhone = formatPhoneDisplay(
+    normalizePhoneNumber(phoneNumber, countryCode), 
+    countryCode
+  );
+
   return (
     <Card className="w-full backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass">
       <CardHeader>
         <CardTitle>
-          {step === 'phone' && 'Welcome to chatr.chat'}
+          {step === 'phone' && (isLoginMode ? 'Welcome back!' : 'Welcome to chatr.chat')}
           {step === 'create-pin' && 'Create Your PIN'}
           {step === 'confirm-pin' && 'Confirm Your PIN'}
           {step === 'login-pin' && 'Enter Your PIN'}
           {step === 'forgot-pin' && 'Recover Account'}
         </CardTitle>
         <CardDescription>
-          {step === 'phone' && 'Enter your phone number to continue'}
+          {step === 'phone' && (isLoginMode ? 'Enter your phone number to login' : 'Enter your phone number to get started')}
           {step === 'create-pin' && 'Choose a 4-digit PIN for this device'}
           {step === 'confirm-pin' && 'Enter your PIN again to confirm'}
           {step === 'login-pin' && 'Enter your PIN to sign in'}
@@ -365,26 +378,26 @@ export const PhoneAuth = () => {
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <div className="flex gap-2">
-                <div className="flex items-center justify-center px-3 border rounded-md bg-muted text-muted-foreground">
-                  +91
-                </div>
+                <CountryCodeSelector
+                  value={countryCode}
+                  onChange={setCountryCode}
+                />
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="9876543210"
-                  value={phoneNumber.replace(/^\+91/, '')}
+                  placeholder="9717845477"
+                  value={phoneNumber}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '');
                     setPhoneNumber(value);
                   }}
                   disabled={loading}
                   className="flex-1"
-                  maxLength={10}
                   autoFocus
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Enter 10-digit phone number without country code
+                Enter phone number without country code
               </p>
             </div>
             <Button type="submit" className="w-full" disabled={loading || phoneNumber.length < 10}>
@@ -399,6 +412,24 @@ export const PhoneAuth = () => {
                   Continue
                 </>
               )}
+            </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+            
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => setIsLoginMode(!isLoginMode)}
+            >
+              {isLoginMode ? "New user? Create account" : 'Already registered? Login'}
             </Button>
           </form>
         )}
@@ -416,7 +447,7 @@ export const PhoneAuth = () => {
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Back
               </Button>
-              <span className="text-sm text-muted-foreground">{phoneNumber}</span>
+              <span className="text-sm text-muted-foreground">{displayPhone}</span>
             </div>
             <div className="space-y-2">
               <Label>Enter 4-Digit PIN</Label>
@@ -445,7 +476,7 @@ export const PhoneAuth = () => {
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Back
               </Button>
-              <span className="text-sm text-muted-foreground">{phoneNumber}</span>
+              <span className="text-sm text-muted-foreground">{displayPhone}</span>
             </div>
             <div className="space-y-2">
               <Label>Confirm Your PIN</Label>
@@ -471,7 +502,7 @@ export const PhoneAuth = () => {
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Back
               </Button>
-              <span className="text-sm text-muted-foreground">{phoneNumber}</span>
+              <span className="text-sm text-muted-foreground">{displayPhone}</span>
             </div>
             <div className="space-y-2">
               <Label>Enter Your PIN</Label>
@@ -506,29 +537,30 @@ export const PhoneAuth = () => {
                 Back
               </Button>
             </div>
-            <div className="text-center space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Recover your account using Google Sign-In
+            <div className="text-center py-4">
+              <Chrome className="h-12 w-12 mx-auto mb-4 text-primary" />
+              <h3 className="text-lg font-semibold mb-2">Recover via Google</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Sign in with Google to verify your identity and reset your PIN
               </p>
-              <Button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                variant="outline"
-                className="w-full"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    <Chrome className="mr-2 h-4 w-4" />
-                    Continue with Google
-                  </>
-                )}
-              </Button>
             </div>
+            <Button
+              className="w-full"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <Chrome className="mr-2 h-4 w-4" />
+                  Sign in with Google
+                </>
+              )}
+            </Button>
           </div>
         )}
       </CardContent>
