@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Download, X } from 'lucide-react';
 import { canInstallPWA, showInstallPrompt, isPWA } from '@/utils/pwaUtils';
 
 export const InstallPWAPrompt = () => {
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [showPrompt, setShowPrompt] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Don't show if already installed as PWA
     if (isPWA()) {
       setShowPrompt(false);

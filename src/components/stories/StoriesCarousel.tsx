@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,11 +25,11 @@ interface StoriesCarouselProps {
 }
 
 export const StoriesCarousel = ({ userId }: StoriesCarouselProps) => {
-  const [stories, setStories] = useState<Story[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stories, setStories] = React.useState<Story[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  React.useEffect(() => {
     loadStories();
 
     // Subscribe to new stories

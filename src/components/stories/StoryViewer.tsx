@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import * as React from 'react';
 import { X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,12 +36,12 @@ export const StoryViewer = ({
   onNext,
   onPrevious
 }: StoryViewerProps) => {
-  const [progress, setProgress] = useState(0);
-  const [viewCount, setViewCount] = useState(0);
+  const [progress, setProgress] = React.useState(0);
+  const [viewCount, setViewCount] = React.useState(0);
   const currentStory = stories[currentIndex];
-  const timerRef = useRef<NodeJS.Timeout>();
+  const timerRef = React.useRef<NodeJS.Timeout>();
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!currentStory) return;
 
     // Mark story as viewed
