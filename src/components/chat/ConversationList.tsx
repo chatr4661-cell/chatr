@@ -137,7 +137,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
                 .from('profiles')
                 .select('id, username, avatar_url, is_online, phone_number, email')
                 .eq('id', otherUserId)
-                .maybeSingle();
+                .single();
 
               if (profileError) {
                 console.error('❌ Error fetching profile:', profileError);
