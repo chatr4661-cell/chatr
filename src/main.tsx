@@ -4,7 +4,7 @@ import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import "./index.css";
 
-// Force rebuild - Vite cache clear 2025-01-09T17:10
+// Force rebuild - React import fix complete 2025-01-09T18:30
 
 const rootElement = document.getElementById("root");
 
