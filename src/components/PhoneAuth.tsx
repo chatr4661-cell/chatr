@@ -70,11 +70,13 @@ export const PhoneAuth = () => {
       // Normalize to E.164 format with selected country code
       const normalized = normalizePhoneNumber(phoneNumber, countryCode);
 
-      // Check if user exists
+      // Check if user exists using phone hash for better matching
+      const phoneHash = await hashPhoneNumber(normalized);
+      
       const { data: existingProfile } = await supabase
         .from('profiles')
-        .select('id, phone_number')
-        .eq('phone_number', normalized)
+        .select('id, phone_number, phone_hash')
+        .or(`phone_number.eq.${normalized},phone_hash.eq.${phoneHash}`)
         .maybeSingle();
 
       if (existingProfile) {
@@ -152,7 +154,26 @@ export const PhoneAuth = () => {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        // Check if user already exists in auth
+        if (authError.message?.toLowerCase().includes('already registered') || 
+            authError.message?.toLowerCase().includes('already exists') ||
+            authError.message?.toLowerCase().includes('user_already_exists')) {
+          toast({
+            title: 'Already Registered',
+            description: 'This phone number is already registered. Please login instead.',
+            variant: 'destructive'
+          });
+          
+          // Switch to login mode and go back to phone step
+          setIsLoginMode(true);
+          setStep('phone');
+          setLoading(false);
+          return;
+        }
+        throw authError;
+      }
+      
       if (!authData.user) throw new Error('Failed to create user');
 
       // Hash PIN and phone
