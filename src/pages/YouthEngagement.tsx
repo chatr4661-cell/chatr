@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Brain, Heart, MessageCircle, Share2, Upload, Sparkles, TrendingUp, Award } from 'lucide-react';
+import { ArrowLeft, Brain, Heart, MessageCircle, Share2, Upload, Sparkles, TrendingUp, Award, Image as ImageIcon, Smile, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Post {
@@ -17,6 +18,7 @@ interface Post {
   likes_count: number;
   comments_count: number;
   created_at: string;
+  mood?: string;
   profiles: {
     username: string;
     avatar_url: string;
@@ -32,6 +34,23 @@ const YouthEngagement = () => {
   const [newPostContent, setNewPostContent] = useState('');
   const [posting, setPosting] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [selectedMood, setSelectedMood] = useState<string>('');
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [sharePost, setSharePost] = useState<Post | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const moods = [
+    { emoji: '😊', label: 'Happy' },
+    { emoji: '😔', label: 'Sad' },
+    { emoji: '😌', label: 'Calm' },
+    { emoji: '😰', label: 'Anxious' },
+    { emoji: '😤', label: 'Frustrated' },
+    { emoji: '🤗', label: 'Grateful' },
+    { emoji: '💪', label: 'Motivated' },
+    { emoji: '😴', label: 'Tired' },
+  ];
 
   useEffect(() => {
     loadCurrentUser();
@@ -102,7 +121,7 @@ const YouthEngagement = () => {
   };
 
   const handleCreatePost = async () => {
-    if (!newPostContent.trim()) return;
+    if (!newPostContent.trim() && selectedImages.length === 0) return;
     if (!currentUser) {
       toast({
         title: 'Sign in required',
@@ -114,13 +133,36 @@ const YouthEngagement = () => {
 
     setPosting(true);
     try {
+      const mediaUrls: string[] = [];
+      const mediaTypes: string[] = [];
+
+      // Upload images if any
+      for (const file of selectedImages) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${currentUser.id}/${Date.now()}-${Math.random()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('social-media')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('social-media')
+          .getPublicUrl(fileName);
+
+        mediaUrls.push(publicUrl);
+        mediaTypes.push(file.type);
+      }
+
       const { error } = await supabase
         .from('youth_posts')
         .insert({
           user_id: currentUser.id,
           content: newPostContent,
-          media_urls: [],
-          media_types: [],
+          media_urls: mediaUrls,
+          media_types: mediaTypes,
+          mood: selectedMood,
         });
 
       if (error) throw error;
@@ -131,6 +173,8 @@ const YouthEngagement = () => {
       });
 
       setNewPostContent('');
+      setSelectedMood('');
+      setSelectedImages([]);
       loadPosts();
     } catch (error: any) {
       toast({
@@ -141,6 +185,30 @@ const YouthEngagement = () => {
     } finally {
       setPosting(false);
     }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedImages(prev => [...prev, ...files].slice(0, 4)); // Max 4 images
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleShare = (post: Post) => {
+    setSharePost(post);
+    setShowShareDialog(true);
+  };
+
+  const copyShareLink = () => {
+    const shareText = `Check out this post: ${sharePost?.content.substring(0, 100)}...`;
+    navigator.clipboard.writeText(shareText);
+    toast({
+      title: 'Copied!',
+      description: 'Post content copied to clipboard',
+    });
+    setShowShareDialog(false);
   };
 
   const handleLike = async (postId: string, isLiked: boolean) => {
@@ -271,20 +339,79 @@ const YouthEngagement = () => {
                 placeholder="Share your wellness journey, thoughts, or ask for support..."
                 className="min-h-[80px] bg-background/50"
               />
+              
+              {/* Selected Mood Display */}
+              {selectedMood && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span>Feeling:</span>
+                  <div className="flex items-center gap-1 px-3 py-1 bg-primary/10 rounded-full">
+                    <span>{selectedMood}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0"
+                      onClick={() => setSelectedMood('')}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Image Preview */}
+              {selectedImages.length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedImages.map((file, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0 rounded-full"
+                        onClick={() => removeImage(index)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" disabled>
-                    <Upload className="w-4 h-4 mr-1" />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={selectedImages.length >= 4}
+                  >
+                    <ImageIcon className="w-4 h-4 mr-1" />
                     Photo
                   </Button>
-                  <Button variant="ghost" size="sm" disabled>
-                    <Sparkles className="w-4 h-4 mr-1" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowMoodPicker(true)}
+                  >
+                    <Smile className="w-4 h-4 mr-1" />
                     Mood
                   </Button>
                 </div>
                 <Button
                   onClick={handleCreatePost}
-                  disabled={posting || !newPostContent.trim()}
+                  disabled={posting || (!newPostContent.trim() && selectedImages.length === 0)}
                   className="shadow-glow"
                 >
                   {posting ? 'Sharing...' : 'Share'}
@@ -319,7 +446,10 @@ const YouthEngagement = () => {
                       <AvatarFallback>{post.profiles.username[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-semibold text-foreground">{post.profiles.username}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-foreground">{post.profiles.username}</p>
+                        {post.mood && <span className="text-lg">{post.mood}</span>}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
                       </p>
@@ -358,7 +488,11 @@ const YouthEngagement = () => {
                       <MessageCircle className="w-4 h-4 mr-2" />
                       {post.comments_count}
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleShare(post)}
+                    >
                       <Share2 className="w-4 h-4 mr-2" />
                       Share
                     </Button>
@@ -369,6 +503,51 @@ const YouthEngagement = () => {
           </div>
         )}
       </div>
+
+      {/* Mood Picker Dialog */}
+      <Dialog open={showMoodPicker} onOpenChange={setShowMoodPicker}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>How are you feeling?</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-3">
+            {moods.map((mood) => (
+              <Button
+                key={mood.label}
+                variant="outline"
+                className="flex flex-col items-center gap-2 h-auto py-4"
+                onClick={() => {
+                  setSelectedMood(`${mood.emoji} ${mood.label}`);
+                  setShowMoodPicker(false);
+                }}
+              >
+                <span className="text-3xl">{mood.emoji}</span>
+                <span className="text-xs">{mood.label}</span>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Share this post with your friends and community
+            </p>
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm line-clamp-3">{sharePost?.content}</p>
+            </div>
+            <Button onClick={copyShareLink} className="w-full">
+              Copy to Clipboard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

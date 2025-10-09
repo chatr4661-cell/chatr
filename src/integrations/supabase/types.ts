@@ -2768,6 +2768,7 @@ export type Database = {
           likes_count: number | null
           media_types: string[] | null
           media_urls: string[] | null
+          mood: string | null
           updated_at: string | null
           user_id: string
         }
@@ -2779,6 +2780,7 @@ export type Database = {
           likes_count?: number | null
           media_types?: string[] | null
           media_urls?: string[] | null
+          mood?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -2790,6 +2792,7 @@ export type Database = {
           likes_count?: number | null
           media_types?: string[] | null
           media_urls?: string[] | null
+          mood?: string | null
           updated_at?: string | null
           user_id?: string
         }
