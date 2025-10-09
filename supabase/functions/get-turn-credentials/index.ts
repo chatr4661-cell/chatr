@@ -11,16 +11,11 @@ serve(async (req) => {
   }
 
   try {
-    // Return multiple TURN servers for redundancy and better performance
+    // Return free public TURN servers with redundancy
     const iceServers = [
-      // Google STUN servers - fast and reliable
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
-      
-      // OpenRelay TURN servers - UDP for best performance
       { 
         urls: 'turn:openrelay.metered.ca:80',
         username: 'openrelayproject',
@@ -31,27 +26,8 @@ serve(async (req) => {
         username: 'openrelayproject',
         credential: 'openrelayproject'
       },
-      
-      // TCP fallback for restricted networks
       {
         urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      },
-      
-      // Additional Metered TURN servers
-      {
-        urls: 'turn:a.relay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      },
-      {
-        urls: 'turn:a.relay.metered.ca:443',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      },
-      {
-        urls: 'turn:a.relay.metered.ca:443?transport=tcp',
         username: 'openrelayproject',
         credential: 'openrelayproject'
       }

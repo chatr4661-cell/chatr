@@ -144,8 +144,7 @@ export default function ProductionVoiceCall({
           sampleRate: { ideal: 48000 },
           sampleSize: { ideal: 24 },
           channelCount: { ideal: 2 },
-          latency: { ideal: 0.01 },
-          // @ts-ignore
+          // @ts-ignore - Browser-specific extensions
           googEchoCancellation: true,
           googNoiseSuppression: true,
           googHighpassFilter: true,

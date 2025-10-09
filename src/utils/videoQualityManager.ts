@@ -53,7 +53,6 @@ export const getOptimalAudioConstraints = () => ({
   sampleRate: { ideal: 48000 },
   sampleSize: { ideal: 24 },
   channelCount: { ideal: 2 }, // Stereo for better quality
-  latency: { ideal: 0.01 }, // 10ms latency target
   // @ts-ignore - Browser-specific extensions
   googEchoCancellation: true,
   googNoiseSuppression: true,
