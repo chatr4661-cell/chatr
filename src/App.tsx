@@ -46,6 +46,7 @@ import GlobalContacts from "./pages/GlobalContacts";
 import Stories from "./pages/Stories";
 import Communities from "./pages/Communities";
 import DeviceManagement from "./pages/DeviceManagement";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -135,6 +136,7 @@ const App = () => {
                   <Route path="/communities" element={<Communities />} />
                   <Route path="/call-history" element={<CallHistory />} />
                   <Route path="/device-management" element={<DeviceManagement />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/download" element={<Download />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
