@@ -53,39 +53,23 @@ serve(async (req) => {
       .update({ verified: true })
       .eq('id', otpRecords[0].id)
 
-    // Check if user exists in auth.users by phone
-    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
-    
-    if (listError) {
-      console.error('Error listing users:', listError)
-      throw new Error('Failed to check user existence')
-    }
+    // Check if profile exists
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('phone_number', phoneNumber)
+      .maybeSingle()
 
-    const existingUser = users.find(u => u.phone === phoneNumber)
     let userId: string
     let isNewUser = false
 
-    if (existingUser) {
-      console.log('User exists:', existingUser.id)
-      userId = existingUser.id
-      
-      // Update profile with phone number if missing
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('phone_number')
-        .eq('id', userId)
-        .maybeSingle()
-      
-      if (profile && !profile.phone_number) {
-        await supabase
-          .from('profiles')
-          .update({ phone_number: phoneNumber })
-          .eq('id', userId)
-      }
+    if (existingProfile) {
+      console.log('User profile exists:', existingProfile.id)
+      userId = existingProfile.id
     } else {
-      console.log('Creating new user')
+      console.log('Creating new user account')
       
-      // Create new user with phone
+      // Create a new auth user
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         phone: phoneNumber,
         phone_confirm: true,
@@ -94,13 +78,40 @@ serve(async (req) => {
       })
 
       if (createError) {
-        console.error('Error creating user:', createError)
-        throw new Error('Failed to create user account')
+        console.error('Create user error:', createError)
+        
+        // If phone exists in auth but not in profiles, try to get that user
+        if (createError.message?.includes('already registered')) {
+          const { data: { users } } = await supabase.auth.admin.listUsers()
+          const existingAuthUser = users.find(u => u.phone === phoneNumber)
+          
+          if (existingAuthUser) {
+            console.log('Found existing auth user:', existingAuthUser.id)
+            userId = existingAuthUser.id
+            
+            // Create profile if missing
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .upsert({ 
+                id: userId, 
+                phone_number: phoneNumber,
+                username: `User_${phoneNumber.slice(-4)}`
+              })
+            
+            if (profileError) {
+              console.error('Profile creation error:', profileError)
+            }
+          } else {
+            throw new Error('Failed to create user account')
+          }
+        } else {
+          throw new Error('Failed to create user account')
+        }
+      } else {
+        userId = newUser.user.id
+        isNewUser = true
+        console.log('New user created:', userId)
       }
-
-      userId = newUser.user.id
-      isNewUser = true
-      console.log('New user created:', userId)
     }
 
     return new Response(
