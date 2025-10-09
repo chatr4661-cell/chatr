@@ -57,32 +57,33 @@ export const PhoneAuth = () => {
     setLoading(true);
     const deviceFingerprint = await getDeviceFingerprint();
 
-    // Check if user exists
+    // Check if user exists by phone number
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('phone_number', phoneNumber)
-      .single();
+      .maybeSingle();
 
     if (profile) {
+      // User exists - always go to login
       // Check if this device is registered
       const { data: deviceSession } = await supabase
         .from('device_sessions')
         .select('*')
         .eq('user_id', profile.id)
         .eq('device_fingerprint', deviceFingerprint)
-        .single();
+        .maybeSingle();
 
-      if (deviceSession) {
-        setStep('login');
-      } else {
+      setStep('login');
+      
+      if (!deviceSession) {
         toast({
           title: 'New Device Detected',
-          description: 'Please sign in with Google to verify your identity',
+          description: 'Use "Forgot PIN?" to sign in with Google on this device',
         });
-        await handleGoogleSignIn();
       }
     } else {
+      // New user - go to registration
       setStep('pin');
     }
     setLoading(false);
