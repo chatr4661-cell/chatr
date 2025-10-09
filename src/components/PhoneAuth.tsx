@@ -48,7 +48,7 @@ export const PhoneAuth = () => {
 
       const fullPhone = `${countryCode}${phoneNumber}`;
 
-      // Check if user exists
+      // Check if user exists and has a PIN
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, pin')
@@ -56,10 +56,19 @@ export const PhoneAuth = () => {
         .maybeSingle();
 
       if (profile) {
-        setUserExists(true);
         setUserId(profile.id);
-        setStep('login-pin');
+        
+        // If user exists but has no PIN, treat as new registration
+        if (!profile.pin) {
+          setUserExists(false);
+          setStep('create-pin');
+        } else {
+          // User exists with PIN, go to login
+          setUserExists(true);
+          setStep('login-pin');
+        }
       } else {
+        // Brand new user
         setUserExists(false);
         setStep('create-pin');
       }
@@ -90,48 +99,80 @@ export const PhoneAuth = () => {
     try {
       const fullPhone = `${countryCode}${phoneNumber}`;
       
-      // Create dummy email for auth
-      const dummyEmail = `${fullPhone.replace(/\+/g, '')}@chatr.local`;
-      const dummyPassword = crypto.randomUUID();
+      // If userId exists, it means user exists but doesn't have a PIN - just update the PIN
+      if (userId) {
+        await supabase
+          .from('profiles')
+          .update({ pin: enteredPin })
+          .eq('id', userId);
 
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: dummyEmail,
-        password: dummyPassword,
-        options: {
-          data: {
-            phone_number: fullPhone,
-            username: fullPhone
+        // Create session by signing in with the existing account
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single();
+
+        if (profile?.email) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: profile.email,
+            password: enteredPin + fullPhone
+          });
+
+          if (signInError) {
+            // Update password to new PIN
+            await supabase.auth.admin.updateUserById(userId, {
+              password: enteredPin + fullPhone
+            });
+            
+            // Sign in with new password
+            await supabase.auth.signInWithPassword({
+              email: profile.email,
+              password: enteredPin + fullPhone
+            });
           }
         }
-      });
 
-      if (authError) {
-        // If account already exists, this shouldn't happen since we check in handlePhoneSubmit
-        // But if it does, silently handle it by redirecting to login
-        if (authError.message?.toLowerCase().includes('already registered')) {
-          setStep('login-pin');
-          setLoading(false);
-          return;
+        toast({
+          title: 'PIN Created!',
+          description: 'Welcome to chatr.chat'
+        });
+      } else {
+        // New user - create auth account
+        const dummyEmail = `${fullPhone.replace(/\+/g, '')}@chatr.local`;
+        const dummyPassword = enteredPin + fullPhone;
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: dummyEmail,
+          password: dummyPassword,
+          options: {
+            data: {
+              phone_number: fullPhone,
+              username: fullPhone
+            }
+          }
+        });
+
+        if (authError) {
+          throw authError;
         }
-        throw authError;
+
+        if (!authData.user) throw new Error('Failed to create user');
+
+        // Update profile with PIN
+        await supabase
+          .from('profiles')
+          .update({ 
+            phone_number: fullPhone,
+            pin: enteredPin
+          })
+          .eq('id', authData.user.id);
+
+        toast({
+          title: 'Account Created!',
+          description: 'Welcome to chatr.chat'
+        });
       }
-
-      if (!authData.user) throw new Error('Failed to create user');
-
-      // Update profile with PIN
-      await supabase
-        .from('profiles')
-        .update({ 
-          phone_number: fullPhone,
-          pin: enteredPin
-        })
-        .eq('id', authData.user.id);
-
-      toast({
-        title: 'Account Created!',
-        description: 'Welcome to chatr.chat'
-      });
 
       window.location.href = '/';
     } catch (error: any) {
@@ -174,6 +215,19 @@ export const PhoneAuth = () => {
           description: 'Account not found',
           variant: 'destructive'
         });
+        setLoading(false);
+        return;
+      }
+
+      // Check if PIN is set
+      if (!profile.pin) {
+        toast({
+          title: 'No PIN Set',
+          description: 'Please create a PIN first',
+          variant: 'destructive'
+        });
+        setStep('create-pin');
+        setUserId(profile.id);
         setLoading(false);
         return;
       }
