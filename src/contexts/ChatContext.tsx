@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { createContext, useContext, useState, useEffect, FC, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Session, User } from '@supabase/supabase-js';
 
@@ -11,25 +11,25 @@ interface ChatContextType {
   isAuthReady: boolean;
 }
 
-const ChatContext = React.createContext<ChatContextType | null>(null);
+const ChatContext = createContext<ChatContextType | null>(null);
 
 export const useChatContext = () => {
-  const context = React.useContext(ChatContext);
+  const context = useContext(ChatContext);
   if (!context) {
     throw new Error('useChatContext must be used within ChatProvider');
   }
   return context;
 };
 
-export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [user, setUser] = React.useState<User | null>(null);
-  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-  const [isAuthReady, setIsAuthReady] = React.useState(false);
+export const ChatProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   // Network status monitoring
-  React.useEffect(() => {
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -43,7 +43,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Session management with recovery
-  React.useEffect(() => {
+  useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
@@ -97,7 +97,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Store active conversation in localStorage for persistence
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeConversationId) {
       localStorage.setItem('activeConversationId', activeConversationId);
     } else {
