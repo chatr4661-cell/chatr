@@ -10,6 +10,8 @@ import { sendSignal, subscribeToCallSignals, getTurnConfig } from "@/utils/webrt
 import { cn } from "@/lib/utils";
 import { useRingtone } from "@/hooks/useRingtone";
 import { useCallUI } from "@/hooks/useCallUI";
+import { useCallHaptics } from "@/hooks/useCallHaptics";
+import { QualityIndicator } from "./QualityIndicator";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ProductionVoiceCallProps {
@@ -49,6 +51,8 @@ export default function ProductionVoiceCall({
     autoHideDelay: 3000,
     enabled: callStatus === 'connected'
   });
+
+  const { trigger: triggerHaptic } = useCallHaptics();
 
   useRingtone({
     enabled: callStatus === "ringing",
@@ -298,24 +302,28 @@ export default function ProductionVoiceCall({
     }
   };
 
-  const toggleAudio = () => {
+  const toggleAudio = async () => {
     if (localStream) {
       const audioTrack = localStream.getAudioTracks()[0];
       audioTrack.enabled = !audioTrack.enabled;
       setAudioEnabled(audioTrack.enabled);
+      await triggerHaptic(audioTrack.enabled ? 'unmute' : 'mute');
     }
   };
 
-  const toggleSpeaker = () => {
+  const toggleSpeaker = async () => {
     if (remoteAudioRef.current) {
       remoteAudioRef.current.muted = speakerEnabled;
       setSpeakerEnabled(!speakerEnabled);
+      await triggerHaptic('success');
     }
   };
 
   const endCall = async () => {
     // Clean up media streams and connections first
     cleanup();
+    
+    await triggerHaptic('end');
     
     // Update call status in database
     await supabase
@@ -385,18 +393,9 @@ export default function ProductionVoiceCall({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ duration: 0.2 }}
+                  className="absolute top-4 right-4"
                 >
-                  <Badge 
-                    variant="outline" 
-                    className={cn(
-                      "absolute top-4 right-4 backdrop-blur-sm",
-                      qualityStyles.bg,
-                      qualityStyles.border
-                    )}
-                  >
-                    <div className={cn("w-2 h-2 rounded-full mr-2", qualityStyles.dot)} />
-                    <span className={qualityStyles.text}>{connectionQuality}</span>
-                  </Badge>
+                  <QualityIndicator quality={connectionQuality} showLabel />
                 </motion.div>
               )}
             </AnimatePresence>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera, Monitor, MonitorOff, UserPlus, Maximize2, Minimize2 } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera, Monitor, MonitorOff, UserPlus, Maximize2, Minimize2, Wand2, PictureInPicture2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { sendSignal, subscribeToCallSignals, getTurnConfig } from "@/utils/webrtcSignaling";
@@ -11,9 +11,15 @@ import { cn } from "@/lib/utils";
 import { getOptimalVideoConstraints, getOptimalAudioConstraints, setBandwidth, setPreferredCodec, QUALITY_PRESETS } from "@/utils/videoQualityManager";
 import { useNetworkStats } from "@/hooks/useNetworkStats";
 import { useCallUI } from "@/hooks/useCallUI";
+import { useCallHaptics } from "@/hooks/useCallHaptics";
+import { usePictureInPicture } from "@/hooks/usePictureInPicture";
 import { DraggableVideoWindow } from "./DraggableVideoWindow";
 import { CallStateTransition } from "./CallStateTransition";
+import { QualityIndicator } from "./QualityIndicator";
+import { VideoEffectsPanel } from "./VideoEffectsPanel";
+import { CallMediaCapture } from "./CallMediaCapture";
 import { motion, AnimatePresence } from "framer-motion";
+import { VIDEO_EFFECTS } from "@/utils/videoEffects";
 
 interface ProductionVideoCallProps {
   callId: string;
@@ -43,6 +49,9 @@ export default function ProductionVideoCall({
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isPiPMode, setIsPiPMode] = useState(false);
+  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
+  const [currentEffect, setCurrentEffect] = useState("none");
+  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -59,6 +68,13 @@ export default function ProductionVideoCall({
   const { controlsVisible, showControls } = useCallUI({ 
     autoHideDelay: 3000,
     enabled: callStatus === 'connected'
+  });
+
+  const { trigger: triggerHaptic } = useCallHaptics();
+  
+  const { isPiPActive, isPiPSupported, togglePiP: toggleBrowserPiP } = usePictureInPicture({
+    videoRef: remoteVideoRef,
+    enabled: true
   });
 
   useEffect(() => {
@@ -224,19 +240,21 @@ export default function ProductionVideoCall({
     }
   };
 
-  const toggleVideo = () => {
+  const toggleVideo = async () => {
     if (localStream) {
       const videoTrack = localStream.getVideoTracks()[0];
       videoTrack.enabled = !videoTrack.enabled;
       setVideoEnabled(videoTrack.enabled);
+      await triggerHaptic(videoTrack.enabled ? 'unmute' : 'mute');
     }
   };
 
-  const toggleAudio = () => {
+  const toggleAudio = async () => {
     if (localStream) {
       const audioTrack = localStream.getAudioTracks()[0];
       audioTrack.enabled = !audioTrack.enabled;
       setAudioEnabled(audioTrack.enabled);
+      await triggerHaptic(audioTrack.enabled ? 'unmute' : 'mute');
     }
   };
 
@@ -302,38 +320,50 @@ export default function ProductionVideoCall({
   };
 
   const switchCamera = async () => {
-    if (!localStream || !Capacitor.isNativePlatform()) return;
+    if (!localStream || (!Capacitor.isNativePlatform() && facingMode === "environment")) return;
     
+    setIsSwitchingCamera(true);
     const newFacingMode = facingMode === "user" ? "environment" : "user";
     
     try {
+      // Pre-load new camera stream for smooth transition
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { 
           ...getOptimalVideoConstraints('ultra'),
-          facingMode: { exact: newFacingMode }
+          facingMode: Capacitor.isNativePlatform() ? { exact: newFacingMode } : newFacingMode
         },
         audio: getOptimalAudioConstraints()
       });
 
+      // Crossfade animation - set up new stream
       const videoTrack = newStream.getVideoTracks()[0];
       const sender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
       
       if (sender) {
+        // Smooth transition
         await sender.replaceTrack(videoTrack);
       }
 
-      localStream.getVideoTracks()[0].stop();
-      setLocalStream(newStream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = newStream;
-      }
-      setFacingMode(newFacingMode);
+      // Clean up old stream after transition
+      setTimeout(() => {
+        localStream.getVideoTracks()[0].stop();
+        setLocalStream(newStream);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = newStream;
+        }
+        setFacingMode(newFacingMode);
+        setIsSwitchingCamera(false);
+      }, 200);
+      
+      await triggerHaptic('cameraSwitch');
       
       toast({
         title: `Switched to ${newFacingMode === 'user' ? 'front' : 'back'} camera`,
       });
     } catch (error) {
       console.error("Error switching camera:", error);
+      setIsSwitchingCamera(false);
+      await triggerHaptic('error');
     }
   };
 
@@ -344,6 +374,8 @@ export default function ProductionVideoCall({
   const endCall = async () => {
     // Clean up media streams and connections first
     cleanup();
+    
+    await triggerHaptic('end');
     
     // Update call status in database
     await supabase
@@ -416,10 +448,7 @@ export default function ProductionVideoCall({
             className="absolute top-4 left-4 z-10 flex flex-col gap-2"
           >
             <div className="flex gap-2">
-              <Badge variant="secondary" className={cn("backdrop-blur-md", qualityStyles.bg, qualityStyles.border)}>
-                <div className={cn("w-2 h-2 rounded-full mr-2", qualityStyles.dot)} />
-                <span className={qualityStyles.text}>{connectionQuality}</span>
-              </Badge>
+              <QualityIndicator quality={connectionQuality} showLabel />
               <Badge variant="secondary" className="backdrop-blur-md font-mono bg-black/40">
                 {formatDuration(callDuration)}
               </Badge>
@@ -464,11 +493,15 @@ export default function ProductionVideoCall({
       </div>
 
       {/* Local Video (Draggable PiP) */}
-      {!isPiPMode && (
+      {!isPiPMode && !isPiPActive && (
         <DraggableVideoWindow
           videoRef={localVideoRef}
           stream={localStream}
           enabled={videoEnabled}
+          className={cn(
+            "transition-opacity duration-200",
+            isSwitchingCamera && "opacity-0"
+          )}
         />
       )}
 
@@ -515,20 +548,34 @@ export default function ProductionVideoCall({
               variant="secondary"
               size="lg"
               onClick={switchCamera}
+              disabled={isSwitchingCamera}
               className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
             >
-              <SwitchCamera className="h-6 w-6" />
+              <SwitchCamera className={cn("h-6 w-6", isSwitchingCamera && "animate-spin")} />
             </Button>
           )}
 
           <Button
             variant="secondary"
             size="lg"
-            onClick={togglePiP}
+            onClick={() => setShowEffectsPanel(!showEffectsPanel)}
             className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
           >
-            {isPiPMode ? <Maximize2 className="h-6 w-6" /> : <Minimize2 className="h-6 w-6" />}
+            <Wand2 className="h-6 w-6" />
           </Button>
+
+          <CallMediaCapture videoRef={remoteVideoRef} />
+
+          {isPiPSupported && (
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={toggleBrowserPiP}
+              className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
+            >
+              <PictureInPicture2 className="h-6 w-6" />
+            </Button>
+          )}
 
           {onAddParticipant && (
             <Button
@@ -549,11 +596,22 @@ export default function ProductionVideoCall({
           >
             <PhoneOff className="h-6 w-6" />
           </Button>
-              </div>
-            </Card>
+        </div>
+      </Card>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Video Effects Panel */}
+      <VideoEffectsPanel
+        isOpen={showEffectsPanel}
+        onClose={() => setShowEffectsPanel(false)}
+        currentEffect={currentEffect}
+        onEffectChange={(effectId) => {
+          setCurrentEffect(effectId);
+          triggerHaptic('success');
+        }}
+      />
     </div>
   );
 }
