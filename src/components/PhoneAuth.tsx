@@ -40,10 +40,11 @@ export const PhoneAuth = () => {
   }, []);
 
   const handlePhoneSubmit = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
+    const trimmed = phoneNumber.trim();
+    if (!trimmed || trimmed.length < 10) {
       toast({
         title: 'Invalid Phone',
-        description: 'Please enter a valid phone number',
+        description: 'Please enter a valid 10-digit phone number',
         variant: 'destructive',
       });
       return;
@@ -51,14 +52,18 @@ export const PhoneAuth = () => {
 
     setLoading(true);
 
-    // Check if user exists by phone number
+    // Normalize phone (remove spaces/dashes)
+    const normalized = trimmed.replace(/[\s\-\(\)]/g, '');
+
+    // Check if user exists by phone number or phone_search
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
-      .eq('phone_number', phoneNumber)
+      .or(`phone_number.eq.${normalized},phone_search.eq.${normalized}`)
       .maybeSingle();
 
     setUserExists(!!profile);
+    setPhoneNumber(normalized); // Store normalized version
     setStep('pin-options');
     setLoading(false);
   };
@@ -114,21 +119,24 @@ export const PhoneAuth = () => {
       const deviceName = await getDeviceName();
       const deviceType = await getDeviceType();
 
+      // Normalize phone number (no country code required)
+      const normalizedPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+      
       // Create user with dummy email (phone as identifier)
-      const dummyEmail = `${phoneNumber.replace(/[^0-9]/g, '')}@chatr.local`;
+      const dummyEmail = `${normalizedPhone}@chatr.local`;
       const randomPassword = crypto.randomUUID();
 
       // Hash phone number before signup
-      const phoneHash = await hashPhoneNumber(phoneNumber);
+      const phoneHash = await hashPhoneNumber(normalizedPhone);
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: dummyEmail,
         password: randomPassword,
         options: {
           data: {
-            phone_number: phoneNumber,
+            phone_number: normalizedPhone,
             phone_hash: phoneHash,
-            username: `User_${phoneNumber.slice(-4)}`,
+            username: `User_${normalizedPhone.slice(-4)}`,
           },
         },
       });
@@ -188,13 +196,14 @@ export const PhoneAuth = () => {
         return;
       }
 
-      console.log('Looking for profile with phone:', phoneNumber);
+      const normalizedPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+      console.log('Looking for profile with phone:', normalizedPhone);
       
       // Get user profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('phone_number', phoneNumber)
+        .or(`phone_number.eq.${normalizedPhone},phone_search.eq.${normalizedPhone}`)
         .maybeSingle();
 
       console.log('Profile found:', profile, 'Error:', profileError);
@@ -279,11 +288,16 @@ export const PhoneAuth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: `${window.location.origin}/auth?phone=${encodeURIComponent(phoneNumber)}`,
         },
       });
 
       if (error) throw error;
+      
+      toast({
+        title: 'Redirecting...',
+        description: 'Sign in with Google to recover your account',
+      });
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -311,11 +325,13 @@ export const PhoneAuth = () => {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+1 234 567 8900"
+                placeholder="9876543210"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 className="h-12 text-base"
+                maxLength={10}
               />
+              <p className="text-xs text-muted-foreground">Enter 10-digit phone number (no country code needed)</p>
             </div>
             <Button
               onClick={handlePhoneSubmit}

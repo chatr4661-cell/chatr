@@ -16,23 +16,40 @@ const Auth = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
-        // Handle Google OAuth recovery flow (when user forgets PIN)
+        // Handle Google OAuth recovery or new device setup
+        const urlParams = new URLSearchParams(window.location.search);
+        const recoveryPhone = urlParams.get('phone');
+        
         const { data: profile } = await supabase
           .from('profiles')
-          .select('phone_number, phone_hash')
+          .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // If Google sign-in without phone number, this is a new device recovery
-        if (!profile?.phone_number && session.user.email) {
+        // If this is a Google sign-in for PIN recovery
+        if (recoveryPhone && profile) {
           toast({
-            title: 'Account Recovery',
-            description: 'Please contact support to recover your account',
-            variant: 'destructive'
+            title: 'Account Recovered!',
+            description: 'You can now set up a new PIN for this device',
           });
-          await supabase.auth.signOut();
-          setLoading(false);
-          return;
+          
+          // Get device info
+          const deviceFingerprint = await getDeviceFingerprint();
+          
+          // Check if device session exists
+          const { data: existingSession } = await supabase
+            .from('device_sessions')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .eq('device_fingerprint', deviceFingerprint)
+            .maybeSingle();
+          
+          // If no session for this device, prompt for new PIN
+          if (!existingSession) {
+            // Redirect to PIN setup (handled in PhoneAuth component)
+            window.location.href = `/?setup_pin=true&phone=${recoveryPhone}`;
+            return;
+          }
         }
 
         // Update phone hash if missing
@@ -50,17 +67,6 @@ const Auth = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        // Ensure existing users have phone_hash if they have a phone_number
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('phone_number, phone_hash')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (profile?.phone_number && !profile.phone_hash) {
-          await updateUserPhoneHash(supabase, session.user.id, profile.phone_number);
-        }
-        
         window.location.href = '/';
       }
     });

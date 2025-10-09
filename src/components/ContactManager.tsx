@@ -19,20 +19,9 @@ const hashPhoneNumber = async (phone: string): Promise<string> => {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
-// Normalize phone to E.164 format (+countrycode + number)
+// Simple phone normalization - remove spaces and dashes
 const normalizePhoneNumber = (phone: string): string => {
-  const cleaned = phone.replace(/\D/g, '');
-  
-  // If it doesn't start with +, assume India (+91)
-  if (!phone.startsWith('+')) {
-    if (cleaned.length === 10) {
-      return `+91${cleaned}`;
-    } else if (cleaned.length > 10) {
-      return `+${cleaned}`;
-    }
-  }
-  
-  return phone.startsWith('+') ? phone : `+${cleaned}`;
+  return phone.replace(/[\s\-\(\)]/g, '');
 };
 
 interface Contact {
@@ -658,14 +647,14 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
 
       {/* Add Contact Dialog */}
       <Dialog open={showAddContact} onOpenChange={setShowAddContact}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add New Contact</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Contact Name (Optional)
+                Contact Name
               </label>
               <Input
                 placeholder="John Doe"
@@ -675,15 +664,85 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Email or Phone Number
+                Phone Number, Email, or Username
               </label>
               <Input
-                placeholder="arshid.wani@icloud.com or +1234567890"
+                placeholder="9876543210 or arshid@example.com"
                 value={contactIdentifier}
                 onChange={(e) => setContactIdentifier(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter phone (10 digits), email, or username
+              </p>
             </div>
-            <div className="flex gap-2">
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Or invite via:</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => {
+                    const phone = contactIdentifier || '';
+                    if (!phone) {
+                      toast({ title: 'Enter phone number first', variant: 'destructive' });
+                      return;
+                    }
+                    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=Join me on Chatr! Download: https://chatr.chat`, '_blank');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-green-600"
+                >
+                  📱 WhatsApp
+                </Button>
+                <Button
+                  onClick={() => {
+                    const phone = contactIdentifier || '';
+                    if (!phone) {
+                      toast({ title: 'Enter phone number first', variant: 'destructive' });
+                      return;
+                    }
+                    window.open(`sms:${phone}?body=Join me on Chatr! Download: https://chatr.chat`, '_blank');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-blue-600"
+                >
+                  💬 SMS
+                </Button>
+                <Button
+                  onClick={() => {
+                    const email = contactIdentifier || '';
+                    if (!email.includes('@')) {
+                      toast({ title: 'Enter email first', variant: 'destructive' });
+                      return;
+                    }
+                    window.open(`mailto:${email}?subject=Join Chatr&body=Join me on Chatr! Download: https://chatr.chat`, '_blank');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600"
+                >
+                  📧 Email
+                </Button>
+                <Button
+                  onClick={() => {
+                    const username = contactIdentifier || '';
+                    if (!username) {
+                      toast({ title: 'Enter username first', variant: 'destructive' });
+                      return;
+                    }
+                    window.open(`https://t.me/${username}`, '_blank');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-sky-600"
+                >
+                  ✈️ Telegram
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex gap-2 pt-2">
               <Button
                 onClick={addContact}
                 disabled={isLoading}
@@ -692,7 +751,11 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
                 {isLoading ? 'Adding...' : 'Add Contact'}
               </Button>
               <Button
-                onClick={() => setShowAddContact(false)}
+                onClick={() => {
+                  setShowAddContact(false);
+                  setContactName('');
+                  setContactIdentifier('');
+                }}
                 variant="outline"
               >
                 Cancel
