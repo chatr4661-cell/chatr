@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,288 +9,144 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Phone, ArrowLeft } from 'lucide-react';
 import { PINInput } from './PINInput';
 import { CountryCodeSelector } from './CountryCodeSelector';
+import { normalizePhoneNumber } from '@/utils/phoneHashUtil';
 
 type AuthStep = 'phone' | 'create-pin' | 'login-pin';
 
 export const PhoneAuth = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState<AuthStep>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [loading, setLoading] = useState(false);
   const [userExists, setUserExists] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
 
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        window.location.href = '/';
+        navigate('/');
       }
     };
     checkSession();
-  }, []);
+  }, [navigate]);
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!phoneNumber.trim()) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
-
     try {
-      if (!phoneNumber || phoneNumber.length < 10) {
-        toast({
-          title: 'Invalid Phone Number',
-          description: 'Please enter a valid phone number',
-          variant: 'destructive'
-        });
-        setLoading(false);
-        return;
-      }
-
-      const fullPhone = `${countryCode}${phoneNumber}`;
-
-      // Check if user exists and has a PIN
-      const { data: profile } = await supabase
+      const normalizedPhone = normalizePhoneNumber(phoneNumber, countryCode);
+      
+      // Check if user exists in profiles
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .select('id, pin')
-        .eq('phone_number', fullPhone)
+        .select('id')
+        .eq('phone_number', normalizedPhone)
         .maybeSingle();
 
-      if (profile) {
-        setUserId(profile.id);
-        
-        // If user exists but has no PIN, treat as new registration
-        if (!profile.pin) {
-          setUserExists(false);
-          setStep('create-pin');
-        } else {
-          // User exists with PIN, go to login
-          setUserExists(true);
-          setStep('login-pin');
-        }
+      if (existingProfile) {
+        setUserExists(true);
+        setStep('login-pin');
       } else {
-        // Brand new user
         setUserExists(false);
         setStep('create-pin');
       }
     } catch (error: any) {
-      console.error('Error checking phone:', error);
+      console.error('Phone verification error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to verify phone number',
-        variant: 'destructive'
+        title: "Error",
+        description: error.message || "Failed to verify phone number",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreatePinComplete = async (enteredPin: string) => {
-    if (enteredPin.length !== 4 || !/^\d{4}$/.test(enteredPin)) {
-      toast({
-        title: 'Invalid PIN',
-        description: 'PIN must be 4 digits',
-        variant: 'destructive'
-      });
-      return;
-    }
-
+  const handleCreatePinComplete = async (pin: string) => {
     setLoading(true);
-
     try {
-      const fullPhone = `${countryCode}${phoneNumber}`;
-      
-      // If userId exists, it means user exists but doesn't have a PIN - just update the PIN
-      if (userId) {
-        await supabase
-          .from('profiles')
-          .update({ pin: enteredPin })
-          .eq('id', userId);
+      const normalizedPhone = normalizePhoneNumber(phoneNumber, countryCode);
+      const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
 
-        // Create session by signing in with the existing account
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('id', userId)
-          .single();
-
-        if (profile?.email) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: profile.email,
-            password: enteredPin + fullPhone
-          });
-
-          if (signInError) {
-            // Update password to new PIN
-            await supabase.auth.admin.updateUserById(userId, {
-              password: enteredPin + fullPhone
-            });
-            
-            // Sign in with new password
-            await supabase.auth.signInWithPassword({
-              email: profile.email,
-              password: enteredPin + fullPhone
-            });
+      // Create new user with phone as email and PIN as password
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: pin,
+        options: {
+          data: {
+            phone_number: normalizedPhone,
+            username: phoneNumber,
           }
         }
+      });
 
-        toast({
-          title: 'PIN Created!',
-          description: 'Welcome to chatr.chat'
-        });
-      } else {
-        // New user - create auth account
-        const dummyEmail = `${fullPhone.replace(/\+/g, '')}@chatr.local`;
-        const dummyPassword = enteredPin + fullPhone;
+      if (signUpError) throw signUpError;
+      if (!authData.user) throw new Error('Failed to create user');
 
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: dummyEmail,
-          password: dummyPassword,
-          options: {
-            data: {
-              phone_number: fullPhone,
-              username: fullPhone
-            }
-          }
-        });
+      toast({
+        title: "Account Created",
+        description: "Welcome to Chatr!",
+      });
 
-        if (authError) {
-          throw authError;
-        }
-
-        if (!authData.user) throw new Error('Failed to create user');
-
-        // Update profile with PIN
-        await supabase
-          .from('profiles')
-          .update({ 
-            phone_number: fullPhone,
-            pin: enteredPin
-          })
-          .eq('id', authData.user.id);
-
-        toast({
-          title: 'Account Created!',
-          description: 'Welcome to chatr.chat'
-        });
-      }
-
-      window.location.href = '/';
+      navigate('/');
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error('PIN creation error:', error);
       toast({
-        title: 'Registration Failed',
-        description: error.message || 'Failed to create account',
-        variant: 'destructive'
+        title: "Registration Failed",
+        description: error.message || "Failed to create PIN",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLoginPinComplete = async (enteredPin: string) => {
-    if (enteredPin.length !== 4 || !/^\d{4}$/.test(enteredPin)) {
-      toast({
-        title: 'Invalid PIN',
-        description: 'PIN must be 4 digits',
-        variant: 'destructive'
-      });
-      return;
-    }
-
+  const handleLoginPinComplete = async (pin: string) => {
     setLoading(true);
-
     try {
-      const fullPhone = `${countryCode}${phoneNumber}`;
+      const normalizedPhone = normalizePhoneNumber(phoneNumber, countryCode);
+      const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
 
-      // Get user's profile with PIN
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, pin, email')
-        .eq('phone_number', fullPhone)
-        .maybeSingle();
-
-      if (profileError || !profile) {
-        toast({
-          title: 'Error',
-          description: 'Account not found',
-          variant: 'destructive'
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Check if PIN is set
-      if (!profile.pin) {
-        toast({
-          title: 'No PIN Set',
-          description: 'Please create a PIN first',
-          variant: 'destructive'
-        });
-        setStep('create-pin');
-        setUserId(profile.id);
-        setLoading(false);
-        return;
-      }
-
-      // Verify PIN
-      if (profile.pin !== enteredPin) {
-        toast({
-          title: 'Incorrect PIN',
-          description: 'Please try again',
-          variant: 'destructive'
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Sign in with email (dummy email created during signup)
-      const dummyEmail = profile.email || `${fullPhone.replace(/\+/g, '')}@chatr.local`;
-      
-      // Get the user's password from auth metadata or create a session token
-      // Since we don't store the password, we need to use signInWithPassword with the user's existing credentials
-      // For now, let's use the admin API to create a session
-      
-      // Instead, let's update the auth user's password to match the PIN
+      // Sign in with phone as email and PIN as password
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: dummyEmail,
-        password: enteredPin + fullPhone // Combine PIN with phone for unique password
+        email,
+        password: pin,
       });
 
       if (signInError) {
-        // Password might have changed, try updating it
-        const { data: { user } } = await supabase.auth.admin.getUserById(profile.id);
-        
-        if (user) {
-          // Update password to current PIN + phone
-          await supabase.auth.admin.updateUserById(profile.id, {
-            password: enteredPin + fullPhone
-          });
-          
-          // Try signing in again
-          const { error: retryError } = await supabase.auth.signInWithPassword({
-            email: dummyEmail,
-            password: enteredPin + fullPhone
-          });
-          
-          if (retryError) throw retryError;
-        } else {
-          throw signInError;
-        }
+        toast({
+          title: "Invalid PIN",
+          description: "The PIN you entered is incorrect",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
       }
 
       toast({
-        title: 'Welcome Back!',
-        description: 'Logged in successfully'
+        title: "Welcome Back",
+        description: "You've been signed in successfully",
       });
 
-      window.location.href = '/';
+      navigate('/');
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
-        title: 'Login Failed',
-        description: error.message || 'Failed to log in',
-        variant: 'destructive'
+        title: "Login Failed",
+        description: error.message || "Failed to sign in",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
