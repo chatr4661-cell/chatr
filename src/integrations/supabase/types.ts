@@ -2409,6 +2409,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+          wellness_reminder_enabled: boolean | null
+          wellness_reminder_time: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          wellness_reminder_enabled?: boolean | null
+          wellness_reminder_time?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          wellness_reminder_enabled?: boolean | null
+          wellness_reminder_time?: string | null
+        }
+        Relationships: []
+      }
       user_reward_redemptions: {
         Row: {
           expires_at: string

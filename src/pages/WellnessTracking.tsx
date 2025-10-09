@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Heart, Activity, TrendingUp, Droplet, Moon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { MoodPicker } from '@/components/wellness/MoodPicker';
+import { WellnessChart } from '@/components/wellness/WellnessChart';
+import { WellnessInsights } from '@/components/wellness/WellnessInsights';
+import { HealthAppSync } from '@/components/wellness/HealthAppSync';
+import { ReminderToggle } from '@/components/wellness/ReminderToggle';
 
 const WellnessTracking = () => {
   const [user, setUser] = useState<any>(null);
@@ -21,6 +26,10 @@ const WellnessTracking = () => {
     mood: '',
     notes: ''
   });
+  const [historicalData, setHistoricalData] = useState<any[]>([]);
+  const [insights, setInsights] = useState<any[]>([]);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [currentStats, setCurrentStats] = useState({ steps: 0, heartRate: 0 });
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,9 +39,122 @@ const WellnessTracking = () => {
         navigate('/auth');
       } else {
         setUser(session.user);
+        loadHistoricalData(session.user.id);
+        loadReminderPreference(session.user.id);
       }
     });
   }, [navigate]);
+
+  const loadHistoricalData = async (userId: string) => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data, error } = await supabase
+      .from('wellness_tracking')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+      .order('date', { ascending: true });
+
+    if (data && data.length > 0) {
+      setHistoricalData(data);
+      
+      // Calculate current stats from latest entry
+      const latest = data[data.length - 1];
+      setCurrentStats({
+        steps: latest.steps || 0,
+        heartRate: latest.heart_rate || 0
+      });
+
+      // Calculate insights
+      if (data.length >= 2) {
+        const previous = data[data.length - 2];
+        const newInsights = [];
+
+        if (latest.steps && previous.steps) {
+          const stepDiff = latest.steps - previous.steps;
+          newInsights.push({
+            metric: 'steps',
+            change: stepDiff,
+            isPositive: stepDiff > 0,
+            message: stepDiff > 0 
+              ? `You've walked ${Math.abs(stepDiff).toLocaleString()} steps more than yesterday! 🎉`
+              : stepDiff < 0
+              ? `${Math.abs(stepDiff).toLocaleString()} fewer steps than yesterday. Keep moving!`
+              : 'Same steps as yesterday. Consistency is key! 👍'
+          });
+        }
+
+        if (latest.sleep_hours && previous.sleep_hours) {
+          const sleepDiff = latest.sleep_hours - previous.sleep_hours;
+          newInsights.push({
+            metric: 'sleep',
+            change: sleepDiff,
+            isPositive: sleepDiff > 0,
+            message: sleepDiff > 0
+              ? `Great! You slept ${Math.abs(sleepDiff).toFixed(1)} hours more! 😴`
+              : sleepDiff < 0
+              ? `Try to get more rest. You slept ${Math.abs(sleepDiff).toFixed(1)} hours less.`
+              : 'Consistent sleep schedule! Well done! 🌙'
+          });
+        }
+
+        if (latest.heart_rate && previous.heart_rate) {
+          const hrDiff = latest.heart_rate - previous.heart_rate;
+          const isHealthy = Math.abs(hrDiff) <= 10;
+          newInsights.push({
+            metric: 'heart_rate',
+            change: hrDiff,
+            isPositive: isHealthy,
+            message: isHealthy
+              ? 'Your heart rate is stable and healthy! ❤️'
+              : 'Notable heart rate change. Consider consulting your doctor if concerned.'
+          });
+        }
+
+        setInsights(newInsights);
+      }
+    }
+  };
+
+  const loadReminderPreference = async (userId: string) => {
+    const { data } = await supabase
+      .from('user_preferences')
+      .select('wellness_reminder_enabled')
+      .eq('user_id', userId)
+      .single();
+
+    if (data) {
+      setReminderEnabled(data.wellness_reminder_enabled || false);
+    }
+  };
+
+  const handleReminderToggle = async (enabled: boolean) => {
+    setReminderEnabled(enabled);
+    
+    if (user) {
+      await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: user.id,
+          wellness_reminder_enabled: enabled
+        });
+
+      toast({
+        title: enabled ? '🔔 Reminders Enabled' : '🔕 Reminders Disabled',
+        description: enabled 
+          ? 'You\'ll get daily reminders to log your wellness data'
+          : 'Daily reminders have been turned off'
+      });
+    }
+  };
+
+  const handleHealthAppSync = (syncedData: any) => {
+    setFormData(prev => ({
+      ...prev,
+      ...syncedData
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +175,7 @@ const WellnessTracking = () => {
 
     const { error } = await supabase
       .from('wellness_tracking')
-      .insert(dataToInsert);
+      .upsert(dataToInsert, { onConflict: 'user_id,date' });
 
     if (error) {
       toast({
@@ -65,9 +187,12 @@ const WellnessTracking = () => {
     }
 
     toast({
-      title: 'Success',
+      title: '✅ Success',
       description: 'Wellness data saved successfully!'
     });
+
+    // Reload data to show new insights
+    loadHistoricalData(user.id);
 
     // Reset form
     setFormData({
@@ -114,7 +239,9 @@ const WellnessTracking = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Heart Rate</p>
-                  <p className="text-xl font-bold text-foreground">-- bpm</p>
+                  <p className="text-xl font-bold text-foreground">
+                    {currentStats.heartRate > 0 ? `${currentStats.heartRate} bpm` : '--'}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -126,15 +253,38 @@ const WellnessTracking = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Steps</p>
-                  <p className="text-xl font-bold text-foreground">--</p>
+                  <p className="text-xl font-bold text-foreground">
+                    {currentStats.steps > 0 ? currentStats.steps.toLocaleString() : '--'}
+                  </p>
                 </div>
               </div>
             </Card>
           </div>
 
+          {/* Health App Sync */}
+          <HealthAppSync onDataSync={handleHealthAppSync} />
+
+          {/* Reminder Toggle */}
+          <ReminderToggle enabled={reminderEnabled} onToggle={handleReminderToggle} />
+
+          {/* Insights */}
+          {insights.length > 0 && <WellnessInsights insights={insights} />}
+
+          {/* Charts */}
+          {historicalData.length > 1 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground">📈 Your Progress</h3>
+              <div className="grid gap-4">
+                <WellnessChart data={historicalData} metric="steps" />
+                <WellnessChart data={historicalData} metric="heart_rate" />
+                <WellnessChart data={historicalData} metric="sleep_hours" />
+              </div>
+            </div>
+          )}
+
           {/* Form */}
           <Card className="p-6 bg-gradient-card backdrop-blur-glass border-glass-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Log Today's Data</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">📝 Log Today's Data</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -230,16 +380,11 @@ const WellnessTracking = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="mood">Mood</Label>
-                <Input
-                  id="mood"
-                  value={formData.mood}
-                  onChange={(e) => setFormData({ ...formData, mood: e.target.value })}
-                  placeholder="Happy, Stressed, Relaxed..."
-                  className="rounded-full bg-background/50 border-glass-border"
-                />
-              </div>
+              {/* Mood Picker */}
+              <MoodPicker
+                value={formData.mood}
+                onChange={(mood) => setFormData({ ...formData, mood })}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
@@ -253,7 +398,7 @@ const WellnessTracking = () => {
               </div>
 
               <Button type="submit" className="w-full rounded-full shadow-glow">
-                Save Today's Data
+                💾 Save Today's Data
               </Button>
             </form>
           </Card>
