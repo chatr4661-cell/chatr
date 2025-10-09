@@ -45,6 +45,7 @@ import CallHistory from "./pages/CallHistory";
 import GlobalContacts from "./pages/GlobalContacts";
 import Stories from "./pages/Stories";
 import Communities from "./pages/Communities";
+import CreateCommunity from "./pages/CreateCommunity";
 import DeviceManagement from "./pages/DeviceManagement";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -134,6 +135,7 @@ const App = () => {
                   <Route path="/global-contacts" element={<GlobalContacts />} />
                   <Route path="/stories" element={<Stories />} />
                   <Route path="/communities" element={<Communities />} />
+                  <Route path="/create-community" element={<CreateCommunity />} />
                   <Route path="/call-history" element={<CallHistory />} />
                   <Route path="/device-management" element={<DeviceManagement />} />
                   <Route path="/profile" element={<Profile />} />
