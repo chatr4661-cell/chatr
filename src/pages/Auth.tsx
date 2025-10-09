@@ -4,63 +4,73 @@ import { useToast } from '@/hooks/use-toast';
 import { PhoneAuth } from '@/components/PhoneAuth';
 import logo from '@/assets/chatr-logo.png';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
-import { hashPin } from '@/utils/pinSecurity';
-import { updateUserPhoneHash } from '@/utils/phoneHashUtil';
 
 const Auth = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // Handle Google OAuth recovery flow (when user forgets PIN)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('phone_number, phone_hash')
-          .eq('id', session.user.id)
+    const checkSession = async () => {
+      try {
+        // Check for active device session
+        const deviceFingerprint = await getDeviceFingerprint();
+        
+        const { data: deviceSession } = await supabase
+          .from('device_sessions')
+          .select('*')
+          .eq('device_fingerprint', deviceFingerprint)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
           .maybeSingle();
 
-        // If Google sign-in without phone number, this is a new device recovery
-        if (!profile?.phone_number && session.user.email) {
-          toast({
-            title: 'Account Recovery',
-            description: 'Please contact support to recover your account',
-            variant: 'destructive'
-          });
-          await supabase.auth.signOut();
-          setLoading(false);
+        if (deviceSession) {
+          // Active session exists, redirect to main app
+          window.location.href = '/';
           return;
         }
 
-        // Update phone hash if missing
-        if (profile?.phone_number && !profile.phone_hash) {
-          await updateUserPhoneHash(supabase, session.user.id, profile.phone_number);
-        }
+        // Check for Google OAuth callback
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          // Google OAuth recovery flow
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
 
-        window.location.href = '/';
-      } else {
+          if (profile) {
+            // User has profile, allow PIN reset for this device
+            toast({
+              title: 'Account Recovered',
+              description: 'Please set a new PIN for this device',
+            });
+            // You can redirect to a PIN reset flow here
+            // For now, redirect to main app
+            window.location.href = '/';
+          } else {
+            // New Google user, needs to link phone number
+            toast({
+              title: 'Link Phone Number',
+              description: 'Please link your phone number to continue',
+              variant: 'destructive'
+            });
+            await supabase.auth.signOut();
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+      } finally {
         setLoading(false);
       }
     };
 
-    handleAuthCallback();
+    checkSession();
 
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        // Ensure existing users have phone_hash if they have a phone_number
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('phone_number, phone_hash')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (profile?.phone_number && !profile.phone_hash) {
-          await updateUserPhoneHash(supabase, session.user.id, profile.phone_number);
-        }
-        
+      if (event === 'SIGNED_IN' && session) {
         window.location.href = '/';
       }
     });

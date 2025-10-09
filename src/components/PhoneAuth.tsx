@@ -1,394 +1,535 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PINInput } from '@/components/PINInput';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Phone, ArrowLeft, Chrome } from 'lucide-react';
+import { PINInput } from './PINInput';
 import { getDeviceFingerprint, getDeviceName, getDeviceType } from '@/utils/deviceFingerprint';
-import { hashPin, isValidPin, logLoginAttempt, isUserLockedOut } from '@/utils/pinSecurity';
-import { Chrome, Smartphone, ArrowLeft } from 'lucide-react';
-import { hashPhoneNumber } from '@/utils/phoneHashUtil';
+import { hashPin, verifyPin, isUserLockedOut, logLoginAttempt, clearFailedAttempts, isValidPin } from '@/utils/pinSecurity';
+import { normalizePhoneNumber, hashPhoneNumber } from '@/utils/phoneHashUtil';
+
+type AuthStep = 'phone' | 'create-pin' | 'confirm-pin' | 'login-pin' | 'forgot-pin';
 
 export const PhoneAuth = () => {
   const { toast } = useToast();
-  const [step, setStep] = useState<'phone' | 'pin-options'>('phone');
+  const [step, setStep] = useState<AuthStep>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [loginPin, setLoginPin] = useState('');
-  const [registerPin, setRegisterPin] = useState('');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [userExists, setUserExists] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Check for existing session on mount
   useEffect(() => {
     const checkExistingSession = async () => {
-      const deviceFingerprint = await getDeviceFingerprint();
-      const { data: session } = await supabase
-        .from('device_sessions')
-        .select('*')
-        .eq('device_fingerprint', deviceFingerprint)
-        .eq('is_active', true)
-        .maybeSingle();
+      try {
+        const deviceFingerprint = await getDeviceFingerprint();
+        
+        const { data: session } = await supabase
+          .from('device_sessions')
+          .select('*')
+          .eq('device_fingerprint', deviceFingerprint)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .maybeSingle();
 
-      if (session) {
-        // Already logged in, redirect
-        window.location.href = '/';
+        if (session) {
+          window.location.href = '/';
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
       }
     };
+
     checkExistingSession();
   }, []);
 
-  const handlePhoneSubmit = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
-      toast({
-        title: 'Invalid Phone',
-        description: 'Please enter a valid phone number',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
 
-    // Check if user exists by phone number
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('phone_number', phoneNumber)
-      .maybeSingle();
-
-    setUserExists(!!profile);
-    setStep('pin-options');
-    setLoading(false);
-  };
-
-  const handleLoginPINComplete = async (enteredPin: string) => {
-    setLoginPin(enteredPin);
-    await handlePINLogin(enteredPin);
-  };
-
-  const handleRegisterPINComplete = async (enteredPin: string) => {
-    if (!isValidPin(enteredPin)) {
-      toast({
-        title: 'Invalid PIN',
-        description: 'PIN must be 4 digits',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setRegisterPin(enteredPin);
-  };
-
-  const handleRegistration = async () => {
-    if (!registerPin) {
-      toast({
-        title: 'Enter PIN',
-        description: 'Please create a 4-digit PIN',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setLoading(true);
     try {
-      // Double-check if user already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone_number', phoneNumber)
-        .maybeSingle();
-
-      if (existingProfile) {
+      if (!phoneNumber || phoneNumber.length < 10) {
         toast({
-          title: 'Account Exists',
-          description: 'Please use the login section above',
-          variant: 'destructive',
+          title: 'Invalid Phone Number',
+          description: 'Please enter a valid 10-digit phone number',
+          variant: 'destructive'
         });
-        setUserExists(true);
         setLoading(false);
         return;
       }
 
+      // Normalize to E.164 format (+91)
+      const normalized = normalizePhoneNumber(phoneNumber);
+      setPhoneNumber(normalized);
+
+      // Check if user exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, phone_number')
+        .eq('phone_number', normalized)
+        .maybeSingle();
+
+      if (existingProfile) {
+        setUserExists(true);
+        setUserId(existingProfile.id);
+        setStep('login-pin');
+      } else {
+        setUserExists(false);
+        setStep('create-pin');
+      }
+    } catch (error: any) {
+      console.error('Error checking phone:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to verify phone number',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreatePinComplete = (enteredPin: string) => {
+    if (!isValidPin(enteredPin)) {
+      toast({
+        title: 'Invalid PIN',
+        description: 'PIN must be exactly 4 digits',
+        variant: 'destructive'
+      });
+      return;
+    }
+    setPin(enteredPin);
+    setStep('confirm-pin');
+  };
+
+  const handleConfirmPinComplete = async (enteredConfirmPin: string) => {
+    if (pin !== enteredConfirmPin) {
+      toast({
+        title: 'PINs Do Not Match',
+        description: 'Please try again',
+        variant: 'destructive'
+      });
+      setConfirmPin('');
+      setStep('create-pin');
+      setPin('');
+      return;
+    }
+
+    setConfirmPin(enteredConfirmPin);
+    await handleRegistration(enteredConfirmPin);
+  };
+
+  const handleRegistration = async (userPin: string) => {
+    setLoading(true);
+
+    try {
       const deviceFingerprint = await getDeviceFingerprint();
       const deviceName = await getDeviceName();
       const deviceType = await getDeviceType();
 
-      // Create user with dummy email (phone as identifier)
-      const dummyEmail = `${phoneNumber.replace(/[^0-9]/g, '')}@chatr.local`;
-      const randomPassword = crypto.randomUUID();
+      // Create dummy email for auth
+      const dummyEmail = `${phoneNumber.replace(/\+/g, '')}@chatr.local`;
+      const dummyPassword = crypto.randomUUID();
 
-      // Hash phone number before signup
-      const phoneHash = await hashPhoneNumber(phoneNumber);
-
+      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: dummyEmail,
-        password: randomPassword,
+        password: dummyPassword,
         options: {
           data: {
             phone_number: phoneNumber,
-            phone_hash: phoneHash,
-            username: `User_${phoneNumber.slice(-4)}`,
-          },
-        },
+            username: `User_${phoneNumber.slice(-4)}`
+          }
+        }
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error('Failed to create user');
 
-      // Hash PIN and create device session
-      const pinHash = await hashPin(registerPin);
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+      // Hash PIN and phone
+      const pinHash = await hashPin(userPin);
+      const phoneHash = await hashPhoneNumber(phoneNumber);
 
-      await supabase.from('device_sessions').insert({
-        user_id: authData.user.id,
-        device_fingerprint: deviceFingerprint,
-        device_name: deviceName,
-        device_type: deviceType,
-        session_token: authData.session!.access_token,
-        pin_hash: pinHash,
-        expires_at: expiresAt.toISOString(),
-        quick_login_enabled: true,
-      });
+      // Update profile with phone hash
+      await supabase
+        .from('profiles')
+        .update({ phone_hash: phoneHash })
+        .eq('id', authData.user.id);
+
+      // Create device session
+      const sessionToken = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+      await supabase
+        .from('device_sessions')
+        .insert({
+          user_id: authData.user.id,
+          device_fingerprint: deviceFingerprint,
+          device_name: deviceName,
+          device_type: deviceType,
+          session_token: sessionToken,
+          pin_hash: pinHash,
+          expires_at: expiresAt.toISOString(),
+          is_active: true
+        });
 
       await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', true, authData.user.id);
+      await clearFailedAttempts(phoneNumber, deviceFingerprint);
 
       toast({
-        title: 'Registration Complete!',
-        description: 'Your account has been created',
+        title: 'Account Created!',
+        description: 'Welcome to chatr.chat'
       });
 
-      // Auto sign in
       window.location.href = '/';
     } catch (error: any) {
+      console.error('Registration error:', error);
       toast({
         title: 'Registration Failed',
-        description: error.message,
-        variant: 'destructive',
+        description: error.message || 'Failed to create account',
+        variant: 'destructive'
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handlePINLogin = async (enteredPin: string) => {
+  const handleLoginPinComplete = async (enteredPin: string) => {
+    if (!isValidPin(enteredPin)) {
+      toast({
+        title: 'Invalid PIN',
+        description: 'PIN must be exactly 4 digits',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setLoading(true);
+
     try {
       const deviceFingerprint = await getDeviceFingerprint();
 
       // Check lockout
-      const lockout = await isUserLockedOut(phoneNumber, deviceFingerprint);
-      if (lockout.locked) {
+      const lockoutStatus = await isUserLockedOut(phoneNumber, deviceFingerprint);
+      if (lockoutStatus.locked) {
+        const remainingMinutes = Math.ceil((lockoutStatus.remainingTime || 0) / 60000);
         toast({
-          title: 'Too Many Attempts',
-          description: `Please try again in ${Math.ceil(lockout.remainingTime! / 60000)} minutes`,
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-      }
-
-      console.log('Looking for profile with phone:', phoneNumber);
-      
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('phone_number', phoneNumber)
-        .maybeSingle();
-
-      console.log('Profile found:', profile, 'Error:', profileError);
-
-      if (!profile) {
-        await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false);
-        toast({
-          title: 'Login Failed',
-          description: 'Invalid phone number or PIN',
-          variant: 'destructive',
+          title: 'Account Locked',
+          description: `Too many failed attempts. Try again in ${remainingMinutes} minutes.`,
+          variant: 'destructive'
         });
         setLoading(false);
         return;
       }
 
       // Get device session
-      const { data: deviceSession } = await supabase
+      const { data: session } = await supabase
         .from('device_sessions')
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', userId!)
         .eq('device_fingerprint', deviceFingerprint)
+        .eq('is_active', true)
         .maybeSingle();
 
-      if (!deviceSession || !deviceSession.pin_hash) {
-        await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false, profile.id);
+      if (!session || !session.pin_hash) {
         toast({
-          title: 'Login Failed',
-          description: 'Device not registered. Use "Forgot PIN?" to recover',
-          variant: 'destructive',
+          title: 'Device Not Recognized',
+          description: 'Use "Forgot PIN?" to recover your account',
+          variant: 'destructive'
         });
         setLoading(false);
         return;
       }
 
       // Verify PIN
-      const bcrypt = await import('bcryptjs');
-      const isValid = await bcrypt.compare(enteredPin, deviceSession.pin_hash);
+      const pinValid = await verifyPin(enteredPin, session.pin_hash);
 
-      if (!isValid) {
-        await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false, profile.id);
+      if (!pinValid) {
+        await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false, userId!);
         toast({
-          title: 'Login Failed',
-          description: 'Invalid PIN',
-          variant: 'destructive',
+          title: 'Incorrect PIN',
+          description: 'Please try again',
+          variant: 'destructive'
         });
-        setLoginPin(''); // Reset for retry
         setLoading(false);
         return;
       }
 
-      // Success - create Supabase session using the stored session token
-      const { error: signInError } = await supabase.auth.setSession({
-        access_token: deviceSession.session_token,
-        refresh_token: deviceSession.session_token,
-      });
-
-      if (signInError) throw signInError;
-
-      await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', true, profile.id);
-      
-      // Update last active
+      // Update session
       await supabase
         .from('device_sessions')
-        .update({ last_active: new Date().toISOString() })
-        .eq('id', deviceSession.id);
+        .update({
+          last_active: new Date().toISOString(),
+          is_active: true
+        })
+        .eq('id', session.id);
+
+      await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', true, userId!);
+      await clearFailedAttempts(phoneNumber, deviceFingerprint);
+
+      // Set Supabase auth session
+      const { error: authError } = await supabase.auth.setSession({
+        access_token: session.session_token,
+        refresh_token: session.session_token
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+      }
+
+      toast({
+        title: 'Welcome Back!',
+        description: 'Logged in successfully'
+      });
 
       window.location.href = '/';
     } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: 'Login Failed',
-        description: error.message,
-        variant: 'destructive',
+        description: error.message || 'Failed to log in',
+        variant: 'destructive'
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     try {
+      setLoading(true);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth`,
-        },
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
       });
 
       if (error) throw error;
     } catch (error: any) {
+      console.error('Google sign-in error:', error);
       toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
+        title: 'Sign In Failed',
+        description: error.message || 'Failed to sign in with Google',
+        variant: 'destructive'
       });
+      setLoading(false);
     }
   };
 
+  const handleForgotPin = () => {
+    setStep('forgot-pin');
+  };
+
+  const handleBackToPhone = () => {
+    setStep('phone');
+    setPhoneNumber('');
+    setPin('');
+    setConfirmPin('');
+    setUserExists(false);
+  };
+
   return (
-    <Card className="w-full max-w-md backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass rounded-3xl">
-      <CardHeader className="text-center space-y-2">
-        <CardTitle className="text-2xl">
-          {step === 'phone' ? 'Welcome to chatr.chat' : `${phoneNumber}`}
+    <Card className="w-full backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass">
+      <CardHeader>
+        <CardTitle>
+          {step === 'phone' && 'Welcome to chatr.chat'}
+          {step === 'create-pin' && 'Create Your PIN'}
+          {step === 'confirm-pin' && 'Confirm Your PIN'}
+          {step === 'login-pin' && 'Enter Your PIN'}
+          {step === 'forgot-pin' && 'Recover Account'}
         </CardTitle>
         <CardDescription>
-          {step === 'phone' ? 'Enter your phone number to continue' : 'Choose your action'}
+          {step === 'phone' && 'Enter your phone number to continue'}
+          {step === 'create-pin' && 'Choose a 4-digit PIN for this device'}
+          {step === 'confirm-pin' && 'Enter your PIN again to confirm'}
+          {step === 'login-pin' && 'Enter your PIN to sign in'}
+          {step === 'forgot-pin' && 'Use Google to recover your account'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
+        {/* Phone Number Input */}
         {step === 'phone' && (
-          <>
+          <form onSubmit={handlePhoneSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+1 234 567 8900"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="h-12 text-base"
-              />
+              <div className="flex gap-2">
+                <div className="flex items-center justify-center px-3 border rounded-md bg-muted text-muted-foreground">
+                  +91
+                </div>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="9876543210"
+                  value={phoneNumber.replace(/^\+91/, '')}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    setPhoneNumber(value);
+                  }}
+                  disabled={loading}
+                  className="flex-1"
+                  maxLength={10}
+                  autoFocus
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter 10-digit phone number without country code
+              </p>
             </div>
-            <Button
-              onClick={handlePhoneSubmit}
-              disabled={loading}
-              className="w-full h-12 text-base rounded-xl shadow-glow"
-            >
-              <Smartphone className="w-5 h-5 mr-2" />
-              Continue
+            <Button type="submit" className="w-full" disabled={loading || phoneNumber.length < 10}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <Phone className="mr-2 h-4 w-4" />
+                  Continue
+                </>
+              )}
             </Button>
-          </>
+          </form>
         )}
 
-        {step === 'pin-options' && (
-          <>
-            {/* Login Section - Always show */}
-            <div className="space-y-4 pb-6 border-b border-border">
-              <div className="text-center">
-                <h3 className="font-semibold text-lg">Already Registered?</h3>
-                <p className="text-sm text-muted-foreground">Enter your PIN to log in</p>
-              </div>
-              <PINInput
-                key="login-pin"
-                length={4}
-                onComplete={handleLoginPINComplete}
-                className="justify-center"
-              />
+        {/* Create PIN */}
+        {step === 'create-pin' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
               <Button
-                onClick={handleGoogleSignIn}
-                variant="outline"
-                className="w-full h-10 text-sm rounded-xl"
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToPhone}
+                disabled={loading}
               >
-                <Chrome className="w-4 h-4 mr-2" />
-                Forgot PIN? Sign in with Google
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <span className="text-sm text-muted-foreground">{phoneNumber}</span>
+            </div>
+            <div className="space-y-2">
+              <Label>Enter 4-Digit PIN</Label>
+              <PINInput
+                length={4}
+                onComplete={handleCreatePinComplete}
+                disabled={loading}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Confirm PIN */}
+        {step === 'confirm-pin' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStep('create-pin');
+                  setPin('');
+                }}
+                disabled={loading}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <span className="text-sm text-muted-foreground">{phoneNumber}</span>
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm Your PIN</Label>
+              <PINInput
+                length={4}
+                onComplete={handleConfirmPinComplete}
+                disabled={loading}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Login PIN */}
+        {step === 'login-pin' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToPhone}
+                disabled={loading}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <span className="text-sm text-muted-foreground">{phoneNumber}</span>
+            </div>
+            <div className="space-y-2">
+              <Label>Enter Your PIN</Label>
+              <PINInput
+                length={4}
+                onComplete={handleLoginPinComplete}
+                disabled={loading}
+              />
+            </div>
+            <Button
+              variant="link"
+              className="w-full text-sm"
+              onClick={handleForgotPin}
+              disabled={loading}
+            >
+              Forgot PIN?
+            </Button>
+          </div>
+        )}
+
+        {/* Forgot PIN - Google Recovery */}
+        {step === 'forgot-pin' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setStep('login-pin')}
+                disabled={loading}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
               </Button>
             </div>
-
-            {/* Register Section - Only show if user doesn't exist */}
-            {!userExists && (
-              <div className="space-y-4">
-                <div className="text-center">
-                  <h3 className="font-semibold text-lg">New User?</h3>
-                  <p className="text-sm text-muted-foreground">Create a 4-digit PIN for quick access</p>
-                </div>
-                <PINInput
-                  key="register-pin"
-                  length={4}
-                  onComplete={handleRegisterPINComplete}
-                  className="justify-center"
-                />
-                <Button
-                  onClick={handleRegistration}
-                  disabled={loading || !registerPin}
-                  className="w-full h-12 text-base rounded-xl shadow-glow"
-                >
-                  <Smartphone className="w-5 h-5 mr-2" />
-                  Create Account
-                </Button>
-              </div>
-            )}
-
-            {/* Back button */}
-            <Button
-              onClick={() => {
-                setStep('phone');
-                setLoginPin('');
-                setRegisterPin('');
-                setUserExists(false);
-              }}
-              variant="ghost"
-              className="w-full h-10 text-sm"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Change Phone Number
-            </Button>
-          </>
+            <div className="text-center space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Recover your account using Google Sign-In
+              </p>
+              <Button
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                variant="outline"
+                className="w-full"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Continue with Google
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
