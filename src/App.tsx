@@ -139,11 +139,11 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
+              <Toaster />
             </ChatProvider>
           </BrowserRouter>
         </ThemeProvider>
       </QueryClientProvider>
-      <Toaster />
     </ErrorBoundary>
   );
 };
