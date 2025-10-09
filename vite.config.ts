@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Force rebuild to fix React instance issue - updated config
+// Force complete rebuild - React bundling fix 2025-01-09
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -19,10 +19,15 @@ export default defineConfig(({ mode }) => ({
       'react-dom',
       'react/jsx-runtime',
       'react/jsx-dev-runtime',
+      'react-router-dom',
+      'next-themes',
+      'sonner',
       'recharts',
-      '@supabase/supabase-js'
+      '@supabase/supabase-js',
+      '@tanstack/react-query'
     ],
     exclude: [],
+    force: true, // Force re-optimization
     esbuildOptions: {
       target: 'esnext',
     },
