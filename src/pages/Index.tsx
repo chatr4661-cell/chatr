@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -32,14 +32,14 @@ import logo from '@/assets/chatr-logo.png';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [user, setUser] = React.useState<any>(null);
-  const [isSettingUpContacts, setIsSettingUpContacts] = React.useState(false);
-  const [pointsBalance, setPointsBalance] = React.useState<number>(0);
-  const [currentStreak, setCurrentStreak] = React.useState<number>(0);
-  const [isLoadingPoints, setIsLoadingPoints] = React.useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [isSettingUpContacts, setIsSettingUpContacts] = useState(false);
+  const [pointsBalance, setPointsBalance] = useState<number>(0);
+  const [currentStreak, setCurrentStreak] = useState<number>(0);
+  const [isLoadingPoints, setIsLoadingPoints] = useState(true);
 
   // Auto-sync contacts on app load
-  React.useEffect(() => {
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate('/auth');

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { ReactNode } from 'react';
 import { NetworkStatus } from './NetworkStatus';
 import { InstallPWAPrompt } from './InstallPWAPrompt';
 import { GlobalCallNotifications } from './GlobalCallNotifications';

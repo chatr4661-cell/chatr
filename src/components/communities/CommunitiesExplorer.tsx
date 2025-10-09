@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,15 +19,15 @@ interface Community {
 }
 
 export const CommunitiesExplorer = ({ userId }: { userId: string }) => {
-  const [communities, setCommunities] = React.useState<Community[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const categories = ['Technology', 'Health', 'Education', 'Entertainment', 'Sports', 'Business'];
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadCommunities();
   }, [selectedCategory]);
 
