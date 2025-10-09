@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 
 interface UsePictureInPictureOptions {
   videoRef: React.RefObject<HTMLVideoElement>;

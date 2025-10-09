@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 export const useAudioLevel = (stream: MediaStream | null, threshold = 0.02) => {
   const [isSpeaking, setIsSpeaking] = useState(false);

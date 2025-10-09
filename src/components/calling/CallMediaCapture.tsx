@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useGroupCall } from '@/hooks/useGroupCall';
 import { ParticipantTile } from './ParticipantTile';
 import { AddParticipantDialog } from './AddParticipantDialog';

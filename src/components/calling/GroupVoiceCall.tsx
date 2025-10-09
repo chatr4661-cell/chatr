@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGroupCall } from '@/hooks/useGroupCall';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { Button } from '@/components/ui/button';
