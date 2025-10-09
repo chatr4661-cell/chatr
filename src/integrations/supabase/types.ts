@@ -2919,6 +2919,10 @@ export type Database = {
         Args: { community_id: string }
         Returns: undefined
       }
+      is_conversation_participant: {
+        Args: { _conversation_id: string; _user_id: string }
+        Returns: boolean
+      }
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }
         Returns: undefined
