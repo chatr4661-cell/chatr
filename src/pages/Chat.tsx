@@ -31,6 +31,12 @@ const ChatEnhancedContent = () => {
   // Enable push notifications only if user ID exists
   usePushNotifications(user?.id || undefined);
 
+  // Clear active conversation on mount to always show conversation list
+  useEffect(() => {
+    setActiveConversationId(null);
+    setOtherUser(null);
+  }, []);
+
   // Check authentication and verify user data
   useEffect(() => {
     const checkAuth = async () => {

@@ -96,14 +96,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Store active conversation in localStorage for persistence
-  useEffect(() => {
-    if (activeConversationId) {
-      localStorage.setItem('activeConversationId', activeConversationId);
-    } else {
-      localStorage.removeItem('activeConversationId');
-    }
-  }, [activeConversationId]);
+  // Removed localStorage persistence to ensure conversation list is always default view
 
   const value: ChatContextType = {
     activeConversationId,
