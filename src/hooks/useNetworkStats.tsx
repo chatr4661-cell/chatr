@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getNetworkStats, getOptimalQuality, setBandwidth, type NetworkStats, type QualityLevel } from '@/utils/videoQualityManager';
 
 interface UseNetworkStatsProps {
