@@ -85,12 +85,13 @@ export const PhoneAuth = () => {
         }
       }
 
-      // Send OTP for new user or device
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone,
+      // Send OTP via custom edge function
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: { phoneNumber: formattedPhone }
       });
 
       if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Failed to send OTP');
 
       setPhoneNumber(formattedPhone);
       setUserExists(!!profile);
@@ -125,37 +126,64 @@ export const PhoneAuth = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: phoneNumber,
-        token: otpCode,
-        type: 'sms',
+      // Verify OTP via custom edge function
+      const { data, error } = await supabase.functions.invoke('verify-otp', {
+        body: { phoneNumber, otpCode }
       });
 
       if (error) throw error;
-      if (!data.session) throw new Error('No session created');
+      if (!data.success) throw new Error(data.error || 'Invalid OTP');
 
-      setSessionToken(data.session.access_token);
+      const userId = data.userId;
 
       // Check if user needs PIN setup
       const deviceFingerprint = await getDeviceFingerprint();
       const { data: deviceSession } = await supabase
         .from('device_sessions')
-        .select('pin_hash')
-        .eq('user_id', data.user.id)
+        .select('pin_hash, session_token')
+        .eq('user_id', userId)
         .eq('device_fingerprint', deviceFingerprint)
         .maybeSingle();
 
-      if (deviceSession?.pin_hash) {
-        // Already has PIN, redirect
-        window.location.href = '/';
-      } else {
-        // Need to set up PIN for this device
-        setStep('pin-setup');
-        toast({
-          title: 'OTP Verified!',
-          description: 'Now create a PIN for quick access',
+      if (deviceSession?.pin_hash && deviceSession?.session_token) {
+        // Set session and redirect
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: deviceSession.session_token,
+          refresh_token: deviceSession.session_token,
         });
+        
+        if (!sessionError) {
+          window.location.href = '/';
+          return;
+        }
       }
+
+      // Need to create session for PIN setup
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: `${phoneNumber.replace(/\+/g, '')}@chatr.local`,
+        password: phoneNumber,
+      });
+
+      if (authError) {
+        // Create user if doesn't exist
+        const { data: newAuthData } = await supabase.auth.signUp({
+          email: `${phoneNumber.replace(/\+/g, '')}@chatr.local`,
+          password: phoneNumber,
+          options: { data: { phone: phoneNumber } }
+        });
+        
+        if (newAuthData?.session) {
+          setSessionToken(newAuthData.session.access_token);
+        }
+      } else if (authData?.session) {
+        setSessionToken(authData.session.access_token);
+      }
+
+      setStep('pin-setup');
+      toast({
+        title: 'OTP Verified!',
+        description: 'Now create a PIN for quick access',
+      });
     } catch (error: any) {
       toast({
         title: 'Verification Failed',
