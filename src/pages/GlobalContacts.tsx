@@ -173,10 +173,10 @@ export default function GlobalContacts() {
 
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-base truncate">
-                    {contact.username}
+                    {contact.username || contact.phone_number}
                   </h3>
                   <p className="text-sm text-muted-foreground truncate">
-                    {contact.email || contact.phone_number}
+                    {contact.phone_number}
                   </p>
                   {contact.is_online && (
                     <Badge variant="outline" className="text-xs mt-1 border-green-500/50 text-green-600">

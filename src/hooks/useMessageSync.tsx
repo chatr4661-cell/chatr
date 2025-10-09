@@ -52,17 +52,7 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey(
-            id,
-            username,
-            avatar_url
-          ),
-          reply_message:messages!messages_reply_to_id_fkey(
-            id,
-            content,
-            reply_sender:profiles!messages_sender_id_fkey(username)
-          )
+          *
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
@@ -248,14 +238,7 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
           // Fetch full message with sender info
           const { data } = await supabase
             .from('messages')
-            .select(`
-              *,
-              sender:profiles!messages_sender_id_fkey(
-                id,
-                username,
-                avatar_url
-              )
-            `)
+            .select('*')
             .eq('id', payload.new.id)
             .single();
 

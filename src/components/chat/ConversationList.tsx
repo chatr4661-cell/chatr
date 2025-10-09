@@ -19,6 +19,7 @@ interface Conversation {
     username: string;
     avatar_url?: string;
     is_online: boolean;
+    phone_number?: string;
   };
   last_message?: {
     content: string;
@@ -106,7 +107,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
             if (participants && participants.length > 0) {
               const { data: profile } = await supabase
                 .from('profiles')
-                .select('id, username, avatar_url, is_online')
+                .select('id, username, avatar_url, is_online, phone_number')
                 .eq('id', participants[0].user_id)
                 .maybeSingle();
 
@@ -181,7 +182,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
     <ScrollArea className="h-full">
       <div className="p-2 space-y-1">
         {conversations.map((conv) => {
-          const displayName = conv.is_group ? conv.group_name : conv.other_user?.username || 'Unknown';
+          const displayName = conv.is_group ? conv.group_name : (conv.other_user?.username || conv.other_user?.phone_number || 'Unknown');
           const displayAvatar = conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url;
           const lastMessage = conv.last_message;
           const messagePreview = lastMessage?.content || 'No messages yet';
