@@ -211,18 +211,20 @@ export const PhoneAuth = () => {
       }
 
       // Get device session
-      const { data: deviceSession } = await supabase
+      const { data: deviceSession, error: deviceError } = await supabase
         .from('device_sessions')
         .select('*')
         .eq('user_id', profile.id)
         .eq('device_fingerprint', deviceFingerprint)
         .maybeSingle();
 
+      console.log('Device session found:', deviceSession, 'Error:', deviceError);
+
       if (!deviceSession || !deviceSession.pin_hash) {
         await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false, profile.id);
         toast({
-          title: 'Login Failed',
-          description: 'Device not registered. Use "Forgot PIN?" to recover',
+          title: 'Device Not Registered',
+          description: 'This device needs to set up a PIN. Please use "Forgot PIN?" to sign in with Google first.',
           variant: 'destructive',
         });
         setLoading(false);
