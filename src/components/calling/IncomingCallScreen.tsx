@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,6 +6,8 @@ import { Phone, PhoneOff, Video, MessageSquare } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { cn } from "@/lib/utils";
+import { useRingtone } from "@/hooks/useRingtone";
+import { motion } from "framer-motion";
 
 interface IncomingCallScreenProps {
   callerName: string;
@@ -26,67 +28,37 @@ export function IncomingCallScreen({
   onSendMessage,
   ringtoneUrl = "/ringtone.mp3"
 }: IncomingCallScreenProps) {
-  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
-  const vibrationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [audioEnabled, setAudioEnabled] = useState(false);
+  const hapticIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useRingtone({
+    enabled: true,
+    ringtoneUrl,
+    volume: 0.8,
+    fadeInDuration: 1000,
+    fadeOutDuration: 500
+  });
 
   useEffect(() => {
-    // Initialize audio element
-    const audio = new Audio(ringtoneUrl);
-    audio.loop = true;
-    audio.volume = 0.8;
-    ringtoneRef.current = audio;
-
-    // Try to play immediately (may fail due to autoplay policy)
-    const playPromise = audio.play();
-    
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          console.log('✅ Ringtone playing');
-          setAudioEnabled(true);
-        })
-        .catch((error) => {
-          console.log('⚠️ Autoplay blocked, waiting for user interaction:', error);
-          setAudioEnabled(false);
-          
-          // Try playing on first user interaction
-          const enableAudioOnInteraction = () => {
-            audio.play()
-              .then(() => {
-                console.log('✅ Ringtone enabled after user interaction');
-                setAudioEnabled(true);
-              })
-              .catch(e => console.log('Failed to play ringtone:', e));
-            
-            // Remove listeners after first successful play
-            document.removeEventListener('click', enableAudioOnInteraction);
-            document.removeEventListener('touchstart', enableAudioOnInteraction);
-          };
-          
-          document.addEventListener('click', enableAudioOnInteraction);
-          document.addEventListener('touchstart', enableAudioOnInteraction);
-        });
-    }
-
-    // Vibrate on mobile
+    // iOS-style haptic pattern
     if (Capacitor.isNativePlatform()) {
-      vibrationIntervalRef.current = setInterval(async () => {
+      const hapticPattern = async () => {
         await Haptics.impact({ style: ImpactStyle.Heavy });
-      }, 1000);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await Haptics.impact({ style: ImpactStyle.Medium });
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+      };
+
+      hapticPattern();
+      hapticIntervalRef.current = setInterval(hapticPattern, 2000);
     }
 
     return () => {
-      // Cleanup
-      if (ringtoneRef.current) {
-        ringtoneRef.current.pause();
-        ringtoneRef.current = null;
-      }
-      if (vibrationIntervalRef.current) {
-        clearInterval(vibrationIntervalRef.current);
+      if (hapticIntervalRef.current) {
+        clearInterval(hapticIntervalRef.current);
       }
     };
-  }, [ringtoneUrl]);
+  }, []);
 
   const handleAnswer = async () => {
     if (Capacitor.isNativePlatform()) {
@@ -103,23 +75,53 @@ export function IncomingCallScreen({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-gradient-to-br from-primary/10 via-background to-secondary/10 backdrop-blur-2xl flex items-center justify-center p-6 animate-fade-in">
+    <div className="fixed inset-0 z-[100] bg-gradient-to-br from-primary/10 via-background to-secondary/10 backdrop-blur-2xl flex items-center justify-center p-6">
       {/* Background animated blur circles */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <motion.div 
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+        <motion.div 
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+        />
       </div>
 
-      <Card className="w-full max-w-md backdrop-blur-xl bg-card/60 border-border/50 shadow-2xl p-10 animate-scale-in relative">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
+        <Card className="w-full max-w-md backdrop-blur-xl bg-card/60 border-border/50 shadow-2xl p-10 relative">
         <div className="flex flex-col items-center space-y-8">
           {/* Avatar with pulsing rings */}
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-full blur-2xl opacity-30 animate-pulse" />
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-full blur-2xl opacity-30"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
             
             {/* Multiple pulsing rings */}
-            <div className="absolute inset-0 rounded-full border-4 border-primary/40 animate-ping" />
-            <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" style={{ animationDelay: '0.3s' }} />
-            <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping" style={{ animationDelay: '0.6s' }} />
+            {[0, 0.3, 0.6].map((delay, i) => (
+              <motion.div
+                key={i}
+                className="absolute inset-0 rounded-full border-4 border-primary/40"
+                animate={{
+                  scale: [1, 2],
+                  opacity: [0.6, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay,
+                  ease: "easeOut"
+                }}
+              />
+            ))}
             
             <Avatar className="h-44 w-44 border-4 border-white/20 shadow-2xl relative z-10">
               <AvatarImage src={callerAvatar} />
@@ -197,7 +199,8 @@ export function IncomingCallScreen({
             </Button>
           )}
         </div>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   );
 }

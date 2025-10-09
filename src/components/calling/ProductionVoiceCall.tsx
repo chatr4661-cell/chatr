@@ -8,6 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { sendSignal, subscribeToCallSignals, getTurnConfig } from "@/utils/webrtcSignaling";
 import { cn } from "@/lib/utils";
+import { useRingtone } from "@/hooks/useRingtone";
+import { useCallUI } from "@/hooks/useCallUI";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ProductionVoiceCallProps {
   callId: string;
@@ -42,30 +45,24 @@ export default function ProductionVoiceCall({
   const statsIntervalRef = useRef<NodeJS.Timeout>();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
+  const { controlsVisible } = useCallUI({ 
+    autoHideDelay: 3000,
+    enabled: callStatus === 'connected'
+  });
+
+  useRingtone({
+    enabled: callStatus === "ringing",
+    ringtoneUrl: "/ringtone.mp3",
+    volume: 0.8,
+    fadeInDuration: 1000,
+    fadeOutDuration: 500
+  });
 
   useEffect(() => {
-    // Play ringtone when call starts
-    if (!ringtoneRef.current) {
-      ringtoneRef.current = new Audio('/ringtone.mp3');
-      ringtoneRef.current.loop = true;
-    }
-    
-    if (callStatus === "ringing") {
-      ringtoneRef.current.play().catch(e => console.log('Ringtone play error:', e));
-    } else {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
-    }
-
     initializeCall();
     const unsubscribe = subscribeToCallSignals(callId, handleSignal);
     
     return () => {
-      if (ringtoneRef.current) {
-        ringtoneRef.current.pause();
-        ringtoneRef.current.currentTime = 0;
-      }
       cleanup();
       unsubscribe();
     };
@@ -186,13 +183,7 @@ export default function ProductionVoiceCall({
         remoteAudioRef.current.srcObject = remoteStream;
         remoteAudioRef.current.play().catch(e => console.log('Audio play error:', e));
         
-        // Stop ringtone when connected
-        if (ringtoneRef.current) {
-          ringtoneRef.current.pause();
-          ringtoneRef.current.currentTime = 0;
-        }
-        
-        setCallStatus("connected");
+        setTimeout(() => setCallStatus("connected"), 300);
       };
 
       pc.onicecandidate = async (event) => {
@@ -378,23 +369,37 @@ export default function ProductionVoiceCall({
   const qualityStyles = getQualityStyles();
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-br from-background via-background/95 to-primary/5 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-fade-in">
-      <Card className="w-full max-w-md backdrop-blur-xl bg-card/40 border-border/50 shadow-2xl p-8 animate-scale-in">
-        <div className="flex flex-col items-center space-y-8">
-          {/* Quality Indicator */}
-          {callStatus === "connected" && (
-            <Badge 
-              variant="outline" 
-              className={cn(
-                "absolute top-4 right-4 backdrop-blur-sm",
-                qualityStyles.bg,
-                qualityStyles.border
+    <div className="fixed inset-0 z-50 bg-gradient-to-br from-background via-background/95 to-primary/5 backdrop-blur-xl flex flex-col items-center justify-center p-6">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card className="w-full max-w-md backdrop-blur-xl bg-card/40 border-border/50 shadow-2xl p-8">
+          <div className="flex flex-col items-center space-y-8">
+            {/* Quality Indicator */}
+            <AnimatePresence>
+              {callStatus === "connected" && controlsVisible && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "absolute top-4 right-4 backdrop-blur-sm",
+                      qualityStyles.bg,
+                      qualityStyles.border
+                    )}
+                  >
+                    <div className={cn("w-2 h-2 rounded-full mr-2", qualityStyles.dot)} />
+                    <span className={qualityStyles.text}>{connectionQuality}</span>
+                  </Badge>
+                </motion.div>
               )}
-            >
-              <div className={cn("w-2 h-2 rounded-full mr-2", qualityStyles.dot)} />
-              <span className={qualityStyles.text}>{connectionQuality}</span>
-            </Badge>
-          )}
+            </AnimatePresence>
 
           {/* Avatar */}
           <div className="relative">
@@ -448,7 +453,15 @@ export default function ProductionVoiceCall({
           )}
 
           {/* Controls */}
-          <div className="flex items-center justify-center gap-4 pt-6 w-full">
+          <AnimatePresence>
+            {controlsVisible && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center justify-center gap-4 pt-6 w-full"
+              >
             <Button
               variant={audioEnabled ? "default" : "destructive"}
               size="lg"
@@ -486,9 +499,12 @@ export default function ProductionVoiceCall({
             >
               <PhoneOff className="h-7 w-7" />
             </Button>
-          </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </Card>
+      </motion.div>
     </div>
   );
 }

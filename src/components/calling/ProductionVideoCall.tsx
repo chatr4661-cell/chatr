@@ -10,6 +10,10 @@ import { Capacitor } from "@capacitor/core";
 import { cn } from "@/lib/utils";
 import { getOptimalVideoConstraints, getOptimalAudioConstraints, setBandwidth, setPreferredCodec, QUALITY_PRESETS } from "@/utils/videoQualityManager";
 import { useNetworkStats } from "@/hooks/useNetworkStats";
+import { useCallUI } from "@/hooks/useCallUI";
+import { DraggableVideoWindow } from "./DraggableVideoWindow";
+import { CallStateTransition } from "./CallStateTransition";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ProductionVideoCallProps {
   callId: string;
@@ -33,7 +37,7 @@ export default function ProductionVideoCall({
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [callStatus, setCallStatus] = useState<"connecting" | "connected" | "reconnecting" | "ended">("connecting");
+  const [callStatus, setCallStatus] = useState<"dialing" | "ringing" | "connecting" | "connected" | "reconnecting" | "ended">("dialing");
   const [callDuration, setCallDuration] = useState(0);
   const [connectionQuality, setConnectionQuality] = useState<"excellent" | "good" | "poor" | "reconnecting">("good");
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
@@ -50,6 +54,11 @@ export default function ProductionVideoCall({
     peerConnection: peerConnectionRef.current,
     enabled: callStatus === 'connected',
     autoAdjust: true
+  });
+
+  const { controlsVisible, showControls } = useCallUI({ 
+    autoHideDelay: 3000,
+    enabled: callStatus === 'connected'
   });
 
   useEffect(() => {
@@ -84,6 +93,8 @@ export default function ProductionVideoCall({
   const initializeCall = async () => {
     try {
       console.log('🎥 Initializing ultra-HD video call...');
+      setCallStatus(isInitiator ? "dialing" : "ringing");
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: getOptimalVideoConstraints('ultra'),
         audio: getOptimalAudioConstraints()
@@ -122,11 +133,13 @@ export default function ProductionVideoCall({
 
       pc.ontrack = (event) => {
         const [remoteStream] = event.streams;
-        setRemoteStream(remoteStream);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = remoteStream;
-        }
-        setCallStatus("connected");
+        setTimeout(() => {
+          setRemoteStream(remoteStream);
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+          }
+          setTimeout(() => setCallStatus("connected"), 300);
+        }, 200);
       };
 
       pc.onicecandidate = async (event) => {
@@ -378,92 +391,98 @@ export default function ProductionVideoCall({
   const qualityStyles = getQualityStyles();
 
   return (
-    <div className={cn(
-      "fixed z-50 bg-black flex flex-col animate-fade-in",
-      isPiPMode ? "bottom-4 right-4 w-96 h-72 rounded-2xl shadow-2xl border-2 border-white/20" : "inset-0"
-    )}>
-      {/* Quality & Duration Badge */}
-      {callStatus === "connected" && (
-        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-          <div className="flex gap-2">
-            <Badge variant="secondary" className={cn("backdrop-blur-md", qualityStyles.bg, qualityStyles.border)}>
-              <div className={cn("w-2 h-2 rounded-full mr-2", qualityStyles.dot)} />
-              <span className={qualityStyles.text}>{connectionQuality}</span>
-            </Badge>
-            <Badge variant="secondary" className="backdrop-blur-md font-mono bg-black/40">
-              {formatDuration(callDuration)}
-            </Badge>
-          </div>
-          <Badge variant="secondary" className="backdrop-blur-md bg-black/50 border-green-500/30">
-            <span className="text-green-400 text-xs font-medium">
-              {QUALITY_PRESETS[currentQuality].label} @ {stats.fps}fps • {(stats.bandwidth / 1000).toFixed(1)}Mbps
-            </span>
-          </Badge>
-        </div>
+    <div 
+      className={cn(
+        "fixed z-50 bg-black flex flex-col",
+        isPiPMode ? "bottom-4 right-4 w-96 h-72 rounded-2xl shadow-2xl border-2 border-white/20" : "inset-0"
       )}
+      onClick={showControls}
+    >
+      {/* Call State Transition Overlay */}
+      <CallStateTransition 
+        state={callStatus === "dialing" || callStatus === "ringing" || callStatus === "connecting" ? callStatus : "connected"}
+        contactName={contactName}
+        callType="video"
+      />
+
+      {/* Quality & Duration Badge */}
+      <AnimatePresence>
+        {callStatus === "connected" && controlsVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="absolute top-4 left-4 z-10 flex flex-col gap-2"
+          >
+            <div className="flex gap-2">
+              <Badge variant="secondary" className={cn("backdrop-blur-md", qualityStyles.bg, qualityStyles.border)}>
+                <div className={cn("w-2 h-2 rounded-full mr-2", qualityStyles.dot)} />
+                <span className={qualityStyles.text}>{connectionQuality}</span>
+              </Badge>
+              <Badge variant="secondary" className="backdrop-blur-md font-mono bg-black/40">
+                {formatDuration(callDuration)}
+              </Badge>
+            </div>
+            <Badge variant="secondary" className="backdrop-blur-md bg-black/50 border-green-500/30">
+              <span className="text-green-400 text-xs font-medium">
+                {QUALITY_PRESETS[currentQuality].label} @ {stats.fps}fps • {(stats.bandwidth / 1000).toFixed(1)}Mbps
+              </span>
+            </Badge>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Contact Name */}
-      <div className="absolute top-4 right-4 z-10">
-        <Badge variant="secondary" className="backdrop-blur-md text-lg px-4 py-2 bg-black/40">
-          {contactName}
-        </Badge>
-      </div>
+      <AnimatePresence>
+        {controlsVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="absolute top-4 right-4 z-10"
+          >
+            <Badge variant="secondary" className="backdrop-blur-md text-lg px-4 py-2 bg-black/40">
+              {contactName}
+            </Badge>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Remote Video (Full Screen) */}
       <div className="flex-1 relative bg-gradient-to-br from-gray-900 via-black to-gray-900">
-        {callStatus === "connecting" && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-gradient-to-br from-blue-900/20 to-purple-900/20">
-            <div className="text-center space-y-4">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full border-4 border-white/20 animate-pulse" />
-                <div className="absolute inset-0 w-24 h-24 rounded-full border-4 border-t-white animate-spin" />
-              </div>
-              <div>
-                <p className="text-white text-xl font-medium">Connecting to {contactName}...</p>
-                <p className="text-white/70 text-sm mt-2">Establishing ultra-HD connection</p>
-              </div>
-            </div>
-          </div>
-        )}
-        {callStatus === "reconnecting" && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
-            <div className="text-center">
-              <Video className="h-16 w-16 mx-auto mb-4 text-orange-500 animate-pulse" />
-              <p className="text-orange-500 text-lg font-semibold">Reconnecting...</p>
-            </div>
-          </div>
-        )}
-        <video
+        <motion.video
           ref={remoteVideoRef}
           autoPlay
           playsInline
-          className="w-full h-full object-cover transition-opacity duration-500"
-          style={{ opacity: callStatus === 'connected' ? 1 : 0.3 }}
+          className="w-full h-full object-cover"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: callStatus === 'connected' ? 1 : 0.3 }}
+          transition={{ duration: 0.5 }}
         />
       </div>
 
       {/* Local Video (Draggable PiP) */}
-      <div className={cn(
-        "absolute rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl transition-all",
-        isPiPMode ? "top-4 left-4 w-24 h-32" : "bottom-28 right-4 w-32 h-40"
-      )}>
-        <video
-          ref={localVideoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover transform scale-x-[-1]"
+      {!isPiPMode && (
+        <DraggableVideoWindow
+          videoRef={localVideoRef}
+          stream={localStream}
+          enabled={videoEnabled}
         />
-        {!videoEnabled && (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-            <VideoOff className="h-8 w-8 text-white/70" />
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Controls */}
-      <Card className="absolute bottom-0 left-0 right-0 backdrop-blur-xl bg-black/80 border-t border-white/10 p-6">
-        <div className="flex items-center justify-center gap-3">
+      <AnimatePresence>
+        {controlsVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <Card className="absolute bottom-0 left-0 right-0 backdrop-blur-xl bg-black/80 border-t border-white/10 p-6">
+              <div className="flex items-center justify-center gap-3">
           <Button
             variant={videoEnabled ? "secondary" : "destructive"}
             size="lg"
@@ -530,8 +549,11 @@ export default function ProductionVideoCall({
           >
             <PhoneOff className="h-6 w-6" />
           </Button>
-        </div>
-      </Card>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
