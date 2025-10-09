@@ -8,17 +8,18 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceFingerprint, getDeviceName, getDeviceType } from '@/utils/deviceFingerprint';
 import { hashPin, isValidPin, logLoginAttempt, isUserLockedOut } from '@/utils/pinSecurity';
-import { Chrome, Smartphone, ArrowLeft } from 'lucide-react';
-import { hashPhoneNumber } from '@/utils/phoneHashUtil';
+import { Chrome, Smartphone, ArrowLeft, Mail } from 'lucide-react';
 
 export const PhoneAuth = () => {
   const { toast } = useToast();
-  const [step, setStep] = useState<'phone' | 'pin-options'>('phone');
+  const [step, setStep] = useState<'phone' | 'otp' | 'pin-setup' | 'pin-login'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [loginPin, setLoginPin] = useState('');
-  const [registerPin, setRegisterPin] = useState('');
+  const [newPin, setNewPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [userExists, setUserExists] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -39,6 +40,7 @@ export const PhoneAuth = () => {
     checkExistingSession();
   }, []);
 
+  // Send OTP via SMS
   const handlePhoneSubmit = async () => {
     const trimmed = phoneNumber.trim();
     if (!trimmed || trimmed.length < 10) {
@@ -52,28 +54,121 @@ export const PhoneAuth = () => {
 
     setLoading(true);
 
-    // Normalize phone (remove spaces/dashes)
-    const normalized = trimmed.replace(/[\s\-\(\)]/g, '');
+    // Format as +91 for India (you can make this dynamic)
+    const formattedPhone = `+91${trimmed}`;
 
-    // Check if user exists by phone number or phone_search
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .or(`phone_number.eq.${normalized},phone_search.eq.${normalized}`)
-      .maybeSingle();
+    try {
+      // Check if user already has PIN set up (quick unlock)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone_number', formattedPhone)
+        .maybeSingle();
 
-    setUserExists(!!profile);
-    setPhoneNumber(normalized); // Store normalized version
-    setStep('pin-options');
+      if (profile) {
+        // Check if device has PIN
+        const deviceFingerprint = await getDeviceFingerprint();
+        const { data: deviceSession } = await supabase
+          .from('device_sessions')
+          .select('pin_hash')
+          .eq('user_id', profile.id)
+          .eq('device_fingerprint', deviceFingerprint)
+          .maybeSingle();
+
+        if (deviceSession?.pin_hash) {
+          // User has PIN - offer quick unlock
+          setUserExists(true);
+          setPhoneNumber(formattedPhone);
+          setStep('pin-login');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Send OTP for new user or device
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone,
+      });
+
+      if (error) throw error;
+
+      setPhoneNumber(formattedPhone);
+      setUserExists(!!profile);
+      setStep('otp');
+      
+      toast({
+        title: 'OTP Sent!',
+        description: `Check your SMS at ${formattedPhone}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+    
     setLoading(false);
   };
 
-  const handleLoginPINComplete = async (enteredPin: string) => {
-    setLoginPin(enteredPin);
-    await handlePINLogin(enteredPin);
+  // Verify OTP
+  const handleOTPVerify = async () => {
+    if (otpCode.length !== 6) {
+      toast({
+        title: 'Invalid OTP',
+        description: 'Please enter the 6-digit code',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: phoneNumber,
+        token: otpCode,
+        type: 'sms',
+      });
+
+      if (error) throw error;
+      if (!data.session) throw new Error('No session created');
+
+      setSessionToken(data.session.access_token);
+
+      // Check if user needs PIN setup
+      const deviceFingerprint = await getDeviceFingerprint();
+      const { data: deviceSession } = await supabase
+        .from('device_sessions')
+        .select('pin_hash')
+        .eq('user_id', data.user.id)
+        .eq('device_fingerprint', deviceFingerprint)
+        .maybeSingle();
+
+      if (deviceSession?.pin_hash) {
+        // Already has PIN, redirect
+        window.location.href = '/';
+      } else {
+        // Need to set up PIN for this device
+        setStep('pin-setup');
+        toast({
+          title: 'OTP Verified!',
+          description: 'Now create a PIN for quick access',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Verification Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+
+    setLoading(false);
   };
 
-  const handleRegisterPINComplete = async (enteredPin: string) => {
+  // Setup new PIN after OTP verification
+  const handlePINSetup = async (enteredPin: string) => {
     if (!isValidPin(enteredPin)) {
       toast({
         title: 'Invalid PIN',
@@ -82,103 +177,53 @@ export const PhoneAuth = () => {
       });
       return;
     }
-    setRegisterPin(enteredPin);
-  };
-
-  const handleRegistration = async () => {
-    if (!registerPin) {
-      toast({
-        title: 'Enter PIN',
-        description: 'Please create a 4-digit PIN',
-        variant: 'destructive',
-      });
-      return;
-    }
 
     setLoading(true);
-    try {
-      // Double-check if user already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone_number', phoneNumber)
-        .maybeSingle();
 
-      if (existingProfile) {
-        toast({
-          title: 'Account Exists',
-          description: 'Please use the login section above',
-          variant: 'destructive',
-        });
-        setUserExists(true);
-        setLoading(false);
-        return;
-      }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
       const deviceFingerprint = await getDeviceFingerprint();
       const deviceName = await getDeviceName();
       const deviceType = await getDeviceType();
+      const pinHash = await hashPin(enteredPin);
 
-      // Normalize phone number (no country code required)
-      const normalizedPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
-      
-      // Create user with dummy email (phone as identifier)
-      const dummyEmail = `${normalizedPhone}@chatr.local`;
-      const randomPassword = crypto.randomUUID();
-
-      // Hash phone number before signup
-      const phoneHash = await hashPhoneNumber(normalizedPhone);
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: dummyEmail,
-        password: randomPassword,
-        options: {
-          data: {
-            phone_number: normalizedPhone,
-            phone_hash: phoneHash,
-            username: `User_${normalizedPhone.slice(-4)}`,
-          },
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create user');
-
-      // Hash PIN and create device session
-      const pinHash = await hashPin(registerPin);
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+      expiresAt.setDate(expiresAt.getDate() + 30);
 
-      await supabase.from('device_sessions').insert({
-        user_id: authData.user.id,
+      // Create or update device session with PIN
+      await supabase.from('device_sessions').upsert({
+        user_id: user.id,
         device_fingerprint: deviceFingerprint,
         device_name: deviceName,
         device_type: deviceType,
-        session_token: authData.session!.access_token,
+        session_token: sessionToken!,
         pin_hash: pinHash,
         expires_at: expiresAt.toISOString(),
         quick_login_enabled: true,
       });
 
-      await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', true, authData.user.id);
+      await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', true, user.id);
 
       toast({
-        title: 'Registration Complete!',
-        description: 'Your account has been created',
+        title: 'PIN Created!',
+        description: 'You can now use quick PIN login',
       });
 
-      // Auto sign in
       window.location.href = '/';
     } catch (error: any) {
       toast({
-        title: 'Registration Failed',
+        title: 'Error',
         description: error.message,
         variant: 'destructive',
       });
     }
+
     setLoading(false);
   };
 
+  // Quick PIN login (skip OTP)
   const handlePINLogin = async (enteredPin: string) => {
     setLoading(true);
     try {
@@ -196,17 +241,12 @@ export const PhoneAuth = () => {
         return;
       }
 
-      const normalizedPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
-      console.log('Looking for profile with phone:', normalizedPhone);
-      
       // Get user profile
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .or(`phone_number.eq.${normalizedPhone},phone_search.eq.${normalizedPhone}`)
+        .eq('phone_number', phoneNumber)
         .maybeSingle();
-
-      console.log('Profile found:', profile, 'Error:', profileError);
 
       if (!profile) {
         await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false);
@@ -220,20 +260,18 @@ export const PhoneAuth = () => {
       }
 
       // Get device session
-      const { data: deviceSession, error: deviceError } = await supabase
+      const { data: deviceSession } = await supabase
         .from('device_sessions')
         .select('*')
         .eq('user_id', profile.id)
         .eq('device_fingerprint', deviceFingerprint)
         .maybeSingle();
 
-      console.log('Device session found:', deviceSession, 'Error:', deviceError);
-
       if (!deviceSession || !deviceSession.pin_hash) {
         await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false, profile.id);
         toast({
           title: 'Device Not Registered',
-          description: 'This device needs to set up a PIN. Please use "Forgot PIN?" to sign in with Google first.',
+          description: 'Use "Verify with OTP" to re-verify your phone',
           variant: 'destructive',
         });
         setLoading(false);
@@ -251,12 +289,12 @@ export const PhoneAuth = () => {
           description: 'Invalid PIN',
           variant: 'destructive',
         });
-        setLoginPin(''); // Reset for retry
+        setLoginPin('');
         setLoading(false);
         return;
       }
 
-      // Success - create Supabase session using the stored session token
+      // Success - create session using stored token
       const { error: signInError } = await supabase.auth.setSession({
         access_token: deviceSession.session_token,
         refresh_token: deviceSession.session_token,
@@ -283,41 +321,33 @@ export const PhoneAuth = () => {
     setLoading(false);
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth?phone=${encodeURIComponent(phoneNumber)}`,
-        },
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: 'Redirecting...',
-        description: 'Sign in with Google to recover your account',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
+  // Resend OTP or use Google for recovery
+  const handleForgotPIN = async () => {
+    setStep('phone');
+    toast({
+      title: 'Reset Started',
+      description: 'Re-enter your phone to verify via OTP',
+    });
   };
 
   return (
     <Card className="w-full max-w-md backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass rounded-3xl">
       <CardHeader className="text-center space-y-2">
         <CardTitle className="text-2xl">
-          {step === 'phone' ? 'Welcome to chatr.chat' : `${phoneNumber}`}
+          {step === 'phone' && 'Welcome to chatr.chat'}
+          {step === 'otp' && `Enter OTP`}
+          {step === 'pin-setup' && 'Create Your PIN'}
+          {step === 'pin-login' && phoneNumber}
         </CardTitle>
         <CardDescription>
-          {step === 'phone' ? 'Enter your phone number to continue' : 'Choose your action'}
+          {step === 'phone' && 'Enter your phone number to continue'}
+          {step === 'otp' && `Sent to ${phoneNumber}`}
+          {step === 'pin-setup' && 'Create a 4-digit PIN for quick access'}
+          {step === 'pin-login' && 'Enter your PIN'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Phone Entry */}
         {step === 'phone' && (
           <>
             <div className="space-y-2">
@@ -326,12 +356,12 @@ export const PhoneAuth = () => {
                 id="phone"
                 type="tel"
                 placeholder="9876543210"
-                value={phoneNumber}
+                value={phoneNumber.replace('+91', '')}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 className="h-12 text-base"
                 maxLength={10}
               />
-              <p className="text-xs text-muted-foreground">Enter 10-digit phone number (no country code needed)</p>
+              <p className="text-xs text-muted-foreground">10-digit number (India)</p>
             </div>
             <Button
               onClick={handlePhoneSubmit}
@@ -339,73 +369,86 @@ export const PhoneAuth = () => {
               className="w-full h-12 text-base rounded-xl shadow-glow"
             >
               <Smartphone className="w-5 h-5 mr-2" />
-              Continue
+              {loading ? 'Sending...' : 'Continue'}
             </Button>
           </>
         )}
 
-        {step === 'pin-options' && (
+        {/* OTP Verification */}
+        {step === 'otp' && (
           <>
-            {/* Login Section - Always show */}
-            <div className="space-y-4 pb-6 border-b border-border">
-              <div className="text-center">
-                <h3 className="font-semibold text-lg">Already Registered?</h3>
-                <p className="text-sm text-muted-foreground">Enter your PIN to log in</p>
-              </div>
-              <PINInput
-                key="login-pin"
-                length={4}
-                onComplete={handleLoginPINComplete}
-                className="justify-center"
+            <div className="space-y-2">
+              <Label htmlFor="otp">6-Digit OTP</Label>
+              <Input
+                id="otp"
+                type="text"
+                placeholder="000000"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="h-12 text-base text-center tracking-widest text-2xl"
+                maxLength={6}
               />
+            </div>
+            <Button
+              onClick={handleOTPVerify}
+              disabled={loading || otpCode.length !== 6}
+              className="w-full h-12 text-base rounded-xl shadow-glow"
+            >
+              <Mail className="w-5 h-5 mr-2" />
+              {loading ? 'Verifying...' : 'Verify OTP'}
+            </Button>
+            <Button
+              onClick={() => setStep('phone')}
+              variant="ghost"
+              className="w-full"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Change Number
+            </Button>
+          </>
+        )}
+
+        {/* PIN Setup (after OTP) */}
+        {step === 'pin-setup' && (
+          <>
+            <PINInput
+              key="setup-pin"
+              length={4}
+              onComplete={handlePINSetup}
+              className="justify-center"
+            />
+            <p className="text-sm text-center text-muted-foreground">
+              You'll use this PIN for quick access on this device
+            </p>
+          </>
+        )}
+
+        {/* PIN Login (quick unlock) */}
+        {step === 'pin-login' && (
+          <>
+            <PINInput
+              key="login-pin"
+              length={4}
+              onComplete={handlePINLogin}
+              className="justify-center"
+            />
+            <div className="flex flex-col gap-2">
               <Button
-                onClick={handleGoogleSignIn}
+                onClick={handleForgotPIN}
                 variant="outline"
                 className="w-full h-10 text-sm rounded-xl"
               >
-                <Chrome className="w-4 h-4 mr-2" />
-                Forgot PIN? Sign in with Google
+                Verify with OTP Instead
+              </Button>
+              <Button
+                onClick={() => setStep('phone')}
+                variant="ghost"
+                className="w-full h-10 text-sm"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Change Number
               </Button>
             </div>
-
-            {/* Register Section - Only show if user doesn't exist */}
-            {!userExists && (
-              <div className="space-y-4">
-                <div className="text-center">
-                  <h3 className="font-semibold text-lg">New User?</h3>
-                  <p className="text-sm text-muted-foreground">Create a 4-digit PIN for quick access</p>
-                </div>
-                <PINInput
-                  key="register-pin"
-                  length={4}
-                  onComplete={handleRegisterPINComplete}
-                  className="justify-center"
-                />
-                <Button
-                  onClick={handleRegistration}
-                  disabled={loading || !registerPin}
-                  className="w-full h-12 text-base rounded-xl shadow-glow"
-                >
-                  <Smartphone className="w-5 h-5 mr-2" />
-                  Create Account
-                </Button>
-              </div>
-            )}
-
-            {/* Back button */}
-            <Button
-              onClick={() => {
-                setStep('phone');
-                setLoginPin('');
-                setRegisterPin('');
-                setUserExists(false);
-              }}
-              variant="ghost"
-              className="w-full h-10 text-sm"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Change Phone Number
-            </Button>
           </>
         )}
       </CardContent>
