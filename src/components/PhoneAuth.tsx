@@ -8,23 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceFingerprint, getDeviceName, getDeviceType } from '@/utils/deviceFingerprint';
 import { hashPin, isValidPin, logLoginAttempt, isUserLockedOut } from '@/utils/pinSecurity';
-import { Chrome, Smartphone } from 'lucide-react';
-
-// Hash phone number using SHA-256
-async function hashPhoneNumber(phone: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(phone);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+import { Chrome, Smartphone, ArrowLeft } from 'lucide-react';
+import { hashPhoneNumber } from '@/utils/phoneHashUtil';
 
 export const PhoneAuth = () => {
   const { toast } = useToast();
-  const [step, setStep] = useState<'phone' | 'pin' | 'login'>('phone');
+  const [step, setStep] = useState<'phone' | 'pin-options'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [pin, setPin] = useState('');
+  const [loginPin, setLoginPin] = useState('');
+  const [registerPin, setRegisterPin] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userExists, setUserExists] = useState(false);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -35,10 +29,11 @@ export const PhoneAuth = () => {
         .select('*')
         .eq('device_fingerprint', deviceFingerprint)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (session) {
-        setStep('login');
+        // Already logged in, redirect
+        window.location.href = '/';
       }
     };
     checkExistingSession();
@@ -55,7 +50,6 @@ export const PhoneAuth = () => {
     }
 
     setLoading(true);
-    const deviceFingerprint = await getDeviceFingerprint();
 
     // Check if user exists by phone number
     const { data: profile } = await supabase
@@ -64,32 +58,17 @@ export const PhoneAuth = () => {
       .eq('phone_number', phoneNumber)
       .maybeSingle();
 
-    if (profile) {
-      // User exists - always go to login
-      // Check if this device is registered
-      const { data: deviceSession } = await supabase
-        .from('device_sessions')
-        .select('*')
-        .eq('user_id', profile.id)
-        .eq('device_fingerprint', deviceFingerprint)
-        .maybeSingle();
-
-      setStep('login');
-      
-      if (!deviceSession) {
-        toast({
-          title: 'New Device Detected',
-          description: 'Use "Forgot PIN?" to sign in with Google on this device',
-        });
-      }
-    } else {
-      // New user - go to registration
-      setStep('pin');
-    }
+    setUserExists(!!profile);
+    setStep('pin-options');
     setLoading(false);
   };
 
-  const handlePINComplete = async (enteredPin: string) => {
+  const handleLoginPINComplete = async (enteredPin: string) => {
+    setLoginPin(enteredPin);
+    await handlePINLogin(enteredPin);
+  };
+
+  const handleRegisterPINComplete = async (enteredPin: string) => {
     if (!isValidPin(enteredPin)) {
       toast({
         title: 'Invalid PIN',
@@ -98,16 +77,22 @@ export const PhoneAuth = () => {
       });
       return;
     }
-
-    setPin(enteredPin);
+    setRegisterPin(enteredPin);
   };
 
   const handleRegistration = async () => {
-    if (!pin) return;
+    if (!registerPin) {
+      toast({
+        title: 'Enter PIN',
+        description: 'Please create a 4-digit PIN',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      // First check if user already exists
+      // Double-check if user already exists
       const { data: existingProfile } = await supabase
         .from('profiles')
         .select('id')
@@ -115,13 +100,13 @@ export const PhoneAuth = () => {
         .maybeSingle();
 
       if (existingProfile) {
-        setPin(''); // Reset PIN
-        setStep('login'); // Force state update
-        setLoading(false);
         toast({
           title: 'Account Exists',
-          description: 'Please enter your PIN to log in',
+          description: 'Please use the login section above',
+          variant: 'destructive',
         });
+        setUserExists(true);
+        setLoading(false);
         return;
       }
 
@@ -152,7 +137,7 @@ export const PhoneAuth = () => {
       if (!authData.user) throw new Error('Failed to create user');
 
       // Hash PIN and create device session
-      const pinHash = await hashPin(pin);
+      const pinHash = await hashPin(registerPin);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
 
@@ -208,7 +193,7 @@ export const PhoneAuth = () => {
         .from('profiles')
         .select('*')
         .eq('phone_number', phoneNumber)
-        .single();
+        .maybeSingle();
 
       if (!profile) {
         await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false);
@@ -227,13 +212,13 @@ export const PhoneAuth = () => {
         .select('*')
         .eq('user_id', profile.id)
         .eq('device_fingerprint', deviceFingerprint)
-        .single();
+        .maybeSingle();
 
       if (!deviceSession || !deviceSession.pin_hash) {
         await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false, profile.id);
         toast({
           title: 'Login Failed',
-          description: 'Device not registered',
+          description: 'Device not registered. Use "Forgot PIN?" to recover',
           variant: 'destructive',
         });
         setLoading(false);
@@ -251,6 +236,7 @@ export const PhoneAuth = () => {
           description: 'Invalid PIN',
           variant: 'destructive',
         });
+        setLoginPin(''); // Reset for retry
         setLoading(false);
         return;
       }
@@ -305,14 +291,10 @@ export const PhoneAuth = () => {
     <Card className="w-full max-w-md backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass rounded-3xl">
       <CardHeader className="text-center space-y-2">
         <CardTitle className="text-2xl">
-          {step === 'phone' && 'Welcome to chatr.chat'}
-          {step === 'pin' && 'Create Your PIN'}
-          {step === 'login' && 'Welcome Back'}
+          {step === 'phone' ? 'Welcome to chatr.chat' : `${phoneNumber}`}
         </CardTitle>
         <CardDescription>
-          {step === 'phone' && 'Enter your phone number to continue'}
-          {step === 'pin' && 'Set up a 4 digit PIN for quick access'}
-          {step === 'login' && 'Enter your PIN to sign in'}
+          {step === 'phone' ? 'Enter your phone number to continue' : 'Choose your action'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -340,57 +322,67 @@ export const PhoneAuth = () => {
           </>
         )}
 
-        {step === 'pin' && (
+        {step === 'pin-options' && (
           <>
-            <div className="space-y-4">
+            {/* Login Section - Always show */}
+            <div className="space-y-4 pb-6 border-b border-border">
+              <div className="text-center">
+                <h3 className="font-semibold text-lg">Already Registered?</h3>
+                <p className="text-sm text-muted-foreground">Enter your PIN to log in</p>
+              </div>
               <PINInput
+                key="login-pin"
                 length={4}
-                onComplete={handlePINComplete}
+                onComplete={handleLoginPINComplete}
                 className="justify-center"
               />
-              <p className="text-sm text-center text-muted-foreground">
-                Choose a 4 digit PIN you'll remember
-              </p>
-            </div>
-            <div className="space-y-2">
               <Button
-                onClick={handleRegistration}
-                disabled={loading || !pin}
-                className="w-full h-12 text-base rounded-xl shadow-glow"
-              >
-                <Smartphone className="w-5 h-5 mr-2" />
-                Create Account
-              </Button>
-              <Button
-                onClick={() => setStep('phone')}
+                onClick={handleGoogleSignIn}
                 variant="outline"
-                className="w-full h-12 text-base rounded-xl"
+                className="w-full h-10 text-sm rounded-xl"
               >
-                Back
+                <Chrome className="w-4 h-4 mr-2" />
+                Forgot PIN? Sign in with Google
               </Button>
             </div>
-          </>
-        )}
 
-        {step === 'login' && (
-          <>
-            <div className="space-y-4">
-              <p className="text-center text-sm text-muted-foreground">
-                {phoneNumber || 'Enter your PIN'}
-              </p>
-              <PINInput
-                length={4}
-                onComplete={handlePINLogin}
-                className="justify-center"
-              />
-            </div>
+            {/* Register Section - Only show if user doesn't exist */}
+            {!userExists && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg">New User?</h3>
+                  <p className="text-sm text-muted-foreground">Create a 4-digit PIN for quick access</p>
+                </div>
+                <PINInput
+                  key="register-pin"
+                  length={4}
+                  onComplete={handleRegisterPINComplete}
+                  className="justify-center"
+                />
+                <Button
+                  onClick={handleRegistration}
+                  disabled={loading || !registerPin}
+                  className="w-full h-12 text-base rounded-xl shadow-glow"
+                >
+                  <Smartphone className="w-5 h-5 mr-2" />
+                  Create Account
+                </Button>
+              </div>
+            )}
+
+            {/* Back button */}
             <Button
-              onClick={handleGoogleSignIn}
-              variant="outline"
-              className="w-full h-12 text-base rounded-xl"
+              onClick={() => {
+                setStep('phone');
+                setLoginPin('');
+                setRegisterPin('');
+                setUserExists(false);
+              }}
+              variant="ghost"
+              className="w-full h-10 text-sm"
             >
-              <Chrome className="w-5 h-5 mr-2" />
-              Forgot PIN? Sign in with Google
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Change Phone Number
             </Button>
           </>
         )}
