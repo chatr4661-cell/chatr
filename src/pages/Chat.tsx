@@ -6,7 +6,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useMessageSync } from '@/hooks/useMessageSync';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ConversationList } from '@/components/chat/ConversationList';
@@ -237,64 +237,85 @@ const ChatEnhancedContent = () => {
         // Conversation List View
         <>
           {/* Header */}
-          <div className="border-b bg-card p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/')}
-                className="rounded-full"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <h1 className="text-xl font-semibold">Chats</h1>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/profile')}
-                className="rounded-full"
-                title="Profile"
-              >
-                <User className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/contacts')}
-                className="rounded-full"
-                title="Contacts"
-              >
-                <Users className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/global-contacts')}
-                className="rounded-full"
-                title="Find Users"
-              >
-                <Search className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/qr-login')}
-                className="rounded-full"
-                title="QR Scan"
-              >
-                <QrCode className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                title="More"
-              >
-                <MoreVertical className="h-5 w-5" />
-              </Button>
+          <div className="border-b bg-card p-3">
+            <div className="max-w-7xl mx-auto flex items-center justify-between">
+              {/* Left: Back + Logo */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/')}
+                  className="rounded-full h-9 w-9"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <h1 className="text-lg font-bold text-primary">chatr</h1>
+              </div>
+              
+              {/* Right: Action Icons */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/profile')}
+                  className="rounded-full h-9 w-9"
+                  title="Profile"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/contacts')}
+                  className="rounded-full h-9 w-9"
+                  title="Contacts"
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/global-contacts')}
+                  className="rounded-full h-9 w-9"
+                  title="Search Users"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full h-9 w-9"
+                  title="Blocked Contacts"
+                >
+                  <UserX className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/call-history')}
+                  className="rounded-full h-9 w-9"
+                  title="Calls"
+                >
+                  <Phone className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/qr-login')}
+                  className="rounded-full h-9 w-9"
+                  title="QR Scan"
+                >
+                  <QrCode className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full h-9 w-9"
+                  title="More"
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </div>
 
