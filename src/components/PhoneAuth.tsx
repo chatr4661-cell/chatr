@@ -115,13 +115,13 @@ export const PhoneAuth = () => {
         .maybeSingle();
 
       if (existingProfile) {
+        setPin(''); // Reset PIN
+        setStep('login'); // Force state update
+        setLoading(false);
         toast({
           title: 'Account Exists',
-          description: 'This phone number is already registered. Please log in.',
-          variant: 'destructive',
+          description: 'Please enter your PIN to log in',
         });
-        setStep('login');
-        setLoading(false);
         return;
       }
 
@@ -352,14 +352,23 @@ export const PhoneAuth = () => {
                 Choose a 4 digit PIN you'll remember
               </p>
             </div>
-            <Button
-              onClick={handleRegistration}
-              disabled={loading || !pin}
-              className="w-full h-12 text-base rounded-xl shadow-glow"
-            >
-              <Smartphone className="w-5 h-5 mr-2" />
-              Create Account
-            </Button>
+            <div className="space-y-2">
+              <Button
+                onClick={handleRegistration}
+                disabled={loading || !pin}
+                className="w-full h-12 text-base rounded-xl shadow-glow"
+              >
+                <Smartphone className="w-5 h-5 mr-2" />
+                Create Account
+              </Button>
+              <Button
+                onClick={() => setStep('phone')}
+                variant="outline"
+                className="w-full h-12 text-base rounded-xl"
+              >
+                Back
+              </Button>
+            </div>
           </>
         )}
 
