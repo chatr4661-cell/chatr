@@ -188,12 +188,16 @@ export const PhoneAuth = () => {
         return;
       }
 
+      console.log('Looking for profile with phone:', phoneNumber);
+      
       // Get user profile
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('phone_number', phoneNumber)
         .maybeSingle();
+
+      console.log('Profile found:', profile, 'Error:', profileError);
 
       if (!profile) {
         await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', false);
