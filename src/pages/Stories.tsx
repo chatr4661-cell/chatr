@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,13 +10,13 @@ import { StoriesCarousel } from '@/components/stories/StoriesCarousel';
 const Stories = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = React.useState<any>(null);
-  const [stories, setStories] = React.useState<any[]>([]);
-  const [currentIndex, setCurrentIndex] = React.useState(0);
-  const [showViewer, setShowViewer] = React.useState(false);
-  const [showCreator, setShowCreator] = React.useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [stories, setStories] = useState<any[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showViewer, setShowViewer] = useState(false);
+  const [showCreator, setShowCreator] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate('/auth');
