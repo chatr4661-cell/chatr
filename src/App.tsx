@@ -96,12 +96,13 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <BrowserRouter>
-          <AppLayout user={user} profile={profile}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/chat" element={<Chat />} />
+          <ChatProvider>
+            <AppLayout user={user} profile={profile}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/chat" element={<Chat />} />
               <Route path="/lab-reports" element={<LabReports />} />
               <Route path="/medicine-reminders" element={<MedicineReminders />} />
               <Route path="/youth-feed" element={<YouthFeed />} />
@@ -142,9 +143,10 @@ const App = () => {
               <Route path="/notifications/settings" element={<NotificationSettings />} />
               <Route path="/download" element={<Download />} />
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
-          <Toaster />
+              </Routes>
+            </AppLayout>
+            <Toaster />
+          </ChatProvider>
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
