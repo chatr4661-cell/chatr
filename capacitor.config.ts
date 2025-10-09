@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/core';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a',
-  appName: 'HealthMessenger',
+  appName: 'chatr',
   webDir: 'dist',
   server: {
     url: 'https://6d6a8a57-1c02-4ddc-bd7f-2c0ec6dd878a.lovableproject.com?forceHideBadge=true',
@@ -20,7 +20,14 @@ const config: CapacitorConfig = {
     },
     Device: {
       // Device ID will be used for fingerprinting
+    },
+    Contacts: {
+      // Enable contacts permission
     }
+  },
+  // iOS specific configuration
+  ios: {
+    contentInset: 'automatic'
   }
 };
 

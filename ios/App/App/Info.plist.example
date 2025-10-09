@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Add these entries to your Info.plist for Health and Contacts permissions -->
+	
+	<!-- Health Kit Usage -->
+	<key>NSHealthShareUsageDescription</key>
+	<string>chatr needs access to read your health data to track and sync wellness metrics like steps, heart rate, and sleep patterns.</string>
+	
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>chatr would like to save wellness data to Apple Health for better health tracking.</string>
+	
+	<!-- Contacts Usage -->
+	<key>NSContactsUsageDescription</key>
+	<string>chatr needs access to your contacts to help you find friends and sync your phonebook.</string>
+	
+	<!-- Motion & Fitness -->
+	<key>NSMotionUsageDescription</key>
+	<string>chatr needs access to your motion data to track daily steps and activity.</string>
+	
+	<!-- Health Kit Capability -->
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>healthkit</string>
+	</array>
+</dict>
+</plist>

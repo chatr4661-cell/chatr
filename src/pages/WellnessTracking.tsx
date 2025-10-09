@@ -13,6 +13,7 @@ import { WellnessChart } from '@/components/wellness/WellnessChart';
 import { WellnessInsights } from '@/components/wellness/WellnessInsights';
 import { HealthAppSync } from '@/components/wellness/HealthAppSync';
 import { ReminderToggle } from '@/components/wellness/ReminderToggle';
+import { ContactsSync } from '@/components/ContactsSync';
 
 const WellnessTracking = () => {
   const [user, setUser] = useState<any>(null);
@@ -263,6 +264,9 @@ const WellnessTracking = () => {
 
           {/* Health App Sync */}
           <HealthAppSync onDataSync={handleHealthAppSync} />
+
+          {/* Contacts Sync */}
+          <ContactsSync />
 
           {/* Reminder Toggle */}
           <ReminderToggle enabled={reminderEnabled} onToggle={handleReminderToggle} />
