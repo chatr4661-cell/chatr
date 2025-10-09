@@ -11,7 +11,7 @@ interface PINInputProps {
 }
 
 export const PINInput = ({ 
-  length = 6, 
+  length = 4,
   onComplete, 
   disabled = false,
   error = false,

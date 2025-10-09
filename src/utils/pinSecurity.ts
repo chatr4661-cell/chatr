@@ -82,8 +82,8 @@ export const clearFailedAttempts = async (
 };
 
 /**
- * Validate PIN format (6 digits)
+ * Validate PIN format (4 digits)
  */
 export const isValidPin = (pin: string): boolean => {
-  return /^\d{6}$/.test(pin);
+  return /^\d{4}$/.test(pin);
 };

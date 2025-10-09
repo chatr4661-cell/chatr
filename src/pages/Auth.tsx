@@ -16,84 +16,27 @@ const Auth = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
-        // Check for phone number from URL params (from registration flow)
-        const urlParams = new URLSearchParams(window.location.search);
-        const phoneNumber = urlParams.get('phone');
-        const pin = urlParams.get('pin');
-
-        if (phoneNumber && pin) {
-          console.log('📱 Completing registration with phone:', phoneNumber);
-          
-          // Complete registration by storing device session
-          const deviceFingerprint = await getDeviceFingerprint();
-          const { getDeviceName, getDeviceType } = await import('@/utils/deviceFingerprint');
-          const deviceName = await getDeviceName();
-          const deviceType = await getDeviceType();
-          const pinHash = await hashPin(pin);
-
-          // Update profile with phone number
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ 
-              phone_number: phoneNumber,
-            })
-            .eq('id', session.user.id);
-
-          if (updateError) {
-            console.error('Failed to update profile:', updateError);
-            toast({
-              title: 'Registration Error',
-              description: 'Failed to save phone number',
-              variant: 'destructive'
-            });
-            return;
-          }
-
-          // Update phone hash
-          await updateUserPhoneHash(supabase, session.user.id, phoneNumber);
-
-          // Create device session
-          const expiresAt = new Date();
-          expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
-
-          await supabase.from('device_sessions').insert({
-            user_id: session.user.id,
-            device_fingerprint: deviceFingerprint,
-            device_name: deviceName,
-            device_type: deviceType,
-            session_token: session.access_token,
-            pin_hash: pinHash,
-            expires_at: expiresAt.toISOString(),
-            quick_login_enabled: true,
-          });
-
-          toast({
-            title: 'Registration Complete!',
-            description: 'Your account has been created successfully',
-          });
-        }
-
-        // Ensure user has a phone number before proceeding
+        // Handle Google OAuth recovery flow (when user forgets PIN)
         const { data: profile } = await supabase
           .from('profiles')
           .select('phone_number, phone_hash')
           .eq('id', session.user.id)
           .maybeSingle();
-        
-        if (!profile?.phone_number) {
-          // Redirect back to auth if no phone number
-          await supabase.auth.signOut();
+
+        // If Google sign-in without phone number, this is a new device recovery
+        if (!profile?.phone_number && session.user.email) {
           toast({
-            title: 'Phone Number Required',
-            description: 'Please register with a phone number',
+            title: 'Account Recovery',
+            description: 'Please contact support to recover your account',
             variant: 'destructive'
           });
+          await supabase.auth.signOut();
           setLoading(false);
           return;
         }
 
         // Update phone hash if missing
-        if (profile.phone_number && !profile.phone_hash) {
+        if (profile?.phone_number && !profile.phone_hash) {
           await updateUserPhoneHash(supabase, session.user.id, profile.phone_number);
         }
 

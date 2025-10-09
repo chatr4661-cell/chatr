@@ -92,7 +92,7 @@ export const PhoneAuth = () => {
     if (!isValidPin(enteredPin)) {
       toast({
         title: 'Invalid PIN',
-        description: 'PIN must be 4-6 digits',
+        description: 'PIN must be 4 digits',
         variant: 'destructive',
       });
       return;
@@ -106,20 +106,65 @@ export const PhoneAuth = () => {
 
     setLoading(true);
     try {
-      // First, sign in with Google for backup
-      const { data: authData, error: authError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      const deviceFingerprint = await getDeviceFingerprint();
+      const deviceName = await getDeviceName();
+      const deviceType = await getDeviceType();
+
+      // Create user with dummy email (phone as identifier)
+      const dummyEmail = `${phoneNumber.replace(/[^0-9]/g, '')}@chatr.local`;
+      const randomPassword = crypto.randomUUID();
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: dummyEmail,
+        password: randomPassword,
         options: {
-          redirectTo: `${window.location.origin}/auth`,
-          queryParams: {
+          data: {
             phone_number: phoneNumber,
-            pin: pin,
-            registration: 'true',
+            username: `User_${phoneNumber.slice(-4)}`,
           },
         },
       });
 
       if (authError) throw authError;
+      if (!authData.user) throw new Error('Failed to create user');
+
+      // Hash phone number
+      const phoneHash = await hashPhoneNumber(phoneNumber);
+
+      // Update profile with phone hash
+      await supabase
+        .from('profiles')
+        .update({ 
+          phone_number: phoneNumber,
+          phone_hash: phoneHash,
+        })
+        .eq('id', authData.user.id);
+
+      // Hash PIN and create device session
+      const pinHash = await hashPin(pin);
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+
+      await supabase.from('device_sessions').insert({
+        user_id: authData.user.id,
+        device_fingerprint: deviceFingerprint,
+        device_name: deviceName,
+        device_type: deviceType,
+        session_token: authData.session!.access_token,
+        pin_hash: pinHash,
+        expires_at: expiresAt.toISOString(),
+        quick_login_enabled: true,
+      });
+
+      await logLoginAttempt(phoneNumber, deviceFingerprint, 'pin', true, authData.user.id);
+
+      toast({
+        title: 'Registration Complete!',
+        description: 'Your account has been created',
+      });
+
+      // Auto sign in
+      window.location.href = '/';
     } catch (error: any) {
       toast({
         title: 'Registration Failed',
@@ -255,7 +300,7 @@ export const PhoneAuth = () => {
         </CardTitle>
         <CardDescription>
           {step === 'phone' && 'Enter your phone number to continue'}
-          {step === 'pin' && 'Set up a 4-6 digit PIN for quick access'}
+          {step === 'pin' && 'Set up a 4 digit PIN for quick access'}
           {step === 'login' && 'Enter your PIN to sign in'}
         </CardDescription>
       </CardHeader>
@@ -288,12 +333,12 @@ export const PhoneAuth = () => {
           <>
             <div className="space-y-4">
               <PINInput
-                length={6}
+                length={4}
                 onComplete={handlePINComplete}
                 className="justify-center"
               />
               <p className="text-sm text-center text-muted-foreground">
-                Choose a 4-6 digit PIN you'll remember
+                Choose a 4 digit PIN you'll remember
               </p>
             </div>
             <Button
@@ -301,12 +346,9 @@ export const PhoneAuth = () => {
               disabled={loading || !pin}
               className="w-full h-12 text-base rounded-xl shadow-glow"
             >
-              <Chrome className="w-5 h-5 mr-2" />
-              Continue with Google
+              <Smartphone className="w-5 h-5 mr-2" />
+              Create Account
             </Button>
-            <p className="text-xs text-center text-muted-foreground">
-              Google sign-in is used once for account recovery
-            </p>
           </>
         )}
 
@@ -317,7 +359,7 @@ export const PhoneAuth = () => {
                 {phoneNumber || 'Enter your PIN'}
               </p>
               <PINInput
-                length={6}
+                length={4}
                 onComplete={handlePINLogin}
                 className="justify-center"
               />
@@ -328,7 +370,7 @@ export const PhoneAuth = () => {
               className="w-full h-12 text-base rounded-xl"
             >
               <Chrome className="w-5 h-5 mr-2" />
-              Sign in with Google Instead
+              Forgot PIN? Sign in with Google
             </Button>
           </>
         )}
