@@ -48,6 +48,7 @@ import CreateCommunity from "./pages/CreateCommunity";
 import DeviceManagement from "./pages/DeviceManagement";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
+import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -138,6 +139,7 @@ const App = () => {
               <Route path="/device-management" element={<DeviceManagement />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/notifications/settings" element={<NotificationSettings />} />
               <Route path="/download" element={<Download />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
