@@ -4,7 +4,7 @@ import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import "./index.css";
 
-// Force rebuild - React imports fixed
+// Force rebuild - React config updated 2025-01-09
 
 const rootElement = document.getElementById("root");
 
