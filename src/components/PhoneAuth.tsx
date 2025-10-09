@@ -326,52 +326,54 @@ export const PhoneAuth = () => {
         .maybeSingle();
 
       if (!session || !session.pin_hash) {
-        // Check if registration just happened on this device
-        const justRegistered = localStorage.getItem('registration_pending');
-        
-        if (justRegistered === normalized) {
-          // Create device session now
-          const pinHash = await hashPin(enteredPin);
-          const deviceName = await getDeviceName();
-          const deviceType = await getDeviceType();
-          const sessionToken = crypto.randomUUID();
-          const expiresAt = new Date();
-          expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+        // New device scenario - allow setting up PIN on this device
+        toast({
+          title: 'New Device Detected',
+          description: 'Setting up your PIN on this device...',
+        });
 
-          await supabase
-            .from('device_sessions')
-            .insert({
-              user_id: userId!,
-              device_fingerprint: deviceFingerprint,
-              device_name: deviceName,
-              device_type: deviceType,
-              session_token: sessionToken,
-              pin_hash: pinHash,
-              expires_at: expiresAt.toISOString(),
-              is_active: true
-            });
+        const pinHash = await hashPin(enteredPin);
+        const deviceName = await getDeviceName();
+        const deviceType = await getDeviceType();
+        const sessionToken = crypto.randomUUID();
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-          await logLoginAttempt(normalized, deviceFingerprint, 'pin', true, userId!);
-          await clearFailedAttempts(normalized, deviceFingerprint);
-          
-          localStorage.removeItem('registration_pending');
-
-          toast({
-            title: 'Setup Complete!',
-            description: 'Welcome to chatr.chat'
+        const { error: sessionError } = await supabase
+          .from('device_sessions')
+          .insert({
+            user_id: userId!,
+            device_fingerprint: deviceFingerprint,
+            device_name: deviceName,
+            device_type: deviceType,
+            session_token: sessionToken,
+            pin_hash: pinHash,
+            expires_at: expiresAt.toISOString(),
+            is_active: true
           });
 
-          window.location.href = '/';
+        if (sessionError) {
+          console.error('Device session creation error:', sessionError);
+          toast({
+            title: 'Setup Failed',
+            description: 'Could not set up device session. Please try again.',
+            variant: 'destructive'
+          });
+          setLoading(false);
           return;
         }
+
+        await logLoginAttempt(normalized, deviceFingerprint, 'pin', true, userId!);
+        await clearFailedAttempts(normalized, deviceFingerprint);
         
-        // Otherwise show forgot PIN
+        localStorage.removeItem('registration_pending');
+
         toast({
-          title: 'Device Not Recognized',
-          description: 'Use "Forgot PIN?" to recover your account',
-          variant: 'destructive'
+          title: 'Device Setup Complete!',
+          description: 'Welcome to chatr.chat'
         });
-        setLoading(false);
+
+        window.location.href = '/';
         return;
       }
 
