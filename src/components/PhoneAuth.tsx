@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -159,13 +159,68 @@ export const PhoneAuth = () => {
         if (authError.message?.toLowerCase().includes('already registered') || 
             authError.message?.toLowerCase().includes('already exists') ||
             authError.message?.toLowerCase().includes('user_already_exists')) {
+          
+          // Try to find existing profile and create device session
+          const phoneHash = await hashPhoneNumber(normalized);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('phone_hash', phoneHash)
+            .maybeSingle();
+          
+          if (profile) {
+            // Check if device session exists
+            const { data: existingSession } = await supabase
+              .from('device_sessions')
+              .select('id')
+              .eq('user_id', profile.id)
+              .eq('device_fingerprint', deviceFingerprint)
+              .eq('is_active', true)
+              .maybeSingle();
+            
+            if (!existingSession) {
+              // Create device session for this device with the new PIN
+              const pinHash = await hashPin(userPin);
+              const sessionToken = crypto.randomUUID();
+              const expiresAt = new Date();
+              expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+              await supabase
+                .from('device_sessions')
+                .insert({
+                  user_id: profile.id,
+                  device_fingerprint: deviceFingerprint,
+                  device_name: deviceName,
+                  device_type: deviceType,
+                  session_token: sessionToken,
+                  pin_hash: pinHash,
+                  expires_at: expiresAt.toISOString(),
+                  is_active: true
+                });
+
+              await logLoginAttempt(normalized, deviceFingerprint, 'pin', true, profile.id);
+              
+              // Mark registration as complete on this device
+              localStorage.setItem('registration_pending', normalized);
+              setTimeout(() => localStorage.removeItem('registration_pending'), 60000);
+
+              toast({
+                title: 'Device Registered!',
+                description: 'Welcome back to chatr.chat'
+              });
+
+              window.location.href = '/';
+              return;
+            }
+          }
+          
+          // Only now show recovery if truly needed
           toast({
             title: 'Account Recovery Required',
             description: 'This phone number is registered but not on this device. Please use "Forgot PIN?" to recover your account.',
             variant: 'destructive'
           });
           
-          // Set as existing user and go directly to forgot PIN flow
           setUserExists(true);
           setStep('forgot-pin');
           setLoading(false);
@@ -209,6 +264,10 @@ export const PhoneAuth = () => {
 
       await logLoginAttempt(normalized, deviceFingerprint, 'pin', true, authData.user.id);
       await clearFailedAttempts(normalized, deviceFingerprint);
+
+      // Mark registration as complete on this device
+      localStorage.setItem('registration_pending', normalized);
+      setTimeout(() => localStorage.removeItem('registration_pending'), 60000);
 
       toast({
         title: 'Account Created!',
@@ -267,6 +326,46 @@ export const PhoneAuth = () => {
         .maybeSingle();
 
       if (!session || !session.pin_hash) {
+        // Check if registration just happened on this device
+        const justRegistered = localStorage.getItem('registration_pending');
+        
+        if (justRegistered === normalized) {
+          // Create device session now
+          const pinHash = await hashPin(enteredPin);
+          const deviceName = await getDeviceName();
+          const deviceType = await getDeviceType();
+          const sessionToken = crypto.randomUUID();
+          const expiresAt = new Date();
+          expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+          await supabase
+            .from('device_sessions')
+            .insert({
+              user_id: userId!,
+              device_fingerprint: deviceFingerprint,
+              device_name: deviceName,
+              device_type: deviceType,
+              session_token: sessionToken,
+              pin_hash: pinHash,
+              expires_at: expiresAt.toISOString(),
+              is_active: true
+            });
+
+          await logLoginAttempt(normalized, deviceFingerprint, 'pin', true, userId!);
+          await clearFailedAttempts(normalized, deviceFingerprint);
+          
+          localStorage.removeItem('registration_pending');
+
+          toast({
+            title: 'Setup Complete!',
+            description: 'Welcome to chatr.chat'
+          });
+
+          window.location.href = '/';
+          return;
+        }
+        
+        // Otherwise show forgot PIN
         toast({
           title: 'Device Not Recognized',
           description: 'Use "Forgot PIN?" to recover your account',
