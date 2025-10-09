@@ -73,8 +73,9 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
 
     try {
       setLoading(true);
+      console.log('🔄 Starting to load conversations for user:', userId);
       
-      const { data: participations } = await supabase
+      const { data: participations, error: partError } = await supabase
         .from('conversation_participants')
         .select(`
           conversation_id,
@@ -88,15 +89,25 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
         `)
         .eq('user_id', userId);
 
+      if (partError) {
+        console.error('❌ Error fetching participations:', partError);
+        setLoading(false);
+        return;
+      }
+
       if (!participations || participations.length === 0) {
+        console.log('📭 No conversations found');
         setConversations([]);
         setLoading(false);
         return;
       }
 
+      console.log(`📊 Found ${participations.length} conversations`);
+
       const conversationData = await Promise.all(
-        participations.map(async (p: any) => {
+        participations.map(async (p: any, index: number) => {
           const conv = p.conversations;
+          console.log(`\n🔍 Processing conversation ${index + 1}:`, conv.id);
           
           const { data: lastMessage } = await supabase
             .from('messages')
@@ -108,28 +119,41 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
 
           let otherUser = null;
           if (!conv.is_group) {
-            const { data: participants } = await supabase
+            console.log(`👥 Getting other participant for conversation ${conv.id}...`);
+            
+            const { data: participants, error: participantsError } = await supabase
               .from('conversation_participants')
               .select('user_id')
               .eq('conversation_id', conv.id)
               .neq('user_id', userId);
 
-            if (participants && participants.length > 0) {
-              const { data: profile } = await supabase
+            if (participantsError) {
+              console.error('❌ Error fetching participants:', participantsError);
+            } else if (participants && participants.length > 0) {
+              const otherUserId = participants[0].user_id;
+              console.log(`🎯 Other user ID:`, otherUserId);
+              
+              const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('id, username, avatar_url, is_online, phone_number, email')
-                .eq('id', participants[0].user_id)
-                .single();
+                .eq('id', otherUserId)
+                .maybeSingle();
 
-              otherUser = profile || null;
-              
-              if (profile) {
-                console.log('✅ Profile loaded:', {
+              if (profileError) {
+                console.error('❌ Error fetching profile:', profileError);
+              } else if (profile) {
+                console.log('✅ Profile data:', {
+                  id: profile.id,
                   username: profile.username,
                   phone: profile.phone_number,
                   email: profile.email
                 });
+                otherUser = profile;
+              } else {
+                console.warn('⚠️ No profile found for user:', otherUserId);
               }
+            } else {
+              console.warn('⚠️ No other participants found');
             }
           }
 
@@ -147,7 +171,12 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
 
-      console.log('📋 Loaded conversations:', conversationData.length);
+      console.log('📋 Final conversation data:', conversationData.map(c => ({
+        id: c.id,
+        username: c.other_user?.username,
+        phone: c.other_user?.phone_number
+      })));
+      
       setConversations(conversationData);
       setLoading(false);
     } catch (error) {
