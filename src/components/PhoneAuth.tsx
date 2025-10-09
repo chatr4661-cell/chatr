@@ -114,12 +114,16 @@ export const PhoneAuth = () => {
       const dummyEmail = `${phoneNumber.replace(/[^0-9]/g, '')}@chatr.local`;
       const randomPassword = crypto.randomUUID();
 
+      // Hash phone number before signup
+      const phoneHash = await hashPhoneNumber(phoneNumber);
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: dummyEmail,
         password: randomPassword,
         options: {
           data: {
             phone_number: phoneNumber,
+            phone_hash: phoneHash,
             username: `User_${phoneNumber.slice(-4)}`,
           },
         },
@@ -127,18 +131,6 @@ export const PhoneAuth = () => {
 
       if (authError) throw authError;
       if (!authData.user) throw new Error('Failed to create user');
-
-      // Hash phone number
-      const phoneHash = await hashPhoneNumber(phoneNumber);
-
-      // Update profile with phone hash
-      await supabase
-        .from('profiles')
-        .update({ 
-          phone_number: phoneNumber,
-          phone_hash: phoneHash,
-        })
-        .eq('id', authData.user.id);
 
       // Hash PIN and create device session
       const pinHash = await hashPin(pin);
