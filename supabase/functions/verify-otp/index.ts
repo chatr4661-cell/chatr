@@ -53,7 +53,7 @@ serve(async (req) => {
       .update({ verified: true })
       .eq('id', otpRecords[0].id)
 
-    // Check if profile exists
+    // Check if profile exists by phone number
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id')
@@ -64,50 +64,52 @@ serve(async (req) => {
     let isNewUser = false
 
     if (existingProfile) {
+      // Profile exists, use this user
       console.log('User profile exists:', existingProfile.id)
       userId = existingProfile.id
     } else {
-      console.log('Creating new user account')
+      // No profile found, check if auth user exists
+      console.log('No profile found, checking for auth user')
       
-      // Create a new auth user
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        phone: phoneNumber,
-        phone_confirm: true,
-        email_confirm: true,
-        user_metadata: { phone: phoneNumber }
-      })
-
-      if (createError) {
-        console.error('Create user error:', createError)
+      const { data: { users } } = await supabase.auth.admin.listUsers()
+      const existingAuthUser = users.find(u => u.phone === phoneNumber || u.email === `${phoneNumber.replace('+', '')}@chatr.local`)
+      
+      if (existingAuthUser) {
+        // Auth user exists but no profile, create profile
+        console.log('Found existing auth user without profile:', existingAuthUser.id)
+        userId = existingAuthUser.id
         
-        // If phone exists in auth but not in profiles, try to get that user
-        if (createError.message?.includes('already registered')) {
-          const { data: { users } } = await supabase.auth.admin.listUsers()
-          const existingAuthUser = users.find(u => u.phone === phoneNumber)
-          
-          if (existingAuthUser) {
-            console.log('Found existing auth user:', existingAuthUser.id)
-            userId = existingAuthUser.id
-            
-            // Create profile if missing
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .upsert({ 
-                id: userId, 
-                phone_number: phoneNumber,
-                username: `User_${phoneNumber.slice(-4)}`
-              })
-            
-            if (profileError) {
-              console.error('Profile creation error:', profileError)
-            }
-          } else {
-            throw new Error('Failed to create user account')
-          }
-        } else {
-          throw new Error('Failed to create user account')
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({ 
+            id: userId, 
+            phone_number: phoneNumber,
+            username: `User_${phoneNumber.slice(-4)}`,
+            email: existingAuthUser.email
+          })
+        
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+          throw new Error('Failed to create user profile')
         }
       } else {
+        // No auth user exists, create new one
+        console.log('Creating new auth user')
+        
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+          phone: phoneNumber,
+          phone_confirm: true,
+          email_confirm: true,
+          email: `${phoneNumber.replace('+', '')}@chatr.local`,
+          password: phoneNumber, // Use phone as password for phone-based auth
+          user_metadata: { phone: phoneNumber }
+        })
+
+        if (createError) {
+          console.error('Create user error:', createError)
+          throw new Error('Failed to create user account')
+        }
+
         userId = newUser.user.id
         isNewUser = true
         console.log('New user created:', userId)
