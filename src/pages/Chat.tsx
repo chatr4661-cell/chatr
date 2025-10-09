@@ -53,12 +53,18 @@ const ChatEnhancedContent = () => {
     checkAuth();
   }, [navigate]);
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated - wait for context to initialize
   useEffect(() => {
-    if (!session) {
-      navigate('/auth');
+    if (!session && user === null) {
+      // Only redirect if we're sure there's no session (not just loading)
+      const timer = setTimeout(() => {
+        if (!session) {
+          navigate('/auth');
+        }
+      }, 1000); // Give ChatProvider time to initialize
+      return () => clearTimeout(timer);
     }
-  }, [session, navigate]);
+  }, [session, user, navigate]);
 
   // Handle contact selected from location state
   useEffect(() => {
