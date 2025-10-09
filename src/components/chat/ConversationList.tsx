@@ -229,9 +229,25 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
           const displayAvatar = conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url;
           const lastMessage = conv.last_message;
           const messagePreview = lastMessage?.content || 'Hey there! I am using Chatr';
-          const timestamp = lastMessage?.created_at 
-            ? formatDistanceToNow(new Date(lastMessage.created_at), { addSuffix: true })
-            : formatDistanceToNow(new Date(conv.created_at), { addSuffix: true });
+          
+          // Safe timestamp formatting with validation
+          let timestamp = '';
+          try {
+            if (lastMessage?.created_at) {
+              const date = new Date(lastMessage.created_at);
+              if (!isNaN(date.getTime())) {
+                timestamp = formatDistanceToNow(date, { addSuffix: true });
+              }
+            } else if (conv.created_at) {
+              const date = new Date(conv.created_at);
+              if (!isNaN(date.getTime())) {
+                timestamp = formatDistanceToNow(date, { addSuffix: true });
+              }
+            }
+          } catch (error) {
+            console.error('Error formatting timestamp:', error);
+          }
+          
           const isRead = lastMessage?.read_at != null;
           const isSent = lastMessage?.sender_id === userId;
 
