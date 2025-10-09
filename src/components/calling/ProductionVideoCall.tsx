@@ -323,22 +323,18 @@ export default function ProductionVideoCall({
     const newFacingMode = facingMode === "user" ? "environment" : "user";
     
     try {
-      // Pre-load new camera stream for smooth transition
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: getOptimalVideoConstraints('ultra', newFacingMode),
         audio: getOptimalAudioConstraints()
       });
 
-      // Crossfade animation - set up new stream
       const videoTrack = newStream.getVideoTracks()[0];
       const sender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
       
       if (sender) {
-        // Smooth transition
         await sender.replaceTrack(videoTrack);
       }
 
-      // Clean up old stream after transition
       setTimeout(() => {
         localStream.getVideoTracks()[0].stop();
         setLocalStream(newStream);
@@ -352,12 +348,18 @@ export default function ProductionVideoCall({
       await triggerHaptic('cameraSwitch');
       
       toast({
-        title: `Switched to ${newFacingMode === 'user' ? 'front' : 'back'} camera`,
+        title: `${newFacingMode === 'user' ? 'Front' : 'Back'} camera activated`,
+        description: `Switched to ${newFacingMode === 'user' ? 'front-facing' : 'rear'} camera`,
       });
     } catch (error) {
       console.error("Error switching camera:", error);
       setIsSwitchingCamera(false);
       await triggerHaptic('error');
+      toast({
+        title: "Camera switch failed",
+        description: "Unable to switch camera. Please check permissions.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -499,7 +501,27 @@ export default function ProductionVideoCall({
         />
       )}
 
-      {/* Controls */}
+      {/* Always-visible Camera Switch Button (Mobile/Desktop) */}
+      {videoEnabled && !isScreenSharing && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="absolute top-20 right-4 z-20"
+        >
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={switchCamera}
+            disabled={isSwitchingCamera}
+            className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all bg-black/60 backdrop-blur-md border-2 border-white/20 hover:border-white/40"
+            title={facingMode === 'user' ? 'Switch to Back Camera' : 'Switch to Front Camera'}
+          >
+            <SwitchCamera className={cn("h-7 w-7 text-white", isSwitchingCamera && "animate-spin")} />
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Enhanced Bottom Controls Bar */}
       <AnimatePresence>
         {controlsVisible && (
           <motion.div
@@ -507,91 +529,134 @@ export default function ProductionVideoCall({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
+            className="absolute bottom-0 left-0 right-0 z-10"
           >
-            <Card className="absolute bottom-0 left-0 right-0 backdrop-blur-xl bg-black/80 border-t border-white/10 p-6">
-              <div className="flex items-center justify-center gap-3">
-          <Button
-            variant={videoEnabled ? "secondary" : "destructive"}
-            size="lg"
-            onClick={toggleVideo}
-            className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
-          >
-            {videoEnabled ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
-          </Button>
-          
-          <Button
-            variant={audioEnabled ? "secondary" : "destructive"}
-            size="lg"
-            onClick={toggleAudio}
-            className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
-          >
-            {audioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
-          </Button>
+            <Card className="backdrop-blur-xl bg-gradient-to-t from-black/90 via-black/80 to-transparent border-t-2 border-white/10 rounded-none">
+              <div className="p-6 pb-8">
+                {/* Primary Controls Row */}
+                <div className="flex items-center justify-center gap-4 mb-4">
+                  {/* Video Toggle */}
+                  <div className="flex flex-col items-center gap-2">
+                    <Button
+                      variant={videoEnabled ? "secondary" : "destructive"}
+                      size="lg"
+                      onClick={toggleVideo}
+                      className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all relative group"
+                    >
+                      {videoEnabled ? 
+                        <Video className="h-7 w-7" /> : 
+                        <VideoOff className="h-7 w-7" />
+                      }
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-primary border-2 border-black" />
+                    </Button>
+                    <span className="text-xs text-white/70 font-medium">Video</span>
+                  </div>
+                  
+                  {/* Audio Toggle */}
+                  <div className="flex flex-col items-center gap-2">
+                    <Button
+                      variant={audioEnabled ? "secondary" : "destructive"}
+                      size="lg"
+                      onClick={toggleAudio}
+                      className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all relative"
+                    >
+                      {audioEnabled ? 
+                        <Mic className="h-7 w-7" /> : 
+                        <MicOff className="h-7 w-7" />
+                      }
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-primary border-2 border-black" />
+                    </Button>
+                    <span className="text-xs text-white/70 font-medium">Mic</span>
+                  </div>
 
-          <Button
-            variant="secondary"
-            size="lg"
-            onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-            className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
-          >
-            {isScreenSharing ? <MonitorOff className="h-6 w-6" /> : <Monitor className="h-6 w-6" />}
-          </Button>
+                  {/* End Call - Larger and more prominent */}
+                  <div className="flex flex-col items-center gap-2 mx-2">
+                    <Button
+                      variant="destructive"
+                      size="lg"
+                      onClick={endCall}
+                      className="rounded-full h-20 w-20 shadow-2xl hover:scale-110 transition-all bg-red-500 hover:bg-red-600 border-4 border-red-400/30"
+                    >
+                      <PhoneOff className="h-8 w-8" />
+                    </Button>
+                    <span className="text-xs text-red-400 font-semibold">End</span>
+                  </div>
 
-          {Capacitor.isNativePlatform() && (
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={switchCamera}
-              disabled={isSwitchingCamera}
-              className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
-            >
-              <SwitchCamera className={cn("h-6 w-6", isSwitchingCamera && "animate-spin")} />
-            </Button>
-          )}
+                  {/* Screen Share */}
+                  <div className="flex flex-col items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+                      className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all"
+                    >
+                      {isScreenSharing ? 
+                        <MonitorOff className="h-7 w-7" /> : 
+                        <Monitor className="h-7 w-7" />
+                      }
+                    </Button>
+                    <span className="text-xs text-white/70 font-medium">Share</span>
+                  </div>
 
-          <Button
-            variant="secondary"
-            size="lg"
-            onClick={() => setShowEffectsPanel(!showEffectsPanel)}
-            className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
-          >
-            <Wand2 className="h-6 w-6" />
-          </Button>
+                  {/* Effects */}
+                  <div className="flex flex-col items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={() => setShowEffectsPanel(!showEffectsPanel)}
+                      className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all"
+                    >
+                      <Wand2 className="h-7 w-7" />
+                    </Button>
+                    <span className="text-xs text-white/70 font-medium">Effects</span>
+                  </div>
+                </div>
 
-          <CallMediaCapture videoRef={remoteVideoRef} />
+                {/* Secondary Controls Row */}
+                <div className="flex items-center justify-center gap-3">
+                  <CallMediaCapture videoRef={remoteVideoRef} />
 
-          {isPiPSupported && (
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={toggleBrowserPiP}
-              className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
-            >
-              <PictureInPicture2 className="h-6 w-6" />
-            </Button>
-          )}
+                  {isPiPSupported && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleBrowserPiP}
+                      className="rounded-full hover:bg-white/10 text-white/70 hover:text-white"
+                      title="Picture in Picture"
+                    >
+                      <PictureInPicture2 className="h-5 w-5 mr-2" />
+                      <span className="text-xs">PiP</span>
+                    </Button>
+                  )}
 
-          {onAddParticipant && (
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={onAddParticipant}
-              className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
-            >
-              <UserPlus className="h-6 w-6" />
-            </Button>
-          )}
-          
-          <Button
-            variant="destructive"
-            size="lg"
-            onClick={endCall}
-            className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform bg-red-500 hover:bg-red-600"
-          >
-            <PhoneOff className="h-6 w-6" />
-          </Button>
-        </div>
-      </Card>
+                  {onAddParticipant && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onAddParticipant}
+                      className="rounded-full hover:bg-white/10 text-white/70 hover:text-white"
+                      title="Add Participant"
+                    >
+                      <UserPlus className="h-5 w-5 mr-2" />
+                      <span className="text-xs">Add</span>
+                    </Button>
+                  )}
+
+                  {!isPiPMode && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={togglePiP}
+                      className="rounded-full hover:bg-white/10 text-white/70 hover:text-white"
+                      title="Minimize"
+                    >
+                      <Minimize2 className="h-5 w-5 mr-2" />
+                      <span className="text-xs">Mini</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
           </motion.div>
         )}
       </AnimatePresence>
