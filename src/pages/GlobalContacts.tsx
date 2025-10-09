@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Search, MessageCircle, Phone, Video, UserPlus } from 'lucide-react';
+import { ArrowLeft, Search, MessageCircle, Phone, Video, Loader2 } from 'lucide-react';
 
 export default function GlobalContacts() {
   const navigate = useNavigate();
@@ -66,7 +67,41 @@ export default function GlobalContacts() {
   };
 
   const startChat = (contact: any) => {
-    navigate(`/chat?contact=${contact.id}`);
+    navigate('/chat', { state: { selectedContact: contact } });
+  };
+
+  const startCall = async (contact: any, callType: 'voice' | 'video') => {
+    try {
+      const { data: convData, error: convError } = await supabase.rpc('create_direct_conversation', {
+        other_user_id: contact.id
+      });
+
+      if (convError) throw convError;
+
+      const { error: callError } = await supabase
+        .from('calls')
+        .insert({
+          conversation_id: convData,
+          caller_id: user?.id,
+          receiver_id: contact.id,
+          call_type: callType,
+          status: 'ringing'
+        });
+
+      if (callError) throw callError;
+
+      toast({
+        title: 'Success',
+        description: `${callType === 'voice' ? 'Voice' : 'Video'} call started`
+      });
+    } catch (error) {
+      console.error('Error starting call:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start call',
+        variant: 'destructive'
+      });
+    }
   };
 
   const filteredUsers = allUsers.filter(u =>
@@ -81,80 +116,104 @@ export default function GlobalContacts() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/')}
-          className="rounded-full"
+          onClick={() => navigate('/chat')}
+          className="rounded-full hover:bg-accent"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">All Users</h1>
-          <p className="text-sm text-muted-foreground">Message anyone on Chatr</p>
+          <h1 className="text-xl font-semibold">Find People</h1>
+          <p className="text-sm text-muted-foreground">Message or call anyone on chatr</p>
         </div>
       </div>
 
       {/* Search */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b bg-card/30">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search users..."
+            placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-background border-border/50 focus-visible:border-primary"
           />
         </div>
       </div>
 
       {/* User List */}
       <ScrollArea className="flex-1">
-        <div className="divide-y">
+        <div className="p-3 space-y-1">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">
-              Loading users...
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              No users found
+            <div className="flex flex-col items-center justify-center py-12">
+              <Search className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+              <p className="text-muted-foreground">No users found</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Try a different search</p>
             </div>
           ) : (
             filteredUsers.map((contact) => (
               <div
                 key={contact.id}
-                className="flex items-center gap-3 p-4 hover:bg-accent/10 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent/50 transition-all group"
               >
                 <div className="relative">
-                  <Avatar className="h-12 w-12">
+                  <Avatar className="w-14 h-14 border-2 border-primary/10">
                     <AvatarImage src={contact.avatar_url} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-lg font-semibold">
                       {contact.username?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   {contact.is_online && (
-                    <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-background" />
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-background animate-pulse" />
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">
+                  <h3 className="font-semibold text-base truncate">
                     {contact.username}
                   </h3>
                   <p className="text-sm text-muted-foreground truncate">
-                    {contact.is_online ? (
-                      <span className="text-green-500">Online</span>
-                    ) : (
-                      'Offline'
-                    )}
+                    {contact.email || contact.phone_number}
                   </p>
+                  {contact.is_online && (
+                    <Badge variant="outline" className="text-xs mt-1 border-green-500/50 text-green-600">
+                      Online
+                    </Badge>
+                  )}
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => startChat(contact)}
-                  className="rounded-full hover:bg-primary/10"
-                >
-                  <MessageCircle className="h-5 w-5 text-primary" />
-                </Button>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => startCall(contact, 'voice')}
+                    className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary"
+                    title="Voice Call"
+                  >
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => startCall(contact, 'video')}
+                    className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary"
+                    title="Video Call"
+                  >
+                    <Video className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="icon"
+                    onClick={() => startChat(contact)}
+                    className="rounded-full h-9 w-9 bg-primary hover:bg-primary/90"
+                    title="Message"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))
           )}
