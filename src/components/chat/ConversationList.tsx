@@ -20,6 +20,7 @@ interface Conversation {
     avatar_url?: string;
     is_online: boolean;
     phone_number?: string;
+    email?: string;
   };
   last_message?: {
     content: string;
@@ -112,7 +113,8 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
                 .maybeSingle();
 
               if (profile) {
-                console.log('👤 Profile loaded:', profile.username || profile.phone_number || profile.email);
+                const displayName = profile.username || profile.phone_number || profile.email || 'User';
+                console.log('👤 Profile loaded:', displayName);
               }
               otherUser = profile;
             }
@@ -187,7 +189,10 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
         {conversations.map((conv) => {
           const displayName = conv.is_group 
             ? conv.group_name 
-            : (conv.other_user?.username || conv.other_user?.phone_number || (conv.other_user as any)?.email || 'User');
+            : (conv.other_user?.username || 
+               conv.other_user?.phone_number || 
+               conv.other_user?.email || 
+               'User');
           const displayAvatar = conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url;
           const lastMessage = conv.last_message;
           const messagePreview = lastMessage?.content || 'No messages yet';

@@ -2801,6 +2801,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_call_participant: {
+        Args: { p_call_id: string; p_user_id: string }
+        Returns: undefined
+      }
       backfill_phone_hashes: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2825,6 +2829,17 @@ export type Database = {
           is_online: boolean
           phone_number: string
           username: string
+        }[]
+      }
+      get_call_participants: {
+        Args: { p_call_id: string }
+        Returns: {
+          audio_enabled: boolean
+          avatar_url: string
+          is_active: boolean
+          user_id: string
+          username: string
+          video_enabled: boolean
         }[]
       }
       has_role: {

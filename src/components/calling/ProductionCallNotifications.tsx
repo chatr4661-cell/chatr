@@ -4,6 +4,8 @@ import { useToast } from '@/hooks/use-toast';
 import { IncomingCallScreen } from './IncomingCallScreen';
 import ProductionVoiceCall from './ProductionVoiceCall';
 import ProductionVideoCall from './ProductionVideoCall';
+import { GroupVideoCall } from './GroupVideoCall';
+import { GroupVoiceCall } from './GroupVoiceCall';
 import { useNavigate } from 'react-router-dom';
 
 interface ProductionCallNotificationsProps {
@@ -202,7 +204,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
       )}
 
       {/* Active Voice Call */}
-      {activeCall && activeCall.call_type === 'voice' && (
+      {activeCall && activeCall.call_type === 'voice' && !activeCall.is_group && (
         <ProductionVoiceCall
           callId={activeCall.id}
           contactName={activeCall.caller_id === userId ? activeCall.receiver_name : activeCall.caller_name}
@@ -213,14 +215,36 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         />
       )}
 
+      {/* Group Voice Call */}
+      {activeCall && activeCall.call_type === 'voice' && activeCall.is_group && (
+        <GroupVoiceCall
+          callId={activeCall.id}
+          conversationId={activeCall.conversation_id}
+          currentUserId={userId}
+          currentUsername={username}
+          onEnd={endActiveCall}
+        />
+      )}
+
       {/* Active Video Call */}
-      {activeCall && activeCall.call_type === 'video' && (
+      {activeCall && activeCall.call_type === 'video' && !activeCall.is_group && (
         <ProductionVideoCall
           callId={activeCall.id}
           contactName={activeCall.caller_id === userId ? activeCall.receiver_name : activeCall.caller_name}
           contactAvatar={activeCall.caller_id === userId ? activeCall.receiver_avatar : activeCall.caller_avatar}
           isInitiator={activeCall.caller_id === userId}
           partnerId={activeCall.caller_id === userId ? activeCall.receiver_id : activeCall.caller_id}
+          onEnd={endActiveCall}
+        />
+      )}
+
+      {/* Group Video Call */}
+      {activeCall && activeCall.call_type === 'video' && activeCall.is_group && (
+        <GroupVideoCall
+          callId={activeCall.id}
+          conversationId={activeCall.conversation_id}
+          currentUserId={userId}
+          currentUsername={username}
           onEnd={endActiveCall}
         />
       )}
