@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { MessageCircle, Flame, Users, Bell, Grid, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,7 +32,7 @@ export const BottomNav = () => {
           // Add prominent center action button
           if (index === 2) {
             return (
-              <React.Fragment key={item.path}>
+              <Fragment key={item.path}>
                 <NavLink
                   to={item.path}
                   className={cn(
@@ -63,7 +63,7 @@ export const BottomNav = () => {
                 >
                   <Plus className="w-6 h-6" />
                 </Button>
-              </React.Fragment>
+              </Fragment>
             );
           }
           
