@@ -82,9 +82,11 @@ export const PhoneAuth = () => {
       if (existingProfile) {
         setUserExists(true);
         setUserId(existingProfile.id);
+        setIsLoginMode(true);
         setStep('login-pin');
       } else {
         setUserExists(false);
+        setIsLoginMode(false);
         setStep('create-pin');
       }
     } catch (error: any) {
