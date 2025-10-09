@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getTurnConfig, sendSignal, subscribeToCallSignals } from '@/utils/webrtcSignaling';
 import { useToast } from '@/hooks/use-toast';
+import { getOptimalVideoConstraints, getOptimalAudioConstraints, setBandwidth, setPreferredCodec, enableSimulcast } from '@/utils/videoQualityManager';
 
 export interface Participant {
   userId: string;
@@ -29,12 +30,13 @@ export const useGroupCall = ({ callId, currentUserId, isVideo, onEnd }: UseGroup
   const { toast } = useToast();
   const iceServersRef = useRef<RTCIceServer[]>([]);
 
-  // Initialize local media stream
+  // Initialize local media stream with ultra-HD settings
   const initializeMedia = useCallback(async () => {
     try {
+      console.log('🎥 Initializing group call with ultra-HD...');
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
-        video: isVideo ? { width: 1280, height: 720 } : false,
+        audio: getOptimalAudioConstraints(),
+        video: isVideo ? getOptimalVideoConstraints('high') : false, // Use 'high' for group calls
       });
       setLocalStream(stream);
       
@@ -53,15 +55,41 @@ export const useGroupCall = ({ callId, currentUserId, isVideo, onEnd }: UseGroup
     }
   }, [isVideo, toast]);
 
-  // Create peer connection for a participant
+  // Create peer connection for a participant with ultra-HD settings
   const createPeerConnection = useCallback(async (participantId: string): Promise<RTCPeerConnection> => {
-    const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
+    const pc = new RTCPeerConnection({ 
+      iceServers: iceServersRef.current,
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require'
+    });
 
-    // Add local stream tracks
+    // Set VP9 as preferred codec
+    try {
+      setPreferredCodec(pc, 'VP9');
+    } catch (error) {
+      console.log('VP9 not available for participant:', participantId);
+    }
+
+    // Add local stream tracks with simulcast for scalability
     if (localStream) {
       localStream.getTracks().forEach(track => {
         pc.addTrack(track, localStream);
       });
+      
+      // Enable simulcast for video in group calls
+      if (isVideo) {
+        try {
+          enableSimulcast(pc);
+        } catch (error) {
+          console.log('Simulcast not supported');
+        }
+      }
+
+      // Set quality after connection
+      setTimeout(async () => {
+        await setBandwidth(pc, 'high'); // Use 'high' quality for group calls
+      }, 1000);
     }
 
     // Handle incoming tracks

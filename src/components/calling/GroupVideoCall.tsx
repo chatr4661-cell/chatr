@@ -3,6 +3,7 @@ import { useGroupCall } from '@/hooks/useGroupCall';
 import { ParticipantTile } from './ParticipantTile';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAudioLevel } from '@/hooks/useAudioLevel';
 import { 
   Mic, 
@@ -144,12 +145,19 @@ export const GroupVideoCall = ({
       <div className="bg-muted/50 backdrop-blur-lg px-4 py-3 flex items-center justify-between border-b">
         <div className="flex items-center gap-3">
           <h2 className="font-semibold">Group Call</h2>
-          <span className="text-sm text-muted-foreground">
-            {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
-          </span>
+          <Badge variant="secondary" className="bg-primary/10">
+            <span className="text-xs">
+              {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
+            </span>
+          </Badge>
+          <Badge variant="secondary" className="bg-green-500/10 border-green-500/30">
+            <span className="text-green-500 text-xs font-medium">1080p Ultra-HD</span>
+          </Badge>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm font-mono">{formatDuration(callDuration)}</span>
+          <Badge variant="secondary" className="font-mono">
+            {formatDuration(callDuration)}
+          </Badge>
         </div>
       </div>
 

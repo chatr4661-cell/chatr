@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendSignal, subscribeToCallSignals, getTurnConfig } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
 import { cn } from "@/lib/utils";
+import { getOptimalVideoConstraints, getOptimalAudioConstraints, setBandwidth, setPreferredCodec, QUALITY_PRESETS } from "@/utils/videoQualityManager";
+import { useNetworkStats } from "@/hooks/useNetworkStats";
 
 interface ProductionVideoCallProps {
   callId: string;
@@ -43,7 +45,12 @@ export default function ProductionVideoCall({
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const { toast } = useToast();
   const callTimerRef = useRef<NodeJS.Timeout>();
-  const statsIntervalRef = useRef<NodeJS.Timeout>();
+  
+  const { stats, currentQuality, connectionQuality: netConnectionQuality } = useNetworkStats({
+    peerConnection: peerConnectionRef.current,
+    enabled: callStatus === 'connected',
+    autoAdjust: true
+  });
 
   useEffect(() => {
     initializeCall();
@@ -60,61 +67,26 @@ export default function ProductionVideoCall({
       callTimerRef.current = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
-
-      statsIntervalRef.current = setInterval(() => {
-        monitorConnectionQuality();
-      }, 2000);
     }
     return () => {
       if (callTimerRef.current) clearInterval(callTimerRef.current);
-      if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
     };
   }, [callStatus]);
 
-  const monitorConnectionQuality = async () => {
-    const pc = peerConnectionRef.current;
-    if (!pc) return;
-
-    try {
-      const stats = await pc.getStats();
-      let packetLoss = 0;
-      let jitter = 0;
-
-      stats.forEach(report => {
-        if (report.type === 'inbound-rtp' && report.kind === 'video') {
-          const packetsLost = report.packetsLost || 0;
-          const packetsReceived = report.packetsReceived || 0;
-          packetLoss = packetsLost / (packetsReceived + packetsLost) || 0;
-          jitter = report.jitter || 0;
-        }
-      });
-
-      if (packetLoss > 0.05 || jitter > 0.03) {
-        setConnectionQuality("poor");
-      } else if (packetLoss > 0.02 || jitter > 0.015) {
-        setConnectionQuality("good");
-      } else {
-        setConnectionQuality("excellent");
-      }
-    } catch (error) {
-      console.error("Error monitoring quality:", error);
+  // Update connection quality from network stats
+  useEffect(() => {
+    if (netConnectionQuality) {
+      setConnectionQuality(netConnectionQuality);
     }
-  };
+  }, [netConnectionQuality]);
+
 
   const initializeCall = async () => {
     try {
+      console.log('🎥 Initializing ultra-HD video call...');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          width: { ideal: 1280 }, 
-          height: { ideal: 720 },
-          facingMode
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000
-        }
+        video: getOptimalVideoConstraints('ultra'),
+        audio: getOptimalAudioConstraints()
       });
       
       setLocalStream(stream);
@@ -126,14 +98,27 @@ export default function ProductionVideoCall({
       const pc = new RTCPeerConnection({
         iceServers,
         iceTransportPolicy: 'all',
-        bundlePolicy: 'max-bundle'
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require'
       });
       
       peerConnectionRef.current = pc;
 
+      // Set VP9 as preferred codec for better quality
+      try {
+        setPreferredCodec(pc, 'VP9');
+      } catch (error) {
+        console.log('VP9 not available, using default codec');
+      }
+
       stream.getTracks().forEach(track => {
         pc.addTrack(track, stream);
       });
+
+      // Set initial ultra quality bitrate
+      setTimeout(async () => {
+        await setBandwidth(pc, 'ultra');
+      }, 1000);
 
       pc.ontrack = (event) => {
         const [remoteStream] = event.streams;
@@ -158,14 +143,20 @@ export default function ProductionVideoCall({
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
           setCallStatus("connected");
-        } else if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+          console.log('✅ Call connected in ultra-HD!');
+        } else if (pc.connectionState === "failed") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
+          // Try ICE restart
+          pc.restartIce();
           toast({
             title: "Connection lost",
             description: "Attempting to reconnect...",
             variant: "destructive"
           });
+        } else if (pc.connectionState === "disconnected") {
+          setCallStatus("reconnecting");
+          setConnectionQuality("reconnecting");
         }
       };
 
@@ -271,9 +262,8 @@ export default function ProductionVideoCall({
     try {
       const cameraStream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          ...getOptimalVideoConstraints('ultra'),
+          facingMode
         }
       });
       const cameraTrack = cameraStream.getVideoTracks()[0];
@@ -306,15 +296,10 @@ export default function ProductionVideoCall({
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { 
-          facingMode: { exact: newFacingMode },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          ...getOptimalVideoConstraints('ultra'),
+          facingMode: { exact: newFacingMode }
         },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
+        audio: getOptimalAudioConstraints()
       });
 
       const videoTrack = newStream.getVideoTracks()[0];
@@ -369,7 +354,6 @@ export default function ProductionVideoCall({
       peerConnectionRef.current.close();
     }
     if (callTimerRef.current) clearInterval(callTimerRef.current);
-    if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
   };
 
   const formatDuration = (seconds: number) => {
@@ -400,13 +384,20 @@ export default function ProductionVideoCall({
     )}>
       {/* Quality & Duration Badge */}
       {callStatus === "connected" && (
-        <div className="absolute top-4 left-4 z-10 flex gap-2">
-          <Badge variant="secondary" className={cn("backdrop-blur-md", qualityStyles.bg, qualityStyles.border)}>
-            <div className={cn("w-2 h-2 rounded-full mr-2", qualityStyles.dot)} />
-            <span className={qualityStyles.text}>{connectionQuality}</span>
-          </Badge>
-          <Badge variant="secondary" className="backdrop-blur-md font-mono bg-black/40">
-            {formatDuration(callDuration)}
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Badge variant="secondary" className={cn("backdrop-blur-md", qualityStyles.bg, qualityStyles.border)}>
+              <div className={cn("w-2 h-2 rounded-full mr-2", qualityStyles.dot)} />
+              <span className={qualityStyles.text}>{connectionQuality}</span>
+            </Badge>
+            <Badge variant="secondary" className="backdrop-blur-md font-mono bg-black/40">
+              {formatDuration(callDuration)}
+            </Badge>
+          </div>
+          <Badge variant="secondary" className="backdrop-blur-md bg-black/50 border-green-500/30">
+            <span className="text-green-400 text-xs font-medium">
+              {QUALITY_PRESETS[currentQuality].label} @ {stats.fps}fps • {(stats.bandwidth / 1000).toFixed(1)}Mbps
+            </span>
           </Badge>
         </div>
       )}
@@ -419,12 +410,18 @@ export default function ProductionVideoCall({
       </div>
 
       {/* Remote Video (Full Screen) */}
-      <div className="flex-1 relative bg-gray-900">
+      <div className="flex-1 relative bg-gradient-to-br from-gray-900 via-black to-gray-900">
         {callStatus === "connecting" && (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="text-center">
-              <Video className="h-16 w-16 mx-auto mb-4 text-white animate-pulse" />
-              <p className="text-white text-lg">Connecting...</p>
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-gradient-to-br from-blue-900/20 to-purple-900/20">
+            <div className="text-center space-y-4">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full border-4 border-white/20 animate-pulse" />
+                <div className="absolute inset-0 w-24 h-24 rounded-full border-4 border-t-white animate-spin" />
+              </div>
+              <div>
+                <p className="text-white text-xl font-medium">Connecting to {contactName}...</p>
+                <p className="text-white/70 text-sm mt-2">Establishing ultra-HD connection</p>
+              </div>
             </div>
           </div>
         )}
@@ -440,7 +437,8 @@ export default function ProductionVideoCall({
           ref={remoteVideoRef}
           autoPlay
           playsInline
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-opacity duration-500"
+          style={{ opacity: callStatus === 'connected' ? 1 : 0.3 }}
         />
       </div>
 
