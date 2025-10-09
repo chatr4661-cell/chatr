@@ -169,7 +169,7 @@ export const PhoneAuth = () => {
         </CardTitle>
         <CardDescription>
           {step === 'phone' && 'Enter your phone number to get started'}
-          {step === 'create-pin' && 'Choose a 4-digit PIN'}
+          {step === 'create-pin' && 'Choose a 6-digit PIN'}
           {step === 'login-pin' && 'Enter your PIN to sign in'}
         </CardDescription>
       </CardHeader>
@@ -227,9 +227,9 @@ export const PhoneAuth = () => {
               Back
             </Button>
             <div className="space-y-2">
-              <Label>Create 4-Digit PIN</Label>
+              <Label>Create 6-Digit PIN</Label>
               <PINInput
-                length={4}
+                length={6}
                 onComplete={handleCreatePinComplete}
                 disabled={loading}
               />
@@ -256,7 +256,7 @@ export const PhoneAuth = () => {
             <div className="space-y-2">
               <Label>Enter Your PIN</Label>
               <PINInput
-                length={4}
+                length={6}
                 onComplete={handleLoginPinComplete}
                 disabled={loading}
               />
