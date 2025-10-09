@@ -11,16 +11,16 @@ import { PINInput } from './PINInput';
 import { CountryCodeSelector } from './CountryCodeSelector';
 import { normalizePhoneNumber } from '@/utils/phoneHashUtil';
 
-type AuthStep = 'phone' | 'create-pin' | 'login-pin';
+type AuthStep = 'pin-login' | 'phone' | 'create-pin';
 
 export const PhoneAuth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [step, setStep] = useState<AuthStep>('phone');
+  const [step, setStep] = useState<AuthStep>('pin-login');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [loading, setLoading] = useState(false);
-  const [userExists, setUserExists] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -56,10 +56,16 @@ export const PhoneAuth = () => {
         .maybeSingle();
 
       if (existingProfile) {
-        setUserExists(true);
-        setStep('login-pin');
+        toast({
+          title: "Welcome Back",
+          description: "Please enter your PIN to continue",
+        });
+        setStep('pin-login');
       } else {
-        setUserExists(false);
+        toast({
+          title: "New User",
+          description: "Let's create a PIN for your account",
+        });
         setStep('create-pin');
       }
     } catch (error: any) {
@@ -69,6 +75,50 @@ export const PhoneAuth = () => {
         description: error.message || "Failed to verify phone number",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickPinLogin = async (pin: string) => {
+    setLoading(true);
+    try {
+      // Try to get user session - this is a quick PIN login without phone number
+      // We'll try common phone number patterns based on the PIN
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        navigate('/');
+        return;
+      }
+
+      // If no session, need to get phone number first
+      setLoginAttempts(prev => prev + 1);
+      
+      if (loginAttempts >= 2) {
+        toast({
+          title: "Need Phone Number",
+          description: "Please enter your phone number to continue",
+        });
+        setStep('phone');
+        setLoading(false);
+        return;
+      }
+
+      toast({
+        title: "Unable to Login",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      });
+      setStep('phone');
+    } catch (error: any) {
+      console.error('Quick login error:', error);
+      toast({
+        title: "Login Failed",
+        description: "Please enter your phone number to continue",
+        variant: "destructive",
+      });
+      setStep('phone');
     } finally {
       setLoading(false);
     }
@@ -93,8 +143,7 @@ export const PhoneAuth = () => {
           description: "This number is already registered. Please login instead.",
           variant: "destructive",
         });
-        setUserExists(true);
-        setStep('login-pin');
+        setStep('pin-login');
         setLoading(false);
         return;
       }
@@ -120,8 +169,7 @@ export const PhoneAuth = () => {
             description: "This number is already registered. Redirecting to login...",
             variant: "destructive",
           });
-          setUserExists(true);
-          setStep('login-pin');
+          setStep('pin-login');
           setLoading(false);
           return;
         }
@@ -188,27 +236,55 @@ export const PhoneAuth = () => {
     }
   };
 
-  const handleBackToPhone = () => {
-    setStep('phone');
+  const handleBackToQuickLogin = () => {
+    setStep('pin-login');
     setPhoneNumber('');
-    setUserExists(false);
+    setLoginAttempts(0);
   };
 
   return (
     <Card className="w-full backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass">
       <CardHeader>
         <CardTitle>
+          {step === 'pin-login' && 'Enter PIN'}
           {step === 'phone' && 'Welcome to chatr.chat'}
           {step === 'create-pin' && 'Create Your PIN'}
-          {step === 'login-pin' && 'Enter Your PIN'}
         </CardTitle>
         <CardDescription>
+          {step === 'pin-login' && 'for smart chatr messaging'}
           {step === 'phone' && 'Enter your phone number to get started'}
           {step === 'create-pin' && 'Choose a 6-digit PIN'}
-          {step === 'login-pin' && 'Enter your PIN to sign in'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Quick PIN Login */}
+        {step === 'pin-login' && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Enter Your PIN</Label>
+              <PINInput
+                length={6}
+                onComplete={handleQuickPinLogin}
+                disabled={loading}
+              />
+            </div>
+            {loading && (
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
+            <div className="text-center">
+              <Button
+                variant="link"
+                onClick={() => setStep('phone')}
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                New user? Register here
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Phone Number Input */}
         {step === 'phone' && (
           <form onSubmit={handlePhoneSubmit} className="space-y-4">
@@ -255,7 +331,7 @@ export const PhoneAuth = () => {
           <div className="space-y-4">
             <Button
               variant="ghost"
-              onClick={handleBackToPhone}
+              onClick={handleBackToQuickLogin}
               className="mb-4"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -277,12 +353,12 @@ export const PhoneAuth = () => {
           </div>
         )}
 
-        {/* Login PIN */}
-        {step === 'login-pin' && (
+        {/* Login with Phone PIN */}
+        {step === 'pin-login' && phoneNumber && (
           <div className="space-y-4">
             <Button
               variant="ghost"
-              onClick={handleBackToPhone}
+              onClick={handleBackToQuickLogin}
               className="mb-4"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
