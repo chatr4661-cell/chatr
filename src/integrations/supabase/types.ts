@@ -1860,6 +1860,7 @@ export type Database = {
           phone_hash: string | null
           phone_number: string
           phone_search: string | null
+          pin: string | null
           pin_setup_completed: boolean | null
           preferred_auth_method: string | null
           preferred_country_code: string | null
@@ -1896,6 +1897,7 @@ export type Database = {
           phone_hash?: string | null
           phone_number: string
           phone_search?: string | null
+          pin?: string | null
           pin_setup_completed?: boolean | null
           preferred_auth_method?: string | null
           preferred_country_code?: string | null
@@ -1932,6 +1934,7 @@ export type Database = {
           phone_hash?: string | null
           phone_number?: string
           phone_search?: string | null
+          pin?: string | null
           pin_setup_completed?: boolean | null
           preferred_auth_method?: string | null
           preferred_country_code?: string | null
