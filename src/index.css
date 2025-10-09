@@ -137,6 +137,13 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  html {
+    overscroll-behavior: contain;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Mobile-First Typography */
@@ -156,6 +163,14 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     @apply bg-background text-foreground;
     background-image: var(--gradient-mesh);
     background-attachment: fixed;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  input, textarea, select {
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
   }
 
   /* Mobile-First Smooth Transitions */
@@ -200,4 +215,21 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
   .mobile-button {
     @apply px-5 py-3 text-sm rounded-2xl;
   }
+}
+
+/* Mobile-specific touch optimizations */
+@media (max-width: 768px) {
+  button, a {
+    touch-action: manipulation;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+.safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
 }

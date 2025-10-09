@@ -159,8 +159,8 @@ const ChatEnhancedContent = () => {
         // Conversation View
         <>
           {/* Header */}
-          <div className="border-b bg-card p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-lg p-3 md:p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 size="icon"
@@ -168,21 +168,21 @@ const ChatEnhancedContent = () => {
                   setActiveConversationId(null);
                   setOtherUser(null);
                 }}
-                className="rounded-full"
+                className="rounded-full shrink-0 h-10 w-10"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
               
               {otherUser && (
                 <>
-                  <Avatar className="w-10 h-10">
+                  <Avatar className="w-9 h-9 md:w-10 md:h-10 shrink-0">
                     <AvatarImage src={otherUser.avatar_url} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
                       {otherUser.username?.[0]?.toUpperCase() || '?'}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold">{otherUser.username}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-base md:text-base truncate">{otherUser.username}</p>
                     <p className="text-xs text-muted-foreground">
                       {otherUser.is_online ? 'Online' : 'Offline'}
                     </p>
@@ -191,27 +191,27 @@ const ChatEnhancedContent = () => {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('voice')}
-                className="rounded-full"
+                className="rounded-full h-9 w-9 md:h-10 md:w-10"
               >
-                <Phone className="h-5 w-5" />
+                <Phone className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('video')}
-                className="rounded-full"
+                className="rounded-full h-9 w-9 md:h-10 md:w-10"
               >
-                <Video className="h-5 w-5" />
+                <Video className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full"
+                className="rounded-full h-9 w-9 md:h-10 md:w-10"
               >
                 <MoreVertical className="h-5 w-5" />
               </Button>

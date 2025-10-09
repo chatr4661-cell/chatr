@@ -81,10 +81,10 @@ export const EnhancedMessageInput = ({
         />
       )}
 
-      <div className="border-t bg-card">
+      <div className="border-t bg-card/80 backdrop-blur-lg safe-bottom">
         {replyTo && (
-          <div className="px-4 pt-3 pb-2 border-b bg-muted/30">
-            <div className="flex items-start justify-between gap-2">
+          <div className="px-3 md:px-4 pt-3 pb-2 border-b bg-muted/30">
+            <div className="flex items-start justify-between gap-2 touch-manipulation">
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-primary">Replying to {replyTo.sender}</p>
                 <p className="text-xs text-muted-foreground truncate">{replyTo.content}</p>
@@ -94,7 +94,7 @@ export const EnhancedMessageInput = ({
                   variant="ghost"
                   size="icon"
                   onClick={onCancelReply}
-                  className="h-6 w-6 rounded-full shrink-0"
+                  className="h-8 w-8 md:h-6 md:w-6 rounded-full shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -112,7 +112,7 @@ export const EnhancedMessageInput = ({
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Message..."
-                className="min-h-[36px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1.5 text-sm"
+                className="min-h-[40px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1.5 text-base"
                 disabled={disabled || sending}
                 rows={1}
               />
@@ -123,9 +123,9 @@ export const EnhancedMessageInput = ({
                 onClick={handleSend}
                 disabled={!message.trim() || sending || disabled}
                 size="icon"
-                className="rounded-full h-9 w-9 shrink-0"
+                className="rounded-full h-11 w-11 md:h-9 md:w-9 shrink-0 touch-manipulation"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5 md:w-4 md:h-4" />
               </Button>
             ) : (
               <>
@@ -133,7 +133,7 @@ export const EnhancedMessageInput = ({
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowAttachments(true)}
-                  className="rounded-full shrink-0 h-9 w-9"
+                  className="rounded-full shrink-0 h-11 w-11 md:h-9 md:w-9 touch-manipulation"
                   disabled={disabled}
                 >
                   <Plus className="w-5 h-5" />
@@ -142,7 +142,7 @@ export const EnhancedMessageInput = ({
                   variant="ghost"
                   size="icon"
                   onClick={handleVoiceRecord}
-                  className={`rounded-full shrink-0 h-9 w-9 ${isRecording ? 'bg-destructive text-destructive-foreground' : ''}`}
+                  className={`rounded-full shrink-0 h-11 w-11 md:h-9 md:w-9 touch-manipulation ${isRecording ? 'bg-destructive text-destructive-foreground' : ''}`}
                   disabled={disabled}
                 >
                   <Mic className="w-5 h-5" />

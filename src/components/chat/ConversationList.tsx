@@ -107,10 +107,13 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
             if (participants && participants.length > 0) {
               const { data: profile } = await supabase
                 .from('profiles')
-                .select('id, username, avatar_url, is_online, phone_number')
+                .select('id, username, avatar_url, is_online, phone_number, email')
                 .eq('id', participants[0].user_id)
                 .maybeSingle();
 
+              if (profile) {
+                console.log('👤 Profile loaded:', profile.username || profile.phone_number || profile.email);
+              }
               otherUser = profile;
             }
           }
@@ -182,7 +185,9 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
     <ScrollArea className="h-full">
       <div className="p-2 space-y-1">
         {conversations.map((conv) => {
-          const displayName = conv.is_group ? conv.group_name : (conv.other_user?.username || conv.other_user?.phone_number || 'Unknown');
+          const displayName = conv.is_group 
+            ? conv.group_name 
+            : (conv.other_user?.username || conv.other_user?.phone_number || (conv.other_user as any)?.email || 'User');
           const displayAvatar = conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url;
           const lastMessage = conv.last_message;
           const messagePreview = lastMessage?.content || 'No messages yet';
@@ -196,10 +201,10 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
             <div
               key={conv.id}
               onClick={() => onConversationSelect(conv.id, conv.other_user)}
-              className="group flex items-center gap-3 p-3 rounded-xl hover:bg-accent/50 cursor-pointer transition-all"
+              className="group flex items-center gap-3 p-3 md:p-3 rounded-xl hover:bg-accent/50 cursor-pointer transition-all active:bg-accent/70 touch-manipulation min-h-[72px]"
             >
               <div className="relative">
-                <Avatar className="w-14 h-14 border-2 border-primary/10">
+                <Avatar className="w-12 h-12 md:w-14 md:h-14 border-2 border-primary/10">
                   <AvatarImage src={displayAvatar} />
                   <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-lg font-semibold">
                     {displayName?.[0]?.toUpperCase() || '?'}

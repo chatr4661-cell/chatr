@@ -71,22 +71,22 @@ export const MessageBubble = ({
 
   return (
     <div
-      className={`flex gap-2 group ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+      className={`flex gap-1.5 md:gap-2 group ${isOwn ? 'flex-row-reverse' : 'flex-row'} px-2 md:px-0`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
       {showAvatar ? (
-        <Avatar className="w-9 h-9 mt-1 border-2 border-primary/20 shrink-0">
+        <Avatar className="w-7 h-7 md:w-9 md:h-9 mt-1 border-2 border-primary/20 shrink-0">
           <AvatarImage src={otherUser?.avatar_url} />
           <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary text-xs font-bold">
             {otherUser?.username?.[0]?.toUpperCase() || '?'}
           </AvatarFallback>
         </Avatar>
       ) : !isOwn ? (
-        <div className="w-9 shrink-0" />
+        <div className="w-7 md:w-9 shrink-0" />
       ) : null}
 
-      <div className={`flex flex-col gap-1 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div className={`flex flex-col gap-1 max-w-[85%] md:max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
         {message.media_url && (
           <img
             src={message.media_url}
@@ -98,13 +98,13 @@ export const MessageBubble = ({
         
         <div className="relative group/bubble">
           <div
-            className={`rounded-2xl px-4 py-2.5 shadow-sm backdrop-blur-sm transition-all ${
+            className={`rounded-2xl px-3 py-2 md:px-4 md:py-2.5 shadow-sm backdrop-blur-sm transition-all ${
               isOwn
                 ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground'
                 : 'bg-gradient-to-br from-muted to-muted/80 text-foreground border border-border/40'
             }`}
           >
-            <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+            <p className="text-[15px] md:text-sm whitespace-pre-wrap break-words leading-relaxed">
               {message.content}
               {message.is_edited && (
                 <span className="text-xs opacity-70 ml-2">(edited)</span>
