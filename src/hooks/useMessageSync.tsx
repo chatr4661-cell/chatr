@@ -52,7 +52,30 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          *
+          id,
+          content,
+          sender_id,
+          conversation_id,
+          created_at,
+          read_at,
+          message_type,
+          media_url,
+          status,
+          reactions,
+          is_edited,
+          edited_at,
+          is_deleted,
+          deleted_at,
+          is_starred,
+          duration,
+          file_name,
+          file_size,
+          location_name,
+          location_latitude,
+          location_longitude,
+          poll_question,
+          poll_options,
+          scheduled_for
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });

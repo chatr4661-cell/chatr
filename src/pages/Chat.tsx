@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ConversationList } from '@/components/chat/ConversationList';
 import { MessageThread } from '@/components/chat/MessageThread';
-import { MessageInput } from '@/components/chat/MessageInput';
+import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const ChatEnhancedContent = () => {
@@ -228,7 +228,7 @@ const ChatEnhancedContent = () => {
           </div>
 
           {/* Input */}
-          <MessageInput
+          <EnhancedMessageInput
             onSendMessage={handleSendMessage}
             disabled={isLoading}
           />
