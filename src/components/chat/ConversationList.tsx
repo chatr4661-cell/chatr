@@ -72,6 +72,8 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
     if (!userId) return;
 
     try {
+      setLoading(true);
+      
       const { data: participations } = await supabase
         .from('conversation_participants')
         .select(`
@@ -86,7 +88,11 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
         `)
         .eq('user_id', userId);
 
-      if (!participations) return;
+      if (!participations || participations.length === 0) {
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
 
       const conversationData = await Promise.all(
         participations.map(async (p: any) => {
@@ -113,13 +119,17 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
                 .from('profiles')
                 .select('id, username, avatar_url, is_online, phone_number, email')
                 .eq('id', participants[0].user_id)
-                .maybeSingle();
+                .single();
 
+              otherUser = profile || null;
+              
               if (profile) {
-                const displayName = profile.username || profile.phone_number || profile.email || 'User';
-                console.log('👤 Profile loaded:', displayName);
+                console.log('✅ Profile loaded:', {
+                  username: profile.username,
+                  phone: profile.phone_number,
+                  email: profile.email
+                });
               }
-              otherUser = profile;
             }
           }
 
@@ -137,10 +147,11 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
 
+      console.log('📋 Loaded conversations:', conversationData.length);
       setConversations(conversationData);
+      setLoading(false);
     } catch (error) {
-      console.error('Error loading conversations:', error);
-    } finally {
+      console.error('❌ Error loading conversations:', error);
       setLoading(false);
     }
   };
