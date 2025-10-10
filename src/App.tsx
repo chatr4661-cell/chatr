@@ -108,8 +108,8 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <BrowserRouter>
-          <NetworkStatus />
           <AppLayout user={user} profile={profile}>
+            <NetworkStatus />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -156,8 +156,8 @@ const App = () => {
               <Route path="/download" element={<Download />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <Toaster />
           </AppLayout>
-          <Toaster />
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
