@@ -47,7 +47,7 @@ export const EnhancedMessageInput = ({
       
       // Play send sound
       if (!sendAudioRef.current) {
-        sendAudioRef.current = new Audio('/notification.mp3');
+        sendAudioRef.current = new Audio('/ringtones/message-notify.mp3');
       }
       sendAudioRef.current.play().catch(e => console.log('Could not play send sound:', e));
     } catch (error) {

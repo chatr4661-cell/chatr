@@ -283,7 +283,7 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
               
               // Play receive sound and show notification
               if (!receiveAudioRef.current) {
-                receiveAudioRef.current = new Audio('/notification.mp3');
+                receiveAudioRef.current = new Audio('/ringtones/trap-text.mp3');
               }
               receiveAudioRef.current.play().catch(e => console.log('Could not play receive sound:', e));
               
