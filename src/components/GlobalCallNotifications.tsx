@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, X } from 'lucide-react';
+import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, X, SwitchCamera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendSignal, subscribeToCallSignals } from '@/utils/webrtcSignaling';
 
@@ -18,6 +18,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
   const [callType, setCallType] = useState<'voice' | 'video'>('voice');
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -376,6 +377,49 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
     }
   };
 
+  // Switch camera (front/back)
+  const switchCamera = async () => {
+    if (!localStreamRef.current || callType !== 'video') return;
+    
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: { exact: newFacingMode } }
+      });
+
+      const videoTrack = newStream.getVideoTracks()[0];
+      const sender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
+      
+      if (sender) {
+        await sender.replaceTrack(videoTrack);
+      }
+
+      // Stop old video track
+      localStreamRef.current.getVideoTracks()[0].stop();
+      
+      // Update local stream
+      localStreamRef.current = newStream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = newStream;
+      }
+      
+      setFacingMode(newFacingMode);
+      
+      toast({
+        title: `Switched to ${newFacingMode === 'user' ? 'front' : 'back'} camera`,
+      });
+    } catch (error) {
+      console.error('Error switching camera:', error);
+      toast({
+        title: 'Camera switch failed',
+        description: 'Unable to switch camera',
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Toggle between video and voice
   const toggleCallType = async () => {
     if (!localStreamRef.current || !peerConnectionRef.current) return;
@@ -387,7 +431,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         // Enable video - get video stream
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-          video: true
+          video: { facingMode }
         });
         
         // Replace tracks
@@ -655,6 +699,18 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
               >
                 {isVideoOff ? <VideoOff className="h-6 w-6" /> : <Video className="h-6 w-6" />}
               </Button>
+
+              {callType === 'video' && (
+                <Button
+                  onClick={switchCamera}
+                  variant="secondary"
+                  size="lg"
+                  className="rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform"
+                  title="Switch camera"
+                >
+                  <SwitchCamera className="h-6 w-6" />
+                </Button>
+              )}
 
               <Button
                 onClick={toggleCallType}
