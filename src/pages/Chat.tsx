@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ConversationList } from '@/components/chat/ConversationList';
+import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
 import { MessageThread } from '@/components/chat/MessageThread';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
+import { useOptimisticMessages } from '@/hooks/useOptimisticMessages';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
 import { PulseCreator } from '@/components/chat/PulseCreator';
@@ -27,11 +28,12 @@ const ChatEnhancedContent = () => {
   const [showPulseCreator, setShowPulseCreator] = useState(false);
   const [contacts, setContacts] = useState<any[]>([]);
   
-  // Only sync messages if we have both a conversation and a valid user ID
-  const { messages, isLoading, sendMessage, markAsRead } = useMessageSync(
-    activeConversationId, 
-    user?.id || undefined
+  // Optimistic message handling for instant UI
+  const { messages, sendMessage: sendOptimistic, loadMessages } = useOptimisticMessages(
+    activeConversationId,
+    user?.id || ''
   );
+  const [isLoading, setIsLoading] = useState(false);
   
   // Enable push notifications only if user ID exists
   usePushNotifications(user?.id || undefined);
@@ -171,13 +173,16 @@ const ChatEnhancedContent = () => {
 
   const handleSendMessage = async (content: string) => {
     if (!activeConversationId) return;
-
-    await sendMessage({
-      conversation_id: activeConversationId,
-      content,
-      message_type: 'text'
-    });
+    // Instant optimistic update
+    await sendOptimistic(content);
   };
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (activeConversationId) {
+      loadMessages(50, 0);
+    }
+  }, [activeConversationId, loadMessages]);
 
   const handleStartCall = async (callType: 'voice' | 'video') => {
     if (!activeConversationId || !otherUser) {
@@ -408,7 +413,7 @@ const ChatEnhancedContent = () => {
 
           {/* Conversations */}
           <div className="flex-1 overflow-hidden">
-            <ConversationList
+            <VirtualizedConversationList
               userId={user.id}
               onConversationSelect={handleConversationSelect}
             />
