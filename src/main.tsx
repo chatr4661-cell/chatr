@@ -1,9 +1,9 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Vite cache clear - 2025-10-10T09:40:30
+// Vite cache clear - 2025-10-10T09:45:00
 
 const rootElement = document.getElementById("root");
 
@@ -11,10 +11,10 @@ if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
+createRoot(rootElement).render(
+  <StrictMode>
     <App />
-  </React.StrictMode>
+  </StrictMode>
 );
 
 // PWA setup - delayed to ensure React is fully initialized
