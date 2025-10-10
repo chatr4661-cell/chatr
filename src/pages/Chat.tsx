@@ -6,13 +6,15 @@ import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
 import { useMessageSync } from '@/hooks/useMessageSync';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ConversationList } from '@/components/chat/ConversationList';
 import { MessageThread } from '@/components/chat/MessageThread';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ClusterCreator } from '@/components/chat/ClusterCreator';
+import { PulseCreator } from '@/components/chat/PulseCreator';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -21,6 +23,9 @@ const ChatEnhancedContent = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showClusterCreator, setShowClusterCreator] = useState(false);
+  const [showPulseCreator, setShowPulseCreator] = useState(false);
+  const [contacts, setContacts] = useState<any[]>([]);
   
   // Only sync messages if we have both a conversation and a valid user ID
   const { messages, isLoading, sendMessage, markAsRead } = useMessageSync(
@@ -36,6 +41,51 @@ const ChatEnhancedContent = () => {
     setActiveConversationId(null);
     setOtherUser(null);
   }, []);
+
+  // Load contacts for cluster/pulse
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const loadContacts = async () => {
+      try {
+        const { data } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_registered', true);
+
+        if (data) {
+          // Get profile details for each contact
+          const contactProfiles = await Promise.all(
+            data.map(async (contact) => {
+              if (!contact.contact_user_id) return null;
+              
+              const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username, avatar_url, phone_number')
+                .eq('id', contact.contact_user_id);
+
+              const profile = profiles?.[0];
+              if (!profile) return null;
+
+              return {
+                id: profile.id,
+                username: profile.username || contact.contact_name,
+                avatar_url: profile.avatar_url,
+                phone_number: profile.phone_number || contact.contact_phone
+              };
+            })
+          );
+
+          setContacts(contactProfiles.filter(c => c !== null));
+        }
+      } catch (error) {
+        console.error('Error loading contacts:', error);
+      }
+    };
+
+    loadContacts();
+  }, [user?.id]);
 
   // Check authentication and verify user data
   useEffect(() => {
@@ -70,6 +120,20 @@ const ChatEnhancedContent = () => {
     try {
       const contactUserId = contact.contact_user_id || contact.id;
       
+      // First, ensure they're in our contacts
+      await supabase
+        .from('contacts')
+        .upsert({
+          user_id: user!.id,
+          contact_name: contact.contact_name || contact.username,
+          contact_phone: contact.email || contact.phone_number || '',
+          contact_user_id: contactUserId,
+          is_registered: true
+        }, {
+          onConflict: 'user_id,contact_phone'
+        });
+
+      // Call the create_direct_conversation function
       const { data, error } = await supabase.rpc('create_direct_conversation', {
         other_user_id: contactUserId
       });
@@ -258,6 +322,24 @@ const ChatEnhancedContent = () => {
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={() => setShowClusterCreator(true)}
+                  className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary"
+                  title="Create Cluster"
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowPulseCreator(true)}
+                  className="rounded-full h-9 w-9 hover:bg-amber-500/10 hover:text-amber-600"
+                  title="Send Pulse"
+                >
+                  <Radio className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => navigate('/profile')}
                   className="rounded-full h-9 w-9"
                   title="Profile"
@@ -281,6 +363,14 @@ const ChatEnhancedContent = () => {
                   title="Search Users"
                 >
                   <Search className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full h-9 w-9"
+                  title="Blocked Contacts"
+                >
+                  <UserX className="h-5 w-5" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -321,6 +411,29 @@ const ChatEnhancedContent = () => {
           </div>
         </>
       )}
+
+      {/* Cluster Creator Dialog */}
+      <ClusterCreator
+        open={showClusterCreator}
+        onOpenChange={setShowClusterCreator}
+        contacts={contacts}
+        userId={user.id}
+        onClusterCreated={(clusterId) => {
+          setActiveConversationId(clusterId);
+          setShowClusterCreator(false);
+        }}
+      />
+
+      {/* Pulse Creator Dialog */}
+      <PulseCreator
+        open={showPulseCreator}
+        onOpenChange={setShowPulseCreator}
+        contacts={contacts}
+        userId={user.id}
+        onPulseSent={() => {
+          setShowPulseCreator(false);
+        }}
+      />
     </div>
   );
 };
