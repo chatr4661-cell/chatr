@@ -3,9 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
-import { Toaster } from "@/components/ui/toaster";
 import { AppLayout } from "@/components/AppLayout";
-import { NetworkStatus } from "@/components/NetworkStatus";
 import { useErrorReporting } from "@/hooks/useErrorReporting";
 import Index from "./pages/Index";
 import QRPayment from "./pages/QRPayment";
@@ -109,7 +107,6 @@ const App = () => {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <BrowserRouter>
           <AppLayout user={user} profile={profile}>
-            <NetworkStatus />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -156,7 +153,6 @@ const App = () => {
               <Route path="/download" element={<Download />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <Toaster />
           </AppLayout>
         </BrowserRouter>
       </ThemeProvider>
