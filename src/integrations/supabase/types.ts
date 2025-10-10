@@ -181,6 +181,44 @@ export type Database = {
           },
         ]
       }
+      backup_history: {
+        Row: {
+          backup_key: string
+          created_at: string | null
+          id: string
+          includes_media: boolean | null
+          message_count: number | null
+          size_bytes: number | null
+          user_id: string
+        }
+        Insert: {
+          backup_key: string
+          created_at?: string | null
+          id?: string
+          includes_media?: boolean | null
+          message_count?: number | null
+          size_bytes?: number | null
+          user_id: string
+        }
+        Update: {
+          backup_key?: string
+          created_at?: string | null
+          id?: string
+          includes_media?: boolean | null
+          message_count?: number | null
+          size_bytes?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blocked_contacts: {
         Row: {
           blocked_at: string | null
@@ -245,6 +283,130 @@ export type Database = {
             columns: ["broadcast_id"]
             isOneToOne: false
             referencedRelation: "broadcast_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      business_offerings: {
+        Row: {
+          available: boolean | null
+          business_id: string
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price: number | null
+        }
+        Insert: {
+          available?: boolean | null
+          business_id: string
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price?: number | null
+        }
+        Update: {
+          available?: boolean | null
+          business_id?: string
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_offerings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_profiles: {
+        Row: {
+          business_hours: Json | null
+          business_name: string
+          business_type: string
+          contact_info: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          location: Json | null
+          logo_url: string | null
+          updated_at: string | null
+          user_id: string
+          verification_date: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          business_hours?: Json | null
+          business_name: string
+          business_type: string
+          contact_info?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: Json | null
+          logo_url?: string | null
+          updated_at?: string | null
+          user_id: string
+          verification_date?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          business_hours?: Json | null
+          business_name?: string
+          business_type?: string
+          contact_info?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: Json | null
+          logo_url?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verification_date?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2216,6 +2378,9 @@ export type Database = {
       profiles: {
         Row: {
           age: number | null
+          auto_backup_enabled: boolean | null
+          auto_backup_frequency: string | null
+          auto_translate_enabled: boolean | null
           avatar_url: string | null
           call_ringtone: string | null
           contacts_synced: boolean | null
@@ -2228,6 +2393,7 @@ export type Database = {
           id: string
           is_online: boolean | null
           is_phone_verified: boolean | null
+          last_backup_at: string | null
           last_contact_sync: string | null
           last_seen: string | null
           lifestyle: Json | null
@@ -2253,6 +2419,9 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          auto_backup_enabled?: boolean | null
+          auto_backup_frequency?: string | null
+          auto_translate_enabled?: boolean | null
           avatar_url?: string | null
           call_ringtone?: string | null
           contacts_synced?: boolean | null
@@ -2265,6 +2434,7 @@ export type Database = {
           id: string
           is_online?: boolean | null
           is_phone_verified?: boolean | null
+          last_backup_at?: string | null
           last_contact_sync?: string | null
           last_seen?: string | null
           lifestyle?: Json | null
@@ -2290,6 +2460,9 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          auto_backup_enabled?: boolean | null
+          auto_backup_frequency?: string | null
+          auto_translate_enabled?: boolean | null
           avatar_url?: string | null
           call_ringtone?: string | null
           contacts_synced?: boolean | null
@@ -2302,6 +2475,7 @@ export type Database = {
           id?: string
           is_online?: boolean | null
           is_phone_verified?: boolean | null
+          last_backup_at?: string | null
           last_contact_sync?: string | null
           last_seen?: string | null
           lifestyle?: Json | null
@@ -3287,6 +3461,10 @@ export type Database = {
         Returns: undefined
       }
       backfill_phone_hashes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_disappearing_messages: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
