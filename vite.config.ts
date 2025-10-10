@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// FIX: Force single React instance - multiple React copies detected
+// CRITICAL FIX: Prevent React from being split into multiple chunks
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -27,16 +27,20 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // CRITICAL: Force single React instance by aliasing to node_modules
-      'react': path.resolve(__dirname, './node_modules/react'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+      // CRITICAL: Force single React instance
+      'react': path.resolve(__dirname, './node_modules/react/index.js'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom/index.js'),
+      'react/jsx-runtime': path.resolve(__dirname, './node_modules/react/jsx-runtime.js'),
     },
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
   },
   build: {
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks: {
+          // Force React into a single vendor chunk
+          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
+        },
       },
     },
     commonjsOptions: {
@@ -44,5 +48,4 @@ export default defineConfig(({ mode }) => ({
       transformMixedEsModules: true,
     },
   },
-  // Use default .vite cache with forced rebuild
 }));
