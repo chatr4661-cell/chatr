@@ -454,6 +454,57 @@ export type Database = {
         }
         Relationships: []
       }
+      content_flags: {
+        Row: {
+          content_id: string
+          content_type: string
+          created_at: string | null
+          flagged_by: string
+          id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          created_at?: string | null
+          flagged_by: string
+          id?: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          created_at?: string | null
+          flagged_by?: string
+          id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_flags_flagged_by_fkey"
+            columns: ["flagged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_flags_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_notes: {
         Row: {
           content: string | null
@@ -594,8 +645,10 @@ export type Database = {
           last_active: string | null
           pin_hash: string | null
           qr_token: string | null
+          qr_token_hash: string | null
           quick_login_enabled: boolean | null
           session_token: string
+          session_token_hash: string | null
           user_agent: string | null
           user_id: string
         }
@@ -612,8 +665,10 @@ export type Database = {
           last_active?: string | null
           pin_hash?: string | null
           qr_token?: string | null
+          qr_token_hash?: string | null
           quick_login_enabled?: boolean | null
           session_token: string
+          session_token_hash?: string | null
           user_agent?: string | null
           user_id: string
         }
@@ -630,8 +685,10 @@ export type Database = {
           last_active?: string | null
           pin_hash?: string | null
           qr_token?: string | null
+          qr_token_hash?: string | null
           quick_login_enabled?: boolean | null
           session_token?: string
+          session_token_hash?: string | null
           user_agent?: string | null
           user_id?: string
         }
@@ -709,6 +766,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      encryption_keys: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          expires_at: string | null
+          id: string
+          public_key: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          expires_at?: string | null
+          id?: string
+          public_key: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          expires_at?: string | null
+          id?: string
+          public_key?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encryption_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       health_goals: {
         Row: {
@@ -913,8 +1008,10 @@ export type Database = {
           id: string
           notes: string | null
           report_name: string
+          requires_signed_url: boolean | null
           test_date: string | null
           updated_at: string | null
+          url_expires_at: string | null
           user_id: string
         }
         Insert: {
@@ -925,8 +1022,10 @@ export type Database = {
           id?: string
           notes?: string | null
           report_name: string
+          requires_signed_url?: boolean | null
           test_date?: string | null
           updated_at?: string | null
+          url_expires_at?: string | null
           user_id: string
         }
         Update: {
@@ -937,8 +1036,10 @@ export type Database = {
           id?: string
           notes?: string | null
           report_name?: string
+          requires_signed_url?: boolean | null
           test_date?: string | null
           updated_at?: string | null
+          url_expires_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -980,6 +1081,57 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      medical_access_audit: {
+        Row: {
+          access_type: string
+          accessed_at: string | null
+          id: string
+          ip_address: string | null
+          patient_id: string
+          provider_id: string
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+        }
+        Insert: {
+          access_type: string
+          accessed_at?: string | null
+          id?: string
+          ip_address?: string | null
+          patient_id: string
+          provider_id: string
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+        }
+        Update: {
+          access_type?: string
+          accessed_at?: string | null
+          id?: string
+          ip_address?: string | null
+          patient_id?: string
+          provider_id?: string
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_access_audit_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_access_audit_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       medication_reminders: {
         Row: {
@@ -1178,12 +1330,14 @@ export type Database = {
           deleted_at: string | null
           duration: number | null
           edited_at: string | null
+          encryption_key_id: string | null
           file_name: string | null
           file_size: number | null
           forwarded_from_id: string | null
           id: string
           is_deleted: boolean | null
           is_edited: boolean | null
+          is_encrypted: boolean | null
           is_starred: boolean | null
           location_latitude: number | null
           location_longitude: number | null
@@ -1206,12 +1360,14 @@ export type Database = {
           deleted_at?: string | null
           duration?: number | null
           edited_at?: string | null
+          encryption_key_id?: string | null
           file_name?: string | null
           file_size?: number | null
           forwarded_from_id?: string | null
           id?: string
           is_deleted?: boolean | null
           is_edited?: boolean | null
+          is_encrypted?: boolean | null
           is_starred?: boolean | null
           location_latitude?: number | null
           location_longitude?: number | null
@@ -1234,12 +1390,14 @@ export type Database = {
           deleted_at?: string | null
           duration?: number | null
           edited_at?: string | null
+          encryption_key_id?: string | null
           file_name?: string | null
           file_size?: number | null
           forwarded_from_id?: string | null
           id?: string
           is_deleted?: boolean | null
           is_edited?: boolean | null
+          is_encrypted?: boolean | null
           is_starred?: boolean | null
           location_latitude?: number | null
           location_longitude?: number | null
@@ -1824,7 +1982,9 @@ export type Database = {
           prescribed_date: string
           prescription_file_url: string | null
           provider_id: string | null
+          requires_signed_url: boolean | null
           status: string | null
+          url_expires_at: string | null
           user_id: string
         }
         Insert: {
@@ -1838,7 +1998,9 @@ export type Database = {
           prescribed_date?: string
           prescription_file_url?: string | null
           provider_id?: string | null
+          requires_signed_url?: boolean | null
           status?: string | null
+          url_expires_at?: string | null
           user_id: string
         }
         Update: {
@@ -1852,7 +2014,9 @@ export type Database = {
           prescribed_date?: string
           prescription_file_url?: string | null
           provider_id?: string | null
+          requires_signed_url?: boolean | null
           status?: string | null
+          url_expires_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -2100,6 +2264,36 @@ export type Database = {
           receiver_id?: string
           status?: string | null
           transaction_type?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          action_type: string
+          attempt_count: number | null
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          identifier: string
+          window_start: string | null
+        }
+        Insert: {
+          action_type: string
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier: string
+          window_start?: string | null
+        }
+        Update: {
+          action_type?: string
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          window_start?: string | null
         }
         Relationships: []
       }
@@ -2388,6 +2582,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      two_factor_auth: {
+        Row: {
+          backup_codes_encrypted: string[] | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          last_used_at: string | null
+          secret_key_encrypted: string
+          user_id: string
+        }
+        Insert: {
+          backup_codes_encrypted?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_used_at?: string | null
+          secret_key_encrypted: string
+          user_id: string
+        }
+        Update: {
+          backup_codes_encrypted?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_used_at?: string | null
+          secret_key_encrypted?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "two_factor_auth_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       typing_indicators: {
         Row: {
@@ -2683,6 +2915,8 @@ export type Database = {
           dose_number: number
           id: string
           next_dose_date: string | null
+          requires_signed_url: boolean | null
+          url_expires_at: string | null
           user_id: string
           vaccine_name: string
         }
@@ -2695,6 +2929,8 @@ export type Database = {
           dose_number?: number
           id?: string
           next_dose_date?: string | null
+          requires_signed_url?: boolean | null
+          url_expires_at?: string | null
           user_id: string
           vaccine_name: string
         }
@@ -2707,6 +2943,8 @@ export type Database = {
           dose_number?: number
           id?: string
           next_dose_date?: string | null
+          requires_signed_url?: boolean | null
+          url_expires_at?: string | null
           user_id?: string
           vaccine_name?: string
         }
