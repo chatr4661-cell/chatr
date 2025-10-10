@@ -1,9 +1,10 @@
+import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import "./index.css";
 
-// Force rebuild - React context fix 2025-10-10T01:51:00
+// Force rebuild - React import fix 2025-10-10T01:53:00
 
 const rootElement = document.getElementById("root");
 
@@ -13,9 +14,11 @@ if (!rootElement) {
 
 const root = createRoot(rootElement);
 root.render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
+  <React.StrictMode>
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  </React.StrictMode>
 );
 
 // PWA setup - delayed to ensure React is fully initialized
