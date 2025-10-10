@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// NUCLEAR FIX: Complete cache purge - 2025-10-10T11:15:30Z
+// FIXED: Single React instance enforced via vite.config.ts aliases
 
 const rootElement = document.getElementById("root");
 

@@ -3,14 +3,11 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// NUCLEAR: Complete cache invalidation - 2025-10-10T11:15:30Z
+// FIX: Force single React instance - multiple React copies detected
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    hmr: {
-      overlay: true,
-    },
   },
   plugins: [
     react(),
@@ -22,7 +19,6 @@ export default defineConfig(({ mode }) => ({
       'react-dom',
       'react/jsx-runtime',
     ],
-    exclude: ['chunk-QJTFJ6OV', 'chunk-GKJBSOWT'], // Force rebuild of problematic chunks
     esbuildOptions: {
       target: 'esnext',
     },
@@ -31,6 +27,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // CRITICAL: Force single React instance by aliasing to node_modules
+      'react': path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
     dedupe: ['react', 'react-dom'],
   },
@@ -45,5 +44,5 @@ export default defineConfig(({ mode }) => ({
       transformMixedEsModules: true,
     },
   },
-  cacheDir: '.vite-nuclear-cache', // Completely new cache directory
+  cacheDir: '.vite-fixed-react', // New cache for React fix
 }));
