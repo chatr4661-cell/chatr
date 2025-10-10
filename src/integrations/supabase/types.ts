@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_moments: {
+        Row: {
+          conversation_snippet: string
+          created_at: string | null
+          emotion_captured: string | null
+          id: string
+          is_public: boolean | null
+          like_count: number | null
+          share_count: number | null
+          user_id: string
+        }
+        Insert: {
+          conversation_snippet: string
+          created_at?: string | null
+          emotion_captured?: string | null
+          id?: string
+          is_public?: boolean | null
+          like_count?: number | null
+          share_count?: number | null
+          user_id: string
+        }
+        Update: {
+          conversation_snippet?: string
+          created_at?: string | null
+          emotion_captured?: string | null
+          id?: string
+          is_public?: boolean | null
+          like_count?: number | null
+          share_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       analytics_data: {
         Row: {
           active_providers: number | null
@@ -938,6 +971,36 @@ export type Database = {
         }
         Relationships: []
       }
+      emotion_circles: {
+        Row: {
+          active_until: string | null
+          created_at: string | null
+          current_emotion: string
+          id: string
+          intensity: number | null
+          looking_for_connection: boolean | null
+          user_id: string
+        }
+        Insert: {
+          active_until?: string | null
+          created_at?: string | null
+          current_emotion: string
+          id?: string
+          intensity?: number | null
+          looking_for_connection?: boolean | null
+          user_id: string
+        }
+        Update: {
+          active_until?: string | null
+          created_at?: string | null
+          current_emotion?: string
+          id?: string
+          intensity?: number | null
+          looking_for_connection?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       encryption_keys: {
         Row: {
           created_at: string | null
@@ -1266,6 +1329,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      live_rooms: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          ended_at: string | null
+          host_id: string
+          id: string
+          is_active: boolean | null
+          is_public: boolean | null
+          max_participants: number | null
+          participant_count: number | null
+          room_type: string | null
+          title: string
+          topic: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          ended_at?: string | null
+          host_id: string
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          max_participants?: number | null
+          participant_count?: number | null
+          room_type?: string | null
+          title: string
+          topic?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          ended_at?: string | null
+          host_id?: string
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          max_participants?: number | null
+          participant_count?: number | null
+          room_type?: string | null
+          title?: string
+          topic?: string | null
+        }
+        Relationships: []
       }
       login_attempts: {
         Row: {
@@ -1738,6 +1846,38 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_shares: {
+        Row: {
+          created_at: string | null
+          id: string
+          moment_id: string
+          shared_by: string
+          shared_to_platform: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          moment_id: string
+          shared_by: string
+          shared_to_platform?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          moment_id?: string
+          shared_by?: string
+          shared_to_platform?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_shares_moment_id_fkey"
+            columns: ["moment_id"]
+            isOneToOne: false
+            referencedRelation: "ai_moments"
             referencedColumns: ["id"]
           },
         ]
@@ -2681,6 +2821,41 @@ export type Database = {
         }
         Relationships: []
       }
+      room_participants: {
+        Row: {
+          id: string
+          is_speaking: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_speaking?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_speaking?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "live_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_providers: {
         Row: {
           address: string | null
@@ -3475,6 +3650,16 @@ export type Database = {
       create_mutual_contact: {
         Args: { user1_email: string; user2_email: string }
         Returns: undefined
+      }
+      find_emotion_matches: {
+        Args: { p_emotion: string; p_user_id: string }
+        Returns: {
+          avatar_url: string
+          emotion: string
+          intensity: number
+          match_user_id: string
+          username: string
+        }[]
       }
       find_shared_conversation: {
         Args: { user1_id: string; user2_id: string }

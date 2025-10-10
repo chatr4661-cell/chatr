@@ -5,7 +5,9 @@ import { NetworkStatus } from '@/components/NetworkStatus';
 import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
@@ -15,6 +17,12 @@ import { useOptimizedMessages } from '@/hooks/useOptimizedMessages';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
 import { PulseCreator } from '@/components/chat/PulseCreator';
+import { VoiceInterface } from '@/components/voice/VoiceInterface';
+import { EmotionCircleMatch } from '@/components/EmotionCircleMatch';
+import { LiveRooms } from '@/components/LiveRooms';
+import { AIMoments } from '@/components/AIMoments';
+import { useMoodTracking } from '@/hooks/useMoodTracking';
+import { useStreakTracking } from '@/hooks/useStreakTracking';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -25,7 +33,9 @@ const ChatEnhancedContent = () => {
   const [loading, setLoading] = useState(true);
   const [showClusterCreator, setShowClusterCreator] = useState(false);
   const [showPulseCreator, setShowPulseCreator] = useState(false);
+  const [showAIFeatures, setShowAIFeatures] = useState(false);
   const [contacts, setContacts] = useState<any[]>([]);
+  const { streak } = useStreakTracking('ai_chat');
   
   // Optimized message handling with batching and pagination
   const { messages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
@@ -447,6 +457,9 @@ const ChatEnhancedContent = () => {
           setShowPulseCreator(false);
         }}
       />
+      
+      {/* Voice AI Interface - Always available */}
+      <VoiceInterface />
     </div>
   );
 };

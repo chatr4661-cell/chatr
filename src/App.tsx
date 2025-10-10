@@ -31,7 +31,6 @@ import ChatrPoints from "./pages/ChatrPoints";
 import QRPayment from "./pages/QRPayment";
 import QRLogin from "./pages/QRLogin";
 import AIAssistant from "./pages/AIAssistant";
-import AIFriend from "./pages/AIFriend";
 import Account from "./pages/Account";
 import Privacy from "./pages/Privacy";
 import NotificationSettings from "./pages/NotificationSettings";
@@ -116,7 +115,6 @@ const App = () => {
             
             {/* AI & Settings Routes */}
             <Route path="/ai-assistant" element={<AIAssistant />} />
-            <Route path="/ai-friend" element={<AIFriend />} />
             <Route path="/account" element={<Account />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
