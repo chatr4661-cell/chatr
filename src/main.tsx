@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Force Vite rebuild - 2025-10-10T11:00:00Z
+// Force Vite rebuild - React dispatcher fix 2025-10-10T11:05:00Z
 
 const rootElement = document.getElementById("root");
 
