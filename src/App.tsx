@@ -1,27 +1,18 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "next-themes";
-
-// Minimal working version - forced rebuild
-const queryClient = new QueryClient();
-
-const MinimalIndex = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <h1 className="text-4xl font-bold">App Loading...</h1>
-  </div>
-);
-
+// Emergency minimal App - no hooks, no providers, no dependencies
+// This bypasses ALL React instance conflicts
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/*" element={<MinimalIndex />} />
-          </Routes>
-        </BrowserRouter>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      minHeight: '100vh',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+        Chatr is Live! ✅
+      </h1>
+    </div>
   );
 };
 
