@@ -1,9 +1,9 @@
-import React, { StrictMode } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Force Vite rebuild - React dispatcher fix 2025-10-10T11:05:00Z
+// CRITICAL FIX: Force complete Vite rebuild - React imports fixed 2025-10-10T11:10:00Z
 
 const rootElement = document.getElementById("root");
 
