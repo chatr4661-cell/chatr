@@ -64,8 +64,8 @@ const App = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   
-  // Enable global error reporting
-  useErrorReporting();
+  // TEMPORARY: Disabled error reporting to fix React instance bug
+  // useErrorReporting();
 
   useEffect(() => {
     // Get current user
