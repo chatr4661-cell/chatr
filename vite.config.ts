@@ -3,11 +3,14 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// CRITICAL: Force complete Vite cache clear - 2025-10-10T11:12:00Z
+// NUCLEAR: Complete cache invalidation - 2025-10-10T11:15:30Z
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: {
+      overlay: true,
+    },
   },
   plugins: [
     react(),
@@ -19,10 +22,11 @@ export default defineConfig(({ mode }) => ({
       'react-dom',
       'react/jsx-runtime',
     ],
+    exclude: ['chunk-QJTFJ6OV', 'chunk-GKJBSOWT'], // Force rebuild of problematic chunks
     esbuildOptions: {
       target: 'esnext',
     },
-    force: true, // CRITICAL: Force dependency re-bundling
+    force: true,
   },
   resolve: {
     alias: {
@@ -33,7 +37,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: undefined, // Disable chunk splitting to force rebuild
+        manualChunks: undefined,
       },
     },
     commonjsOptions: {
@@ -41,5 +45,5 @@ export default defineConfig(({ mode }) => ({
       transformMixedEsModules: true,
     },
   },
-  cacheDir: '.vite-cache-v2', // NEW cache directory to force fresh build
+  cacheDir: '.vite-nuclear-cache', // Completely new cache directory
 }));

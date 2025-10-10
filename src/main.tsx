@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// CRITICAL FIX: Force complete Vite rebuild - React imports fixed 2025-10-10T11:10:00Z
+// NUCLEAR FIX: Complete cache purge - 2025-10-10T11:15:30Z
 
 const rootElement = document.getElementById("root");
 
