@@ -5,6 +5,8 @@ import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/toaster";
 import { AppLayout } from "@/components/AppLayout";
+import { NetworkStatus } from "@/components/NetworkStatus";
+import { useErrorReporting } from "@/hooks/useErrorReporting";
 import Index from "./pages/Index";
 import QRPayment from "./pages/QRPayment";
 import Auth from "./pages/Auth";
@@ -50,11 +52,22 @@ import Notifications from "./pages/Notifications";
 import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  
+  // Enable global error reporting
+  useErrorReporting();
 
   useEffect(() => {
     // Get current user
@@ -95,6 +108,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <BrowserRouter>
+          <NetworkStatus />
           <AppLayout user={user} profile={profile}>
             <Routes>
               <Route path="/" element={<Index />} />

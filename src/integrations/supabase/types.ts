@@ -325,12 +325,15 @@ export type Database = {
           missed: boolean | null
           packet_loss_percentage: number | null
           participants: Json | null
+          quality_metrics: Json | null
           quality_rating: number | null
           receiver_id: string | null
           receiver_name: string | null
           receiver_signal: Json | null
+          reconnection_count: number | null
           started_at: string | null
           status: string | null
+          total_participants: number | null
         }
         Insert: {
           average_bitrate?: number | null
@@ -349,12 +352,15 @@ export type Database = {
           missed?: boolean | null
           packet_loss_percentage?: number | null
           participants?: Json | null
+          quality_metrics?: Json | null
           quality_rating?: number | null
           receiver_id?: string | null
           receiver_name?: string | null
           receiver_signal?: Json | null
+          reconnection_count?: number | null
           started_at?: string | null
           status?: string | null
+          total_participants?: number | null
         }
         Update: {
           average_bitrate?: number | null
@@ -373,12 +379,15 @@ export type Database = {
           missed?: boolean | null
           packet_loss_percentage?: number | null
           participants?: Json | null
+          quality_metrics?: Json | null
           quality_rating?: number | null
           receiver_id?: string | null
           receiver_name?: string | null
           receiver_signal?: Json | null
+          reconnection_count?: number | null
           started_at?: string | null
           status?: string | null
+          total_participants?: number | null
         }
         Relationships: [
           {
@@ -805,6 +814,50 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          component: string | null
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          stack: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          component?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          component?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_goals: {
         Row: {
           created_at: string
@@ -1186,6 +1239,51 @@ export type Database = {
           },
         ]
       }
+      message_delivery_status: {
+        Row: {
+          created_at: string | null
+          delivered_at: string | null
+          id: string
+          message_id: string
+          read_at: string | null
+          recipient_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivered_at?: string | null
+          id?: string
+          message_id: string
+          read_at?: string | null
+          recipient_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          delivered_at?: string | null
+          id?: string
+          message_id?: string
+          read_at?: string | null
+          recipient_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_delivery_status_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_delivery_status_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_forwards: {
         Row: {
           created_at: string | null
@@ -1286,6 +1384,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      message_retry_log: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          last_retry_at: string | null
+          message_id: string
+          retry_count: number | null
+          succeeded: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_retry_at?: string | null
+          message_id: string
+          retry_count?: number | null
+          succeeded?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_retry_at?: string | null
+          message_id?: string
+          retry_count?: number | null
+          succeeded?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_retry_log_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       message_translations: {
         Row: {
@@ -1438,6 +1574,47 @@ export type Database = {
           {
             foreignKeyName: "messages_sender_id_fkey"
             columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      network_diagnostics: {
+        Row: {
+          connection_type: string | null
+          created_at: string | null
+          diagnostics_data: Json | null
+          downlink_speed: number | null
+          id: string
+          latency: number | null
+          uplink_speed: number | null
+          user_id: string
+        }
+        Insert: {
+          connection_type?: string | null
+          created_at?: string | null
+          diagnostics_data?: Json | null
+          downlink_speed?: number | null
+          id?: string
+          latency?: number | null
+          uplink_speed?: number | null
+          user_id: string
+        }
+        Update: {
+          connection_type?: string | null
+          created_at?: string | null
+          diagnostics_data?: Json | null
+          downlink_speed?: number | null
+          id?: string
+          latency?: number | null
+          uplink_speed?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_diagnostics_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
