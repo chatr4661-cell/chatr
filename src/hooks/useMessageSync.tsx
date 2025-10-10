@@ -37,6 +37,31 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
   const channelRef = useRef<any>(null);
   const receiveAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Initialize audio on mount
+  useEffect(() => {
+    const audio = new Audio('/ringtones/trap-text.mp3');
+    audio.preload = 'auto';
+    audio.volume = 0.8;
+    receiveAudioRef.current = audio;
+
+    // Enable audio on first user interaction
+    const enableAudio = () => {
+      audio.play().then(() => audio.pause()).catch(() => {});
+      document.removeEventListener('click', enableAudio);
+      document.removeEventListener('touchstart', enableAudio);
+    };
+    
+    document.addEventListener('click', enableAudio, { once: true });
+    document.addEventListener('touchstart', enableAudio, { once: true });
+
+    return () => {
+      if (receiveAudioRef.current) {
+        receiveAudioRef.current.pause();
+        receiveAudioRef.current = null;
+      }
+    };
+  }, []);
+
   // Load messages
   const loadMessages = useCallback(async () => {
     if (!conversationId || !userId) {
@@ -282,10 +307,10 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
               markAsRead(data.id);
               
               // Play receive sound and show notification
-              if (!receiveAudioRef.current) {
-                receiveAudioRef.current = new Audio('/ringtones/trap-text.mp3');
+              if (receiveAudioRef.current) {
+                receiveAudioRef.current.currentTime = 0;
+                receiveAudioRef.current.play().catch(e => console.log('Could not play receive sound:', e));
               }
-              receiveAudioRef.current.play().catch(e => console.log('Could not play receive sound:', e));
               
               sonnerToast('New message', {
                 description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
