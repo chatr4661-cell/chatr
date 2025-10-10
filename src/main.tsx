@@ -4,7 +4,7 @@ import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import "./index.css";
 
-// Force rebuild - React bundling fix complete 2025-01-09T18:54
+// Force rebuild - React bundling fix complete 2025-10-10T01:16:15
 
 const rootElement = document.getElementById("root");
 
