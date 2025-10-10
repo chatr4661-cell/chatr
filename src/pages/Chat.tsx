@@ -289,6 +289,9 @@ const ChatEnhancedContent = () => {
           <EnhancedMessageInput
             onSendMessage={handleSendMessage}
             disabled={isLoading}
+            lastMessage={messages.length > 0 && messages[messages.length - 1].sender_id !== user.id 
+              ? messages[messages.length - 1].content 
+              : undefined}
           />
         </>
       ) : (

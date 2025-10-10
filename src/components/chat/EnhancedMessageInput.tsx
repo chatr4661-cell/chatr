@@ -4,25 +4,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, Plus, Smile, Mic, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AttachmentMenu } from './AttachmentMenu';
+import { AISmartReplyPanel } from '../AISmartReplyPanel';
 
 interface EnhancedMessageInputProps {
   onSendMessage: (content: string, type?: string) => Promise<void>;
   disabled?: boolean;
   replyTo?: { id: string; content: string; sender: string } | null;
   onCancelReply?: () => void;
+  lastMessage?: string;
 }
 
 export const EnhancedMessageInput = ({ 
   onSendMessage, 
   disabled,
   replyTo,
-  onCancelReply
+  onCancelReply,
+  lastMessage
 }: EnhancedMessageInputProps) => {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sendAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Auto-resize textarea
@@ -40,6 +44,12 @@ export const EnhancedMessageInput = ({
       await onSendMessage(message.trim());
       setMessage('');
       if (onCancelReply) onCancelReply();
+      
+      // Play send sound
+      if (!sendAudioRef.current) {
+        sendAudioRef.current = new Audio('/notification.mp3');
+      }
+      sendAudioRef.current.play().catch(e => console.log('Could not play send sound:', e));
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -81,7 +91,14 @@ export const EnhancedMessageInput = ({
         />
       )}
 
-      <div className="border-t bg-card/80 backdrop-blur-lg safe-bottom">
+      <div className="border-t bg-card/80 backdrop-blur-lg pb-24 md:pb-20 safe-bottom">
+        {/* AI Smart Replies */}
+        {lastMessage && !message && (
+          <AISmartReplyPanel 
+            lastMessage={lastMessage}
+            onSelectReply={(reply) => setMessage(reply)}
+          />
+        )}
         {replyTo && (
           <div className="px-3 md:px-4 pt-3 pb-2 border-b bg-muted/30">
             <div className="flex items-start justify-between gap-2 touch-manipulation">
@@ -103,16 +120,16 @@ export const EnhancedMessageInput = ({
           </div>
         )}
 
-        <div className="p-3">
-          <div className="flex items-end gap-2 bg-muted/50 rounded-3xl px-3 py-2">
+        <div className="p-4">
+          <div className="flex items-end gap-2 bg-muted/50 rounded-3xl px-4 py-3">
             <div className="flex-1 relative">
               <Textarea
                 ref={textareaRef}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Message..."
-                className="min-h-[40px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1.5 text-base"
+                placeholder="Type a message..."
+                className="min-h-[44px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-2 text-base"
                 disabled={disabled || sending}
                 rows={1}
               />

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 
 interface Message {
   id: string;
@@ -34,6 +35,7 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
   const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
+  const receiveAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load messages
   const loadMessages = useCallback(async () => {
@@ -278,6 +280,16 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
             // Mark as read if not from current user
             if (data.sender_id !== userId) {
               markAsRead(data.id);
+              
+              // Play receive sound and show notification
+              if (!receiveAudioRef.current) {
+                receiveAudioRef.current = new Audio('/notification.mp3');
+              }
+              receiveAudioRef.current.play().catch(e => console.log('Could not play receive sound:', e));
+              
+              sonnerToast('New message', {
+                description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+              });
             }
           }
         }
