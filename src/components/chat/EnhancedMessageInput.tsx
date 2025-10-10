@@ -26,7 +26,6 @@ export const EnhancedMessageInput = ({
   const [showAttachments, setShowAttachments] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const sendAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Auto-resize textarea
@@ -44,12 +43,6 @@ export const EnhancedMessageInput = ({
       await onSendMessage(message.trim());
       setMessage('');
       if (onCancelReply) onCancelReply();
-      
-      // Play send sound
-      if (!sendAudioRef.current) {
-        sendAudioRef.current = new Audio('/ringtones/message-notify.mp3');
-      }
-      sendAudioRef.current.play().catch(e => console.log('Could not play send sound:', e));
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
