@@ -44,5 +44,5 @@ export default defineConfig(({ mode }) => ({
       transformMixedEsModules: true,
     },
   },
-  cacheDir: '.vite-fixed-react', // New cache for React fix
+  // Use default .vite cache with forced rebuild
 }));

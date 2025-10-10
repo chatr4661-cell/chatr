@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// FIXED: Single React instance enforced via vite.config.ts aliases
+// React deduplication enforced - waiting for cache sync
 
 const rootElement = document.getElementById("root");
 
