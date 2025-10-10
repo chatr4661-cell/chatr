@@ -1,10 +1,9 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
-import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import "./index.css";
 
-// Force rebuild - React import fix 2025-10-10T01:53:00
+// Vite cache clear - 2025-10-10T01:55:30
 
 const rootElement = document.getElementById("root");
 
@@ -12,12 +11,9 @@ if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-const root = createRoot(rootElement);
-root.render(
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <App />
   </React.StrictMode>
 );
 

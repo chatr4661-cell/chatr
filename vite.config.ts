@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// CRITICAL: Force complete rebuild - React bundling fix 2025-10-10T01:16:15
+// Force Vite cache clear - React dispatcher fix 2025-10-10T01:55:00
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -18,16 +18,7 @@ export default defineConfig(({ mode }) => ({
       'react',
       'react-dom',
       'react/jsx-runtime',
-      'react/jsx-dev-runtime',
-      'react-router-dom',
-      'next-themes',
-      'sonner',
-      'recharts',
-      '@supabase/supabase-js',
-      '@tanstack/react-query'
     ],
-    exclude: [],
-    force: true, // Force re-optimization - timestamp: 2025-10-10T01:16:15
     esbuildOptions: {
       target: 'esnext',
     },
@@ -36,19 +27,12 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ['react', 'react-dom', 'react/jsx-runtime'], // Ensure single React instance
+    dedupe: ['react', 'react-dom'],
   },
   build: {
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
-    },
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
-        },
-      },
     },
   },
 }));
