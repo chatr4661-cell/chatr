@@ -47,36 +47,40 @@ const ChatEnhancedContent = () => {
     if (!user?.id) return;
 
     const loadContacts = async () => {
-      const { data } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_registered', true);
+      try {
+        const { data } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_registered', true);
 
-      if (data) {
-        // Get profile details for each contact
-        const contactProfiles = await Promise.all(
-          data.map(async (contact) => {
-            if (!contact.contact_user_id) return null;
-            
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('id, username, avatar_url, phone_number')
-              .eq('id', contact.contact_user_id)
-              .single();
+        if (data) {
+          // Get profile details for each contact
+          const contactProfiles = await Promise.all(
+            data.map(async (contact) => {
+              if (!contact.contact_user_id) return null;
+              
+              const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username, avatar_url, phone_number')
+                .eq('id', contact.contact_user_id);
 
-            if (!profile) return null;
+              const profile = profiles?.[0];
+              if (!profile) return null;
 
-            return {
-              id: profile.id,
-              username: profile.username || contact.contact_name,
-              avatar_url: profile.avatar_url,
-              phone_number: profile.phone_number || contact.contact_phone
-            };
-          })
-        );
+              return {
+                id: profile.id,
+                username: profile.username || contact.contact_name,
+                avatar_url: profile.avatar_url,
+                phone_number: profile.phone_number || contact.contact_phone
+              };
+            })
+          );
 
-        setContacts(contactProfiles.filter(c => c !== null));
+          setContacts(contactProfiles.filter(c => c !== null));
+        }
+      } catch (error) {
+        console.error('Error loading contacts:', error);
       }
     };
 
