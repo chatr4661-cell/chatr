@@ -54,7 +54,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
 
   // Load messages with pagination
   const loadMessages = useCallback(async (offset = 0, limit = 50) => {
-    if (!conversationId) return;
+    if (!conversationId || limit <= 0) return;
 
     setIsLoading(true);
     try {
@@ -62,23 +62,18 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         .from('messages')
         .select('id, content, sender_id, conversation_id, created_at, message_type, media_url, read_at')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+        .order('created_at', { ascending: true })
+        .limit(limit);
 
       if (error) throw error;
 
       if (data) {
-        const formattedMessages = data.reverse().map(msg => ({
+        const formattedMessages = data.map(msg => ({
           ...msg,
           status: 'sent' as const
         }));
         
-        if (offset === 0) {
-          setMessages(formattedMessages);
-        } else {
-          setMessages(prev => [...formattedMessages, ...prev]);
-        }
-        
+        setMessages(formattedMessages);
         setHasMore(data.length === limit);
       }
     } catch (error) {
