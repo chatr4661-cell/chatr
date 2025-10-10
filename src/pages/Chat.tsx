@@ -3,16 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
 import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
-import { useMessageSync } from '@/hooks/useMessageSync';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
-import { MessageThread } from '@/components/chat/MessageThread';
+import { VirtualMessageList } from '@/components/chat/VirtualMessageList';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
-import { useOptimisticMessages } from '@/hooks/useOptimisticMessages';
+import { useOptimizedMessages } from '@/hooks/useOptimizedMessages';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
 import { PulseCreator } from '@/components/chat/PulseCreator';
@@ -28,12 +27,11 @@ const ChatEnhancedContent = () => {
   const [showPulseCreator, setShowPulseCreator] = useState(false);
   const [contacts, setContacts] = useState<any[]>([]);
   
-  // Optimistic message handling for instant UI
-  const { messages, sendMessage: sendOptimistic, loadMessages } = useOptimisticMessages(
+  // Optimized message handling with batching and pagination
+  const { messages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
     activeConversationId,
     user?.id || ''
   );
-  const [isLoading, setIsLoading] = useState(false);
   
   // Enable push notifications only if user ID exists
   usePushNotifications(user?.id || undefined);
@@ -171,10 +169,13 @@ const ChatEnhancedContent = () => {
     setOtherUser(user);
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, type?: string, mediaUrl?: string) => {
     if (!activeConversationId) return;
-    // Instant optimistic update
-    await sendOptimistic(content);
+    try {
+      await sendMessage(content, type, mediaUrl);
+    } catch (error) {
+      toast.error('Failed to send message');
+    }
   };
 
   // Load messages when conversation changes
@@ -291,17 +292,19 @@ const ChatEnhancedContent = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-hidden">
-            <MessageThread
+            <VirtualMessageList
               messages={messages}
               userId={user.id}
               otherUser={otherUser}
+              onLoadMore={() => loadMessages(messages.length, 50)}
+              hasMore={hasMore}
             />
           </div>
 
           {/* Input */}
           <EnhancedMessageInput
             onSendMessage={handleSendMessage}
-            disabled={isLoading}
+            disabled={messagesLoading}
             lastMessage={messages.length > 0 && messages[messages.length - 1].sender_id !== user.id 
               ? messages[messages.length - 1].content 
               : undefined}

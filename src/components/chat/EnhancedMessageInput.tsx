@@ -14,7 +14,7 @@ import { capturePhoto, pickImage, getCurrentLocation } from '@/utils/mediaUtils'
 import { supabase } from '@/integrations/supabase/client';
 
 interface EnhancedMessageInputProps {
-  onSendMessage: (content: string, type?: string) => Promise<void>;
+  onSendMessage: (content: string, type?: string, mediaUrl?: string) => Promise<void>;
   disabled?: boolean;
   replyTo?: { id: string; content: string; sender: string } | null;
   onCancelReply?: () => void;
@@ -83,23 +83,65 @@ export const EnhancedMessageInput = ({
   const handlePhotoVideo = async () => {
     try {
       const imageUrl = await pickImage();
-      if (imageUrl) {
-        await onSendMessage(`[Image] ${imageUrl}`, 'image');
-        toast.success('Image sent successfully');
-      }
+      if (!imageUrl) return;
+
+      toast.info('Uploading image...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Upload to Supabase Storage
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const fileExt = blob.type.split('/')[1] || 'jpg';
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('social-media')
+        .upload(fileName, blob, { contentType: blob.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('social-media')
+        .getPublicUrl(fileName);
+
+      // Send message with media_url, not embedded base64
+      await onSendMessage('📷 Photo', 'image', publicUrl);
+      toast.success('Image sent successfully');
     } catch (error) {
       console.error('Error picking image:', error);
-      toast.error('Failed to pick image');
+      toast.error('Failed to send image');
     }
   };
 
   const handleCamera = async () => {
     try {
       const imageUrl = await capturePhoto();
-      if (imageUrl) {
-        await onSendMessage(`[Image] ${imageUrl}`, 'image');
-        toast.success('Photo sent successfully');
-      }
+      if (!imageUrl) return;
+
+      toast.info('Uploading photo...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Upload to Supabase Storage
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const fileExt = blob.type.split('/')[1] || 'jpg';
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('social-media')
+        .upload(fileName, blob, { contentType: blob.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('social-media')
+        .getPublicUrl(fileName);
+
+      // Send message with media_url, not embedded base64
+      await onSendMessage('📷 Photo', 'image', publicUrl);
+      toast.success('Photo sent successfully');
     } catch (error) {
       console.error('Error capturing photo:', error);
       toast.error('Failed to capture photo');
