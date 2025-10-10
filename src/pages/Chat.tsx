@@ -42,46 +42,50 @@ const ChatEnhancedContent = () => {
     setOtherUser(null);
   }, []);
 
-  // Load contacts for cluster/pulse
+  // Optimized contact loading
   useEffect(() => {
     if (!user?.id) return;
 
     const loadContacts = async () => {
-      try {
-        const { data } = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_registered', true);
+      const { data } = await supabase
+        .from('contacts')
+        .select('contact_user_id, contact_name, contact_phone')
+        .eq('user_id', user.id)
+        .eq('is_registered', true)
+        .not('contact_user_id', 'is', null);
 
-        if (data) {
-          // Get profile details for each contact
-          const contactProfiles = await Promise.all(
-            data.map(async (contact) => {
-              if (!contact.contact_user_id) return null;
-              
-              const { data: profiles } = await supabase
-                .from('profiles')
-                .select('id, username, avatar_url, phone_number')
-                .eq('id', contact.contact_user_id);
-
-              const profile = profiles?.[0];
-              if (!profile) return null;
-
-              return {
-                id: profile.id,
-                username: profile.username || contact.contact_name,
-                avatar_url: profile.avatar_url,
-                phone_number: profile.phone_number || contact.contact_phone
-              };
-            })
-          );
-
-          setContacts(contactProfiles.filter(c => c !== null));
-        }
-      } catch (error) {
-        console.error('Error loading contacts:', error);
+      if (!data?.length) {
+        setContacts([]);
+        return;
       }
+
+      // Batch fetch all profiles at once
+      const userIds = data.map(c => c.contact_user_id).filter(Boolean);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, phone_number')
+        .in('id', userIds);
+
+      if (!profiles) {
+        setContacts([]);
+        return;
+      }
+
+      // Map profiles efficiently
+      const profileMap = new Map(profiles.map(p => [p.id, p]));
+      const contactProfiles = data
+        .map(contact => {
+          const profile = profileMap.get(contact.contact_user_id!);
+          return profile ? {
+            id: profile.id,
+            username: profile.username || contact.contact_name,
+            avatar_url: profile.avatar_url,
+            phone_number: profile.phone_number || contact.contact_phone
+          } : null;
+        })
+        .filter(Boolean);
+
+      setContacts(contactProfiles);
     };
 
     loadContacts();
