@@ -70,7 +70,7 @@ export const MessageInput = ({ onSendMessage, conversationId, userId, disabled }
   };
 
   return (
-    <div className="border-t bg-background p-4">
+    <div className="border-t bg-background p-4 pb-20">
       {!isOnline && (
         <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
           <WifiOff className="w-4 h-4" />
