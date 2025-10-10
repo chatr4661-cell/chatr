@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
-import { useErrorReporting } from "@/hooks/useErrorReporting";
+// REMOVED: import { useErrorReporting } from "@/hooks/useErrorReporting";
 import Index from "./pages/Index";
 import QRPayment from "./pages/QRPayment";
 import Auth from "./pages/Auth";
@@ -64,7 +64,7 @@ const App = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   
-  // TEMPORARY: Disabled error reporting to fix React instance bug
+  // REMOVED: Error reporting temporarily disabled due to React instance bug
   // useErrorReporting();
 
   useEffect(() => {

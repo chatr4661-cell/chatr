@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// React deduplication enforced - waiting for cache sync
+// Force cache break - timestamp: 2025-10-10T11:20:00Z
 
 const rootElement = document.getElementById("root");
 
