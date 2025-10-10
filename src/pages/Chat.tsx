@@ -298,6 +298,7 @@ const ChatEnhancedContent = () => {
               otherUser={otherUser}
               onLoadMore={() => loadMessages(20, messages.length)}
               hasMore={hasMore}
+              isLoading={messagesLoading}
             />
           </div>
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageBubble } from './MessageBubble';
+import { MessageListSkeleton } from './MessageListSkeleton';
 
 interface Message {
   id: string;
@@ -24,6 +25,7 @@ interface VirtualMessageListProps {
   };
   onLoadMore?: () => void;
   hasMore?: boolean;
+  isLoading?: boolean;
 }
 
 export const VirtualMessageList = ({
@@ -31,7 +33,8 @@ export const VirtualMessageList = ({
   userId,
   otherUser,
   onLoadMore,
-  hasMore
+  hasMore,
+  isLoading = false
 }: VirtualMessageListProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageCountRef = useRef(messages.length);
@@ -51,6 +54,10 @@ export const VirtualMessageList = ({
       onLoadMore();
     }
   }, [hasMore, onLoadMore]);
+
+  if (isLoading && messages.length === 0) {
+    return <MessageListSkeleton />;
+  }
 
   if (messages.length === 0) {
     return (

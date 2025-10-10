@@ -8,6 +8,7 @@ import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, Search } from 
 import { toast } from 'sonner';
 import { useConversationCache } from '@/hooks/useConversationCache';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ConversationListSkeleton } from './ConversationListSkeleton';
 
 interface Conversation {
   id: string;
@@ -186,11 +187,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <ConversationListSkeleton />;
   }
 
   return (
