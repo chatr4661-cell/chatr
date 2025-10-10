@@ -27,10 +27,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // CRITICAL: Force single React instance
-      'react': path.resolve(__dirname, './node_modules/react/index.js'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom/index.js'),
-      'react/jsx-runtime': path.resolve(__dirname, './node_modules/react/jsx-runtime.js'),
+      // CRITICAL: Force single React instance by aliasing to node_modules directory
+      'react': path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
     dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
   },
@@ -39,7 +38,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           // Force React into a single vendor chunk
-          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
+          'react-vendor': ['react', 'react-dom'],
         },
       },
     },
