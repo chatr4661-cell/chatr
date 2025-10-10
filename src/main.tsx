@@ -1,9 +1,9 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Force cache break - timestamp: 2025-10-10T11:20:00Z
+// REMOVED StrictMode to resolve React instance conflict
+// Force rebuild timestamp: 2025-10-10T11:25:00Z
 
 const rootElement = document.getElementById("root");
 
@@ -11,11 +11,7 @@ if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+createRoot(rootElement).render(<App />);
 
 // PWA setup - delayed to ensure React is fully initialized
 if (typeof window !== 'undefined') {
