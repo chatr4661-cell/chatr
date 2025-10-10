@@ -112,14 +112,6 @@ const ChatEnhancedContent = () => {
     }
   }, [session, user, navigate]);
 
-  // Handle contact selected from location state
-  useEffect(() => {
-    const selectedContact = (location.state as any)?.selectedContact;
-    if (selectedContact && user) {
-      handleStartConversation(selectedContact);
-    }
-  }, [location.state, user]);
-
   const handleStartConversation = async (contact: any) => {
     try {
       const contactUserId = contact.contact_user_id || contact.id;
@@ -155,6 +147,14 @@ const ChatEnhancedContent = () => {
       toast.error('Failed to start conversation');
     }
   };
+
+  // Handle contact selected from location state
+  useEffect(() => {
+    const selectedContact = (location.state as any)?.selectedContact;
+    if (selectedContact && user) {
+      handleStartConversation(selectedContact);
+    }
+  }, [location.state, user]);
 
   const handleConversationSelect = (conversationId: string, user?: any) => {
     setActiveConversationId(conversationId);
