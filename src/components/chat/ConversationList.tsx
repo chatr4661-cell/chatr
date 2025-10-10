@@ -57,17 +57,10 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
     
     loadConversations();
 
-    // Debounced realtime to prevent excessive reloads
-    let reloadTimeout: NodeJS.Timeout;
-    const debouncedReload = () => {
-      clearTimeout(reloadTimeout);
-      reloadTimeout = setTimeout(loadConversations, 300);
-    };
-
     const channel = supabase
       .channel('conversations-list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, debouncedReload)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, debouncedReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadConversations())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => loadConversations())
       .subscribe();
 
     return () => {
@@ -80,97 +73,114 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
 
     try {
       setLoading(true);
+      console.log('🔄 Starting to load conversations for user:', userId);
       
-      // Optimized single query approach
       const { data: participations, error: partError } = await supabase
         .from('conversation_participants')
         .select(`
           conversation_id,
-          conversations!inner (
+          conversations (
             id,
             is_group,
             group_name,
             group_icon_url,
-            updated_at,
-            created_at
+            updated_at
           )
         `)
         .eq('user_id', userId);
 
-      if (partError || !participations?.length) {
+      if (partError) {
+        console.error('❌ Error fetching participations:', partError);
+        setLoading(false);
+        return;
+      }
+
+      if (!participations || participations.length === 0) {
+        console.log('📭 No conversations found');
         setConversations([]);
         setLoading(false);
         return;
       }
 
-      const convIds = participations.map(p => (p.conversations as any).id);
-      
-      // Batch fetch last messages for all conversations
-      const { data: lastMessages } = await supabase
-        .from('messages')
-        .select('id, conversation_id, content, created_at, sender_id, read_at')
-        .in('conversation_id', convIds)
-        .order('created_at', { ascending: false });
+      console.log(`📊 Found ${participations.length} conversations`);
 
-      // Batch fetch all other participants
-      const { data: allParticipants } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id, user_id')
-        .in('conversation_id', convIds)
-        .neq('user_id', userId);
+      const conversationData = await Promise.all(
+        participations.map(async (p: any, index: number) => {
+          const conv = p.conversations;
+          console.log(`\n🔍 Processing conversation ${index + 1}:`, conv.id);
+          
+          const { data: lastMessage } = await supabase
+            .from('messages')
+            .select('content, created_at, sender_id, read_at')
+            .eq('conversation_id', conv.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-      // Get unique user IDs
-      const userIds = [...new Set(allParticipants?.map(p => p.user_id) || [])];
-      
-      // Batch fetch all user profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, is_online, phone_number, email')
-        .in('id', userIds);
+          let otherUser = null;
+          if (!conv.is_group) {
+            console.log(`👥 Getting other participant for conversation ${conv.id}...`);
+            
+            const { data: participants, error: participantsError } = await supabase
+              .from('conversation_participants')
+              .select('user_id')
+              .eq('conversation_id', conv.id)
+              .neq('user_id', userId);
 
-      // Create lookup maps for performance
-      const lastMessageMap = new Map();
-      lastMessages?.forEach(msg => {
-        if (!lastMessageMap.has(msg.conversation_id)) {
-          lastMessageMap.set(msg.conversation_id, msg);
-        }
-      });
+            if (participantsError) {
+              console.error('❌ Error fetching participants:', participantsError);
+            } else if (participants && participants.length > 0) {
+              const otherUserId = participants[0].user_id;
+              console.log(`🎯 Other user ID:`, otherUserId);
+              
+              const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('id, username, avatar_url, is_online, phone_number, email')
+                .eq('id', otherUserId)
+                .single();
 
-      const participantMap = new Map();
-      allParticipants?.forEach(p => {
-        if (!participantMap.has(p.conversation_id)) {
-          participantMap.set(p.conversation_id, p.user_id);
-        }
-      });
+              if (profileError) {
+                console.error('❌ Error fetching profile:', profileError);
+              } else if (profile) {
+                console.log('✅ Profile data:', {
+                  id: profile.id,
+                  username: profile.username,
+                  phone: profile.phone_number,
+                  email: profile.email
+                });
+                otherUser = profile;
+              } else {
+                console.warn('⚠️ No profile found for user:', otherUserId);
+              }
+            } else {
+              console.warn('⚠️ No other participants found');
+            }
+          }
 
-      const profileMap = new Map();
-      profiles?.forEach(p => profileMap.set(p.id, p));
+          return {
+            ...conv,
+            last_message: lastMessage,
+            other_user: otherUser
+          };
+        })
+      );
 
-      // Build conversation data efficiently
-      const conversationData = participations.map((p: any) => {
-        const conv = p.conversations;
-        const lastMessage = lastMessageMap.get(conv.id);
-        const otherUserId = participantMap.get(conv.id);
-        const otherUser = otherUserId ? profileMap.get(otherUserId) : null;
-
-        return {
-          ...conv,
-          last_message: lastMessage || null,
-          other_user: otherUser || null
-        };
-      });
-
-      // Sort by latest activity
       conversationData.sort((a, b) => {
         const aTime = a.last_message?.created_at || a.updated_at;
         const bTime = b.last_message?.created_at || b.updated_at;
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
+
+      console.log('📋 Final conversation data:', conversationData.map(c => ({
+        id: c.id,
+        username: c.other_user?.username,
+        phone: c.other_user?.phone_number
+      })));
       
       setConversations(conversationData);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      console.error('❌ Error loading conversations:', error);
       setLoading(false);
     }
   };

@@ -5,13 +5,6 @@ import { Send, Plus, Smile, Mic, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AttachmentMenu } from './AttachmentMenu';
 import { AISmartReplyPanel } from '../AISmartReplyPanel';
-import { PollCreator } from '../PollCreator';
-import { EventCreator } from './EventCreator';
-import { PaymentRequest } from './PaymentRequest';
-import { ContactPicker } from './ContactPicker';
-import { AIImageGenerator } from './AIImageGenerator';
-import { capturePhoto, pickImage, getCurrentLocation } from '@/utils/mediaUtils';
-import { supabase } from '@/integrations/supabase/client';
 
 interface EnhancedMessageInputProps {
   onSendMessage: (content: string, type?: string) => Promise<void>;
@@ -32,13 +25,7 @@ export const EnhancedMessageInput = ({
   const [sending, setSending] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [showPollCreator, setShowPollCreator] = useState(false);
-  const [showEventCreator, setShowEventCreator] = useState(false);
-  const [showPaymentRequest, setShowPaymentRequest] = useState(false);
-  const [showContactPicker, setShowContactPicker] = useState(false);
-  const [showAIImageGen, setShowAIImageGen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Auto-resize textarea
@@ -80,192 +67,22 @@ export const EnhancedMessageInput = ({
     }
   };
 
-  const handlePhotoVideo = async () => {
-    try {
-      const imageUrl = await pickImage();
-      if (imageUrl) {
-        await onSendMessage(`[Image] ${imageUrl}`, 'image');
-        toast.success('Image sent successfully');
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      toast.error('Failed to pick image');
-    }
-  };
-
-  const handleCamera = async () => {
-    try {
-      const imageUrl = await capturePhoto();
-      if (imageUrl) {
-        await onSendMessage(`[Image] ${imageUrl}`, 'image');
-        toast.success('Photo sent successfully');
-      }
-    } catch (error) {
-      console.error('Error capturing photo:', error);
-      toast.error('Failed to capture photo');
-    }
-  };
-
-  const handleLocation = async () => {
-    try {
-      const location = await getCurrentLocation();
-      if (location) {
-        await onSendMessage(
-          `📍 Location: https://maps.google.com/?q=${location.latitude},${location.longitude}`,
-          'location'
-        );
-        toast.success('Location sent successfully');
-      }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      toast.error('Failed to get location');
-    }
-  };
-
-  const handleDocument = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
-
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('chat-backups')
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('chat-backups')
-          .getPublicUrl(fileName);
-
-        await onSendMessage(`[Document] ${file.name}: ${publicUrl}`, 'document');
-        toast.success('Document sent successfully');
-      } catch (error) {
-        console.error('Error uploading document:', error);
-        toast.error('Failed to upload document');
-      }
-    }
-  };
-
-  const handlePollSend = async (question: string, options: string[]) => {
-    try {
-      const pollData = {
-        question,
-        options: options.map(opt => ({ text: opt, votes: 0 }))
-      };
-      await onSendMessage(`[Poll] ${JSON.stringify(pollData)}`, 'poll');
-      toast.success('Poll sent successfully');
-    } catch (error) {
-      console.error('Error sending poll:', error);
-      toast.error('Failed to send poll');
-    }
-  };
-
-  const handleEventSend = async (eventData: any) => {
-    try {
-      await onSendMessage(`[Event] ${JSON.stringify(eventData)}`, 'event');
-      toast.success('Event sent successfully');
-    } catch (error) {
-      console.error('Error sending event:', error);
-      toast.error('Failed to send event');
-    }
-  };
-
-  const handlePaymentSend = async (paymentData: any) => {
-    try {
-      await onSendMessage(`[Payment Request] ${JSON.stringify(paymentData)}`, 'payment');
-      toast.success('Payment request sent');
-    } catch (error) {
-      console.error('Error sending payment request:', error);
-      toast.error('Failed to send payment request');
-    }
-  };
-
-  const handleContactSend = async (contact: any) => {
-    try {
-      await onSendMessage(
-        `[Contact] ${contact.contact_name} - ${contact.contact_phone}`,
-        'contact'
-      );
-      toast.success('Contact shared successfully');
-    } catch (error) {
-      console.error('Error sharing contact:', error);
-      toast.error('Failed to share contact');
-    }
-  };
-
-  const handleAIImageSend = async (imageUrl: string, prompt: string) => {
-    try {
-      await onSendMessage(`[AI Image] ${prompt}: ${imageUrl}`, 'ai_image');
-      toast.success('AI image sent successfully');
-    } catch (error) {
-      console.error('Error sending AI image:', error);
-      toast.error('Failed to send AI image');
-    }
-  };
-
   return (
     <>
       {showAttachments && (
         <AttachmentMenu
           onClose={() => setShowAttachments(false)}
-          onPhotoVideo={handlePhotoVideo}
-          onCamera={handleCamera}
-          onLocation={handleLocation}
-          onContact={() => setShowContactPicker(true)}
-          onDocument={handleDocument}
-          onPoll={() => setShowPollCreator(true)}
-          onEvent={() => setShowEventCreator(true)}
-          onPayment={() => setShowPaymentRequest(true)}
-          onAIImage={() => setShowAIImageGen(true)}
+          onPhotoVideo={() => toast.info('Photo/Video picker coming soon')}
+          onCamera={() => toast.info('Camera coming soon')}
+          onLocation={() => toast.info('Location sharing coming soon')}
+          onContact={() => toast.info('Contact sharing coming soon')}
+          onDocument={() => toast.info('Document picker coming soon')}
+          onPoll={() => toast.info('Poll creator coming soon')}
+          onEvent={() => toast.info('Event creator coming soon')}
+          onPayment={() => toast.info('Payment request coming soon')}
+          onAIImage={() => toast.info('AI Image generator coming soon')}
         />
       )}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        onChange={handleFileSelect}
-        accept=".pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx"
-      />
-
-      <PollCreator
-        open={showPollCreator}
-        onClose={() => setShowPollCreator(false)}
-        onSend={handlePollSend}
-      />
-
-      <EventCreator
-        open={showEventCreator}
-        onClose={() => setShowEventCreator(false)}
-        onSend={handleEventSend}
-      />
-
-      <PaymentRequest
-        open={showPaymentRequest}
-        onClose={() => setShowPaymentRequest(false)}
-        onSend={handlePaymentSend}
-      />
-
-      <ContactPicker
-        open={showContactPicker}
-        onClose={() => setShowContactPicker(false)}
-        onSend={handleContactSend}
-      />
-
-      <AIImageGenerator
-        open={showAIImageGen}
-        onClose={() => setShowAIImageGen(false)}
-        onSend={handleAIImageSend}
-      />
 
       <div className="border-t bg-card/80 backdrop-blur-lg pb-24 md:pb-20 safe-bottom">
         {/* AI Smart Replies */}
