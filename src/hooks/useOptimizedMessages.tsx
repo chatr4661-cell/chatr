@@ -52,29 +52,35 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
     }, 100); // Batch updates within 100ms
   }, []);
 
-  // Load messages with pagination
-  const loadMessages = useCallback(async (offset = 0, limit = 50) => {
+  // Load messages with pagination - optimized with range queries
+  const loadMessages = useCallback(async (limit = 50, offset = 0) => {
     if (!conversationId || limit <= 0) return;
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Use range for better performance with indexes
+      const { data, error, count } = await supabase
         .from('messages')
-        .select('id, content, sender_id, conversation_id, created_at, message_type, media_url, read_at')
+        .select('id, content, sender_id, conversation_id, created_at, message_type, media_url, read_at', { count: 'exact' })
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-        .limit(limit);
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
 
       if (data) {
-        const formattedMessages = data.map(msg => ({
+        const formattedMessages = data.reverse().map(msg => ({
           ...msg,
           status: 'sent' as const
         }));
         
-        setMessages(formattedMessages);
-        setHasMore(data.length === limit);
+        if (offset === 0) {
+          setMessages(formattedMessages);
+        } else {
+          setMessages(prev => [...formattedMessages, ...prev]);
+        }
+        
+        setHasMore((count || 0) > offset + limit);
       }
     } catch (error) {
       console.error('Error loading messages:', error);

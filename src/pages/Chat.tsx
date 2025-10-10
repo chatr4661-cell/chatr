@@ -178,10 +178,10 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Load messages when conversation changes
+  // Load messages when conversation changes - limit initial load
   useEffect(() => {
     if (activeConversationId) {
-      loadMessages(50, 0);
+      loadMessages(30, 0); // Load only last 30 messages initially
     }
   }, [activeConversationId, loadMessages]);
 
@@ -296,7 +296,7 @@ const ChatEnhancedContent = () => {
               messages={messages}
               userId={user.id}
               otherUser={otherUser}
-              onLoadMore={() => loadMessages(messages.length, 50)}
+              onLoadMore={() => loadMessages(20, messages.length)}
               hasMore={hasMore}
             />
           </div>

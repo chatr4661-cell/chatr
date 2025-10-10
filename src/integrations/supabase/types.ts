@@ -3501,6 +3501,20 @@ export type Database = {
           video_enabled: boolean
         }[]
       }
+      get_user_conversations_optimized: {
+        Args: { p_user_id: string }
+        Returns: {
+          community_description: string
+          group_icon_url: string
+          group_name: string
+          id: string
+          is_community: boolean
+          is_group: boolean
+          lastmessage: string
+          lastmessagetime: string
+          otheruser: Json
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -52,14 +52,44 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         setLoading(false);
       }
 
-      // Load from server (optimized single query)
+      // Try optimized database function first
+      const { data: optimizedData, error: rpcError } = await supabase
+        .rpc('get_user_conversations_optimized', { p_user_id: userId });
+
+      if (!rpcError && optimizedData) {
+        // Transform to match expected format
+        const conversationData = optimizedData.map((conv: any) => ({
+          id: conv.id,
+          is_group: conv.is_group,
+          group_name: conv.group_name,
+          group_icon_url: conv.group_icon_url,
+          is_community: conv.is_community,
+          community_description: conv.community_description,
+          updated_at: conv.lastmessagetime || new Date().toISOString(),
+          last_message: conv.lastmessage ? {
+            content: conv.lastmessage,
+            created_at: conv.lastmessagetime,
+            sender_id: '', // Not needed for display
+            read_at: undefined
+          } : undefined,
+          other_user: conv.otheruser || undefined
+        }));
+
+        setConversations(conversationData);
+        await setCache(`conversations-${userId}`, conversationData);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback to original method if RPC fails
       const { data: participations } = await supabase
         .from('conversation_participants')
         .select(`
           conversation_id,
           conversations!inner (id, is_group, group_name, group_icon_url, updated_at)
         `)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .limit(50);
 
       if (!participations?.length) {
         setConversations([]);
@@ -69,27 +99,22 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
       const convIds = participations.map(p => (p.conversations as any).id);
 
-      // Parallel fetches for maximum speed
+      // Optimized parallel fetches
       const [messagesResult, participantsResult] = await Promise.all([
         supabase
           .from('messages')
-          .select('conversation_id, content, created_at, sender_id, read_at')
+          .select('conversation_id, content, created_at')
           .in('conversation_id', convIds)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(convIds.length), // Only get one per conversation
         supabase
           .from('conversation_participants')
-          .select('conversation_id, user_id')
+          .select('conversation_id, user_id, profiles!inner(id, username, avatar_url, is_online)')
           .in('conversation_id', convIds)
           .neq('user_id', userId)
       ]);
 
-      const userIds = [...new Set(participantsResult.data?.map(p => p.user_id) || [])];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, is_online, phone_number')
-        .in('id', userIds);
-
-      // Build lookup maps
+      // Build lookup maps efficiently
       const lastMessageMap = new Map();
       messagesResult.data?.forEach(msg => {
         if (!lastMessageMap.has(msg.conversation_id)) {
@@ -97,14 +122,12 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         }
       });
 
-      const participantMap = new Map();
-      participantsResult.data?.forEach(p => {
-        if (!participantMap.has(p.conversation_id)) {
-          participantMap.set(p.conversation_id, p.user_id);
+      const otherUserMap = new Map();
+      participantsResult.data?.forEach((p: any) => {
+        if (!otherUserMap.has(p.conversation_id)) {
+          otherUserMap.set(p.conversation_id, p.profiles);
         }
       });
-
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
       const conversationData = participations
         .map((p: any) => {
@@ -112,7 +135,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           return {
             ...conv,
             last_message: lastMessageMap.get(conv.id) || null,
-            other_user: profileMap.get(participantMap.get(conv.id)) || null
+            other_user: otherUserMap.get(conv.id) || null
           };
         })
         .sort((a, b) => {
