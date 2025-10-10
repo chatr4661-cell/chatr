@@ -342,6 +342,65 @@ const ChatEnhancedContent = () => {
               
               {/* Right: Action Icons */}
               <div className="flex items-center gap-1">
+                <Sheet open={showAIFeatures} onOpenChange={setShowAIFeatures}>
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+                      title="AI Features"
+                    >
+                      <Sparkles className="h-5 w-5" />
+                      {streak > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                          {streak}
+                        </span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        AI Features
+                      </SheetTitle>
+                    </SheetHeader>
+                    <Tabs defaultValue="voice" className="mt-6">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="voice">Voice AI</TabsTrigger>
+                        <TabsTrigger value="connect">Connect</TabsTrigger>
+                        <TabsTrigger value="moments">Moments</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="voice" className="space-y-4 mt-4">
+                        <div className="text-sm text-muted-foreground mb-4">
+                          Talk to your AI friend powered by OpenAI Realtime
+                        </div>
+                        <VoiceInterface />
+                      </TabsContent>
+                      <TabsContent value="connect" className="space-y-4 mt-4">
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="font-semibold mb-2 flex items-center gap-2">
+                              <Heart className="h-4 w-4 text-pink-500" />
+                              Circle AI Matching
+                            </h3>
+                            <EmotionCircleMatch />
+                          </div>
+                          <div className="mt-6">
+                            <h3 className="font-semibold mb-2 flex items-center gap-2">
+                              <Radio className="h-4 w-4 text-purple-500" />
+                              Live Rooms
+                            </h3>
+                            <LiveRooms />
+                          </div>
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="moments" className="space-y-4 mt-4">
+                        <AIMoments />
+                      </TabsContent>
+                    </Tabs>
+                  </SheetContent>
+                </Sheet>
                 <Button
                   variant="ghost"
                   size="icon"
