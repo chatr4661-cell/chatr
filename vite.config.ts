@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// CRITICAL FIX: Prevent React from being split into multiple chunks
+// Force rebuild - React instance fix applied: 2025-10-11T06:00:00Z
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -22,7 +22,6 @@ export default defineConfig(({ mode }) => ({
     esbuildOptions: {
       target: 'esnext',
     },
-    force: true,
   },
   resolve: {
     alias: {
