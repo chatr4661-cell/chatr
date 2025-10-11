@@ -506,6 +506,7 @@ export type Database = {
         Row: {
           average_bitrate: number | null
           call_type: string
+          caller_avatar: string | null
           caller_id: string
           caller_name: string | null
           caller_signal: Json | null
@@ -522,6 +523,7 @@ export type Database = {
           participants: Json | null
           quality_metrics: Json | null
           quality_rating: number | null
+          receiver_avatar: string | null
           receiver_id: string | null
           receiver_name: string | null
           receiver_signal: Json | null
@@ -533,6 +535,7 @@ export type Database = {
         Insert: {
           average_bitrate?: number | null
           call_type: string
+          caller_avatar?: string | null
           caller_id: string
           caller_name?: string | null
           caller_signal?: Json | null
@@ -549,6 +552,7 @@ export type Database = {
           participants?: Json | null
           quality_metrics?: Json | null
           quality_rating?: number | null
+          receiver_avatar?: string | null
           receiver_id?: string | null
           receiver_name?: string | null
           receiver_signal?: Json | null
@@ -560,6 +564,7 @@ export type Database = {
         Update: {
           average_bitrate?: number | null
           call_type?: string
+          caller_avatar?: string | null
           caller_id?: string
           caller_name?: string | null
           caller_signal?: Json | null
@@ -576,6 +581,7 @@ export type Database = {
           participants?: Json | null
           quality_metrics?: Json | null
           quality_rating?: number | null
+          receiver_avatar?: string | null
           receiver_id?: string | null
           receiver_name?: string | null
           receiver_signal?: Json | null
