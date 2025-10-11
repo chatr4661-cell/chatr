@@ -15,10 +15,10 @@ const navItems = [
 
 export const BottomNav = () => {
   const location = useLocation();
-  const [notificationCount, setNotificationCount] = useState(0);
+  const [notificationCount, setNotificationCount] = React.useState(0);
 
   // Fetch real notification count
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchNotificationCount = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;

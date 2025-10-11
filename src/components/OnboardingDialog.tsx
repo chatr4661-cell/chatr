@@ -24,12 +24,12 @@ interface OnboardingDialogProps {
 }
 
 export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: OnboardingDialogProps) => {
-  const [step, setStep] = useState(1);
-  const [fullName, setFullName] = useState("");
-  const [statusMessage, setStatusMessage] = useState("Hey there! I'm using chatr.chat");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [step, setStep] = React.useState(1);
+  const [fullName, setFullName] = React.useState("");
+  const [statusMessage, setStatusMessage] = React.useState("Hey there! I'm using chatr.chat");
+  const [avatarUrl, setAvatarUrl] = React.useState("");
+  const [uploading, setUploading] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
   const { toast } = useToast();
 
   const totalSteps = 3;

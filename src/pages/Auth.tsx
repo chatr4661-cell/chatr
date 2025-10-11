@@ -11,11 +11,11 @@ import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | undefined>();
+  const [loading, setLoading] = React.useState(true);
+  const [userId, setUserId] = React.useState<string | undefined>();
   const onboarding = useOnboarding(userId);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const checkSession = async () => {
       try {
         // Check for active device session
