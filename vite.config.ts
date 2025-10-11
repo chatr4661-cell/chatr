@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Force rebuild - React instance fix applied: 2025-10-11T06:00:00Z
+// Force complete rebuild - React dedup fix: 2025-10-11T06:03:00Z
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => ({
       'react',
       'react-dom',
       'react/jsx-runtime',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
     ],
     esbuildOptions: {
       target: 'esnext',
