@@ -1,4 +1,4 @@
-import React from 'react';
+// React not needed - using JSX transform
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from './ui/button';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
