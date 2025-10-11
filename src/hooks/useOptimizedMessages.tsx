@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -16,15 +16,15 @@ interface Message {
 }
 
 export const useOptimizedMessages = (conversationId: string | null, userId: string) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const updateQueueRef = useRef<Message[]>([]);
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [messages, setMessages] = React.useState<Message[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [hasMore, setHasMore] = React.useState(true);
+  const channelRef = React.useRef<RealtimeChannel | null>(null);
+  const updateQueueRef = React.useRef<Message[]>([]);
+  const updateTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Batch real-time updates to reduce re-renders
-  const batchUpdate = useCallback((newMessage: Message) => {
+  const batchUpdate = React.useCallback((newMessage: Message) => {
     updateQueueRef.current.push(newMessage);
     
     if (updateTimeoutRef.current) {
@@ -53,7 +53,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
   }, []);
 
   // Load messages with pagination - optimized with range queries
-  const loadMessages = useCallback(async (limit = 50, offset = 0) => {
+  const loadMessages = React.useCallback(async (limit = 50, offset = 0) => {
     if (!conversationId || limit <= 0) return;
 
     setIsLoading(true);
@@ -90,7 +90,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
   }, [conversationId]);
 
   // Optimistic message send
-  const sendMessage = useCallback(async (content: string, type?: string, mediaUrl?: string) => {
+  const sendMessage = React.useCallback(async (content: string, type?: string, mediaUrl?: string) => {
     if (!conversationId || !userId) return;
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;
@@ -136,7 +136,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
   }, [conversationId, userId]);
 
   // Subscribe to real-time updates
-  useEffect(() => {
+  React.useEffect(() => {
     if (!conversationId) return;
 
     // Clean up existing channel

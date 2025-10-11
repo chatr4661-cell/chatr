@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { toast } from 'sonner';
 
 export const useMoodTracking = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = React.useState(false);
 
   const saveMood = async (mood: string, moodScore: number) => {
     setLoading(true);
