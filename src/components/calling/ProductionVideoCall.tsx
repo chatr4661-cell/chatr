@@ -108,12 +108,26 @@ export default function ProductionVideoCall({
 
   const initializeCall = async () => {
     try {
-      console.log('🎥 Initializing ultra-HD 60fps video call...');
+      console.log('🎥 Initializing FaceTime-quality video call...');
       setCallStatus(isInitiator ? "dialing" : "ringing");
       
+      // Get media with optimal settings
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: getOptimalVideoConstraints('ultra', facingMode),
-        audio: getOptimalAudioConstraints()
+        video: {
+          facingMode,
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+          frameRate: { ideal: 60, min: 30 },
+          aspectRatio: { ideal: 16/9 }
+        },
+        audio: {
+          echoCancellation: { ideal: true, exact: true },
+          noiseSuppression: { ideal: true, exact: true },
+          autoGainControl: { ideal: true, exact: true },
+          sampleRate: { ideal: 48000 },
+          sampleSize: { ideal: 24 },
+          channelCount: { ideal: 2 }
+        }
       });
       
       setLocalStream(stream);
@@ -121,45 +135,41 @@ export default function ProductionVideoCall({
         localVideoRef.current.srcObject = stream;
       }
 
+      // Get ICE/TURN servers
       const iceServers = await getTurnConfig();
+      console.log('🔧 Using ICE servers:', iceServers.length);
+
       const pc = new RTCPeerConnection({
         iceServers,
         iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require'
+        rtcpMuxPolicy: 'require',
+        iceCandidatePoolSize: 10
       });
       
       peerConnectionRef.current = pc;
 
-      // Set VP9 as preferred codec for better quality
-      try {
-        setPreferredCodec(pc, 'VP9');
-      } catch (error) {
-        console.log('VP9 not available, using default codec');
-      }
-
+      // Add tracks to peer connection
       stream.getTracks().forEach(track => {
+        console.log(`➕ Adding ${track.kind} track`);
         pc.addTrack(track, stream);
       });
 
-      // Set initial ultra quality bitrate
-      setTimeout(async () => {
-        await setBandwidth(pc, 'ultra');
-      }, 1000);
-
+      // Handle incoming remote stream
       pc.ontrack = (event) => {
+        console.log('📺 Received remote track:', event.track.kind);
         const [remoteStream] = event.streams;
-        setTimeout(() => {
-          setRemoteStream(remoteStream);
-          if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = remoteStream;
-          }
-          setTimeout(() => setCallStatus("connected"), 300);
-        }, 200);
+        setRemoteStream(remoteStream);
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
+        setCallStatus("connected");
       };
 
+      // Handle ICE candidates
       pc.onicecandidate = async (event) => {
         if (event.candidate) {
+          console.log('📡 Sending ICE candidate');
           await sendSignal({
             type: 'ice-candidate',
             callId,
@@ -169,30 +179,39 @@ export default function ProductionVideoCall({
         }
       };
 
+      // Monitor connection state
+      pc.oniceconnectionstatechange = () => {
+        console.log('❄️ ICE state:', pc.iceConnectionState);
+      };
+
       pc.onconnectionstatechange = () => {
+        console.log('🔗 Connection state:', pc.connectionState);
+        
         if (pc.connectionState === "connected") {
           setCallStatus("connected");
-          console.log('✅ Call connected in ultra-HD!');
+          setConnectionQuality("excellent");
+          console.log('✅ Call connected successfully!');
         } else if (pc.connectionState === "failed") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
-          // Try ICE restart
+          console.log('🔄 Connection failed, attempting restart...');
           pc.restartIce();
-          toast({
-            title: "Connection lost",
-            description: "Attempting to reconnect...",
-            variant: "destructive"
-          });
         } else if (pc.connectionState === "disconnected") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
         }
       };
 
+      // Create and send offer if initiator
       if (isInitiator) {
-        const offer = await pc.createOffer();
+        console.log('📞 Creating offer...');
+        const offer = await pc.createOffer({
+          offerToReceiveVideo: true,
+          offerToReceiveAudio: true
+        });
         await pc.setLocalDescription(offer);
         
+        console.log('📤 Sending offer');
         await sendSignal({
           type: 'offer',
           callId,
@@ -202,10 +221,10 @@ export default function ProductionVideoCall({
       }
 
     } catch (error: any) {
-      console.error("Error initializing call:", error);
+      console.error("❌ Error initializing call:", error);
       toast({
-        title: "Error",
-        description: "Failed to start video call",
+        title: "Call initialization failed",
+        description: error.message || "Failed to start video call",
         variant: "destructive"
       });
       onEnd();
@@ -323,33 +342,55 @@ export default function ProductionVideoCall({
     const newFacingMode = facingMode === "user" ? "environment" : "user";
     
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: getOptimalVideoConstraints('ultra', newFacingMode),
-        audio: getOptimalAudioConstraints()
-      });
-
-      const videoTrack = newStream.getVideoTracks()[0];
-      const sender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
-      
-      if (sender) {
-        await sender.replaceTrack(videoTrack);
+      // Stop current video track first
+      const oldVideoTrack = localStream.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
       }
 
-      setTimeout(() => {
-        localStream.getVideoTracks()[0].stop();
-        setLocalStream(newStream);
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = newStream;
+      // Get new stream with switched camera
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { exact: newFacingMode },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 60, min: 30 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000
         }
-        setFacingMode(newFacingMode);
-        setIsSwitchingCamera(false);
-      }, 200);
+      });
+
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const newAudioTrack = newStream.getAudioTracks()[0];
+      
+      // Replace tracks in peer connection
+      const videoSender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
+      const audioSender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'audio');
+      
+      if (videoSender && newVideoTrack) {
+        await videoSender.replaceTrack(newVideoTrack);
+      }
+      
+      if (audioSender && newAudioTrack) {
+        await audioSender.replaceTrack(newAudioTrack);
+      }
+
+      // Update local stream
+      setLocalStream(newStream);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = newStream;
+      }
+      setFacingMode(newFacingMode);
+      setIsSwitchingCamera(false);
       
       await triggerHaptic('cameraSwitch');
       
       toast({
-        title: `${newFacingMode === 'user' ? 'Front' : 'Back'} camera activated`,
-        description: `Switched to ${newFacingMode === 'user' ? 'front-facing' : 'rear'} camera`,
+        title: `Switched to ${newFacingMode === 'user' ? 'front' : 'back'} camera`,
       });
     } catch (error) {
       console.error("Error switching camera:", error);
@@ -357,7 +398,7 @@ export default function ProductionVideoCall({
       await triggerHaptic('error');
       toast({
         title: "Camera switch failed",
-        description: "Unable to switch camera. Please check permissions.",
+        description: "Camera not available",
         variant: "destructive"
       });
     }

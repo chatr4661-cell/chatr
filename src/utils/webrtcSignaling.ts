@@ -7,24 +7,29 @@ export interface SignalData {
   to: string;
 }
 
-// Get TURN server configuration
+// Get TURN server configuration with extensive fallback
 export const getTurnConfig = async () => {
   try {
-    // Try to get Twilio TURN credentials first
     const { data, error } = await supabase.functions.invoke('get-turn-credentials');
     
     if (!error && data?.iceServers) {
-      console.log('✅ Using Twilio TURN servers');
+      console.log('✅ Using edge function TURN servers');
       return data.iceServers;
     }
   } catch (error) {
-    console.log('ℹ️ Twilio TURN not available, using fallback');
+    console.log('ℹ️ Edge function unavailable, using public TURN');
   }
 
-  // Fallback to public TURN servers
+  // Comprehensive public TURN/STUN servers for maximum compatibility
   return [
+    // Google STUN servers (multiple for redundancy)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    
+    // OpenRelay TURN servers (free, multiple ports)
     { 
       urls: 'turn:openrelay.metered.ca:80',
       username: 'openrelayproject',
@@ -34,7 +39,16 @@ export const getTurnConfig = async () => {
       urls: 'turn:openrelay.metered.ca:443',
       username: 'openrelayproject',
       credential: 'openrelayproject'
-    }
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    
+    // Additional STUN servers for better NAT traversal
+    { urls: 'stun:global.stun.twilio.com:3478' },
+    { urls: 'stun:stun.stunprotocol.org:3478' }
   ];
 };
 
