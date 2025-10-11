@@ -203,20 +203,37 @@ const ChatEnhancedContent = () => {
     }
 
     try {
+      console.log('🎥 Starting call:', { callType, to: otherUser.username });
+      
+      // Get current user profile for caller name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user!.id)
+        .single();
+
       const { data, error } = await supabase
         .from('calls')
         .insert({
           conversation_id: activeConversationId,
           caller_id: user!.id,
+          caller_name: profile?.username || user!.email || 'Unknown',
+          caller_avatar: profile?.avatar_url,
           receiver_id: otherUser.id,
+          receiver_name: otherUser.username || otherUser.email || 'Unknown',
+          receiver_avatar: otherUser.avatar_url,
           call_type: callType,
           status: 'ringing'
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Failed to create call:', error);
+        throw error;
+      }
 
+      console.log('✅ Call created successfully:', data.id);
       toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
     } catch (error) {
       console.error('Error starting call:', error);

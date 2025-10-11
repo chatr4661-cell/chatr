@@ -178,17 +178,35 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
   const startCall = async (conversation: any, callType: 'voice' | 'video', e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      console.log('🎥 Starting call from conversation list:', { callType, to: conversation.other_user?.username });
+      
+      // Get current user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', userId)
+        .single();
+
       const { error } = await supabase
         .from('calls')
         .insert({
           conversation_id: conversation.id,
           caller_id: userId,
+          caller_name: profile?.username || 'Unknown',
+          caller_avatar: profile?.avatar_url,
           receiver_id: conversation.other_user?.id,
+          receiver_name: conversation.other_user?.username || conversation.other_user?.email || 'Unknown',
+          receiver_avatar: conversation.other_user?.avatar_url,
           call_type: callType,
           status: 'ringing'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Failed to create call:', error);
+        throw error;
+      }
+      
+      console.log('✅ Call created successfully');
       toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
     } catch (error) {
       console.error('Error starting call:', error);

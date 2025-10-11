@@ -72,6 +72,15 @@ export default function GlobalContacts() {
 
   const startCall = async (contact: any, callType: 'voice' | 'video') => {
     try {
+      console.log('🎥 Starting call from global contacts:', { callType, to: contact.username });
+      
+      // Get current user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user?.id)
+        .single();
+
       const { data: convData, error: convError } = await supabase.rpc('create_direct_conversation', {
         other_user_id: contact.id
       });
@@ -83,13 +92,21 @@ export default function GlobalContacts() {
         .insert({
           conversation_id: convData,
           caller_id: user?.id,
+          caller_name: profile?.username || user?.email || 'Unknown',
+          caller_avatar: profile?.avatar_url,
           receiver_id: contact.id,
+          receiver_name: contact.username || contact.email || 'Unknown',
+          receiver_avatar: contact.avatar_url,
           call_type: callType,
           status: 'ringing'
         });
 
-      if (callError) throw callError;
+      if (callError) {
+        console.error('❌ Failed to create call:', callError);
+        throw callError;
+      }
 
+      console.log('✅ Call created successfully');
       toast({
         title: 'Success',
         description: `${callType === 'voice' ? 'Voice' : 'Video'} call started`

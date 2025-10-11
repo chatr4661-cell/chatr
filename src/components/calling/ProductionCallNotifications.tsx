@@ -103,9 +103,12 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
 
   // Listen for incoming and outgoing calls
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      console.log('⚠️ No userId provided to ProductionCallNotifications');
+      return;
+    }
     
-    console.log('📞 Setting up production call listener for:', userId);
+    console.log('📞 [ProductionCallNotifications] Setting up call listeners for user:', userId);
     
     // Listen for incoming calls
     const incomingChannel = supabase
@@ -117,19 +120,29 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         filter: `receiver_id=eq.${userId}`
       }, (payload) => {
         const call = payload.new as any;
+        console.log('📱 [ProductionCallNotifications] INCOMING CALL:', { 
+          id: call.id, 
+          from: call.caller_name, 
+          type: call.call_type, 
+          status: call.status 
+        });
         
         if (call.status === 'ringing' && !activeCall && !incomingCall) {
-          console.log('📱 Incoming call:', call.caller_name);
+          console.log('✅ Showing incoming call screen');
           setIncomingCall(call);
 
           toast({
             title: `Incoming ${call.call_type} call`,
-            description: `${call.caller_name} is calling...`,
+            description: `${call.caller_name || 'Unknown'} is calling...`,
             duration: 30000,
           });
+        } else {
+          console.log('⏭️ Skipping incoming call (already in call)');
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📞 Incoming channel status:', status);
+      });
     
     // Listen for outgoing calls and auto-start them
     const outgoingChannel = supabase
@@ -141,13 +154,23 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         filter: `caller_id=eq.${userId}`
       }, (payload) => {
         const call = payload.new as any;
+        console.log('📞 [ProductionCallNotifications] OUTGOING CALL:', { 
+          id: call.id, 
+          to: call.receiver_name, 
+          type: call.call_type, 
+          status: call.status 
+        });
         
         if (call.status === 'ringing' && !activeCall) {
-          console.log('📞 Auto-starting outgoing call:', call.receiver_name);
+          console.log('✅ Auto-starting outgoing call');
           setActiveCall(call);
+        } else {
+          console.log('⏭️ Skipping outgoing call (already in call)');
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📞 Outgoing channel status:', status);
+      });
 
     // Listen for call updates (ended by other party)
     const updatesChannel = supabase
@@ -158,6 +181,10 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         table: 'calls'
       }, (payload) => {
         const updatedCall = payload.new as any;
+        console.log('🔄 [ProductionCallNotifications] CALL UPDATE:', { 
+          id: updatedCall.id, 
+          status: updatedCall.status 
+        });
         
         if (updatedCall.status === 'ended') {
           // Check if this is our active call or incoming call
@@ -179,9 +206,12 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
           }
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📞 Updates channel status:', status);
+      });
 
     return () => {
+      console.log('🧹 Cleaning up call channels');
       supabase.removeChannel(incomingChannel);
       supabase.removeChannel(outgoingChannel);
       supabase.removeChannel(updatesChannel);

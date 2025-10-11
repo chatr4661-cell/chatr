@@ -1,7 +1,7 @@
 import React from 'react';
 import { NetworkStatus } from './NetworkStatus';
 import { InstallPWAPrompt } from './InstallPWAPrompt';
-import { GlobalCallNotifications } from './GlobalCallNotifications';
+import { ProductionCallNotifications } from './calling/ProductionCallNotifications';
 import { BottomNav } from './BottomNav';
 import { Toaster } from './ui/toaster';
 import { Toaster as Sonner } from './ui/sonner';
@@ -19,9 +19,9 @@ export const AppLayout = ({ children, user, profile }: AppLayoutProps) => {
       <InstallPWAPrompt />
       
       {user && profile && (
-        <GlobalCallNotifications 
+        <ProductionCallNotifications 
           userId={user.id} 
-          username={profile.username || 'User'} 
+          username={profile.username || user.email || 'User'} 
         />
       )}
       

@@ -108,123 +108,142 @@ export default function ProductionVideoCall({
 
   const initializeCall = async () => {
     try {
-      console.log('🎥 Initializing FaceTime-quality video call...');
+      console.log('🎥 [ProductionVideoCall] Initializing call...', { callId, contactName, isInitiator, partnerId });
       setCallStatus(isInitiator ? "dialing" : "ringing");
       
-      // Get media with optimal settings
+      // Request camera and microphone permissions
+      console.log('📷 Requesting media permissions...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode,
           width: { ideal: 1920, max: 1920 },
           height: { ideal: 1080, max: 1080 },
-          frameRate: { ideal: 60, min: 30 },
-          aspectRatio: { ideal: 16/9 }
+          frameRate: { ideal: 30 }
         },
         audio: {
-          echoCancellation: { ideal: true, exact: true },
-          noiseSuppression: { ideal: true, exact: true },
-          autoGainControl: { ideal: true, exact: true },
-          sampleRate: { ideal: 48000 },
-          sampleSize: { ideal: 24 },
-          channelCount: { ideal: 2 }
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000
         }
       });
       
+      console.log('✅ Media stream obtained:', stream.getTracks().map(t => `${t.kind}: ${t.label}`));
       setLocalStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
+        console.log('✅ Local video ref set');
       }
 
       // Get ICE/TURN servers
+      console.log('🔧 Fetching TURN config...');
       const iceServers = await getTurnConfig();
-      console.log('🔧 Using ICE servers:', iceServers.length);
+      console.log('🔧 ICE servers:', iceServers.length, 'servers configured');
 
       const pc = new RTCPeerConnection({
         iceServers,
         iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require',
-        iceCandidatePoolSize: 10
+        rtcpMuxPolicy: 'require'
       });
       
       peerConnectionRef.current = pc;
+      console.log('✅ PeerConnection created');
 
       // Add tracks to peer connection
       stream.getTracks().forEach(track => {
-        console.log(`➕ Adding ${track.kind} track`);
+        console.log(`➕ Adding ${track.kind} track to peer connection`);
         pc.addTrack(track, stream);
       });
 
       // Handle incoming remote stream
       pc.ontrack = (event) => {
-        console.log('📺 Received remote track:', event.track.kind);
+        console.log('📺 [ontrack] Received remote track:', event.track.kind);
         const [remoteStream] = event.streams;
         setRemoteStream(remoteStream);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
+          console.log('✅ Remote video ref set');
         }
         setCallStatus("connected");
+        console.log('✅ Call connected!');
       };
 
       // Handle ICE candidates
       pc.onicecandidate = async (event) => {
         if (event.candidate) {
-          console.log('📡 Sending ICE candidate');
-          await sendSignal({
-            type: 'ice-candidate',
-            callId,
-            data: event.candidate,
-            to: partnerId
-          });
+          console.log('📡 [onicecandidate] Sending ICE candidate');
+          try {
+            await sendSignal({
+              type: 'ice-candidate',
+              callId,
+              data: event.candidate,
+              to: partnerId
+            });
+            console.log('✅ ICE candidate sent');
+          } catch (error) {
+            console.error('❌ Failed to send ICE candidate:', error);
+          }
+        } else {
+          console.log('📡 All ICE candidates sent');
         }
       };
 
-      // Monitor connection state
+      // Monitor ICE connection state
       pc.oniceconnectionstatechange = () => {
-        console.log('❄️ ICE state:', pc.iceConnectionState);
+        console.log('❄️ [ICE state]:', pc.iceConnectionState);
       };
 
+      // Monitor connection state
       pc.onconnectionstatechange = () => {
-        console.log('🔗 Connection state:', pc.connectionState);
+        console.log('🔗 [Connection state]:', pc.connectionState);
         
         if (pc.connectionState === "connected") {
           setCallStatus("connected");
           setConnectionQuality("excellent");
-          console.log('✅ Call connected successfully!');
+          console.log('✅ WebRTC connection established!');
         } else if (pc.connectionState === "failed") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
-          console.log('🔄 Connection failed, attempting restart...');
+          console.log('🔄 Connection failed, attempting ICE restart...');
           pc.restartIce();
         } else if (pc.connectionState === "disconnected") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
+          console.log('⚠️ Connection disconnected');
         }
       };
 
       // Create and send offer if initiator
       if (isInitiator) {
-        console.log('📞 Creating offer...');
+        console.log('📞 [Initiator] Creating offer...');
         const offer = await pc.createOffer({
           offerToReceiveVideo: true,
           offerToReceiveAudio: true
         });
         await pc.setLocalDescription(offer);
+        console.log('📞 Local description set');
         
-        console.log('📤 Sending offer');
-        await sendSignal({
-          type: 'offer',
-          callId,
-          data: offer,
-          to: partnerId
-        });
+        console.log('📤 Sending offer signal...');
+        try {
+          await sendSignal({
+            type: 'offer',
+            callId,
+            data: offer,
+            to: partnerId
+          });
+          console.log('✅ Offer sent successfully');
+        } catch (error) {
+          console.error('❌ Failed to send offer:', error);
+          throw error;
+        }
       }
 
     } catch (error: any) {
-      console.error("❌ Error initializing call:", error);
+      console.error("❌ [ProductionVideoCall] Error initializing call:", error);
       toast({
         title: "Call initialization failed",
-        description: error.message || "Failed to start video call",
+        description: error.message || "Failed to start video call. Please check camera/microphone permissions.",
         variant: "destructive"
       });
       onEnd();
