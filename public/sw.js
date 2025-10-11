@@ -1,6 +1,7 @@
 // Chatr Service Worker - PWA Offline Support
-const CACHE_NAME = 'chatr-v1';
-const RUNTIME_CACHE = 'chatr-runtime';
+// FORCE COMPLETE CACHE CLEAR - 2025-10-11T06:15:00Z
+const CACHE_NAME = 'chatr-v2-nocache';
+const RUNTIME_CACHE = 'chatr-runtime-v2';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -49,6 +50,12 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests
   if (request.method !== 'GET') return;
+
+  // NEVER cache JavaScript files to prevent stale code issues
+  if (url.pathname.endsWith('.js') || url.pathname.includes('/src/') || url.pathname.includes('node_modules')) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   // Skip Supabase realtime requests
   if (url.hostname.includes('supabase.co') && url.pathname.includes('realtime')) {
