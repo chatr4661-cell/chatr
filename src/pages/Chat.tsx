@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
+import { ProductionCallNotifications } from '@/components/calling/ProductionCallNotifications';
 import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ const ChatEnhancedContent = () => {
   const [showPulseCreator, setShowPulseCreator] = React.useState(false);
   const [showAIFeatures, setShowAIFeatures] = React.useState(false);
   const [contacts, setContacts] = React.useState<any[]>([]);
+  const [profile, setProfile] = React.useState<any>(null);
   const { streak } = useStreakTracking('ai_chat');
   
   // Optimized message handling with batching and pagination
@@ -46,6 +48,23 @@ const ChatEnhancedContent = () => {
   
   // Enable push notifications only if user ID exists
   usePushNotifications(user?.id || undefined);
+
+  // Load user profile
+  React.useEffect(() => {
+    if (!user?.id) return;
+    
+    const loadProfile = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single();
+      
+      setProfile(data);
+    };
+    
+    loadProfile();
+  }, [user?.id]);
 
   // Clear active conversation on mount to always show conversation list
   React.useEffect(() => {
@@ -252,7 +271,16 @@ const ChatEnhancedContent = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <>
+      {/* Call Notifications - CRITICAL: This handles ALL calls */}
+      {user && profile && (
+        <ProductionCallNotifications 
+          userId={user.id} 
+          username={profile.username || user.email || 'User'} 
+        />
+      )}
+
+      <div className="flex flex-col h-screen bg-background">
       <NetworkStatus />
       
       {activeConversationId ? (
@@ -528,7 +556,8 @@ const ChatEnhancedContent = () => {
       
       {/* Voice AI Interface - Always available */}
       <VoiceInterface />
-    </div>
+      </div>
+    </>
   );
 };
 
