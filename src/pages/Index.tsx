@@ -48,7 +48,7 @@ const Index = () => {
         {/* Header Section */}
         <div className="w-full max-w-md text-center space-y-3 pt-12">
           <img src={logo} alt="Chatr" className="h-16 mx-auto drop-shadow-lg" />
-          <p className="text-lg text-white/90 font-medium">Say it. Share it. Live it.</p>
+          <p className="text-lg text-gray-900 font-medium">Say it. Share it. Live it.</p>
         </div>
 
         {/* Main Content */}
@@ -57,40 +57,40 @@ const Index = () => {
             <>
               {/* Welcome Message */}
               <div className="text-center space-y-2 mb-8">
-                <h1 className="text-3xl font-bold text-white">Welcome to Chatr</h1>
-                <p className="text-xl font-semibold text-white/95">Secure. Smart. Simple.</p>
-                <p className="text-base text-white/80">Connect instantly with privacy and AI-powered messaging.</p>
+                <h1 className="text-3xl font-bold text-gray-900">Welcome to Chatr</h1>
+                <p className="text-xl font-semibold text-gray-800">Secure. Smart. Simple.</p>
+                <p className="text-base text-gray-700">Connect instantly with privacy and AI-powered messaging.</p>
               </div>
 
               {/* AI Features Card */}
-              <div className="glass-card p-6 space-y-4 bg-white/20 backdrop-blur-xl border-white/30">
+              <div className="glass-card p-6 space-y-4 bg-white/80 backdrop-blur-xl border-white/50 rounded-3xl">
                 <div className="flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
+                  <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-white mb-1">AI-Smart Messaging</h3>
-                    <p className="text-sm text-white/80">Auto-summaries, smart replies, and reminders so you never lose track</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">AI-Smart Messaging</h3>
+                    <p className="text-sm text-gray-700">Auto-summaries, smart replies, and reminders so you never lose track</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
+                  <Shield className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-white mb-1">Privacy First</h3>
-                    <p className="text-sm text-white/80">End-to-end encrypted</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">Privacy First</h3>
+                    <p className="text-sm text-gray-700">End-to-end encrypted</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-white mb-1">Built for Life + Work</h3>
-                    <p className="text-sm text-white/80">Turn messages into tasks, notes, or meeting reminders instantly</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">Built for Life + Work</h3>
+                    <p className="text-sm text-gray-700">Turn messages into tasks, notes, or meeting reminders instantly</p>
                   </div>
                 </div>
               </div>
 
               {/* Phone Input */}
-              <div className="glass-card p-6 space-y-4 bg-white/90 backdrop-blur-xl border-white/50">
+              <div className="glass-card p-6 space-y-4 bg-white/90 backdrop-blur-xl border-white/50 rounded-3xl">
                 <div className="space-y-2">
-                  <Label className="text-foreground">Enter your phone number</Label>
+                  <Label className="text-gray-900 font-medium">Enter your phone number</Label>
                   <div className="flex gap-2">
                     <CountryCodeSelector
                       value={countryCode}
@@ -101,7 +101,7 @@ const Index = () => {
                       placeholder="XXXXX XXXXX"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="flex-1 rounded-2xl h-12 text-base"
+                      className="flex-1 rounded-2xl h-12 text-base text-gray-900"
                       maxLength={10}
                     />
                   </div>
@@ -109,7 +109,7 @@ const Index = () => {
                 <Button
                   onClick={handleContinue}
                   disabled={phoneNumber.length < 10 || isLoading}
-                  className="w-full h-12 rounded-2xl text-base font-semibold"
+                  className="w-full h-12 rounded-full text-base font-semibold"
                 >
                   Continue
                 </Button>
@@ -118,29 +118,30 @@ const Index = () => {
           ) : (
             <>
               {/* PIN Input Screen */}
-              <div className="glass-card p-8 space-y-6 bg-white/90 backdrop-blur-xl border-white/50">
+              <div className="glass-card p-8 space-y-6 bg-white/90 backdrop-blur-xl border-white/50 rounded-3xl">
                 <div className="text-center space-y-2">
-                  <h2 className="text-2xl font-bold text-foreground">Enter PIN</h2>
-                  <p className="text-sm text-muted-foreground">for smart chatr messaging</p>
+                  <h2 className="text-2xl font-bold text-gray-900">Enter PIN</h2>
+                  <p className="text-sm text-gray-600">for smart chatr messaging</p>
                 </div>
 
                 <div className="space-y-4">
-                  <Label className="text-foreground">Enter Your PIN</Label>
+                  <Label className="text-gray-900 font-medium">Enter Your PIN</Label>
                   <PINInput
                     length={6}
                     onComplete={(pin) => {
                       console.log('PIN entered:', pin);
-                      // Handle PIN submission
+                      // Handle PIN authentication here
+                      navigate('/chat');
                     }}
                   />
                 </div>
 
                 <div className="text-center">
                   <button
-                    onClick={() => navigate('/auth')}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setStep('phone')}
+                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium"
                   >
-                    New user? Register here
+                    New user? Register on this page
                   </button>
                 </div>
               </div>
@@ -150,8 +151,8 @@ const Index = () => {
 
         {/* Footer */}
         <div className="text-center space-y-1">
-          <p className="text-white/90 font-medium">Secure messaging for everyone 🌐</p>
-          <p className="text-sm text-white/70">© 2025 Chatr.chat</p>
+          <p className="text-gray-900 font-medium">Secure messaging for everyone 🌐</p>
+          <p className="text-sm text-gray-700">© 2025 Chatr.chat</p>
         </div>
       </div>
     </div>
