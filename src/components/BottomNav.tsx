@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { MessageCircle, Flame, Users, Bell, Grid } from 'lucide-react';
 import { cn } from '@/lib/utils';
