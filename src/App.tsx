@@ -1,9 +1,6 @@
-// Full Chatr App - Restored: 2025-10-10T18:01:00Z
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 
 // Pages
 import Index from "./pages/Index";
@@ -139,9 +136,6 @@ const App = () => {
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          
-          <Toaster />
-          <Sonner />
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
