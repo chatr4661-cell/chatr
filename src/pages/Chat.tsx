@@ -235,14 +235,14 @@ const ChatEnhancedContent = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">
       <NetworkStatus />
       
       {activeConversationId ? (
         // Conversation View
         <>
           {/* Header */}
-          <div className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-lg p-3 md:p-4 flex items-center justify-between">
+          <div className="sticky top-0 z-10 border-b glass-card p-3 md:p-4 flex items-center justify-between shadow-soft">
             <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               <Button
                 variant="ghost"
@@ -302,7 +302,7 @@ const ChatEnhancedContent = () => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden rounded-t-3xl bg-background/50 backdrop-blur-sm">
             <VirtualMessageList
               messages={messages}
               userId={user.id}
@@ -326,7 +326,7 @@ const ChatEnhancedContent = () => {
         // Conversation List View
         <>
           {/* Header */}
-          <div className="border-b bg-card/95 backdrop-blur-xl p-3 transition-all duration-300">
+          <div className="border-b glass-card p-3 transition-all duration-300 shadow-soft">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               {/* Left: Logo */}
               <div className="flex items-center gap-3">
@@ -477,7 +477,7 @@ const ChatEnhancedContent = () => {
           </div>
 
           {/* Conversations */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden rounded-t-3xl bg-background/40 backdrop-blur-sm mt-2">
             <VirtualizedConversationList
               userId={user.id}
               onConversationSelect={handleConversationSelect}
