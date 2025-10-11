@@ -1,4 +1,4 @@
-import { useState } from "react";
+import * as React from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,8 +17,8 @@ interface CountryCodeSelectorProps {
 }
 
 export const CountryCodeSelector = ({ value, onChange }: CountryCodeSelectorProps) => {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
 
   const selectedCountry = ALL_COUNTRIES.find(c => c.dialCode === value) || POPULAR_COUNTRIES[0];
 
