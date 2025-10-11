@@ -48,5 +48,5 @@ export default defineConfig(({ mode }) => ({
       transformMixedEsModules: true,
     },
   },
-  cacheDir: '.vite-cache-' + Date.now(), // Force new cache directory
+  cacheDir: '.vite-nocache', // Permanent non-timestamped cache dir to force fresh rebuild
 }));

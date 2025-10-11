@@ -2,8 +2,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// REMOVED StrictMode to resolve React instance conflict
-// Force rebuild timestamp: 2025-10-10T11:25:00Z
+// Force complete cache clear - 2025-10-11T06:13:00Z
+// Deleted useErrorReporting hook to resolve persistent cache issue
 
 const rootElement = document.getElementById("root");
 
