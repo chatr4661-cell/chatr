@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// CRITICAL: Hard reset cache - 2025-10-11T06:10:00Z
+// CRITICAL: Hard reset cache - 2025-10-11T06:11:30Z - removed react-window
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -22,7 +22,6 @@ export default defineConfig(({ mode }) => ({
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
     ],
-    exclude: ['react-window'], // Exclude problematic module
     esbuildOptions: {
       target: 'esnext',
     },
