@@ -38,7 +38,7 @@ const ChatEnhancedContent = () => {
   const [contacts, setContacts] = useState<any[]>([]);
   const { streak } = useStreakTracking('ai_chat');
   
-  // Optimized message handling with batching and pagination
+  // Optimized message handling with batching and pagination - initial load of only 20 messages
   const { messages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
     activeConversationId,
     user?.id || ''
@@ -189,10 +189,10 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Load messages when conversation changes - limit initial load
+  // Load messages when conversation changes - optimized for speed
   useEffect(() => {
     if (activeConversationId) {
-      loadMessages(30, 0); // Load only last 30 messages initially
+      loadMessages(20, 0); // Load only last 20 messages initially for faster load
     }
   }, [activeConversationId, loadMessages]);
 
