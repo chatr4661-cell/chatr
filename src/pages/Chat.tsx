@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
@@ -29,13 +29,13 @@ const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [otherUser, setOtherUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [showClusterCreator, setShowClusterCreator] = useState(false);
-  const [showPulseCreator, setShowPulseCreator] = useState(false);
-  const [showAIFeatures, setShowAIFeatures] = useState(false);
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
+  const [otherUser, setOtherUser] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [showClusterCreator, setShowClusterCreator] = React.useState(false);
+  const [showPulseCreator, setShowPulseCreator] = React.useState(false);
+  const [showAIFeatures, setShowAIFeatures] = React.useState(false);
+  const [contacts, setContacts] = React.useState<any[]>([]);
   const { streak } = useStreakTracking('ai_chat');
   
   // Optimized message handling with batching and pagination
@@ -48,13 +48,13 @@ const ChatEnhancedContent = () => {
   usePushNotifications(user?.id || undefined);
 
   // Clear active conversation on mount to always show conversation list
-  useEffect(() => {
+  React.useEffect(() => {
     setActiveConversationId(null);
     setOtherUser(null);
   }, []);
 
   // Optimized contact loading
-  useEffect(() => {
+  React.useEffect(() => {
     if (!user?.id) return;
 
     const loadContacts = async () => {
@@ -103,7 +103,7 @@ const ChatEnhancedContent = () => {
   }, [user?.id]);
 
   // Check authentication and verify user data
-  useEffect(() => {
+  React.useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -119,7 +119,7 @@ const ChatEnhancedContent = () => {
   }, [navigate]);
 
   // Redirect if not authenticated - wait for context to initialize
-  useEffect(() => {
+  React.useEffect(() => {
     if (!session && user === null) {
       // Only redirect if we're sure there's no session (not just loading)
       const timer = setTimeout(() => {
@@ -168,7 +168,7 @@ const ChatEnhancedContent = () => {
   };
 
   // Handle contact selected from location state
-  useEffect(() => {
+  React.useEffect(() => {
     const selectedContact = (location.state as any)?.selectedContact;
     if (selectedContact && user) {
       handleStartConversation(selectedContact);
@@ -190,7 +190,7 @@ const ChatEnhancedContent = () => {
   };
 
   // Load messages when conversation changes - limit initial load
-  useEffect(() => {
+  React.useEffect(() => {
     if (activeConversationId) {
       loadMessages(30, 0); // Load only last 30 messages initially
     }
