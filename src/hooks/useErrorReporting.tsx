@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ErrorReport {
@@ -10,7 +10,7 @@ interface ErrorReport {
 }
 
 export const useErrorReporting = () => {
-  useEffect(() => {
+  React.useEffect(() => {
     // Global error handler
     const handleError = (event: ErrorEvent) => {
       reportError({
