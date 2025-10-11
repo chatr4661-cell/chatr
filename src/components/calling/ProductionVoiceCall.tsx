@@ -186,14 +186,31 @@ export default function ProductionVoiceCall({
       });
 
       pc.ontrack = (event) => {
+        console.log('🔊 [ontrack] Received remote audio track');
         const [remoteStream] = event.streams;
         if (!remoteAudioRef.current) {
           remoteAudioRef.current = new Audio();
+          remoteAudioRef.current.autoplay = true;
         }
         remoteAudioRef.current.srcObject = remoteStream;
-        remoteAudioRef.current.play().catch(e => console.log('Audio play error:', e));
+        remoteAudioRef.current.volume = 1.0;
         
-        setTimeout(() => setCallStatus("connected"), 300);
+        // CRITICAL: Force audio playback
+        remoteAudioRef.current.play().then(() => {
+          console.log('✅ Remote audio playing!');
+          setTimeout(() => setCallStatus("connected"), 300);
+        }).catch(e => {
+          console.error('❌ Audio play error:', e);
+          // Retry on user interaction
+          const playOnInteraction = () => {
+            remoteAudioRef.current?.play().then(() => {
+              console.log('✅ Audio playing after interaction');
+            });
+            document.removeEventListener('click', playOnInteraction);
+          };
+          document.addEventListener('click', playOnInteraction, { once: true });
+          setTimeout(() => setCallStatus("connected"), 300);
+        });
       };
 
       pc.onicecandidate = async (event) => {

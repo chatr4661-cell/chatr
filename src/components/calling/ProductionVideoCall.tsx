@@ -130,6 +130,8 @@ export default function ProductionVideoCall({
       setLocalStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
+        localVideoRef.current.muted = true; // Mute local to prevent feedback
+        localVideoRef.current.play().catch(e => console.log('Local video play:', e));
         console.log('✅ Local video ref set');
       }
 
@@ -161,6 +163,18 @@ export default function ProductionVideoCall({
         setRemoteStream(remoteStream);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
+          // CRITICAL: Force video to play
+          remoteVideoRef.current.play().then(() => {
+            console.log('✅ Remote video playing!');
+          }).catch(err => {
+            console.error('❌ Remote video play failed:', err);
+            // Retry on user interaction
+            const playOnInteraction = () => {
+              remoteVideoRef.current?.play();
+              document.removeEventListener('click', playOnInteraction);
+            };
+            document.addEventListener('click', playOnInteraction, { once: true });
+          });
           console.log('✅ Remote video ref set');
         }
         setCallStatus("connected");
