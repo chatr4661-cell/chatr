@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
       'react': path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+      'react-window': path.resolve(__dirname, './src/lib/react-window-shim.ts'), // Shim for cached imports
     },
     dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
   },
