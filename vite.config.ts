@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// CRITICAL: Hard reset cache - 2025-10-11T06:11:30Z - removed react-window
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -25,11 +24,11 @@ export default defineConfig(({ mode }) => ({
     esbuildOptions: {
       target: 'esnext',
     },
+    force: true, // Force re-optimization
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // CRITICAL: Force single React instance by aliasing to node_modules directory
       'react': path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
@@ -39,7 +38,6 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Force React into a single vendor chunk
           'react-vendor': ['react', 'react-dom'],
         },
       },
@@ -49,4 +47,5 @@ export default defineConfig(({ mode }) => ({
       transformMixedEsModules: true,
     },
   },
+  cacheDir: '.vite-cache-' + Date.now(), // Force new cache directory
 }));
