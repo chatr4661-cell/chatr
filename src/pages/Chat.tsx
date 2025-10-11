@@ -7,7 +7,8 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
@@ -325,34 +326,29 @@ const ChatEnhancedContent = () => {
         // Conversation List View
         <>
           {/* Header */}
-          <div className="border-b bg-card p-3">
+          <div className="border-b bg-card/95 backdrop-blur-xl p-3 transition-all duration-300">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
-              {/* Left: Back + Logo */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/')}
-                  className="rounded-full h-9 w-9"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <h1 className="text-lg font-bold text-primary">chatr</h1>
+              {/* Left: Logo */}
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  chatr
+                </h1>
               </div>
               
-              {/* Right: Action Icons */}
-              <div className="flex items-center gap-1">
+              {/* Right: Action Icons - Streamlined */}
+              <div className="flex items-center gap-1.5">
+                {/* AI Features */}
                 <Sheet open={showAIFeatures} onOpenChange={setShowAIFeatures}>
                   <SheetTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+                      className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary relative transition-all duration-200 hover:scale-110"
                       title="AI Features"
                     >
                       <Sparkles className="h-5 w-5" />
                       {streak > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        <span className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse">
                           {streak}
                         </span>
                       )}
@@ -401,85 +397,81 @@ const ChatEnhancedContent = () => {
                     </Tabs>
                   </SheetContent>
                 </Sheet>
+
+                {/* Create Group/Cluster */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowClusterCreator(true)}
-                  className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary"
-                  title="Create Cluster"
+                  className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
+                  title="Create Group"
                 >
                   <Users className="h-5 w-5" />
                 </Button>
+
+                {/* Send Pulse */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowPulseCreator(true)}
-                  className="rounded-full h-9 w-9 hover:bg-amber-500/10 hover:text-amber-600"
+                  className="rounded-full h-10 w-10 hover:bg-amber-500/10 hover:text-amber-600 transition-all duration-200 hover:scale-110"
                   title="Send Pulse"
                 >
                   <Radio className="h-5 w-5" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/profile')}
-                  className="rounded-full h-9 w-9"
-                  title="Profile"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/contacts')}
-                  className="rounded-full h-9 w-9"
-                  title="Contacts"
-                >
-                  <Users className="h-5 w-5" />
-                </Button>
+
+                {/* Search */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/global-contacts')}
-                  className="rounded-full h-9 w-9"
-                  title="Search Users"
+                  className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
+                  title="Search"
                 >
                   <Search className="h-5 w-5" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full h-9 w-9"
-                  title="Blocked Contacts"
-                >
-                  <UserX className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/call-history')}
-                  className="rounded-full h-9 w-9"
-                  title="Calls"
-                >
-                  <Phone className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/qr-login')}
-                  className="rounded-full h-9 w-9"
-                  title="QR Scan"
-                >
-                  <QrCode className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full h-9 w-9"
-                  title="More"
-                >
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
+
+                {/* More Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
+                      title="More"
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 animate-in fade-in-50 slide-in-from-top-2">
+                    <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/contacts')} className="cursor-pointer">
+                      <Users className="h-4 w-4 mr-2" />
+                      Contacts
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/call-history')} className="cursor-pointer">
+                      <Phone className="h-4 w-4 mr-2" />
+                      Call History
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/qr-login')} className="cursor-pointer">
+                      <QrCode className="h-4 w-4 mr-2" />
+                      QR Scanner
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                      <UserX className="h-4 w-4 mr-2" />
+                      Blocked
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Home
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
