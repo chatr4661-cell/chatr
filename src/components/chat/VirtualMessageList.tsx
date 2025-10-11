@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import * as React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageBubble } from './MessageBubble';
 import { MessageListSkeleton } from './MessageListSkeleton';
@@ -36,18 +36,18 @@ export const VirtualMessageList = ({
   hasMore,
   isLoading = false
 }: VirtualMessageListProps) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const lastMessageCountRef = useRef(messages.length);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const lastMessageCountRef = React.useRef(messages.length);
 
   // Auto-scroll to bottom on new messages
-  useEffect(() => {
+  React.useEffect(() => {
     if (messages.length > lastMessageCountRef.current && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
     lastMessageCountRef.current = messages.length;
   }, [messages.length]);
 
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     // Load more when scrolled near top
     if (target.scrollTop < 200 && hasMore && onLoadMore) {
