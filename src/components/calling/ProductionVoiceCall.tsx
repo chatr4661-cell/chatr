@@ -64,11 +64,9 @@ export default function ProductionVoiceCall({
 
   useEffect(() => {
     initializeCall();
-    const unsubscribe = subscribeToCallSignals(callId, handleSignal);
     
     return () => {
       cleanup();
-      unsubscribe();
     };
   }, []);
 
@@ -219,6 +217,26 @@ export default function ProductionVoiceCall({
         }
       };
 
+      // **CRITICAL FIX**: Load past signals BEFORE subscribing
+      console.log('📥 Loading past signals for receiver...');
+      const { getSignals, deleteProcessedSignals } = await import('@/utils/webrtcSignaling');
+      const currentUserId = (await supabase.auth.getUser()).data.user?.id || '';
+      const pastSignals = await getSignals(callId, currentUserId);
+      
+      if (pastSignals.length > 0) {
+        console.log(`📥 Processing ${pastSignals.length} past signals`);
+        for (const signal of pastSignals) {
+          await handleSignal(signal);
+        }
+        await deleteProcessedSignals(callId, currentUserId);
+      }
+
+      // Subscribe to future signals
+      console.log('📡 Subscribing to future signals...');
+      const { subscribeToCallSignals } = await import('@/utils/webrtcSignaling');
+      const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+      (window as any).__voiceCallSignalUnsubscribe = unsubscribe;
+
       if (isInitiator) {
         const offer = await pc.createOffer({
           offerToReceiveAudio: true
@@ -361,6 +379,12 @@ export default function ProductionVoiceCall({
     if (callTimerRef.current) clearInterval(callTimerRef.current);
     if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
     if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    
+    // Unsubscribe from signals
+    if ((window as any).__voiceCallSignalUnsubscribe) {
+      (window as any).__voiceCallSignalUnsubscribe();
+      delete (window as any).__voiceCallSignalUnsubscribe;
+    }
   };
 
   const formatDuration = (seconds: number) => {

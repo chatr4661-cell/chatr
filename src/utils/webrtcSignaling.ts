@@ -70,15 +70,33 @@ export const sendSignalDirect = async (signalData: SignalData) => {
 
 export const sendSignal = sendSignalDirect;
 
-export const getSignals = async (callId: string) => {
+// Fetch ALL existing signals for a call (crucial for late joiners)
+export const getSignals = async (callId: string, toUserId: string) => {
+  console.log('📥 Fetching past signals for callId:', callId, 'toUser:', toUserId);
+  
   const { data, error } = await supabase
     .from('webrtc_signals')
     .select('*')
     .eq('call_id', callId)
+    .eq('to_user', toUserId)
     .order('created_at', { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Error fetching signals:', error);
+    throw error;
+  }
+  
+  console.log(`📥 Found ${data?.length || 0} past signals`);
   return data || [];
+};
+
+// Delete processed signals to keep table clean
+export const deleteProcessedSignals = async (callId: string, toUserId: string) => {
+  await supabase
+    .from('webrtc_signals')
+    .delete()
+    .eq('call_id', callId)
+    .eq('to_user', toUserId);
 };
 
 export const subscribeToCallSignals = (

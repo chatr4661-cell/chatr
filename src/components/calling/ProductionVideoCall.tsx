@@ -79,11 +79,9 @@ export default function ProductionVideoCall({
 
   useEffect(() => {
     initializeCall();
-    const unsubscribe = subscribeToCallSignals(callId, handleSignal);
     
     return () => {
       cleanup();
-      unsubscribe();
     };
   }, []);
 
@@ -213,6 +211,28 @@ export default function ProductionVideoCall({
           console.log('⚠️ Connection disconnected');
         }
       };
+
+      // **CRITICAL FIX**: Load past signals BEFORE subscribing to new ones
+      console.log('📥 Loading past signals for receiver...');
+      const { getSignals, deleteProcessedSignals } = await import('@/utils/webrtcSignaling');
+      const pastSignals = await getSignals(callId, isInitiator ? partnerId : (await supabase.auth.getUser()).data.user?.id || '');
+      
+      if (pastSignals.length > 0) {
+        console.log(`📥 Processing ${pastSignals.length} past signals`);
+        for (const signal of pastSignals) {
+          await handleSignal(signal);
+        }
+        // Clean up processed signals
+        await deleteProcessedSignals(callId, isInitiator ? partnerId : (await supabase.auth.getUser()).data.user?.id || '');
+      }
+
+      // Subscribe to future signals
+      console.log('📡 Subscribing to future signals...');
+      const { subscribeToCallSignals } = await import('@/utils/webrtcSignaling');
+      const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+      
+      // Store unsubscribe function for cleanup
+      (window as any).__callSignalUnsubscribe = unsubscribe;
 
       // Create and send offer if initiator
       if (isInitiator) {
@@ -455,6 +475,12 @@ export default function ProductionVideoCall({
       peerConnectionRef.current.close();
     }
     if (callTimerRef.current) clearInterval(callTimerRef.current);
+    
+    // Unsubscribe from signals
+    if ((window as any).__callSignalUnsubscribe) {
+      (window as any).__callSignalUnsubscribe();
+      delete (window as any).__callSignalUnsubscribe;
+    }
   };
 
   const formatDuration = (seconds: number) => {

@@ -196,7 +196,9 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
       // CRITICAL: Fetch and process existing signals IN ORDER
       const { getSignals } = await import('@/utils/webrtcSignaling');
-      const existingSignals = await getSignals(call.id);
+      const user = await supabase.auth.getUser();
+      const currentUserId = user.data.user?.id || '';
+      const existingSignals = await getSignals(call.id, currentUserId);
       console.log('📥 Fetched existing signals:', existingSignals.length, 'signals');
 
       // Sort signals by created_at to ensure correct order
