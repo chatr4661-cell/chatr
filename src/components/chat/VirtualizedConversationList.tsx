@@ -191,8 +191,8 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   }
 
   return (
-    <div className="flex flex-col h-full rounded-t-3xl overflow-hidden">
-      <div className="sticky top-0 z-10 glass-card border-b p-3">
+    <div className="flex flex-col h-full">
+      <div className="sticky top-0 z-10 bg-background border-b p-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -200,7 +200,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 glass border-border/50"
+            className="pl-10 bg-muted/30"
           />
         </div>
       </div>
@@ -223,7 +223,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
               <div
                 key={conv.id}
                 onClick={() => onConversationSelect(conv.id, conv.other_user)}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-primary/5 cursor-pointer transition-all duration-200 border-b border-border/30 hover:shadow-sm"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
               >
                 <Avatar className="w-12 h-12">
                   <AvatarImage src={conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url} />

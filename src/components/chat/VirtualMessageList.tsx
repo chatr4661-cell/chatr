@@ -68,8 +68,8 @@ export const VirtualMessageList = ({
   }
 
   return (
-    <ScrollArea className="flex-1 h-full bg-background/30 backdrop-blur-sm" ref={scrollRef} onScroll={handleScroll}>
-      <div className="space-y-2 p-4">
+    <ScrollArea className="flex-1 h-full" ref={scrollRef} onScroll={handleScroll}>
+      <div className="space-y-3 p-4">
         {messages.map((message, index) => {
           const isOwn = message.sender_id === userId;
           const prevMessage = index > 0 ? messages[index - 1] : null;

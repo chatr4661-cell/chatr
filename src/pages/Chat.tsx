@@ -38,7 +38,7 @@ const ChatEnhancedContent = () => {
   const [contacts, setContacts] = useState<any[]>([]);
   const { streak } = useStreakTracking('ai_chat');
   
-  // Optimized message handling with batching and pagination - initial load of only 20 messages
+  // Optimized message handling with batching and pagination
   const { messages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
     activeConversationId,
     user?.id || ''
@@ -189,10 +189,10 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Load messages when conversation changes - optimized for speed
+  // Load messages when conversation changes - limit initial load
   useEffect(() => {
     if (activeConversationId) {
-      loadMessages(20, 0); // Load only last 20 messages initially for faster load
+      loadMessages(30, 0); // Load only last 30 messages initially
     }
   }, [activeConversationId, loadMessages]);
 
@@ -235,14 +235,14 @@ const ChatEnhancedContent = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">
+    <div className="flex flex-col h-screen bg-background">
       <NetworkStatus />
       
       {activeConversationId ? (
         // Conversation View
         <>
           {/* Header */}
-          <div className="sticky top-0 z-10 border-b glass-card p-3 md:p-4 flex items-center justify-between shadow-soft">
+          <div className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-lg p-3 md:p-4 flex items-center justify-between">
             <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               <Button
                 variant="ghost"
@@ -302,7 +302,7 @@ const ChatEnhancedContent = () => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-hidden rounded-t-3xl bg-background/50 backdrop-blur-sm">
+          <div className="flex-1 overflow-hidden">
             <VirtualMessageList
               messages={messages}
               userId={user.id}
@@ -326,7 +326,7 @@ const ChatEnhancedContent = () => {
         // Conversation List View
         <>
           {/* Header */}
-          <div className="border-b glass-card p-3 transition-all duration-300 shadow-soft">
+          <div className="border-b bg-card/95 backdrop-blur-xl p-3 transition-all duration-300">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               {/* Left: Logo */}
               <div className="flex items-center gap-3">
@@ -477,7 +477,7 @@ const ChatEnhancedContent = () => {
           </div>
 
           {/* Conversations */}
-          <div className="flex-1 overflow-hidden rounded-t-3xl bg-background/40 backdrop-blur-sm mt-2">
+          <div className="flex-1 overflow-hidden">
             <VirtualizedConversationList
               userId={user.id}
               onConversationSelect={handleConversationSelect}
