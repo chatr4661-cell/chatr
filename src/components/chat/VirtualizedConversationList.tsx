@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -37,12 +37,12 @@ interface VirtualizedConversationListProps {
 }
 
 export const VirtualizedConversationList = ({ userId, onConversationSelect }: VirtualizedConversationListProps) => {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [conversations, setConversations] = React.useState<Conversation[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const { getCached, setCache } = useConversationCache();
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = React.useCallback(async () => {
     if (!userId) return;
 
     try {
@@ -154,7 +154,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
   }, [userId, getCached, setCache]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!userId) return;
     loadConversations();
 
@@ -176,7 +176,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     };
   }, [userId, loadConversations]);
 
-  const filteredConversations = useMemo(() => 
+  const filteredConversations = React.useMemo(() => 
     conversations.filter(conv => {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
