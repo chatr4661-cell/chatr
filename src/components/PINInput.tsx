@@ -11,7 +11,7 @@ interface PINInputProps {
 }
 
 export const PINInput = ({ 
-  length = 4,
+  length = 6,
   onComplete, 
   disabled = false,
   error = false,
@@ -108,7 +108,7 @@ export const PINInput = ({
   }, []);
 
   return (
-    <div className={cn("flex gap-2 justify-center", className)}>
+    <div className={cn("flex gap-2 justify-center flex-wrap", className)}>
       {pin.map((digit, index) => (
         <Input
           key={index}
@@ -122,11 +122,12 @@ export const PINInput = ({
           onPaste={handlePaste}
           disabled={disabled}
           className={cn(
-            "w-12 h-14 text-center text-2xl font-bold rounded-xl",
-            "bg-background/50 backdrop-blur-sm border-glass-border",
+            "w-14 h-14 text-center text-xl font-bold rounded-full",
+            "bg-background border-2 border-primary/30",
             error && "border-destructive",
             "transition-all duration-200",
-            "focus:scale-105 focus:border-primary"
+            "focus:scale-105 focus:border-primary focus:ring-2 focus:ring-primary/20",
+            "shadow-sm"
           )}
           autoComplete="off"
         />
