@@ -6,7 +6,7 @@ import { Phone, PhoneOff, Video, MessageSquare } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { cn } from "@/lib/utils";
-import { useRingtone } from "@/hooks/useRingtone";
+import { useNativeRingtone } from "@/hooks/useNativeRingtone";
 import { motion } from "framer-motion";
 
 interface IncomingCallScreenProps {
@@ -30,12 +30,10 @@ export function IncomingCallScreen({
 }: IncomingCallScreenProps) {
   const hapticIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  useRingtone({
+  useNativeRingtone({
     enabled: true,
     ringtoneUrl,
-    volume: 0.8,
-    fadeInDuration: 1000,
-    fadeOutDuration: 500
+    volume: 1.0
   });
 
   useEffect(() => {

@@ -5,13 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { RingtonePickerDialog } from '@/components/RingtonePickerDialog';
+import { CALL_RINGTONES } from '@/config/ringtones';
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [showRingtonePicker, setShowRingtonePicker] = useState(false);
+  const [callRingtone, setCallRingtone] = useState('/ringtone.mp3');
   const [settings, setSettings] = useState({
     push_notifications: true,
     email_notifications: true,
@@ -55,6 +59,7 @@ export default function NotificationSettings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Load user settings
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
@@ -73,6 +78,17 @@ export default function NotificationSettings() {
       } else {
         // Create default settings
         await supabase.from('user_settings').insert({ user_id: user.id });
+      }
+
+      // Load call ringtone from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('call_ringtone')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.call_ringtone) {
+        setCallRingtone(profile.call_ringtone);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -98,6 +114,26 @@ export default function NotificationSettings() {
     } catch (error) {
       console.error('Error updating setting:', error);
       toast({ title: 'Failed to update settings', variant: 'destructive' });
+    }
+  };
+
+  const updateCallRingtone = async (ringtone: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ call_ringtone: ringtone })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setCallRingtone(ringtone);
+      toast({ title: 'Call ringtone updated' });
+    } catch (error) {
+      console.error('Error updating ringtone:', error);
+      toast({ title: 'Failed to update ringtone', variant: 'destructive' });
     }
   };
 
@@ -170,7 +206,31 @@ export default function NotificationSettings() {
             </div>
           </CardContent>
         </Card>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Call Ringtone</CardTitle>
+            <CardDescription>Choose your preferred call ringtone</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => setShowRingtonePicker(true)}
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              {CALL_RINGTONES.find(r => r.path === callRingtone)?.name || 'Default Ringtone'}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      <RingtonePickerDialog
+        open={showRingtonePicker}
+        onClose={() => setShowRingtonePicker(false)}
+        currentRingtone={callRingtone}
+        onSelect={updateCallRingtone}
+      />
     </div>
   );
 }
