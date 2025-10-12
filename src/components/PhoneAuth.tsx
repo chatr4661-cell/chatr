@@ -47,18 +47,28 @@ export const PhoneAuth = () => {
     setLoading(true);
     try {
       const normalizedPhone = normalizePhoneNumber(phoneNumber, countryCode);
+      console.log('[AUTH] Checking phone:', normalizedPhone);
       
       // Check if user exists in profiles
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('phone_number', normalizedPhone)
         .maybeSingle();
 
+      console.log('[AUTH] Profile check:', { existingProfile, profileError });
+
       setIsNewUser(!existingProfile);
       setStep('pin');
+      
+      toast({
+        title: existingProfile ? "Welcome Back" : "New User",
+        description: existingProfile 
+          ? "Please enter your PIN to continue" 
+          : "Let's create a PIN for your account",
+      });
     } catch (error: any) {
-      console.error('Phone verification error:', error);
+      console.error('[AUTH] Phone verification error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to verify phone number",
@@ -70,6 +80,7 @@ export const PhoneAuth = () => {
   };
 
   const handlePinComplete = async (pin: string) => {
+    console.log('[AUTH] PIN complete:', { pin, isNewUser, phoneNumber, countryCode });
     if (isNewUser) {
       await handleCreatePin(pin);
     } else {
@@ -155,16 +166,21 @@ export const PhoneAuth = () => {
       const normalizedPhone = normalizePhoneNumber(phoneNumber, countryCode);
       const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
 
+      console.log('[AUTH] Login attempt:', { normalizedPhone, email, pin });
+
       // Sign in with phone as email and PIN as password
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password: pin,
       });
 
+      console.log('[AUTH] Sign in result:', { data, error: signInError });
+
       if (signInError) {
+        console.error('[AUTH] Sign in error:', signInError);
         toast({
           title: "Invalid PIN",
-          description: "The PIN you entered is incorrect",
+          description: "The PIN you entered is incorrect. Please try again.",
           variant: "destructive",
         });
         setLoading(false);
@@ -178,7 +194,7 @@ export const PhoneAuth = () => {
 
       navigate('/');
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('[AUTH] Login error:', error);
       toast({
         title: "Login Failed",
         description: error.message || "Failed to sign in",
