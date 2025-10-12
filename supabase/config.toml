@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.realtime-token]
 verify_jwt = true
+
+[functions.symptom-checker]
+verify_jwt = true

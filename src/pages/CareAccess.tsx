@@ -34,7 +34,7 @@ export default function CareAccess() {
       icon: Video,
       title: 'Teleconsultation',
       description: 'Instant video/audio consultation with doctors',
-      route: '/booking',
+      route: '/teleconsultation',
       color: 'from-purple-500 to-purple-600',
       badge: 'New'
     },
@@ -184,12 +184,12 @@ export default function CareAccess() {
         </Card>
 
         {/* Health Wallet - New Feature */}
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+        <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/health-wallet')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-purple-600" />
               Health Wallet
-              <Badge className="ml-2">Coming Soon</Badge>
+              <Badge className="ml-2 bg-green-600">Live Now</Badge>
             </CardTitle>
             <CardDescription>
               Track expenses, insurance, and health rewards
@@ -199,8 +199,8 @@ export default function CareAccess() {
             <p className="text-sm text-muted-foreground mb-3">
               Manage all your healthcare finances in one place. Link insurance, track spending, and earn rewards for healthy actions.
             </p>
-            <Button variant="outline" disabled>
-              Learn More
+            <Button className="bg-purple-600">
+              Open Wallet
             </Button>
           </CardContent>
         </Card>

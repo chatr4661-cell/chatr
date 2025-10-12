@@ -45,6 +45,11 @@ import HealthHub from "./pages/HealthHub";
 import CareAccess from "./pages/CareAccess";
 import CommunitySpace from "./pages/CommunitySpace";
 
+// New Feature Pages
+import SymptomCheckerPage from "./pages/SymptomCheckerPage";
+import HealthWalletPage from "./pages/HealthWalletPage";
+import TeleconsultationPage from "./pages/TeleconsultationPage";
+
 // Admin Pages
 import AdminUsers from "./pages/admin/Users";
 import AdminProviders from "./pages/admin/Providers";
@@ -87,6 +92,11 @@ const App = () => {
             <Route path="/health" element={<HealthHub />} />
             <Route path="/care" element={<CareAccess />} />
             <Route path="/community" element={<CommunitySpace />} />
+            
+            {/* New Feature Routes */}
+            <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
+            <Route path="/health-wallet" element={<HealthWalletPage />} />
+            <Route path="/teleconsultation" element={<TeleconsultationPage />} />
             
             {/* Main App Routes */}
             <Route path="/chat" element={<Chat />} />

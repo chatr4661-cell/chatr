@@ -607,6 +607,44 @@ export type Database = {
           },
         ]
       }
+      challenge_participants: {
+        Row: {
+          challenge_id: string
+          completed: boolean | null
+          completed_at: string | null
+          current_progress: number | null
+          id: string
+          joined_at: string | null
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed?: boolean | null
+          completed_at?: string | null
+          current_progress?: number | null
+          id?: string
+          joined_at?: string | null
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed?: boolean | null
+          completed_at?: string | null
+          current_progress?: number | null
+          id?: string
+          joined_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "health_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_requests: {
         Row: {
           created_at: string | null
@@ -1089,6 +1127,96 @@ export type Database = {
           },
         ]
       }
+      expert_sessions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_minutes: number
+          expert_id: string | null
+          expert_name: string
+          expert_title: string
+          id: string
+          is_live: boolean | null
+          max_participants: number | null
+          participant_count: number | null
+          recording_url: string | null
+          session_date: string
+          session_title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number
+          expert_id?: string | null
+          expert_name: string
+          expert_title: string
+          id?: string
+          is_live?: boolean | null
+          max_participants?: number | null
+          participant_count?: number | null
+          recording_url?: string | null
+          session_date: string
+          session_title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number
+          expert_id?: string | null
+          expert_name?: string
+          expert_title?: string
+          id?: string
+          is_live?: boolean | null
+          max_participants?: number | null
+          participant_count?: number | null
+          recording_url?: string | null
+          session_date?: string
+          session_title?: string
+        }
+        Relationships: []
+      }
+      health_challenges: {
+        Row: {
+          challenge_type: string
+          created_at: string | null
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          name: string
+          participant_count: number | null
+          reward_points: number
+          start_date: string
+          target_value: number
+        }
+        Insert: {
+          challenge_type: string
+          created_at?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          participant_count?: number | null
+          reward_points: number
+          start_date: string
+          target_value: number
+        }
+        Update: {
+          challenge_type?: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          participant_count?: number | null
+          reward_points?: number
+          start_date?: string
+          target_value?: number
+        }
+        Relationships: []
+      }
       health_goals: {
         Row: {
           created_at: string
@@ -1251,6 +1379,45 @@ export type Database = {
           },
         ]
       }
+      health_wallet: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          id: string
+          insurance_expiry: string | null
+          insurance_number: string | null
+          insurance_provider: string | null
+          total_earned: number | null
+          total_spent: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          insurance_number?: string | null
+          insurance_provider?: string | null
+          total_earned?: number | null
+          total_spent?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          insurance_number?: string | null
+          insurance_provider?: string | null
+          total_earned?: number | null
+          total_spent?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       invite_links: {
         Row: {
           created_at: string | null
@@ -1335,6 +1502,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leaderboard_cache: {
+        Row: {
+          challenges_completed: number | null
+          id: string
+          rank: number | null
+          total_points: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          challenges_completed?: number | null
+          id?: string
+          rank?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          challenges_completed?: number | null
+          id?: string
+          rank?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       live_rooms: {
         Row: {
@@ -2957,6 +3151,35 @@ export type Database = {
           },
         ]
       }
+      session_participants: {
+        Row: {
+          id: string
+          joined_at: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "expert_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       specializations: {
         Row: {
           created_at: string | null
@@ -3079,6 +3302,39 @@ export type Database = {
           },
         ]
       }
+      symptom_checks: {
+        Row: {
+          ai_assessment: string | null
+          created_at: string | null
+          id: string
+          recommended_actions: Json | null
+          severity_level: string | null
+          specialist_type: string | null
+          symptoms: Json
+          user_id: string
+        }
+        Insert: {
+          ai_assessment?: string | null
+          created_at?: string | null
+          id?: string
+          recommended_actions?: Json | null
+          severity_level?: string | null
+          specialist_type?: string | null
+          symptoms: Json
+          user_id: string
+        }
+        Update: {
+          ai_assessment?: string | null
+          created_at?: string | null
+          id?: string
+          recommended_actions?: Json | null
+          severity_level?: string | null
+          specialist_type?: string | null
+          symptoms?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           created_at: string | null
@@ -3114,6 +3370,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      teleconsultation_slots: {
+        Row: {
+          appointment_id: string | null
+          booked_by: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          is_available: boolean | null
+          provider_id: string
+          slot_date: string
+          slot_time: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          booked_by?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_available?: boolean | null
+          provider_id: string
+          slot_date: string
+          slot_time: string
+        }
+        Update: {
+          appointment_id?: string | null
+          booked_by?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_available?: boolean | null
+          provider_id?: string
+          slot_date?: string
+          slot_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teleconsultation_slots_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teleconsultation_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       two_factor_auth: {
         Row: {
@@ -3489,6 +3796,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          reference_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       webrtc_signals: {
         Row: {

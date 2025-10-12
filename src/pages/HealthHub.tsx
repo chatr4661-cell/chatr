@@ -249,7 +249,7 @@ export default function HealthHub() {
                 </CardHeader>
               </Card>
 
-              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200" onClick={() => navigate('/symptom-checker')}>
                 <CardHeader>
                   <Brain className="w-8 h-8 text-purple-600 mb-2" />
                   <CardTitle>Symptom Checker</CardTitle>
