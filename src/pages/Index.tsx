@@ -211,21 +211,50 @@ const Index = () => {
     navigate('/auth');
   };
 
-  const chatrServices = [
+  const mainHubs = [
     {
       icon: MessageCircle,
       title: 'Chat',
-      description: 'Messages, calls & contacts',
+      description: 'Messages, calls & video',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
-      route: '/chat'
+      route: '/chat',
+      isNew: false
+    },
+    {
+      icon: Heart,
+      title: 'Health Hub',
+      description: 'AI assistant, vitals & reports',
+      iconColor: 'bg-gradient-to-br from-emerald-400 to-teal-600',
+      route: '/health',
+      isNew: true
+    },
+    {
+      icon: Stethoscope,
+      title: 'Care Access',
+      description: 'Book doctors & emergency',
+      iconColor: 'bg-gradient-to-br from-blue-400 to-indigo-600',
+      route: '/care',
+      isNew: true
+    },
+    {
+      icon: Users,
+      title: 'Community',
+      description: 'Groups, stories & challenges',
+      iconColor: 'bg-gradient-to-br from-purple-400 to-pink-600',
+      route: '/community',
+      isNew: true
     },
     {
       icon: Coins,
-      title: 'Chatr Points',
-      description: 'Earn, redeem & buy rewards',
+      title: 'Rewards',
+      description: 'Points, wallet & premium',
       iconColor: 'bg-gradient-to-br from-amber-400 to-yellow-500',
-      route: '/chatr-points'
+      route: '/chatr-points',
+      isNew: false
     },
+  ];
+
+  const quickAccessServices = [
     {
       icon: QrCode,
       title: 'QR Login',
@@ -234,102 +263,18 @@ const Index = () => {
       route: '/qr-login'
     },
     {
-      icon: Flame,
-      title: 'Stories',
-      description: 'Share moments with friends',
-      iconColor: 'bg-gradient-to-br from-pink-400 to-purple-600',
-      route: '/stories'
-    },
-    {
-      icon: Users,
-      title: 'Communities',
-      description: 'Join & discover groups',
-      iconColor: 'bg-gradient-to-br from-indigo-400 to-purple-600',
-      route: '/communities'
-    },
-    {
       icon: Bot,
-      title: 'AI Health Assistant',
-      description: 'Get instant health advice',
+      title: 'AI Assistant',
+      description: 'Instant health advice',
       iconColor: 'bg-gradient-to-br from-teal-400 to-emerald-500',
       route: '/ai-assistant'
     },
     {
-      icon: Stethoscope,
-      title: 'Doctor Booking',
-      description: 'Book healthcare appointments',
-      iconColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
-      route: '/booking'
-    },
-    {
-      icon: FileText,
-      title: 'Lab Reports',
-      description: 'Manage medical test results',
-      iconColor: 'bg-gradient-to-br from-cyan-400 to-cyan-600',
-      route: '/lab-reports'
-    },
-    {
-      icon: Pill,
-      title: 'Medicine Reminders',
-      description: 'Never miss your medication',
-      iconColor: 'bg-gradient-to-br from-orange-400 to-orange-600',
-      route: '/medicine-reminders'
-    },
-    {
-      icon: Shield,
-      title: 'Health Passport',
-      description: 'Digital health identity',
-      iconColor: 'bg-gradient-to-br from-emerald-400 to-green-600',
-      route: '/health-passport'
-    },
-    {
       icon: AlertTriangle,
-      title: 'Emergency Button',
+      title: 'Emergency',
       description: 'Quick emergency access',
       iconColor: 'bg-gradient-to-br from-red-400 to-red-600',
       route: '/emergency'
-    },
-    {
-      icon: Activity,
-      title: 'Wellness Tracking',
-      description: 'Track health metrics',
-      iconColor: 'bg-gradient-to-br from-pink-400 to-pink-600',
-      route: '/wellness'
-    },
-    {
-      icon: ShoppingBag,
-      title: 'Marketplace',
-      description: 'Order medicines & products',
-      iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
-      route: '/marketplace'
-    },
-    {
-      icon: Heart,
-      title: 'Allied Healthcare',
-      description: 'Specialized health services',
-      iconColor: 'bg-gradient-to-br from-blue-400 to-indigo-600',
-      route: '/allied-healthcare'
-    },
-    {
-      icon: Briefcase,
-      title: 'Become a Provider',
-      description: 'Register as healthcare provider',
-      iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
-      route: '/provider-register'
-    },
-    {
-      icon: Users,
-      title: 'Youth Feed',
-      description: 'Share wellness journey',
-      iconColor: 'bg-gradient-to-br from-violet-400 to-violet-600',
-      route: '/youth-feed'
-    },
-    {
-      icon: Trophy,
-      title: 'Youth Engagement',
-      description: 'Health programs & activities',
-      iconColor: 'bg-gradient-to-br from-yellow-400 to-yellow-600',
-      route: '/youth'
     },
   ];
 
@@ -388,8 +333,8 @@ const Index = () => {
 
         {/* Chatr Brand Header */}
         <div className="space-y-2">
-          <h1 className="text-[34px] font-bold text-foreground tracking-tight">Chatr</h1>
-          <p className="text-[15px] text-muted-foreground">All-in-one messaging & health platform</p>
+          <h1 className="text-[34px] font-bold text-foreground tracking-tight">Chatr+</h1>
+          <p className="text-[15px] text-muted-foreground">Your complete health & wellness ecosystem</p>
         </div>
 
         {/* Quick Message Input */}
@@ -420,13 +365,44 @@ const Index = () => {
           </div>
         </div>
 
-        {/* All Services Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {chatrServices.map((service) => (
-            <div key={service.title} onClick={() => navigate(service.route)}>
-              <ServiceCard {...service} />
-            </div>
-          ))}
+        {/* Main Feature Hubs */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3 text-foreground">Main Features</h2>
+          <div className="grid grid-cols-1 gap-3">
+            {mainHubs.map((hub) => (
+              <div 
+                key={hub.title} 
+                onClick={() => navigate(hub.route)}
+                className="relative"
+              >
+                <ServiceCard {...hub} />
+                {hub.isNew && (
+                  <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    NEW
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Access */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3 text-foreground">Quick Access</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {quickAccessServices.map((service) => (
+              <div 
+                key={service.title} 
+                onClick={() => navigate(service.route)}
+                className="aspect-square"
+              >
+                <div className={`h-full rounded-2xl ${service.iconColor} p-3 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all`}>
+                  <service.icon className="w-8 h-8 text-white mb-2" />
+                  <span className="text-[11px] text-white text-center font-medium">{service.title}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

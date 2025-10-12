@@ -39,6 +39,11 @@ import EmergencyButton from "./pages/EmergencyButton";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
+// Consolidated Hub Pages
+import HealthHub from "./pages/HealthHub";
+import CareAccess from "./pages/CareAccess";
+import CommunitySpace from "./pages/CommunitySpace";
+
 // Admin Pages
 import AdminUsers from "./pages/admin/Users";
 import AdminProviders from "./pages/admin/Providers";
@@ -75,6 +80,11 @@ const App = () => {
             <Route path="/download" element={<Download />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/privacy" element={<Privacy />} />
+            
+            {/* Consolidated Hub Routes */}
+            <Route path="/health" element={<HealthHub />} />
+            <Route path="/care" element={<CareAccess />} />
+            <Route path="/community" element={<CommunitySpace />} />
             
             {/* Main App Routes */}
             <Route path="/chat" element={<Chat />} />
