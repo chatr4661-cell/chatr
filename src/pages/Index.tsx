@@ -3,83 +3,100 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import ServiceCard from '@/components/ServiceCard';
-import { setupTestUserContacts, isTestUser } from '@/utils/testUserSetup';
 import { toast } from 'sonner';
 import { 
   Bot, 
   Stethoscope, 
   AlertTriangle, 
-  Activity, 
-  Trophy, 
-  ShoppingBag, 
   MessageCircle, 
   Heart, 
   Mic, 
   Paperclip, 
   LogOut, 
-  Briefcase,
-  FileText,
-  Pill,
   Users,
   Coins,
-  Shield,
   QrCode,
-  Phone,
   Flame
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
+// Lazy load heavy components
+const ServiceCard = React.lazy(() => import('@/components/ServiceCard'));
+
 const Index = () => {
   const navigate = useNavigate();
   const [user, setUser] = React.useState<any>(null);
-  const [isSettingUpContacts, setIsSettingUpContacts] = React.useState(false);
   const [pointsBalance, setPointsBalance] = React.useState<number>(0);
   const [currentStreak, setCurrentStreak] = React.useState<number>(0);
-  const [isLoadingPoints, setIsLoadingPoints] = React.useState(true);
+  const [mounted, setMounted] = React.useState(false);
 
-  // Auto-sync contacts on app load
+  // Fast initial auth check - non-blocking
   React.useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/auth');
-      } else {
-        setUser(session.user);
-        checkAndSetupTestUser(session.user);
-        // Trigger auto-sync after user is set
-        autoSyncContactsOnLoad(session.user.id);
-      }
-    });
+    setMounted(true);
+    
+    let authCheckTimeout: NodeJS.Timeout;
+    
+    // Defer auth check slightly to allow UI to render first
+    authCheckTimeout = setTimeout(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          navigate('/auth');
+        } else {
+          setUser(session.user);
+          // Defer all heavy operations
+          deferHeavyOperations(session.user);
+        }
+      });
+    }, 50);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         navigate('/auth');
       } else {
         setUser(session.user);
-        checkAndSetupTestUser(session.user);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(authCheckTimeout);
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
+  // Defer all heavy operations to after page load
+  const deferHeavyOperations = (user: any) => {
+    // Use requestIdleCallback for better performance
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        loadPointsData();
+        processDailyLogin();
+        autoSyncContactsOnLoad(user.id);
+      });
+    } else {
+      // Fallback for browsers without requestIdleCallback
+      setTimeout(() => {
+        loadPointsData();
+        processDailyLogin();
+        autoSyncContactsOnLoad(user.id);
+      }, 100);
+    }
+  };
+
   const autoSyncContactsOnLoad = async (userId: string) => {
-    // Run in background - don't block page load
+    // Run in background - heavily deferred
     setTimeout(async () => {
       try {
-        const { Contacts } = await import('@capacitor-community/contacts');
-        const { Capacitor } = await import('@capacitor/core');
+        const [{ Contacts }, { Capacitor }] = await Promise.all([
+          import('@capacitor-community/contacts'),
+          import('@capacitor/core')
+        ]);
         
-        // Only on native platforms
         if (!Capacitor.isNativePlatform()) return;
         
         const lastSync = localStorage.getItem(`last_sync_${userId}`);
         const now = new Date().getTime();
         
-        // Auto-sync if never synced or last sync was more than 6 hours ago
         if (!lastSync || (now - parseInt(lastSync)) > 6 * 60 * 60 * 1000) {
-          console.log('🔄 Auto-syncing contacts in background...');
-          
           const permission = await Contacts.requestPermissions();
           if (permission.contacts !== 'granted') return;
           
@@ -89,10 +106,8 @@ const Index = () => {
           
           if (!result.contacts || result.contacts.length === 0) return;
           
-          // Batch process contacts - limit to 50 for performance
           const contactsToSync = result.contacts.slice(0, 50);
           
-          // Batch insert all at once instead of one by one
           const contactData = await Promise.all(
             contactsToSync.map(async (contact) => {
               const name = contact.name?.display || 'Unknown';
@@ -103,7 +118,6 @@ const Index = () => {
               
               const identifier = email || phone || '';
               
-              // Quick user lookup
               let matchedUserId = null;
               if (email) {
                 const { data } = await supabase
@@ -124,7 +138,6 @@ const Index = () => {
             })
           );
           
-          // Filter nulls and batch upsert
           const validContacts = contactData.filter(c => c !== null);
           if (validContacts.length > 0) {
             await supabase
@@ -136,12 +149,11 @@ const Index = () => {
           }
           
           localStorage.setItem(`last_sync_${userId}`, now.toString());
-          console.log(`✅ Auto-synced ${validContacts.length} contacts in background`);
         }
       } catch (error) {
-        console.log('Auto-sync error (non-blocking):', error);
+        console.log('Auto-sync error:', error);
       }
-    }, 2000); // Delay 2 seconds to not block page load
+    }, 5000); // Delay 5 seconds - page is fully loaded by then
   };
 
   const loadPointsData = async () => {
@@ -149,24 +161,15 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: pointsData } = await supabase
-        .from('user_points')
-        .select('balance')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const { data: streakData } = await supabase
-        .from('user_streaks')
-        .select('current_streak')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const [{ data: pointsData }, { data: streakData }] = await Promise.all([
+        supabase.from('user_points').select('balance').eq('user_id', user.id).maybeSingle(),
+        supabase.from('user_streaks').select('current_streak').eq('user_id', user.id).maybeSingle()
+      ]);
 
       setPointsBalance(pointsData?.balance || 0);
       setCurrentStreak(streakData?.current_streak || 0);
     } catch (error) {
       console.error('Error loading points:', error);
-    } finally {
-      setIsLoadingPoints(false);
     }
   };
 
@@ -190,21 +193,6 @@ const Index = () => {
     }
   };
 
-  const checkAndSetupTestUser = async (user: any) => {
-    if (user?.email && await isTestUser()) {
-      const hasSetup = localStorage.getItem(`contacts_setup_${user.email}`);
-      if (!hasSetup) {
-        setIsSettingUpContacts(true);
-        await setupTestUserContacts();
-        localStorage.setItem(`contacts_setup_${user.email}`, 'true');
-        setIsSettingUpContacts(false);
-      }
-    }
-    
-    // Load points and process daily login for all users
-    await loadPointsData();
-    await processDailyLogin();
-  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -278,6 +266,19 @@ const Index = () => {
     },
   ];
 
+  // Show skeleton while mounting
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#000000]">
+        <div className="bg-background/95 backdrop-blur-md border-b border-border/50">
+          <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
+            <img src={logo} alt="Chatr Logo" className="h-7 object-contain" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#000000] pb-6">
       {/* iOS-style Header */}
@@ -293,7 +294,7 @@ const Index = () => {
             >
               <Coins className="w-4 h-4 text-amber-500" />
               <span className="text-[15px] font-semibold text-amber-600 dark:text-amber-400">
-                {isLoadingPoints ? '...' : pointsBalance.toLocaleString()}
+                {pointsBalance.toLocaleString()}
               </span>
               {currentStreak > 0 && (
                 <div className="flex items-center gap-0.5 ml-0.5">
@@ -325,11 +326,6 @@ const Index = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
-        {isSettingUpContacts && (
-          <div className="bg-primary/10 border border-primary/20 rounded-xl p-3">
-            <p className="text-[15px] text-primary text-center">Setting up test contacts...</p>
-          </div>
-        )}
 
         {/* Chatr Brand Header */}
         <div className="space-y-2">
@@ -369,20 +365,28 @@ const Index = () => {
         <div>
           <h2 className="text-lg font-semibold mb-3 text-foreground">Main Features</h2>
           <div className="grid grid-cols-1 gap-3">
-            {mainHubs.map((hub) => (
-              <div 
-                key={hub.title} 
-                onClick={() => navigate(hub.route)}
-                className="relative"
-              >
-                <ServiceCard {...hub} />
-                {hub.isNew && (
-                  <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    NEW
-                  </div>
-                )}
+            <React.Suspense fallback={
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-16 bg-muted/50 rounded-2xl animate-pulse" />
+                ))}
               </div>
-            ))}
+            }>
+              {mainHubs.map((hub) => (
+                <div 
+                  key={hub.title} 
+                  onClick={() => navigate(hub.route)}
+                  className="relative"
+                >
+                  <ServiceCard {...hub} />
+                  {hub.isNew && (
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      NEW
+                    </div>
+                  )}
+                </div>
+              ))}
+            </React.Suspense>
           </div>
         </div>
 

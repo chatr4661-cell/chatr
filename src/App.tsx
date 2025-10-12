@@ -1,7 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { GlobalCallListener } from "@/components/calling/GlobalCallListener";
+import React from "react";
+
+const GlobalCallListener = React.lazy(() => 
+  import("@/components/calling/GlobalCallListener").then(module => ({ 
+    default: module.GlobalCallListener 
+  }))
+);
 
 // Pages
 import Index from "./pages/Index";
@@ -79,7 +85,9 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <BrowserRouter>
-          <GlobalCallListener />
+          <React.Suspense fallback={null}>
+            <GlobalCallListener />
+          </React.Suspense>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
