@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,12 +19,16 @@ import { useOptimizedMessages } from '@/hooks/useOptimizedMessages';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
 import { PulseCreator } from '@/components/chat/PulseCreator';
+import { GroupChatCreator } from '@/components/GroupChatCreator';
+import { DisappearingMessagesDialog } from '@/components/DisappearingMessagesDialog';
+import { BroadcastCreator } from '@/components/BroadcastCreator';
 import { VoiceInterface } from '@/components/voice/VoiceInterface';
 import { EmotionCircleMatch } from '@/components/EmotionCircleMatch';
 import { LiveRooms } from '@/components/LiveRooms';
 import { AIMoments } from '@/components/AIMoments';
 import { useMoodTracking } from '@/hooks/useMoodTracking';
 import { useStreakTracking } from '@/hooks/useStreakTracking';
+import logo from '@/assets/chatr-logo.png';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -36,6 +40,9 @@ const ChatEnhancedContent = () => {
   const [showClusterCreator, setShowClusterCreator] = React.useState(false);
   const [showPulseCreator, setShowPulseCreator] = React.useState(false);
   const [showAIFeatures, setShowAIFeatures] = React.useState(false);
+  const [showGroupCreator, setShowGroupCreator] = React.useState(false);
+  const [showBroadcastCreator, setShowBroadcastCreator] = React.useState(false);
+  const [showDisappearingSettings, setShowDisappearingSettings] = React.useState(false);
   const [contacts, setContacts] = React.useState<any[]>([]);
   const [profile, setProfile] = React.useState<any>(null);
   const { streak } = useStreakTracking('ai_chat');
@@ -191,7 +198,14 @@ const ChatEnhancedContent = () => {
   const handleSendMessage = async (content: string, type?: string, mediaUrl?: string) => {
     if (!activeConversationId) return;
     try {
-      await sendMessage(content, type, mediaUrl);
+      // Extended sendMessage to handle media URLs
+      await supabase.from('messages').insert({
+        conversation_id: activeConversationId,
+        sender_id: user!.id,
+        content,
+        message_type: type || 'text',
+        media_url: mediaUrl
+      });
     } catch (error) {
       toast.error('Failed to send message');
     }
@@ -316,6 +330,26 @@ const ChatEnhancedContent = () => {
             </div>
 
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full h-9 w-9 md:h-10 md:w-10"
+                  >
+                    <MoreVertical className="h-4 w-4 md:h-5 md:w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={() => setShowDisappearingSettings(true)}
+                    className="cursor-pointer"
+                  >
+                    <Radio className="h-4 w-4 mr-2" />
+                    Disappearing Messages
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="ghost"
                 size="icon"
@@ -549,6 +583,37 @@ const ChatEnhancedContent = () => {
           setShowPulseCreator(false);
         }}
       />
+
+      {/* Group Chat Creator */}
+      <GroupChatCreator
+        open={showGroupCreator}
+        onOpenChange={setShowGroupCreator}
+        contacts={contacts}
+        userId={user.id}
+        onGroupCreated={(groupId) => {
+          setActiveConversationId(groupId);
+          setShowGroupCreator(false);
+        }}
+      />
+
+      {/* Broadcast Creator */}
+      <BroadcastCreator
+        open={showBroadcastCreator}
+        onOpenChange={setShowBroadcastCreator}
+        contacts={contacts}
+        userId={user.id}
+      />
+
+      {/* Disappearing Messages Settings */}
+      {activeConversationId && showDisappearingSettings && (
+        <DisappearingMessagesDialog
+          conversationId={activeConversationId}
+          onUpdate={(duration) => {
+            toast.success(duration ? 'Disappearing messages enabled' : 'Disappearing messages disabled');
+            setShowDisappearingSettings(false);
+          }}
+        />
+      )}
       
       {/* Voice AI Interface - Always available */}
       <VoiceInterface />
