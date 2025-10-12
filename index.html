@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/chatr-logo.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#8B5CF6" />
+    <meta name="theme-color" content="#0A84FF" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
@@ -20,17 +21,20 @@
     <meta name="mobile-web-app-capable" content="yes" />
     
     <title>Chatr - Smart Messaging</title>
-    <meta name="description" content="Your complete healthcare ecosystem in one chat-based platform. Connect with doctors, order medicines, track wellness, and access emergency services - all in real-time. Features offline Bluetooth mesh chat." />
+    <meta name="description" content="Chatr — a next-gen social and messaging platform with stories, calls, rewards, and PWA-first design." />
     <meta name="author" content="Chatr" />
+    <meta name="keywords" content="chatr, messaging, pwa, social, stories, calls, chat" />
     
 
-    <meta property="og:title" content="Chatr - Smart Healthcare Messaging" />
-    <meta property="og:description" content="Your complete healthcare ecosystem with offline mesh chat. Connect, consult, and care in real-time - online or offline." />
+    <meta property="og:title" content="Chatr - Next-Gen Social Messaging" />
+    <meta property="og:description" content="Chatr — a next-gen social and messaging platform with stories, calls, rewards, and PWA-first design." />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/chatr-logo.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@ChatrApp" />
+    <meta name="twitter:title" content="Chatr - Next-Gen Social Messaging" />
+    <meta name="twitter:description" content="Chatr — a next-gen social and messaging platform with stories, calls, rewards, and PWA-first design." />
     <meta name="twitter:image" content="/chatr-logo.png" />
   </head>
 
@@ -39,29 +43,85 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration - PWA Compliant -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('SW registered:', registration);
-              
-              // Request notification permission
-              if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
-              }
-              
-              // Register periodic sync (if supported)
-              if ('periodicSync' in registration) {
-                registration.periodicSync.register('daily-sync', {
+        window.addEventListener('load', async () => {
+          try {
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+              scope: '/',
+              updateViaCache: 'none'
+            });
+            
+            console.log('SW registered:', registration);
+            
+            // Check for updates every 60 seconds
+            setInterval(() => {
+              registration.update();
+            }, 60000);
+            
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+              await Notification.requestPermission();
+            }
+            
+            // Register periodic sync (if supported)
+            if ('periodicSync' in registration) {
+              try {
+                await registration.periodicSync.register('message-check', {
+                  minInterval: 60 * 1000 // 1 minute
+                });
+                await registration.periodicSync.register('daily-sync', {
                   minInterval: 24 * 60 * 60 * 1000 // 24 hours
-                }).catch(err => console.log('Periodic sync not supported'));
+                });
+                console.log('Periodic sync registered');
+              } catch (err) {
+                console.log('Periodic sync not supported:', err);
               }
-            })
-            .catch(err => console.log('SW registration failed:', err));
+            }
+            
+            // Listen for updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New SW available, prompt user to reload
+                  if (confirm('New version available! Reload to update?')) {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+            
+            // Handle controller change
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (!refreshing) {
+                refreshing = true;
+                window.location.reload();
+              }
+            });
+            
+          } catch (err) {
+            console.error('SW registration failed:', err);
+          }
         });
       }
+      
+      // Handle install prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log('Install prompt ready');
+      });
+      
+      // Handle app installed
+      window.addEventListener('appinstalled', () => {
+        console.log('PWA installed successfully');
+        deferredPrompt = null;
+      });
     </script>
   </body>
 </html>

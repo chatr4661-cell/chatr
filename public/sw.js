@@ -1,25 +1,28 @@
-// Chatr Service Worker - PWA Offline Support
-// FORCE COMPLETE CACHE CLEAR - 2025-10-11T06:15:00Z
-const CACHE_NAME = 'chatr-v2-nocache';
-const RUNTIME_CACHE = 'chatr-runtime-v2';
+// Chatr Service Worker - PWABuilder Compliant
+// Handles offline functionality, caching, background sync, and push notifications
 
-// Assets to cache on install
+// Cache version - increment to force update
+const CACHE_NAME = 'chatr-cache-v3';
+const RUNTIME_CACHE = 'chatr-runtime-v3';
+const IMAGE_CACHE = 'chatr-images-v3';
+
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/manifest.json',
   '/chatr-logo.png',
   '/favicon.png',
-  '/ringtone.mp3',
-  '/notification.mp3'
+  '/notification.mp3',
+  '/ringtone.mp3'
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Caching static assets');
+      .then(cache => {
+        console.log('Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => self.skipWaiting())
@@ -28,13 +31,15 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
+  console.log('Service Worker activating...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
-            console.log('Service Worker: Deleting old cache:', cacheName);
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME && 
+              cacheName !== RUNTIME_CACHE && 
+              cacheName !== IMAGE_CACHE) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -43,7 +48,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - network first, then cache fallback
+// Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -51,32 +56,38 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // NEVER cache JavaScript files to prevent stale code issues
+  // Skip cross-origin requests except images
+  if (url.origin !== location.origin) {
+    if (request.destination === 'image') {
+      event.respondWith(
+        caches.open(IMAGE_CACHE).then(cache => {
+          return cache.match(request).then(response => {
+            return response || fetch(request).then(fetchResponse => {
+              cache.put(request, fetchResponse.clone());
+              return fetchResponse;
+            });
+          });
+        })
+      );
+    }
+    return;
+  }
+
+  // NEVER cache JavaScript files to prevent stale code
   if (url.pathname.endsWith('.js') || url.pathname.includes('/src/') || url.pathname.includes('node_modules')) {
     event.respondWith(fetch(request));
     return;
   }
 
-  // Skip Supabase realtime requests
-  if (url.hostname.includes('supabase.co') && url.pathname.includes('realtime')) {
-    return;
-  }
-
-  // Skip Supabase API requests (let them fail naturally)
-  if (url.hostname.includes('supabase.co')) {
-    event.respondWith(fetch(request));
-    return;
-  }
-
-  // Network-first strategy for API calls
-  if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase')) {
+  // Handle API requests (network first, cache fallback)
+  if (url.pathname.includes('/api/') || url.pathname.includes('supabase')) {
     event.respondWith(
       fetch(request)
-        .then((response) => {
+        .then(response => {
           // Clone and cache successful responses
-          if (response && response.status === 200) {
+          if (response.status === 200) {
             const responseClone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => {
+            caches.open(RUNTIME_CACHE).then(cache => {
               cache.put(request, responseClone);
             });
           }
@@ -90,30 +101,69 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first strategy for static assets
-  event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
+  // Handle images (cache first, network fallback)
+  if (request.destination === 'image') {
+    event.respondWith(
+      caches.open(IMAGE_CACHE).then(cache => {
+        return cache.match(request).then(response => {
+          return response || fetch(request).then(fetchResponse => {
+            cache.put(request, fetchResponse.clone());
+            return fetchResponse;
+          }).catch(() => {
+            // Return placeholder if offline
+            return new Response('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="#ccc" width="200" height="200"/></svg>', {
+              headers: { 'Content-Type': 'image/svg+xml' }
+            });
+          });
+        });
+      })
+    );
+    return;
+  }
 
-        return fetch(request).then((response) => {
-          // Don't cache if not a success
-          if (!response || response.status !== 200 || response.type === 'error') {
+  // Handle navigation requests (cache first with network update)
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      caches.match(request)
+        .then(response => {
+          if (response) {
+            // Update cache in background
+            fetch(request).then(fetchResponse => {
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(request, fetchResponse);
+              });
+            }).catch(() => {});
             return response;
           }
+          return fetch(request);
+        })
+        .catch(() => {
+          // Offline fallback
+          return caches.match('/index.html');
+        })
+    );
+    return;
+  }
 
-          const responseClone = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(request, responseClone);
-          });
-
+  // Handle all other requests (cache first, network fallback)
+  event.respondWith(
+    caches.match(request)
+      .then(response => {
+        if (response) {
           return response;
+        }
+        return fetch(request).then(fetchResponse => {
+          // Cache successful responses
+          if (fetchResponse.status === 200) {
+            const responseClone = fetchResponse.clone();
+            caches.open(RUNTIME_CACHE).then(cache => {
+              cache.put(request, responseClone);
+            });
+          }
+          return fetchResponse;
         });
       })
       .catch(() => {
-        // Return offline page for navigation requests
         if (request.destination === 'document') {
           return caches.match('/index.html');
         }
@@ -121,111 +171,185 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Background sync for offline messages
+// Background Sync - handle offline messages
 self.addEventListener('sync', (event) => {
-  console.log('Service Worker: Background sync triggered');
+  console.log('Background sync triggered:', event.tag);
+  
   if (event.tag === 'sync-messages') {
     event.waitUntil(syncMessages());
-  }
-  if (event.tag === 'sync-contacts') {
+  } else if (event.tag === 'sync-contacts') {
     event.waitUntil(syncContacts());
   }
 });
 
-// Periodic background sync (every 24 hours)
+// Periodic Background Sync - check for updates
 self.addEventListener('periodicsync', (event) => {
-  console.log('Service Worker: Periodic sync triggered');
+  console.log('Periodic sync triggered:', event.tag);
+  
   if (event.tag === 'daily-sync') {
     event.waitUntil(performDailySync());
+  } else if (event.tag === 'message-check') {
+    event.waitUntil(checkNewMessages());
   }
 });
 
-async function performDailySync() {
-  console.log('Performing daily sync...');
-  try {
-    // Sync contacts in background
-    await syncContacts();
-    // Refresh cached data
-    const cache = await caches.open(RUNTIME_CACHE);
-    await cache.add('/');
-  } catch (error) {
-    console.error('Daily sync failed:', error);
-  }
-}
-
-async function syncContacts() {
-  console.log('Syncing contacts...');
-  // Contact sync logic handled by the app
-  return Promise.resolve();
-}
-
-// Push notification handling
+// Push Notification Handler
 self.addEventListener('push', (event) => {
-  console.log('Service Worker: Push notification received');
-  const data = event.data ? event.data.json() : {};
+  console.log('Push notification received');
   
-  const options = {
-    body: data.body || 'You have a new message',
+  let notificationData = {
+    title: 'Chatr',
+    body: 'You have a new message',
     icon: '/chatr-logo.png',
     badge: '/chatr-logo.png',
     vibrate: [200, 100, 200],
+    tag: 'chatr-notification',
+    requireInteraction: false,
     data: {
-      url: data.url || '/'
+      url: '/'
     }
   };
 
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      notificationData = {
+        ...notificationData,
+        title: data.title || notificationData.title,
+        body: data.body || data.message || notificationData.body,
+        data: data
+      };
+    } catch (e) {
+      notificationData.body = event.data.text();
+    }
+  }
+
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Chatr', options)
+    self.registration.showNotification(notificationData.title, notificationData)
   );
 });
 
-// Notification click handling
+// Notification Click Handler
 self.addEventListener('notificationclick', (event) => {
-  console.log('Service Worker: Notification clicked');
+  console.log('Notification clicked');
   event.notification.close();
-  
+
+  const urlToOpen = event.notification.data?.url || '/';
+
   event.waitUntil(
-    clients.openWindow(event.notification.data.url || '/')
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(windowClients => {
+        // Check if there's already a window open
+        for (let client of windowClients) {
+          if (client.url === urlToOpen && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // Open new window if none exists
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
   );
 });
 
-// Helper function to sync offline messages
+// Message handler for communication with app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CACHE_URLS') {
+    event.waitUntil(
+      caches.open(RUNTIME_CACHE).then(cache => {
+        return cache.addAll(event.data.urls);
+      })
+    );
+  }
+});
+
+// Helper Functions
+
 async function syncMessages() {
   try {
-    // Get all pending messages from IndexedDB
     const db = await openDB();
-    const messages = await db.getAll('pendingMessages');
+    const tx = db.transaction('pending_messages', 'readonly');
+    const store = tx.objectStore('pending_messages');
+    const messages = await store.getAll();
     
-    // Send each message
     for (const message of messages) {
       try {
-        await fetch('/api/messages', {
+        const response = await fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(message)
         });
-        await db.delete('pendingMessages', message.id);
+        
+        if (response.ok) {
+          const deleteTx = db.transaction('pending_messages', 'readwrite');
+          const deleteStore = deleteTx.objectStore('pending_messages');
+          await deleteStore.delete(message.id);
+        }
       } catch (error) {
         console.error('Failed to sync message:', error);
       }
     }
   } catch (error) {
-    console.error('Sync failed:', error);
+    console.error('Sync messages failed:', error);
   }
 }
 
-// IndexedDB helper
+async function syncContacts() {
+  try {
+    console.log('Syncing contacts...');
+    // Implement contact sync logic
+  } catch (error) {
+    console.error('Sync contacts failed:', error);
+  }
+}
+
+async function performDailySync() {
+  try {
+    console.log('Performing daily sync...');
+    await Promise.all([
+      syncMessages(),
+      syncContacts(),
+      checkNewMessages()
+    ]);
+  } catch (error) {
+    console.error('Daily sync failed:', error);
+  }
+}
+
+async function checkNewMessages() {
+  try {
+    const response = await fetch('/api/messages/check');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.hasNew) {
+        await self.registration.showNotification('Chatr', {
+          body: 'You have new messages',
+          icon: '/chatr-logo.png',
+          badge: '/chatr-logo.png'
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Check messages failed:', error);
+  }
+}
+
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('chatr-db', 1);
+    const request = indexedDB.open('ChatrDB', 1);
     
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
     
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
-      if (!db.objectStoreNames.contains('pendingMessages')) {
-        db.createObjectStore('pendingMessages', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('pending_messages')) {
+        db.createObjectStore('pending_messages', { keyPath: 'id', autoIncrement: true });
       }
     };
   });

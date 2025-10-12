@@ -1,12 +1,12 @@
 {
   "id": "app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a",
-  "name": "Chatr - Smart Messaging & Healthcare",
+  "name": "Chatr",
   "short_name": "Chatr",
-  "description": "Your complete healthcare ecosystem in one chat-based platform. Connect with doctors, order medicines, track wellness, and access emergency services - all in real-time.",
+  "description": "Chatr — a next-gen social and messaging platform with stories, calls, rewards, and PWA-first design.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#8B5CF6",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0A84FF",
   "orientation": "portrait",
   "scope": "/",
   "lang": "en",
@@ -17,13 +17,25 @@
       "src": "/chatr-logo.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/chatr-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/chatr-logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/chatr-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
@@ -45,17 +57,24 @@
   "categories": ["social", "health", "medical", "lifestyle", "communication"],
   "shortcuts": [
     {
-      "name": "New Message",
-      "short_name": "Message",
+      "name": "New Chat",
+      "short_name": "Chat",
       "description": "Start a new conversation",
       "url": "/chat",
       "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
     },
     {
-      "name": "Video Call",
-      "short_name": "Call",
-      "description": "Start a video call",
-      "url": "/chat",
+      "name": "Stories",
+      "short_name": "Stories",
+      "description": "View stories",
+      "url": "/stories",
+      "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Profile",
+      "short_name": "Profile",
+      "description": "View your profile",
+      "url": "/profile",
       "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
     },
     {
@@ -64,23 +83,22 @@
       "description": "Access your health records",
       "url": "/health-passport",
       "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Emergency",
-      "short_name": "SOS",
-      "description": "Access emergency services",
-      "url": "/emergency",
-      "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }]
     }
   ],
   "share_target": {
     "action": "/chat",
-    "method": "GET",
-    "enctype": "application/x-www-form-urlencoded",
+    "method": "POST",
+    "enctype": "multipart/form-data",
     "params": {
       "title": "title",
       "text": "text",
-      "url": "url"
+      "url": "url",
+      "files": [
+        {
+          "name": "image",
+          "accept": ["image/*", "video/*"]
+        }
+      ]
     }
   },
   "file_handlers": [
@@ -88,7 +106,7 @@
       "action": "/lab-reports",
       "accept": {
         "application/pdf": [".pdf"],
-        "image/*": [".jpg", ".jpeg", ".png"]
+        "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"]
       },
       "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }],
       "launch_type": "single-client"
@@ -97,6 +115,10 @@
   "protocol_handlers": [
     {
       "protocol": "web+chatr",
+      "url": "/chat?url=%s"
+    },
+    {
+      "protocol": "chatr",
       "url": "/chat?url=%s"
     }
   ],
@@ -107,6 +129,20 @@
   "edge_side_panel": {
     "preferred_width": 480
   },
+  "scope_extensions": [
+    {
+      "origin": "https://chatr.chat"
+    },
+    {
+      "origin": "https://cdn.chatr.chat"
+    },
+    {
+      "origin": "https://api.chatr.chat"
+    },
+    {
+      "origin": "https://*.chatr.app"
+    }
+  ],
   "widgets": [
     {
       "name": "Quick Message",
@@ -162,16 +198,19 @@
   "note_taking": {
     "new_note_url": "/chat?note=new"
   },
-  "scope_extensions": [
-    {
-      "origin": "https://*.chatr.app"
-    }
-  ],
   "related_applications": [
     {
       "platform": "play",
       "url": "https://play.google.com/store/apps/details?id=app.lovable.chatr",
       "id": "app.lovable.chatr"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/chatr/id123456789"
+    },
+    {
+      "platform": "windows",
+      "url": "https://www.microsoft.com/store/apps/chatr"
     }
   ],
   "prefer_related_applications": false
