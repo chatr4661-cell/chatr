@@ -232,21 +232,46 @@ export default function ProductionVoiceCall({
 
       pc.onicecandidate = async (event) => {
         if (event.candidate) {
-          await sendSignal({
-            type: 'ice-candidate',
-            callId,
-            data: event.candidate,
-            to: partnerId
+          console.log('📡 [onicecandidate] Sending ICE candidate:', {
+            candidate: event.candidate.candidate?.substring(0, 50),
+            sdpMid: event.candidate.sdpMid
           });
+          try {
+            await sendSignal({
+              type: 'ice-candidate',
+              callId,
+              data: event.candidate,
+              to: partnerId
+            });
+            console.log('✅ ICE candidate sent');
+          } catch (error) {
+            console.error('❌ Failed to send ICE candidate:', error);
+          }
+        } else {
+          console.log('📡 ✅ All ICE candidates sent (null candidate)');
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('❄️ [ICE Connection State]:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'connected') {
+          console.log('✅ ICE connection established');
+        } else if (pc.iceConnectionState === 'failed') {
+          console.error('❌ ICE connection failed');
         }
       };
 
       pc.onconnectionstatechange = () => {
-        console.log("Connection state:", pc.connectionState);
+        console.log("🔗 [Connection State]:", pc.connectionState, {
+          ice: pc.iceConnectionState,
+          signaling: pc.signalingState
+        });
         if (pc.connectionState === "connected") {
           setCallStatus("connected");
           setConnectionQuality("good");
+          console.log('✅ ✅ ✅ Voice call P2P connection established!');
         } else if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+          console.warn('⚠️ Connection issue detected');
           handleConnectionFailure();
         }
       };
@@ -334,31 +359,55 @@ export default function ProductionVoiceCall({
 
   const handleSignal = async (signal: any) => {
     const pc = peerConnectionRef.current;
-    if (!pc) return;
+    if (!pc) {
+      console.warn('⚠️ [handleSignal] PeerConnection not ready');
+      return;
+    }
 
     try {
+      console.log('📥 [handleSignal] Processing signal:', {
+        type: signal.signal_type,
+        signalingState: pc.signalingState
+      });
+
       if (signal.signal_type === 'offer') {
+        console.log('📞 [handleSignal] Received OFFER');
         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+        console.log('✅ Remote description set');
+        
+        console.log('📝 [handleSignal] Creating ANSWER...');
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        console.log('✅ Local description (ANSWER) set');
         
+        console.log('📤 [handleSignal] Sending ANSWER...');
         await sendSignal({
           type: 'answer',
           callId,
           data: answer,
           to: partnerId
         });
+        console.log('✅ ANSWER sent');
         setCallStatus("connected");
+        
       } else if (signal.signal_type === 'answer') {
+        console.log('✅ [handleSignal] Received ANSWER');
         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+        console.log('✅ Remote description set - connection establishing');
         setCallStatus("connected");
+        
       } else if (signal.signal_type === 'ice-candidate') {
         if (pc.remoteDescription) {
+          console.log('❄️ [handleSignal] Adding ICE candidate');
           await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+          console.log('✅ ICE candidate added');
+        } else {
+          console.warn('⚠️ [handleSignal] Remote description not set - queueing ICE candidate');
+          setTimeout(() => handleSignal(signal), 100);
         }
       }
     } catch (error) {
-      console.error("Error handling signal:", error);
+      console.error("❌ [handleSignal] Error:", error);
     }
   };
 

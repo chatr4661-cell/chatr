@@ -201,7 +201,11 @@ export default function ProductionVideoCall({
       // Handle ICE candidates
       pc.onicecandidate = async (event) => {
         if (event.candidate) {
-          console.log('📡 [onicecandidate] Sending ICE candidate');
+          console.log('📡 [onicecandidate] Sending ICE candidate:', {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          });
           try {
             await sendSignal({
               type: 'ice-candidate',
@@ -209,37 +213,52 @@ export default function ProductionVideoCall({
               data: event.candidate,
               to: partnerId
             });
-            console.log('✅ ICE candidate sent');
+            console.log('✅ ICE candidate sent successfully');
           } catch (error) {
             console.error('❌ Failed to send ICE candidate:', error);
           }
         } else {
-          console.log('📡 All ICE candidates sent');
+          console.log('📡 ✅ All ICE candidates sent (null candidate received)');
         }
       };
 
       // Monitor ICE connection state
       pc.oniceconnectionstatechange = () => {
-        console.log('❄️ [ICE state]:', pc.iceConnectionState);
+        console.log('❄️ [ICE Connection State]:', pc.iceConnectionState);
+        console.log('   Local Description:', pc.localDescription ? 'SET' : 'NOT SET');
+        console.log('   Remote Description:', pc.remoteDescription ? 'SET' : 'NOT SET');
+        
+        if (pc.iceConnectionState === 'failed') {
+          console.error('❌ ICE connection failed - attempting restart');
+          pc.restartIce();
+        } else if (pc.iceConnectionState === 'connected') {
+          console.log('✅ ICE connection established!');
+        } else if (pc.iceConnectionState === 'completed') {
+          console.log('✅ ICE gathering complete!');
+        }
       };
 
       // Monitor connection state
       pc.onconnectionstatechange = () => {
-        console.log('🔗 [Connection state]:', pc.connectionState);
+        console.log('🔗 [WebRTC Connection State]:', pc.connectionState);
+        console.log('   ICE Gathering:', pc.iceGatheringState);
+        console.log('   Signaling State:', pc.signalingState);
         
         if (pc.connectionState === "connected") {
           setCallStatus("connected");
           setConnectionQuality("excellent");
-          console.log('✅ WebRTC connection established!');
+          console.log('✅ ✅ ✅ WebRTC P2P connection established!');
         } else if (pc.connectionState === "failed") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
-          console.log('🔄 Connection failed, attempting ICE restart...');
+          console.warn('⚠️ Connection failed, attempting ICE restart...');
           pc.restartIce();
         } else if (pc.connectionState === "disconnected") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
-          console.log('⚠️ Connection disconnected');
+          console.warn('⚠️ Connection disconnected - waiting for reconnection...');
+        } else if (pc.connectionState === "closed") {
+          console.log('📴 Connection closed');
         }
       };
 
@@ -303,29 +322,59 @@ export default function ProductionVideoCall({
 
   const handleSignal = async (signal: any) => {
     const pc = peerConnectionRef.current;
-    if (!pc) return;
+    if (!pc) {
+      console.warn('⚠️ [handleSignal] PeerConnection not initialized, ignoring signal');
+      return;
+    }
 
     try {
+      console.log('📥 [handleSignal] Processing signal:', {
+        type: signal.signal_type,
+        from: signal.from_user,
+        signalingState: pc.signalingState
+      });
+
       if (signal.signal_type === 'offer') {
+        console.log('📞 [handleSignal] Received OFFER - setting as remote description');
         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+        console.log('✅ Remote description set from OFFER');
+        
+        console.log('📝 [handleSignal] Creating ANSWER...');
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        console.log('✅ Local description set (ANSWER)');
         
+        console.log('📤 [handleSignal] Sending ANSWER signal...');
         await sendSignal({
           type: 'answer',
           callId,
           data: answer,
           to: partnerId
         });
+        console.log('✅ ANSWER sent successfully');
+        
       } else if (signal.signal_type === 'answer') {
+        console.log('✅ [handleSignal] Received ANSWER - setting as remote description');
         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+        console.log('✅ Remote description set from ANSWER - connection should establish now');
+        
       } else if (signal.signal_type === 'ice-candidate') {
         if (pc.remoteDescription) {
+          console.log('❄️ [handleSignal] Adding ICE candidate:', signal.signal_data.candidate?.substring(0, 50));
           await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+          console.log('✅ ICE candidate added');
+        } else {
+          console.warn('⚠️ [handleSignal] Remote description not set yet - queueing ICE candidate');
+          // Queue candidate for later processing
+          setTimeout(() => handleSignal(signal), 100);
         }
       }
     } catch (error) {
-      console.error("Error handling signal:", error);
+      console.error("❌ [handleSignal] Error processing signal:", {
+        type: signal.signal_type,
+        error,
+        signalingState: pc.signalingState
+      });
     }
   };
 
