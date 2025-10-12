@@ -137,18 +137,12 @@ const ChatEnhancedContent = () => {
     checkAuth();
   }, [navigate]);
 
-  // Redirect if not authenticated - wait for context to initialize
+  // Simplified auth check - removed conflicting redirect logic
   React.useEffect(() => {
-    if (!session && user === null) {
-      // Only redirect if we're sure there's no session (not just loading)
-      const timer = setTimeout(() => {
-        if (!session) {
-          navigate('/auth');
-        }
-      }, 1000); // Give ChatProvider time to initialize
-      return () => clearTimeout(timer);
+    if (!loading && !session) {
+      navigate('/auth');
     }
-  }, [session, user, navigate]);
+  }, [loading, session, navigate]);
 
   const handleStartConversation = async (contact: any) => {
     try {
@@ -260,14 +254,21 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  if (loading || !user?.id) {
+  // Show loading only during initial check
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading chat...</p>
         </div>
       </div>
     );
+  }
+
+  // If no user after loading, redirect will handle it
+  if (!user?.id) {
+    return null;
   }
 
   return (
