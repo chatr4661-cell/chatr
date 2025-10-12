@@ -66,83 +66,78 @@ const ChatEnhancedContent = () => {
     loadProfile();
   }, [user?.id]);
 
-  // Clear active conversation on mount to always show conversation list
-  React.useEffect(() => {
-    setActiveConversationId(null);
-    setOtherUser(null);
-  }, []);
+  // Clear active conversation on mount - removed to improve performance
+  // Users will see conversation list immediately
 
-  // Optimized contact loading
+  // Optimized contact loading - deferred for performance
   React.useEffect(() => {
     if (!user?.id) return;
 
-    const loadContacts = async () => {
-      const { data } = await supabase
-        .from('contacts')
-        .select('contact_user_id, contact_name, contact_phone')
-        .eq('user_id', user.id)
-        .eq('is_registered', true)
-        .not('contact_user_id', 'is', null);
+    // Defer contact loading to not block initial render
+    const timeoutId = setTimeout(() => {
+      const loadContacts = async () => {
+        const { data } = await supabase
+          .from('contacts')
+          .select('contact_user_id, contact_name, contact_phone')
+          .eq('user_id', user.id)
+          .eq('is_registered', true)
+          .not('contact_user_id', 'is', null)
+          .limit(50); // Limit for performance
 
-      if (!data?.length) {
-        setContacts([]);
-        return;
-      }
+        if (!data?.length) {
+          setContacts([]);
+          return;
+        }
 
-      // Batch fetch all profiles at once
-      const userIds = data.map(c => c.contact_user_id).filter(Boolean);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, phone_number')
-        .in('id', userIds);
+        // Batch fetch all profiles at once
+        const userIds = data.map(c => c.contact_user_id).filter(Boolean);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url, phone_number')
+          .in('id', userIds);
 
-      if (!profiles) {
-        setContacts([]);
-        return;
-      }
+        if (!profiles) {
+          setContacts([]);
+          return;
+        }
 
-      // Map profiles efficiently
-      const profileMap = new Map(profiles.map(p => [p.id, p]));
-      const contactProfiles = data
-        .map(contact => {
-          const profile = profileMap.get(contact.contact_user_id!);
-          return profile ? {
-            id: profile.id,
-            username: profile.username || contact.contact_name,
-            avatar_url: profile.avatar_url,
-            phone_number: profile.phone_number || contact.contact_phone
-          } : null;
-        })
-        .filter(Boolean);
+        // Map profiles efficiently
+        const profileMap = new Map(profiles.map(p => [p.id, p]));
+        const contactProfiles = data
+          .map(contact => {
+            const profile = profileMap.get(contact.contact_user_id!);
+            return profile ? {
+              id: profile.id,
+              username: profile.username || contact.contact_name,
+              avatar_url: profile.avatar_url,
+              phone_number: profile.phone_number || contact.contact_phone
+            } : null;
+          })
+          .filter(Boolean);
 
-      setContacts(contactProfiles);
-    };
+        setContacts(contactProfiles);
+      };
 
-    loadContacts();
+      loadContacts();
+    }, 100); // Small delay to prioritize UI render
+
+    return () => clearTimeout(timeoutId);
   }, [user?.id]);
 
-  // Check authentication and verify user data
+  // Fast auth check - non-blocking
   React.useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         navigate('/auth');
-        return;
+      } else {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
     
     checkAuth();
   }, [navigate]);
-
-  // Simplified auth check - removed conflicting redirect logic
-  React.useEffect(() => {
-    if (!loading && !session) {
-      navigate('/auth');
-    }
-  }, [loading, session, navigate]);
 
   const handleStartConversation = async (contact: any) => {
     try {

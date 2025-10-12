@@ -206,11 +206,7 @@ const Index = () => {
       description: 'Messages, calls & video',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
       route: '/chat',
-      isNew: false,
-      onClick: () => {
-        console.log('Navigating to /chat');
-        navigate('/chat');
-      }
+      isNew: false
     },
     {
       icon: Heart,
@@ -379,19 +375,19 @@ const Index = () => {
               {mainHubs.map((hub) => (
                 <div 
                   key={hub.title} 
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     console.log('Hub clicked:', hub.title, hub.route);
-                    if (hub.onClick) {
-                      hub.onClick();
-                    } else {
-                      navigate(hub.route);
-                    }
+                    navigate(hub.route);
                   }}
                   className="relative cursor-pointer"
+                  role="button"
+                  tabIndex={0}
                 >
                   <ServiceCard {...hub} />
                   {hub.isNew && (
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
                       NEW
                     </div>
                   )}

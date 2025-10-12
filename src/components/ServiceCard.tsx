@@ -10,7 +10,7 @@ interface ServiceCardProps {
 
 const ServiceCard = ({ icon: Icon, title, description, iconColor }: ServiceCardProps) => {
   return (
-    <Card className="p-2 hover:shadow-elevated transition-all duration-300 cursor-pointer border-glass-border bg-gradient-card backdrop-blur-glass hover:scale-[1.01] active:scale-[0.99]">
+    <Card className="p-2 hover:shadow-elevated transition-all duration-300 border-glass-border bg-gradient-card backdrop-blur-glass hover:scale-[1.01] active:scale-[0.99] pointer-events-none">
       <div className="flex items-center gap-2">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconColor} shadow-lg`}>
           <Icon className="w-5 h-5 text-white" />
