@@ -65,33 +65,31 @@
               await Notification.requestPermission();
             }
             
-            // Register periodic sync (if supported)
+            // Register periodic sync only if supported (shorter tags)
             if ('periodicSync' in registration) {
               try {
-                await registration.periodicSync.register('message-check', {
-                  minInterval: 60 * 1000 // 1 minute
-                });
-                await registration.periodicSync.register('daily-sync', {
+                // Use shorter tag names to avoid InvalidAccessError
+                await registration.periodicSync.register('sync', {
                   minInterval: 24 * 60 * 60 * 1000 // 24 hours
                 });
                 console.log('Periodic sync registered');
               } catch (err) {
-                console.log('Periodic sync not supported:', err);
+                console.log('Periodic sync not available:', err.message);
               }
             }
             
             // Listen for updates
             registration.addEventListener('updatefound', () => {
               const newWorker = registration.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New SW available, prompt user to reload
-                  if (confirm('New version available! Reload to update?')) {
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New SW available, auto-reload
                     newWorker.postMessage({ type: 'SKIP_WAITING' });
                     window.location.reload();
                   }
-                }
-              });
+                });
+              }
             });
             
             // Handle controller change
@@ -114,7 +112,18 @@
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        console.log('Install prompt ready');
+        console.log('PWA Install prompt ready');
+        
+        // Optionally show install button
+        window.showInstallPrompt = () => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choice) => {
+              console.log('User choice:', choice.outcome);
+              deferredPrompt = null;
+            });
+          }
+        };
       });
       
       // Handle app installed

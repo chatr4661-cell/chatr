@@ -186,10 +186,9 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('periodicsync', (event) => {
   console.log('Periodic sync triggered:', event.tag);
   
-  if (event.tag === 'daily-sync') {
+  // Use simple tag name
+  if (event.tag === 'sync') {
     event.waitUntil(performDailySync());
-  } else if (event.tag === 'message-check') {
-    event.waitUntil(checkNewMessages());
   }
 });
 
