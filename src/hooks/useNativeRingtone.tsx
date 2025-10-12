@@ -16,6 +16,8 @@ export function useNativeRingtone({
 }: UseNativeRingtoneOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const vibrationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playCountRef = useRef(0);
+  const maxPlays = 5; // Play ringtone 3-5 times
 
   const startVibration = () => {
     if (!Capacitor.isNativePlatform()) return;
@@ -42,13 +44,28 @@ export function useNativeRingtone({
   useEffect(() => {
     if (enabled) {
       console.log('🔔 Starting native ringtone:', ringtoneUrl);
+      playCountRef.current = 0;
       
       // Create audio with maximum compatibility settings
       const audio = new Audio(ringtoneUrl);
-      audio.loop = true;
+      audio.loop = false; // Don't loop - we'll control plays manually
       audio.volume = volume;
       audio.preload = 'auto';
       audioRef.current = audio;
+      
+      // Handle ringtone ending - replay up to maxPlays times
+      audio.onended = () => {
+        playCountRef.current++;
+        console.log(`🔔 Ringtone play count: ${playCountRef.current}/${maxPlays}`);
+        if (playCountRef.current < maxPlays && enabled) {
+          setTimeout(() => {
+            audio.play().catch(e => console.log('Ringtone replay error:', e));
+          }, 500); // Small gap between rings
+        } else {
+          console.log('🔕 Ringtone finished all plays');
+          stopVibration();
+        }
+      };
 
       // Try to play immediately
       const playPromise = audio.play();
@@ -96,9 +113,11 @@ export function useNativeRingtone({
           });
       }
     } else if (audioRef.current) {
-      console.log('🔕 Stopping ringtone');
+      console.log('🔕 Stopping ringtone (call answered)');
+      playCountRef.current = maxPlays; // Stop further plays
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current.onended = null; // Remove event handler
       audioRef.current = null;
       stopVibration();
     }
@@ -106,9 +125,11 @@ export function useNativeRingtone({
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.onended = null;
         audioRef.current = null;
       }
       stopVibration();
+      playCountRef.current = 0;
     };
   }, [enabled, ringtoneUrl]);
 

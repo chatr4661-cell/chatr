@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera, Monitor, MonitorOff, UserPlus, Maximize2, Minimize2, Wand2, PictureInPicture2 } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { sendSignal, subscribeToCallSignals, getTurnConfig } from "@/utils/webrtcSignaling";
@@ -47,10 +47,6 @@ export default function ProductionVideoCall({
   const [callDuration, setCallDuration] = useState(0);
   const [connectionQuality, setConnectionQuality] = useState<"excellent" | "good" | "poor" | "reconnecting">("good");
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isPiPMode, setIsPiPMode] = useState(false);
-  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
-  const [currentEffect, setCurrentEffect] = useState("none");
   const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -396,63 +392,6 @@ export default function ProductionVideoCall({
     }
   };
 
-  const startScreenShare = async () => {
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { cursor: 'always' } as MediaTrackConstraints,
-        audio: false
-      });
-
-      const screenTrack = screenStream.getVideoTracks()[0];
-      
-      const videoSender = peerConnectionRef.current
-        ?.getSenders()
-        .find(sender => sender.track?.kind === 'video');
-
-      if (videoSender && screenTrack) {
-        await videoSender.replaceTrack(screenTrack);
-        setIsScreenSharing(true);
-
-        screenTrack.onended = () => {
-          stopScreenShare();
-        };
-      }
-
-      toast({
-        title: 'Screen sharing started',
-        description: 'Your screen is now visible',
-      });
-    } catch (error) {
-      console.error('Error starting screen share:', error);
-    }
-  };
-
-  const stopScreenShare = async () => {
-    try {
-      const cameraStream = await navigator.mediaDevices.getUserMedia({ 
-        video: getOptimalVideoConstraints('ultra', facingMode)
-      });
-      const cameraTrack = cameraStream.getVideoTracks()[0];
-
-      const videoSender = peerConnectionRef.current
-        ?.getSenders()
-        .find(sender => sender.track?.kind === 'video');
-
-      if (videoSender && cameraTrack) {
-        await videoSender.replaceTrack(cameraTrack);
-        setIsScreenSharing(false);
-
-        const oldVideoTrack = localStream?.getVideoTracks()[0];
-        if (oldVideoTrack) {
-          localStream?.removeTrack(oldVideoTrack);
-          oldVideoTrack.stop();
-        }
-        localStream?.addTrack(cameraTrack);
-      }
-    } catch (error) {
-      console.error('Error stopping screen share:', error);
-    }
-  };
 
   const switchCamera = async () => {
     if (!localStream) return;
@@ -523,9 +462,6 @@ export default function ProductionVideoCall({
     }
   };
 
-  const togglePiP = () => {
-    setIsPiPMode(!isPiPMode);
-  };
 
   const endCall = async () => {
     // Clean up media streams and connections first
@@ -586,10 +522,7 @@ export default function ProductionVideoCall({
 
   return (
     <div 
-      className={cn(
-        "fixed z-50 bg-black flex flex-col",
-        isPiPMode ? "bottom-4 right-4 w-96 h-72 rounded-2xl shadow-2xl border-2 border-white/20" : "inset-0"
-      )}
+      className="fixed inset-0 z-50 bg-black flex flex-col"
       onClick={showControls}
     >
       {/* Call State Transition Overlay */}
@@ -639,7 +572,7 @@ export default function ProductionVideoCall({
       </div>
 
       {/* Local Video - FaceTime style rounded rectangle (top right) */}
-      {!isPiPMode && !isPiPActive && (
+      {!isPiPActive && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8, x: 100 }}
           animate={{ 
@@ -666,7 +599,7 @@ export default function ProductionVideoCall({
       )}
 
       {/* Camera Switch - Bottom left corner (FaceTime style) */}
-      {videoEnabled && !isScreenSharing && controlsVisible && (
+      {videoEnabled && controlsVisible && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -696,17 +629,17 @@ export default function ProductionVideoCall({
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="absolute bottom-8 left-0 right-0 z-10 px-6"
           >
-            {/* Primary Controls - FaceTime style */}
-            <div className="flex items-center justify-center gap-6 mb-6">
+            {/* Primary Controls - FaceTime style (minimal) */}
+            <div className="flex items-center justify-center gap-8">
               {/* Video Toggle */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleVideo}
                 className={cn(
-                  "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all backdrop-blur-md",
+                  "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all",
                   videoEnabled 
-                    ? "bg-white/20 hover:bg-white/30 border-2 border-white/30" 
+                    ? "bg-gray-700 hover:bg-gray-600" 
                     : "bg-red-500 hover:bg-red-600"
                 )}
               >
@@ -716,15 +649,25 @@ export default function ProductionVideoCall({
                 }
               </motion.button>
               
+              {/* End Call - Red button (larger) */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={endCall}
+                className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-2xl transition-all"
+              >
+                <PhoneOff className="h-8 w-8 text-white" />
+              </motion.button>
+
               {/* Audio Toggle */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleAudio}
                 className={cn(
-                  "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all backdrop-blur-md",
+                  "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all",
                   audioEnabled 
-                    ? "bg-white/20 hover:bg-white/30 border-2 border-white/30" 
+                    ? "bg-gray-700 hover:bg-gray-600" 
                     : "bg-red-500 hover:bg-red-600"
                 )}
               >
@@ -733,83 +676,11 @@ export default function ProductionVideoCall({
                   <MicOff className="h-7 w-7 text-white" />
                 }
               </motion.button>
-
-              {/* End Call - Red button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={endCall}
-                className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-2xl transition-all"
-              >
-                <PhoneOff className="h-7 w-7 text-white" />
-              </motion.button>
-
-              {/* Effects */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowEffectsPanel(!showEffectsPanel)}
-                className="w-16 h-16 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border-2 border-white/30 flex items-center justify-center shadow-2xl transition-all"
-              >
-                <Wand2 className="h-7 w-7 text-white" />
-              </motion.button>
-            </div>
-
-            {/* Secondary Controls - Smaller icons */}
-            <div className="flex items-center justify-center gap-6">
-              <CallMediaCapture videoRef={remoteVideoRef} />
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-                className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-all"
-                title={isScreenSharing ? "Stop Sharing" : "Share Screen"}
-              >
-                {isScreenSharing ? 
-                  <MonitorOff className="h-5 w-5 text-white" /> : 
-                  <Monitor className="h-5 w-5 text-white" />
-                }
-              </motion.button>
-
-              {isPiPSupported && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={toggleBrowserPiP}
-                  className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-all"
-                  title="Picture in Picture"
-                >
-                  <PictureInPicture2 className="h-5 w-5 text-white" />
-                </motion.button>
-              )}
-
-              {onAddParticipant && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onAddParticipant}
-                  className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-all"
-                  title="Add Participant"
-                >
-                  <UserPlus className="h-5 w-5 text-white" />
-                </motion.button>
-              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Video Effects Panel */}
-      <VideoEffectsPanel
-        isOpen={showEffectsPanel}
-        onClose={() => setShowEffectsPanel(false)}
-        currentEffect={currentEffect}
-        onEffectChange={(effectId) => {
-          setCurrentEffect(effectId);
-          triggerHaptic('success');
-        }}
-      />
     </div>
   );
 }

@@ -492,132 +492,83 @@ export default function ProductionVoiceCall({
   const qualityStyles = getQualityStyles();
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-br from-background via-background/95 to-primary/5 backdrop-blur-xl flex flex-col items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
+      {/* Top Status Bar - FaceTime style */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute top-8 left-0 right-0 flex justify-between items-center px-8 z-20"
       >
-        <Card className="w-full max-w-md backdrop-blur-xl bg-card/40 border-border/50 shadow-2xl p-8">
-          <div className="flex flex-col items-center space-y-8">
-            {/* Quality Indicator */}
-            <AnimatePresence>
-              {callStatus === "connected" && controlsVisible && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute top-4 right-4"
-                >
-                  <QualityIndicator quality={connectionQuality} showLabel />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-          {/* Avatar */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-full blur-xl opacity-20 animate-pulse" />
-            <Avatar className="h-40 w-40 border-4 border-white/10 shadow-2xl relative">
-              <AvatarImage src={contactAvatar} />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-5xl">
-                {contactName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            {callStatus === "ringing" && (
-              <div className="absolute inset-0 rounded-full border-4 border-primary/50 animate-ping" />
-            )}
-            {callStatus === "reconnecting" && (
-              <div className="absolute inset-0 rounded-full border-4 border-orange-500/50 animate-ping" />
-            )}
-          </div>
-
-          {/* Contact Name & Status */}
-          <div className="text-center space-y-2">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">{contactName}</h2>
-            {callStatus === "connecting" && (
-              <p className="text-sm text-muted-foreground animate-pulse">Connecting...</p>
-            )}
-            {callStatus === "ringing" && (
-              <p className="text-sm text-muted-foreground animate-pulse">Ringing...</p>
-            )}
-            {callStatus === "reconnecting" && (
-              <p className="text-sm text-orange-500 animate-pulse">Reconnecting...</p>
-            )}
-            {callStatus === "connected" && (
-              <p className="text-lg text-primary font-mono font-semibold tabular-nums">{formatDuration(callDuration)}</p>
-            )}
-          </div>
-
-          {/* Audio Wave Animation */}
-          {callStatus === "connected" && audioEnabled && (
-            <div className="flex items-center justify-center gap-1.5 h-16">
-              {[...Array(7)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1.5 bg-gradient-to-t from-primary to-secondary rounded-full animate-pulse shadow-lg"
-                  style={{
-                    height: `${Math.random() * 48 + 16}px`,
-                    animationDelay: `${i * 0.1}s`,
-                    animationDuration: `${0.5 + Math.random() * 0.5}s`
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Controls */}
-          <AnimatePresence>
-            {controlsVisible && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center justify-center gap-4 pt-6 w-full"
-              >
-            <Button
-              variant={audioEnabled ? "default" : "destructive"}
-              size="lg"
-              onClick={toggleAudio}
-              className="rounded-full h-16 w-16 shadow-lg hover:scale-110 transition-all"
-            >
-              {audioEnabled ? <Mic className="h-7 w-7" /> : <MicOff className="h-7 w-7" />}
-            </Button>
-
-            <Button
-              variant={speakerEnabled ? "secondary" : "outline"}
-              size="lg"
-              onClick={toggleSpeaker}
-              className="rounded-full h-16 w-16 shadow-lg hover:scale-110 transition-all"
-            >
-              {speakerEnabled ? <Volume2 className="h-7 w-7" /> : <VolumeX className="h-7 w-7" />}
-            </Button>
-
-            {onAddParticipant && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={onAddParticipant}
-                className="rounded-full h-16 w-16 shadow-lg hover:scale-110 transition-all"
-              >
-                <UserPlus className="h-7 w-7" />
-              </Button>
-            )}
-            
-            <Button
-              variant="destructive"
-              size="lg"
-              onClick={endCall}
-              className="rounded-full h-16 w-16 shadow-lg hover:scale-110 transition-all bg-red-500 hover:bg-red-600"
-            >
-              <PhoneOff className="h-7 w-7" />
-            </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div className="bg-white/10 backdrop-blur-md rounded-full px-5 py-2">
+          <span className="text-white/90 text-sm font-medium">
+            {callStatus === "ringing" ? "Ringing..." : callStatus === "connected" ? formatDuration(callDuration) : "Connecting..."}
+          </span>
         </div>
-      </Card>
+        
+        {callStatus === "connected" && (
+          <QualityIndicator quality={connectionQuality} />
+        )}
+      </motion.div>
+
+      {/* Avatar - Center */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2 }}
+        className="flex flex-col items-center gap-8"
+      >
+        <Avatar className="h-48 w-48 border-4 border-white/20 shadow-2xl">
+          <AvatarImage src={contactAvatar} className="object-cover" />
+          <AvatarFallback className="bg-gradient-to-br from-gray-700 to-gray-800 text-white text-6xl">
+            {contactName.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        
+        <h2 className="text-4xl font-semibold text-white">{contactName}</h2>
+      </motion.div>
+
+      {/* Bottom Controls - FaceTime style */}
+      <motion.div
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="absolute bottom-12 left-0 right-0 flex items-center justify-center gap-8 z-20"
+      >
+        {/* Mute Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleAudio}
+          className={cn(
+            "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all",
+            audioEnabled ? "bg-gray-700 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600"
+          )}
+        >
+          {audioEnabled ? <Mic className="h-7 w-7 text-white" /> : <MicOff className="h-7 w-7 text-white" />}
+        </motion.button>
+
+        {/* End Call Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={endCall}
+          className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-2xl transition-all"
+        >
+          <PhoneOff className="h-8 w-8 text-white" />
+        </motion.button>
+
+        {/* Speaker Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleSpeaker}
+          className={cn(
+            "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all",
+            speakerEnabled ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-800 hover:bg-gray-700"
+          )}
+        >
+          {speakerEnabled ? <Volume2 className="h-7 w-7 text-white" /> : <VolumeX className="h-7 w-7 text-white" />}
+        </motion.button>
       </motion.div>
     </div>
   );
