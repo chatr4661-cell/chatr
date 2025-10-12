@@ -64,70 +64,84 @@ const Index = () => {
   }, [navigate]);
 
   const autoSyncContactsOnLoad = async (userId: string) => {
-    try {
-      const { Contacts } = await import('@capacitor-community/contacts');
-      const { Capacitor } = await import('@capacitor/core');
-      
-      // Only on native platforms
-      if (!Capacitor.isNativePlatform()) return;
-      
-      const lastSync = localStorage.getItem(`last_sync_${userId}`);
-      const now = new Date().getTime();
-      
-      // Auto-sync if never synced or last sync was more than 6 hours ago
-      if (!lastSync || (now - parseInt(lastSync)) > 6 * 60 * 60 * 1000) {
-        console.log('🔄 Auto-syncing contacts on app load...');
+    // Run in background - don't block page load
+    setTimeout(async () => {
+      try {
+        const { Contacts } = await import('@capacitor-community/contacts');
+        const { Capacitor } = await import('@capacitor/core');
         
-        const permission = await Contacts.requestPermissions();
-        if (permission.contacts === 'granted') {
+        // Only on native platforms
+        if (!Capacitor.isNativePlatform()) return;
+        
+        const lastSync = localStorage.getItem(`last_sync_${userId}`);
+        const now = new Date().getTime();
+        
+        // Auto-sync if never synced or last sync was more than 6 hours ago
+        if (!lastSync || (now - parseInt(lastSync)) > 6 * 60 * 60 * 1000) {
+          console.log('🔄 Auto-syncing contacts in background...');
+          
+          const permission = await Contacts.requestPermissions();
+          if (permission.contacts !== 'granted') return;
+          
           const result = await Contacts.getContacts({
             projection: { name: true, phones: true, emails: true }
           });
           
-          if (result.contacts && result.contacts.length > 0) {
-            // Batch import contacts
-            let syncedCount = 0;
-            for (const contact of result.contacts.slice(0, 100)) { // Limit to first 100 for speed
+          if (!result.contacts || result.contacts.length === 0) return;
+          
+          // Batch process contacts - limit to 50 for performance
+          const contactsToSync = result.contacts.slice(0, 50);
+          
+          // Batch insert all at once instead of one by one
+          const contactData = await Promise.all(
+            contactsToSync.map(async (contact) => {
               const name = contact.name?.display || 'Unknown';
               const phone = contact.phones?.[0]?.number;
               const email = contact.emails?.[0]?.address;
               
-              if (!phone && !email) continue;
+              if (!phone && !email) return null;
               
               const identifier = email || phone || '';
               
-              // Quick check if user is registered
-              let matchedUser = null;
+              // Quick user lookup
+              let matchedUserId = null;
               if (email) {
                 const { data } = await supabase
                   .from('profiles')
                   .select('id')
                   .eq('email', email)
                   .maybeSingle();
-                matchedUser = data;
+                matchedUserId = data?.id;
               }
               
-              await supabase
-                .from('contacts')
-                .upsert({
-                  user_id: userId,
-                  contact_name: name,
-                  contact_phone: identifier,
-                  contact_user_id: matchedUser?.id || null,
-                  is_registered: !!matchedUser
-                }, { onConflict: 'user_id,contact_phone' });
-              
-              syncedCount++;
-            }
-            
-            localStorage.setItem(`last_sync_${userId}`, now.toString());
-            console.log(`✅ Auto-synced ${syncedCount} contacts`);
+              return {
+                user_id: userId,
+                contact_name: name,
+                contact_phone: identifier,
+                contact_user_id: matchedUserId,
+                is_registered: !!matchedUserId
+              };
+            })
+          );
+          
+          // Filter nulls and batch upsert
+          const validContacts = contactData.filter(c => c !== null);
+          if (validContacts.length > 0) {
+            await supabase
+              .from('contacts')
+              .upsert(validContacts, { 
+                onConflict: 'user_id,contact_phone',
+                ignoreDuplicates: true 
+              });
           }
+          
+          localStorage.setItem(`last_sync_${userId}`, now.toString());
+          console.log(`✅ Auto-synced ${validContacts.length} contacts in background`);
         }
+      } catch (error) {
+        console.log('Auto-sync error (non-blocking):', error);
       }
-    } catch (error) {
-      console.log('Auto-sync not available:', error);
-    }
+    }, 2000); // Delay 2 seconds to not block page load
   };
 
   const loadPointsData = async () => {

@@ -105,9 +105,26 @@ export default function ProductionVideoCall({
 
 
   const initializeCall = async () => {
+    let callTimeout: NodeJS.Timeout | null = null;
+    
     try {
       console.log('🎥 [ProductionVideoCall] Initializing call...', { callId, contactName, isInitiator, partnerId });
       setCallStatus(isInitiator ? "dialing" : "ringing");
+      
+      // Set call timeout - 60 seconds for unanswered calls
+      if (isInitiator) {
+        callTimeout = setTimeout(() => {
+          if (callStatus === 'dialing' || callStatus === 'ringing') {
+            console.warn('⏰ Call timed out - no answer');
+            toast({
+              title: "Call Timeout",
+              description: "No answer - call ended",
+              variant: "destructive"
+            });
+            endCall();
+          }
+        }, 60000);
+      }
       
       // Request camera and microphone permissions
       console.log('📷 Requesting media permissions...');

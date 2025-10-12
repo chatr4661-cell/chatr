@@ -130,9 +130,26 @@ export default function ProductionVoiceCall({
   };
 
   const initializeCall = async () => {
+    let callTimeout: NodeJS.Timeout | null = null;
+    
     try {
       console.log('🎤 Initializing voice call...');
       setCallStatus("ringing");
+      
+      // Set call timeout - 60 seconds for unanswered calls
+      if (isInitiator) {
+        callTimeout = setTimeout(() => {
+          if (callStatus === 'ringing') {
+            console.warn('⏰ Call timed out - no answer');
+            toast({
+              title: "Call Timeout",
+              description: "No answer - call ended",
+              variant: "destructive"
+            });
+            endCall();
+          }
+        }, 60000);
+      }
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
