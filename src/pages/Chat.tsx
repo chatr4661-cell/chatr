@@ -330,14 +330,6 @@ const ChatEnhancedContent = () => {
             </div>
 
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleStartCall('voice')}
-                className="rounded-full h-9 w-9 md:h-10 md:w-10"
-              >
-                <Phone className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
