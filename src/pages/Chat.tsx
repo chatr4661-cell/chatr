@@ -378,34 +378,32 @@ const ChatEnhancedContent = () => {
       ) : (
         // Conversation List View
         <>
-          {/* Clean Header - October 6th Design */}
-          <div className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm">
-            <div className="flex items-center justify-between px-3 py-3">
-              <div className="flex items-center gap-2">
+          {/* Clean Header - Exact October 6th Design */}
+          <div className="sticky top-0 z-10 border-b border-border/30 bg-white">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/')}
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-10 w-10 rounded-full hover:bg-muted/40"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 
-                <div className="flex items-center gap-2">
-                  <img 
-                    src="/chatr-logo.png" 
-                    alt="Chatr" 
-                    className="h-6 w-6"
-                  />
-                </div>
+                <img 
+                  src="/chatr-logo.png" 
+                  alt="chatr" 
+                  className="h-7 w-7"
+                />
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/profile')}
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-10 w-10 rounded-full hover:bg-muted/40"
                 >
                   <User className="h-5 w-5" />
                 </Button>
@@ -413,14 +411,14 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => setShowGroupCreator(true)}
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-10 w-10 rounded-full hover:bg-muted/40"
                 >
                   <Users className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-10 w-10 rounded-full hover:bg-muted/40"
                 >
                   <Search className="h-5 w-5" />
                 </Button>
@@ -428,7 +426,7 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/notifications')}
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-10 w-10 rounded-full hover:bg-muted/40"
                 >
                   <Bell className="h-5 w-5" />
                 </Button>
@@ -436,7 +434,7 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/call-history')}
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-10 w-10 rounded-full hover:bg-muted/40"
                 >
                   <Phone className="h-5 w-5" />
                 </Button>
@@ -444,14 +442,14 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/qr-login')}
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-10 w-10 rounded-full hover:bg-muted/40"
                 >
                   <QrCode className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-10 w-10 rounded-full hover:bg-muted/40"
                 >
                   <Share2 className="h-5 w-5" />
                 </Button>

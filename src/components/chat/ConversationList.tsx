@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, Search } from 'lucide-react';
+import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, Search, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Conversation {
@@ -237,31 +237,40 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Search Bar */}
-      <div className="sticky top-0 z-10 bg-white border-b p-3">
+      {/* Search Bar - Inside conversation list */}
+      <div className="sticky top-0 z-10 bg-white p-4 pb-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search by name, phone, or email..."
+            placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-[hsl(200,25%,95%)] border-0 rounded-lg h-10 text-[15px]"
+            className="pl-9 pr-4 bg-[hsl(200,20%,96%)] border-0 rounded-lg h-10 text-[14px] focus-visible:ring-1 focus-visible:ring-primary/20"
           />
         </div>
       </div>
 
       {filteredConversations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center flex-1 p-8">
-          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <MessageCircle className="h-12 w-12 text-primary/50" />
+        <div className="flex flex-col items-center justify-center flex-1 p-8 bg-white">
+          <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mb-6">
+            <MessageCircle className="h-10 w-10 text-muted-foreground/50" />
           </div>
-          <p className="text-lg font-semibold mb-1">
-            {searchQuery ? 'No conversations found' : 'No conversations yet'}
+          <p className="text-base font-medium mb-2 text-foreground">
+            {searchQuery ? 'No conversations found' : 'No contacts yet'}
           </p>
-          <p className="text-sm text-muted-foreground text-center">
-            {searchQuery ? 'Try a different search term' : 'Start chatting with friends and colleagues'}
+          <p className="text-sm text-muted-foreground text-center mb-6 max-w-xs">
+            {searchQuery ? 'Try a different search term' : 'Click the contacts icon to add people'}
           </p>
+          {!searchQuery && (
+            <Button 
+              onClick={() => window.location.href = '/contacts'}
+              className="bg-[hsl(185,75%,40%)] hover:bg-[hsl(185,75%,35%)] text-white rounded-full px-6"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Add Contacts
+            </Button>
+          )}
         </div>
       ) : (
         <ScrollArea className="flex-1">
