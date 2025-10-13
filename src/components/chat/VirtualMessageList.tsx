@@ -28,7 +28,7 @@ interface VirtualMessageListProps {
   isLoading?: boolean;
 }
 
-export const VirtualMessageList = ({
+export const VirtualMessageList = React.memo(({
   messages,
   userId,
   otherUser,
@@ -38,22 +38,31 @@ export const VirtualMessageList = ({
 }: VirtualMessageListProps) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastMessageCountRef = React.useRef(messages.length);
+  const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true);
 
-  // Auto-scroll to bottom on new messages
-  React.useEffect(() => {
-    if (messages.length > lastMessageCountRef.current && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  // Optimized auto-scroll to bottom on new messages
+  React.useLayoutEffect(() => {
+    if (messages.length > lastMessageCountRef.current && shouldAutoScroll && scrollRef.current) {
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      });
     }
     lastMessageCountRef.current = messages.length;
-  }, [messages.length]);
+  }, [messages.length, shouldAutoScroll]);
 
   const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
+    const isAtBottom = Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 100;
+    setShouldAutoScroll(isAtBottom);
+    
     // Load more when scrolled near top
-    if (target.scrollTop < 200 && hasMore && onLoadMore) {
+    if (target.scrollTop < 300 && hasMore && onLoadMore && !isLoading) {
       onLoadMore();
     }
-  }, [hasMore, onLoadMore]);
+  }, [hasMore, onLoadMore, isLoading]);
 
   if (isLoading && messages.length === 0) {
     return <MessageListSkeleton />;
@@ -61,15 +70,20 @@ export const VirtualMessageList = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        <p>No messages yet. Start the conversation!</p>
+      <div className="flex-1 flex items-center justify-center text-muted-foreground p-4">
+        <p className="text-center">No messages yet. Start the conversation!</p>
       </div>
     );
   }
 
   return (
     <ScrollArea className="flex-1 h-full" ref={scrollRef} onScroll={handleScroll}>
-      <div className="space-y-3 p-4">
+      <div className="space-y-2 p-3 md:p-4">
+        {isLoading && hasMore && (
+          <div className="text-center py-2">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        )}
         {messages.map((message, index) => {
           const isOwn = message.sender_id === userId;
           const prevMessage = index > 0 ? messages[index - 1] : null;
@@ -88,4 +102,4 @@ export const VirtualMessageList = ({
       </div>
     </ScrollArea>
   );
-};
+});

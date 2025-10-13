@@ -211,10 +211,10 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Load messages when conversation changes - limit initial load
+  // Load messages when conversation changes - optimized batch size
   React.useEffect(() => {
     if (activeConversationId) {
-      loadMessages(30, 0); // Load only last 30 messages initially
+      loadMessages(50, 0); // Load 50 messages for smoother scrolling
     }
   }, [activeConversationId, loadMessages]);
 
@@ -330,6 +330,14 @@ const ChatEnhancedContent = () => {
             </div>
 
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleStartCall('voice')}
+                className="rounded-full h-9 w-9 md:h-10 md:w-10"
+              >
+                <Phone className="h-4 w-4 md:h-5 md:w-5" />
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -342,6 +350,14 @@ const ChatEnhancedContent = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem 
+                    onClick={() => handleStartCall('video')}
+                    className="cursor-pointer"
+                  >
+                    <Video className="h-4 w-4 mr-2" />
+                    Video Call
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
                     onClick={() => setShowDisappearingSettings(true)}
                     className="cursor-pointer"
                   >
@@ -350,39 +366,16 @@ const ChatEnhancedContent = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleStartCall('voice')}
-                className="rounded-full h-9 w-9 md:h-10 md:w-10"
-              >
-                <Phone className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleStartCall('video')}
-                className="rounded-full h-9 w-9 md:h-10 md:w-10"
-              >
-                <Video className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full h-9 w-9 md:h-10 md:w-10"
-              >
-                <MoreVertical className="h-5 w-5" />
-              </Button>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden bg-background">
             <VirtualMessageList
               messages={messages}
               userId={user.id}
               otherUser={otherUser}
-              onLoadMore={() => loadMessages(20, messages.length)}
+              onLoadMore={() => loadMessages(30, messages.length)}
               hasMore={hasMore}
               isLoading={messagesLoading}
             />

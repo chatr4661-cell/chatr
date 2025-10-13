@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
 import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, MoreVertical } from 'lucide-react';
@@ -36,7 +36,7 @@ interface MessageBubbleProps {
   onStar?: (messageId: string) => void;
 }
 
-export const MessageBubble = ({ 
+const MessageBubbleComponent = ({ 
   message, 
   isOwn, 
   showAvatar, 
@@ -197,3 +197,5 @@ export const MessageBubble = ({
     </div>
   );
 };
+
+export const MessageBubble = memo(MessageBubbleComponent);

@@ -2,7 +2,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Image, 
-  Camera, 
   MapPin, 
   User, 
   FileText, 
@@ -16,7 +15,6 @@ import {
 interface AttachmentMenuProps {
   onClose: () => void;
   onPhotoVideo: () => void;
-  onCamera: () => void;
   onLocation: () => void;
   onContact: () => void;
   onDocument: () => void;
@@ -29,7 +27,6 @@ interface AttachmentMenuProps {
 export const AttachmentMenu = ({
   onClose,
   onPhotoVideo,
-  onCamera,
   onLocation,
   onContact,
   onDocument,
@@ -40,7 +37,6 @@ export const AttachmentMenu = ({
 }: AttachmentMenuProps) => {
   const options = [
     { icon: Image, label: 'Photos & Videos', onClick: onPhotoVideo, color: 'text-purple-500' },
-    { icon: Camera, label: 'Camera', onClick: onCamera, color: 'text-pink-500' },
     { icon: MapPin, label: 'Location', onClick: onLocation, color: 'text-green-500' },
     { icon: User, label: 'Contact', onClick: onContact, color: 'text-blue-500' },
     { icon: FileText, label: 'Document', onClick: onDocument, color: 'text-indigo-500' },
