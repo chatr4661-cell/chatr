@@ -42,6 +42,42 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const [searchQuery, setSearchQuery] = React.useState('');
   const { getCached, setCache } = useConversationCache();
 
+  // Helper to format message content for display
+  const formatMessageContent = (content: string) => {
+    // Parse Contact messages
+    if (content.startsWith('[Contact]')) {
+      const match = content.match(/\[Contact\]\s*(.+?)\s*-/);
+      return match ? `Contact: ${match[1]}` : 'Contact shared';
+    }
+    
+    // Parse Poll messages
+    if (content.startsWith('[Poll]')) {
+      try {
+        const jsonMatch = content.match(/\[Poll\]\s*({.+})/);
+        if (jsonMatch) {
+          const pollData = JSON.parse(jsonMatch[1]);
+          return `📊 Poll: ${pollData.question}`;
+        }
+      } catch (e) {
+        return '📊 Poll';
+      }
+    }
+    
+    // Parse location messages
+    if (content === '📍' || content.startsWith('📍')) {
+      return '📍 Location';
+    }
+    
+    return content;
+  };
+
+  // Helper to format display names (remove technical details)
+  const formatDisplayName = (name: string | undefined) => {
+    if (!name) return 'Unknown';
+    // Remove @chatr.local and phone numbers
+    return name.split('@')[0].replace(/^\d+/, '').trim() || name;
+  };
+
   const loadConversations = React.useCallback(async () => {
     if (!userId) return;
 
@@ -214,10 +250,13 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
       ) : (
         <ScrollArea className="flex-1">
           {filteredConversations.map(conv => {
-            const displayName = conv.is_group ? conv.group_name : (conv.other_user?.username || 'User');
+            const rawDisplayName = conv.is_group ? conv.group_name : (conv.other_user?.username || 'User');
+            const displayName = formatDisplayName(rawDisplayName);
             const lastMessage = conv.last_message;
             const isRead = lastMessage?.read_at != null;
             const isSent = lastMessage?.sender_id === userId;
+            const messagePreview = lastMessage?.content ? formatMessageContent(lastMessage.content) : 'Start chatting';
+            const isOnline = conv.other_user?.is_online;
 
             return (
               <div
@@ -225,26 +264,36 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                 onClick={() => onConversationSelect(conv.id, conv.other_user)}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
               >
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url} />
-                  <AvatarFallback className="bg-primary/10 text-primary">
-                    {displayName?.[0]?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {displayName?.[0]?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {!conv.is_group && isOnline && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                  )}
+                </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <p className="font-semibold truncate">{displayName}</p>
-                    <span className="text-xs text-muted-foreground ml-2">
+                    <div className="flex flex-col min-w-0">
+                      <p className="font-semibold truncate">{displayName}</p>
+                      {!conv.is_group && isOnline && (
+                        <span className="text-xs text-green-600 dark:text-green-400">Online</span>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground ml-2 shrink-0">
                       {lastMessage?.created_at && formatDistanceToNow(new Date(lastMessage.created_at), { addSuffix: true }).replace('about ', '').replace(' ago', '')}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
                     {isSent && lastMessage && (
-                      isRead ? <CheckCheck className="h-3 w-3 text-primary" /> : <Check className="h-3 w-3 text-muted-foreground" />
+                      isRead ? <CheckCheck className="h-3 w-3 text-primary shrink-0" /> : <Check className="h-3 w-3 text-muted-foreground shrink-0" />
                     )}
                     <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold' : 'text-muted-foreground'}`}>
-                      {lastMessage?.content || 'Start chatting'}
+                      {messagePreview}
                     </p>
                   </div>
                 </div>
