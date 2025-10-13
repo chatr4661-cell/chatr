@@ -129,35 +129,44 @@ const MiniAppsStore = () => {
   };
 
   const openApp = async (app: MiniApp) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user && installedApps.has(app.id)) {
-      // Update last opened time
-      await supabase
-        .from('user_installed_apps')
-        .update({ last_opened_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('app_id', app.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user && installedApps.has(app.id)) {
+        // Update last opened time
+        await supabase
+          .from('user_installed_apps')
+          .update({ last_opened_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .eq('app_id', app.id);
 
-      // Track analytics
-      await supabase.from('app_analytics').insert({
-        app_id: app.id,
-        user_id: user.id,
-        event_type: 'open'
-      });
-    }
-
-    // Check if it's an internal route or external URL
-    if (app.app_url.startsWith('/')) {
-      // Internal Chatr route - navigate within app
-      navigate(app.app_url);
-    } else {
-      // External URL - open with SSO
-      if (user) {
-        await openAppWithSSO(app.app_url, app.id);
-      } else {
-        window.open(app.app_url, '_blank');
+        // Track analytics
+        await supabase.from('app_analytics').insert({
+          app_id: app.id,
+          user_id: user.id,
+          event_type: 'open'
+        });
       }
+
+      // Check if it's an internal route or external URL
+      if (app.app_url.startsWith('/')) {
+        // Internal Chatr route - navigate within app
+        navigate(app.app_url);
+        toast.success(`Opening ${app.app_name}...`);
+      } else {
+        // External URL - open with SSO
+        if (user) {
+          toast.loading(`Opening ${app.app_name}...`, { id: `open-${app.id}` });
+          await openAppWithSSO(app.app_url, app.id);
+          toast.success(`${app.app_name} opened in new tab`, { id: `open-${app.id}` });
+        } else {
+          window.open(app.app_url, '_blank');
+          toast.success(`${app.app_name} opened in new tab`);
+        }
+      }
+    } catch (error) {
+      console.error('Error opening app:', error);
+      toast.error('Failed to open app. Please try again.');
     }
   };
 

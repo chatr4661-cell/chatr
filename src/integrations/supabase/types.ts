@@ -4490,7 +4490,7 @@ export type Database = {
         }[]
       }
       generate_sso_token: {
-        Args: { p_app_id: string }
+        Args: { app_id_param: string }
         Returns: string
       }
       get_call_participants: {

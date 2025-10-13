@@ -13,7 +13,7 @@ export const useSSOToken = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.rpc('generate_sso_token', {
-        p_app_id: appId
+        app_id_param: appId
       });
 
       if (error) throw error;
@@ -29,19 +29,27 @@ export const useSSOToken = () => {
   };
 
   const openAppWithSSO = async (appUrl: string, appId: string) => {
-    const token = await generateToken(appId);
-    
-    if (!token) return;
+    try {
+      const token = await generateToken(appId);
+      
+      if (!token) {
+        toast.error('Could not authenticate with app');
+        return;
+      }
 
-    // For external URLs, append token as query parameter
-    if (!appUrl.startsWith('/')) {
-      const separator = appUrl.includes('?') ? '&' : '?';
-      const ssoUrl = `${appUrl}${separator}sso_token=${token}`;
-      window.open(ssoUrl, '_blank');
-    } else {
-      // For internal routes, store token in sessionStorage
-      sessionStorage.setItem('chatr_sso_token', token);
-      sessionStorage.setItem('chatr_sso_app_id', appId);
+      // For external URLs, append token as query parameter
+      if (!appUrl.startsWith('/')) {
+        const separator = appUrl.includes('?') ? '&' : '?';
+        const ssoUrl = `${appUrl}${separator}sso_token=${token}`;
+        window.open(ssoUrl, '_blank');
+      } else {
+        // For internal routes, store token in sessionStorage
+        sessionStorage.setItem('chatr_sso_token', token);
+        sessionStorage.setItem('chatr_sso_app_id', appId);
+      }
+    } catch (error) {
+      console.error('Error opening app with SSO:', error);
+      toast.error('Failed to open app securely');
     }
   };
 
