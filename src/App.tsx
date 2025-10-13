@@ -34,6 +34,7 @@ import YouthFeed from "./pages/YouthFeed";
 import MiniAppsStore from "./pages/MiniAppsStore";
 import DeveloperPortal from "./pages/DeveloperPortal";
 import OfficialAccounts from "./pages/OfficialAccounts";
+import OfficialAccountsManager from "./pages/admin/OfficialAccountsManager";
 import ChatrPoints from "./pages/ChatrPoints";
 import QRPayment from "./pages/QRPayment";
 import QRLogin from "./pages/QRLogin";
@@ -163,6 +164,7 @@ const App = () => {
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/announcements" element={<AdminAnnouncements />} />
             <Route path="/admin/documents" element={<AdminDocuments />} />
+            <Route path="/admin/official-accounts" element={<OfficialAccountsManager />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
