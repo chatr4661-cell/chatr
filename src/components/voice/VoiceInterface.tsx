@@ -85,40 +85,5 @@ export const VoiceInterface = ({ onSpeakingChange, onTranscriptUpdate }: VoiceIn
     toast.info("Conversation ended");
   };
 
-  return (
-    <div className="fixed bottom-24 right-6 z-50">
-      {!isConnected ? (
-        <Button 
-          onClick={startConversation}
-          disabled={isLoading}
-          size="lg"
-          className="rounded-full h-16 w-16 shadow-2xl bg-gradient-to-r from-primary to-primary/80 hover:scale-110 transition-all"
-        >
-          {isLoading ? (
-            <div className="animate-pulse">
-              <Mic className="h-6 w-6" />
-            </div>
-          ) : (
-            <Phone className="h-6 w-6" />
-          )}
-        </Button>
-      ) : (
-        <div className="flex flex-col gap-3 items-end">
-          {isSpeaking && (
-            <div className="bg-primary/10 backdrop-blur-lg px-4 py-2 rounded-full animate-pulse">
-              <p className="text-xs font-medium">Chatr is speaking...</p>
-            </div>
-          )}
-          <Button 
-            onClick={endConversation}
-            size="lg"
-            variant="destructive"
-            className="rounded-full h-16 w-16 shadow-2xl hover:scale-110 transition-all"
-          >
-            <PhoneOff className="h-6 w-6" />
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+  return null; // Hidden by default - can be accessed via AI Features menu
 };
