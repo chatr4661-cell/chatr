@@ -33,10 +33,10 @@ const BroadcastManager = () => {
   const loadAccounts = async () => {
     const { data } = await supabase
       .from('official_accounts')
-      .select('id, account_name, follower_count, logo_url')
+      .select('id, account_name, follower_count, logo_url, user_id')
       .eq('is_verified', true)
       .order('follower_count', { ascending: false });
-    if (data) setAccounts(data as OfficialAccount[]);
+    if (data) setAccounts(data as any);
   };
 
   const sendBroadcast = async () => {
@@ -48,6 +48,19 @@ const BroadcastManager = () => {
     setIsSending(true);
 
     try {
+      // Get the official account details including the user_id
+      const { data: officialAccount } = await supabase
+        .from('official_accounts')
+        .select('user_id, account_name')
+        .eq('id', selectedAccount)
+        .single();
+
+      if (!officialAccount?.user_id) {
+        toast.error('Official account not properly configured');
+        setIsSending(false);
+        return;
+      }
+
       // Get all followers of this account
       const { data: followers } = await supabase
         .from('account_followers')
@@ -62,12 +75,9 @@ const BroadcastManager = () => {
 
       // Create or find conversation with each follower
       for (const follower of followers) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) continue;
-
-        // Find existing conversation
+        // Find existing conversation between official account and follower
         const { data: existingConv } = await supabase.rpc('find_shared_conversation', {
-          user1_id: user.id,
+          user1_id: officialAccount.user_id,
           user2_id: follower.user_id
         });
 
@@ -78,7 +88,7 @@ const BroadcastManager = () => {
           const { data: newConv } = await supabase
             .from('conversations')
             .insert({
-              created_by: user.id,
+              created_by: officialAccount.user_id,
               is_group: false
             })
             .select('id')
@@ -89,7 +99,7 @@ const BroadcastManager = () => {
 
             // Add participants
             await supabase.from('conversation_participants').insert([
-              { conversation_id: conversationId, user_id: user.id },
+              { conversation_id: conversationId, user_id: officialAccount.user_id },
               { conversation_id: conversationId, user_id: follower.user_id }
             ]);
           }
@@ -102,10 +112,10 @@ const BroadcastManager = () => {
             finalMessage = `🔔 New Job Alert!\n\n📌 ${jobTitle}\n\n${message}\n\n🔗 Apply: ${jobUrl}`;
           }
 
-          // Send message
+          // Send message from official account user_id
           await supabase.from('messages').insert({
             conversation_id: conversationId,
-            sender_id: user.id,
+            sender_id: officialAccount.user_id,
             content: finalMessage,
             message_type: 'text'
           });
