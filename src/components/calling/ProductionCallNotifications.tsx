@@ -40,7 +40,12 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
   }, [userId]);
 
   const answerCall = async (call: any) => {
+    // Stop ringtone immediately by clearing incoming call first
     setIncomingCall(null);
+    
+    // Small delay to ensure ringtone stops before showing active call
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     setActiveCall(call);
 
     await supabase

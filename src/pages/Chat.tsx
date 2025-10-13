@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -391,156 +391,164 @@ const ChatEnhancedContent = () => {
       ) : (
         // Conversation List View
         <>
-          {/* Header */}
-          <div className="border-b bg-card/95 backdrop-blur-xl p-3 transition-all duration-300">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              {/* Left: Logo */}
+          {/* Compact Header - Mobile First */}
+          <div className="sticky top-0 z-10 border-b border-border/40 bg-background/95 backdrop-blur-sm">
+            <div className="flex items-center justify-between px-3 py-2.5">
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  chatr
-                </h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/')}
+                  className="h-8 w-8 hover:bg-muted/50"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                
+                <div className="flex items-center gap-1.5">
+                  <img 
+                    src="/chatr-logo.png" 
+                    alt="Chatr" 
+                    className="h-5 w-5"
+                  />
+                  <span className="text-sm font-medium">chatr.chat</span>
+                </div>
               </div>
-              
-              {/* Right: Action Icons - Streamlined */}
-              <div className="flex items-center gap-1.5">
-                {/* AI Features */}
-                <Sheet open={showAIFeatures} onOpenChange={setShowAIFeatures}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary relative transition-all duration-200 hover:scale-110"
-                      title="AI Features"
-                    >
-                      <Sparkles className="h-5 w-5" />
-                      {streak > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse">
-                          {streak}
-                        </span>
-                      )}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-                    <SheetHeader>
-                      <SheetTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                        AI Features
-                      </SheetTitle>
-                    </SheetHeader>
-                    <Tabs defaultValue="voice" className="mt-6">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="voice">Voice AI</TabsTrigger>
-                        <TabsTrigger value="connect">Connect</TabsTrigger>
-                        <TabsTrigger value="moments">Moments</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="voice" className="space-y-4 mt-4">
-                        <div className="text-sm text-muted-foreground mb-4">
-                          Talk to your AI friend powered by OpenAI Realtime
-                        </div>
-                        <VoiceInterface />
-                      </TabsContent>
-                      <TabsContent value="connect" className="space-y-4 mt-4">
-                        <div className="space-y-4">
-                          <div>
-                            <h3 className="font-semibold mb-2 flex items-center gap-2">
-                              <Heart className="h-4 w-4 text-pink-500" />
-                              Circle AI Matching
-                            </h3>
-                            <EmotionCircleMatch />
-                          </div>
-                          <div className="mt-6">
-                            <h3 className="font-semibold mb-2 flex items-center gap-2">
-                              <Radio className="h-4 w-4 text-purple-500" />
-                              Live Rooms
-                            </h3>
-                            <LiveRooms />
-                          </div>
-                        </div>
-                      </TabsContent>
-                      <TabsContent value="moments" className="space-y-4 mt-4">
-                        <AIMoments />
-                      </TabsContent>
-                    </Tabs>
-                  </SheetContent>
-                </Sheet>
 
-                {/* Create Group/Cluster */}
-                <Button
-                  variant="ghost"
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="ghost" 
                   size="icon"
-                  onClick={() => setShowClusterCreator(true)}
-                  className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-                  title="Create Group"
+                  onClick={() => navigate('/profile')}
+                  className="h-8 w-8 hover:bg-muted/50"
                 >
-                  <Users className="h-5 w-5" />
+                  <User className="h-4 w-4" />
                 </Button>
-
-                {/* Send Pulse */}
-                <Button
-                  variant="ghost"
+                <Button 
+                  variant="ghost" 
                   size="icon"
-                  onClick={() => setShowPulseCreator(true)}
-                  className="rounded-full h-10 w-10 hover:bg-amber-500/10 hover:text-amber-600 transition-all duration-200 hover:scale-110"
-                  title="Send Pulse"
+                  onClick={() => setShowGroupCreator(true)}
+                  className="h-8 w-8 hover:bg-muted/50"
                 >
-                  <Radio className="h-5 w-5" />
+                  <Users className="h-4 w-4" />
                 </Button>
-
-                {/* Search */}
-                <Button
-                  variant="ghost"
+                <Button 
+                  variant="ghost" 
                   size="icon"
-                  onClick={() => navigate('/global-contacts')}
-                  className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-                  title="Search"
+                  onClick={() => navigate('/notifications')}
+                  className="h-8 w-8 hover:bg-muted/50"
                 >
-                  <Search className="h-5 w-5" />
+                  <Bell className="h-4 w-4" />
                 </Button>
-
-                {/* More Menu */}
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/call-history')}
+                  className="h-8 w-8 hover:bg-muted/50"
+                >
+                  <Phone className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/qr-login')}
+                  className="h-8 w-8 hover:bg-muted/50"
+                >
+                  <QrCode className="h-4 w-4" />
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-                      title="More"
-                    >
-                      <Menu className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/50">
+                      <Share2 className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 animate-in fade-in-50 slide-in-from-top-2">
-                    <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
-                      <User className="h-4 w-4 mr-2" />
-                      Profile
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onClick={() => setShowAIFeatures(true)}>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      <span>AI Features</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/contacts')} className="cursor-pointer">
-                      <Users className="h-4 w-4 mr-2" />
-                      Contacts
+                    <DropdownMenuItem onClick={() => navigate('/communities')}>
+                      <Globe className="mr-2 h-4 w-4" />
+                      <span>Communities</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/call-history')} className="cursor-pointer">
-                      <Phone className="h-4 w-4 mr-2" />
-                      Call History
+                    <DropdownMenuItem onClick={() => navigate('/stories')}>
+                      <Zap className="mr-2 h-4 w-4" />
+                      <span>Stories</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/qr-login')} className="cursor-pointer">
-                      <QrCode className="h-4 w-4 mr-2" />
-                      QR Scanner
+                    <DropdownMenuItem onClick={() => navigate('/admin/announcements')}>
+                      <Megaphone className="mr-2 h-4 w-4" />
+                      <span>Announcements</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
-                      <UserX className="h-4 w-4 mr-2" />
-                      Blocked
+                    <DropdownMenuItem onClick={() => navigate('/device-management')}>
+                      <Smartphone className="mr-2 h-4 w-4" />
+                      <span>Devices</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer">
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Home
+                    <DropdownMenuItem onClick={() => navigate('/notification-settings')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Notification Settings</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </div>
+
+            {/* Search Bar */}
+            <div className="px-3 pb-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search by name, phone, or email..."
+                  className="w-full h-9 pl-10 pr-3 text-sm bg-muted/50 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
           </div>
+
+          {/* AI Features Sheet */}
+          <Sheet open={showAIFeatures} onOpenChange={setShowAIFeatures}>
+            <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  AI Features
+                </SheetTitle>
+              </SheetHeader>
+              <Tabs defaultValue="voice" className="mt-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="voice">Voice AI</TabsTrigger>
+                  <TabsTrigger value="connect">Connect</TabsTrigger>
+                  <TabsTrigger value="moments">Moments</TabsTrigger>
+                </TabsList>
+                <TabsContent value="voice" className="space-y-4 mt-4">
+                  <div className="text-sm text-muted-foreground mb-4">
+                    Talk to your AI friend powered by OpenAI Realtime
+                  </div>
+                  <VoiceInterface />
+                </TabsContent>
+                <TabsContent value="connect" className="space-y-4 mt-4">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2 flex items-center gap-2">
+                        <Heart className="h-4 w-4 text-pink-500" />
+                        Circle AI Matching
+                      </h3>
+                      <EmotionCircleMatch />
+                    </div>
+                    <div className="mt-6">
+                      <h3 className="font-semibold mb-2 flex items-center gap-2">
+                        <Radio className="h-4 w-4 text-purple-500" />
+                        Live Rooms
+                      </h3>
+                      <LiveRooms />
+                    </div>
+                  </div>
+                </TabsContent>
+                <TabsContent value="moments" className="space-y-4 mt-4">
+                  <AIMoments />
+                </TabsContent>
+              </Tabs>
+            </SheetContent>
+          </Sheet>
 
           {/* Conversations */}
           <div className="flex-1 overflow-hidden">

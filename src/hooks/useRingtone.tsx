@@ -112,10 +112,13 @@ export function useRingtone({
         document.addEventListener('click', enableOnInteraction);
         document.addEventListener('touchstart', enableOnInteraction);
       });
-    } else if (!enabled && isPlaying && ringtoneRef.current) {
-      fadeOut(ringtoneRef.current, fadeOutDuration, () => {
-        setIsPlaying(false);
-      });
+    } else if (!enabled && ringtoneRef.current) {
+      // Immediately stop ringtone when disabled
+      if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+      ringtoneRef.current = null;
+      setIsPlaying(false);
       stopVibration();
     }
 
@@ -123,9 +126,11 @@ export function useRingtone({
       if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
       if (ringtoneRef.current) {
         ringtoneRef.current.pause();
+        ringtoneRef.current.currentTime = 0;
         ringtoneRef.current = null;
       }
       stopVibration();
+      setIsPlaying(false);
     };
   }, [enabled]);
 
