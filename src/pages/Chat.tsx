@@ -294,90 +294,55 @@ const ChatEnhancedContent = () => {
       <NetworkStatus />
       
       {activeConversationId ? (
-        // Conversation View
+        // Conversation View - Clean iOS-style UI
         <>
           {/* Header */}
-          <div className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-lg p-3 md:p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setActiveConversationId(null);
-                  setOtherUser(null);
-                }}
-                className="rounded-full shrink-0 h-10 w-10"
-              >
-                <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              
-              {otherUser && (
-                <>
-                  <Avatar className="w-9 h-9 md:w-10 md:h-10 shrink-0">
-                    <AvatarImage src={otherUser.avatar_url} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                      {otherUser.username?.[0]?.toUpperCase() || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-base md:text-base truncate">{otherUser.username}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {otherUser.is_online ? 'Online' : 'Offline'}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
+          <div className="sticky top-0 z-10 bg-background border-b">
+            <div className="flex items-center justify-between px-4 h-14">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setActiveConversationId(null);
+                    setOtherUser(null);
+                  }}
+                  className="h-10 w-10 rounded-full shrink-0"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                
+                {otherUser && (
+                  <>
+                    <Avatar className="w-10 h-10 shrink-0">
+                      <AvatarImage src={otherUser.avatar_url} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {otherUser.username?.[0]?.toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{otherUser.username}</p>
+                      <p className="text-xs text-green-500">
+                        {otherUser.is_online ? 'Online' : ''}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
 
-            <div className="flex items-center gap-1 md:gap-2 shrink-0">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full h-9 w-9 md:h-10 md:w-10"
-                  >
-                    <MoreVertical className="h-4 w-4 md:h-5 md:w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
-                    onClick={() => setShowDisappearingSettings(true)}
-                    className="cursor-pointer"
-                  >
-                    <Radio className="h-4 w-4 mr-2" />
-                    Disappearing Messages
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('voice')}
-                className="rounded-full h-9 w-9 md:h-10 md:w-10"
+                className="h-10 w-10 rounded-full text-primary shrink-0"
               >
-                <Phone className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleStartCall('video')}
-                className="rounded-full h-9 w-9 md:h-10 md:w-10"
-              >
-                <Video className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full h-9 w-9 md:h-10 md:w-10"
-              >
-                <MoreVertical className="h-5 w-5" />
+                <Phone className="h-5 w-5" />
               </Button>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden bg-background">
             <VirtualMessageList
               messages={messages}
               userId={user.id}
@@ -389,53 +354,52 @@ const ChatEnhancedContent = () => {
           </div>
 
           {/* Input */}
-          <EnhancedMessageInput
-            onSendMessage={handleSendMessage}
-            disabled={messagesLoading}
-            lastMessage={messages.length > 0 && messages[messages.length - 1].sender_id !== user.id 
-              ? messages[messages.length - 1].content 
-              : undefined}
-          />
+          <div className="border-t bg-background px-4 py-2">
+            <EnhancedMessageInput
+              onSendMessage={handleSendMessage}
+              disabled={messagesLoading}
+              lastMessage={messages.length > 0 && messages[messages.length - 1].sender_id !== user.id 
+                ? messages[messages.length - 1].content 
+                : undefined}
+            />
+          </div>
         </>
       ) : (
-        // Conversation List View
+        // Conversation List View - Clean iOS-style UI
         <>
           {/* Header */}
-          <div className="border-b bg-card/95 backdrop-blur-xl p-3 transition-all duration-300">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              {/* Left: Logo */}
-              <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  chatr
-                </h1>
-              </div>
+          <div className="border-b bg-background">
+            <div className="flex items-center justify-between px-4 h-14">
+              <h1 className="text-2xl font-bold">chatr</h1>
               
-              {/* Right: Action Icons - Streamlined */}
-              <div className="flex items-center gap-1.5">
-                {/* AI Features */}
-                <Sheet open={showAIFeatures} onOpenChange={setShowAIFeatures}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary relative transition-all duration-200 hover:scale-110"
-                      title="AI Features"
-                    >
-                      <Sparkles className="h-5 w-5" />
-                      {streak > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse">
-                          {streak}
-                        </span>
-                      )}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-                    <SheetHeader>
-                      <SheetTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                        AI Features
-                      </SheetTitle>
-                    </SheetHeader>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/contacts')}
+                className="h-10 w-10 rounded-full"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Conversation List */}
+          <div className="flex-1 overflow-hidden bg-background">
+            <VirtualizedConversationList
+              userId={user.id}
+              onConversationSelect={handleConversationSelect}
+            />
+          </div>
+
+          {/* AI Features Sheet */}
+          <Sheet open={showAIFeatures} onOpenChange={setShowAIFeatures}>
+            <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  AI Features
+                </SheetTitle>
+              </SheetHeader>
                     <Tabs defaultValue="voice" className="mt-6">
                       <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="voice">Voice AI</TabsTrigger>
@@ -472,92 +436,6 @@ const ChatEnhancedContent = () => {
                     </Tabs>
                   </SheetContent>
                 </Sheet>
-
-                {/* Create Group/Cluster */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowClusterCreator(true)}
-                  className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-                  title="Create Group"
-                >
-                  <Users className="h-5 w-5" />
-                </Button>
-
-                {/* Send Pulse */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowPulseCreator(true)}
-                  className="rounded-full h-10 w-10 hover:bg-amber-500/10 hover:text-amber-600 transition-all duration-200 hover:scale-110"
-                  title="Send Pulse"
-                >
-                  <Radio className="h-5 w-5" />
-                </Button>
-
-                {/* Search */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/global-contacts')}
-                  className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-                  title="Search"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-
-                {/* More Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-                      title="More"
-                    >
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 animate-in fade-in-50 slide-in-from-top-2">
-                    <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
-                      <User className="h-4 w-4 mr-2" />
-                      Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/contacts')} className="cursor-pointer">
-                      <Users className="h-4 w-4 mr-2" />
-                      Contacts
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/call-history')} className="cursor-pointer">
-                      <Phone className="h-4 w-4 mr-2" />
-                      Call History
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/qr-login')} className="cursor-pointer">
-                      <QrCode className="h-4 w-4 mr-2" />
-                      QR Scanner
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
-                      <UserX className="h-4 w-4 mr-2" />
-                      Blocked
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer">
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Home
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
-
-          {/* Conversations */}
-          <div className="flex-1 overflow-hidden">
-            <VirtualizedConversationList
-              userId={user.id}
-              onConversationSelect={handleConversationSelect}
-            />
-          </div>
         </>
       )}
 
