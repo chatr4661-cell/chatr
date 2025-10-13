@@ -78,10 +78,10 @@ export const VirtualMessageList = React.memo(({
 
   return (
     <ScrollArea className="flex-1 h-full" ref={scrollRef} onScroll={handleScroll}>
-      <div className="space-y-0.5 p-3 pb-2">
+      <div className="space-y-0 p-2 pb-1">
         {isLoading && hasMore && (
-          <div className="text-center py-2">
-            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="text-center py-1.5">
+            <div className="w-4 h-4 border-2 border-primary/60 border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         )}
         {messages.map((message, index) => {

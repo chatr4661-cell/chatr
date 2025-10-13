@@ -234,7 +234,7 @@ export default function ProductionVideoCall({
         }
       };
 
-      // Monitor connection state
+      // Monitor connection state with auto-recovery
       pc.onconnectionstatechange = () => {
         console.log('🔗 [WebRTC Connection State]:', pc.connectionState);
         console.log('   ICE Gathering:', pc.iceGatheringState);
@@ -248,11 +248,32 @@ export default function ProductionVideoCall({
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
           console.warn('⚠️ Connection failed, attempting ICE restart...');
-          pc.restartIce();
+          
+          // Auto-recovery: restart ICE immediately
+          setTimeout(async () => {
+            if (pc.connectionState === "failed" && isInitiator) {
+              try {
+                const offer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(offer);
+                await sendSignal({ type: 'offer', callId, data: offer, to: partnerId });
+                console.log('🔄 ICE restart initiated');
+              } catch (e) {
+                console.error('❌ ICE restart failed:', e);
+              }
+            }
+          }, 1000);
         } else if (pc.connectionState === "disconnected") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
           console.warn('⚠️ Connection disconnected - waiting for reconnection...');
+          
+          // Give it 5 seconds to reconnect, then force restart
+          setTimeout(() => {
+            if (pc.connectionState === "disconnected") {
+              console.warn('🔄 Still disconnected, forcing ICE restart');
+              pc.restartIce();
+            }
+          }, 5000);
         } else if (pc.connectionState === "closed") {
           console.log('📴 Connection closed');
         }

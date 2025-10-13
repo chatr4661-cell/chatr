@@ -12,6 +12,7 @@ import { ContactPicker } from './ContactPicker';
 import { AIImageGenerator } from './AIImageGenerator';
 import { capturePhoto, pickImage, getCurrentLocation } from '@/utils/mediaUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface EnhancedMessageInputProps {
   onSendMessage: (content: string, type?: string, mediaUrl?: string) => Promise<void>;
@@ -308,81 +309,116 @@ export const EnhancedMessageInput = ({
         onSend={handleAIImageSend}
       />
 
-      <div className="border-t bg-card/80 backdrop-blur-lg pb-24 md:pb-20 safe-bottom">
+      <div className="border-t bg-background/95 backdrop-blur-sm pb-20 safe-bottom">
         {/* AI Smart Replies */}
-        {lastMessage && !message && (
-          <AISmartReplyPanel 
-            lastMessage={lastMessage}
-            onSelectReply={(reply) => setMessage(reply)}
-          />
-        )}
-        {replyTo && (
-          <div className="px-3 md:px-4 pt-3 pb-2 border-b bg-muted/30">
-            <div className="flex items-start justify-between gap-2 touch-manipulation">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-primary">Replying to {replyTo.sender}</p>
-                <p className="text-xs text-muted-foreground truncate">{replyTo.content}</p>
+        <AnimatePresence>
+          {lastMessage && !message && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AISmartReplyPanel 
+                lastMessage={lastMessage}
+                onSelectReply={(reply) => setMessage(reply)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <AnimatePresence>
+          {replyTo && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="px-3 pt-2 pb-1.5 border-b bg-muted/20"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-primary">Replying to {replyTo.sender}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{replyTo.content}</p>
+                </div>
+                {onCancelReply && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onCancelReply}
+                    className="h-6 w-6 rounded-full shrink-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                )}
               </div>
-              {onCancelReply && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onCancelReply}
-                  className="h-8 w-8 md:h-6 md:w-6 rounded-full shrink-0"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="p-4">
-          <div className="flex items-end gap-2 bg-muted/50 rounded-3xl px-4 py-3">
+        <div className="p-2.5">
+          <div className="flex items-end gap-1.5 bg-muted/40 rounded-[28px] px-3 py-2.5 border border-border/20">
             <div className="flex-1 relative">
               <Textarea
                 ref={textareaRef}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Type a message..."
-                className="min-h-[44px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-2 text-base"
+                placeholder="Message"
+                className="min-h-[36px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1.5 text-[15px] leading-tight placeholder:text-muted-foreground/60"
                 disabled={disabled || sending}
                 rows={1}
               />
             </div>
 
-            {message.trim() ? (
-              <Button
-                onClick={handleSend}
-                disabled={!message.trim() || sending || disabled}
-                size="icon"
-                className="rounded-full h-11 w-11 md:h-9 md:w-9 shrink-0 touch-manipulation"
-              >
-                <Send className="w-5 h-5 md:w-4 md:h-4" />
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowAttachments(true)}
-                  className="rounded-full shrink-0 h-11 w-11 md:h-9 md:w-9 touch-manipulation"
-                  disabled={disabled}
+            <AnimatePresence mode="wait">
+              {message.trim() ? (
+                <motion.div
+                  key="send"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  <Plus className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleVoiceRecord}
-                  className={`rounded-full shrink-0 h-11 w-11 md:h-9 md:w-9 touch-manipulation ${isRecording ? 'bg-destructive text-destructive-foreground' : ''}`}
-                  disabled={disabled}
+                  <Button
+                    onClick={handleSend}
+                    disabled={!message.trim() || sending || disabled}
+                    size="icon"
+                    className="rounded-full h-9 w-9 shrink-0 bg-primary hover:bg-primary/90 active:scale-95 transition-all shadow-sm"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="actions"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex gap-0.5"
                 >
-                  <Mic className="w-5 h-5" />
-                </Button>
-              </>
-            )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowAttachments(true)}
+                    className="rounded-full shrink-0 h-9 w-9 hover:bg-muted/60"
+                    disabled={disabled}
+                  >
+                    <Plus className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleVoiceRecord}
+                    className={`rounded-full shrink-0 h-9 w-9 hover:bg-muted/60 ${isRecording ? 'bg-destructive text-destructive-foreground' : ''}`}
+                    disabled={disabled}
+                  >
+                    <Mic className="w-5 h-5" />
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

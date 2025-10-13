@@ -296,67 +296,65 @@ const ChatEnhancedContent = () => {
       {activeConversationId ? (
         // Conversation View
         <>
-          {/* Header */}
-          <div className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-lg p-3 md:p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setActiveConversationId(null);
-                  setOtherUser(null);
-                }}
-                className="rounded-full shrink-0 h-10 w-10"
-              >
-                <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              
-              {otherUser && (
-                <>
-                  <Avatar className="w-9 h-9 md:w-10 md:h-10 shrink-0">
-                    <AvatarImage src={otherUser.avatar_url} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                      {otherUser.username?.[0]?.toUpperCase() || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-base md:text-base truncate">{otherUser.username}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {otherUser.is_online ? 'Online' : 'Offline'}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
+          {/* Header - Sleek mobile-first design */}
+          <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm px-2 py-2 flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setActiveConversationId(null);
+                setOtherUser(null);
+              }}
+              className="rounded-full shrink-0 h-9 w-9"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            
+            {otherUser && (
+              <>
+                <Avatar className="w-9 h-9 shrink-0">
+                  <AvatarImage src={otherUser.avatar_url} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                    {otherUser.username?.[0]?.toUpperCase() || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm truncate leading-tight">{otherUser.username}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    {otherUser.is_online ? 'Online' : 'Offline'}
+                  </p>
+                </div>
+              </>
+            )}
 
-            <div className="flex items-center gap-1 md:gap-2 shrink-0">
+            <div className="flex items-center gap-0.5 shrink-0 ml-auto">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('voice')}
-                className="rounded-full h-9 w-9 md:h-10 md:w-10"
+                className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
               >
-                <Phone className="h-4 w-4 md:h-5 md:w-5" />
+                <Phone className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleStartCall('video')}
+                className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
+              >
+                <Video className="h-4 w-4" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-full h-9 w-9 md:h-10 md:w-10"
+                    className="rounded-full h-9 w-9"
                   >
-                    <MoreVertical className="h-4 w-4 md:h-5 md:w-5" />
+                    <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
-                    onClick={() => handleStartCall('video')}
-                    className="cursor-pointer"
-                  >
-                    <Video className="h-4 w-4 mr-2" />
-                    Video Call
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem 
                     onClick={() => setShowDisappearingSettings(true)}
                     className="cursor-pointer"
