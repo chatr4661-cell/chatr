@@ -309,116 +309,52 @@ export const EnhancedMessageInput = ({
         onSend={handleAIImageSend}
       />
 
-      <div className="border-t bg-background/95 backdrop-blur-sm pb-20 safe-bottom">
-        {/* AI Smart Replies */}
-        <AnimatePresence>
-          {lastMessage && !message && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+      <div className="border-t bg-white/95 backdrop-blur-sm safe-bottom">
+        <div className="p-3 pb-6">
+          <div className="flex items-center gap-2 bg-[hsl(200,25,95%)] rounded-[24px] px-4 py-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowAttachments(true)}
+              className="h-8 w-8 rounded-full hover:bg-muted/50 shrink-0"
+              disabled={disabled}
             >
-              <AISmartReplyPanel 
-                lastMessage={lastMessage}
-                onSelectReply={(reply) => setMessage(reply)}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        <AnimatePresence>
-          {replyTo && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="px-3 pt-2 pb-1.5 border-b bg-muted/20"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-primary">Replying to {replyTo.sender}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{replyTo.content}</p>
-                </div>
-                {onCancelReply && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onCancelReply}
-                    className="h-6 w-6 rounded-full shrink-0"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <Plus className="w-5 h-5 text-muted-foreground" />
+            </Button>
 
-        <div className="p-2.5">
-          <div className="flex items-end gap-1.5 bg-muted/40 rounded-[28px] px-3 py-2.5 border border-border/20">
-            <div className="flex-1 relative">
+            <div className="flex-1">
               <Textarea
                 ref={textareaRef}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Message"
-                className="min-h-[36px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1.5 text-[15px] leading-tight placeholder:text-muted-foreground/60"
+                className="min-h-[32px] max-h-[100px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1 text-[15px] placeholder:text-muted-foreground/50"
                 disabled={disabled || sending}
                 rows={1}
               />
             </div>
 
-            <AnimatePresence mode="wait">
-              {message.trim() ? (
-                <motion.div
-                  key="send"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <Button
-                    onClick={handleSend}
-                    disabled={!message.trim() || sending || disabled}
-                    size="icon"
-                    className="rounded-full h-9 w-9 shrink-0 bg-primary hover:bg-primary/90 active:scale-95 transition-all shadow-sm"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="actions"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="flex gap-0.5"
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowAttachments(true)}
-                    className="rounded-full shrink-0 h-9 w-9 hover:bg-muted/60"
-                    disabled={disabled}
-                  >
-                    <Plus className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleVoiceRecord}
-                    className={`rounded-full shrink-0 h-9 w-9 hover:bg-muted/60 ${isRecording ? 'bg-destructive text-destructive-foreground' : ''}`}
-                    disabled={disabled}
-                  >
-                    <Mic className="w-5 h-5" />
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {message.trim() ? (
+              <Button
+                onClick={handleSend}
+                disabled={!message.trim() || sending || disabled}
+                size="icon"
+                className="h-8 w-8 rounded-full bg-[hsl(185,75%,40%)] hover:bg-[hsl(185,75%,35%)] text-white shrink-0"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleVoiceRecord}
+                className={`h-8 w-8 rounded-full hover:bg-muted/50 shrink-0 ${isRecording ? 'bg-destructive text-destructive-foreground' : ''}`}
+                disabled={disabled}
+              >
+                <Mic className="w-5 h-5 text-muted-foreground" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

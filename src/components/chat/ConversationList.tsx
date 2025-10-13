@@ -236,9 +236,9 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
       {/* Search Bar */}
-      <div className="sticky top-0 z-10 bg-background border-b p-3">
+      <div className="sticky top-0 z-10 bg-white border-b p-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -246,7 +246,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
             placeholder="Search by name, phone, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-muted/30 border-muted-foreground/20 rounded-xl h-11"
+            className="pl-10 bg-[hsl(200,25%,95%)] border-0 rounded-lg h-10 text-[15px]"
           />
         </div>
       </div>

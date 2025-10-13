@@ -296,8 +296,8 @@ const ChatEnhancedContent = () => {
       {activeConversationId ? (
         // Conversation View
         <>
-          {/* Header - Sleek mobile-first design */}
-          <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm px-2 py-2 flex items-center gap-2">
+          {/* Header - Clean WhatsApp-style */}
+          <div className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm px-3 py-2.5 flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
@@ -305,70 +305,57 @@ const ChatEnhancedContent = () => {
                 setActiveConversationId(null);
                 setOtherUser(null);
               }}
-              className="rounded-full shrink-0 h-9 w-9"
+              className="h-9 w-9 rounded-full hover:bg-muted/50"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             
             {otherUser && (
               <>
-                <Avatar className="w-9 h-9 shrink-0">
+                <Avatar className="w-10 h-10 shrink-0">
                   <AvatarImage src={otherUser.avatar_url} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary">
                     {otherUser.username?.[0]?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate leading-tight">{otherUser.username}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">
+                  <p className="font-semibold text-[15px] truncate">{otherUser.username}</p>
+                  <p className="text-[12px] text-muted-foreground">
                     {otherUser.is_online ? 'Online' : 'Offline'}
                   </p>
                 </div>
               </>
             )}
 
-            <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+            <div className="flex items-center gap-1 shrink-0 ml-auto">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('voice')}
-                className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
+                className="h-9 w-9 rounded-full hover:bg-muted/50"
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('video')}
-                className="rounded-full h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
+                className="h-9 w-9 rounded-full hover:bg-muted/50"
               >
-                <Video className="h-4 w-4" />
+                <Video className="h-5 w-5" />
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full h-9 w-9"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem 
-                    onClick={() => setShowDisappearingSettings(true)}
-                    className="cursor-pointer"
-                  >
-                    <Radio className="h-4 w-4 mr-2" />
-                    Disappearing Messages
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full hover:bg-muted/50"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-hidden bg-background">
+          <div className="flex-1 overflow-hidden">
             <VirtualMessageList
               messages={messages}
               userId={user.id}
