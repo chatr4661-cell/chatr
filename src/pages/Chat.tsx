@@ -378,26 +378,25 @@ const ChatEnhancedContent = () => {
       ) : (
         // Conversation List View
         <>
-          {/* Compact Header - Mobile First */}
-          <div className="sticky top-0 z-10 border-b border-border/40 bg-background/95 backdrop-blur-sm">
-            <div className="flex items-center justify-between px-3 py-2.5">
-              <div className="flex items-center gap-3">
+          {/* Clean Header - October 6th Design */}
+          <div className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm">
+            <div className="flex items-center justify-between px-3 py-3">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/')}
-                  className="h-8 w-8 hover:bg-muted/50"
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-5 w-5" />
                 </Button>
                 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <img 
                     src="/chatr-logo.png" 
                     alt="Chatr" 
-                    className="h-5 w-5"
+                    className="h-6 w-6"
                   />
-                  <span className="text-sm font-medium">chatr.chat</span>
                 </div>
               </div>
 
@@ -406,87 +405,56 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/profile')}
-                  className="h-8 w-8 hover:bg-muted/50"
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
                 >
-                  <User className="h-4 w-4" />
+                  <User className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => setShowGroupCreator(true)}
-                  className="h-8 w-8 hover:bg-muted/50"
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
                 >
-                  <Users className="h-4 w-4" />
+                  <Users className="h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                >
+                  <Search className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/notifications')}
-                  className="h-8 w-8 hover:bg-muted/50"
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
                 >
-                  <Bell className="h-4 w-4" />
+                  <Bell className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/call-history')}
-                  className="h-8 w-8 hover:bg-muted/50"
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
                 >
-                  <Phone className="h-4 w-4" />
+                  <Phone className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/qr-login')}
-                  className="h-8 w-8 hover:bg-muted/50"
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
                 >
-                  <QrCode className="h-4 w-4" />
+                  <QrCode className="h-5 w-5" />
                 </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/50">
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuItem onClick={() => setShowAIFeatures(true)}>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      <span>AI Features</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/communities')}>
-                      <Globe className="mr-2 h-4 w-4" />
-                      <span>Communities</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/stories')}>
-                      <Zap className="mr-2 h-4 w-4" />
-                      <span>Stories</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/admin/announcements')}>
-                      <Megaphone className="mr-2 h-4 w-4" />
-                      <span>Announcements</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/device-management')}>
-                      <Smartphone className="mr-2 h-4 w-4" />
-                      <span>Devices</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/notification-settings')}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Notification Settings</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="px-3 pb-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search by name, phone, or email..."
-                  className="w-full h-9 pl-10 pr-3 text-sm bg-muted/50 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
               </div>
             </div>
           </div>
