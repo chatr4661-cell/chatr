@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -29,6 +29,8 @@ import { AIMoments } from '@/components/AIMoments';
 import { useMoodTracking } from '@/hooks/useMoodTracking';
 import { useStreakTracking } from '@/hooks/useStreakTracking';
 import logo from '@/assets/chatr-logo.png';
+import GlobalSearch from '@/components/GlobalSearch';
+import { Badge } from '@/components/ui/badge';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -46,6 +48,8 @@ const ChatEnhancedContent = () => {
   const [showGlobalSearch, setShowGlobalSearch] = React.useState(false);
   const [contacts, setContacts] = React.useState<any[]>([]);
   const [profile, setProfile] = React.useState<any>(null);
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+  const [notificationCount, setNotificationCount] = React.useState(0);
   const { streak } = useStreakTracking('ai_chat');
   
   // Optimized message handling with batching and pagination
@@ -72,6 +76,54 @@ const ChatEnhancedContent = () => {
     };
     
     loadProfile();
+  }, [user?.id]);
+
+  // Monitor online status
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Load notification count
+  React.useEffect(() => {
+    if (!user?.id) return;
+    
+    const loadNotifications = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      
+      setNotificationCount(count || 0);
+    };
+    
+    loadNotifications();
+    
+    // Subscribe to new notifications
+    const channel = supabase
+      .channel('notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      }, () => {
+        loadNotifications();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   // Clear active conversation on mount - removed to improve performance
@@ -387,7 +439,8 @@ const ChatEnhancedContent = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/')}
-                  className="h-10 w-10 rounded-full hover:bg-muted/40"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  title="Back"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
@@ -397,6 +450,17 @@ const ChatEnhancedContent = () => {
                   alt="chatr" 
                   className="h-7 w-7"
                 />
+                
+                {/* Status Badge */}
+                <div className="flex items-center gap-1.5 ml-1">
+                  {isOnline ? (
+                    <><Wifi className="h-3.5 w-3.5 text-emerald-500" />
+                    <span className="text-xs text-emerald-600 font-medium">Online</span></>
+                  ) : (
+                    <><WifiOff className="h-3.5 w-3.5 text-amber-500" />
+                    <span className="text-xs text-amber-600 font-medium">Offline</span></>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-0.5">
@@ -431,10 +495,15 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/notifications')}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors relative"
                   title="Notifications"
                 >
                   <Bell className="h-5 w-5" />
+                  {notificationCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px] bg-red-500 border-2 border-white">
+                      {notificationCount > 99 ? '99+' : notificationCount}
+                    </Badge>
+                  )}
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -588,6 +657,14 @@ const ChatEnhancedContent = () => {
           }}
         />
       )}
+      
+      {/* Global Search */}
+      <GlobalSearch
+        open={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+        onNavigate={navigate}
+        currentUserId={user?.id}
+      />
       
       {/* Voice AI Interface - Always available */}
       <VoiceInterface />
