@@ -16,7 +16,9 @@ import {
   Users,
   Coins,
   QrCode,
-  Flame
+  Flame,
+  Grid3x3,
+  CheckCircle
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
@@ -239,6 +241,22 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-amber-400 to-yellow-500',
       route: '/chatr-points',
       isNew: false
+    },
+    {
+      icon: Grid3x3,
+      title: 'Mini-Apps',
+      description: 'Discover & install apps',
+      iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
+      route: '/mini-apps',
+      isNew: true
+    },
+    {
+      icon: CheckCircle,
+      title: 'Official',
+      description: 'Verified accounts & services',
+      iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
+      route: '/official-accounts',
+      isNew: true
     },
   ];
 

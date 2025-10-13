@@ -31,6 +31,8 @@ import AlliedHealthcare from "./pages/AlliedHealthcare";
 import Marketplace from "./pages/Marketplace";
 import YouthEngagement from "./pages/YouthEngagement";
 import YouthFeed from "./pages/YouthFeed";
+import MiniAppsStore from "./pages/MiniAppsStore";
+import OfficialAccounts from "./pages/OfficialAccounts";
 import ChatrPoints from "./pages/ChatrPoints";
 import QRPayment from "./pages/QRPayment";
 import QRLogin from "./pages/QRLogin";
@@ -134,6 +136,8 @@ const App = () => {
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/youth-engagement" element={<YouthEngagement />} />
             <Route path="/youth-feed" element={<YouthFeed />} />
+            <Route path="/mini-apps" element={<MiniAppsStore />} />
+            <Route path="/official-accounts" element={<OfficialAccounts />} />
             
             {/* Points & Payment Routes */}
             <Route path="/chatr-points" element={<ChatrPoints />} />

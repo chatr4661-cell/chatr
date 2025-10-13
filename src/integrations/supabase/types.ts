@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_followers: {
+        Row: {
+          account_id: string
+          followed_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          followed_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          followed_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_followers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "official_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_moments: {
         Row: {
           conversation_snippet: string
@@ -141,6 +170,71 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      app_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      app_reviews: {
+        Row: {
+          app_id: string
+          created_at: string | null
+          id: string
+          rating: number | null
+          review_text: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          created_at?: string | null
+          id?: string
+          rating?: number | null
+          review_text?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          created_at?: string | null
+          id?: string
+          rating?: number | null
+          review_text?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_reviews_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       appointments: {
         Row: {
@@ -876,6 +970,48 @@ export type Database = {
           is_public?: boolean | null
           member_count?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      developer_profiles: {
+        Row: {
+          bio: string | null
+          company_name: string | null
+          created_at: string | null
+          developer_name: string
+          id: string
+          is_verified: boolean | null
+          total_apps: number | null
+          total_downloads: number | null
+          updated_at: string | null
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          bio?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          developer_name: string
+          id?: string
+          is_verified?: boolean | null
+          total_apps?: number | null
+          total_downloads?: number | null
+          updated_at?: string | null
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          bio?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          developer_name?: string
+          id?: string
+          is_verified?: boolean | null
+          total_apps?: number | null
+          total_downloads?: number | null
+          updated_at?: string | null
+          user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -2050,6 +2186,77 @@ export type Database = {
           },
         ]
       }
+      mini_apps: {
+        Row: {
+          app_name: string
+          app_url: string
+          category_id: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          developer_id: string | null
+          icon_url: string | null
+          id: string
+          install_count: number | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          rating_average: number | null
+          rating_count: number | null
+          screenshots: string[] | null
+          tags: string[] | null
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          app_name: string
+          app_url: string
+          category_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          developer_id?: string | null
+          icon_url?: string | null
+          id?: string
+          install_count?: number | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          rating_average?: number | null
+          rating_count?: number | null
+          screenshots?: string[] | null
+          tags?: string[] | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          app_name?: string
+          app_url?: string
+          category_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          developer_id?: string | null
+          icon_url?: string | null
+          id?: string
+          install_count?: number | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          rating_average?: number | null
+          rating_count?: number | null
+          screenshots?: string[] | null
+          tags?: string[] | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mini_apps_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "app_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moment_shares: {
         Row: {
           created_at: string | null
@@ -2155,6 +2362,54 @@ export type Database = {
           read?: boolean | null
           title?: string
           type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      official_accounts: {
+        Row: {
+          account_name: string
+          account_type: string | null
+          category: string | null
+          contact_info: Json | null
+          cover_url: string | null
+          created_at: string | null
+          description: string | null
+          follower_count: number | null
+          id: string
+          is_verified: boolean | null
+          logo_url: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_type?: string | null
+          category?: string | null
+          contact_info?: Json | null
+          cover_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          follower_count?: number | null
+          id?: string
+          is_verified?: boolean | null
+          logo_url?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_type?: string | null
+          category?: string | null
+          contact_info?: Json | null
+          cover_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          follower_count?: number | null
+          id?: string
+          is_verified?: boolean | null
+          logo_url?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -3482,6 +3737,38 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_installed_apps: {
+        Row: {
+          app_id: string
+          id: string
+          installed_at: string | null
+          last_opened_at: string | null
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          id?: string
+          installed_at?: string | null
+          last_opened_at?: string | null
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          id?: string
+          installed_at?: string | null
+          last_opened_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_installed_apps_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
             referencedColumns: ["id"]
           },
         ]
