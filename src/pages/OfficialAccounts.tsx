@@ -163,9 +163,17 @@ const OfficialAccounts = () => {
             <Card key={account.id} className="p-4 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
                 {/* Logo */}
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {account.logo_url ? (
-                    <img src={account.logo_url} alt={account.account_name} className="w-14 h-14 rounded-full" />
+                    <img 
+                      src={account.logo_url} 
+                      alt={account.account_name} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement!.innerHTML = getTypeIcon(account.account_type) as any;
+                      }}
+                    />
                   ) : (
                     getTypeIcon(account.account_type)
                   )}
