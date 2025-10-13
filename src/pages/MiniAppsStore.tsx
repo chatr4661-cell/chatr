@@ -118,9 +118,25 @@ const MiniAppsStore = () => {
     toast.success('App installed successfully!');
   };
 
-  const openApp = (app: MiniApp) => {
-    // Open in new window/iframe
-    window.open(app.app_url, '_blank');
+  const openApp = async (app: MiniApp) => {
+    // Update last opened time
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && installedApps.has(app.id)) {
+      await supabase
+        .from('user_installed_apps')
+        .update({ last_opened_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('app_id', app.id);
+    }
+
+    // Check if it's an internal route or external URL
+    if (app.app_url.startsWith('/')) {
+      // Internal Chatr route - navigate within app
+      navigate(app.app_url);
+    } else {
+      // External URL - open in new window
+      window.open(app.app_url, '_blank');
+    }
   };
 
   const filteredApps = apps.filter(app =>
