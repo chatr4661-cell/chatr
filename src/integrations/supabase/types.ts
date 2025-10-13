@@ -171,6 +171,48 @@ export type Database = {
         }
         Relationships: []
       }
+      app_analytics: {
+        Row: {
+          app_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          session_duration: number | null
+          user_id: string | null
+        }
+        Insert: {
+          app_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          session_duration?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          app_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          session_duration?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_analytics_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_analytics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_categories: {
         Row: {
           created_at: string | null
@@ -232,6 +274,94 @@ export type Database = {
             columns: ["app_id"]
             isOneToOne: false
             referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_submissions: {
+        Row: {
+          app_name: string
+          app_url: string
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          developer_id: string | null
+          icon_url: string | null
+          id: string
+          privacy_policy_url: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          screenshots: string[] | null
+          submission_status: string | null
+          submitted_at: string | null
+          support_email: string | null
+          tags: string[] | null
+          terms_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          app_name: string
+          app_url: string
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          developer_id?: string | null
+          icon_url?: string | null
+          id?: string
+          privacy_policy_url?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshots?: string[] | null
+          submission_status?: string | null
+          submitted_at?: string | null
+          support_email?: string | null
+          tags?: string[] | null
+          terms_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          app_name?: string
+          app_url?: string
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          developer_id?: string | null
+          icon_url?: string | null
+          id?: string
+          privacy_policy_url?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshots?: string[] | null
+          submission_status?: string | null
+          submitted_at?: string | null
+          support_email?: string | null
+          tags?: string[] | null
+          terms_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_submissions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "app_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_submissions_developer_id_fkey"
+            columns: ["developer_id"]
+            isOneToOne: false
+            referencedRelation: "developer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_submissions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -975,12 +1105,14 @@ export type Database = {
       }
       developer_profiles: {
         Row: {
+          api_key: string | null
           bio: string | null
           company_name: string | null
           created_at: string | null
           developer_name: string
           id: string
           is_verified: boolean | null
+          portal_enabled: boolean | null
           total_apps: number | null
           total_downloads: number | null
           updated_at: string | null
@@ -988,12 +1120,14 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          api_key?: string | null
           bio?: string | null
           company_name?: string | null
           created_at?: string | null
           developer_name: string
           id?: string
           is_verified?: boolean | null
+          portal_enabled?: boolean | null
           total_apps?: number | null
           total_downloads?: number | null
           updated_at?: string | null
@@ -1001,12 +1135,14 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          api_key?: string | null
           bio?: string | null
           company_name?: string | null
           created_at?: string | null
           developer_name?: string
           id?: string
           is_verified?: boolean | null
+          portal_enabled?: boolean | null
           total_apps?: number | null
           total_downloads?: number | null
           updated_at?: string | null
@@ -3459,6 +3595,51 @@ export type Database = {
         }
         Relationships: []
       }
+      sso_tokens: {
+        Row: {
+          app_id: string | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_id?: string | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          token: string
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_id?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_tokens_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sso_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       status_views: {
         Row: {
           id: string
@@ -4307,6 +4488,10 @@ export type Database = {
           phone_number: string
           username: string
         }[]
+      }
+      generate_sso_token: {
+        Args: { p_app_id: string }
+        Returns: string
       }
       get_call_participants: {
         Args: { p_call_id: string }

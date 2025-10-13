@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Search, Star, Download, Sparkles } from 'lucide-react';
+import { ArrowLeft, Search, Star, Download, Sparkles, Code } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSSOToken } from '@/hooks/useSSOToken';
 
 interface MiniApp {
   id: string;
@@ -32,6 +33,7 @@ interface Category {
 
 const MiniAppsStore = () => {
   const navigate = useNavigate();
+  const { openAppWithSSO } = useSSOToken();
   const [apps, setApps] = useState<MiniApp[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -100,6 +102,13 @@ const MiniAppsStore = () => {
       return;
     }
 
+    // Track analytics
+    await supabase.from('app_analytics').insert({
+      app_id: appId,
+      user_id: user.id,
+      event_type: 'install'
+    });
+
     // Update install count
     const { data: app } = await supabase
       .from('mini_apps')
@@ -115,19 +124,27 @@ const MiniAppsStore = () => {
     }
 
     setInstalledApps(prev => new Set([...prev, appId]));
-    loadApps(); // Refresh to show updated count
-    toast.success('App installed successfully!');
+    loadApps();
+    toast.success('App installed successfully! 🎉');
   };
 
   const openApp = async (app: MiniApp) => {
-    // Update last opened time
     const { data: { user } } = await supabase.auth.getUser();
+    
     if (user && installedApps.has(app.id)) {
+      // Update last opened time
       await supabase
         .from('user_installed_apps')
         .update({ last_opened_at: new Date().toISOString() })
         .eq('user_id', user.id)
         .eq('app_id', app.id);
+
+      // Track analytics
+      await supabase.from('app_analytics').insert({
+        app_id: app.id,
+        user_id: user.id,
+        event_type: 'open'
+      });
     }
 
     // Check if it's an internal route or external URL
@@ -135,8 +152,12 @@ const MiniAppsStore = () => {
       // Internal Chatr route - navigate within app
       navigate(app.app_url);
     } else {
-      // External URL - open in new window
-      window.open(app.app_url, '_blank');
+      // External URL - open with SSO
+      if (user) {
+        await openAppWithSSO(app.app_url, app.id);
+      } else {
+        window.open(app.app_url, '_blank');
+      }
     }
   };
 
@@ -162,6 +183,15 @@ const MiniAppsStore = () => {
             <Sparkles className="h-5 w-5 text-primary" />
             <h1 className="text-lg font-bold">Mini-Apps Store</h1>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/developer-portal')}
+            className="rounded-full"
+          >
+            <Code className="h-4 w-4 mr-2" />
+            Developers
+          </Button>
         </div>
 
         {/* Search */}
