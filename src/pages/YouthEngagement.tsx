@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Brain, Heart, MessageCircle, Share2, Upload, Sparkles, TrendingUp, Award, Image as ImageIcon, Smile, X } from 'lucide-react';
+import { ArrowLeft, Brain, Heart, MessageCircle, Share2, Upload, Sparkles, TrendingUp, Award, Image as ImageIcon, Smile, X, User, Activity } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Post {
@@ -39,6 +39,8 @@ const YouthEngagement = () => {
   const [showMoodPicker, setShowMoodPicker] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [sharePost, setSharePost] = useState<Post | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const moods = [
@@ -209,6 +211,34 @@ const YouthEngagement = () => {
       description: 'Post content copied to clipboard',
     });
     setShowShareDialog(false);
+  };
+
+  const handleProfileClick = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      const { data: userPosts } = await supabase
+        .from('youth_posts')
+        .select('*')
+        .eq('user_id', userId);
+
+      const totalLikes = userPosts?.reduce((sum, post) => sum + (post.likes_count || 0), 0) || 0;
+      const totalComments = userPosts?.reduce((sum, post) => sum + (post.comments_count || 0), 0) || 0;
+
+      setSelectedProfile({
+        ...profile,
+        postsCount: userPosts?.length || 0,
+        totalLikes,
+        totalComments,
+      });
+      setShowProfileDialog(true);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
   };
 
   const handleLike = async (postId: string, isLiked: boolean) => {
@@ -441,13 +471,21 @@ const YouthEngagement = () => {
                 <CardContent className="p-4">
                   {/* Post Header */}
                   <div className="flex items-center gap-3 mb-3">
-                    <Avatar>
+                    <Avatar 
+                      className="cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                      onClick={() => handleProfileClick(post.user_id)}
+                    >
                       <AvatarImage src={post.profiles.avatar_url} />
                       <AvatarFallback>{post.profiles.username[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground">{post.profiles.username}</p>
+                        <p 
+                          className="font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleProfileClick(post.user_id)}
+                        >
+                          {post.profiles.username}
+                        </p>
                         {post.mood && <span className="text-lg">{post.mood}</span>}
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -531,21 +569,100 @@ const YouthEngagement = () => {
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Share Post</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Share this post with your friends and community
+              {sharePost?.content.substring(0, 100)}...
             </p>
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm line-clamp-3">{sharePost?.content}</p>
-            </div>
             <Button onClick={copyShareLink} className="w-full">
+              <Share2 className="w-4 h-4 mr-2" />
               Copy to Clipboard
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Details Dialog */}
+      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Profile Details</DialogTitle>
+          </DialogHeader>
+          {selectedProfile && (
+            <div className="space-y-6">
+              {/* Profile Header */}
+              <div className="flex flex-col items-center text-center space-y-3">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={selectedProfile.avatar_url} />
+                  <AvatarFallback className="text-2xl">
+                    {selectedProfile.username?.[0] || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-bold">{selectedProfile.username}</h3>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <div className={`w-2 h-2 rounded-full ${selectedProfile.is_online ? 'bg-green-500' : 'bg-gray-400'}`} />
+                    <span className="text-sm text-muted-foreground">
+                      {selectedProfile.is_online ? 'Online' : 'Offline'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Engagement Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card className="p-3 text-center bg-primary/5">
+                  <MessageCircle className="w-5 h-5 mx-auto mb-1 text-primary" />
+                  <p className="text-lg font-bold">{selectedProfile.postsCount}</p>
+                  <p className="text-xs text-muted-foreground">Posts</p>
+                </Card>
+                <Card className="p-3 text-center bg-pink-500/10">
+                  <Heart className="w-5 h-5 mx-auto mb-1 text-pink-500" />
+                  <p className="text-lg font-bold">{selectedProfile.totalLikes}</p>
+                  <p className="text-xs text-muted-foreground">Likes</p>
+                </Card>
+                <Card className="p-3 text-center bg-blue-500/10">
+                  <Activity className="w-5 h-5 mx-auto mb-1 text-blue-500" />
+                  <p className="text-lg font-bold">{selectedProfile.totalComments}</p>
+                  <p className="text-xs text-muted-foreground">Comments</p>
+                </Card>
+              </div>
+
+              {/* Bio/Status */}
+              {selectedProfile.status && (
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium mb-1">Status</p>
+                  <p className="text-sm text-muted-foreground">{selectedProfile.status}</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1"
+                  onClick={() => {
+                    navigate('/chat', { state: { userId: selectedProfile.id } });
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Message
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    navigate('/profile', { state: { userId: selectedProfile.id } });
+                  }}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  View Profile
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

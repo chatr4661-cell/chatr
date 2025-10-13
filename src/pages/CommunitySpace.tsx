@@ -39,7 +39,7 @@ export default function CommunitySpace() {
       icon: Trophy,
       title: 'Youth Engagement',
       description: 'Health programs & activities',
-      route: '/youth',
+      route: '/youth-engagement',
       color: 'from-yellow-500 to-orange-600'
     },
     {
