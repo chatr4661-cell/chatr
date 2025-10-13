@@ -43,6 +43,7 @@ const ChatEnhancedContent = () => {
   const [showGroupCreator, setShowGroupCreator] = React.useState(false);
   const [showBroadcastCreator, setShowBroadcastCreator] = React.useState(false);
   const [showDisappearingSettings, setShowDisappearingSettings] = React.useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = React.useState(false);
   const [contacts, setContacts] = React.useState<any[]>([]);
   const [profile, setProfile] = React.useState<any>(null);
   const { streak } = useStreakTracking('ai_chat');
@@ -403,7 +404,8 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/profile')}
-                  className="h-10 w-10 rounded-full hover:bg-muted/40"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  title="Profile"
                 >
                   <User className="h-5 w-5" />
                 </Button>
@@ -411,14 +413,17 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => setShowGroupCreator(true)}
-                  className="h-10 w-10 rounded-full hover:bg-muted/40"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  title="Create Group"
                 >
                   <Users className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-10 w-10 rounded-full hover:bg-muted/40"
+                  onClick={() => setShowGlobalSearch(true)}
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  title="Search"
                 >
                   <Search className="h-5 w-5" />
                 </Button>
@@ -426,7 +431,8 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/notifications')}
-                  className="h-10 w-10 rounded-full hover:bg-muted/40"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  title="Notifications"
                 >
                   <Bell className="h-5 w-5" />
                 </Button>
@@ -434,7 +440,8 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/call-history')}
-                  className="h-10 w-10 rounded-full hover:bg-muted/40"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  title="Call History"
                 >
                   <Phone className="h-5 w-5" />
                 </Button>
@@ -442,14 +449,29 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/qr-login')}
-                  className="h-10 w-10 rounded-full hover:bg-muted/40"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  title="QR Code"
                 >
                   <QrCode className="h-5 w-5" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-10 w-10 rounded-full hover:bg-muted/40"
+                  onClick={() => {
+                    const shareData = {
+                      title: 'chatr',
+                      text: 'Join me on chatr - secure messaging and calling!',
+                      url: window.location.origin
+                    };
+                    if (navigator.share) {
+                      navigator.share(shareData);
+                    } else {
+                      navigator.clipboard.writeText(window.location.origin);
+                      toast.success('Link copied to clipboard!');
+                    }
+                  }}
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  title="Share chatr"
                 >
                   <Share2 className="h-5 w-5" />
                 </Button>

@@ -160,13 +160,13 @@ export const MessageInput = ({ onSendMessage, conversationId, userId, disabled }
   };
 
   return (
-    <div className="border-t bg-background p-4 pb-20">
+    <div className="border-t border-border/30 bg-[hsl(200,25%,97%)] p-3">
       {!isOnline && (
-        <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-lg">
           <WifiOff className="w-4 h-4" />
           <span>Offline - messages will be queued</span>
           {queueLength > 0 && (
-            <span className="ml-auto text-xs bg-muted px-2 py-1 rounded-full">
+            <span className="ml-auto text-xs bg-amber-100 dark:bg-amber-900 px-2 py-1 rounded-full">
               {queueLength} queued
             </span>
           )}
@@ -180,12 +180,12 @@ export const MessageInput = ({ onSendMessage, conversationId, userId, disabled }
       ) : (
         <>
           {uploadingFile && (
-            <div className="mb-2 flex items-center gap-2 text-sm text-primary">
+            <div className="mb-2 flex items-center gap-2 text-sm text-primary bg-primary/5 px-3 py-2 rounded-lg">
               <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span>Uploading {selectedFile?.name}...</span>
             </div>
           )}
-          <div className="flex items-end gap-2">
+          <div className="flex items-center gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -196,11 +196,11 @@ export const MessageInput = ({ onSendMessage, conversationId, userId, disabled }
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full shrink-0"
+              className="rounded-full shrink-0 h-10 w-10 hover:bg-white/80 transition-colors"
               disabled={disabled || uploadingFile}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-5 h-5 text-muted-foreground" />
             </Button>
 
             <div className="flex-1 relative">
@@ -209,29 +209,33 @@ export const MessageInput = ({ onSendMessage, conversationId, userId, disabled }
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Type a message..."
-                className="min-h-[44px] max-h-[120px] resize-none rounded-2xl pr-12"
+                className="min-h-[44px] max-h-[120px] resize-none rounded-3xl pr-12 bg-white border-border/40 focus-visible:ring-1 focus-visible:ring-primary/20 text-[15px] leading-relaxed"
                 disabled={disabled || sending}
                 rows={1}
               />
-              <Button
-                onClick={handleSend}
-                disabled={!message.trim() || sending || disabled}
-                size="icon"
-                className="absolute right-2 bottom-2 rounded-full h-8 w-8"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
+              {message.trim() ? (
+                <Button
+                  onClick={handleSend}
+                  disabled={!message.trim() || sending || disabled}
+                  size="icon"
+                  className="absolute right-2 bottom-2 rounded-full h-9 w-9 bg-[hsl(175,60%,45%)] hover:bg-[hsl(175,60%,40%)] transition-all"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              ) : null}
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full shrink-0"
-              disabled={disabled}
-              onClick={() => setShowVoiceRecorder(true)}
-            >
-              <Mic className="w-5 h-5" />
-            </Button>
+            {!message.trim() && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full shrink-0 h-10 w-10 hover:bg-white/80 transition-colors"
+                disabled={disabled}
+                onClick={() => setShowVoiceRecorder(true)}
+              >
+                <Mic className="w-5 h-5 text-muted-foreground" />
+              </Button>
+            )}
           </div>
         </>
       )}
