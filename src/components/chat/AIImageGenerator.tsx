@@ -62,26 +62,34 @@ export const AIImageGenerator = ({ open, onClose, onSend }: AIImageGeneratorProp
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-[90%] sm:max-w-md mx-auto rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/20">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+            </div>
             Generate AI Image
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="prompt">Image Description</Label>
+            <Label htmlFor="prompt" className="text-sm font-medium">What do you want to create?</Label>
             <Input
               id="prompt"
-              placeholder="A beautiful sunset over mountains..."
+              placeholder="E.g., A futuristic city at sunset, cyberpunk style..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              className="mt-2"
+              className="mt-2 text-sm"
               disabled={generating}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && prompt.trim()) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
             />
-            <p className="text-xs text-muted-foreground mt-2">
-              Describe the image you want to create
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              Be specific for best results. Press Enter to generate.
             </p>
           </div>
 
@@ -89,23 +97,26 @@ export const AIImageGenerator = ({ open, onClose, onSend }: AIImageGeneratorProp
             <Button 
               variant="outline" 
               onClick={onClose} 
-              className="flex-1"
+              className="flex-1 text-sm"
               disabled={generating}
             >
               Cancel
             </Button>
             <Button 
               onClick={handleGenerate} 
-              className="flex-1"
+              className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-sm"
               disabled={generating || !prompt.trim()}
             >
               {generating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
+                  Creating...
                 </>
               ) : (
-                'Generate'
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate
+                </>
               )}
             </Button>
           </div>

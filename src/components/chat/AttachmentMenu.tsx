@@ -47,21 +47,24 @@ export const AttachmentMenu = ({
   ];
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 animate-in fade-in duration-200">
-      <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl p-6 animate-in slide-in-from-bottom duration-300 shadow-elevated">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold">Share</h3>
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-50 animate-in fade-in duration-200" onClick={onClose}>
+      <div 
+        className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-card to-card/95 rounded-t-[2rem] p-5 pb-8 animate-in slide-in-from-bottom duration-300 shadow-2xl border-t border-border/50"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-base font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Share</h3>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="rounded-full"
+            className="rounded-full h-8 w-8 hover:bg-muted/50"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </Button>
         </div>
         
-        <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+        <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
           {options.map((option, index) => {
             const Icon = option.icon;
             return (
@@ -71,13 +74,12 @@ export const AttachmentMenu = ({
                   option.onClick();
                   onClose();
                 }}
-                className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-muted transition-all active:scale-95"
-                style={{ animationDelay: `${index * 30}ms` }}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-muted/60 transition-all active:scale-95 touch-manipulation"
               >
-                <div className={`w-14 h-14 rounded-2xl bg-muted flex items-center justify-center ${option.color}`}>
-                  <Icon className="w-7 h-7" />
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-muted/80 to-muted flex items-center justify-center ${option.color} shadow-sm`}>
+                  <Icon className="w-6 h-6" />
                 </div>
-                <span className="text-xs font-medium text-center">{option.label}</span>
+                <span className="text-[10px] font-medium text-center leading-tight">{option.label}</span>
               </button>
             );
           })}
