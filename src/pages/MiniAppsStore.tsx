@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Search, Star, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface MiniApp {
   id: string;
@@ -181,105 +182,154 @@ const MiniAppsStore = () => {
         {/* Categories - Horizontal Scroll */}
         <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           <div className="flex gap-2 min-w-max">
-            <Button
-              variant={selectedCategory === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('all')}
-              className="rounded-full whitespace-nowrap"
-            >
-              All Apps
-            </Button>
-            {categories.map((category) => (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? 'default' : 'outline'}
+                variant={selectedCategory === 'all' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedCategory(category.id)}
-                className="rounded-full whitespace-nowrap"
+                onClick={() => setSelectedCategory('all')}
+                className="rounded-full whitespace-nowrap shadow-sm hover:shadow-md transition-all"
               >
-                <span className="mr-1.5">{category.icon}</span>
-                {category.name}
+                All Apps
               </Button>
+            </motion.div>
+            {categories.map((category) => (
+              <motion.div 
+                key={category.id}
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button
+                  variant={selectedCategory === category.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category.id)}
+                  className="rounded-full whitespace-nowrap shadow-sm hover:shadow-md transition-all"
+                >
+                  <span className="mr-1.5">{category.icon}</span>
+                  {category.name}
+                </Button>
+              </motion.div>
             ))}
           </div>
         </div>
 
         {/* Apps Grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-48 bg-muted animate-pulse rounded-xl" />
-            ))}
-          </div>
-        ) : filteredApps.length === 0 ? (
-          <div className="text-center py-20">
-            <Sparkles className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground text-lg">No apps found</p>
-            <p className="text-muted-foreground text-sm mt-1">Try a different category or search</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">{filteredApps.map((app) => (
-              <Card key={app.id} className="overflow-hidden hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
-                <div className="p-4 space-y-3">
-                  {/* App Icon */}
-                  <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-5xl">
-                    {app.icon_url || '✨'}
-                  </div>
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div 
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="h-48 bg-muted/50 animate-pulse rounded-2xl border border-border/50"
+                />
+              ))}
+            </motion.div>
+          ) : filteredApps.length === 0 ? (
+            <motion.div 
+              className="text-center py-20"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Sparkles className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground text-lg font-medium">No apps found</p>
+              <p className="text-muted-foreground text-sm mt-1">Try a different category or search</p>
+            </motion.div>
+          ) : (
+            <motion.div 
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {filteredApps.map((app, index) => (
+                <motion.div
+                  key={app.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 group border-border/50 hover:border-primary/30 bg-card/80 backdrop-blur-sm">
+                    <div className="p-4 space-y-3">
+                      {/* App Icon */}
+                      <motion.div 
+                        className="w-full aspect-square rounded-2xl bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 flex items-center justify-center text-5xl relative overflow-hidden"
+                        whileHover={{ rotate: [0, -5, 5, -5, 0] }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/10" />
+                        {app.icon_url || '✨'}
+                      </motion.div>
 
-                  {/* App Info */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-1">
-                      <h3 className="font-semibold text-sm line-clamp-1">{app.app_name}</h3>
-                      {app.is_verified && (
-                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 text-xs px-1.5 py-0 h-5">
-                          ✓
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2.5rem]">
-                      {app.description}
-                    </p>
+                      {/* App Info */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-start justify-between gap-1">
+                          <h3 className="font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">
+                            {app.app_name}
+                          </h3>
+                          {app.is_verified && (
+                            <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 text-xs px-1.5 py-0 h-5 shadow-sm">
+                              ✓
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2.5rem]">
+                          {app.description}
+                        </p>
 
-                    {/* Rating & Downloads */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                        <span className="font-medium">{app.rating_average.toFixed(1)}</span>
+                        {/* Rating & Downloads */}
+                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+                            <span className="font-medium">{app.rating_average.toFixed(1)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Download className="w-3.5 h-3.5" />
+                            <span>{app.install_count > 1000 ? `${(app.install_count / 1000).toFixed(0)}k` : app.install_count}</span>
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="pt-1">
+                          {installedApps.has(app.id) ? (
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button
+                                size="sm"
+                                onClick={() => openApp(app)}
+                                className="w-full h-8 text-xs shadow-md hover:shadow-lg transition-all"
+                                variant="secondary"
+                              >
+                                Open
+                              </Button>
+                            </motion.div>
+                          ) : (
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button
+                                size="sm"
+                                onClick={() => installApp(app.id)}
+                                className="w-full h-8 text-xs bg-primary hover:bg-primary/90 shadow-md hover:shadow-xl transition-all"
+                              >
+                                Install
+                              </Button>
+                            </motion.div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Download className="w-3 h-3" />
-                        <span>{app.install_count > 1000 ? `${(app.install_count / 1000).toFixed(0)}k` : app.install_count}</span>
-                      </div>
                     </div>
-
-                    {/* Action Button */}
-                    <div className="pt-1">
-                      {installedApps.has(app.id) ? (
-                        <Button
-                          size="sm"
-                          onClick={() => openApp(app)}
-                          className="w-full h-8 text-xs"
-                          variant="secondary"
-                        >
-                          Open
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => installApp(app.id)}
-                          className="w-full h-8 text-xs bg-primary hover:bg-primary/90"
-                        >
-                          Install
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

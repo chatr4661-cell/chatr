@@ -145,13 +145,8 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     overscroll-behavior: contain;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Mobile-First Typography */
-  html {
+    scroll-behavior: smooth;
     font-size: 14px;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 
   @media (min-width: 768px) {
@@ -174,11 +169,21 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     font-size: 16px !important; /* Prevent iOS zoom on focus */
   }
 
-  /* Mobile-First Smooth Transitions */
+  /* Premium Smooth Transitions */
   * {
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 200ms;
+    transition-duration: 250ms;
+  }
+  
+  /* Scrollbar Styling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 
   /* Glass UI utilities with extra roundedness */
