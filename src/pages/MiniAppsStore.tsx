@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Search, Star, Download, Sparkles, Code } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Search, Star, Download, Sparkles, Code, TrendingUp, Clock, Filter, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSSOToken } from '@/hooks/useSSOToken';
@@ -20,7 +22,10 @@ interface MiniApp {
   install_count: number;
   is_verified: boolean;
   category_id: string;
-  tags: string[];
+  tags?: string[];
+  is_trending?: boolean;
+  launch_date?: string;
+  monthly_active_users?: number;
 }
 
 interface Category {
@@ -29,6 +34,12 @@ interface Category {
   description: string;
   icon: string;
   display_order: number;
+}
+
+interface AppUsage {
+  app_id: string;
+  usage_count: number;
+  last_used_at: string;
 }
 
 const MiniAppsStore = () => {
@@ -41,12 +52,19 @@ const MiniAppsStore = () => {
   const [installedApps, setInstalledApps] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [installingAppId, setInstallingAppId] = useState<string | null>(null);
+  const [recentlyUsed, setRecentlyUsed] = useState<AppUsage[]>([]);
+  const [activeTab, setActiveTab] = useState('all');
+  const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest'>('popular');
+  const [showFilters, setShowFilters] = useState(false);
+  const [minRating, setMinRating] = useState<number>(0);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   useEffect(() => {
     loadCategories();
     loadApps();
     loadInstalledApps();
-  }, [selectedCategory]);
+    loadRecentlyUsed();
+  }, [selectedCategory, sortBy]);
 
   const loadCategories = async () => {
     const { data } = await supabase
@@ -68,7 +86,16 @@ const MiniAppsStore = () => {
       query = query.eq('category_id', selectedCategory);
     }
 
-    const { data } = await query.order('rating_average', { ascending: false });
+    // Apply sorting
+    if (sortBy === 'popular') {
+      query = query.order('install_count', { ascending: false });
+    } else if (sortBy === 'rating') {
+      query = query.order('rating_average', { ascending: false });
+    } else if (sortBy === 'newest') {
+      query = query.order('launch_date', { ascending: false });
+    }
+
+    const { data } = await query;
     if (data) setApps(data);
     setLoading(false);
   };
@@ -84,6 +111,32 @@ const MiniAppsStore = () => {
 
     if (data) {
       setInstalledApps(new Set(data.map(item => item.app_id)));
+    }
+  };
+
+  const loadRecentlyUsed = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('app_usage')
+      .select('app_id, usage_count, last_used_at')
+      .eq('user_id', user.id)
+      .order('last_used_at', { ascending: false })
+      .limit(6);
+
+    if (!error && data) {
+      setRecentlyUsed(data);
+    }
+  };
+
+  const trackAppUsage = async (appId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.rpc('track_app_usage', { p_app_id: appId });
+    if (!error) {
+      loadRecentlyUsed();
     }
   };
 
@@ -103,7 +156,7 @@ const MiniAppsStore = () => {
         .from('user_installed_apps')
         .insert({ user_id: user.id, app_id: app.id });
 
-      if (error) {
+      if (error && !error.message.includes('duplicate')) {
         toast.error('Failed to install app', { id: loadingToast });
         setInstallingAppId(null);
         return;
@@ -146,6 +199,9 @@ const MiniAppsStore = () => {
 
   const openApp = async (app: MiniApp) => {
     try {
+      // Track usage
+      await trackAppUsage(app.id);
+      
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user && installedApps.has(app.id)) {
@@ -186,9 +242,107 @@ const MiniAppsStore = () => {
     }
   };
 
-  const filteredApps = apps.filter(app =>
-    app.app_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredApps = apps.filter(app => {
+    // Search filter
+    const matchesSearch = app.app_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    // Rating filter
+    const matchesRating = app.rating_average >= minRating;
+    
+    // Verified filter
+    const matchesVerified = !verifiedOnly || app.is_verified;
+    
+    return matchesSearch && matchesRating && matchesVerified;
+  });
+
+  const trendingApps = apps.filter(app => app.is_trending);
+  const recentApps = [...apps].sort((a, b) => 
+    new Date(b.launch_date || 0).getTime() - new Date(a.launch_date || 0).getTime()
+  ).slice(0, 6);
+  
+  const continueUsingApps = apps.filter(app => 
+    recentlyUsed.some(usage => usage.app_id === app.id)
+  ).sort((a, b) => {
+    const aUsage = recentlyUsed.find(u => u.app_id === a.id);
+    const bUsage = recentlyUsed.find(u => u.app_id === b.id);
+    return new Date(bUsage?.last_used_at || 0).getTime() - new Date(aUsage?.last_used_at || 0).getTime();
+  });
+
+  const renderAppCard = (app: MiniApp) => (
+    <motion.div
+      key={app.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4 }}
+      className="h-full"
+    >
+      <Card className="p-4 hover:shadow-lg transition-all h-full flex flex-col">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            {app.icon_url ? (
+              <img src={app.icon_url} alt={app.app_name} className="w-10 h-10 rounded" />
+            ) : (
+              <span className="text-2xl">{app.app_name[0]}</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold truncate">{app.app_name}</h3>
+              {app.is_verified && (
+                <Badge variant="secondary" className="h-5 flex-shrink-0">✓</Badge>
+              )}
+              {app.is_trending && (
+                <Badge variant="default" className="h-5 flex-shrink-0 gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  Hot
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Star className="h-3 w-3 fill-current" />
+              {app.rating_average.toFixed(1)}
+              <span>•</span>
+              <Download className="h-3 w-3" />
+              {app.install_count.toLocaleString()}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground mb-3 line-clamp-2 flex-1">
+          {app.description}
+        </p>
+
+        {app.tags && app.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {app.tags.slice(0, 3).map(tag => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        <Button
+          className="w-full"
+          variant={installedApps.has(app.id) ? 'outline' : 'default'}
+          onClick={() => installedApps.has(app.id) ? openApp(app) : installAndOpenApp(app)}
+          disabled={installingAppId === app.id}
+        >
+          {installingAppId === app.id ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Installing...
+            </>
+          ) : installedApps.has(app.id) ? (
+            'Open'
+          ) : (
+            'Install'
+          )}
+        </Button>
+      </Card>
+    </motion.div>
   );
 
   return (
@@ -219,173 +373,195 @@ const MiniAppsStore = () => {
           </Button>
         </div>
 
-        {/* Search */}
-        <div className="px-3 pb-3 max-w-7xl mx-auto">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search apps..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9 bg-muted/50"
-            />
+        {/* Search & Filters */}
+        <div className="px-3 pb-3 max-w-7xl mx-auto space-y-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search apps or tags..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-9 bg-muted/50"
+              />
+            </div>
+            <Button
+              variant={showFilters ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
           </div>
+
+          {/* Advanced Filters */}
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex gap-2 flex-wrap"
+            >
+              <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                <SelectTrigger className="w-[140px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="popular">Most Popular</SelectItem>
+                  <SelectItem value="rating">Highest Rated</SelectItem>
+                  <SelectItem value="newest">Just Launched</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={minRating.toString()} onValueChange={(v) => setMinRating(Number(v))}>
+                <SelectTrigger className="w-[120px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">All Ratings</SelectItem>
+                  <SelectItem value="3">3+ Stars</SelectItem>
+                  <SelectItem value="4">4+ Stars</SelectItem>
+                  <SelectItem value="4.5">4.5+ Stars</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant={verifiedOnly ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setVerifiedOnly(!verifiedOnly)}
+                className="h-8 text-sm"
+              >
+                ✓ Verified Only
+              </Button>
+
+              {(minRating > 0 || verifiedOnly) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setMinRating(0);
+                    setVerifiedOnly(false);
+                  }}
+                  className="h-8 text-sm gap-1"
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </Button>
+              )}
+            </motion.div>
+          )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-4 space-y-4">
-        {/* Categories - Horizontal Scroll */}
-        <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-          <div className="flex gap-2 min-w-max">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory('all')}
-                className="rounded-full whitespace-nowrap shadow-sm hover:shadow-md transition-all"
-              >
-                All Apps
-              </Button>
-            </motion.div>
-            {categories.map((category) => (
-              <motion.div 
-                key={category.id}
-                whileHover={{ scale: 1.05 }} 
-                whileTap={{ scale: 0.95 }}
-              >
+      <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* Smart Discovery Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 h-auto">
+            <TabsTrigger value="all" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              All Apps
+            </TabsTrigger>
+            <TabsTrigger value="trending" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Trending
+            </TabsTrigger>
+            <TabsTrigger value="recent" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Just Launched
+            </TabsTrigger>
+            <TabsTrigger value="continue" className="gap-2" disabled={continueUsingApps.length === 0}>
+              <Clock className="h-4 w-4" />
+              Continue
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="mt-6 space-y-4">
+            {/* Categories */}
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+              <div className="flex gap-2 min-w-max">
                 <Button
-                  variant={selectedCategory === category.id ? 'default' : 'outline'}
+                  variant={selectedCategory === 'all' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSelectedCategory(category.id)}
-                  className="rounded-full whitespace-nowrap shadow-sm hover:shadow-md transition-all"
+                  onClick={() => setSelectedCategory('all')}
+                  className="rounded-full"
                 >
-                  <span className="mr-1.5">{category.icon}</span>
-                  {category.name}
+                  All
                 </Button>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+                {categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.id ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category.id)}
+                    className="rounded-full"
+                  >
+                    <span className="mr-1.5">{category.icon}</span>
+                    {category.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
 
-        {/* Apps Grid */}
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div 
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              {[...Array(8)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="h-48 bg-muted/50 animate-pulse rounded-2xl border border-border/50"
-                />
-              ))}
-            </motion.div>
-          ) : filteredApps.length === 0 ? (
-            <motion.div 
-              className="text-center py-20"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Sparkles className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <p className="text-muted-foreground text-lg font-medium">No apps found</p>
-              <p className="text-muted-foreground text-sm mt-1">Try a different category or search</p>
-            </motion.div>
-          ) : (
-            <motion.div 
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              {filteredApps.map((app, index) => (
-                <motion.div
-                  key={app.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.3 }}
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 group border-border/50 hover:border-primary/30 bg-card/80 backdrop-blur-sm">
-                    <div className="p-4 space-y-3">
-                      {/* App Icon */}
-                      <motion.div 
-                        className="w-full aspect-square rounded-2xl bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 flex items-center justify-center text-5xl relative overflow-hidden"
-                        whileHover={{ rotate: [0, -5, 5, -5, 0] }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/10" />
-                        {app.icon_url || '✨'}
-                      </motion.div>
+            {/* Apps Grid */}
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="h-64 bg-muted/50 animate-pulse rounded-lg" />
+                ))}
+              </div>
+            ) : filteredApps.length === 0 ? (
+              <div className="text-center py-12">
+                <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                <p className="text-muted-foreground">No apps found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredApps.map(app => renderAppCard(app))}
+              </div>
+            )}
+          </TabsContent>
 
-                      {/* App Info */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-start justify-between gap-1">
-                          <h3 className="font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">
-                            {app.app_name}
-                          </h3>
-                          {app.is_verified && (
-                            <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 text-xs px-1.5 py-0 h-5 shadow-sm">
-                              ✓
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2.5rem]">
-                          {app.description}
-                        </p>
+          <TabsContent value="trending" className="mt-6">
+            {trendingApps.length === 0 ? (
+              <div className="text-center py-12">
+                <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                <p className="text-muted-foreground">No trending apps</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {trendingApps.map(app => renderAppCard(app))}
+              </div>
+            )}
+          </TabsContent>
 
-                        {/* Rating & Downloads */}
-                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
-                            <span className="font-medium">{app.rating_average.toFixed(1)}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Download className="w-3.5 h-3.5" />
-                            <span>{app.install_count > 1000 ? `${(app.install_count / 1000).toFixed(0)}k` : app.install_count}</span>
-                          </div>
-                        </div>
+          <TabsContent value="recent" className="mt-6">
+            {recentApps.length === 0 ? (
+              <div className="text-center py-12">
+                <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                <p className="text-muted-foreground">No recent apps</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {recentApps.map(app => renderAppCard(app))}
+              </div>
+            )}
+          </TabsContent>
 
-                        {/* Action Button */}
-                        <div className="pt-1">
-                          {installedApps.has(app.id) ? (
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                              <Button
-                                size="sm"
-                                onClick={() => openApp(app)}
-                                className="w-full h-8 text-xs shadow-md hover:shadow-lg transition-all"
-                                variant="secondary"
-                              >
-                                Open
-                              </Button>
-                            </motion.div>
-                          ) : (
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                              <Button
-                                size="sm"
-                                onClick={() => installAndOpenApp(app)}
-                                disabled={installingAppId === app.id}
-                                className="w-full h-8 text-xs bg-primary hover:bg-primary/90 shadow-md hover:shadow-xl transition-all disabled:opacity-50"
-                              >
-                                {installingAppId === app.id ? 'Installing...' : 'Install'}
-                              </Button>
-                            </motion.div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <TabsContent value="continue" className="mt-6">
+            {continueUsingApps.length === 0 ? (
+              <div className="text-center py-12">
+                <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                <p className="text-muted-foreground">No recently used apps</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {continueUsingApps.map(app => renderAppCard(app))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -366,6 +366,48 @@ export type Database = {
           },
         ]
       }
+      app_usage: {
+        Row: {
+          app_id: string
+          created_at: string | null
+          id: string
+          last_used_at: string | null
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_usage_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -2522,7 +2564,10 @@ export type Database = {
           id: string
           install_count: number | null
           is_active: boolean | null
+          is_trending: boolean | null
           is_verified: boolean | null
+          launch_date: string | null
+          monthly_active_users: number | null
           rating_average: number | null
           rating_count: number | null
           screenshots: string[] | null
@@ -2542,7 +2587,10 @@ export type Database = {
           id?: string
           install_count?: number | null
           is_active?: boolean | null
+          is_trending?: boolean | null
           is_verified?: boolean | null
+          launch_date?: string | null
+          monthly_active_users?: number | null
           rating_average?: number | null
           rating_count?: number | null
           screenshots?: string[] | null
@@ -2562,7 +2610,10 @@ export type Database = {
           id?: string
           install_count?: number | null
           is_active?: boolean | null
+          is_trending?: boolean | null
           is_verified?: boolean | null
+          launch_date?: string | null
+          monthly_active_users?: number | null
           rating_average?: number | null
           rating_count?: number | null
           screenshots?: string[] | null
@@ -4910,6 +4961,10 @@ export type Database = {
       }
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }
+        Returns: undefined
+      }
+      track_app_usage: {
+        Args: { p_app_id: string }
         Returns: undefined
       }
     }
