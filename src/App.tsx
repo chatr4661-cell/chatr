@@ -39,6 +39,7 @@ import BroadcastManager from "./pages/admin/BroadcastManager";
 import ChatrTutors from "./pages/ChatrTutors";
 import ChatrPoints from "./pages/ChatrPoints";
 import QRPayment from "./pages/QRPayment";
+import HomeServices from "./pages/HomeServices";
 import QRLogin from "./pages/QRLogin";
 import AIAssistant from "./pages/AIAssistant";
 import Account from "./pages/Account";
@@ -169,6 +170,8 @@ const App = () => {
             <Route path="/admin/official-accounts" element={<OfficialAccountsManager />} />
             <Route path="/admin/broadcast" element={<BroadcastManager />} />
             <Route path="/chatr-tutors" element={<ChatrTutors />} />
+            <Route path="/tutors" element={<ChatrTutors />} />
+            <Route path="/home-services" element={<HomeServices />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />

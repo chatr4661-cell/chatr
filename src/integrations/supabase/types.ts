@@ -1690,6 +1690,193 @@ export type Database = {
         }
         Relationships: []
       }
+      home_service_bookings: {
+        Row: {
+          address: string
+          created_at: string | null
+          customer_id: string
+          description: string | null
+          duration_hours: number | null
+          id: string
+          payment_status: string | null
+          provider_id: string
+          scheduled_date: string
+          service_type: string
+          status: string | null
+          total_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string | null
+          customer_id: string
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          payment_status?: string | null
+          provider_id: string
+          scheduled_date: string
+          service_type: string
+          status?: string | null
+          total_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string | null
+          customer_id?: string
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          payment_status?: string | null
+          provider_id?: string
+          scheduled_date?: string
+          service_type?: string
+          status?: string | null
+          total_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_service_bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_service_bookings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "home_service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      home_service_providers: {
+        Row: {
+          availability: Json | null
+          avatar_url: string | null
+          business_name: string
+          category_id: string | null
+          completed_jobs: number | null
+          created_at: string | null
+          description: string | null
+          hourly_rate: number
+          id: string
+          phone_number: string | null
+          rating_average: number | null
+          rating_count: number | null
+          service_areas: Json | null
+          updated_at: string | null
+          user_id: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          availability?: Json | null
+          avatar_url?: string | null
+          business_name: string
+          category_id?: string | null
+          completed_jobs?: number | null
+          created_at?: string | null
+          description?: string | null
+          hourly_rate: number
+          id?: string
+          phone_number?: string | null
+          rating_average?: number | null
+          rating_count?: number | null
+          service_areas?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          availability?: Json | null
+          avatar_url?: string | null
+          business_name?: string
+          category_id?: string | null
+          completed_jobs?: number | null
+          created_at?: string | null
+          description?: string | null
+          hourly_rate?: number
+          id?: string
+          phone_number?: string | null
+          rating_average?: number | null
+          rating_count?: number | null
+          service_areas?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_service_providers_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_service_providers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      home_service_reviews: {
+        Row: {
+          booking_id: string | null
+          created_at: string | null
+          customer_id: string
+          id: string
+          provider_id: string
+          rating: number
+          review_text: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          provider_id: string
+          rating: number
+          review_text?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          provider_id?: string
+          rating?: number
+          review_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_service_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "home_service_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_service_reviews_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_service_reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "home_service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_links: {
         Row: {
           created_at: string | null
@@ -3446,6 +3633,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       service_providers: {
         Row: {
