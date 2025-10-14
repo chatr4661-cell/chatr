@@ -3858,6 +3858,170 @@ export type Database = {
           },
         ]
       }
+      tutor_bookings: {
+        Row: {
+          amount_paid: number | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          meeting_link: string | null
+          notes: string | null
+          session_date: string
+          status: string | null
+          student_feedback: string | null
+          student_id: string | null
+          student_rating: number | null
+          subject: string
+          tutor_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_link?: string | null
+          notes?: string | null
+          session_date: string
+          status?: string | null
+          student_feedback?: string | null
+          student_id?: string | null
+          student_rating?: number | null
+          subject: string
+          tutor_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_link?: string | null
+          notes?: string | null
+          session_date?: string
+          status?: string | null
+          student_feedback?: string | null
+          student_id?: string | null
+          student_rating?: number | null
+          subject?: string
+          tutor_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_bookings_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutor_reviews: {
+        Row: {
+          booking_id: string | null
+          created_at: string | null
+          id: string
+          rating: number
+          review_text: string | null
+          student_id: string | null
+          tutor_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string | null
+          id?: string
+          rating: number
+          review_text?: string | null
+          student_id?: string | null
+          tutor_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string | null
+          id?: string
+          rating?: number
+          review_text?: string | null
+          student_id?: string | null
+          tutor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "tutor_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutor_reviews_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutors: {
+        Row: {
+          availability: Json | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          education: string | null
+          full_name: string
+          hourly_rate: number | null
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          languages: Json | null
+          rating_average: number | null
+          subjects: Json | null
+          total_sessions: number | null
+          updated_at: string | null
+          user_id: string | null
+          years_experience: number | null
+        }
+        Insert: {
+          availability?: Json | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          education?: string | null
+          full_name: string
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          languages?: Json | null
+          rating_average?: number | null
+          subjects?: Json | null
+          total_sessions?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          years_experience?: number | null
+        }
+        Update: {
+          availability?: Json | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          education?: string | null
+          full_name?: string
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          languages?: Json | null
+          rating_average?: number | null
+          subjects?: Json | null
+          total_sessions?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
       two_factor_auth: {
         Row: {
           backup_codes_encrypted: string[] | null
