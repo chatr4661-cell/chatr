@@ -40,6 +40,7 @@ const MiniAppsStore = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [installedApps, setInstalledApps] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [installingAppId, setInstallingAppId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCategories();
@@ -86,46 +87,61 @@ const MiniAppsStore = () => {
     }
   };
 
-  const installApp = async (appId: string) => {
+  const installAndOpenApp = async (app: MiniApp) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error('Please login to install apps');
       return;
     }
 
-    const { error } = await supabase
-      .from('user_installed_apps')
-      .insert({ user_id: user.id, app_id: appId });
+    setInstallingAppId(app.id);
+    const loadingToast = toast.loading('Installing app...');
 
-    if (error) {
-      toast.error('Failed to install app');
-      return;
-    }
+    try {
+      // Install the app
+      const { error } = await supabase
+        .from('user_installed_apps')
+        .insert({ user_id: user.id, app_id: app.id });
 
-    // Track analytics
-    await supabase.from('app_analytics').insert({
-      app_id: appId,
-      user_id: user.id,
-      event_type: 'install'
-    });
+      if (error) {
+        toast.error('Failed to install app', { id: loadingToast });
+        setInstallingAppId(null);
+        return;
+      }
 
-    // Update install count
-    const { data: app } = await supabase
-      .from('mini_apps')
-      .select('install_count')
-      .eq('id', appId)
-      .single();
+      // Track install analytics
+      await supabase.from('app_analytics').insert({
+        app_id: app.id,
+        user_id: user.id,
+        event_type: 'install'
+      });
 
-    if (app) {
-      await supabase
+      // Update install count
+      const { data: appData } = await supabase
         .from('mini_apps')
-        .update({ install_count: (app.install_count || 0) + 1 })
-        .eq('id', appId);
-    }
+        .select('install_count')
+        .eq('id', app.id)
+        .single();
 
-    setInstalledApps(prev => new Set([...prev, appId]));
-    loadApps();
-    toast.success('App installed successfully! 🎉');
+      if (appData) {
+        await supabase
+          .from('mini_apps')
+          .update({ install_count: (appData.install_count || 0) + 1 })
+          .eq('id', app.id);
+      }
+
+      setInstalledApps(prev => new Set([...prev, app.id]));
+      toast.success('App installed! Opening...', { id: loadingToast });
+
+      // Auto-open the app
+      await openApp(app);
+      loadApps();
+    } catch (error) {
+      console.error('Error installing app:', error);
+      toast.error('Failed to install app', { id: loadingToast });
+    } finally {
+      setInstallingAppId(null);
+    }
   };
 
   const openApp = async (app: MiniApp) => {
@@ -353,10 +369,11 @@ const MiniAppsStore = () => {
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                               <Button
                                 size="sm"
-                                onClick={() => installApp(app.id)}
-                                className="w-full h-8 text-xs bg-primary hover:bg-primary/90 shadow-md hover:shadow-xl transition-all"
+                                onClick={() => installAndOpenApp(app)}
+                                disabled={installingAppId === app.id}
+                                className="w-full h-8 text-xs bg-primary hover:bg-primary/90 shadow-md hover:shadow-xl transition-all disabled:opacity-50"
                               >
-                                Install
+                                {installingAppId === app.id ? 'Installing...' : 'Install'}
                               </Button>
                             </motion.div>
                           )}
