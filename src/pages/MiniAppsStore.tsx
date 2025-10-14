@@ -280,11 +280,11 @@ const MiniAppsStore = () => {
     >
       <Card className="p-4 hover:shadow-lg transition-all h-full flex flex-col">
         <div className="flex items-start gap-3 mb-3">
-          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-            {app.icon_url ? (
-              <img src={app.icon_url} alt={app.app_name} className="w-10 h-10 rounded" />
+          <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+            {app.icon_url && (app.icon_url.startsWith('http') || app.icon_url.startsWith('/')) ? (
+              <img src={app.icon_url} alt={app.app_name} className="w-10 h-10 rounded-lg object-cover" />
             ) : (
-              <span className="text-2xl">{app.app_name[0]}</span>
+              <span className="text-3xl">{app.icon_url || app.app_name[0]}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
