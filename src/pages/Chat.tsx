@@ -17,7 +17,6 @@ import { VirtualMessageList } from '@/components/chat/VirtualMessageList';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
 import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
 import { useOptimizedMessages } from "@/hooks/useOptimizedMessages";
-import { useOptimisticChat } from "@/hooks/useOptimisticChat";
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
@@ -85,44 +84,11 @@ const ChatEnhancedContent = () => {
     clearInsights
   } = useAIChatAssistant();
   
-  // Optimistic chat for instant UI updates
-  const {
-    messages: optimisticMessages,
-    setMessages: setOptimisticMessages,
-    sendMessageOptimistic,
-    deleteMessageOptimistic,
-    editMessageOptimistic,
-  } = useOptimisticChat(activeConversationId, user?.id || '');
-
-  // Optimized message handling with batching and pagination
-  const { messages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
+  // Use ONLY useOptimizedMessages - it handles both real and optimistic messages
+  const { messages: displayMessages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
     activeConversationId,
     user?.id || ''
   );
-
-  // Merge optimistic with real messages
-  const displayMessages = React.useMemo(() => {
-    const realMessages = messages.filter((m: any) => !m.is_optimistic);
-    const optimistic = optimisticMessages.filter((m: any) => m.is_optimistic);
-    const merged = [...realMessages, ...optimistic];
-    console.log('📨 Display Messages:', {
-      realCount: realMessages.length,
-      optimisticCount: optimistic.length,
-      totalMessages: messages.length,
-      totalOptimistic: optimisticMessages.length,
-      merged: merged.length,
-      sampleReal: realMessages.slice(0, 2),
-      sampleOptimistic: optimistic.slice(0, 2)
-    });
-    return merged;
-  }, [messages, optimisticMessages]);
-
-  // Sync real messages to optimistic
-  React.useEffect(() => {
-    if (messages.length > 0) {
-      setOptimisticMessages(messages);
-    }
-  }, [messages, setOptimisticMessages]);
   
   // Enable push notifications only if user ID exists
   usePushNotifications(user?.id || undefined);
@@ -317,9 +283,9 @@ const ChatEnhancedContent = () => {
   const handleSendMessage = async (content: string, type?: string, mediaUrl?: string) => {
     if (!activeConversationId) return;
     try {
-      // Use optimistic send for instant feedback with all parameters
-      await sendMessageOptimistic(content, type, mediaUrl);
+      await sendMessage(content, type, mediaUrl);
     } catch (error) {
+      console.error('Send failed:', error);
       toast.error('Failed to send message');
     }
   };
@@ -527,14 +493,14 @@ const ChatEnhancedContent = () => {
               </Button>
               <AIChatToolbar
                 onSummarize={async (type) => {
-                  await generateSummary(messages, type);
+                  await generateSummary(displayMessages, type);
                   setShowSummary(true);
                 }}
                 onSmartReply={async () => {
-                  if (messages.length > 0) {
-                    const lastMsg = messages[messages.length - 1];
+                  if (displayMessages.length > 0) {
+                    const lastMsg = displayMessages[displayMessages.length - 1];
                     if (lastMsg.sender_id !== user?.id) {
-                      await generateSmartReplies(lastMsg.content, messages.slice(-5));
+                      await generateSmartReplies(lastMsg.content, displayMessages.slice(-5));
                       setShowSmartReplies(true);
                     } else {
                       toast.info('Smart replies work on received messages');
@@ -543,10 +509,10 @@ const ChatEnhancedContent = () => {
                 }}
                 onAnalyze={async (type) => {
                   setInsightsType(type);
-                  await analyzeMessages(messages, type);
+                  await analyzeMessages(displayMessages, type);
                   setShowInsights(true);
                 }}
-                disabled={messages.length === 0}
+                disabled={displayMessages.length === 0}
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -588,8 +554,8 @@ const ChatEnhancedContent = () => {
           <EnhancedMessageInput
             onSendMessage={handleSendMessage}
             disabled={messagesLoading}
-            lastMessage={messages.length > 0 && messages[messages.length - 1].sender_id !== user.id 
-              ? messages[messages.length - 1].content 
+            lastMessage={displayMessages.length > 0 && displayMessages[displayMessages.length - 1].sender_id !== user.id 
+              ? displayMessages[displayMessages.length - 1].content 
               : undefined}
           />
         </>
