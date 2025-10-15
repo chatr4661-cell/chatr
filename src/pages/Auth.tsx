@@ -7,6 +7,7 @@ import { OnboardingDialog } from '@/components/OnboardingDialog';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import logo from '@/assets/chatr-logo.png';
 import chatrBrandLogo from '@/assets/chatr-brand-logo.png';
+import aiPoweredChatr from '@/assets/ai-powered-chatr.jpeg';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 
 const Auth = () => {
@@ -136,16 +137,16 @@ const Auth = () => {
           </div>
           <div className="space-y-3">
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-cyan-500 to-primary bg-clip-text text-transparent animate-fade-in">
-              Your World of Communication
+              Welcome to chatr+
             </h1>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-              Connect with loved ones, access healthcare, explore communities, and discover amazing mini apps - all in one powerful platform
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 pt-2">
-              <span className="px-3 py-1.5 bg-primary/10 rounded-full text-xs font-medium text-primary">📱 Messaging</span>
-              <span className="px-3 py-1.5 bg-emerald-500/10 rounded-full text-xs font-medium text-emerald-700">🏥 Healthcare</span>
-              <span className="px-3 py-1.5 bg-purple-500/10 rounded-full text-xs font-medium text-purple-700">👥 Community</span>
-              <span className="px-3 py-1.5 bg-amber-500/10 rounded-full text-xs font-medium text-amber-700">🎯 Mini Apps</span>
+            
+            {/* AI-Powered Chatr Features Image */}
+            <div className="my-6">
+              <img 
+                src={aiPoweredChatr} 
+                alt="AI-Powered Chatr - Smart Messaging, Privacy First, Built for Life + Work" 
+                className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
+              />
             </div>
           </div>
         </div>
