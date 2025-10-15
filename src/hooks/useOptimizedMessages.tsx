@@ -19,9 +19,11 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
+  const [typingUsers, setTypingUsers] = React.useState<string[]>([]);
   const channelRef = React.useRef<RealtimeChannel | null>(null);
   const updateQueueRef = React.useRef<Message[]>([]);
   const updateTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Batch real-time updates to reduce re-renders
   const batchUpdate = React.useCallback((newMessage: Message) => {
@@ -174,6 +176,26 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
           batchUpdate(payload.new as Message);
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'typing_indicators',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        async () => {
+          // Load typing users
+          const { data } = await supabase
+            .from('typing_indicators')
+            .select('user_id, profiles!inner(username)')
+            .eq('conversation_id', conversationId)
+            .neq('user_id', userId)
+            .gte('updated_at', new Date(Date.now() - 3000).toISOString());
+
+          setTypingUsers(data?.map((d: any) => d.profiles.username) || []);
+        }
+      )
       .subscribe();
 
     channelRef.current = channel;
@@ -185,8 +207,157 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, [conversationId, userId, batchUpdate]);
 
-  return { messages, sendMessage, loadMessages, isLoading, hasMore };
+  // Set typing status
+  const setTyping = React.useCallback(async (isTyping: boolean) => {
+    if (!conversationId || !userId) return;
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    if (isTyping) {
+      await supabase
+        .from('typing_indicators')
+        .upsert({
+          conversation_id: conversationId,
+          user_id: userId,
+          updated_at: new Date().toISOString()
+        });
+
+      typingTimeoutRef.current = setTimeout(() => {
+        setTyping(false);
+      }, 3000);
+    } else {
+      await supabase
+        .from('typing_indicators')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId);
+    }
+  }, [conversationId, userId]);
+
+  // Edit message
+  const editMessage = React.useCallback(async (messageId: string, newContent: string) => {
+    if (!conversationId) return;
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({
+          content: newContent,
+          is_edited: true,
+          edited_at: new Date().toISOString()
+        })
+        .eq('id', messageId)
+        .eq('sender_id', userId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Edit message error:', error);
+      throw error;
+    }
+  }, [conversationId, userId]);
+
+  // Delete message
+  const deleteMessage = React.useCallback(async (messageId: string, deleteForEveryone: boolean = false) => {
+    if (!conversationId) return;
+
+    try {
+      if (deleteForEveryone) {
+        const { error } = await supabase
+          .from('messages')
+          .update({
+            is_deleted: true,
+            deleted_at: new Date().toISOString(),
+            content: 'This message was deleted'
+          })
+          .eq('id', messageId)
+          .eq('sender_id', userId);
+
+        if (error) throw error;
+      } else {
+        // Just remove from local state (delete for me)
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+      }
+    } catch (error) {
+      console.error('Delete message error:', error);
+      throw error;
+    }
+  }, [conversationId, userId]);
+
+  // React to message
+  const reactToMessage = React.useCallback(async (messageId: string, emoji: string) => {
+    if (!conversationId || !userId) return;
+
+    try {
+      const message = messages.find(m => m.id === messageId);
+      if (!message) return;
+
+      const reactions = (message as any).reactions || {};
+      const userReactions = reactions[emoji] || [];
+      
+      let newReactions;
+      if (userReactions.includes(userId)) {
+        // Remove reaction
+        newReactions = {
+          ...reactions,
+          [emoji]: userReactions.filter((id: string) => id !== userId)
+        };
+        if (newReactions[emoji].length === 0) {
+          delete newReactions[emoji];
+        }
+      } else {
+        // Add reaction
+        newReactions = {
+          ...reactions,
+          [emoji]: [...userReactions, userId]
+        };
+      }
+
+      const { error } = await supabase
+        .from('messages')
+        .update({ reactions: newReactions })
+        .eq('id', messageId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('React to message error:', error);
+      throw error;
+    }
+  }, [conversationId, userId, messages]);
+
+  // Star/unstar message
+  const toggleStar = React.useCallback(async (messageId: string, isStarred: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_starred: !isStarred })
+        .eq('id', messageId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Toggle star error:', error);
+      throw error;
+    }
+  }, []);
+
+  return { 
+    messages, 
+    sendMessage, 
+    loadMessages, 
+    isLoading, 
+    hasMore,
+    typingUsers,
+    setTyping,
+    editMessage,
+    deleteMessage,
+    reactToMessage,
+    toggleStar
+  };
 };
