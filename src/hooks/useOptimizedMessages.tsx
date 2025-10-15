@@ -27,6 +27,16 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
   const updateTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const { queueMessage, isOnline } = useOfflineQueue();
+  const prevConversationId = React.useRef<string | null>(null);
+
+  // Clear messages when conversation changes
+  React.useEffect(() => {
+    if (conversationId !== prevConversationId.current) {
+      console.log('🔄 Conversation changed, clearing messages');
+      setMessages([]);
+      prevConversationId.current = conversationId;
+    }
+  }, [conversationId]);
 
   // Batch real-time updates to reduce re-renders
   const batchUpdate = React.useCallback((newMessage: Message) => {

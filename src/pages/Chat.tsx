@@ -315,14 +315,13 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Load messages when conversation changes - load most recent messages
+  // Load messages when conversation changes
   React.useEffect(() => {
-    if (activeConversationId && displayMessages.length === 0) {
-      // Only load if we don't have messages yet
+    if (activeConversationId) {
       loadMessages(100, 0);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeConversationId]); // Only reload when conversation changes, NOT when loadMessages changes
+  }, [activeConversationId]);
 
   const handleStartCall = async (callType: 'voice' | 'video') => {
     if (!activeConversationId || !otherUser) {
