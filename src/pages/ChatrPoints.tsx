@@ -545,42 +545,107 @@ export default function ChatrPoints() {
           <TabsContent value="rewards" className="space-y-4 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Redeem Points</CardTitle>
+                <CardTitle>Redeem Chatr Coins</CardTitle>
                 <CardDescription>
-                  Use your points to get amazing rewards and discounts
+                  Use your coins to get amazing rewards and discounts (1 coin = ₹0.10)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {rewards.map((reward) => (
-                  <Card key={reward.id} className="overflow-hidden">
+                {/* Hardcoded rewards matching the coin economy */}
+                {[
+                  {
+                    icon: '🚫',
+                    name: 'Ad-Free for 7 Days',
+                    description: 'Enjoy Chatr without ads for a week',
+                    coins: 500,
+                    value: '₹50'
+                  },
+                  {
+                    icon: '💊',
+                    name: 'Free Medicine Delivery',
+                    description: 'Get free delivery on your next medicine order',
+                    coins: 1000,
+                    discount: '100% OFF',
+                    value: '₹100'
+                  },
+                  {
+                    icon: '🏥',
+                    name: '10% Off Next Consultation',
+                    description: 'Save 10% on your next doctor consultation',
+                    coins: 2000,
+                    discount: '10% OFF',
+                    value: '₹200'
+                  },
+                  {
+                    icon: '🛒',
+                    name: '₹500 Marketplace Credit',
+                    description: 'Get ₹500 discount on marketplace purchases',
+                    coins: 3000,
+                    discount: '₹500 OFF',
+                    value: '₹300'
+                  },
+                  {
+                    icon: '🔬',
+                    name: '25% Off Lab Tests',
+                    description: 'Save 25% on your next lab test booking',
+                    coins: 5000,
+                    discount: '25% OFF',
+                    value: '₹500'
+                  },
+                  {
+                    icon: '⭐',
+                    name: 'Premium Features (30 Days)',
+                    description: 'Unlock all premium features for a month',
+                    coins: 7500,
+                    value: '₹750'
+                  },
+                  {
+                    icon: '🏠',
+                    name: 'Free Home Care Visit',
+                    description: 'One free home healthcare service visit',
+                    coins: 10000,
+                    discount: '100% OFF',
+                    value: '₹1,000'
+                  }
+                ].map((reward, index) => (
+                  <Card key={index} className="overflow-hidden hover:shadow-lg transition-all">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-2xl">{reward.icon}</span>
+                            <span className="text-3xl">{reward.icon}</span>
                             <div>
-                              <h3 className="font-semibold">{reward.name}</h3>
+                              <h3 className="font-semibold text-lg">{reward.name}</h3>
                               <p className="text-sm text-muted-foreground">
                                 {reward.description}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 mt-3">
-                            <Badge variant="secondary">
-                              <Coins className="w-3 h-3 mr-1" />
-                              {reward.points_required} points
+                            <Badge variant="secondary" className="bg-gradient-to-r from-primary/20 to-primary/10">
+                              <Coins className="w-4 h-4 mr-1 text-yellow-600" />
+                              <span className="font-bold">{reward.coins.toLocaleString()}</span> coins
                             </Badge>
-                            {reward.discount_percentage && (
-                              <Badge variant="outline">
-                                {reward.discount_percentage}% OFF
+                            <Badge variant="outline" className="text-muted-foreground">
+                              {reward.value}
+                            </Badge>
+                            {reward.discount && (
+                              <Badge variant="default" className="bg-green-600">
+                                {reward.discount}
                               </Badge>
                             )}
                           </div>
                         </div>
                         <Button
-                          onClick={() => handleRedeemReward(reward)}
-                          disabled={(userPoints?.balance || 0) < reward.points_required}
+                          onClick={() => {
+                            toast({
+                              title: "Coming Soon!",
+                              description: `Coin redemption will be available soon. You'll need ${reward.coins} coins for this reward.`,
+                            });
+                          }}
+                          disabled={(coinBalance || 0) < reward.coins}
                           size="sm"
+                          className="min-w-[80px]"
                         >
                           Redeem
                         </Button>
@@ -596,22 +661,54 @@ export default function ChatrPoints() {
           <TabsContent value="buy" className="space-y-4 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Buy Chatr Points</CardTitle>
+                <CardTitle>Buy Chatr Coins</CardTitle>
                 <CardDescription>
-                  Get more points to unlock exclusive rewards
+                  Get more coins to unlock exclusive rewards (1 coin = ₹0.10)
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
-                {packages.map((pkg) => (
+                {[
+                  {
+                    name: 'Starter Pack',
+                    coins: 2500,
+                    bonus: 0,
+                    price: 199,
+                    popular: false
+                  },
+                  {
+                    name: 'Value Pack',
+                    coins: 6000,
+                    bonus: 500,
+                    price: 499,
+                    popular: true,
+                    badge: 'MOST POPULAR'
+                  },
+                  {
+                    name: 'Premium Pack',
+                    coins: 15000,
+                    bonus: 2000,
+                    price: 999,
+                    popular: false,
+                    badge: 'BEST VALUE'
+                  },
+                  {
+                    name: 'Ultimate Pack',
+                    coins: 40000,
+                    bonus: 8000,
+                    price: 2499,
+                    popular: false,
+                    badge: 'ULTIMATE'
+                  }
+                ].map((pkg, index) => (
                   <Card
-                    key={pkg.id}
+                    key={index}
                     className={`relative overflow-hidden ${
-                      pkg.popular ? "border-primary shadow-lg" : ""
+                      pkg.popular ? "border-primary shadow-lg ring-2 ring-primary" : ""
                     }`}
                   >
-                    {pkg.popular && (
-                      <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-bl-lg font-semibold">
-                        POPULAR
+                    {pkg.badge && (
+                      <div className="absolute top-0 right-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-xs px-4 py-1 rounded-bl-lg font-bold">
+                        {pkg.badge}
                       </div>
                     )}
                     <CardContent className="p-6">
@@ -619,22 +716,25 @@ export default function ChatrPoints() {
                         <div>
                           <h3 className="text-xl font-bold">{pkg.name}</h3>
                           <div className="flex items-baseline gap-2 mt-2">
-                            <span className="text-3xl font-bold text-primary">
-                              {pkg.points}
+                            <span className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                              {(pkg.coins + pkg.bonus).toLocaleString()}
                             </span>
-                            <span className="text-muted-foreground">points</span>
+                            <span className="text-muted-foreground">coins</span>
                           </div>
-                          {pkg.bonus_points > 0 && (
-                            <Badge variant="secondary" className="mt-2">
-                              + {pkg.bonus_points} BONUS
+                          {pkg.bonus > 0 && (
+                            <Badge variant="secondary" className="mt-2 bg-green-100 text-green-700">
+                              + {pkg.bonus.toLocaleString()} BONUS
                             </Badge>
                           )}
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Worth ₹{((pkg.coins + pkg.bonus) / 10).toLocaleString()}
+                          </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold">
-                            ${pkg.price_usd}
+                          <div className="text-3xl font-bold text-primary">
+                            ₹{pkg.price}
                           </div>
-                          <Button className="mt-2" size="sm">
+                          <Button className="mt-3 hover:scale-105 transition-transform" size="sm">
                             Buy Now
                           </Button>
                         </div>
@@ -1038,57 +1138,97 @@ export default function ChatrPoints() {
           </TabsContent>
         </Tabs>
 
-        {/* How to Earn Points */}
+        {/* How to Earn Coins */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>How to Earn Points</CardTitle>
+            <CardTitle>How to Earn Chatr Coins</CardTitle>
+            <CardDescription>1 coin = ₹0.10 • Build your coin balance!</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                💬
+            {[
+              {
+                icon: '👥',
+                title: 'Refer a Friend',
+                coins: 500,
+                rupees: 50,
+                desc: 'Each new user via your code'
+              },
+              {
+                icon: '🎯',
+                title: 'Complete Your Profile',
+                coins: 100,
+                rupees: 10,
+                desc: 'Fill in all profile details'
+              },
+              {
+                icon: '📱',
+                title: 'Install 3 Mini-Apps',
+                coins: 200,
+                rupees: 20,
+                desc: 'Try out our mini-apps'
+              },
+              {
+                icon: '✍️',
+                title: 'Create Content/Post',
+                coins: 100,
+                rupees: 10,
+                desc: 'Share in communities'
+              },
+              {
+                icon: '🔥',
+                title: '7-Day Login Streak',
+                coins: 200,
+                rupees: 20,
+                desc: 'Login daily for a week'
+              },
+              {
+                icon: '🏢',
+                title: 'Refer a Business',
+                coins: 1000,
+                rupees: 100,
+                desc: 'Bring businesses to Chatr'
+              },
+              {
+                icon: '💬',
+                title: 'Daily Login',
+                coins: 50,
+                rupees: 5,
+                desc: 'Login every day'
+              },
+              {
+                icon: '📊',
+                title: 'Upload Lab Reports',
+                coins: 250,
+                rupees: 25,
+                desc: 'Add health documents'
+              },
+              {
+                icon: '💊',
+                title: 'Medicine Adherence',
+                coins: 50,
+                rupees: 5,
+                desc: 'Take medicines on time'
+              }
+            ].map((item, i) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-accent/10 transition-colors group">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1 text-primary font-bold">
+                    <Coins className="h-4 w-4 text-yellow-600" />
+                    {item.coins}
+                  </div>
+                  <p className="text-xs text-muted-foreground">₹{item.rupees}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium">Chat Daily</p>
-                <p className="text-sm text-muted-foreground">Earn 10 points per day</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                🎯
-              </div>
-              <div>
-                <p className="font-medium">Complete Wellness Goals</p>
-                <p className="text-sm text-muted-foreground">Earn up to 50 points</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                📊
-              </div>
-              <div>
-                <p className="font-medium">Upload Lab Reports</p>
-                <p className="text-sm text-muted-foreground">Earn 25 points per report</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                💊
-              </div>
-              <div>
-                <p className="font-medium">Take Medicines On Time</p>
-                <p className="text-sm text-muted-foreground">Earn 5 points per adherence</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                👥
-              </div>
-              <div>
-                <p className="font-medium">Invite Friends</p>
-                <p className="text-sm text-muted-foreground">Earn 100 points per referral</p>
-              </div>
-            </div>
+            ))}
           </CardContent>
         </Card>
       </div>
