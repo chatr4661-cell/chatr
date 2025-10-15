@@ -242,11 +242,14 @@ const MessageBubbleComponent = ({
          message.message_type !== 'event' &&
          message.message_type !== 'payment' &&
          message.message_type !== 'image' && (
-          <div className={`rounded-[18px] px-4 py-2.5 ${
-            isOwn
-              ? 'bg-[hsl(185,75%,40%)] text-white'
-              : 'bg-[hsl(200,25%,94%)] text-foreground'
-          }`}>
+          <div 
+            className={`rounded-[18px] px-4 py-2.5 ${
+              isOwn
+                ? 'bg-teal-600 text-white'
+                : 'bg-gray-200 text-gray-900'
+            }`}
+            style={isOwn ? { backgroundColor: '#0d9488' } : undefined}
+          >
             <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
               {message.content}
             </p>
