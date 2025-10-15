@@ -62,7 +62,7 @@ export default function WellnessCircles() {
 
   const loadCircles = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('wellness_circles')
         .select('*')
         .order('member_count', { ascending: false });
@@ -76,7 +76,7 @@ export default function WellnessCircles() {
 
   const loadCircleMessages = async (id: string) => {
     try {
-      const { data: circle } = await supabase
+      const { data: circle } = await (supabase as any)
         .from('wellness_circles')
         .select('*')
         .eq('id', id)
@@ -84,7 +84,7 @@ export default function WellnessCircles() {
 
       setSelectedCircle(circle as Circle);
 
-      const { data: msgs, error } = await supabase
+      const { data: msgs, error } = await (supabase as any)
         .from('circle_messages')
         .select('*, profiles!inner(username, avatar_url)')
         .eq('circle_id', id)
@@ -119,7 +119,7 @@ export default function WellnessCircles() {
     if (!newCircle.name || !currentUser) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('wellness_circles')
         .insert({
           name: newCircle.name,
@@ -133,11 +133,11 @@ export default function WellnessCircles() {
       if (error) throw error;
 
       // Join as member
-      await supabase.from('wellness_circle_members').insert({
+      await (supabase as any).from('wellness_circle_members').insert({
         circle_id: data.id,
         user_id: currentUser.id,
         role: 'admin'
-      } as any);
+      });
 
       toast.success('Wellness circle created!');
       setShowCreateDialog(false);
@@ -152,7 +152,7 @@ export default function WellnessCircles() {
     if (!currentUser) return;
 
     try {
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from('wellness_circle_members')
         .select('id')
         .eq('circle_id', circle.id)
@@ -164,13 +164,13 @@ export default function WellnessCircles() {
         return;
       }
 
-      await supabase.from('wellness_circle_members').insert({
+      await (supabase as any).from('wellness_circle_members').insert({
         circle_id: circle.id,
         user_id: currentUser.id,
         role: 'member'
-      } as any);
+      });
 
-      await supabase
+      await (supabase as any)
         .from('wellness_circles')
         .update({ member_count: circle.member_count + 1 })
         .eq('id', circle.id);
@@ -186,13 +186,13 @@ export default function WellnessCircles() {
     if (!newMessage.trim() || !selectedCircle || !currentUser) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('circle_messages')
         .insert({
           circle_id: selectedCircle.id,
           sender_id: currentUser.id,
           content: newMessage
-        } as any);
+        });
 
       if (error) throw error;
       setNewMessage('');

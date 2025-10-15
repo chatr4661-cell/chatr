@@ -43,7 +43,7 @@ export default function ExpertSessions() {
 
   const loadSessions = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('expert_sessions')
         .select('*')
         .gte('session_date', new Date().toISOString())
@@ -70,7 +70,7 @@ export default function ExpertSessions() {
     }
 
     try {
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from('session_attendees')
         .select('id')
         .eq('session_id', session.id)
@@ -82,19 +82,19 @@ export default function ExpertSessions() {
         return;
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('session_attendees')
         .insert({
           session_id: session.id,
           user_id: currentUser.id,
           registered_at: new Date().toISOString()
-        } as any);
+        });
 
       if (error) throw error;
 
-      await supabase
+      await (supabase as any)
         .from('expert_sessions')
-        .update({ participant_count: session.participant_count + 1 } as any)
+        .update({ participant_count: session.participant_count + 1 })
         .eq('id', session.id);
 
       toast.success('Successfully registered!');
