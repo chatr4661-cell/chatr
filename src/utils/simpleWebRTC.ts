@@ -17,6 +17,7 @@ export class SimpleWebRTCCall {
   private callState: CallState = 'connecting';
   private eventHandlers: Map<string, Function[]> = new Map();
   private iceConnectionTimeout: NodeJS.Timeout | null = null;
+  private pendingIceCandidates: RTCIceCandidate[] = [];
 
   constructor(
     private callId: string,
@@ -320,6 +321,20 @@ export class SimpleWebRTCCall {
           console.log('📥 [SimpleWebRTC] Processing ANSWER...');
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
           console.log('✅ [SimpleWebRTC] Remote description (ANSWER) set');
+          
+          // Process any queued ICE candidates now that we have remote description
+          if (this.pendingIceCandidates.length > 0) {
+            console.log(`📥 [SimpleWebRTC] Processing ${this.pendingIceCandidates.length} queued ICE candidates...`);
+            for (const candidate of this.pendingIceCandidates) {
+              try {
+                await this.pc.addIceCandidate(candidate);
+                console.log('✅ [SimpleWebRTC] Queued ICE candidate added');
+              } catch (error) {
+                console.error('❌ [SimpleWebRTC] Failed to add queued ICE candidate:', error);
+              }
+            }
+            this.pendingIceCandidates = [];
+          }
           break;
 
         case 'ice-candidate':
@@ -328,7 +343,8 @@ export class SimpleWebRTCCall {
             await this.pc.addIceCandidate(new RTCIceCandidate(signal.data));
             console.log('✅ [SimpleWebRTC] ICE candidate added successfully');
           } else {
-            console.warn('⚠️ [SimpleWebRTC] Skipping ICE candidate - no remote description yet');
+            console.log('⏳ [SimpleWebRTC] Queueing ICE candidate - waiting for remote description');
+            this.pendingIceCandidates.push(new RTCIceCandidate(signal.data));
           }
           break;
       }
