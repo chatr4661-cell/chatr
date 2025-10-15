@@ -133,9 +133,9 @@ export default function ProductionVoiceCall({
     }
   };
 
+  const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const initializeCall = async () => {
-    let callTimeout: NodeJS.Timeout | null = null;
-    
     try {
       console.log('🎤 ========== STARTING VOICE CALL INITIALIZATION ==========');
       console.log('🎤 Call ID:', callId);
@@ -146,19 +146,19 @@ export default function ProductionVoiceCall({
       console.log('🎤 Initializing voice call...');
       setCallStatus(isInitiator ? "connecting" : "ringing");
       
-      // Set call timeout - 45 seconds for faster timeout
+      // Set call timeout - 45 seconds ONLY for unanswered calls
+      // This will be cleared when we receive an answer signal
       if (isInitiator) {
-        callTimeout = setTimeout(() => {
-          if (callStatus === 'connecting' || callStatus === 'ringing') {
-            console.warn('⏰ Call timed out - no answer');
-            toast({
-              title: "Call Timeout",
-              description: "No answer - call ended",
-              variant: "destructive"
-            });
-            endCall();
-          }
+        callTimeoutRef.current = setTimeout(() => {
+          console.warn('⏰ Call timed out - no answer within 45 seconds');
+          toast({
+            title: "Call Timeout",
+            description: "No answer - call ended",
+            variant: "destructive"
+          });
+          endCall();
         }, 45000);
+        console.log('⏰ Set 45s timeout for unanswered call');
       }
       
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -345,6 +345,13 @@ export default function ProductionVoiceCall({
 
     } catch (error: any) {
       console.error("Error initializing call:", error);
+      
+      // Clear timeout on error
+      if (callTimeoutRef.current) {
+        clearTimeout(callTimeoutRef.current);
+        callTimeoutRef.current = null;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to start voice call",
@@ -435,6 +442,13 @@ export default function ProductionVoiceCall({
         
       } else if (signal.signal_type === 'answer') {
         console.log('✅ [handleSignal] Received ANSWER');
+        
+        // CRITICAL: Clear the timeout since receiver answered!
+        if (callTimeoutRef.current) {
+          clearTimeout(callTimeoutRef.current);
+          callTimeoutRef.current = null;
+          console.log('✅ Cleared call timeout - receiver answered!');
+        }
         
         const signalVersion = signal.signal_data?.version || 0;
         if (signalVersion >= signalVersionRef.current) {
