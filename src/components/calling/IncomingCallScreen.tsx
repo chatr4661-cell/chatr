@@ -29,9 +29,10 @@ export function IncomingCallScreen({
   ringtoneUrl = "/ringtone.mp3"
 }: IncomingCallScreenProps) {
   const hapticIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [ringtoneEnabled, setRingtoneEnabled] = React.useState(true);
 
   useNativeRingtone({
-    enabled: true,
+    enabled: ringtoneEnabled,
     ringtoneUrl,
     volume: 1.0
   });
@@ -66,17 +67,30 @@ export function IncomingCallScreen({
   }, []);
 
   const handleAnswer = async () => {
+    console.log('🔕 Stopping ringtone - call answered');
+    setRingtoneEnabled(false); // Stop ringtone BEFORE calling onAnswer
+    
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Medium });
     }
-    onAnswer();
+    
+    // Small delay to ensure ringtone stops before transition
+    setTimeout(() => {
+      onAnswer();
+    }, 100);
   };
 
   const handleReject = async () => {
+    console.log('🔕 Stopping ringtone - call rejected');
+    setRingtoneEnabled(false); // Stop ringtone BEFORE calling onReject
+    
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Light });
     }
-    onReject();
+    
+    setTimeout(() => {
+      onReject();
+    }, 100);
   };
 
   return (
