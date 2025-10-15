@@ -318,6 +318,7 @@ export const PhoneAuth = () => {
             <div className="space-y-2">
               <Label>{isNewUser ? 'Create 6-Digit PIN' : 'Enter Your PIN'}</Label>
               <PINInput
+                key="initial-pin"
                 length={6}
                 onComplete={handlePinComplete}
                 disabled={loading}
@@ -348,6 +349,7 @@ export const PhoneAuth = () => {
             <div className="space-y-2">
               <Label>Confirm 6-Digit PIN</Label>
               <PINInput
+                key="confirm-pin"
                 length={6}
                 onComplete={handleConfirmPinComplete}
                 disabled={loading}
