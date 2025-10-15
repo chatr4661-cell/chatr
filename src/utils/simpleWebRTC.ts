@@ -515,4 +515,53 @@ export class SimpleWebRTCCall {
   getState(): CallState {
     return this.callState;
   }
+
+  async switchCamera() {
+    if (!this.localStream) {
+      console.error('❌ [SimpleWebRTC] No local stream available');
+      return null;
+    }
+    
+    const videoTrack = this.localStream.getVideoTracks()[0];
+    if (!videoTrack) {
+      console.error('❌ [SimpleWebRTC] No video track found');
+      return null;
+    }
+    
+    const currentFacingMode = videoTrack.getSettings().facingMode;
+    const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    
+    try {
+      console.log(`📷 [SimpleWebRTC] Switching camera from ${currentFacingMode} to ${newFacingMode}`);
+      
+      videoTrack.stop();
+      
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: newFacingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+      
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      
+      const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) {
+        await sender.replaceTrack(newVideoTrack);
+      }
+      
+      this.localStream.removeTrack(videoTrack);
+      this.localStream.addTrack(newVideoTrack);
+      
+      this.emit('localStream', this.localStream);
+      
+      console.log(`✅ [SimpleWebRTC] Camera switched to ${newFacingMode}`);
+      return newFacingMode;
+    } catch (error) {
+      console.error('❌ [SimpleWebRTC] Failed to switch camera:', error);
+      throw error;
+    }
+  }
 }

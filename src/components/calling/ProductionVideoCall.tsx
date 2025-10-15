@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Video, VideoOff, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2 } from 'lucide-react';
 import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCallUI } from '@/hooks/useCallUI';
+import { NetworkQualityIndicator } from './NetworkQualityIndicator';
+import { Capacitor } from '@capacitor/core';
 
 interface ProductionVideoCallProps {
   callId: string;
@@ -25,12 +28,20 @@ export default function ProductionVideoCall({
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [duration, setDuration] = useState(0);
+  const [videoLayout, setVideoLayout] = useState<'remote-main' | 'local-main'>('remote-main');
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const isMobile = Capacitor.isNativePlatform();
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
+
+  const { controlsVisible, showControls } = useCallUI({ 
+    autoHideDelay: 5000, 
+    enabled: true 
+  });
 
   useEffect(() => {
     const initCall = async () => {
@@ -220,66 +231,155 @@ export default function ProductionVideoCall({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleSwapVideos = () => {
+    setVideoLayout(prev => prev === 'remote-main' ? 'local-main' : 'remote-main');
+    toast.info(videoLayout === 'remote-main' ? 'Your video is now main' : 'Their video is now main');
+  };
+
+  const handleToggleFullScreen = async () => {
+    if (!isFullScreen) {
+      await document.documentElement.requestFullscreen();
+      setIsFullScreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullScreen(false);
+    }
+  };
+
+  const handleSwitchCamera = async () => {
+    if (!isMobile) return;
+    try {
+      const newMode = await webrtcRef.current?.switchCamera();
+      toast.success(`Switched to ${newMode === 'user' ? 'front' : 'back'} camera`);
+    } catch (error) {
+      toast.error('Failed to switch camera');
+    }
+  };
+
+  const mainVideoRef = videoLayout === 'remote-main' ? remoteVideoRef : localVideoRef;
+  const pipVideoRef = videoLayout === 'remote-main' ? localVideoRef : remoteVideoRef;
+
   return (
-    <div className="fixed inset-0 z-50 bg-black">
+    <div 
+      className="fixed inset-0 z-50 bg-black"
+      onClick={showControls}
+    >
+      {/* Main video */}
       <video
-        ref={remoteVideoRef}
+        ref={mainVideoRef}
         autoPlay
         playsInline
+        muted={videoLayout === 'local-main'}
         className="w-full h-full object-cover"
+        onDoubleClick={handleToggleFullScreen}
       />
 
+      {/* Picture-in-picture video */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="absolute top-4 right-4 w-32 h-48 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSwapVideos();
+        }}
+        className="absolute top-4 right-4 w-32 h-48 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform"
       >
         <video
-          ref={localVideoRef}
+          ref={pipVideoRef}
           autoPlay
           playsInline
-          muted
-          className="w-full h-full object-cover transform scale-x-[-1]"
+          muted={videoLayout === 'remote-main'}
+          className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
         />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+          <Repeat className="w-6 h-6 text-white" />
+        </div>
       </motion.div>
 
-      <div className="absolute top-4 left-4 text-white">
-        <h2 className="text-xl font-semibold">{contactName}</h2>
-        <p className="text-sm text-white/80">
-          {callState === 'connecting' && 'Connecting...'}
-          {callState === 'connected' && formatDuration(duration)}
-          {callState === 'failed' && 'Connection failed'}
-        </p>
-      </div>
+      {/* Top info bar */}
+      {!isFullScreen && (
+        <div className="absolute top-4 left-4 flex items-center gap-3">
+          <div className="text-white bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
+            <h2 className="text-base font-semibold">{contactName}</h2>
+            <p className="text-xs text-white/80">
+              {callState === 'connecting' && 'Connecting...'}
+              {callState === 'connected' && formatDuration(duration)}
+              {callState === 'failed' && 'Connection failed'}
+            </p>
+          </div>
+          <NetworkQualityIndicator peerConnection={webrtcRef.current?.['pc']} />
+        </div>
+      )}
 
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
-        <Button
-          size="lg"
-          variant={audioEnabled ? "default" : "destructive"}
-          className="rounded-full w-14 h-14"
-          onClick={toggleAudio}
-        >
-          {audioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
-        </Button>
+      {/* Controls overlay */}
+      <AnimatePresence>
+        {controlsVisible && !isFullScreen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-32 pb-8"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                size="lg"
+                variant={audioEnabled ? "secondary" : "destructive"}
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                onClick={toggleAudio}
+              >
+                {audioEnabled ? <Mic className="h-6 w-6 text-white" /> : <MicOff className="h-6 w-6" />}
+              </Button>
 
-        <Button
-          size="lg"
-          variant={videoEnabled ? "default" : "destructive"}
-          className="rounded-full w-14 h-14"
-          onClick={toggleVideo}
-        >
-          {videoEnabled ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
-        </Button>
+              <Button
+                size="lg"
+                variant={videoEnabled ? "secondary" : "destructive"}
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                onClick={toggleVideo}
+              >
+                {videoEnabled ? <Video className="h-6 w-6 text-white" /> : <VideoOff className="h-6 w-6" />}
+              </Button>
 
-        <Button
-          size="lg"
-          variant="destructive"
-          className="rounded-full w-16 h-16"
-          onClick={handleEndCall}
-        >
-          <PhoneOff className="h-7 w-7" />
-        </Button>
-      </div>
+              {isMobile && (
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                  onClick={handleSwitchCamera}
+                >
+                  <SwitchCamera className="w-6 h-6 text-white" />
+                </Button>
+              )}
+
+              <Button
+                size="lg"
+                variant="secondary"
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                onClick={handleSwapVideos}
+              >
+                <Repeat className="w-6 h-6 text-white" />
+              </Button>
+
+              <Button
+                size="lg"
+                variant="destructive"
+                className="rounded-full w-16 h-16"
+                onClick={handleEndCall}
+              >
+                <PhoneOff className="h-7 w-7" />
+              </Button>
+
+              <Button
+                size="lg"
+                variant="secondary"
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                onClick={handleToggleFullScreen}
+              >
+                {isFullScreen ? <Minimize2 className="w-6 h-6 text-white" /> : <Maximize2 className="w-6 h-6 text-white" />}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

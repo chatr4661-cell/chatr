@@ -1,16 +1,12 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, MoreVertical } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { MessageContextMenu } from './MessageContextMenu';
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 interface Message {
   id: string;
@@ -35,6 +31,9 @@ interface MessageBubbleProps {
   };
   onReply?: (message: Message) => void;
   onStar?: (messageId: string) => void;
+  onForward?: (message: Message) => void;
+  onDelete?: (messageId: string) => void;
+  onEdit?: (messageId: string, content: string) => void;
 }
 
 const MessageBubbleComponent = ({ 
@@ -43,9 +42,13 @@ const MessageBubbleComponent = ({
   showAvatar, 
   otherUser,
   onReply,
-  onStar 
+  onStar,
+  onForward,
+  onDelete,
+  onEdit
 }: MessageBubbleProps) => {
-  const [showActions, setShowActions] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
 
   const formatMessageTime = (date: Date) => {
     if (isToday(date)) {
@@ -57,22 +60,72 @@ const MessageBubbleComponent = ({
     }
   };
 
+  const handleLongPress = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    setMenuPosition({ x: touch.clientX, y: touch.clientY });
+    setShowMenu(true);
+    
+    if (Capacitor.isNativePlatform()) {
+      Haptics.impact({ style: ImpactStyle.Medium });
+    }
+  }, []);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setMenuPosition({ x: e.clientX, y: e.clientY });
+    setShowMenu(true);
+  }, []);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
     toast.success('Message copied');
   };
 
-  const handleDelete = () => {
-    toast.info('Delete functionality coming soon');
+  const handleStar = () => {
+    onStar?.(message.id);
+    toast.success(message.is_starred ? 'Message unstarred' : 'Message starred');
   };
 
-  const handleForward = () => {
-    toast.info('Forward functionality coming soon');
+  const handleDownload = () => {
+    if (message.media_url) {
+      window.open(message.media_url, '_blank');
+      toast.success('Opening media...');
+    }
   };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        text: message.content,
+        url: message.media_url
+      });
+    } else {
+      handleCopy();
+    }
+  };
+
+  const extractLocationCoords = (content: string) => {
+    const match = content.match(/q=([^&]+)/);
+    return match ? match[1] : '';
+  };
+
+  const messageActions = [
+    { icon: Reply, label: 'Reply', action: () => onReply?.(message), show: true },
+    { icon: Forward, label: 'Forward', action: () => onForward?.(message), show: true },
+    { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: handleStar, show: true },
+    { icon: Copy, label: 'Copy', action: handleCopy, show: true },
+    { icon: Download, label: 'Download', action: handleDownload, show: !!message.media_url },
+    { icon: Share2, label: 'Share', action: handleShare, show: true },
+    { icon: Edit, label: 'Edit', action: () => onEdit?.(message.id, message.content), show: isOwn },
+    { icon: Trash, label: 'Delete', action: () => onDelete?.(message.id), variant: 'destructive' as const, show: isOwn }
+  ];
 
   return (
     <div
-      className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'} mb-1 px-3`}
+      className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'} mb-1 px-3 relative`}
+      onTouchStart={handleLongPress}
+      onContextMenu={handleContextMenu}
     >
       {showAvatar ? (
         <Avatar className="w-8 h-8 shrink-0">
@@ -86,23 +139,51 @@ const MessageBubbleComponent = ({
       ) : null}
 
       <div className={`flex flex-col gap-0.5 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
-        {message.media_url && (
+        {/* Location message with map preview */}
+        {message.message_type === 'location' && message.content.includes('maps.google.com') && (
+          <div className="rounded-2xl overflow-hidden border border-border mb-1 max-w-[280px]">
+            <iframe
+              src={`https://maps.google.com/maps?q=${extractLocationCoords(message.content)}&output=embed`}
+              className="w-full h-40"
+              loading="lazy"
+              title="Location"
+            />
+            <div className="p-3 bg-muted/50">
+              <a
+                href={message.content.split(' ').pop()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-primary font-medium text-sm"
+              >
+                <MapPin className="w-4 h-4" />
+                View in Maps
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* Image message */}
+        {message.media_url && message.message_type === 'image' && (
           <img
             src={message.media_url}
             alt="Shared media"
-            className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1"
+            className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => window.open(message.media_url, '_blank')}
           />
         )}
         
-        <div className={`rounded-[18px] px-4 py-2.5 ${
-          isOwn
-            ? 'bg-[hsl(185,75%,40%)] text-white'
-            : 'bg-[hsl(200,25%,94%)] text-foreground'
-        }`}>
-          <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
-        </div>
+        {/* Regular text message */}
+        {!message.content.startsWith('[') && message.message_type !== 'location' && (
+          <div className={`rounded-[18px] px-4 py-2.5 ${
+            isOwn
+              ? 'bg-[hsl(185,75%,40%)] text-white'
+              : 'bg-[hsl(200,25%,94%)] text-foreground'
+          }`}>
+            <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
+              {message.content}
+            </p>
+          </div>
+        )}
 
         <div className="flex items-center gap-1 px-1.5">
           <span className="text-[11px] text-muted-foreground">
@@ -117,6 +198,15 @@ const MessageBubbleComponent = ({
           )}
         </div>
       </div>
+
+      {/* Context menu */}
+      <MessageContextMenu
+        open={showMenu}
+        onClose={() => setShowMenu(false)}
+        position={menuPosition}
+        actions={messageActions.filter(a => a.show !== false)}
+        message={message}
+      />
     </div>
   );
 };

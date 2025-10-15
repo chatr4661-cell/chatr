@@ -260,6 +260,7 @@ export const EnhancedMessageInput = ({
       {showAttachments && (
         <AttachmentMenu
           onClose={() => setShowAttachments(false)}
+          onCamera={handleCamera}
           onPhotoVideo={handlePhotoVideo}
           onLocation={handleLocation}
           onContact={() => setShowContactPicker(true)}
