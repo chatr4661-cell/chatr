@@ -24,6 +24,7 @@ import {
   Building2
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
+import { QuickAccessMenu } from '@/components/QuickAccessMenu';
 
 // Lazy load heavy components
 const ServiceCard = React.lazy(() => import('@/components/ServiceCard'));
@@ -340,6 +341,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <QuickAccessMenu />
             <Button
               variant="ghost"
               size="sm"
