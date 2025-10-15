@@ -215,7 +215,7 @@ export const PhoneAuth = () => {
     <Card className="w-full backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass">
       <CardHeader>
         <CardTitle>
-          {step === 'phone' ? 'Welcome to chatr.chat' : isNewUser ? 'Create Your PIN' : 'Enter Your PIN'}
+          {step === 'phone' ? 'chatr+' : isNewUser ? 'Create Your PIN' : 'Enter Your PIN'}
         </CardTitle>
         <CardDescription>
           {step === 'phone' 
