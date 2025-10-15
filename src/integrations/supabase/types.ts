@@ -1109,6 +1109,485 @@ export type Database = {
           },
         ]
       }
+      chatr_badges: {
+        Row: {
+          badge_type: string
+          coin_reward: number | null
+          created_at: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Insert: {
+          badge_type: string
+          coin_reward?: number | null
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Update: {
+          badge_type?: string
+          coin_reward?: number | null
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+        }
+        Relationships: []
+      }
+      chatr_business_ad_rewards: {
+        Row: {
+          ad_spend_amount: number
+          business_id: string
+          coins_earned: number
+          commission_percentage: number | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          payment_status: string | null
+          referrer_id: string | null
+        }
+        Insert: {
+          ad_spend_amount: number
+          business_id: string
+          coins_earned: number
+          commission_percentage?: number | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_status?: string | null
+          referrer_id?: string | null
+        }
+        Update: {
+          ad_spend_amount?: number
+          business_id?: string
+          coins_earned?: number
+          commission_percentage?: number | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_status?: string | null
+          referrer_id?: string | null
+        }
+        Relationships: []
+      }
+      chatr_coin_balances: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_login_date: string | null
+          lifetime_earned: number
+          lifetime_spent: number
+          longest_streak: number
+          total_coins: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_login_date?: string | null
+          lifetime_earned?: number
+          lifetime_spent?: number
+          longest_streak?: number
+          total_coins?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_login_date?: string | null
+          lifetime_earned?: number
+          lifetime_spent?: number
+          longest_streak?: number
+          total_coins?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_coin_rewards: {
+        Row: {
+          action_type: string
+          coin_amount: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_per_day: number | null
+          max_total: number | null
+          rupee_value: number
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          coin_amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_per_day?: number | null
+          max_total?: number | null
+          rupee_value: number
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          coin_amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_per_day?: number | null
+          max_total?: number | null
+          rupee_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chatr_coin_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          source: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          source: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          source?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_creator_rewards: {
+        Row: {
+          coins_earned: number | null
+          content_type: string
+          created_at: string
+          engagement_score: number | null
+          id: string
+          period_end: string
+          period_start: string
+          revenue_share: number | null
+          user_id: string
+        }
+        Insert: {
+          coins_earned?: number | null
+          content_type: string
+          created_at?: string
+          engagement_score?: number | null
+          id?: string
+          period_end: string
+          period_start: string
+          revenue_share?: number | null
+          user_id: string
+        }
+        Update: {
+          coins_earned?: number | null
+          content_type?: string
+          created_at?: string
+          engagement_score?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          revenue_share?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_leaderboards: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          leaderboard_type: string
+          metadata: Json | null
+          period: string
+          rank: number | null
+          score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          leaderboard_type: string
+          metadata?: Json | null
+          period?: string
+          rank?: number | null
+          score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          leaderboard_type?: string
+          metadata?: Json | null
+          period?: string
+          rank?: number | null
+          score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_login_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_login_date: string | null
+          longest_streak: number | null
+          streak_rewards_claimed: number | null
+          total_logins: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number | null
+          streak_rewards_claimed?: number | null
+          total_logins?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number | null
+          streak_rewards_claimed?: number | null
+          total_logins?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          qr_code_url: string | null
+          total_rewards: number | null
+          total_uses: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          qr_code_url?: string | null
+          total_rewards?: number | null
+          total_uses?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          qr_code_url?: string | null
+          total_rewards?: number | null
+          total_uses?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_referral_network: {
+        Row: {
+          created_at: string
+          id: string
+          level: number
+          root_user_id: string
+          total_coins_from_network: number | null
+          total_network_size: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level: number
+          root_user_id: string
+          total_coins_from_network?: number | null
+          total_network_size?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: number
+          root_user_id?: string
+          total_coins_from_network?: number | null
+          total_network_size?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_referrals: {
+        Row: {
+          activated_at: string | null
+          coins_earned: number | null
+          created_at: string
+          id: string
+          level: number
+          referral_code: string
+          referred_user_id: string
+          referrer_id: string
+          rewarded_at: string | null
+          status: string
+        }
+        Insert: {
+          activated_at?: string | null
+          coins_earned?: number | null
+          created_at?: string
+          id?: string
+          level?: number
+          referral_code: string
+          referred_user_id: string
+          referrer_id: string
+          rewarded_at?: string | null
+          status?: string
+        }
+        Update: {
+          activated_at?: string | null
+          coins_earned?: number | null
+          created_at?: string
+          id?: string
+          level?: number
+          referral_code?: string
+          referred_user_id?: string
+          referrer_id?: string
+          rewarded_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      chatr_shares: {
+        Row: {
+          clicks: number | null
+          coins_earned: number | null
+          conversions: number | null
+          created_at: string
+          id: string
+          platform: string | null
+          referral_code: string | null
+          share_type: string
+          shared_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          clicks?: number | null
+          coins_earned?: number | null
+          conversions?: number | null
+          created_at?: string
+          id?: string
+          platform?: string | null
+          referral_code?: string | null
+          share_type: string
+          shared_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          clicks?: number | null
+          coins_earned?: number | null
+          conversions?: number | null
+          created_at?: string
+          id?: string
+          platform?: string | null
+          referral_code?: string | null
+          share_type?: string
+          shared_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_requests: {
         Row: {
           created_at: string | null

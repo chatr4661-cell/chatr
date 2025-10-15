@@ -54,6 +54,11 @@ import EmergencyButton from "./pages/EmergencyButton";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
+// Growth System Pages
+import ChatrGrowth from "./pages/ChatrGrowth";
+import Leaderboard from "./pages/Leaderboard";
+import ReferralNetwork from "./pages/ReferralNetwork";
+
 // Consolidated Hub Pages
 import HealthHub from "./pages/HealthHub";
 import CareAccess from "./pages/CareAccess";
@@ -195,6 +200,11 @@ const App = () => {
             <Route path="/business/crm" element={<CRMPage />} />
             <Route path="/business/analytics" element={<BusinessAnalytics />} />
             <Route path="/business/team" element={<BusinessTeam />} />
+            
+            {/* Growth System Routes */}
+            <Route path="/growth" element={<ChatrGrowth />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/referrals" element={<ReferralNetwork />} />
             
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
