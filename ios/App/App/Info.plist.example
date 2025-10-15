@@ -4,6 +4,12 @@
 <dict>
 	<!-- Add these entries to your Info.plist for Health and Contacts permissions -->
 	
+	<!-- Bluetooth Permissions -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>This app uses Bluetooth to chat with nearby users without internet</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>This app uses Bluetooth to discover and chat with nearby Chatr users</string>
+	
 	<!-- Health Kit Usage -->
 	<key>NSHealthShareUsageDescription</key>
 	<string>chatr needs access to read your health data to track and sync wellness metrics like steps, heart rate, and sleep patterns.</string>
@@ -19,10 +25,11 @@
 	<key>NSMotionUsageDescription</key>
 	<string>chatr needs access to your motion data to track daily steps and activity.</string>
 	
-	<!-- Health Kit Capability -->
+	<!-- Required Device Capabilities -->
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>healthkit</string>
+		<string>bluetooth-le</string>
 	</array>
 </dict>
 </plist>

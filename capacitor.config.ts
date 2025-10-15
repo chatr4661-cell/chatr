@@ -23,6 +23,14 @@ const config: CapacitorConfig = {
     },
     Contacts: {
       // Enable contacts permission
+    },
+    BluetoothLe: {
+      displayStrings: {
+        scanning: "Scanning for nearby Chatr users...",
+        cancel: "Cancel",
+        availableDevices: "Available devices",
+        noDeviceFound: "No device found"
+      }
     }
   },
   // iOS specific configuration

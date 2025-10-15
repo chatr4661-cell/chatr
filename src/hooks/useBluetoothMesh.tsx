@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { BleClient } from '@capacitor-community/bluetooth-le';
 
 interface BluetoothPeer {
   id: string;
@@ -18,7 +19,15 @@ export const useBluetoothMesh = () => {
   const [isSupported, setIsSupported] = useState(false);
 
   useEffect(() => {
-    setIsSupported('bluetooth' in (navigator as any));
+    const checkBluetooth = async () => {
+      try {
+        await BleClient.initialize();
+        setIsSupported(true);
+      } catch {
+        setIsSupported('bluetooth' in (navigator as any));
+      }
+    };
+    checkBluetooth();
   }, []);
 
   const scanForPeers = useCallback(async () => {
@@ -29,44 +38,86 @@ export const useBluetoothMesh = () => {
 
     setIsScanning(true);
     try {
-      const device = await (navigator as any).bluetooth.requestDevice({
-        filters: [{ services: [SERVICE_UUID] }],
-        optionalServices: [SERVICE_UUID]
-      });
+      // Try native Capacitor BLE first
+      await BleClient.initialize();
+      
+      await BleClient.requestLEScan(
+        { services: [SERVICE_UUID] },
+        (result) => {
+          const newPeer: BluetoothPeer = {
+            id: result.device.deviceId,
+            name: result.device.name || 'Unknown Device',
+            device: result.device,
+          };
 
-      const server = await device.gatt?.connect();
-      const service = await server?.getPrimaryService(SERVICE_UUID);
-      const characteristic = await service?.getCharacteristic(CHARACTERISTIC_UUID);
+          setPeers(prev => {
+            const exists = prev.find(p => p.id === result.device.deviceId);
+            if (exists) return prev;
+            return [...prev, newPeer];
+          });
+        }
+      );
 
-      if (device && characteristic) {
-        const newPeer: BluetoothPeer = {
-          id: device.id,
-          name: device.name || 'Unknown Device',
-          device,
-          characteristic,
-        };
+      // Stop scanning after 10 seconds
+      setTimeout(async () => {
+        await BleClient.stopLEScan();
+        setIsScanning(false);
+        toast.success('Scan complete');
+      }, 10000);
 
-        setPeers(prev => [...prev.filter(p => p.id !== device.id), newPeer]);
-
-        // Save to database
-        const { data: { user } } = await supabase.auth.getUser();
+      // Save discovered peers to database
+      const { data: { user } } = await supabase.auth.getUser();
+      peers.forEach(async (peer) => {
         await supabase.from('mesh_peers' as any).insert({
           user_id: user?.id,
-          peer_id: device.id,
-          peer_name: device.name,
+          peer_id: peer.id,
+          peer_name: peer.name,
           connection_type: 'bluetooth',
           is_active: true,
         } as any);
+      });
 
-        toast.success(`Connected to ${device.name}`);
-      }
     } catch (error) {
       console.error('Bluetooth scan error:', error);
-      toast.error('Failed to connect to device');
-    } finally {
+      
+      // Fallback to Web Bluetooth API
+      try {
+        const device = await (navigator as any).bluetooth.requestDevice({
+          filters: [{ services: [SERVICE_UUID] }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        const server = await device.gatt?.connect();
+        const service = await server?.getPrimaryService(SERVICE_UUID);
+        const characteristic = await service?.getCharacteristic(CHARACTERISTIC_UUID);
+
+        if (device && characteristic) {
+          const newPeer: BluetoothPeer = {
+            id: device.id,
+            name: device.name || 'Unknown Device',
+            device,
+            characteristic,
+          };
+
+          setPeers(prev => [...prev.filter(p => p.id !== device.id), newPeer]);
+
+          const { data: { user } } = await supabase.auth.getUser();
+          await supabase.from('mesh_peers' as any).insert({
+            user_id: user?.id,
+            peer_id: device.id,
+            peer_name: device.name,
+            connection_type: 'bluetooth',
+            is_active: true,
+          } as any);
+
+          toast.success(`Connected to ${device.name}`);
+        }
+      } catch (webError) {
+        toast.error('Failed to connect to device');
+      }
       setIsScanning(false);
     }
-  }, [isSupported]);
+  }, [isSupported, peers]);
 
   const sendMessage = useCallback(async (
     peerId: string,
