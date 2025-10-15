@@ -149,28 +149,28 @@ export default function BusinessDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Button
             onClick={() => navigate('/business/inbox')}
             className="h-auto p-4 flex flex-col items-start gap-2"
             variant="outline"
           >
             <MessageSquare className="h-5 w-5 text-primary" />
-            <span className="font-semibold">View Inbox</span>
+            <span className="font-semibold">Inbox</span>
             <span className="text-xs text-muted-foreground">
-              {stats.open_conversations} open conversations
+              {stats.open_conversations} open
             </span>
           </Button>
 
           <Button
-            onClick={() => navigate('/business/team')}
+            onClick={() => navigate('/business/crm')}
             className="h-auto p-4 flex flex-col items-start gap-2"
             variant="outline"
           >
             <Users className="h-5 w-5 text-primary" />
-            <span className="font-semibold">Team</span>
+            <span className="font-semibold">CRM</span>
             <span className="text-xs text-muted-foreground">
-              {stats.team_members} members
+              Manage leads
             </span>
           </Button>
 
