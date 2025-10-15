@@ -561,16 +561,22 @@ const ChatEnhancedContent = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-hidden">
-            <VirtualMessageList
-              messages={displayMessages}
-              userId={user?.id || ''}
-              otherUser={otherUser}
-              onLoadMore={() => {}}
-              hasMore={false}
-              isLoading={messagesLoading}
-              onForward={handleForwardMessage}
-              onStar={handleStarMessage}
-            />
+            {user?.id ? (
+              <VirtualMessageList
+                messages={displayMessages}
+                userId={user.id}
+                otherUser={otherUser}
+                onLoadMore={() => {}}
+                hasMore={false}
+                isLoading={messagesLoading}
+                onForward={handleForwardMessage}
+                onStar={handleStarMessage}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="w-6 h-6 border-2 border-primary/60 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </div>
 
           {/* Input */}
