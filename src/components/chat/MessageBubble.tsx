@@ -154,12 +154,20 @@ const MessageBubbleComponent = ({
         )}
 
         {/* Poll message */}
-        {message.message_type === 'poll' && message.content.startsWith('[Poll]') && (
-          <PollMessageWrapper 
-            messageId={message.id}
-            data={JSON.parse(message.content.replace('[Poll] ', ''))} 
-          />
-        )}
+        {message.message_type === 'poll' && message.content.startsWith('[Poll]') && (() => {
+          try {
+            const pollData = JSON.parse(message.content.replace('[Poll] ', ''));
+            return (
+              <PollMessageWrapper 
+                messageId={message.id}
+                data={pollData} 
+              />
+            );
+          } catch (error) {
+            console.error('Failed to parse poll data:', error);
+            return <div className="text-sm text-muted-foreground">Invalid poll data</div>;
+          }
+        })()}
 
         {/* Contact message */}
         {message.message_type === 'contact' && message.content.startsWith('[Contact]') && (
@@ -167,14 +175,26 @@ const MessageBubbleComponent = ({
         )}
 
         {/* Event message */}
-        {message.message_type === 'event' && message.content.startsWith('[Event]') && (
-          <EventMessage data={JSON.parse(message.content.replace('[Event] ', ''))} />
-        )}
+        {message.message_type === 'event' && message.content.startsWith('[Event]') && (() => {
+          try {
+            const eventData = JSON.parse(message.content.replace('[Event] ', ''));
+            return <EventMessage data={eventData} />;
+          } catch (error) {
+            console.error('Failed to parse event data:', error);
+            return <div className="text-sm text-muted-foreground">Invalid event data</div>;
+          }
+        })()}
 
         {/* Payment message */}
-        {message.message_type === 'payment' && message.content.startsWith('[Payment]') && (
-          <PaymentMessage data={JSON.parse(message.content.replace('[Payment] ', ''))} />
-        )}
+        {message.message_type === 'payment' && message.content.startsWith('[Payment]') && (() => {
+          try {
+            const paymentData = JSON.parse(message.content.replace('[Payment] ', ''));
+            return <PaymentMessage data={paymentData} />;
+          } catch (error) {
+            console.error('Failed to parse payment data:', error);
+            return <div className="text-sm text-muted-foreground">Invalid payment data</div>;
+          }
+        })()}
 
         {/* Location message with map preview */}
         {message.message_type === 'location' && message.content.includes('maps.google.com') && (
