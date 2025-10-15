@@ -839,6 +839,7 @@ export type Database = {
       }
       business_profiles: {
         Row: {
+          broadcasts_enabled: boolean | null
           business_email: string | null
           business_hours: Json | null
           business_name: string
@@ -851,6 +852,7 @@ export type Database = {
           id: string
           location: Json | null
           logo_url: string | null
+          notification_preferences: Json | null
           pan_number: string | null
           updated_at: string | null
           user_id: string
@@ -859,6 +861,7 @@ export type Database = {
           verified: boolean | null
         }
         Insert: {
+          broadcasts_enabled?: boolean | null
           business_email?: string | null
           business_hours?: Json | null
           business_name: string
@@ -871,6 +874,7 @@ export type Database = {
           id?: string
           location?: Json | null
           logo_url?: string | null
+          notification_preferences?: Json | null
           pan_number?: string | null
           updated_at?: string | null
           user_id: string
@@ -879,6 +883,7 @@ export type Database = {
           verified?: boolean | null
         }
         Update: {
+          broadcasts_enabled?: boolean | null
           business_email?: string | null
           business_hours?: Json | null
           business_name?: string
@@ -891,6 +896,7 @@ export type Database = {
           id?: string
           location?: Json | null
           logo_url?: string | null
+          notification_preferences?: Json | null
           pan_number?: string | null
           updated_at?: string | null
           user_id?: string
@@ -5003,6 +5009,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          limits: Json | null
+          monthly_price: number
+          name: string
+          yearly_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          limits?: Json | null
+          monthly_price?: number
+          name: string
+          yearly_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          limits?: Json | null
+          monthly_price?: number
+          name?: string
+          yearly_price?: number | null
+        }
+        Relationships: []
       }
       symptom_checks: {
         Row: {

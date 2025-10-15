@@ -29,15 +29,29 @@ interface BusinessProfile {
   location: any;
   business_hours: any;
   contact_info: any;
+  broadcasts_enabled: boolean;
+  notification_preferences: any;
 }
 
 interface Subscription {
   id: string;
+  business_id: string;
   plan_type: string;
   status: string;
   monthly_price: number;
   next_billing_date: string | null;
   features: any;
+}
+
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  monthly_price: number;
+  yearly_price: number | null;
+  features: any;
+  limits: any;
+  display_order: number;
 }
 
 export default function BusinessSettings() {
@@ -48,6 +62,8 @@ export default function BusinessSettings() {
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<SubscriptionPlan[]>([]);
+  const [changingPlan, setChangingPlan] = useState(false);
   
   // Form states
   const [businessName, setBusinessName] = useState('');
@@ -57,11 +73,16 @@ export default function BusinessSettings() {
   const [address, setAddress] = useState('');
   const [website, setWebsite] = useState('');
   
+  // Business settings
+  const [broadcastsEnabled, setBroadcastsEnabled] = useState(true);
+  
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [newLeadAlerts, setNewLeadAlerts] = useState(true);
   const [dailyDigest, setDailyDigest] = useState(true);
+  const [orderNotifications, setOrderNotifications] = useState(true);
+  const [reviewNotifications, setReviewNotifications] = useState(true);
 
   useEffect(() => {
     loadBusinessData();
@@ -92,12 +113,22 @@ export default function BusinessSettings() {
       setDescription(profile.description || '');
       setBusinessPhone(profile.business_phone || '');
       setBusinessEmail(profile.business_email || '');
+      setBroadcastsEnabled(profile.broadcasts_enabled ?? true);
       
       // Safely parse location and contact_info
       const location = profile.location as any;
       const contactInfo = profile.contact_info as any;
       setAddress(location?.address || '');
       setWebsite(contactInfo?.website || '');
+      
+      // Load notification preferences
+      const notifPrefs = profile.notification_preferences as any || {};
+      setEmailNotifications(notifPrefs.email_notifications ?? true);
+      setSmsNotifications(notifPrefs.sms_notifications ?? false);
+      setNewLeadAlerts(notifPrefs.new_lead_alerts ?? true);
+      setDailyDigest(notifPrefs.daily_digest ?? true);
+      setOrderNotifications(notifPrefs.order_notifications ?? true);
+      setReviewNotifications(notifPrefs.review_notifications ?? true);
 
       // Load subscription
       const { data: subData } = await supabase
@@ -128,6 +159,17 @@ export default function BusinessSettings() {
         setTeamMembers(teamData);
       }
 
+      // Load available subscription plans
+      const { data: plansData } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order');
+
+      if (plansData) {
+        setAvailablePlans(plansData);
+      }
+
     } catch (error) {
       console.error('Error loading business data:', error);
       toast({
@@ -153,7 +195,8 @@ export default function BusinessSettings() {
           business_phone: businessPhone,
           business_email: businessEmail,
           location: { address },
-          contact_info: { website }
+          contact_info: { website },
+          broadcasts_enabled: broadcastsEnabled
         })
         .eq('id', businessProfile.id);
 
@@ -174,6 +217,80 @@ export default function BusinessSettings() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    if (!businessProfile) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('business_profiles')
+        .update({
+          notification_preferences: {
+            email_notifications: emailNotifications,
+            sms_notifications: smsNotifications,
+            new_lead_alerts: newLeadAlerts,
+            daily_digest: dailyDigest,
+            order_notifications: orderNotifications,
+            review_notifications: reviewNotifications
+          }
+        })
+        .eq('id', businessProfile.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Notification settings updated successfully'
+      });
+    } catch (error) {
+      console.error('Error saving notifications:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update notification settings',
+        variant: 'destructive'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChangePlan = async (planId: string) => {
+    if (!subscription || !businessProfile) return;
+    
+    setChangingPlan(true);
+    try {
+      const selectedPlan = availablePlans.find(p => p.id === planId);
+      if (!selectedPlan) throw new Error('Plan not found');
+
+      const { error } = await supabase
+        .from('business_subscriptions')
+        .update({
+          plan_type: selectedPlan.name.toLowerCase(),
+          monthly_price: selectedPlan.monthly_price,
+          features: selectedPlan.features
+        })
+        .eq('id', subscription.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: `Successfully changed to ${selectedPlan.name} plan`
+      });
+
+      loadBusinessData();
+    } catch (error) {
+      console.error('Error changing plan:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to change subscription plan',
+        variant: 'destructive'
+      });
+    } finally {
+      setChangingPlan(false);
     }
   };
 
@@ -400,6 +517,25 @@ export default function BusinessSettings() {
                       placeholder="https://yourbusiness.com"
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Bell className="h-4 w-4" />
+                      Broadcasts Enabled
+                    </Label>
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="font-medium">Enable Broadcasting</p>
+                        <p className="text-sm text-muted-foreground">
+                          Allow sending broadcast messages to customers
+                        </p>
+                      </div>
+                      <Switch
+                        checked={broadcastsEnabled}
+                        onCheckedChange={setBroadcastsEnabled}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <Button 
@@ -531,14 +667,68 @@ export default function BusinessSettings() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1">
-                        Change Plan
-                      </Button>
-                      <Button variant="outline" className="flex-1">
-                        Billing History
-                      </Button>
+                    {/* Available Plans */}
+                    <div>
+                      <h4 className="font-medium mb-3">Available Plans</h4>
+                      <div className="grid gap-3">
+                        {availablePlans.map((plan) => {
+                          const isCurrentPlan = subscription.plan_type === plan.name.toLowerCase();
+                          return (
+                            <div
+                              key={plan.id}
+                              className={`p-4 rounded-lg border ${
+                                isCurrentPlan ? 'border-primary bg-primary/5' : ''
+                              }`}
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h5 className="font-semibold">{plan.name}</h5>
+                                    {isCurrentPlan && (
+                                      <Badge variant="default">Current Plan</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {plan.description}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xl font-bold">₹{plan.monthly_price}</p>
+                                  <p className="text-xs text-muted-foreground">per month</p>
+                                </div>
+                              </div>
+                              
+                              {/* Plan Features */}
+                              <div className="mt-3 space-y-1">
+                                {plan.limits && Object.entries(plan.limits).map(([key, value]: [string, any]) => (
+                                  <div key={key} className="flex items-center gap-2 text-sm">
+                                    <Check className="h-3 w-3 text-primary" />
+                                    <span className="capitalize">
+                                      {key.replace(/_/g, ' ')}: {value === -1 ? 'Unlimited' : value}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {!isCurrentPlan && (
+                                <Button
+                                  onClick={() => handleChangePlan(plan.id)}
+                                  disabled={changingPlan}
+                                  className="w-full mt-3"
+                                  variant="outline"
+                                >
+                                  {changingPlan ? 'Changing...' : 'Switch to this Plan'}
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
+
+                    <Button variant="outline" className="w-full">
+                      View Billing History
+                    </Button>
                   </>
                 )}
               </CardContent>
@@ -610,11 +800,41 @@ export default function BusinessSettings() {
                       onCheckedChange={setDailyDigest}
                     />
                   </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Order Notifications</p>
+                      <p className="text-sm text-muted-foreground">
+                        Get notified about new orders
+                      </p>
+                    </div>
+                    <Switch
+                      checked={orderNotifications}
+                      onCheckedChange={setOrderNotifications}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Review Notifications</p>
+                      <p className="text-sm text-muted-foreground">
+                        Get notified when customers leave reviews
+                      </p>
+                    </div>
+                    <Switch
+                      checked={reviewNotifications}
+                      onCheckedChange={setReviewNotifications}
+                    />
+                  </div>
                 </div>
 
-                <Button className="w-full bg-gradient-hero">
+                <Button 
+                  onClick={handleSaveNotifications}
+                  disabled={saving}
+                  className="w-full bg-gradient-hero"
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  Save Notification Settings
+                  {saving ? 'Saving...' : 'Save Notification Settings'}
                 </Button>
               </CardContent>
             </Card>
