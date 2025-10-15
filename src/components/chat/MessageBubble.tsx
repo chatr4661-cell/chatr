@@ -136,10 +136,13 @@ const MessageBubbleComponent = ({
 
   return (
     <div
-      className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end' : 'justify-start'}`}
+      className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end flex-row-reverse' : 'justify-start'}`}
       onTouchStart={handleLongPress}
       onContextMenu={handleContextMenu}
     >
+      {/* Debug badge */}
+      {isOwn && <div className="absolute -top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded">YOU</div>}
+      
       {!isOwn && (
         showAvatar ? (
           <Avatar className="w-8 h-8 shrink-0">
