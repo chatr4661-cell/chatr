@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,27 +39,34 @@ const handler = async (req: Request): Promise<Response> => {
     const results = [];
     for (const batch of batches) {
       const emailPromises = batch.map(email =>
-        resend.emails.send({
-          from: `${fromName} <broadcast@chatr.chat>`,
-          to: [email],
-          subject: subject,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                <h1 style="color: white; margin: 0;">${fromName}</h1>
-              </div>
-              <div style="padding: 30px; background: #f9fafb;">
-                <h2 style="color: #1f2937; margin-top: 0;">${subject}</h2>
-                <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">
-                  ${content}
+        fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: `${fromName} <broadcast@chatr.chat>`,
+            to: [email],
+            subject: subject,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                  <h1 style="color: white; margin: 0;">${fromName}</h1>
+                </div>
+                <div style="padding: 30px; background: #f9fafb;">
+                  <h2 style="color: #1f2937; margin-top: 0;">${subject}</h2>
+                  <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">
+                    ${content}
+                  </div>
+                </div>
+                <div style="padding: 20px; text-align: center; background: #e5e7eb; color: #6b7280; font-size: 12px;">
+                  <p>You received this because you're subscribed to ${fromName} on Chatr</p>
+                  <p>Powered by Chatr Business</p>
                 </div>
               </div>
-              <div style="padding: 20px; text-align: center; background: #e5e7eb; color: #6b7280; font-size: 12px;">
-                <p>You received this because you're subscribed to ${fromName} on Chatr</p>
-                <p>Powered by Chatr Business</p>
-              </div>
-            </div>
-          `,
+            `,
+          }),
         })
       );
 

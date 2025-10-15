@@ -39,6 +39,9 @@ import BroadcastManager from "./pages/admin/BroadcastManager";
 import ChatrTutors from "./pages/ChatrTutors";
 import ChatrPoints from "./pages/ChatrPoints";
 import RewardShop from "./pages/RewardShop";
+import ChatrGrowth from "./pages/ChatrGrowth";
+import AmbassadorProgram from "./pages/AmbassadorProgram";
+import DoctorOnboarding from "./pages/DoctorOnboarding";
 import QRPayment from "./pages/QRPayment";
 import HomeServices from "./pages/HomeServices";
 import QRLogin from "./pages/QRLogin";
@@ -166,7 +169,10 @@ const App = () => {
             
             {/* Points & Payment Routes */}
             <Route path="/chatr-points" element={<ChatrPoints />} />
-            <Route path="/reward-shop" element={<RewardShop />} />
+          <Route path="/reward-shop" element={<RewardShop />} />
+          <Route path="/growth" element={<ChatrGrowth />} />
+          <Route path="/ambassador-program" element={<AmbassadorProgram />} />
+          <Route path="/doctor-onboarding" element={<DoctorOnboarding />} />
             <Route path="/qr-payment" element={<QRPayment />} />
             <Route path="/qr-login" element={<QRLogin />} />
             

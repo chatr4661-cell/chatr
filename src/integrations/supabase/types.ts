@@ -76,6 +76,60 @@ export type Database = {
         }
         Relationships: []
       }
+      ambassador_applications: {
+        Row: {
+          city: string
+          college: string
+          created_at: string
+          email: string
+          experience: string | null
+          full_name: string
+          id: string
+          phone: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          social_media: string | null
+          status: string
+          user_id: string
+          why_join: string
+          year: string
+        }
+        Insert: {
+          city: string
+          college: string
+          created_at?: string
+          email: string
+          experience?: string | null
+          full_name: string
+          id?: string
+          phone: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          social_media?: string | null
+          status?: string
+          user_id: string
+          why_join: string
+          year: string
+        }
+        Update: {
+          city?: string
+          college?: string
+          created_at?: string
+          email?: string
+          experience?: string | null
+          full_name?: string
+          id?: string
+          phone?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          social_media?: string | null
+          status?: string
+          user_id?: string
+          why_join?: string
+          year?: string
+        }
+        Relationships: []
+      }
       analytics_data: {
         Row: {
           active_providers: number | null

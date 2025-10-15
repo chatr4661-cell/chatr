@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Camera, Upload, CheckCircle2 } from "lucide-react";
+import { Camera, Upload, CheckCircle2, Gift } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
   const [avatarUrl, setAvatarUrl] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
+  const [referralCode, setReferralCode] = React.useState("");
   const { toast } = useToast();
 
   const totalSteps = 3;
@@ -276,19 +277,49 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
 
         {step === 2 && (
           <div className="space-y-6">
-            <div className="text-center py-8">
-              <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                Great! Your basic profile is complete.
+            <div className="text-center py-4">
+              <Gift className="h-16 w-16 text-primary mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Got a Referral Code?</h3>
+              <p className="text-sm text-muted-foreground">
+                Earn instant 500 bonus coins!
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+              <Input
+                id="referralCode"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="Enter code (e.g., CHATR123)"
+                maxLength={10}
+              />
+              <p className="text-xs text-muted-foreground">
+                Don't have one? Skip this step - you can add it later!
               </p>
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={onSkip} className="flex-1">
+              <Button variant="outline" onClick={handleStep2Next} className="flex-1">
                 Skip
               </Button>
-              <Button onClick={handleStep2Next} className="flex-1">
-                Next
+              <Button 
+                onClick={async () => {
+                  if (referralCode.trim()) {
+                    // Validate and process referral code
+                    const { error } = await supabase.functions.invoke('process-referral', {
+                      body: { referralCode: referralCode.trim(), newUserId: userId }
+                    });
+                    
+                    if (!error) {
+                      toast({ title: "Referral code applied! You earned 500 coins!" });
+                    }
+                  }
+                  handleStep2Next();
+                }} 
+                className="flex-1"
+              >
+                Continue
               </Button>
             </div>
           </div>
