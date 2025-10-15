@@ -237,7 +237,7 @@ const Index = () => {
   };
 
   const copyReferralLink = async () => {
-    const link = `${window.location.origin}/auth?ref=${referralCode}`;
+    const link = `https://chatr.chat/auth?ref=${referralCode}`;
     try {
       await navigator.clipboard.writeText(link);
       toast.success('Referral link copied!');
@@ -247,7 +247,7 @@ const Index = () => {
   };
 
   const shareReferralLink = async () => {
-    const link = `${window.location.origin}/auth?ref=${referralCode}`;
+    const link = `https://chatr.chat/auth?ref=${referralCode}`;
     const text = `Join me on Chatr+ and earn rewards! Use my code: ${referralCode}`;
     
     if (navigator.share) {
@@ -603,14 +603,27 @@ const Index = () => {
           </DialogHeader>
           
           <div className="space-y-6">
+            {/* Referral Code Display */}
+            {referralCode && (
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">Your Referral Code</p>
+                <p className="text-xs text-muted-foreground">Your unique code</p>
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 rounded-xl p-4">
+                  <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent tracking-wider">
+                    {referralCode}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* QR Code */}
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-3">
               <div className="bg-white p-4 rounded-2xl shadow-lg">
                 {qrCodeUrl ? (
                   <img src={qrCodeUrl} alt="Referral QR Code" className="w-48 h-48" />
                 ) : referralCode ? (
                   <QRCodeSVG 
-                    value={`${window.location.origin}/auth?ref=${referralCode}`}
+                    value={`https://chatr.chat/auth?ref=${referralCode}`}
                     size={192}
                     level="H"
                     includeMargin
@@ -621,16 +634,7 @@ const Index = () => {
                   </div>
                 )}
               </div>
-              
-              {/* Referral Code */}
-              {referralCode && (
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Your Referral Code</p>
-                  <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                    {referralCode}
-                  </p>
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground">Scan to join with your code</p>
             </div>
 
             {/* Action Buttons */}
