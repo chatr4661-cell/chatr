@@ -36,11 +36,22 @@ const defaultHours: BusinessHours = {
 };
 
 export function BusinessHoursEditor({ value, onChange }: BusinessHoursEditorProps) {
-  const [hours, setHours] = useState<BusinessHours>(value || defaultHours);
+  // Merge provided value with default hours to ensure all days are present
+  const [hours, setHours] = useState<BusinessHours>(() => {
+    if (!value) return defaultHours;
+    return {
+      ...defaultHours,
+      ...value,
+    };
+  });
 
   useEffect(() => {
     if (value) {
-      setHours(value);
+      // Merge with defaults to ensure all days exist
+      setHours({
+        ...defaultHours,
+        ...value,
+      });
     }
   }, [value]);
 
