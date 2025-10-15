@@ -128,7 +128,7 @@ const MessageBubbleComponent = ({
 
   return (
     <div
-      className={`flex gap-2 mb-1 px-3 relative ${isOwn ? 'justify-end' : 'justify-start'}`}
+      className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end' : 'justify-start'}`}
       onTouchStart={handleLongPress}
       onContextMenu={handleContextMenu}
     >
