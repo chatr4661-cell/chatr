@@ -207,7 +207,6 @@ export function GlobalCallListener() {
         <ProductionVideoCall
           callId={activeCall.id}
           contactName={activeCall.callerName}
-          contactAvatar={activeCall.callerAvatar}
           isInitiator={activeCall.isInitiator}
           partnerId={activeCall.partnerId}
           onEnd={handleEndCall}
@@ -218,7 +217,6 @@ export function GlobalCallListener() {
         <ProductionVoiceCall
           callId={activeCall.id}
           contactName={activeCall.callerName}
-          contactAvatar={activeCall.callerAvatar}
           isInitiator={activeCall.isInitiator}
           partnerId={activeCall.partnerId}
           onEnd={handleEndCall}

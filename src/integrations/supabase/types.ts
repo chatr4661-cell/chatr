@@ -1135,13 +1135,11 @@ export type Database = {
           caller_avatar: string | null
           caller_id: string
           caller_name: string | null
-          caller_signal: Json | null
           connection_quality: string | null
           conversation_id: string
           created_at: string | null
           duration: number | null
           ended_at: string | null
-          ice_servers: Json | null
           id: string
           is_group: boolean | null
           missed: boolean | null
@@ -1152,11 +1150,11 @@ export type Database = {
           receiver_avatar: string | null
           receiver_id: string | null
           receiver_name: string | null
-          receiver_signal: Json | null
           reconnection_count: number | null
           started_at: string | null
           status: string | null
           total_participants: number | null
+          webrtc_state: string | null
         }
         Insert: {
           average_bitrate?: number | null
@@ -1164,13 +1162,11 @@ export type Database = {
           caller_avatar?: string | null
           caller_id: string
           caller_name?: string | null
-          caller_signal?: Json | null
           connection_quality?: string | null
           conversation_id: string
           created_at?: string | null
           duration?: number | null
           ended_at?: string | null
-          ice_servers?: Json | null
           id?: string
           is_group?: boolean | null
           missed?: boolean | null
@@ -1181,11 +1177,11 @@ export type Database = {
           receiver_avatar?: string | null
           receiver_id?: string | null
           receiver_name?: string | null
-          receiver_signal?: Json | null
           reconnection_count?: number | null
           started_at?: string | null
           status?: string | null
           total_participants?: number | null
+          webrtc_state?: string | null
         }
         Update: {
           average_bitrate?: number | null
@@ -1193,13 +1189,11 @@ export type Database = {
           caller_avatar?: string | null
           caller_id?: string
           caller_name?: string | null
-          caller_signal?: Json | null
           connection_quality?: string | null
           conversation_id?: string
           created_at?: string | null
           duration?: number | null
           ended_at?: string | null
-          ice_servers?: Json | null
           id?: string
           is_group?: boolean | null
           missed?: boolean | null
@@ -1210,11 +1204,11 @@ export type Database = {
           receiver_avatar?: string | null
           receiver_id?: string | null
           receiver_name?: string | null
-          receiver_signal?: Json | null
           reconnection_count?: number | null
           started_at?: string | null
           status?: string | null
           total_participants?: number | null
+          webrtc_state?: string | null
         }
         Relationships: [
           {
@@ -6052,6 +6046,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_disappearing_messages: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_webrtc_signals: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
