@@ -5,12 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, TrendingUp, Users, Stethoscope, ChevronRight } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, TrendingUp, Users, Stethoscope, ChevronRight, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useDataSaverMode } from '@/hooks/useDataSaverMode';
+import { useNetworkQuality } from '@/hooks/useNetworkQuality';
 
 export default function Account() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const networkQuality = useNetworkQuality();
+  const { settings: dataSaverSettings, toggleDataSaver, updateSettings: updateDataSaver } = useDataSaverMode();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState({
     language: 'en',
@@ -172,6 +177,79 @@ export default function Account() {
                 Control when to download media and updates
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Saver Settings - 2G Optimization */}
+        <Card className="mt-6 border-2 border-orange-200/50">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  {networkQuality === 'slow' ? (
+                    <WifiOff className="w-5 h-5 text-orange-500" />
+                  ) : (
+                    <Wifi className="w-5 h-5 text-primary" />
+                  )}
+                  Data Saver Mode
+                  {networkQuality === 'slow' && (
+                    <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                      Slow Network
+                    </span>
+                  )}
+                </CardTitle>
+                <CardDescription>Optimize for slow connections (2G/3G)</CardDescription>
+              </div>
+              <Switch
+                checked={dataSaverSettings.enabled}
+                onCheckedChange={toggleDataSaver}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Auto-download Media</Label>
+                <p className="text-sm text-muted-foreground">
+                  {dataSaverSettings.autoDownloadMedia ? 'Images load automatically' : 'Tap to load images'}
+                </p>
+              </div>
+              <Switch
+                checked={dataSaverSettings.autoDownloadMedia}
+                onCheckedChange={(checked) => updateDataSaver({ autoDownloadMedia: checked })}
+                disabled={!dataSaverSettings.enabled}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="image-quality">Image Quality</Label>
+              <Select
+                value={dataSaverSettings.imageQuality}
+                onValueChange={(value: 'high' | 'medium' | 'low') => updateDataSaver({ imageQuality: value })}
+                disabled={!dataSaverSettings.enabled}
+              >
+                <SelectTrigger id="image-quality">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">High (Original)</SelectItem>
+                  <SelectItem value="medium">Medium (Compressed)</SelectItem>
+                  <SelectItem value="low">Low (Max Compression)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Lower quality reduces data usage
+              </p>
+            </div>
+
+            {networkQuality === 'slow' && (
+              <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-3 border border-orange-200 dark:border-orange-800">
+                <p className="text-sm text-orange-800 dark:text-orange-200">
+                  <strong>2G Network Detected</strong><br />
+                  Data Saver is recommended to improve performance and reduce data usage.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
