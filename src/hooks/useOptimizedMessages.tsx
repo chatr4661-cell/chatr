@@ -41,17 +41,25 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         setMessages(prev => {
           const newMessages = [...prev];
           updateQueueRef.current.forEach(msg => {
-            // Try to find by id OR tempId (for replacing optimistic messages)
-            const existingIndex = newMessages.findIndex(m => 
-              m.id === msg.id || (msg.tempId && m.tempId === msg.tempId)
+            // Try to find optimistic message to replace (match by content and recent timestamp)
+            const optimisticIndex = newMessages.findIndex(m => 
+              m.tempId && 
+              m.content === msg.content && 
+              Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 2000
             );
-            if (existingIndex >= 0) {
-              // Replace existing message
-              newMessages[existingIndex] = msg;
+            
+            if (optimisticIndex >= 0) {
+              // Replace optimistic message with real one
+              console.log('🔄 Replacing optimistic message:', { tempId: newMessages[optimisticIndex].tempId, realId: msg.id });
+              newMessages[optimisticIndex] = msg;
             } else {
-              // Add new message only if it doesn't exist
-              const isDuplicate = newMessages.some(m => m.id === msg.id);
-              if (!isDuplicate) {
+              // Check if message already exists by id
+              const existingIndex = newMessages.findIndex(m => m.id === msg.id);
+              if (existingIndex >= 0) {
+                // Update existing message
+                newMessages[existingIndex] = msg;
+              } else {
+                // Add new message
                 newMessages.push(msg);
               }
             }
@@ -104,7 +112,16 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         });
         
         if (offset === 0) {
-          setMessages(formattedMessages);
+          // MERGE loaded messages with existing optimistic messages
+          setMessages(prev => {
+            const optimisticMsgs = prev.filter(m => m.tempId && m.status === 'sending');
+            const allMsgs = [...formattedMessages, ...optimisticMsgs];
+            // Remove duplicates by id
+            const uniqueMsgs = Array.from(new Map(allMsgs.map(m => [m.id, m])).values());
+            return uniqueMsgs.sort((a, b) => 
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+          });
         } else {
           setMessages(prev => [...formattedMessages, ...prev]);
         }
@@ -153,12 +170,8 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
 
       if (error) throw error;
 
-      // Replace optimistic with real message (don't wait for realtime)
-      setMessages(prev => prev.map(msg => 
-        msg.tempId === tempId ? { ...data, status: 'sent' as const, tempId } : msg
-      ));
-      
-      console.log('✅ Message sent:', { tempId, realId: data.id, content: content.substring(0, 30) });
+      // Just log success - realtime will handle updating the message
+      console.log('✅ Message sent to DB:', { tempId, realId: data.id, content: content.substring(0, 30) });
     } catch (error) {
       console.error('❌ Send failed:', error);
       setMessages(prev => prev.map(msg =>
@@ -189,13 +202,8 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         },
         (payload) => {
           const newMessage = payload.new as Message;
-          // ONLY add messages from OTHER users (skip our own - they're already added optimistically)
-          if (newMessage.sender_id !== userId) {
-            console.log('📨 Received message from other user:', newMessage.id);
-            batchUpdate({ ...newMessage, status: 'sent' });
-          } else {
-            console.log('⏭️ Skipping own message (already optimistic):', newMessage.id);
-          }
+          console.log('📨 Received realtime message:', { id: newMessage.id, sender: newMessage.sender_id, content: newMessage.content?.substring(0, 30) });
+          batchUpdate({ ...newMessage, status: 'sent' });
         }
       )
       .on(
