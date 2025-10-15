@@ -99,6 +99,17 @@ export const VirtualMessageList = React.memo(({
           const isOwn = message.sender_id === userId;
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const showAvatar = !prevMessage || prevMessage.sender_id !== message.sender_id;
+          
+          // Debug first 3 messages
+          if (index < 3) {
+            console.log(`[MSG ${index}]`, {
+              msgId: message.id.substring(0, 8),
+              senderId: message.sender_id,
+              userId: userId,
+              isOwn,
+              content: message.content.substring(0, 20)
+            });
+          }
 
           return (
             <MessageBubble
