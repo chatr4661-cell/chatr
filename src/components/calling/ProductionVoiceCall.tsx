@@ -137,6 +137,12 @@ export default function ProductionVoiceCall({
     let callTimeout: NodeJS.Timeout | null = null;
     
     try {
+      console.log('🎤 ========== STARTING VOICE CALL INITIALIZATION ==========');
+      console.log('🎤 Call ID:', callId);
+      console.log('🎤 Contact Name:', contactName);
+      console.log('🎤 Is Initiator:', isInitiator);
+      console.log('🎤 Partner ID:', partnerId);
+      
       console.log('🎤 Initializing voice call...');
       setCallStatus(isInitiator ? "connecting" : "ringing");
       

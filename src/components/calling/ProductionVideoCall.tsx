@@ -108,6 +108,12 @@ export default function ProductionVideoCall({
     let callTimeout: NodeJS.Timeout | null = null;
     
     try {
+      console.log('🎥 ========== STARTING VIDEO CALL INITIALIZATION ==========');
+      console.log('🎥 Call ID:', callId);
+      console.log('🎥 Contact Name:', contactName);
+      console.log('🎥 Is Initiator:', isInitiator);
+      console.log('🎥 Partner ID:', partnerId);
+      
       console.log('🎥 [ProductionVideoCall] Initializing call...', { callId, contactName, isInitiator, partnerId });
       setCallStatus(isInitiator ? "connecting" : "ringing");
       
@@ -333,12 +339,25 @@ export default function ProductionVideoCall({
   };
 
   const handleSignal = async (signal: any) => {
+    console.log('📥 ========== SIGNAL RECEIVED ==========');
+    console.log('📥 Signal Type:', signal.signal_type);
+    console.log('📥 From User:', signal.from_user);
+    console.log('📥 To User:', signal.to_user);
+    console.log('📥 Call ID:', signal.call_id);
+    console.log('📥 Signal Data:', signal.signal_data);
+    
     const pc = peerConnectionRef.current;
     if (!pc) {
-      console.warn('⚠️ [handleSignal] PeerConnection not initialized, queueing signal');
+      console.warn('⚠️ ========== NO PEER CONNECTION ==========');
+      console.warn('⚠️ PeerConnection is null, queueing signal for retry');
       setTimeout(() => handleSignal(signal), 200);
       return;
     }
+
+    console.log('✅ PeerConnection exists');
+    console.log('📊 Current Signaling State:', pc.signalingState);
+    console.log('📊 Current ICE State:', pc.iceConnectionState);
+    console.log('📊 Current Connection State:', pc.connectionState);
 
     try {
       console.log('📥 [handleSignal] Processing signal:', {
@@ -348,27 +367,39 @@ export default function ProductionVideoCall({
       });
 
       if (signal.signal_type === 'offer') {
-        console.log('📞 [handleSignal] Received OFFER');
+        console.log('📞 ========== PROCESSING OFFER ==========');
+        console.log('📞 Offer SDP:', signal.signal_data.sdp?.substring(0, 100) + '...');
         
         // Update signal version
         if (signal.signal_data?.version) {
+          console.log('📞 Updating signal version to:', signal.signal_data.version);
           signalVersionRef.current = signal.signal_data.version;
         }
         
         // Allow remote description update during ICE restart or if none set
         const currentRemote = pc.remoteDescription;
+        console.log('📞 Current remote description:', currentRemote ? 'EXISTS' : 'NULL');
+        
         if (!currentRemote || currentRemote.type === 'offer') {
+          console.log('📞 Setting remote description from OFFER...');
           await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+          console.log('✅ Remote description set successfully');
           
           // Process pending ICE candidates
+          console.log('📞 Processing', pendingIceCandidatesRef.current.length, 'pending ICE candidates');
           for (const candidate of pendingIceCandidatesRef.current) {
             await pc.addIceCandidate(new RTCIceCandidate(candidate));
           }
           pendingIceCandidatesRef.current = [];
 
+          console.log('📞 Creating ANSWER...');
           const answer = await pc.createAnswer();
+          console.log('📞 Answer created:', answer.sdp?.substring(0, 100) + '...');
+          
           await pc.setLocalDescription(answer);
+          console.log('✅ Local description (ANSWER) set');
 
+          console.log('📤 Sending ANSWER signal...');
           await sendSignal({
             type: 'answer',
             callId,
@@ -376,36 +407,64 @@ export default function ProductionVideoCall({
             data: { ...answer, version: signalVersionRef.current }
           });
 
-          console.log('✅ ANSWER sent');
+          console.log('✅ ========== ANSWER SENT SUCCESSFULLY ==========');
+        } else {
+          console.log('⚠️ Skipping offer - remote description already set');
         }
         
       } else if (signal.signal_type === 'answer') {
-        console.log('✅ [handleSignal] Received ANSWER');
+        console.log('✅ ========== PROCESSING ANSWER ==========');
+        console.log('✅ Answer SDP:', signal.signal_data.sdp?.substring(0, 100) + '...');
         
         const signalVersion = signal.signal_data?.version || 0;
+        console.log('✅ Answer version:', signalVersion);
+        console.log('✅ Current version:', signalVersionRef.current);
+        
         if (signalVersion >= signalVersionRef.current) {
+          console.log('✅ Version check passed');
+          console.log('✅ Current signaling state:', pc.signalingState);
+          
           if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'stable') {
+            console.log('✅ Setting remote description from ANSWER...');
             await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+            console.log('✅ Remote description set successfully');
             
             // Process pending ICE candidates
+            console.log('✅ Processing', pendingIceCandidatesRef.current.length, 'pending ICE candidates');
             for (const candidate of pendingIceCandidatesRef.current) {
               await pc.addIceCandidate(new RTCIceCandidate(candidate));
             }
             pendingIceCandidatesRef.current = [];
-            console.log('✅ Remote description set from ANSWER');
+            console.log('✅ ========== ANSWER PROCESSING COMPLETE ==========');
+          } else {
+            console.warn('⚠️ Wrong signaling state for answer:', pc.signalingState);
           }
+        } else {
+          console.warn('⚠️ Stale answer ignored (version', signalVersion, 'vs', signalVersionRef.current, ')');
         }
         
       } else if (signal.signal_type === 'ice-candidate') {
+        console.log('❄️ ========== PROCESSING ICE CANDIDATE ==========');
+        console.log('❄️ Candidate:', signal.signal_data.candidate?.substring(0, 80));
+        console.log('❄️ Has remote description:', !!pc.remoteDescription);
+        
         // Only add if we have remote description, otherwise queue
         if (pc.remoteDescription) {
+          console.log('❄️ Adding ICE candidate immediately...');
           await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+          console.log('✅ ICE candidate added');
         } else {
+          console.warn('⚠️ Remote description not set - QUEUING ICE candidate');
+          console.warn('⚠️ Queue size:', pendingIceCandidatesRef.current.length + 1);
           pendingIceCandidatesRef.current.push(signal.signal_data);
         }
+        console.log('❄️ ========== ICE CANDIDATE DONE ==========');
       }
     } catch (error) {
-      console.error("❌ [handleSignal] Error:", error);
+      console.error("❌ ========== SIGNAL PROCESSING ERROR ==========");
+      console.error("❌ Error:", error);
+      console.error("❌ Signal type:", signal.signal_type);
+      console.error("❌ Error stack:", (error as Error).stack);
     }
   };
 
