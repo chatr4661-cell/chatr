@@ -44,12 +44,18 @@ export default function EnhancedVideoCall({
   const statsIntervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    initializeCall();
-    const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+    const setup = async () => {
+      initializeCall();
+      const { data: { user } } = await supabase.auth.getUser();
+      const unsubscribe = await subscribeToCallSignals(callId, user?.id || '', handleSignal);
+      (window as any).__enhancedVideoCallUnsubscribe = unsubscribe;
+    };
+    setup();
     
     return () => {
       cleanup();
-      unsubscribe();
+      const unsub = (window as any).__enhancedVideoCallUnsubscribe;
+      if (unsub) unsub();
     };
   }, []);
 

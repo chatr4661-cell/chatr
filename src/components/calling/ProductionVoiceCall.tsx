@@ -325,7 +325,7 @@ export default function ProductionVoiceCall({
       // Subscribe to future signals
       console.log('📡 Subscribing to future signals...');
       const { subscribeToCallSignals } = await import('@/utils/webrtcSignaling');
-      const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+      const unsubscribe = await subscribeToCallSignals(callId, currentUserId, handleSignal);
       (window as any).__voiceCallSignalUnsubscribe = unsubscribe;
 
       if (isInitiator) {

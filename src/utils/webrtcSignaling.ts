@@ -72,7 +72,11 @@ export const sendSignal = sendSignalDirect;
 
 // Fetch ALL existing signals for a call (crucial for late joiners)
 export const getSignals = async (callId: string, toUserId: string) => {
-  console.log('📥 Fetching past signals for callId:', callId, 'toUser:', toUserId);
+  console.log('📥 [getSignals] Fetching past signals:', {
+    callId,
+    toUserId,
+    timestamp: new Date().toISOString()
+  });
   
   const { data, error } = await supabase
     .from('webrtc_signals')
@@ -82,11 +86,23 @@ export const getSignals = async (callId: string, toUserId: string) => {
     .order('created_at', { ascending: true });
 
   if (error) {
-    console.error('❌ Error fetching signals:', error);
+    console.error('❌ [getSignals] Error fetching signals:', {
+      error,
+      callId,
+      toUserId
+    });
     throw error;
   }
   
-  console.log(`📥 Found ${data?.length || 0} past signals`);
+  console.log(`📥 [getSignals] Found ${data?.length || 0} past signals:`, 
+    data?.map(s => ({
+      type: s.signal_type,
+      from: s.from_user,
+      to: s.to_user,
+      created: s.created_at
+    }))
+  );
+  
   return data || [];
 };
 
@@ -99,28 +115,39 @@ export const deleteProcessedSignals = async (callId: string, toUserId: string) =
     .eq('to_user', toUserId);
 };
 
-export const subscribeToCallSignals = (
+export const subscribeToCallSignals = async (
   callId: string,
+  currentUserId: string,
   onSignal: (signal: any) => void
 ) => {
+  console.log('🔔 Subscribing to signals for call:', callId, 'user:', currentUserId);
+  
   const channel = supabase
-    .channel(`call-${callId}-realtime`)
+    .channel(`call-${callId}-${currentUserId}`)
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
         table: 'webrtc_signals',
-        filter: `call_id=eq.${callId}`
+        // Only receive signals meant for THIS user
+        filter: `call_id=eq.${callId}&to_user=eq.${currentUserId}`
       },
       (payload) => {
-        console.log('📥 Realtime signal received:', payload.new.signal_type);
+        console.log('📥 Realtime signal received:', {
+          type: payload.new.signal_type,
+          from: payload.new.from_user,
+          to: payload.new.to_user
+        });
         onSignal(payload.new);
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log('🔔 Subscription status:', status);
+    });
 
   return () => {
+    console.log('🔕 Unsubscribing from call signals');
     supabase.removeChannel(channel);
   };
 };

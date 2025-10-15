@@ -29,14 +29,18 @@ export default function VoiceCall({ conversationId, callId, contactName, contact
   const callTimerRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    initializeCall();
-    
-    // Subscribe to signaling messages
-    const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+    const setup = async () => {
+      initializeCall();
+      const { data: { user } } = await supabase.auth.getUser();
+      const unsubscribe = await subscribeToCallSignals(callId, user?.id || '', handleSignal);
+      (window as any).__voiceCallUnsubscribe = unsubscribe;
+    };
+    setup();
     
     return () => {
       cleanup();
-      unsubscribe();
+      const unsub = (window as any).__voiceCallUnsubscribe;
+      if (unsub) unsub();
     };
   }, []);
 

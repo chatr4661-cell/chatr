@@ -297,7 +297,8 @@ export default function ProductionVideoCall({
       // Subscribe to future signals
       console.log('📡 Subscribing to future signals...');
       const { subscribeToCallSignals } = await import('@/utils/webrtcSignaling');
-      const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+      const { data: { user } } = await supabase.auth.getUser();
+      const unsubscribe = await subscribeToCallSignals(callId, user?.id || '', handleSignal);
       
       // Store unsubscribe function for cleanup
       (window as any).__callSignalUnsubscribe = unsubscribe;

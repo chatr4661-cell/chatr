@@ -28,14 +28,18 @@ export default function VideoCall({ conversationId, callId, isInitiator, userId,
   const { toast } = useToast();
 
   useEffect(() => {
-    initializeCall();
-    
-    // Subscribe to signaling messages
-    const unsubscribe = subscribeToCallSignals(callId, handleSignal);
+    const setup = async () => {
+      initializeCall();
+      const { data: { user } } = await supabase.auth.getUser();
+      const unsubscribe = await subscribeToCallSignals(callId, user?.id || '', handleSignal);
+      (window as any).__videoCallUnsubscribe = unsubscribe;
+    };
+    setup();
     
     return () => {
       cleanup();
-      unsubscribe();
+      const unsub = (window as any).__videoCallUnsubscribe;
+      if (unsub) unsub();
     };
   }, []);
 
