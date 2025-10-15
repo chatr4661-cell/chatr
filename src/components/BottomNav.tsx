@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { MessageCircle, Flame, Users, Bell, Grid } from 'lucide-react';
+import { MessageCircle, TrendingUp, Users, Bell, Grid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 
 const navItems = [
   { name: 'Chats', path: '/chat', icon: MessageCircle },
-  { name: 'Stories', path: '/stories', icon: Flame },
+  { name: 'Growth', path: '/growth', icon: TrendingUp, highlight: true },
   { name: 'Communities', path: '/communities', icon: Users },
   { name: 'Notifications', path: '/notifications', icon: Bell },
   { name: 'More', path: '/', icon: Grid },
@@ -74,14 +74,20 @@ export const BottomNav = () => {
               to={item.path}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all duration-200",
+                item.highlight && !isActive && "bg-gradient-to-br from-orange-500/10 to-red-500/10",
                 "hover:bg-accent/30 min-w-[56px]"
               )}
             >
+              {item.highlight && !isActive && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-full animate-pulse shadow-lg" />
+              )}
               <div className="relative">
                 <Icon 
                   className={cn(
-                    "h-5 w-5 transition-colors",
-                    isActive ? "text-primary" : "text-muted-foreground"
+                    "h-5 w-5 transition-all duration-200",
+                    isActive && item.highlight ? "text-white drop-shadow-lg scale-110" : "",
+                    isActive && !item.highlight ? "text-primary scale-110" : "",
+                    !isActive ? "text-muted-foreground" : ""
                   )}
                 />
                 {item.name === 'Notifications' && notificationCount > 0 && (
@@ -95,12 +101,20 @@ export const BottomNav = () => {
               </div>
               <span 
                 className={cn(
-                  "text-[10px] font-bold transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  "text-[10px] font-bold transition-all duration-200",
+                  isActive && item.highlight && "text-white drop-shadow-lg",
+                  isActive && !item.highlight && "text-primary",
+                  !isActive && "text-muted-foreground"
                 )}
               >
                 {item.name}
               </span>
+              {isActive && item.highlight && (
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl -z-10 shadow-lg" />
+              )}
+              {isActive && !item.highlight && (
+                <div className="absolute inset-0 bg-primary/10 rounded-xl -z-10" />
+              )}
             </NavLink>
           );
         })}

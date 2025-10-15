@@ -296,6 +296,33 @@ const Index = () => {
     },
   ];
 
+  const growthPrograms = [
+    {
+      icon: Flame,
+      title: 'Growth Hub',
+      description: 'Referral network & earnings dashboard',
+      iconColor: 'bg-gradient-to-br from-orange-400 to-red-500',
+      route: '/growth',
+      badge: 'Earn ₹'
+    },
+    {
+      icon: Users,
+      title: 'Ambassador',
+      description: 'Join our campus ambassador program',
+      iconColor: 'bg-gradient-to-br from-purple-400 to-pink-500',
+      route: '/ambassador-program',
+      badge: 'Apply'
+    },
+    {
+      icon: Stethoscope,
+      title: 'Doctor Portal',
+      description: 'Healthcare provider registration',
+      iconColor: 'bg-gradient-to-br from-cyan-400 to-blue-500',
+      route: '/doctor-onboarding',
+      badge: 'Join'
+    },
+  ];
+
   // Show skeleton while mounting
   if (!mounted) {
     return (
@@ -445,6 +472,42 @@ const Index = () => {
                 </div>
               ))}
             </React.Suspense>
+          </div>
+        </div>
+
+        {/* Growth & Opportunities */}
+        <div>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 bg-clip-text text-transparent">Growth Opportunities</span>
+            <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full font-bold animate-pulse">Earn Money</span>
+          </h2>
+          <div className="grid grid-cols-1 gap-3">
+            {growthPrograms.map((program, index) => (
+              <div 
+                key={program.title} 
+                onClick={() => navigate(program.route)}
+                className="group cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="relative bg-gradient-to-br from-background to-muted/30 rounded-2xl border-2 border-border/40 p-4 shadow-lg hover:shadow-2xl hover:border-primary/40 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className={`${program.iconColor} p-3 rounded-2xl shadow-lg group-hover:scale-110 transition-transform`}>
+                      <program.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-foreground">{program.title}</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                          {program.badge}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{program.description}</p>
+                    </div>
+                    <div className="text-muted-foreground group-hover:text-primary transition-colors">→</div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Users, Stethoscope, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Account() {
@@ -172,6 +172,89 @@ export default function Account() {
                 Control when to download media and updates
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Growth & Opportunities Section */}
+        <Card className="mt-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background overflow-hidden">
+          <CardHeader className="relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl -z-10" />
+            <CardTitle className="flex items-center gap-2">
+              <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                Growth Opportunities
+              </span>
+              <span className="text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-full font-bold animate-pulse">
+                Earn Money
+              </span>
+            </CardTitle>
+            <CardDescription>Grow with Chatr and unlock rewards</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Growth Hub */}
+            <button
+              onClick={() => navigate('/growth')}
+              className="w-full group bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 rounded-xl p-4 border-2 border-orange-200/50 dark:border-orange-800/50 hover:border-orange-400 dark:hover:border-orange-600 transition-all hover:shadow-lg"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-br from-orange-400 to-red-500 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="font-bold text-foreground flex items-center gap-2">
+                    Growth Hub
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                      Earn ₹
+                    </span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">Track referrals & earnings</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+              </div>
+            </button>
+
+            {/* Ambassador Program */}
+            <button
+              onClick={() => navigate('/ambassador-program')}
+              className="w-full group bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl p-4 border-2 border-purple-200/50 dark:border-purple-800/50 hover:border-purple-400 dark:hover:border-purple-600 transition-all hover:shadow-lg"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-br from-purple-400 to-pink-500 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="font-bold text-foreground flex items-center gap-2">
+                    Ambassador Program
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                      Apply
+                    </span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">Join our campus team</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+              </div>
+            </button>
+
+            {/* Doctor Onboarding */}
+            <button
+              onClick={() => navigate('/doctor-onboarding')}
+              className="w-full group bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 rounded-xl p-4 border-2 border-cyan-200/50 dark:border-cyan-800/50 hover:border-cyan-400 dark:hover:border-cyan-600 transition-all hover:shadow-lg"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-br from-cyan-400 to-blue-500 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Stethoscope className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="font-bold text-foreground flex items-center gap-2">
+                    Doctor Portal
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white">
+                      Join
+                    </span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">Healthcare provider registration</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
+              </div>
+            </button>
           </CardContent>
         </Card>
       </div>
