@@ -98,19 +98,16 @@ export const VirtualMessageList = React.memo(({
           </div>
         )}
         {messages.map((message, index) => {
-          const isOwn = message.sender_id === userId;
+          // CRITICAL FIX: Ensure proper string comparison
+          const messageSenderId = String(message.sender_id || '').trim();
+          const currentUserId = String(userId || '').trim();
+          const isOwn = messageSenderId === currentUserId && currentUserId !== '';
+          
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const showAvatar = !prevMessage || prevMessage.sender_id !== message.sender_id;
 
-          // Enhanced debug logging
-          console.log('[VirtualMessageList] Message #' + index + ':', {
-            messageId: message.id,
-            content: message.content.substring(0, 20),
-            sender_id: message.sender_id,
-            userId: userId,
-            isOwn: isOwn,
-            comparison: `"${message.sender_id}" === "${userId}"`
-          });
+          // Debug logging
+          console.log(`[MSG #${index}] sender:"${messageSenderId}" user:"${currentUserId}" match:${isOwn}`);
 
           return (
             <MessageBubble
