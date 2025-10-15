@@ -1,9 +1,16 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const inviteSchema = z.object({
+  phoneNumber: z.string().regex(/^\+[1-9]\d{1,14}$/, 'Invalid phone number format (E.164 required)'),
+  inviterName: z.string().trim().min(1, 'Inviter name required').max(50, 'Name too long').regex(/^[a-zA-Z0-9\s]+$/, 'Invalid characters in name')
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -12,7 +19,25 @@ serve(async (req) => {
   }
 
   try {
-    const { phoneNumber, inviterName } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = inviteSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+    
+    const { phoneNumber, inviterName } = validationResult.data;
 
     console.log('📞 Sending WhatsApp invite to:', phoneNumber);
 

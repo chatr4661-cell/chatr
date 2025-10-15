@@ -1,10 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input validation schema
+const inputSchema = z.object({
+  action: z.enum(['smart-reply', 'summarize', 'extract-tasks', 'sentiment-analysis']),
+  messages: z.array(z.object({
+    role: z.string(),
+    content: z.string().max(5000)
+  })).max(100).optional(),
+  messageText: z.string().max(5000).optional(),
+  conversationId: z.string().uuid().optional()
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,7 +24,18 @@ serve(async (req) => {
   }
 
   try {
-    const { action, messages, messageText, conversationId } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = inputSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ error: 'Validation failed', details: validationResult.error.errors }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { action, messages, messageText, conversationId } = validationResult.data;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -67,7 +90,7 @@ serve(async (req) => {
       case "summarize":
         systemPrompt = `You are an AI that creates concise, clear summaries of conversations. 
         Focus on key points, decisions made, and action items. Keep it brief and actionable.`;
-        userPrompt = `Summarize this conversation:\n${messages.map((m: any) => `${m.role}: ${m.content}`).join('\n')}`;
+        userPrompt = `Summarize this conversation:\n${messages?.map((m: any) => `${m.role}: ${m.content}`).join('\n') || 'No messages provided'}`;
         
         tools = [{
           type: "function",
