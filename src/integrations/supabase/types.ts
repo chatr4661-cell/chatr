@@ -5847,6 +5847,10 @@ export type Database = {
         Args: { community_id: string }
         Returns: undefined
       }
+      is_business_owner: {
+        Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_conversation_participant: {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
