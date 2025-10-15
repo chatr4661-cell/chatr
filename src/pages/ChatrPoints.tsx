@@ -460,6 +460,16 @@ export default function ChatrPoints() {
           </div>
         </div>
 
+        {/* Quick Action: Reward Shop */}
+        <Button
+          onClick={() => navigate('/reward-shop')}
+          className="w-full mt-6 bg-primary-foreground text-primary hover:bg-primary-foreground/90 h-14 text-lg font-semibold"
+          size="lg"
+        >
+          <Gift className="mr-2 h-5 w-5" />
+          Browse Reward Shop
+        </Button>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-4 mt-6">
           <Card className="bg-primary-foreground/10 border-primary-foreground/20">
@@ -734,8 +744,12 @@ export default function ChatrPoints() {
                           <div className="text-3xl font-bold text-primary">
                             ₹{pkg.price}
                           </div>
-                          <Button className="mt-3 hover:scale-105 transition-transform" size="sm">
-                            Buy Now
+                           <Button 
+                            className="mt-3 hover:scale-105 transition-transform" 
+                            size="sm"
+                            onClick={() => navigate('/reward-shop')}
+                          >
+                            Redeem
                           </Button>
                         </div>
                       </div>

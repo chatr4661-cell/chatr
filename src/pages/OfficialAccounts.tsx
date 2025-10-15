@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Search, Users, CheckCircle, Building2, Heart, Newspaper } from 'lucide-react';
 import { toast } from 'sonner';
+import { OfficialAccountFeed } from '@/components/OfficialAccountFeed';
 
 interface OfficialAccount {
   id: string;
@@ -26,6 +27,7 @@ const OfficialAccounts = () => {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [following, setFollowing] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<'discover' | 'feed'>('discover');
 
   useEffect(() => {
     loadAccounts();
@@ -138,82 +140,96 @@ const OfficialAccounts = () => {
       </div>
 
       <div className="max-w-7xl mx-auto p-4">
-        {/* Account Types */}
-        <Tabs value={selectedType} onValueChange={setSelectedType} className="mb-6">
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'discover' | 'feed')} className="mb-6">
           <TabsList className="w-full justify-start">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="service">
-              <Building2 className="w-4 h-4 mr-1" />
-              Service
-            </TabsTrigger>
-            <TabsTrigger value="subscription">
-              <Newspaper className="w-4 h-4 mr-1" />
-              Subscription
-            </TabsTrigger>
-            <TabsTrigger value="community">
-              <Heart className="w-4 h-4 mr-1" />
-              Community
-            </TabsTrigger>
+            <TabsTrigger value="discover">Discover</TabsTrigger>
+            <TabsTrigger value="feed">Feed</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Accounts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredAccounts.map((account) => (
-            <Card key={account.id} className="p-4 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                {/* Logo */}
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {account.logo_url ? (
-                    <img 
-                      src={account.logo_url} 
-                      alt={account.account_name} 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement!.innerHTML = getTypeIcon(account.account_type) as any;
-                      }}
-                    />
-                  ) : (
-                    getTypeIcon(account.account_type)
-                  )}
-                </div>
+        {activeTab === 'discover' ? (
+          <>
+            {/* Account Types */}
+            <Tabs value={selectedType} onValueChange={setSelectedType} className="mb-6">
+              <TabsList className="w-full justify-start">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="service">
+                  <Building2 className="w-4 h-4 mr-1" />
+                  Service
+                </TabsTrigger>
+                <TabsTrigger value="subscription">
+                  <Newspaper className="w-4 h-4 mr-1" />
+                  Subscription
+                </TabsTrigger>
+                <TabsTrigger value="community">
+                  <Heart className="w-4 h-4 mr-1" />
+                  Community
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold truncate">{account.account_name}</h3>
-                    {account.is_verified && (
-                      <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                    )}
+            {/* Accounts Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredAccounts.map((account) => (
+                <Card key={account.id} className="p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start gap-4">
+                    {/* Logo */}
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {account.logo_url ? (
+                        <img 
+                          src={account.logo_url} 
+                          alt={account.account_name} 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.parentElement!.innerHTML = getTypeIcon(account.account_type) as any;
+                          }}
+                        />
+                      ) : (
+                        getTypeIcon(account.account_type)
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold truncate">{account.account_name}</h3>
+                        {account.is_verified && (
+                          <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                        )}
+                      </div>
+
+                      <Badge variant="outline" className="mt-1">
+                        {getTypeIcon(account.account_type)}
+                        <span className="ml-1 capitalize">{account.account_type}</span>
+                      </Badge>
+
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                        {account.description}
+                      </p>
+
+                      <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                        <Users className="w-3 h-3" />
+                        <span>{account.follower_count.toLocaleString()} followers</span>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant={following.has(account.id) ? 'outline' : 'default'}
+                        onClick={() => toggleFollow(account.id)}
+                        className="w-full mt-3"
+                      >
+                        {following.has(account.id) ? 'Following' : 'Follow'}
+                      </Button>
+                    </div>
                   </div>
-
-                  <Badge variant="outline" className="mt-1">
-                    {getTypeIcon(account.account_type)}
-                    <span className="ml-1 capitalize">{account.account_type}</span>
-                  </Badge>
-
-                  <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
-                    {account.description}
-                  </p>
-
-                  <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                    <Users className="w-3 h-3" />
-                    <span>{account.follower_count.toLocaleString()} followers</span>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    variant={following.has(account.id) ? 'outline' : 'default'}
-                    onClick={() => toggleFollow(account.id)}
-                    className="w-full mt-3"
-                  >
-                    {following.has(account.id) ? 'Following' : 'Follow'}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+                </Card>
+              ))}
+            </div>
+          </>
+        ) : (
+          <OfficialAccountFeed />
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useSSOToken } from '@/hooks/useSSOToken';
@@ -137,6 +137,44 @@ const MiniAppsStore = () => {
     const { error } = await supabase.rpc('track_app_usage', { p_app_id: appId });
     if (!error) {
       loadRecentlyUsed();
+    }
+  };
+
+  const uninstallApp = async (app: MiniApp) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      await supabase
+        .from('user_installed_apps')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('app_id', app.id);
+
+      const { data: appData } = await supabase
+        .from('mini_apps')
+        .select('install_count')
+        .eq('id', app.id)
+        .single();
+
+      if (appData) {
+        await supabase
+          .from('mini_apps')
+          .update({ install_count: Math.max(0, (appData.install_count || 0) - 1) })
+          .eq('id', app.id);
+      }
+
+      setInstalledApps(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(app.id);
+        return newSet;
+      });
+
+      toast.success('App uninstalled');
+      loadApps();
+    } catch (error) {
+      console.error('Uninstall error:', error);
+      toast.error('Failed to uninstall app');
     }
   };
 
@@ -336,24 +374,40 @@ const MiniAppsStore = () => {
             </div>
           )}
 
-          {/* Action Button */}
-          <Button
-            className="w-full rounded-xl font-medium transition-all"
-            variant={installedApps.has(app.id) ? 'outline' : 'default'}
-            onClick={() => installedApps.has(app.id) ? openApp(app) : installAndOpenApp(app)}
-            disabled={installingAppId === app.id}
-          >
-            {installingAppId === app.id ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Installing...
-              </>
-            ) : installedApps.has(app.id) ? (
-              'OPEN'
-            ) : (
-              'GET'
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              className="flex-1 rounded-xl font-medium transition-all"
+              variant={installedApps.has(app.id) ? 'outline' : 'default'}
+              onClick={() => installedApps.has(app.id) ? openApp(app) : installAndOpenApp(app)}
+              disabled={installingAppId === app.id}
+            >
+              {installingAppId === app.id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Installing...
+                </>
+              ) : installedApps.has(app.id) ? (
+                'OPEN'
+              ) : (
+                'GET'
+              )}
+            </Button>
+            
+            {installedApps.has(app.id) && (
+              <Button
+                variant="destructive"
+                size="icon"
+                className="rounded-xl"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  uninstallApp(app);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
       </Card>
     </motion.div>

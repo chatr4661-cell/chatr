@@ -38,6 +38,7 @@ import OfficialAccountsManager from "./pages/admin/OfficialAccountsManager";
 import BroadcastManager from "./pages/admin/BroadcastManager";
 import ChatrTutors from "./pages/ChatrTutors";
 import ChatrPoints from "./pages/ChatrPoints";
+import RewardShop from "./pages/RewardShop";
 import QRPayment from "./pages/QRPayment";
 import HomeServices from "./pages/HomeServices";
 import QRLogin from "./pages/QRLogin";
@@ -165,6 +166,7 @@ const App = () => {
             
             {/* Points & Payment Routes */}
             <Route path="/chatr-points" element={<ChatrPoints />} />
+            <Route path="/reward-shop" element={<RewardShop />} />
             <Route path="/qr-payment" element={<QRPayment />} />
             <Route path="/qr-login" element={<QRLogin />} />
             
