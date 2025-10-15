@@ -126,6 +126,9 @@ const ChatEnhancedContent = () => {
     };
   }, [user?.id]);
 
+  // Clear active conversation on mount - removed to improve performance
+  // Users will see conversation list immediately
+
   // Optimized contact loading - deferred for performance
   React.useEffect(() => {
     if (!user?.id) return;
@@ -313,12 +316,11 @@ const ChatEnhancedContent = () => {
     }
   };
 
+  // Show loading only during initial check
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-hero opacity-10" />
-        <div className="absolute inset-0" style={{ backgroundImage: 'var(--gradient-mesh)' }} />
-        <div className="text-center space-y-2 relative z-10">
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-2">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground">Loading chat...</p>
         </div>
@@ -326,12 +328,14 @@ const ChatEnhancedContent = () => {
     );
   }
 
+  // If no user after loading, redirect will handle it
   if (!user?.id) {
     return null;
   }
 
   return (
     <>
+      {/* Call Notifications - CRITICAL: This handles ALL calls */}
       {user && profile && (
         <ProductionCallNotifications 
           userId={user.id} 
@@ -339,22 +343,14 @@ const ChatEnhancedContent = () => {
         />
       )}
 
-      <div className="flex flex-col h-screen relative overflow-hidden">
-        {/* Animated Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-hero opacity-10" />
-        <div className="absolute inset-0" style={{ backgroundImage: 'var(--gradient-mesh)' }} />
-        
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        
-        <NetworkStatus />
+      <div className="flex flex-col h-screen bg-background">
+      <NetworkStatus />
       
       {activeConversationId ? (
         // Conversation View
-        <div className="relative z-10 flex flex-col h-full">
-          {/* Header - Modern Glass Style */}
-          <div className="sticky top-0 z-10 glass-card border-b-0 px-4 py-3 flex items-center gap-3">
+        <>
+          {/* Header - Clean WhatsApp-style */}
+          <div className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm px-3 py-2.5 flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
@@ -362,23 +358,22 @@ const ChatEnhancedContent = () => {
                 setActiveConversationId(null);
                 setOtherUser(null);
               }}
-              className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+              className="h-9 w-9 rounded-full hover:bg-muted/50"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             
             {otherUser && (
               <>
-                <Avatar className="w-11 h-11 shrink-0 border-2 border-primary/20">
+                <Avatar className="w-10 h-10 shrink-0">
                   <AvatarImage src={otherUser.avatar_url} />
-                  <AvatarFallback className="bg-gradient-hero text-primary-foreground font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary">
                     {otherUser.username?.[0]?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-base truncate">{otherUser.username}</p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    {otherUser.is_online && <span className="w-2 h-2 bg-green-500 rounded-full" />}
+                  <p className="font-semibold text-[15px] truncate">{otherUser.username}</p>
+                  <p className="text-[12px] text-muted-foreground">
                     {otherUser.is_online ? 'Online' : 'Offline'}
                   </p>
                 </div>
@@ -390,35 +385,35 @@ const ChatEnhancedContent = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('voice')}
-                className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                className="h-9 w-9 rounded-full hover:bg-muted/50"
                 title="Voice Call"
               >
-                <Phone className="h-5 w-5 text-primary" />
+                <Phone className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('video')}
-                className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                className="h-9 w-9 rounded-full hover:bg-muted/50"
                 title="Video Call"
               >
-                <Video className="h-5 w-5 text-primary" />
+                <Video className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowAIFeatures(true)}
-                className="h-10 w-10 rounded-full hover:bg-accent/10 transition-all"
+                className="h-9 w-9 rounded-full hover:bg-muted/50"
                 title="AI Features"
               >
-                <Sparkles className="h-5 w-5 text-accent" />
+                <Sparkles className="h-5 w-5 text-primary" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full hover:bg-muted/50 transition-all"
+                    className="h-9 w-9 rounded-full hover:bg-muted/50"
                   >
                     <MoreVertical className="h-5 w-5" />
                   </Button>
@@ -455,32 +450,29 @@ const ChatEnhancedContent = () => {
               ? messages[messages.length - 1].content 
               : undefined}
           />
-        </div>
+        </>
       ) : (
         // Conversation List View
-        <div className="relative z-10 flex flex-col h-full">
-          {/* Modern Glass Header */}
-          <div className="sticky top-0 z-10 glass-card border-b-0">
-            <div className="flex items-center justify-between px-4 py-3.5">
+        <>
+          {/* Clean Header */}
+          <div className="sticky top-0 z-10 border-b border-border/30 bg-background/95 backdrop-blur-lg">
+            <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/')}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                  className="h-9 w-9 rounded-full hover:bg-accent/50 transition-colors"
                   title="Back"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 
-                <div className="flex items-center gap-2">
-                  <img 
-                    src="/chatr-logo.png" 
-                    alt="chatr" 
-                    className="h-9 w-9"
-                  />
-                  <span className="font-bold text-lg bg-gradient-hero bg-clip-text text-transparent">Chatr</span>
-                </div>
+                <img 
+                  src="/chatr-logo.png" 
+                  alt="chatr" 
+                  className="h-8 w-8"
+                />
               </div>
 
               <div className="flex items-center gap-0.5">
@@ -488,7 +480,7 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/profile')}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
                   title="Profile"
                 >
                   <User className="h-5 w-5" />
@@ -497,7 +489,7 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => setShowGroupCreator(true)}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
                   title="Create Group"
                 >
                   <Users className="h-5 w-5" />
@@ -506,7 +498,7 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => setShowGlobalSearch(true)}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
                   title="Search"
                 >
                   <Search className="h-5 w-5" />
@@ -515,12 +507,12 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/notifications')}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all relative"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors relative"
                   title="Notifications"
                 >
                   <Bell className="h-5 w-5" />
                   {notificationCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px] bg-gradient-hero text-primary-foreground border-2 border-background font-bold">
+                    <Badge className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px] bg-red-500 border-2 border-white">
                       {notificationCount > 99 ? '99+' : notificationCount}
                     </Badge>
                   )}
@@ -529,7 +521,7 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/call-history')}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
                   title="Call History"
                 >
                   <Phone className="h-5 w-5" />
@@ -538,7 +530,7 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/qr-login')}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
                   title="QR Code"
                 >
                   <QrCode className="h-5 w-5" />
@@ -559,7 +551,7 @@ const ChatEnhancedContent = () => {
                       toast.success('Link copied to clipboard!');
                     }
                   }}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 transition-all"
+                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
                   title="Share chatr"
                 >
                   <Share2 className="h-5 w-5" />
@@ -621,7 +613,7 @@ const ChatEnhancedContent = () => {
               onConversationSelect={handleConversationSelect}
             />
           </div>
-        </div>
+        </>
       )}
 
       {/* Cluster Creator Dialog */}
