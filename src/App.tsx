@@ -86,6 +86,7 @@ import BusinessInbox from "./pages/business/Inbox";
 import CRMPage from "./pages/business/CRM";
 import BusinessAnalytics from "./pages/business/Analytics";
 import BusinessTeam from "./pages/business/Team";
+import BusinessSettings from "./pages/business/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -195,6 +196,7 @@ const App = () => {
             <Route path="/business/crm" element={<CRMPage />} />
             <Route path="/business/analytics" element={<BusinessAnalytics />} />
             <Route path="/business/team" element={<BusinessTeam />} />
+            <Route path="/business/settings" element={<BusinessSettings />} />
             
             {/* Growth System Routes - redirect to unified chatr-points */}
             <Route path="/growth" element={<ChatrPoints />} />
