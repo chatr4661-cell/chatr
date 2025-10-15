@@ -11,7 +11,7 @@ import { PINInput } from './PINInput';
 import { CountryCodeSelector } from './CountryCodeSelector';
 import { normalizePhoneNumber } from '@/utils/phoneHashUtil';
 
-type AuthStep = 'phone' | 'pin';
+type AuthStep = 'phone' | 'pin' | 'confirm-pin';
 
 export const PhoneAuth = () => {
   const navigate = useNavigate();
@@ -21,6 +21,7 @@ export const PhoneAuth = () => {
   const [countryCode, setCountryCode] = React.useState('+91');
   const [loading, setLoading] = React.useState(false);
   const [isNewUser, setIsNewUser] = React.useState(false);
+  const [firstPin, setFirstPin] = React.useState('');
 
   // Check for existing session on mount
   React.useEffect(() => {
@@ -82,10 +83,31 @@ export const PhoneAuth = () => {
   const handlePinComplete = async (pin: string) => {
     console.log('[AUTH] PIN complete:', { pin, isNewUser, phoneNumber, countryCode });
     if (isNewUser) {
-      await handleCreatePin(pin);
+      // For new users, go to confirm PIN step
+      setFirstPin(pin);
+      setStep('confirm-pin');
+      toast({
+        title: "Confirm Your PIN",
+        description: "Please enter your PIN again to confirm",
+      });
     } else {
+      // For existing users, login directly
       await handleLoginPin(pin);
     }
+  };
+
+  const handleConfirmPinComplete = async (pin: string) => {
+    if (pin !== firstPin) {
+      toast({
+        title: "PINs Don't Match",
+        description: "The PINs you entered don't match. Please try again.",
+        variant: "destructive",
+      });
+      setStep('pin');
+      setFirstPin('');
+      return;
+    }
+    await handleCreatePin(pin);
   };
 
   const handleCreatePin = async (pin: string) => {
@@ -206,20 +228,34 @@ export const PhoneAuth = () => {
   };
 
   const handleBack = () => {
-    setStep('phone');
-    setPhoneNumber('');
-    setIsNewUser(false);
+    if (step === 'confirm-pin') {
+      setStep('pin');
+      setFirstPin('');
+    } else {
+      setStep('phone');
+      setPhoneNumber('');
+      setIsNewUser(false);
+      setFirstPin('');
+    }
   };
 
   return (
     <Card className="w-full backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass">
       <CardHeader>
         <CardTitle>
-          {step === 'phone' ? 'chatr+' : isNewUser ? 'Create Your PIN' : 'Enter Your PIN'}
+          {step === 'phone' 
+            ? 'chatr+' 
+            : step === 'confirm-pin'
+            ? 'Confirm Your PIN'
+            : isNewUser 
+            ? 'Create Your PIN' 
+            : 'Enter Your PIN'}
         </CardTitle>
         <CardDescription>
           {step === 'phone' 
             ? 'Enter your phone number to get started' 
+            : step === 'confirm-pin'
+            ? 'Re-enter your 6-digit PIN to confirm'
             : isNewUser 
             ? 'Choose a 6-digit PIN for your new account'
             : 'Enter your 6-digit PIN to continue'}
@@ -284,6 +320,36 @@ export const PhoneAuth = () => {
               <PINInput
                 length={6}
                 onComplete={handlePinComplete}
+                disabled={loading}
+              />
+            </div>
+            {loading && (
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground text-center">
+              {countryCode} {phoneNumber}
+            </p>
+          </div>
+        )}
+
+        {/* Confirm PIN Input (New Users Only) */}
+        {step === 'confirm-pin' && (
+          <div className="space-y-4">
+            <Button
+              variant="ghost"
+              onClick={handleBack}
+              className="mb-2"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <div className="space-y-2">
+              <Label>Confirm 6-Digit PIN</Label>
+              <PINInput
+                length={6}
+                onComplete={handleConfirmPinComplete}
                 disabled={loading}
               />
             </div>
