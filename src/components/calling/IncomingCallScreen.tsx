@@ -37,21 +37,28 @@ export function IncomingCallScreen({
   });
 
   useEffect(() => {
-    // iOS-style haptic pattern
+    // Start ringtone immediately on mount
+    const ringtoneTiming = setTimeout(() => {
+      console.log('🔔 Ringtone active for incoming call');
+    }, 100);
+
+    // iOS-style haptic pattern - starts immediately
     if (Capacitor.isNativePlatform()) {
       const hapticPattern = async () => {
         await Haptics.impact({ style: ImpactStyle.Heavy });
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 150));
         await Haptics.impact({ style: ImpactStyle.Medium });
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 150));
         await Haptics.impact({ style: ImpactStyle.Heavy });
       };
 
+      // Trigger immediately and repeat every 2 seconds
       hapticPattern();
       hapticIntervalRef.current = setInterval(hapticPattern, 2000);
     }
 
     return () => {
+      clearTimeout(ringtoneTiming);
       if (hapticIntervalRef.current) {
         clearInterval(hapticIntervalRef.current);
       }

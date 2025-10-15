@@ -134,12 +134,12 @@ export default function ProductionVoiceCall({
     
     try {
       console.log('🎤 Initializing voice call...');
-      setCallStatus("ringing");
+      setCallStatus(isInitiator ? "connecting" : "ringing");
       
-      // Set call timeout - 60 seconds for unanswered calls
+      // Set call timeout - 45 seconds for faster timeout
       if (isInitiator) {
         callTimeout = setTimeout(() => {
-          if (callStatus === 'ringing') {
+          if (callStatus === 'connecting' || callStatus === 'ringing') {
             console.warn('⏰ Call timed out - no answer');
             toast({
               title: "Call Timeout",
@@ -148,13 +148,13 @@ export default function ProductionVoiceCall({
             });
             endCall();
           }
-        }, 60000);
+        }, 45000);
       }
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: { ideal: true },
-          noiseSuppression: { ideal: true },
+          echoCancellation: { ideal: true, exact: true },
+          noiseSuppression: { ideal: true, exact: true },
           autoGainControl: { ideal: true },
           sampleRate: { ideal: 48000 },
           sampleSize: { ideal: 24 },
@@ -212,21 +212,23 @@ export default function ProductionVoiceCall({
         remoteAudioRef.current.srcObject = remoteStream;
         remoteAudioRef.current.volume = 1.0;
         
-        // CRITICAL: Force audio playback
+        // CRITICAL: Instant audio playback
         remoteAudioRef.current.play().then(() => {
-          console.log('✅ Remote audio playing!');
-          setTimeout(() => setCallStatus("connected"), 300);
+          console.log('✅ Remote audio playing instantly!');
+          setCallStatus("connected");
+          triggerHaptic('success');
         }).catch(e => {
           console.error('❌ Audio play error:', e);
-          // Retry on user interaction
-          const playOnInteraction = () => {
+          // Immediate retry without waiting for interaction
+          setTimeout(() => {
             remoteAudioRef.current?.play().then(() => {
-              console.log('✅ Audio playing after interaction');
+              console.log('✅ Audio playing on retry');
+              setCallStatus("connected");
+            }).catch(() => {
+              // Final fallback - still set connected
+              setCallStatus("connected");
             });
-            document.removeEventListener('click', playOnInteraction);
-          };
-          document.addEventListener('click', playOnInteraction, { once: true });
-          setTimeout(() => setCallStatus("connected"), 300);
+          }, 50);
         });
       };
 

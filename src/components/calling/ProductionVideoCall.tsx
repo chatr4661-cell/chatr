@@ -105,12 +105,12 @@ export default function ProductionVideoCall({
     
     try {
       console.log('🎥 [ProductionVideoCall] Initializing call...', { callId, contactName, isInitiator, partnerId });
-      setCallStatus(isInitiator ? "dialing" : "ringing");
+      setCallStatus(isInitiator ? "connecting" : "ringing");
       
-      // Set call timeout - 60 seconds for unanswered calls
+      // Set call timeout - 45 seconds for faster timeout
       if (isInitiator) {
         callTimeout = setTimeout(() => {
-          if (callStatus === 'dialing' || callStatus === 'ringing') {
+          if (callStatus === 'connecting' || callStatus === 'ringing') {
             console.warn('⏰ Call timed out - no answer');
             toast({
               title: "Call Timeout",
@@ -119,22 +119,22 @@ export default function ProductionVideoCall({
             });
             endCall();
           }
-        }, 60000);
+        }, 45000);
       }
       
-      // Request camera and microphone permissions
+      // Request camera and microphone permissions with optimized constraints
       console.log('📷 Requesting media permissions...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode,
-          width: { ideal: 1920, max: 1920 },
-          height: { ideal: 1080, max: 1080 },
-          frameRate: { ideal: 30 }
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, max: 30 }
         },
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          echoCancellation: { ideal: true, exact: true },
+          noiseSuppression: { ideal: true, exact: true },
+          autoGainControl: { ideal: true },
           sampleRate: 48000
         }
       });
@@ -169,28 +169,29 @@ export default function ProductionVideoCall({
         pc.addTrack(track, stream);
       });
 
-      // Handle incoming remote stream
+      // Handle incoming remote stream - INSTANT CONNECTION
       pc.ontrack = (event) => {
         console.log('📺 [ontrack] Received remote track:', event.track.kind);
         const [remoteStream] = event.streams;
         setRemoteStream(remoteStream);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
-          // CRITICAL: Force video to play
+          // CRITICAL: Instant video playback
           remoteVideoRef.current.play().then(() => {
-            console.log('✅ Remote video playing!');
+            console.log('✅ Remote video playing instantly!');
+            setCallStatus("connected");
+            triggerHaptic('success');
           }).catch(err => {
             console.error('❌ Remote video play failed:', err);
-            // Retry on user interaction
-            const playOnInteraction = () => {
-              remoteVideoRef.current?.play();
-              document.removeEventListener('click', playOnInteraction);
-            };
-            document.addEventListener('click', playOnInteraction, { once: true });
+            // Immediate retry
+            setTimeout(() => {
+              remoteVideoRef.current?.play().then(() => {
+                setCallStatus("connected");
+              });
+            }, 50);
           });
           console.log('✅ Remote video ref set');
         }
-        setCallStatus("connected");
         console.log('✅ Call connected!');
       };
 
