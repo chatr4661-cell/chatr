@@ -7,6 +7,10 @@ import { motion } from 'framer-motion';
 import { MessageContextMenu } from './MessageContextMenu';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { PollMessageWrapper } from './PollMessageWrapper';
+import { ContactMessage } from './ContactMessage';
+import { EventMessage } from './EventMessage';
+import { PaymentMessage } from './PaymentMessage';
 
 interface Message {
   id: string;
@@ -139,6 +143,39 @@ const MessageBubbleComponent = ({
       ) : null}
 
       <div className={`flex flex-col gap-0.5 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
+        {/* Image message - MUST show before text check */}
+        {message.media_url && message.message_type === 'image' && (
+          <img
+            src={message.media_url}
+            alt="Shared media"
+            className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => window.open(message.media_url, '_blank')}
+          />
+        )}
+
+        {/* Poll message */}
+        {message.message_type === 'poll' && message.content.startsWith('[Poll]') && (
+          <PollMessageWrapper 
+            messageId={message.id}
+            data={JSON.parse(message.content.replace('[Poll] ', ''))} 
+          />
+        )}
+
+        {/* Contact message */}
+        {message.message_type === 'contact' && message.content.startsWith('[Contact]') && (
+          <ContactMessage content={message.content} />
+        )}
+
+        {/* Event message */}
+        {message.message_type === 'event' && message.content.startsWith('[Event]') && (
+          <EventMessage data={JSON.parse(message.content.replace('[Event] ', ''))} />
+        )}
+
+        {/* Payment message */}
+        {message.message_type === 'payment' && message.content.startsWith('[Payment]') && (
+          <PaymentMessage data={JSON.parse(message.content.replace('[Payment] ', ''))} />
+        )}
+
         {/* Location message with map preview */}
         {message.message_type === 'location' && message.content.includes('maps.google.com') && (
           <div className="rounded-2xl overflow-hidden border border-border mb-1 max-w-[280px]">
@@ -161,19 +198,15 @@ const MessageBubbleComponent = ({
             </div>
           </div>
         )}
-
-        {/* Image message */}
-        {message.media_url && message.message_type === 'image' && (
-          <img
-            src={message.media_url}
-            alt="Shared media"
-            className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={() => window.open(message.media_url, '_blank')}
-          />
-        )}
         
-        {/* Regular text message */}
-        {!message.content.startsWith('[') && message.message_type !== 'location' && (
+        {/* Regular text message - ONLY if not a special type */}
+        {!message.media_url && 
+         message.message_type !== 'location' && 
+         message.message_type !== 'poll' && 
+         message.message_type !== 'contact' &&
+         message.message_type !== 'event' &&
+         message.message_type !== 'payment' &&
+         message.message_type !== 'image' && (
           <div className={`rounded-[18px] px-4 py-2.5 ${
             isOwn
               ? 'bg-[hsl(185,75%,40%)] text-white'

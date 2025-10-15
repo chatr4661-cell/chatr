@@ -13,6 +13,7 @@ import { AIImageGenerator } from './AIImageGenerator';
 import { capturePhoto, pickImage, getCurrentLocation } from '@/utils/mediaUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MediaPreviewDialog } from './MediaPreviewDialog';
 
 interface EnhancedMessageInputProps {
   onSendMessage: (content: string, type?: string, mediaUrl?: string) => Promise<void>;
@@ -38,6 +39,10 @@ export const EnhancedMessageInput = ({
   const [showPaymentRequest, setShowPaymentRequest] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showAIImageGen, setShowAIImageGen] = useState(false);
+  const [mediaPreview, setMediaPreview] = useState<{
+    url: string;
+    type: 'image' | 'video';
+  } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,32 +91,11 @@ export const EnhancedMessageInput = ({
       const imageUrl = await pickImage();
       if (!imageUrl) return;
 
-      toast.info('Uploading image...');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Upload to Supabase Storage
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const fileExt = blob.type.split('/')[1] || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('social-media')
-        .upload(fileName, blob, { contentType: blob.type });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('social-media')
-        .getPublicUrl(fileName);
-
-      // Send message with media_url, not embedded base64
-      await onSendMessage('📷 Photo', 'image', publicUrl);
-      toast.success('Image sent successfully');
+      // Show preview instead of sending immediately
+      setMediaPreview({ url: imageUrl, type: 'image' });
     } catch (error) {
       console.error('Error picking image:', error);
-      toast.error('Failed to send image');
+      toast.error('Failed to pick image');
     }
   };
 
@@ -120,29 +104,8 @@ export const EnhancedMessageInput = ({
       const imageUrl = await capturePhoto();
       if (!imageUrl) return;
 
-      toast.info('Uploading photo...');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Upload to Supabase Storage
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const fileExt = blob.type.split('/')[1] || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('social-media')
-        .upload(fileName, blob, { contentType: blob.type });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('social-media')
-        .getPublicUrl(fileName);
-
-      // Send message with media_url, not embedded base64
-      await onSendMessage('📷 Photo', 'image', publicUrl);
-      toast.success('Photo sent successfully');
+      // Show preview instead of sending immediately
+      setMediaPreview({ url: imageUrl, type: 'image' });
     } catch (error) {
       console.error('Error capturing photo:', error);
       toast.error('Failed to capture photo');
@@ -162,6 +125,39 @@ export const EnhancedMessageInput = ({
     } catch (error) {
       console.error('Error getting location:', error);
       toast.error('Failed to get location');
+    }
+  };
+
+  const handleSendMedia = async (caption?: string) => {
+    if (!mediaPreview) return;
+
+    try {
+      toast.info('Uploading media...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const response = await fetch(mediaPreview.url);
+      const blob = await response.blob();
+      const fileExt = blob.type.split('/')[1] || 'jpg';
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('social-media')
+        .upload(fileName, blob, { contentType: blob.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('social-media')
+        .getPublicUrl(fileName);
+
+      await onSendMessage(caption || '📷 Photo', 'image', publicUrl);
+      toast.success('Media sent successfully');
+      setMediaPreview(null);
+    } catch (error) {
+      console.error('Media upload error:', error);
+      toast.error('Failed to send media');
+      setMediaPreview(null);
     }
   };
 
@@ -359,6 +355,14 @@ export const EnhancedMessageInput = ({
           </div>
         </div>
       </div>
+
+      <MediaPreviewDialog
+        open={!!mediaPreview}
+        onClose={() => setMediaPreview(null)}
+        mediaUrl={mediaPreview?.url || ''}
+        mediaType={mediaPreview?.type || 'image'}
+        onSend={handleSendMedia}
+      />
     </>
   );
 };

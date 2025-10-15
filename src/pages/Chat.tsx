@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
 import { VirtualMessageList } from '@/components/chat/VirtualMessageList';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
+import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
 import { useOptimizedMessages } from "@/hooks/useOptimizedMessages";
 import { useOptimisticChat } from "@/hooks/useOptimisticChat";
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
@@ -62,6 +63,8 @@ const ChatEnhancedContent = () => {
   const { streak } = useStreakTracking('ai_chat');
   const networkQuality = useNetworkQuality();
   const [showOfflineMode, setShowOfflineMode] = React.useState(false);
+  const [messageToForward, setMessageToForward] = React.useState<any>(null);
+  const [showForwardDialog, setShowForwardDialog] = React.useState(false);
   
   // AI Features State
   const [showSmartReplies, setShowSmartReplies] = React.useState(false);
@@ -311,6 +314,31 @@ const ChatEnhancedContent = () => {
     }
   };
 
+  const handleForwardMessage = (message: any) => {
+    setMessageToForward(message);
+    setShowForwardDialog(true);
+  };
+
+  const handleStarMessage = async (messageId: string) => {
+    try {
+      const { data: message } = await supabase
+        .from('messages')
+        .select('is_starred')
+        .eq('id', messageId)
+        .single();
+
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_starred: !message?.is_starred })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      toast.success(message?.is_starred ? 'Message unstarred' : 'Message starred');
+    } catch (error) {
+      toast.error('Failed to update message');
+    }
+  };
+
   // Load messages when conversation changes - adaptive based on network
   React.useEffect(() => {
     if (activeConversationId) {
@@ -542,6 +570,8 @@ const ChatEnhancedContent = () => {
               onLoadMore={() => loadMessages(30, displayMessages.length)}
               hasMore={hasMore}
               isLoading={messagesLoading}
+              onForward={handleForwardMessage}
+              onStar={handleStarMessage}
             />
           </div>
 
@@ -836,6 +866,15 @@ const ChatEnhancedContent = () => {
       
       {/* Voice AI Interface - Always available */}
       <VoiceInterface />
+
+      {/* Message Forward Dialog */}
+      <MessageForwardDialog
+        open={showForwardDialog}
+        onClose={() => setShowForwardDialog(false)}
+        messageId={messageToForward?.id || ''}
+        messageContent={messageToForward?.content || ''}
+        userId={user?.id || ''}
+      />
       </div>
     </>
   );
