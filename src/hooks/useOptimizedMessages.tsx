@@ -49,9 +49,10 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
             );
             
             if (optimisticIndex >= 0) {
-              // Replace optimistic message with real one
+              // Replace optimistic message with real one (remove tempId)
               console.log('🔄 Replacing optimistic message:', { tempId: newMessages[optimisticIndex].tempId, realId: msg.id });
-              newMessages[optimisticIndex] = msg;
+              const { tempId, ...realMessage } = msg; // Remove tempId if it exists
+              newMessages[optimisticIndex] = realMessage;
             } else {
               // Check if message already exists by id
               const existingIndex = newMessages.findIndex(m => m.id === msg.id);
@@ -112,13 +113,18 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         });
         
         if (offset === 0) {
-          // MERGE loaded messages with existing optimistic messages
+          // MERGE loaded messages with existing state, removing any that are now in DB
           setMessages(prev => {
-            const optimisticMsgs = prev.filter(m => m.tempId && m.status === 'sending');
-            const allMsgs = [...formattedMessages, ...optimisticMsgs];
-            // Remove duplicates by id
-            const uniqueMsgs = Array.from(new Map(allMsgs.map(m => [m.id, m])).values());
-            return uniqueMsgs.sort((a, b) => 
+            // Keep only optimistic messages that are still sending
+            const stillSending = prev.filter(m => m.tempId && m.status === 'sending');
+            
+            // Combine loaded messages with still-sending optimistic ones
+            const combined = [...formattedMessages, ...stillSending];
+            
+            // Remove duplicates by id (loaded messages take precedence)
+            const unique = Array.from(new Map(combined.map(m => [m.id, m])).values());
+            
+            return unique.sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
           });
