@@ -130,10 +130,21 @@ export const subscribeToCallSignals = async (
         event: 'INSERT',
         schema: 'public',
         table: 'webrtc_signals',
-        // Only receive signals meant for THIS user
-        filter: `call_id=eq.${callId}&to_user=eq.${currentUserId}`
+        // Filter only by call_id at database level
+        filter: `call_id=eq.${callId}`
       },
       (payload) => {
+        // Filter by to_user in the callback to avoid database parsing errors
+        if (payload.new.to_user !== currentUserId) {
+          console.log('📥 Ignoring signal not meant for this user:', {
+            type: payload.new.signal_type,
+            from: payload.new.from_user,
+            to: payload.new.to_user,
+            currentUser: currentUserId
+          });
+          return;
+        }
+        
         console.log('📥 Realtime signal received:', {
           type: payload.new.signal_type,
           from: payload.new.from_user,
