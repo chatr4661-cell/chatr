@@ -1,50 +1,67 @@
 import { useState, useEffect, useCallback } from 'react';
-import { openDB, IDBPDatabase } from 'idb';
+import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
-interface CachedConversation {
+interface ConversationCache {
   id: string;
   data: any;
   timestamp: number;
 }
 
+interface ChatDB extends DBSchema {
+  conversations: {
+    key: string;
+    value: ConversationCache;
+  };
+  messages: {
+    key: string;
+    value: {
+      conversationId: string;
+      messages: any[];
+      timestamp: number;
+    };
+    indexes: { 'by-conversation': string };
+  };
+}
+
 const DB_NAME = 'chatr-cache';
-const STORE_NAME = 'conversations';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const DB_VERSION = 1;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export const useConversationCache = () => {
-  const [db, setDb] = useState<IDBPDatabase | null>(null);
+  const [db, setDb] = useState<IDBPDatabase<ChatDB> | null>(null);
 
   useEffect(() => {
     const initDB = async () => {
-      try {
-        const database = await openDB(DB_NAME, 1, {
-          upgrade(db) {
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-              db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-            }
-          },
-        });
-        setDb(database);
-      } catch (error) {
-        console.error('Failed to init IndexedDB:', error);
-      }
+      const database = await openDB<ChatDB>(DB_NAME, DB_VERSION, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('conversations')) {
+            db.createObjectStore('conversations', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('messages')) {
+            const messageStore = db.createObjectStore('messages', { keyPath: 'conversationId' });
+            messageStore.createIndex('by-conversation', 'conversationId');
+          }
+        },
+      });
+      setDb(database);
     };
+
     initDB();
   }, []);
 
-  const getCached = useCallback(async (key: string): Promise<any | null> => {
+  const getCachedConversations = useCallback(async (): Promise<any[] | null> => {
     if (!db) return null;
-    
+
     try {
-      const cached = await db.get(STORE_NAME, key) as CachedConversation;
+      const cached = await db.get('conversations', 'list');
       if (!cached) return null;
-      
-      // Check if cache is still valid
-      if (Date.now() - cached.timestamp > CACHE_DURATION) {
-        await db.delete(STORE_NAME, key);
+
+      const age = Date.now() - cached.timestamp;
+      if (age > CACHE_TTL) {
+        await db.delete('conversations', 'list');
         return null;
       }
-      
+
       return cached.data;
     } catch (error) {
       console.error('Cache read error:', error);
@@ -52,14 +69,48 @@ export const useConversationCache = () => {
     }
   }, [db]);
 
-  const setCache = useCallback(async (key: string, data: any) => {
+  const setCachedConversations = useCallback(async (conversations: any[]) => {
     if (!db) return;
-    
+
     try {
-      await db.put(STORE_NAME, {
-        id: key,
-        data,
-        timestamp: Date.now()
+      await db.put('conversations', {
+        id: 'list',
+        data: conversations,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error('Cache write error:', error);
+    }
+  }, [db]);
+
+  const getCachedMessages = useCallback(async (conversationId: string): Promise<any[] | null> => {
+    if (!db) return null;
+
+    try {
+      const cached = await db.get('messages', conversationId);
+      if (!cached) return null;
+
+      const age = Date.now() - cached.timestamp;
+      if (age > CACHE_TTL) {
+        await db.delete('messages', conversationId);
+        return null;
+      }
+
+      return cached.messages;
+    } catch (error) {
+      console.error('Cache read error:', error);
+      return null;
+    }
+  }, [db]);
+
+  const setCachedMessages = useCallback(async (conversationId: string, messages: any[]) => {
+    if (!db) return;
+
+    try {
+      await db.put('messages', {
+        conversationId,
+        messages,
+        timestamp: Date.now(),
       });
     } catch (error) {
       console.error('Cache write error:', error);
@@ -68,13 +119,20 @@ export const useConversationCache = () => {
 
   const clearCache = useCallback(async () => {
     if (!db) return;
-    
+
     try {
-      await db.clear(STORE_NAME);
+      await db.clear('conversations');
+      await db.clear('messages');
     } catch (error) {
       console.error('Cache clear error:', error);
     }
   }, [db]);
 
-  return { getCached, setCache, clearCache };
+  return {
+    getCachedConversations,
+    setCachedConversations,
+    getCachedMessages,
+    setCachedMessages,
+    clearCache,
+  };
 };

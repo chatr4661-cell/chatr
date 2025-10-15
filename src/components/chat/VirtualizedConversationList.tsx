@@ -40,7 +40,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const [conversations, setConversations] = React.useState<Conversation[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState('');
-  const { getCached, setCache } = useConversationCache();
+  const { getCachedConversations, setCachedConversations } = useConversationCache();
 
   // Helper to format message content for display
   const formatMessageContent = (content: string) => {
@@ -83,7 +83,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
     try {
       // Try cache first
-      const cached = await getCached(`conversations-${userId}`);
+      const cached = await getCachedConversations();
       if (cached) {
         setConversations(cached);
         setLoading(false);
@@ -113,7 +113,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         }));
 
         setConversations(conversationData);
-        await setCache(`conversations-${userId}`, conversationData);
+        await setCachedConversations(conversationData);
         setLoading(false);
         return;
       }
@@ -182,13 +182,13 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         });
 
       setConversations(conversationData);
-      await setCache(`conversations-${userId}`, conversationData);
+      await setCachedConversations(conversationData);
       setLoading(false);
     } catch (error) {
       console.error('Error loading conversations:', error);
       setLoading(false);
     }
-  }, [userId, getCached, setCache]);
+  }, [userId, getCachedConversations, setCachedConversations]);
 
   React.useEffect(() => {
     if (!userId) return;

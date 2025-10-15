@@ -16,6 +16,7 @@ import { VirtualizedConversationList } from '@/components/chat/VirtualizedConver
 import { VirtualMessageList } from '@/components/chat/VirtualMessageList';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
 import { useOptimizedMessages } from '@/hooks/useOptimizedMessages';
+import { useOptimisticChat } from '@/hooks/useOptimisticChat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
 import { PulseCreator } from '@/components/chat/PulseCreator';
@@ -77,11 +78,34 @@ const ChatEnhancedContent = () => {
     clearInsights
   } = useAIChatAssistant();
   
+  // Optimistic chat for instant UI updates
+  const {
+    messages: optimisticMessages,
+    setMessages: setOptimisticMessages,
+    sendMessageOptimistic,
+    deleteMessageOptimistic,
+    editMessageOptimistic,
+  } = useOptimisticChat(activeConversationId, user?.id || '');
+
   // Optimized message handling with batching and pagination
   const { messages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
     activeConversationId,
     user?.id || ''
   );
+
+  // Merge optimistic with real messages
+  const displayMessages = React.useMemo(() => {
+    const realMessages = messages.filter((m: any) => !m.is_optimistic);
+    const optimistic = optimisticMessages.filter((m: any) => m.is_optimistic);
+    return [...realMessages, ...optimistic];
+  }, [messages, optimisticMessages]);
+
+  // Sync real messages to optimistic
+  React.useEffect(() => {
+    if (messages.length > 0) {
+      setOptimisticMessages(messages);
+    }
+  }, [messages, setOptimisticMessages]);
   
   // Enable push notifications only if user ID exists
   usePushNotifications(user?.id || undefined);
@@ -276,14 +300,8 @@ const ChatEnhancedContent = () => {
   const handleSendMessage = async (content: string, type?: string, mediaUrl?: string) => {
     if (!activeConversationId) return;
     try {
-      // Extended sendMessage to handle media URLs
-      await supabase.from('messages').insert({
-        conversation_id: activeConversationId,
-        sender_id: user!.id,
-        content,
-        message_type: type || 'text',
-        media_url: mediaUrl
-      });
+      // Use optimistic send for instant feedback
+      await sendMessageOptimistic(content);
     } catch (error) {
       toast.error('Failed to send message');
     }
@@ -472,10 +490,10 @@ const ChatEnhancedContent = () => {
           {/* Messages */}
           <div className="flex-1 overflow-hidden">
             <VirtualMessageList
-              messages={messages}
+              messages={displayMessages}
               userId={user.id}
               otherUser={otherUser}
-              onLoadMore={() => loadMessages(30, messages.length)}
+              onLoadMore={() => loadMessages(30, displayMessages.length)}
               hasMore={hasMore}
               isLoading={messagesLoading}
             />
