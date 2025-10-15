@@ -82,27 +82,6 @@ export const AttachmentMenu = ({
       onClick: onPoll, 
       gradient: 'from-orange-500 to-orange-600' 
     },
-    { 
-      icon: Calendar, 
-      label: 'Event', 
-      description: 'Schedule event',
-      onClick: onEvent, 
-      gradient: 'from-red-500 to-red-600' 
-    },
-    { 
-      icon: DollarSign, 
-      label: 'Payment', 
-      description: 'Request payment',
-      onClick: onPayment, 
-      gradient: 'from-emerald-500 to-emerald-600' 
-    },
-    { 
-      icon: Sparkles, 
-      label: 'AI Image', 
-      description: 'Generate image',
-      onClick: onAIImage, 
-      gradient: 'from-amber-500 to-amber-600' 
-    },
   ];
 
   return (

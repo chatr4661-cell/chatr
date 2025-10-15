@@ -8,10 +8,10 @@ interface ContactMessageProps {
 }
 
 export const ContactMessage: React.FC<ContactMessageProps> = ({ content }) => {
-  // Parse contact info from content: "[Contact] Name - phone@chatr.local"
+  // Parse contact info from content: "[Contact] Name - phone"
   const contactInfo = content.replace('[Contact] ', '').split(' - ');
   const name = contactInfo[0] || 'Unknown Contact';
-  const phoneOrEmail = contactInfo[1] || '';
+  const phoneOrEmail = contactInfo[1]?.replace('@chatr.local', '') || '';
 
   return (
     <Card className="p-4 bg-card border max-w-[280px]">

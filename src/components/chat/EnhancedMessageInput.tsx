@@ -168,6 +168,14 @@ export const EnhancedMessageInput = ({
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        toast.error('File size exceeds 5MB limit');
+        e.target.value = ''; // Reset input
+        return;
+      }
+
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
@@ -192,6 +200,7 @@ export const EnhancedMessageInput = ({
         toast.error('Failed to upload document');
       }
     }
+    e.target.value = ''; // Reset input after processing
   };
 
   const handlePollSend = async (question: string, options: string[]) => {

@@ -171,7 +171,7 @@ const MessageBubbleComponent = ({
 
         {/* Contact message */}
         {message.message_type === 'contact' && message.content.startsWith('[Contact]') && (
-          <ContactMessage content={message.content} />
+          <ContactMessage content={message.content.replace(/\[Contact\]\s*\[Contact\]\s*/g, '[Contact] ')} />
         )}
 
         {/* Event message */}
