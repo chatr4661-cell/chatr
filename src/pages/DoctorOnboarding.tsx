@@ -47,16 +47,28 @@ export default function DoctorOnboarding() {
         return;
       }
 
-      // Store doctor application temporarily (will create proper table structure later)
-      toast.success('Thank you! Doctor onboarding coming soon. We\'ll notify you when it\'s ready!');
-      navigate('/');
-      return;
+      const { error } = await supabase
+        .from('doctor_applications')
+        .insert({
+          user_id: user.id,
+          full_name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          specialty: formData.specialty,
+          qualification: formData.specialty, // Using specialty as qualification for now
+          experience_years: parseInt(formData.yearsExperience),
+          registration_number: formData.registrationNumber,
+          hospital_affiliation: formData.clinic,
+          bio: formData.aboutYou,
+        });
+
+      if (error) throw error;
 
       toast.success('Application submitted! We\'ll verify your credentials within 24 hours.');
       navigate('/provider/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting application:', error);
-      toast.error('Failed to submit application');
+      toast.error(error.message || 'Failed to submit application');
     } finally {
       setSubmitting(false);
     }

@@ -80,6 +80,7 @@ import AdminPoints from "./pages/admin/Points";
 import AdminSettings from "./pages/admin/Settings";
 import AdminAnnouncements from "./pages/admin/Announcements";
 import AdminDocuments from "./pages/admin/Documents";
+import AdminDoctorApplications from "./pages/admin/DoctorApplications";
 
 // Provider Pages
 import ProviderAppointments from "./pages/provider/Appointments";
@@ -193,6 +194,7 @@ const App = () => {
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/announcements" element={<AdminAnnouncements />} />
             <Route path="/admin/documents" element={<AdminDocuments />} />
+            <Route path="/admin/doctor-applications" element={<AdminDoctorApplications />} />
             <Route path="/admin/official-accounts" element={<OfficialAccountsManager />} />
             <Route path="/admin/broadcast" element={<BroadcastManager />} />
             <Route path="/chatr-tutors" element={<ChatrTutors />} />

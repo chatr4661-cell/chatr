@@ -2363,6 +2363,75 @@ export type Database = {
           },
         ]
       }
+      doctor_applications: {
+        Row: {
+          bio: string | null
+          certifications: string[] | null
+          consultation_fee: number | null
+          created_at: string
+          email: string
+          experience_years: number
+          full_name: string
+          hospital_affiliation: string | null
+          id: string
+          phone: string
+          preferred_language: string | null
+          qualification: string
+          registration_number: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          specialty: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          certifications?: string[] | null
+          consultation_fee?: number | null
+          created_at?: string
+          email: string
+          experience_years: number
+          full_name: string
+          hospital_affiliation?: string | null
+          id?: string
+          phone: string
+          preferred_language?: string | null
+          qualification: string
+          registration_number: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialty: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          certifications?: string[] | null
+          consultation_fee?: number | null
+          created_at?: string
+          email?: string
+          experience_years?: number
+          full_name?: string
+          hospital_affiliation?: string | null
+          id?: string
+          phone?: string
+          preferred_language?: string | null
+          qualification?: string
+          registration_number?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialty?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_contacts: {
         Row: {
           created_at: string | null
