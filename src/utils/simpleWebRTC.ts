@@ -77,19 +77,39 @@ export class SimpleWebRTCCall {
     }
   }
 
+  private isMobileDevice(): boolean {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  }
+
+  private isIOS(): boolean {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
   private async getMedia() {
     try {
+      const isMobile = this.isMobileDevice();
+      
+      const videoConstraints = this.isVideo ? (isMobile ? {
+        width: { ideal: 640, max: 1280 },
+        height: { ideal: 480, max: 720 },
+        frameRate: { ideal: 15, max: 30 },
+        facingMode: 'user'
+      } : {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 },
+        facingMode: 'user'
+      }) : false;
+      
       const constraints = {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          sampleRate: isMobile ? 16000 : 48000,
+          channelCount: 1
         },
-        video: this.isVideo ? {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        } : false
+        video: videoConstraints
       };
 
       console.log('🎤 [SimpleWebRTC] Requesting media access...');
@@ -98,6 +118,18 @@ export class SimpleWebRTCCall {
       this.emit('localStream', this.localStream);
     } catch (error) {
       console.error('❌ [SimpleWebRTC] Media access denied:', error);
+      
+      if (this.isVideo && error.name === 'OverconstrainedError') {
+        console.log('⚠️ Trying fallback constraints...');
+        const fallbackConstraints = {
+          audio: true,
+          video: { width: 320, height: 240 }
+        };
+        this.localStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        this.emit('localStream', this.localStream);
+        return;
+      }
+      
       throw new Error('Could not access camera/microphone');
     }
   }
@@ -113,7 +145,15 @@ export class SimpleWebRTCCall {
 
       console.log('🔧 [SimpleWebRTC] Creating peer connection with ICE servers:', iceServers);
       
-      this.pc = new RTCPeerConnection({ iceServers });
+      const configuration: RTCConfiguration = {
+        iceServers,
+        iceTransportPolicy: 'all',
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require',
+        iceCandidatePoolSize: this.isMobileDevice() ? 5 : 10
+      };
+      
+      this.pc = new RTCPeerConnection(configuration);
 
       // Add local stream tracks
       if (this.localStream) {
@@ -151,6 +191,7 @@ export class SimpleWebRTCCall {
           this.callState = 'connected';
           this.emit('connected');
           this.clearConnectionTimeout();
+          this.setupAdaptiveBitrate();
           console.log('🎉 [SimpleWebRTC] Call connected successfully!');
         } else if (state === 'failed' || state === 'disconnected') {
           console.error('❌ [SimpleWebRTC] ICE connection failed');
@@ -355,8 +396,67 @@ export class SimpleWebRTCCall {
     this.emit('ended');
   }
 
+  private adaptiveIntervalId: number | null = null;
+  private currentQuality: 'low' | 'medium' | 'high' = 'high';
+
+  private setupAdaptiveBitrate() {
+    if (!this.pc || !this.isVideo) return;
+
+    this.adaptiveIntervalId = window.setInterval(async () => {
+      if (!this.pc) return;
+      
+      const stats = await this.pc.getStats();
+      let packetsLost = 0;
+      let packetsReceived = 0;
+      
+      stats.forEach(report => {
+        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+          packetsLost = report.packetsLost || 0;
+          packetsReceived = report.packetsReceived || 0;
+        }
+      });
+      
+      const totalPackets = packetsLost + packetsReceived;
+      const packetLossRate = totalPackets > 0 ? packetsLost / totalPackets : 0;
+      
+      if (packetLossRate > 0.05) {
+        this.adjustVideoQuality('low');
+      } else if (packetLossRate > 0.02) {
+        this.adjustVideoQuality('medium');
+      } else {
+        this.adjustVideoQuality('high');
+      }
+    }, 2000);
+  }
+
+  private async adjustVideoQuality(quality: 'low' | 'medium' | 'high') {
+    if (!this.localStream || this.currentQuality === quality) return;
+    
+    const videoTrack = this.localStream.getVideoTracks()[0];
+    if (!videoTrack) return;
+    
+    const constraints = {
+      low: { width: 320, height: 240, frameRate: 15 },
+      medium: { width: 640, height: 480, frameRate: 24 },
+      high: { width: 1280, height: 720, frameRate: 30 }
+    };
+    
+    try {
+      await videoTrack.applyConstraints(constraints[quality]);
+      this.currentQuality = quality;
+      console.log(`📊 [SimpleWebRTC] Video quality adjusted to ${quality}`);
+    } catch (error) {
+      console.error('Failed to adjust quality:', error);
+    }
+  }
+
   private async cleanup() {
     console.log('🧹 [SimpleWebRTC] Cleaning up...');
+    
+    if (this.adaptiveIntervalId) {
+      clearInterval(this.adaptiveIntervalId);
+      this.adaptiveIntervalId = null;
+    }
     
     this.clearConnectionTimeout();
 

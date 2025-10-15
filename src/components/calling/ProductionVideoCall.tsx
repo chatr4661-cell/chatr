@@ -60,16 +60,38 @@ export default function ProductionVideoCall({
           console.log('📺 [ProductionVideoCall] Remote stream received');
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
-            remoteVideoRef.current.play()
-              .then(() => console.log('✅ Remote video playing'))
-              .catch(err => {
-                console.error('❌ Remote video play failed:', err);
-                const playOnInteraction = () => {
-                  remoteVideoRef.current?.play();
-                  document.removeEventListener('click', playOnInteraction);
-                };
-                document.addEventListener('click', playOnInteraction, { once: true });
-              });
+            remoteVideoRef.current.playsInline = true;
+            remoteVideoRef.current.muted = false;
+            remoteVideoRef.current.autoplay = true;
+            
+            const playPromise = remoteVideoRef.current.play();
+            
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => console.log('✅ Remote video playing'))
+                .catch(err => {
+                  console.warn('⚠️ Autoplay blocked, waiting for user interaction:', err);
+                  
+                  toast.info('Tap anywhere to enable audio/video', {
+                    duration: 5000,
+                    action: {
+                      label: 'Enable',
+                      onClick: () => {
+                        remoteVideoRef.current?.play();
+                      }
+                    }
+                  });
+                  
+                  const playOnInteraction = () => {
+                    remoteVideoRef.current?.play();
+                    document.removeEventListener('touchstart', playOnInteraction);
+                    document.removeEventListener('click', playOnInteraction);
+                  };
+                  
+                  document.addEventListener('touchstart', playOnInteraction, { once: true });
+                  document.addEventListener('click', playOnInteraction, { once: true });
+                });
+            }
           }
         });
 
@@ -84,8 +106,27 @@ export default function ProductionVideoCall({
         call.on('failed', (error: Error) => {
           console.error('❌ [ProductionVideoCall] Call failed:', error);
           setCallState('failed');
-          toast.error(error.message || 'Call failed');
-          setTimeout(() => handleEndCall(), 2000);
+          
+          let errorMessage = 'Call failed';
+          let actionMessage = 'Please try again';
+          
+          if (error.message.includes('camera') || error.message.includes('microphone')) {
+            errorMessage = 'Camera/Microphone access denied';
+            actionMessage = 'Please allow camera and microphone access in your browser settings';
+          } else if (error.message.includes('timeout')) {
+            errorMessage = 'Connection timeout';
+            actionMessage = 'Check your internet connection and try again';
+          } else if (error.message.includes('ice') || error.message.includes('Connection failed')) {
+            errorMessage = 'Could not establish connection';
+            actionMessage = 'Your network may be blocking video calls. Try a different network.';
+          }
+          
+          toast.error(errorMessage, {
+            description: actionMessage,
+            duration: 5000
+          });
+          
+          setTimeout(() => handleEndCall(), 3000);
         });
 
         call.on('ended', () => {
