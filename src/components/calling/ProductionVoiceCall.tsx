@@ -265,11 +265,23 @@ export default function ProductionVoiceCall({
       };
 
       pc.oniceconnectionstatechange = () => {
-        console.log('❄️ [ICE Connection State]:', pc.iceConnectionState);
+        console.log('❄️ [ICE Connection State]:', {
+          state: pc.iceConnectionState,
+          timestamp: new Date().toISOString(),
+          hasLocalDesc: !!pc.localDescription,
+          hasRemoteDesc: !!pc.remoteDescription,
+          queuedCandidates: pendingIceCandidatesRef.current.length
+        });
         
         if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-          console.log('✅ ICE connection established');
+          console.log('🎉 🎉 🎉 ICE CONNECTION SUCCESSFUL!');
+          setCallStatus('connected');
           lastFailedStateRef.current = 0;
+          
+          // Play success sound
+          const successAudio = new Audio('/notification.mp3');
+          successAudio.volume = 0.3;
+          successAudio.play().catch(e => console.log('Could not play success sound'));
           
           if (iceRestartTimeoutRef.current) {
             clearTimeout(iceRestartTimeoutRef.current);
@@ -422,10 +434,18 @@ export default function ProductionVoiceCall({
         if (!currentRemote || currentRemote.type === 'offer') {
           await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
           
-          for (const candidate of pendingIceCandidatesRef.current) {
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          // CRITICAL FIX: Process ALL pending ICE candidates after remote description is set
+          console.log('📞 Processing', pendingIceCandidatesRef.current.length, 'pending ICE candidates');
+          while (pendingIceCandidatesRef.current.length > 0) {
+            const candidate = pendingIceCandidatesRef.current.shift();
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+              console.log('✅ Queued candidate added successfully');
+            } catch (error) {
+              console.error('❌ Failed to add queued candidate:', error);
+            }
           }
-          pendingIceCandidatesRef.current = [];
+          console.log('✅ All queued ICE candidates processed');
 
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
@@ -455,11 +475,19 @@ export default function ProductionVoiceCall({
           if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'stable') {
             await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
             
-            for (const candidate of pendingIceCandidatesRef.current) {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            // CRITICAL FIX: Process ALL pending ICE candidates after remote description is set
+            console.log('✅ Processing', pendingIceCandidatesRef.current.length, 'pending ICE candidates');
+            while (pendingIceCandidatesRef.current.length > 0) {
+              const candidate = pendingIceCandidatesRef.current.shift();
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                console.log('✅ Queued candidate added successfully');
+              } catch (error) {
+                console.error('❌ Failed to add queued candidate:', error);
+              }
             }
-            pendingIceCandidatesRef.current = [];
-            console.log('✅ Remote description set');
+            console.log('✅ All queued ICE candidates processed');
+            console.log('✅ Remote description set from ANSWER');
           }
         }
         

@@ -229,13 +229,25 @@ export default function ProductionVideoCall({
         }
       };
 
-      // Monitor ICE connection state with grace period
+      // Monitor ICE connection state with detailed logging
       pc.oniceconnectionstatechange = () => {
-        console.log('❄️ [ICE Connection State]:', pc.iceConnectionState);
+        console.log('❄️ [ICE Connection State]:', {
+          state: pc.iceConnectionState,
+          timestamp: new Date().toISOString(),
+          hasLocalDesc: !!pc.localDescription,
+          hasRemoteDesc: !!pc.remoteDescription,
+          queuedCandidates: pendingIceCandidatesRef.current.length
+        });
         
         if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-          console.log('✅ ICE connection established!');
-          lastFailedStateRef.current = 0; // Reset failure timer
+          console.log('🎉 🎉 🎉 ICE CONNECTION SUCCESSFUL!');
+          setCallStatus('connected');
+          lastFailedStateRef.current = 0;
+          
+          // Play success sound
+          const successAudio = new Audio('/notification.mp3');
+          successAudio.volume = 0.3;
+          successAudio.play().catch(e => console.log('Could not play success sound'));
           
           // Clear any pending ICE restart
           if (iceRestartTimeoutRef.current) {
@@ -393,12 +405,18 @@ export default function ProductionVideoCall({
           await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
           console.log('✅ Remote description set successfully');
           
-          // Process pending ICE candidates
+          // CRITICAL FIX: Process ALL pending ICE candidates after remote description is set
           console.log('📞 Processing', pendingIceCandidatesRef.current.length, 'pending ICE candidates');
-          for (const candidate of pendingIceCandidatesRef.current) {
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          while (pendingIceCandidatesRef.current.length > 0) {
+            const candidate = pendingIceCandidatesRef.current.shift();
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+              console.log('✅ Queued candidate added successfully');
+            } catch (error) {
+              console.error('❌ Failed to add queued candidate:', error);
+            }
           }
-          pendingIceCandidatesRef.current = [];
+          console.log('✅ All queued ICE candidates processed');
 
           console.log('📞 Creating ANSWER...');
           const answer = await pc.createAnswer();
@@ -444,12 +462,17 @@ export default function ProductionVideoCall({
             await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
             console.log('✅ Remote description set successfully');
             
-            // Process pending ICE candidates
+            // CRITICAL FIX: Process ALL pending ICE candidates after remote description is set
             console.log('✅ Processing', pendingIceCandidatesRef.current.length, 'pending ICE candidates');
-            for (const candidate of pendingIceCandidatesRef.current) {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            while (pendingIceCandidatesRef.current.length > 0) {
+              const candidate = pendingIceCandidatesRef.current.shift();
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                console.log('✅ Queued candidate added successfully');
+              } catch (error) {
+                console.error('❌ Failed to add queued candidate:', error);
+              }
             }
-            pendingIceCandidatesRef.current = [];
             console.log('✅ ========== ANSWER PROCESSING COMPLETE ==========');
           } else {
             console.warn('⚠️ Wrong signaling state for answer:', pc.signalingState);
