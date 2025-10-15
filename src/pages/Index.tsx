@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import chatrBrandLogo from '@/assets/chatr-brand-logo.png';
+import chatrIconLogo from '@/assets/chatr-icon-logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -287,10 +289,27 @@ const Index = () => {
   // Show skeleton while mounting
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#000000]">
-        <div className="bg-background/95 backdrop-blur-md border-b border-border/50">
-          <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
-            <img src={logo} alt="Chatr Logo" className="h-7 object-contain" />
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
+        <div className="bg-background/95 backdrop-blur-xl border-b border-border/40">
+          <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-center gap-3">
+            <img src={chatrIconLogo} alt="Chatr" className="h-12 w-12" />
+            <div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
+                Chatr+
+              </div>
+              <div className="text-xs font-medium text-muted-foreground">Say It. Share It. Live It.</div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-16 bg-muted/50 rounded-3xl w-3/4 mx-auto"></div>
+            <div className="h-10 bg-muted/50 rounded-2xl w-1/2 mx-auto"></div>
+            <div className="grid grid-cols-1 gap-4 mt-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-20 bg-muted/50 rounded-2xl"></div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -298,26 +317,34 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#000000] pb-6">
-      {/* iOS-style Header */}
-      <div className="bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50">
-        <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
-          <img src={logo} alt="Chatr Logo" className="h-7 object-contain" />
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5 pb-6">
+      {/* Enhanced Header */}
+      <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={chatrIconLogo} alt="Chatr Logo" className="h-10 w-10 hover:scale-110 transition-transform duration-300" />
+            <div>
+              <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
+                Chatr+
+              </div>
+              <div className="text-[10px] font-medium text-muted-foreground">Say It. Share It. Live It.</div>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/chatr-points')}
-              className="h-8 px-2 gap-1.5 rounded-full bg-gradient-to-br from-amber-500/10 to-yellow-500/10 hover:from-amber-500/20 hover:to-yellow-500/20 transition-all"
+              className="h-9 px-3 gap-1.5 rounded-full bg-gradient-to-br from-amber-500/10 to-yellow-500/10 hover:from-amber-500/20 hover:to-yellow-500/20 transition-all hover:shadow-md"
             >
               <Coins className="w-4 h-4 text-amber-500" />
-              <span className="text-[15px] font-semibold text-amber-600 dark:text-amber-400">
+              <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
                 {pointsBalance.toLocaleString()}
               </span>
               {currentStreak > 0 && (
                 <div className="flex items-center gap-0.5 ml-0.5">
-                  <Flame className="w-3.5 h-3.5 text-orange-500" />
-                  <span className="text-[13px] font-bold text-orange-600 dark:text-orange-400">{currentStreak}</span>
+                  <Flame className="w-4 h-4 text-orange-500" />
+                  <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{currentStreak}</span>
                 </div>
               )}
             </Button>
@@ -325,7 +352,7 @@ const Index = () => {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/download')}
-              className="rounded-full h-8 px-3 text-[15px] text-primary"
+              className="rounded-full h-9 px-4 text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all"
             >
               Download
             </Button>
@@ -334,7 +361,7 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 onClick={handleSignOut}
-                className="rounded-full h-8 w-8"
+                className="rounded-full h-9 w-9 hover:bg-red-50 transition-colors"
               >
                 <LogOut className="h-4 w-4 text-destructive" />
               </Button>
@@ -343,45 +370,64 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
+      <div className="max-w-2xl mx-auto px-4 space-y-6 mt-6">
 
-        {/* Chatr Brand Header */}
-        <div className="space-y-2">
-          <h1 className="text-[34px] font-bold text-foreground tracking-tight">Chatr+</h1>
-          <p className="text-[15px] text-muted-foreground">Your complete health & wellness ecosystem</p>
+        {/* Brand Hero Section */}
+        <div className="text-center space-y-4 py-4">
+          <div className="flex justify-center mb-2">
+            <img 
+              src={chatrBrandLogo} 
+              alt="Chatr - Say It. Share It. Live It." 
+              className="h-28 w-auto drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-cyan-500 to-primary bg-clip-text text-transparent animate-fade-in">
+              Your World of Communication
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-lg mx-auto">
+              Connect with loved ones, access healthcare, explore communities, and discover amazing mini apps - all in one powerful platform
+            </p>
+            <div className="flex flex-wrap justify-center gap-2 pt-1">
+              <span className="px-3 py-1 bg-primary/10 rounded-full text-xs font-medium text-primary">📱 Messaging</span>
+              <span className="px-3 py-1 bg-emerald-500/10 rounded-full text-xs font-medium text-emerald-700">🏥 Healthcare</span>
+              <span className="px-3 py-1 bg-purple-500/10 rounded-full text-xs font-medium text-purple-700">👥 Community</span>
+              <span className="px-3 py-1 bg-amber-500/10 rounded-full text-xs font-medium text-amber-700">🎯 Mini Apps</span>
+            </div>
+          </div>
         </div>
 
         {/* Quick Message Input */}
-        <div className="relative">
-          <Input
-            placeholder="Start a new message..."
-            className="rounded-2xl bg-muted/50 dark:bg-muted/30 border-0 pr-20 h-11 text-[15px]"
-            readOnly
-            onClick={() => navigate('/chat')}
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-8 w-8"
-              onClick={() => navigate('/chat')}
-            >
-              <Paperclip className="h-4 w-4 text-primary" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-8 w-8"
-              onClick={() => navigate('/chat')}
-            >
-              <Mic className="h-4 w-4 text-primary" />
-            </Button>
+        <div 
+          onClick={() => navigate('/chat')}
+          className="cursor-pointer group hover:scale-[1.02] transition-all duration-300"
+        >
+          <div className="relative bg-gradient-to-r from-primary/5 to-cyan-500/5 rounded-3xl border-2 border-primary/20 p-4 shadow-lg hover:shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-colors duration-300">
+                <MessageCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Start a new conversation...</p>
+                <p className="text-xs text-muted-foreground">Message, voice call, or video chat</p>
+              </div>
+              <div className="flex gap-1">
+                <div className="p-2 bg-background/50 rounded-full">
+                  <Paperclip className="h-4 w-4 text-primary" />
+                </div>
+                <div className="p-2 bg-background/50 rounded-full">
+                  <Mic className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Main Feature Hubs */}
         <div>
-          <h2 className="text-lg font-semibold mb-3 text-foreground">Main Features</h2>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span className="bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent">Main Features</span>
+          </h2>
           <div className="grid grid-cols-1 gap-3">
             <React.Suspense fallback={
               <div className="space-y-3">
@@ -390,7 +436,7 @@ const Index = () => {
                 ))}
               </div>
             }>
-              {mainHubs.map((hub) => (
+              {mainHubs.map((hub, index) => (
                 <div 
                   key={hub.title} 
                   onClick={(e) => {
@@ -399,13 +445,14 @@ const Index = () => {
                     console.log('Hub clicked:', hub.title, hub.route);
                     navigate(hub.route);
                   }}
-                  className="relative cursor-pointer"
+                  className="relative cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
+                  style={{ animationDelay: `${index * 50}ms` }}
                   role="button"
                   tabIndex={0}
                 >
                   <ServiceCard {...hub} />
                   {hub.isNew && (
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg pointer-events-none">
                       NEW
                     </div>
                   )}
@@ -417,17 +464,20 @@ const Index = () => {
 
         {/* Quick Access */}
         <div>
-          <h2 className="text-lg font-semibold mb-3 text-foreground">Quick Access</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {quickAccessServices.map((service) => (
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            {quickAccessServices.map((service, index) => (
               <div 
                 key={service.title} 
                 onClick={() => navigate(service.route)}
-                className="aspect-square"
+                className="aspect-square transform hover:scale-105 transition-all duration-300"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className={`h-full rounded-2xl ${service.iconColor} p-3 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all`}>
-                  <service.icon className="w-8 h-8 text-white mb-2" />
-                  <span className="text-[11px] text-white text-center font-medium">{service.title}</span>
+                <div className={`h-full rounded-3xl ${service.iconColor} p-4 flex flex-col items-center justify-center cursor-pointer shadow-lg hover:shadow-xl transition-all`}>
+                  <service.icon className="w-9 h-9 text-white mb-2" />
+                  <span className="text-xs text-white text-center font-semibold">{service.title}</span>
                 </div>
               </div>
             ))}
