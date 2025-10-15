@@ -137,7 +137,7 @@ const Auth = () => {
           </div>
           <div className="space-y-3">
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-cyan-500 to-primary bg-clip-text text-transparent animate-fade-in">
-              Welcome to chatr+
+              Chatr+
             </h1>
             
             {/* AI-Powered Chatr Features Image */}
