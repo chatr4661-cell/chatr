@@ -386,6 +386,7 @@ const ChatEnhancedContent = () => {
                 size="icon"
                 onClick={() => handleStartCall('voice')}
                 className="h-9 w-9 rounded-full hover:bg-muted/50"
+                title="Voice Call"
               >
                 <Phone className="h-5 w-5" />
               </Button>
@@ -394,16 +395,38 @@ const ChatEnhancedContent = () => {
                 size="icon"
                 onClick={() => handleStartCall('video')}
                 className="h-9 w-9 rounded-full hover:bg-muted/50"
+                title="Video Call"
               >
                 <Video className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={() => setShowAIFeatures(true)}
                 className="h-9 w-9 rounded-full hover:bg-muted/50"
+                title="AI Features"
               >
-                <MoreVertical className="h-5 w-5" />
+                <Sparkles className="h-5 w-5 text-primary" />
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowDisappearingSettings(true)}>
+                    Disappearing Messages
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    View Profile
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 

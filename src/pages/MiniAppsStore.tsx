@@ -7,9 +7,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Star, Download, Sparkles, Code, TrendingUp, Clock, Filter, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useSSOToken } from '@/hooks/useSSOToken';
 
 interface MiniApp {
@@ -273,291 +273,296 @@ const MiniAppsStore = () => {
   const renderAppCard = (app: MiniApp) => (
     <motion.div
       key={app.id}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ scale: 1.02 }}
+      transition={{ duration: 0.2 }}
       className="h-full"
     >
-      <Card className="p-4 hover:shadow-lg transition-all h-full flex flex-col">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-            {app.icon_url && (app.icon_url.startsWith('http') || app.icon_url.startsWith('/')) ? (
-              <img src={app.icon_url} alt={app.app_name} className="w-10 h-10 rounded-lg object-cover" />
-            ) : (
-              <span className="text-3xl">{app.icon_url || app.app_name[0]}</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold truncate">{app.app_name}</h3>
-              {app.is_verified && (
-                <Badge variant="secondary" className="h-5 flex-shrink-0">✓</Badge>
+      <Card className="group relative overflow-hidden bg-card/60 backdrop-blur-sm border-border/40 hover:border-primary/20 hover:shadow-xl transition-all duration-300 h-full">
+        <div className="p-5 flex flex-col h-full">
+          {/* App Icon & Info */}
+          <div className="flex items-start gap-4 mb-3">
+            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+              {app.icon_url && (app.icon_url.startsWith('http') || app.icon_url.startsWith('/')) ? (
+                <img src={app.icon_url} alt={app.app_name} className="w-14 h-14 rounded-xl object-cover" />
+              ) : (
+                <span className="text-4xl">{app.icon_url || app.app_name[0]}</span>
               )}
               {app.is_trending && (
-                <Badge variant="default" className="h-5 flex-shrink-0 gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  Hot
-                </Badge>
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                  <TrendingUp className="h-3 w-3 text-white" />
+                </div>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Star className="h-3 w-3 fill-current" />
-              {app.rating_average.toFixed(1)}
-              <span>•</span>
-              <Download className="h-3 w-3" />
-              {app.install_count.toLocaleString()}
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <h3 className="font-semibold text-base truncate">{app.app_name}</h3>
+                {app.is_verified && (
+                  <Badge variant="secondary" className="h-5 px-1.5 shrink-0">
+                    <span className="text-primary">✓</span>
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  <span className="font-medium">{app.rating_average.toFixed(1)}</span>
+                </div>
+                <span className="text-border">•</span>
+                <div className="flex items-center gap-1">
+                  <Download className="h-3 w-3" />
+                  <span>{(app.install_count / 1000).toFixed(0)}K</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-2 flex-1">
-          {app.description}
-        </p>
+          {/* Description */}
+          <p className="text-sm text-muted-foreground/80 mb-3 line-clamp-2 flex-1 leading-relaxed">
+            {app.description}
+          </p>
 
-        {app.tags && app.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {app.tags.slice(0, 3).map(tag => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        <Button
-          className="w-full"
-          variant={installedApps.has(app.id) ? 'outline' : 'default'}
-          onClick={() => installedApps.has(app.id) ? openApp(app) : installAndOpenApp(app)}
-          disabled={installingAppId === app.id}
-        >
-          {installingAppId === app.id ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Installing...
-            </>
-          ) : installedApps.has(app.id) ? (
-            'Open'
-          ) : (
-            'Install'
+          {/* Tags */}
+          {app.tags && app.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {app.tags.slice(0, 3).map(tag => (
+                <Badge key={tag} variant="outline" className="text-xs px-2 py-0.5 bg-muted/30 border-muted/40">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
           )}
-        </Button>
+
+          {/* Action Button */}
+          <Button
+            className="w-full rounded-xl font-medium transition-all"
+            variant={installedApps.has(app.id) ? 'outline' : 'default'}
+            onClick={() => installedApps.has(app.id) ? openApp(app) : installAndOpenApp(app)}
+            disabled={installingAppId === app.id}
+          >
+            {installingAppId === app.id ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Installing...
+              </>
+            ) : installedApps.has(app.id) ? (
+              'OPEN'
+            ) : (
+              'GET'
+            )}
+          </Button>
+        </div>
       </Card>
     </motion.div>
   );
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-3 p-3 max-w-7xl mx-auto">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="rounded-full h-9 w-9"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-2 flex-1">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-bold">Mini-Apps Store</h1>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/developer-portal')}
-            className="rounded-full"
-          >
-            <Code className="h-4 w-4 mr-2" />
-            Developers
-          </Button>
-        </div>
-
-        {/* Search & Filters */}
-        <div className="px-3 pb-3 max-w-7xl mx-auto space-y-2">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search apps or tags..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-9 bg-muted/50"
-              />
+      {/* Apple-style Premium Header */}
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="h-10 w-10 rounded-full hover:bg-muted/50 transition-all"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h1 className="text-xl font-semibold tracking-tight">Mini-Apps</h1>
             </div>
             <Button
-              variant={showFilters ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="gap-2"
+              variant="ghost"
+              onClick={() => navigate('/developer-portal')}
+              className="text-sm font-medium hover:bg-muted/50"
             >
-              <Filter className="h-4 w-4" />
-              Filters
+              Developers
             </Button>
           </div>
-
-          {/* Advanced Filters */}
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex gap-2 flex-wrap"
-            >
-              <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-                <SelectTrigger className="w-[140px] h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                  <SelectItem value="newest">Just Launched</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={minRating.toString()} onValueChange={(v) => setMinRating(Number(v))}>
-                <SelectTrigger className="w-[120px] h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">All Ratings</SelectItem>
-                  <SelectItem value="3">3+ Stars</SelectItem>
-                  <SelectItem value="4">4+ Stars</SelectItem>
-                  <SelectItem value="4.5">4.5+ Stars</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant={verifiedOnly ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setVerifiedOnly(!verifiedOnly)}
-                className="h-8 text-sm"
-              >
-                ✓ Verified Only
-              </Button>
-
-              {(minRating > 0 || verifiedOnly) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setMinRating(0);
-                    setVerifiedOnly(false);
-                  }}
-                  className="h-8 text-sm gap-1"
-                >
-                  <X className="h-3 w-3" />
-                  Clear
-                </Button>
-              )}
-            </motion.div>
-          )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Smart Discovery Tabs */}
+      {/* Apple-style Search */}
+      <div className="bg-background border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+            <Input
+              placeholder="Search apps"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 h-11 bg-muted/30 border-muted/40 rounded-xl text-base focus-visible:ring-primary/20"
+            />
+          </div>
+          
+          {/* Filter Pills */}
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <Button
+              variant={showFilters ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-8 rounded-full px-4"
+            >
+              <Filter className="h-3.5 w-3.5 mr-1.5" />
+              Filters
+            </Button>
+            
+            {showFilters && (
+              <>
+                <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                  <SelectTrigger className="h-8 w-32 rounded-full border-muted/40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="popular">Popular</SelectItem>
+                    <SelectItem value="rating">Top Rated</SelectItem>
+                    <SelectItem value="newest">New</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button
+                  variant={verifiedOnly ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setVerifiedOnly(!verifiedOnly)}
+                  className="h-8 rounded-full"
+                >
+                  ✓ Verified
+                </Button>
+                
+                {(minRating > 0 || verifiedOnly) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setMinRating(0);
+                      setVerifiedOnly(false);
+                    }}
+                    className="h-8 rounded-full"
+                  >
+                    Clear
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
+        {/* Apple-style Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 h-auto">
-            <TabsTrigger value="all" className="gap-2">
-              <Sparkles className="h-4 w-4" />
+          <TabsList className="w-full justify-start bg-transparent border-b border-border/40 rounded-none h-12 p-0">
+            <TabsTrigger 
+              value="all" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-12 px-6 font-medium"
+            >
               All Apps
             </TabsTrigger>
-            <TabsTrigger value="trending" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
+            <TabsTrigger 
+              value="trending" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-12 px-6 font-medium"
+            >
               Trending
             </TabsTrigger>
-            <TabsTrigger value="recent" className="gap-2">
-              <Clock className="h-4 w-4" />
-              Just Launched
+            <TabsTrigger 
+              value="recent" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-12 px-6 font-medium"
+            >
+              New
             </TabsTrigger>
-            <TabsTrigger value="continue" className="gap-2" disabled={continueUsingApps.length === 0}>
-              <Clock className="h-4 w-4" />
-              Continue
-            </TabsTrigger>
+            {continueUsingApps.length > 0 && (
+              <TabsTrigger 
+                value="continue" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-12 px-6 font-medium"
+              >
+                Continue
+              </TabsTrigger>
+            )}
           </TabsList>
 
-          <TabsContent value="all" className="mt-6 space-y-4">
-            {/* Categories */}
-            <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-              <div className="flex gap-2 min-w-max">
+          <TabsContent value="all" className="mt-8 space-y-6">
+            {/* Apple-style Categories */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <Button
+                variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory('all')}
+                className="rounded-full h-9 px-5 shrink-0"
+              >
+                All
+              </Button>
+              {categories.map((category) => (
                 <Button
-                  variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                  key={category.id}
+                  variant={selectedCategory === category.id ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSelectedCategory('all')}
-                  className="rounded-full"
+                  onClick={() => setSelectedCategory(category.id)}
+                  className="rounded-full h-9 px-5 shrink-0"
                 >
-                  All
+                  <span className="mr-1.5">{category.icon}</span>
+                  {category.name}
                 </Button>
-                {categories.map((category) => (
-                  <Button
-                    key={category.id}
-                    variant={selectedCategory === category.id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category.id)}
-                    className="rounded-full"
-                  >
-                    <span className="mr-1.5">{category.icon}</span>
-                    {category.name}
-                  </Button>
-                ))}
-              </div>
+              ))}
             </div>
 
             {/* Apps Grid */}
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-64 bg-muted/50 animate-pulse rounded-lg" />
+                  <div key={i} className="h-64 bg-muted/30 animate-pulse rounded-2xl" />
                 ))}
               </div>
             ) : filteredApps.length === 0 ? (
-              <div className="text-center py-12">
-                <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground">No apps found</p>
+              <div className="text-center py-20">
+                <p className="text-muted-foreground text-lg">No apps found</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredApps.map(app => renderAppCard(app))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredApps.map(renderAppCard)}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="trending" className="mt-6">
+          <TabsContent value="trending" className="mt-8">
             {trendingApps.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-20">
                 <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground">No trending apps</p>
+                <p className="text-muted-foreground text-lg">No trending apps</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {trendingApps.map(app => renderAppCard(app))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {trendingApps.map(renderAppCard)}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="recent" className="mt-6">
+          <TabsContent value="recent" className="mt-8">
             {recentApps.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-20">
                 <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground">No recent apps</p>
+                <p className="text-muted-foreground text-lg">No new apps</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {recentApps.map(app => renderAppCard(app))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {recentApps.map(renderAppCard)}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="continue" className="mt-6">
+          <TabsContent value="continue" className="mt-8">
             {continueUsingApps.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-20">
                 <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground">No recently used apps</p>
+                <p className="text-muted-foreground text-lg">No recent activity</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {continueUsingApps.map(app => renderAppCard(app))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {continueUsingApps.map(renderAppCard)}
               </div>
             )}
           </TabsContent>

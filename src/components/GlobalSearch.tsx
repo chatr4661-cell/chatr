@@ -111,10 +111,26 @@ const GlobalSearch = ({ open, onClose, onNavigate, currentUserId }: GlobalSearch
     }
   };
 
-  const handleResultClick = (result: SearchResult) => {
-    if (result.type === 'contact' && result.contact_id) {
-      // Don't navigate, let connection button handle it
-      return;
+  const handleResultClick = async (result: SearchResult) => {
+    if (result.type === 'contact' && result.contact_id && currentUserId) {
+      // Create or get conversation with this contact
+      try {
+        const { data, error } = await supabase.rpc('create_direct_conversation', {
+          other_user_id: result.contact_id
+        });
+        
+        if (error) throw error;
+        
+        onNavigate(`/chat`);
+        onClose();
+        
+        // Navigate to chat with conversation selected
+        setTimeout(() => {
+          window.location.href = `/chat?conversation=${data}`;
+        }, 100);
+      } catch (error) {
+        console.error('Error creating conversation:', error);
+      }
     } else if (result.type === 'message' && result.conversation_id) {
       onNavigate(`/chat?conversation=${result.conversation_id}`);
       onClose();
@@ -168,13 +184,24 @@ const GlobalSearch = ({ open, onClose, onNavigate, currentUserId }: GlobalSearch
                     {currentUserId && result.contact_id && result.contact_id !== currentUserId && (
                       <Button
                         size="sm"
-                        onClick={() => {
-                          onNavigate(`/chat?contact=${result.contact_id}`);
-                          onClose();
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const { data, error } = await supabase.rpc('create_direct_conversation', {
+                              other_user_id: result.contact_id
+                            });
+                            
+                            if (error) throw error;
+                            
+                            onClose();
+                            window.location.href = `/chat?conversation=${data}`;
+                          } catch (error) {
+                            console.error('Error starting chat:', error);
+                          }
                         }}
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
-                        Message
+                        Chat
                       </Button>
                     )}
                   </div>
