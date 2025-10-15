@@ -31,6 +31,12 @@ import { useStreakTracking } from '@/hooks/useStreakTracking';
 import logo from '@/assets/chatr-logo.png';
 import GlobalSearch from '@/components/GlobalSearch';
 import { Badge } from '@/components/ui/badge';
+import { AIChatToolbar } from '@/components/chat/AIChatToolbar';
+import { AIInsightsPanel } from '@/components/chat/AIInsightsPanel';
+import { SmartRepliesPanel } from '@/components/chat/SmartRepliesPanel';
+import { useAIChatAssistant } from '@/hooks/useAIChatAssistant';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -51,6 +57,25 @@ const ChatEnhancedContent = () => {
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [notificationCount, setNotificationCount] = React.useState(0);
   const { streak } = useStreakTracking('ai_chat');
+  
+  // AI Features State
+  const [showSmartReplies, setShowSmartReplies] = React.useState(false);
+  const [showSummary, setShowSummary] = React.useState(false);
+  const [showInsights, setShowInsights] = React.useState(false);
+  const [insightsType, setInsightsType] = React.useState<'sentiment' | 'topics' | 'urgency' | 'language'>('sentiment');
+  
+  const {
+    loading: aiLoading,
+    summary,
+    smartReplies,
+    insights,
+    generateSummary,
+    generateSmartReplies,
+    analyzeMessages,
+    clearSummary,
+    clearSmartReplies,
+    clearInsights
+  } = useAIChatAssistant();
   
   // Optimized message handling with batching and pagination
   const { messages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
@@ -399,15 +424,29 @@ const ChatEnhancedContent = () => {
               >
                 <Video className="h-5 w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowAIFeatures(true)}
-                className="h-9 w-9 rounded-full hover:bg-muted/50"
-                title="AI Features"
-              >
-                <Sparkles className="h-5 w-5 text-primary" />
-              </Button>
+              <AIChatToolbar
+                onSummarize={async (type) => {
+                  await generateSummary(messages, type);
+                  setShowSummary(true);
+                }}
+                onSmartReply={async () => {
+                  if (messages.length > 0) {
+                    const lastMsg = messages[messages.length - 1];
+                    if (lastMsg.sender_id !== user?.id) {
+                      await generateSmartReplies(lastMsg.content, messages.slice(-5));
+                      setShowSmartReplies(true);
+                    } else {
+                      toast.info('Smart replies work on received messages');
+                    }
+                  }
+                }}
+                onAnalyze={async (type) => {
+                  setInsightsType(type);
+                  await analyzeMessages(messages, type);
+                  setShowInsights(true);
+                }}
+                disabled={messages.length === 0}
+              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -649,6 +688,59 @@ const ChatEnhancedContent = () => {
           setActiveConversationId(groupId);
           setShowGroupCreator(false);
         }}
+      />
+
+      {/* AI Summary Dialog */}
+      <Dialog open={showSummary} onOpenChange={(open) => {
+        setShowSummary(open);
+        if (!open) clearSummary();
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>AI Conversation Summary</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[500px] pr-4">
+            {aiLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : (
+              <div className="prose prose-sm max-w-none">
+                <p className="whitespace-pre-wrap">{summary}</p>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Smart Replies Panel */}
+      {showSmartReplies && smartReplies.length > 0 && (
+        <div className="fixed bottom-20 left-0 right-0 z-50 px-4">
+          <SmartRepliesPanel
+            replies={smartReplies}
+            onSelect={(reply) => {
+              handleSendMessage(reply);
+              clearSmartReplies();
+              setShowSmartReplies(false);
+            }}
+            onClose={() => {
+              clearSmartReplies();
+              setShowSmartReplies(false);
+            }}
+            loading={aiLoading}
+          />
+        </div>
+      )}
+
+      {/* AI Insights Panel */}
+      <AIInsightsPanel
+        open={showInsights}
+        onClose={() => {
+          setShowInsights(false);
+          clearInsights();
+        }}
+        insights={insights}
+        type={insightsType}
       />
 
       {/* Broadcast Creator */}
