@@ -100,6 +100,7 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/download" element={<Download />} />
+            <Route path="/install" element={<Install />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/privacy" element={<Privacy />} />
             
