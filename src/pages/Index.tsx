@@ -20,7 +20,8 @@ import {
   QrCode,
   Flame,
   Grid3x3,
-  CheckCircle
+  CheckCircle,
+  Building2
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 
@@ -258,6 +259,14 @@ const Index = () => {
       description: 'Verified accounts & services',
       iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
       route: '/official-accounts',
+      isNew: true
+    },
+    {
+      icon: Building2,
+      title: 'Business',
+      description: 'CRM, inbox & analytics',
+      iconColor: 'bg-gradient-to-br from-blue-500 to-cyan-600',
+      route: '/business',
       isNew: true
     },
   ];

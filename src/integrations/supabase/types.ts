@@ -610,6 +610,77 @@ export type Database = {
         }
         Relationships: []
       }
+      business_conversations: {
+        Row: {
+          assigned_to: string | null
+          business_id: string
+          conversation_id: string
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          last_message_at: string | null
+          priority: string | null
+          status: string | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          business_id: string
+          conversation_id: string
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          priority?: string | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          business_id?: string
+          conversation_id?: string
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          priority?: string | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_conversations_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_conversations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_conversations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_conversations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_offerings: {
         Row: {
           available: boolean | null
@@ -656,55 +727,182 @@ export type Database = {
       }
       business_profiles: {
         Row: {
+          business_email: string | null
           business_hours: Json | null
           business_name: string
+          business_phone: string | null
           business_type: string
           contact_info: Json | null
           created_at: string | null
           description: string | null
+          gst_number: string | null
           id: string
           location: Json | null
           logo_url: string | null
+          pan_number: string | null
+          subscription_id: string | null
           updated_at: string | null
           user_id: string
           verification_date: string | null
+          verification_documents: Json | null
           verified: boolean | null
         }
         Insert: {
+          business_email?: string | null
           business_hours?: Json | null
           business_name: string
+          business_phone?: string | null
           business_type: string
           contact_info?: Json | null
           created_at?: string | null
           description?: string | null
+          gst_number?: string | null
           id?: string
           location?: Json | null
           logo_url?: string | null
+          pan_number?: string | null
+          subscription_id?: string | null
           updated_at?: string | null
           user_id: string
           verification_date?: string | null
+          verification_documents?: Json | null
           verified?: boolean | null
         }
         Update: {
+          business_email?: string | null
           business_hours?: Json | null
           business_name?: string
+          business_phone?: string | null
           business_type?: string
           contact_info?: Json | null
           created_at?: string | null
           description?: string | null
+          gst_number?: string | null
           id?: string
           location?: Json | null
           logo_url?: string | null
+          pan_number?: string | null
+          subscription_id?: string | null
           updated_at?: string | null
           user_id?: string
           verification_date?: string | null
+          verification_documents?: Json | null
           verified?: boolean | null
         }
         Relationships: [
           {
+            foreignKeyName: "business_profiles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "business_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "business_profiles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_subscriptions: {
+        Row: {
+          billing_cycle_start: string | null
+          business_id: string
+          created_at: string | null
+          features: Json | null
+          id: string
+          monthly_price: number | null
+          next_billing_date: string | null
+          plan_type: string
+          status: string | null
+          trial_ends_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_cycle_start?: string | null
+          business_id: string
+          created_at?: string | null
+          features?: Json | null
+          id?: string
+          monthly_price?: number | null
+          next_billing_date?: string | null
+          plan_type: string
+          status?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_cycle_start?: string | null
+          business_id?: string
+          created_at?: string | null
+          features?: Json | null
+          id?: string
+          monthly_price?: number | null
+          next_billing_date?: string | null
+          plan_type?: string
+          status?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_subscriptions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_team_members: {
+        Row: {
+          business_id: string
+          id: string
+          invited_by: string | null
+          joined_at: string | null
+          permissions: Json | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          permissions?: Json | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          permissions?: Json | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_team_members_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_team_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

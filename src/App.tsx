@@ -79,6 +79,11 @@ import ProviderAppointments from "./pages/provider/Appointments";
 import ProviderServices from "./pages/provider/Services";
 import ProviderPayments from "./pages/provider/Payments";
 
+// Business Pages
+import BusinessDashboard from "./pages/business/Dashboard";
+import BusinessOnboarding from "./pages/business/Onboarding";
+import BusinessInbox from "./pages/business/Inbox";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -179,6 +184,11 @@ const App = () => {
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
             <Route path="/provider/services" element={<ProviderServices />} />
             <Route path="/provider/payments" element={<ProviderPayments />} />
+            
+            {/* Business Routes */}
+            <Route path="/business" element={<BusinessDashboard />} />
+            <Route path="/business/onboard" element={<BusinessOnboarding />} />
+            <Route path="/business/inbox" element={<BusinessInbox />} />
             
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
