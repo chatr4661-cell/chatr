@@ -128,20 +128,22 @@ const MessageBubbleComponent = ({
 
   return (
     <div
-      className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'} mb-1 px-3 relative`}
+      className={`flex gap-2 mb-1 px-3 relative ${isOwn ? 'justify-end' : 'justify-start'}`}
       onTouchStart={handleLongPress}
       onContextMenu={handleContextMenu}
     >
-      {showAvatar ? (
-        <Avatar className="w-8 h-8 shrink-0">
-          <AvatarImage src={otherUser?.avatar_url} />
-          <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary text-xs font-semibold">
-            {otherUser?.username?.[0]?.toUpperCase() || '?'}
-          </AvatarFallback>
-        </Avatar>
-      ) : !isOwn ? (
-        <div className="w-8 shrink-0" />
-      ) : null}
+      {!isOwn && (
+        showAvatar ? (
+          <Avatar className="w-8 h-8 shrink-0">
+            <AvatarImage src={otherUser?.avatar_url} />
+            <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary text-xs font-semibold">
+              {otherUser?.username?.[0]?.toUpperCase() || '?'}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <div className="w-8 shrink-0" />
+        )
+      )}
 
       <div className={`flex flex-col gap-0.5 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
         {/* Multiple media attachments */}
