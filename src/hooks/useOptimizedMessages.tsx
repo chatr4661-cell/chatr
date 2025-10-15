@@ -161,10 +161,8 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         },
         (payload) => {
           const newMessage = payload.new as Message;
-          // Only add if from another user (our own are optimistically added)
-          if (newMessage.sender_id !== userId) {
-            batchUpdate({ ...newMessage, status: 'sent' });
-          }
+          // Add all messages - handle both sent and received
+          batchUpdate({ ...newMessage, status: 'sent' });
         }
       )
       .on(
