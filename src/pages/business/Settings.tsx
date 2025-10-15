@@ -11,11 +11,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { TeamInviteDialog } from '@/components/business/TeamInviteDialog';
+import { BillingHistoryDialog } from '@/components/business/BillingHistoryDialog';
+import { BusinessHoursEditor } from '@/components/business/BusinessHoursEditor';
 import { 
   ArrowLeft, Building2, Upload, Save, Users, 
   Bell, CreditCard, Shield, Trash2, Mail, Phone,
-  MapPin, Clock, Globe, Check
+  MapPin, Globe, Check, AlertTriangle
 } from 'lucide-react';
+import type {
+  BusinessLocation,
+  BusinessContactInfo,
+  NotificationPreferences,
+  BusinessHours,
+  PlanLimits,
+} from '@/types/business';
 
 interface BusinessProfile {
   id: string;
@@ -26,11 +36,11 @@ interface BusinessProfile {
   verified: boolean;
   business_phone: string | null;
   business_email: string | null;
-  location: any;
-  business_hours: any;
-  contact_info: any;
+  location: BusinessLocation | null;
+  business_hours: BusinessHours | null;
+  contact_info: BusinessContactInfo | null;
   broadcasts_enabled: boolean;
-  notification_preferences: any;
+  notification_preferences: NotificationPreferences | null;
 }
 
 interface Subscription {
@@ -50,7 +60,7 @@ interface SubscriptionPlan {
   monthly_price: number;
   yearly_price: number | null;
   features: any;
-  limits: any;
+  limits: PlanLimits;
   display_order: number;
 }
 
@@ -64,6 +74,8 @@ export default function BusinessSettings() {
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [availablePlans, setAvailablePlans] = useState<SubscriptionPlan[]>([]);
   const [changingPlan, setChangingPlan] = useState(false);
+  const [teamInviteOpen, setTeamInviteOpen] = useState(false);
+  const [billingHistoryOpen, setBillingHistoryOpen] = useState(false);
   
   // Form states
   const [businessName, setBusinessName] = useState('');
@@ -72,6 +84,7 @@ export default function BusinessSettings() {
   const [businessEmail, setBusinessEmail] = useState('');
   const [address, setAddress] = useState('');
   const [website, setWebsite] = useState('');
+  const [businessHours, setBusinessHours] = useState<BusinessHours | null>(null);
   
   // Business settings
   const [broadcastsEnabled, setBroadcastsEnabled] = useState(true);
@@ -108,7 +121,7 @@ export default function BusinessSettings() {
         return;
       }
 
-      setBusinessProfile(profile);
+      setBusinessProfile(profile as unknown as BusinessProfile);
       setBusinessName(profile.business_name);
       setDescription(profile.description || '');
       setBusinessPhone(profile.business_phone || '');
@@ -116,19 +129,24 @@ export default function BusinessSettings() {
       setBroadcastsEnabled(profile.broadcasts_enabled ?? true);
       
       // Safely parse location and contact_info
-      const location = profile.location as any;
-      const contactInfo = profile.contact_info as any;
+      const location = profile.location as unknown as BusinessLocation;
+      const contactInfo = profile.contact_info as unknown as BusinessContactInfo;
+      const hours = profile.business_hours as unknown as BusinessHours;
+      
       setAddress(location?.address || '');
       setWebsite(contactInfo?.website || '');
+      setBusinessHours(hours);
       
       // Load notification preferences
-      const notifPrefs = profile.notification_preferences as any || {};
-      setEmailNotifications(notifPrefs.email_notifications ?? true);
-      setSmsNotifications(notifPrefs.sms_notifications ?? false);
-      setNewLeadAlerts(notifPrefs.new_lead_alerts ?? true);
-      setDailyDigest(notifPrefs.daily_digest ?? true);
-      setOrderNotifications(notifPrefs.order_notifications ?? true);
-      setReviewNotifications(notifPrefs.review_notifications ?? true);
+      const notifPrefs = profile.notification_preferences as unknown as NotificationPreferences;
+      if (notifPrefs) {
+        setEmailNotifications(notifPrefs.email_notifications ?? true);
+        setSmsNotifications(notifPrefs.sms_notifications ?? false);
+        setNewLeadAlerts(notifPrefs.new_lead_alerts ?? true);
+        setDailyDigest(notifPrefs.daily_digest ?? true);
+        setOrderNotifications(notifPrefs.order_notifications ?? true);
+        setReviewNotifications(notifPrefs.review_notifications ?? true);
+      }
 
       // Load subscription
       const { data: subData } = await supabase
@@ -167,7 +185,7 @@ export default function BusinessSettings() {
         .order('display_order');
 
       if (plansData) {
-        setAvailablePlans(plansData);
+        setAvailablePlans(plansData as unknown as SubscriptionPlan[]);
       }
 
     } catch (error) {
@@ -194,8 +212,9 @@ export default function BusinessSettings() {
           description: description,
           business_phone: businessPhone,
           business_email: businessEmail,
-          location: { address },
-          contact_info: { website },
+          location: { address } as any,
+          contact_info: { website } as any,
+          business_hours: businessHours as any,
           broadcasts_enabled: broadcastsEnabled
         })
         .eq('id', businessProfile.id);
@@ -260,17 +279,35 @@ export default function BusinessSettings() {
   const handleChangePlan = async (planId: string) => {
     if (!subscription || !businessProfile) return;
     
+    const selectedPlan = availablePlans.find(p => p.id === planId);
+    if (!selectedPlan) return;
+
+    // Validate plan limits
+    const currentLimits = selectedPlan.limits;
+    const teamCount = teamMembers.length;
+
+    if (currentLimits.team_members !== -1 && teamCount > currentLimits.team_members) {
+      toast({
+        title: 'Cannot Change Plan',
+        description: (
+          <div className="space-y-2">
+            <p>You have {teamCount} team members, but this plan only allows {currentLimits.team_members}.</p>
+            <p className="text-sm">Please remove team members before downgrading.</p>
+          </div>
+        ),
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setChangingPlan(true);
     try {
-      const selectedPlan = availablePlans.find(p => p.id === planId);
-      if (!selectedPlan) throw new Error('Plan not found');
-
       const { error } = await supabase
         .from('business_subscriptions')
         .update({
           plan_type: selectedPlan.name.toLowerCase(),
           monthly_price: selectedPlan.monthly_price,
-          features: selectedPlan.features
+          features: selectedPlan.features as any
         })
         .eq('id', subscription.id);
 
@@ -536,6 +573,11 @@ export default function BusinessSettings() {
                       />
                     </div>
                   </div>
+
+                  <BusinessHoursEditor
+                    value={businessHours}
+                    onChange={setBusinessHours}
+                  />
                 </div>
 
                 <Button 
@@ -564,7 +606,7 @@ export default function BusinessSettings() {
                       Manage team access and permissions
                     </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => setTeamInviteOpen(true)}>
                     <Users className="h-4 w-4 mr-2" />
                     Invite Member
                   </Button>
@@ -726,7 +768,11 @@ export default function BusinessSettings() {
                       </div>
                     </div>
 
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setBillingHistoryOpen(true)}
+                    >
                       View Billing History
                     </Button>
                   </>
@@ -841,6 +887,20 @@ export default function BusinessSettings() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialogs */}
+      <TeamInviteDialog
+        open={teamInviteOpen}
+        onOpenChange={setTeamInviteOpen}
+        businessId={businessProfile?.id || ''}
+        onSuccess={loadBusinessData}
+      />
+      
+      <BillingHistoryDialog
+        open={billingHistoryOpen}
+        onOpenChange={setBillingHistoryOpen}
+        businessId={businessProfile?.id || ''}
+      />
     </div>
   );
 }
