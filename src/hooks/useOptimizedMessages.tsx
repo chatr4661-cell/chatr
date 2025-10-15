@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { toast } from 'sonner';
+import { useOfflineQueue } from './useOfflineQueue';
 
 interface Message {
   id: string;
@@ -24,6 +26,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
   const updateQueueRef = React.useRef<Message[]>([]);
   const updateTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const { queueMessage, isOnline } = useOfflineQueue();
 
   // Batch real-time updates to reduce re-renders
   const batchUpdate = React.useCallback((newMessage: Message) => {

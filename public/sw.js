@@ -79,10 +79,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle API requests (network first, cache fallback)
+  // Handle API requests (network first with 8s timeout for 2G, cache fallback)
   if (url.pathname.includes('/api/') || url.pathname.includes('supabase')) {
     event.respondWith(
-      fetch(request)
+      Promise.race([
+        fetch(request),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('timeout')), 8000) // 8s timeout for 2G
+        )
+      ])
         .then(response => {
           // Clone and cache successful responses
           if (response.status === 200) {
@@ -94,8 +99,14 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Fallback to cache if network fails
-          return caches.match(request);
+          // Fallback to cache if network fails or times out
+          return caches.match(request).then(cached => {
+            if (cached) return cached;
+            // Return offline indicator
+            return new Response(JSON.stringify({ offline: true }), {
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
         })
     );
     return;

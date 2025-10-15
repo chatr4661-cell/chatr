@@ -15,8 +15,9 @@ import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
 import { VirtualMessageList } from '@/components/chat/VirtualMessageList';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
-import { useOptimizedMessages } from '@/hooks/useOptimizedMessages';
-import { useOptimisticChat } from '@/hooks/useOptimisticChat';
+import { useOptimizedMessages } from "@/hooks/useOptimizedMessages";
+import { useOptimisticChat } from "@/hooks/useOptimisticChat";
+import { useNetworkQuality } from "@/hooks/useNetworkQuality";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
 import { PulseCreator } from '@/components/chat/PulseCreator';
@@ -58,6 +59,7 @@ const ChatEnhancedContent = () => {
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [notificationCount, setNotificationCount] = React.useState(0);
   const { streak } = useStreakTracking('ai_chat');
+  const networkQuality = useNetworkQuality();
   
   // AI Features State
   const [showSmartReplies, setShowSmartReplies] = React.useState(false);
@@ -307,12 +309,14 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Load messages when conversation changes - optimized batch size
+  // Load messages when conversation changes - adaptive based on network
   React.useEffect(() => {
     if (activeConversationId) {
-      loadMessages(50, 0); // Load 50 messages for smoother scrolling
+      // Load fewer messages on slow networks
+      const initialLoad = networkQuality === 'slow' ? 20 : 50;
+      loadMessages(initialLoad, 0);
     }
-  }, [activeConversationId, loadMessages]);
+  }, [activeConversationId, loadMessages, networkQuality]);
 
   const handleStartCall = async (callType: 'voice' | 'video') => {
     if (!activeConversationId || !otherUser) {

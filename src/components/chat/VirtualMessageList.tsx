@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageBubble } from './MessageBubble';
 import { MessageListSkeleton } from './MessageListSkeleton';
+import { LazyImage } from '@/components/LazyImage';
 
 interface Message {
   id: string;
