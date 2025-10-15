@@ -85,14 +85,45 @@ export default function BusinessOnboarding() {
       }
 
       // Create business profile
-      const { error } = await supabase
+      const { data: businessProfile, error: profileError } = await supabase
         .from('business_profiles')
         .insert({
           user_id: user.id,
           ...formData
+        })
+        .select()
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Create free subscription
+      const { error: subError } = await supabase
+        .from('business_subscriptions')
+        .insert({
+          business_id: businessProfile.id,
+          plan_type: 'free',
+          status: 'active',
+          monthly_price: 0,
+          features: {
+            max_customers: 100,
+            max_team_members: 1,
+            broadcasts_enabled: false,
+            ai_enabled: false
+          }
         });
 
-      if (error) throw error;
+      if (subError) throw subError;
+
+      // Create team member entry
+      const { error: teamError } = await supabase
+        .from('business_team_members')
+        .insert({
+          business_id: businessProfile.id,
+          user_id: user.id,
+          role: 'owner'
+        });
+
+      if (teamError) throw teamError;
 
       toast({
         title: 'Success!',
