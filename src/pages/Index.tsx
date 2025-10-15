@@ -21,10 +21,14 @@ import {
   Flame,
   Grid3x3,
   CheckCircle,
-  Building2
+  Building2,
+  Share2
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { QRCodeSVG } from 'qrcode.react';
+import { Copy, Share } from 'lucide-react';
 
 // Lazy load heavy components
 const ServiceCard = React.lazy(() => import('@/components/ServiceCard'));
@@ -35,6 +39,9 @@ const Index = () => {
   const [pointsBalance, setPointsBalance] = React.useState<number>(0);
   const [currentStreak, setCurrentStreak] = React.useState<number>(0);
   const [mounted, setMounted] = React.useState(false);
+  const [showShareDialog, setShowShareDialog] = React.useState(false);
+  const [referralCode, setReferralCode] = React.useState<string>('');
+  const [qrCodeUrl, setQrCodeUrl] = React.useState<string>('');
 
   // Fast initial auth check - non-blocking
   React.useEffect(() => {
@@ -167,13 +174,19 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [{ data: pointsData }, { data: streakData }] = await Promise.all([
+      const [{ data: pointsData }, { data: streakData }, { data: referralData }] = await Promise.all([
         supabase.from('user_points').select('balance').eq('user_id', user.id).maybeSingle(),
-        supabase.from('user_streaks').select('current_streak').eq('user_id', user.id).maybeSingle()
+        supabase.from('user_streaks').select('current_streak').eq('user_id', user.id).maybeSingle(),
+        supabase.from('chatr_referral_codes').select('code, qr_code_url').eq('user_id', user.id).maybeSingle()
       ]);
 
       setPointsBalance(pointsData?.balance || 0);
       setCurrentStreak(streakData?.current_streak || 0);
+      
+      if (referralData) {
+        setReferralCode(referralData.code);
+        setQrCodeUrl(referralData.qr_code_url || '');
+      }
     } catch (error) {
       console.error('Error loading points:', error);
     }
@@ -203,6 +216,51 @@ const Index = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth');
+  };
+
+  const handleShareClick = async () => {
+    if (!referralCode) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-referral-code');
+        if (error) throw error;
+        if (data) {
+          setReferralCode(data.referralCode);
+          setQrCodeUrl(data.qrCodeUrl || '');
+        }
+      } catch (error) {
+        console.error('Error generating referral code:', error);
+        toast.error('Failed to load referral code');
+        return;
+      }
+    }
+    setShowShareDialog(true);
+  };
+
+  const copyReferralLink = async () => {
+    const link = `${window.location.origin}/auth?ref=${referralCode}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success('Referral link copied!');
+    } catch (error) {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const shareReferralLink = async () => {
+    const link = `${window.location.origin}/auth?ref=${referralCode}`;
+    const text = `Join me on Chatr+ and earn rewards! Use my code: ${referralCode}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Join Chatr+', text, url: link });
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          copyReferralLink();
+        }
+      }
+    } else {
+      copyReferralLink();
+    }
   };
 
   const mainHubs = [
@@ -389,10 +447,11 @@ const Index = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/download')}
-              className="rounded-full h-9 px-4 text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+              onClick={handleShareClick}
+              className="rounded-full h-9 px-4 text-sm font-medium bg-gradient-to-r from-orange-500/10 to-red-500/10 hover:from-orange-500/20 hover:to-red-500/20 text-orange-600 dark:text-orange-400 transition-all gap-1.5"
             >
-              Download
+              <Share2 className="w-4 h-4" />
+              <span>Share & Earn</span>
             </Button>
             {user && (
               <Button
@@ -533,6 +592,84 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent font-bold">
+              Chatr Champions
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* QR Code */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="bg-white p-4 rounded-2xl shadow-lg">
+                {qrCodeUrl ? (
+                  <img src={qrCodeUrl} alt="Referral QR Code" className="w-48 h-48" />
+                ) : referralCode ? (
+                  <QRCodeSVG 
+                    value={`${window.location.origin}/auth?ref=${referralCode}`}
+                    size={192}
+                    level="H"
+                    includeMargin
+                  />
+                ) : (
+                  <div className="w-48 h-48 flex items-center justify-center bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Loading...</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Referral Code */}
+              {referralCode && (
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Your Referral Code</p>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+                    {referralCode}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={copyReferralLink}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Copy Link
+              </Button>
+              <Button
+                onClick={shareReferralLink}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 gap-2"
+              >
+                <Share className="w-4 h-4" />
+                Share
+              </Button>
+            </div>
+
+            {/* Info */}
+            <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-4">
+              <p className="text-sm text-center text-muted-foreground">
+                Share your code and earn <span className="font-bold text-orange-600 dark:text-orange-400">₹50</span> per referral + network bonuses!
+              </p>
+              <Button
+                variant="link"
+                onClick={() => {
+                  setShowShareDialog(false);
+                  navigate('/growth');
+                }}
+                className="w-full mt-2 text-orange-600 dark:text-orange-400"
+              >
+                View Full Dashboard →
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
