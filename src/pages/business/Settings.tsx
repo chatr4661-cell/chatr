@@ -268,10 +268,51 @@ export default function BusinessSettings() {
                     <p className="text-sm text-muted-foreground mb-2">
                       Upload a logo for your business
                     </p>
-                    <Button variant="outline" size="sm">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Logo
-                    </Button>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !businessProfile) return;
+
+                        try {
+                          const fileExt = file.name.split('.').pop();
+                          const fileName = `${businessProfile.id}-${Date.now()}.${fileExt}`;
+                          const { error: uploadError } = await supabase.storage
+                            .from('social-media')
+                            .upload(fileName, file);
+
+                          if (uploadError) throw uploadError;
+
+                          const { data } = supabase.storage
+                            .from('social-media')
+                            .getPublicUrl(fileName);
+
+                          const { error: updateError } = await supabase
+                            .from('business_profiles')
+                            .update({ logo_url: data.publicUrl })
+                            .eq('id', businessProfile.id);
+
+                          if (updateError) throw updateError;
+
+                          toast({ title: 'Success', description: 'Logo uploaded successfully' });
+                          loadBusinessData();
+                        } catch (error) {
+                          console.error('Error uploading logo:', error);
+                          toast({ title: 'Error', description: 'Failed to upload logo', variant: 'destructive' });
+                        }
+                      }}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <Label htmlFor="logo-upload" className="cursor-pointer">
+                      <Button variant="outline" size="sm" type="button" asChild>
+                        <span>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Logo
+                        </span>
+                      </Button>
+                    </Label>
                   </div>
                   {businessProfile?.verified && (
                     <Badge className="bg-gradient-hero">

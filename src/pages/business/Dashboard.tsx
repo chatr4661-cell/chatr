@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { 
   MessageSquare, Users, TrendingUp, Clock, 
-  Settings, Building2, Plus, ArrowRight 
+  Settings, Building2, Plus, ArrowRight, Send
 } from 'lucide-react';
 
 interface BusinessProfile {
@@ -195,41 +195,41 @@ export default function BusinessDashboard() {
           </Button>
 
           <Button
-            onClick={() => navigate('/business/crm')}
+            onClick={() => navigate('/business/catalog')}
             className="h-auto p-6 flex flex-col items-start gap-3 glass-card hover:shadow-glow transition-all group relative overflow-hidden"
             variant="outline"
           >
             <div className="absolute inset-0 bg-gradient-hero opacity-0 group-hover:opacity-10 transition-opacity" />
             <div className="p-2 rounded-lg bg-accent/10 group-hover:bg-accent/20 transition-colors">
-              <Users className="h-5 w-5 text-accent" />
+              <MessageSquare className="h-5 w-5 text-accent" />
             </div>
             <div className="text-left relative z-10">
-              <span className="font-semibold text-base">CRM</span>
+              <span className="font-semibold text-base">Catalog</span>
               <p className="text-xs text-muted-foreground mt-1">
-                Manage leads
+                Products & Services
               </p>
             </div>
           </Button>
 
           <Button
-            onClick={() => navigate('/business/analytics')}
+            onClick={() => navigate('/business/broadcasts')}
             className="h-auto p-6 flex flex-col items-start gap-3 glass-card hover:shadow-glow transition-all group relative overflow-hidden"
             variant="outline"
           >
             <div className="absolute inset-0 bg-gradient-hero opacity-0 group-hover:opacity-10 transition-opacity" />
             <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <Send className="h-5 w-5 text-primary" />
             </div>
             <div className="text-left relative z-10">
-              <span className="font-semibold text-base">Analytics</span>
+              <span className="font-semibold text-base">Broadcasts</span>
               <p className="text-xs text-muted-foreground mt-1">
-                View insights
+                Send messages
               </p>
             </div>
           </Button>
 
           <Button
-            onClick={() => navigate('/business/team')}
+            onClick={() => navigate('/business/groups')}
             className="h-auto p-6 flex flex-col items-start gap-3 glass-card hover:shadow-glow transition-all group relative overflow-hidden"
             variant="outline"
           >
@@ -238,9 +238,9 @@ export default function BusinessDashboard() {
               <Users className="h-5 w-5 text-accent" />
             </div>
             <div className="text-left relative z-10">
-              <span className="font-semibold text-base">Team</span>
+              <span className="font-semibold text-base">Groups</span>
               <p className="text-xs text-muted-foreground mt-1">
-                {stats.team_members} member{stats.team_members !== 1 ? 's' : ''}
+                Customer communities
               </p>
             </div>
           </Button>
