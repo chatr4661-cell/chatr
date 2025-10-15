@@ -84,6 +84,8 @@ import BusinessDashboard from "./pages/business/Dashboard";
 import BusinessOnboarding from "./pages/business/Onboarding";
 import BusinessInbox from "./pages/business/Inbox";
 import CRMPage from "./pages/business/CRM";
+import BusinessAnalytics from "./pages/business/Analytics";
+import BusinessTeam from "./pages/business/Team";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -191,6 +193,8 @@ const App = () => {
             <Route path="/business/onboard" element={<BusinessOnboarding />} />
             <Route path="/business/inbox" element={<BusinessInbox />} />
             <Route path="/business/crm" element={<CRMPage />} />
+            <Route path="/business/analytics" element={<BusinessAnalytics />} />
+            <Route path="/business/team" element={<BusinessTeam />} />
             
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
