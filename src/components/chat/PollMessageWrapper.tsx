@@ -7,14 +7,23 @@ interface PollMessageWrapperProps {
   messageId: string;
   data: {
     question: string;
-    options: string[];
+    options: string[] | Array<{ text: string; votes: number }>;
   };
 }
 
 export const PollMessageWrapper: React.FC<PollMessageWrapperProps> = ({ messageId, data }) => {
+  // Handle both string array and object array formats
+  const initialOptions = Array.isArray(data.options)
+    ? data.options.map(opt => 
+        typeof opt === 'string' 
+          ? { text: opt, votes: 0 } 
+          : opt
+      )
+    : [];
+
   const [pollData, setPollData] = useState({
-    options: data.options.map(opt => ({ text: opt, votes: 0 })),
-    totalVotes: 0,
+    options: initialOptions,
+    totalVotes: initialOptions.reduce((sum, opt) => sum + (opt.votes || 0), 0),
     userVote: undefined as number | undefined
   });
 
