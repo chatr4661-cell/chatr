@@ -58,7 +58,7 @@ export default function ProductionVideoCall({
   const { stats, currentQuality, connectionQuality: netConnectionQuality } = useNetworkStats({
     peerConnection: peerConnectionRef.current,
     enabled: callStatus === 'connected',
-    autoAdjust: true
+    autoAdjust: false // DISABLED for stability - was causing calls to crash
   });
 
   const { controlsVisible, showControls } = useCallUI({ 

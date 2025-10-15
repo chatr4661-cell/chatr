@@ -41,15 +41,15 @@ export const useNetworkStats = ({
           setConnectionQuality('excellent');
         }
 
-        // Auto-adjust quality if enabled
-        if (autoAdjust) {
-          const optimalQuality = getOptimalQuality(networkStats);
-          if (optimalQuality !== currentQuality) {
-            await setBandwidth(peerConnection, optimalQuality);
-            setCurrentQuality(optimalQuality);
-            console.log(`📊 Quality auto-adjusted to ${optimalQuality}`);
-          }
-        }
+        // Auto-adjust quality DISABLED - was causing calls to crash
+        // if (autoAdjust) {
+        //   const optimalQuality = getOptimalQuality(networkStats);
+        //   if (optimalQuality !== currentQuality) {
+        //     await setBandwidth(peerConnection, optimalQuality);
+        //     setCurrentQuality(optimalQuality);
+        //     console.log(`📊 Quality auto-adjusted to ${optimalQuality}`);
+        //   }
+        // }
       } catch (error) {
         console.error('Error monitoring network stats:', error);
       }

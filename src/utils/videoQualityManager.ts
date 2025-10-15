@@ -79,25 +79,9 @@ export const setBandwidth = async (
   pc: RTCPeerConnection, 
   quality: QualityLevel
 ) => {
-  const preset = QUALITY_PRESETS[quality];
-  const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-  
-  if (sender) {
-    const parameters = sender.getParameters();
-    if (!parameters.encodings || parameters.encodings.length === 0) {
-      parameters.encodings = [{}];
-    }
-    
-    parameters.encodings[0].maxBitrate = preset.bitrate;
-    parameters.encodings[0].maxFramerate = preset.fps;
-    
-    try {
-      await sender.setParameters(parameters);
-      console.log(`✅ Quality set to ${preset.label} (${preset.bitrate / 1000000}Mbps)`);
-    } catch (error) {
-      console.error('Failed to set bandwidth:', error);
-    }
-  }
+  // DISABLED - was causing "read-only field" errors and crashing calls
+  console.log(`ℹ️ Bandwidth adjustment disabled for call stability (requested: ${quality})`);
+  return;
 };
 
 export const setPreferredCodec = (
