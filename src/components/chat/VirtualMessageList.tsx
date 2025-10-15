@@ -86,6 +86,9 @@ export const VirtualMessageList = React.memo(({
     );
   }
 
+  // CRITICAL DEBUG: Log userId on every render
+  console.log('[VirtualMessageList] RENDER - userId:', userId, 'type:', typeof userId, 'messages count:', messages.length);
+
   return (
     <ScrollArea className="flex-1 h-full bg-[hsl(200,25%,97%)]" ref={scrollRef} onScroll={handleScroll}>
       <div className="py-3 w-full">
