@@ -44,9 +44,9 @@ serve(async (req) => {
     if (existingCode) {
       return new Response(
         JSON.stringify({
-          code: existingCode.code,
+          referralCode: existingCode.code,
           qrCodeUrl: existingCode.qr_code_url,
-          shareUrl: `https://chatr.app/join/${existingCode.code}`
+          shareUrl: `https://chatr.chat/auth?ref=${existingCode.code}`
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -87,7 +87,7 @@ serve(async (req) => {
     }
 
     // Create QR code URL (using a QR code service)
-    const shareUrl = `https://chatr.app/join/${code}`;
+    const shareUrl = `https://chatr.chat/auth?ref=${code}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(shareUrl)}`;
 
     // Insert code
@@ -122,7 +122,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        code,
+        referralCode: code,
         qrCodeUrl,
         shareUrl
       }),
