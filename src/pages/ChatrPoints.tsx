@@ -277,7 +277,7 @@ export default function ChatrPoints() {
   };
 
   const copyReferralLink = () => {
-    const shareUrl = `https://chatr.app/join/${referralCode}`;
+    const shareUrl = `https://chatr.chat/auth?ref=${referralCode}`;
     navigator.clipboard.writeText(shareUrl);
     toast({
       title: 'Copied!',
@@ -286,8 +286,8 @@ export default function ChatrPoints() {
   };
 
   const shareReferral = async () => {
-    const shareUrl = `https://chatr.app/join/${referralCode}`;
-    const shareText = `Join me on Chatr and earn 100 coins! Use my code: ${referralCode}`;
+    const shareUrl = `https://chatr.chat/auth?ref=${referralCode}`;
+    const shareText = `Join me on Chatr and earn rewards! Use my code: ${referralCode}`;
 
     if (navigator.share) {
       try {
