@@ -385,17 +385,30 @@ const ChatEnhancedContent = () => {
   // Show offline mode if enabled
   if (showOfflineMode) {
     return (
-      <div className="relative h-screen">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="absolute top-4 left-4 z-50"
-          onClick={() => setShowOfflineMode(false)}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Online Chat
-        </Button>
-        <OfflineChat />
+      <div className="relative h-screen bg-background">
+        <div className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between bg-card/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowOfflineMode(false)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Online Chat
+          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="gap-1">
+              <Bluetooth className="w-3 h-3" />
+              Bluetooth Mode Active
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <WifiOff className="w-3 h-3" />
+              No Internet Required
+            </Badge>
+          </div>
+        </div>
+        <div className="pt-20 h-full">
+          <OfflineChat />
+        </div>
       </div>
     );
   }
