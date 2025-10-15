@@ -86,8 +86,6 @@ export const VirtualMessageList = React.memo(({
     );
   }
 
-  // CRITICAL DEBUG: Log userId on every render
-  console.log('[VirtualMessageList] RENDER - userId:', userId, 'type:', typeof userId, 'messages count:', messages.length);
 
   return (
     <ScrollArea className="flex-1 h-full bg-[hsl(200,25%,97%)]" ref={scrollRef} onScroll={handleScroll}>
@@ -98,16 +96,9 @@ export const VirtualMessageList = React.memo(({
           </div>
         )}
         {messages.map((message, index) => {
-          // CRITICAL FIX: Ensure proper string comparison
-          const messageSenderId = String(message.sender_id || '').trim();
-          const currentUserId = String(userId || '').trim();
-          const isOwn = messageSenderId === currentUserId && currentUserId !== '';
-          
+          const isOwn = message.sender_id === userId;
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const showAvatar = !prevMessage || prevMessage.sender_id !== message.sender_id;
-
-          // Debug logging
-          console.log(`[MSG #${index}] sender:"${messageSenderId}" user:"${currentUserId}" match:${isOwn}`);
 
           return (
             <MessageBubble
