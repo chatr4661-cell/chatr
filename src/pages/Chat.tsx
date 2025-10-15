@@ -563,7 +563,7 @@ const ChatEnhancedContent = () => {
           <div className="flex-1 overflow-hidden">
             <VirtualMessageList
               messages={displayMessages}
-              userId={user.id}
+              userId={user?.id || ''}
               otherUser={otherUser}
               onLoadMore={() => {}}
               hasMore={false}
