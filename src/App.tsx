@@ -52,6 +52,8 @@ import Install from "./pages/Install";
 import Onboarding from "./pages/Onboarding";
 import EmergencyButton from "./pages/EmergencyButton";
 import EmergencyServices from "./pages/EmergencyServices";
+import WellnessCircles from "./pages/WellnessCircles";
+import ExpertSessions from "./pages/ExpertSessions";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -188,6 +190,9 @@ const App = () => {
             <Route path="/chatr-tutors" element={<ChatrTutors />} />
             <Route path="/tutors" element={<ChatrTutors />} />
             <Route path="/home-services" element={<HomeServices />} />
+            <Route path="/wellness-circles" element={<WellnessCircles />} />
+            <Route path="/wellness-circles/:circleId" element={<WellnessCircles />} />
+            <Route path="/expert-sessions" element={<ExpertSessions />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
