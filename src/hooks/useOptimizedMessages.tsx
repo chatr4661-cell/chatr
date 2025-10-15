@@ -27,19 +27,14 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
   const updateTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const { queueMessage, isOnline } = useOfflineQueue();
-  const prevConversationId = React.useRef<string | null>(null);
-
-  // Clear messages when conversation changes
-  React.useEffect(() => {
-    if (conversationId !== prevConversationId.current) {
-      console.log('🔄 Conversation changed, clearing messages');
-      setMessages([]);
-      prevConversationId.current = conversationId;
-    }
-  }, [conversationId]);
-
-  // Batch real-time updates to reduce re-renders
+  // Simplified batch update - just add or update messages
   const batchUpdate = React.useCallback((newMessage: Message) => {
+    console.log('⚡ batchUpdate called:', { 
+      id: newMessage.id, 
+      sender: newMessage.sender_id, 
+      content: newMessage.content?.substring(0, 30) 
+    });
+    
     updateQueueRef.current.push(newMessage);
     
     if (updateTimeoutRef.current) {
@@ -49,40 +44,47 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
     updateTimeoutRef.current = setTimeout(() => {
       if (updateQueueRef.current.length > 0) {
         setMessages(prev => {
+          console.log('📊 Before update - message count:', prev.length);
           const newMessages = [...prev];
+          
           updateQueueRef.current.forEach(msg => {
-            // Try to find optimistic message to replace (match by content and recent timestamp)
+            // Try to replace optimistic message first (match by tempId or content+timestamp)
             const optimisticIndex = newMessages.findIndex(m => 
-              m.tempId && 
-              m.content === msg.content && 
-              Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 2000
+              m.tempId && (
+                m.tempId === msg.tempId ||
+                (m.content === msg.content && 
+                 Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 2000)
+              )
             );
             
             if (optimisticIndex >= 0) {
-              // Replace optimistic message with real one (remove tempId)
-              console.log('🔄 Replacing optimistic message:', { tempId: newMessages[optimisticIndex].tempId, realId: msg.id });
-              const { tempId, ...realMessage } = msg; // Remove tempId if it exists
-              newMessages[optimisticIndex] = realMessage;
+              console.log('✅ Replacing optimistic:', newMessages[optimisticIndex].id, '→', msg.id);
+              newMessages[optimisticIndex] = { ...msg, status: 'sent' };
             } else {
               // Check if message already exists by id
               const existingIndex = newMessages.findIndex(m => m.id === msg.id);
               if (existingIndex >= 0) {
-                // Update existing message
+                console.log('🔄 Updating existing:', msg.id);
                 newMessages[existingIndex] = msg;
               } else {
-                // Add new message
+                console.log('➕ Adding new message:', msg.id);
                 newMessages.push(msg);
               }
             }
           });
+          
           updateQueueRef.current = [];
-          // Sort chronologically (oldest first, like WhatsApp)
-          return newMessages.sort((a, b) => 
+          
+          // Sort chronologically
+          const sorted = newMessages.sort((a, b) => 
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           );
+          
+          console.log('📊 After update - message count:', sorted.length);
+          return sorted;
         });
       }
-    }, 100); // Batch updates within 100ms
+    }, 100);
   }, []);
 
   // Load messages with pagination - get most recent messages first
@@ -119,13 +121,17 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
           offset,
           conversationId,
           total: totalCount,
-          newest: formattedMessages.slice(-3).map(m => ({ id: m.id, sender: m.sender_id, content: m.content?.substring(0, 30), time: m.created_at }))
+          senders: formattedMessages.reduce((acc, m) => {
+            acc[m.sender_id] = (acc[m.sender_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>)
         });
         
         if (offset === 0) {
-          // Simply use loaded messages - realtime handles updates
+          console.log('🔄 Setting initial messages for conversation');
           setMessages(formattedMessages);
         } else {
+          console.log('📚 Prepending older messages');
           setMessages(prev => [...formattedMessages, ...prev]);
         }
         
@@ -156,6 +162,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
     };
 
     // Add optimistic message instantly
+    console.log('📤 Sending optimistic message:', { tempId, content: content.substring(0, 30) });
     setMessages(prev => [...prev, optimisticMessage]);
 
     try {
