@@ -175,17 +175,20 @@ export const OfflineChat = () => {
           <div className="flex gap-2">
             <Button
               onClick={enableBluetooth}
-              variant={bluetoothEnabled ? 'default' : 'outline'}
+              variant={bluetoothEnabled ? 'default' : 'secondary'}
               size="sm"
+              disabled={bluetoothEnabled}
+              className="transition-all"
             >
               <Bluetooth className="w-4 h-4 mr-2" />
               {bluetoothEnabled ? 'Connected' : 'Enable Bluetooth'}
             </Button>
             <Button
               onClick={enableMeshNetwork}
-              variant={meshMode ? 'default' : 'outline'}
+              variant={meshMode ? 'default' : 'secondary'}
               size="sm"
               disabled={!bluetoothEnabled}
+              className="transition-all"
             >
               <Signal className="w-4 h-4 mr-2" />
               Mesh {meshMode ? 'ON' : 'OFF'}
@@ -271,7 +274,12 @@ export const OfflineChat = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={enableBluetooth} className="w-full">
+                <Button 
+                  onClick={enableBluetooth} 
+                  className="w-full" 
+                  variant="default"
+                  size="lg"
+                >
                   <Bluetooth className="w-4 h-4 mr-2" />
                   Enable Now
                 </Button>
