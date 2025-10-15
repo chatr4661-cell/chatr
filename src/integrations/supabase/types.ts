@@ -740,7 +740,6 @@ export type Database = {
           location: Json | null
           logo_url: string | null
           pan_number: string | null
-          subscription_id: string | null
           updated_at: string | null
           user_id: string
           verification_date: string | null
@@ -761,7 +760,6 @@ export type Database = {
           location?: Json | null
           logo_url?: string | null
           pan_number?: string | null
-          subscription_id?: string | null
           updated_at?: string | null
           user_id: string
           verification_date?: string | null
@@ -782,7 +780,6 @@ export type Database = {
           location?: Json | null
           logo_url?: string | null
           pan_number?: string | null
-          subscription_id?: string | null
           updated_at?: string | null
           user_id?: string
           verification_date?: string | null
@@ -790,13 +787,6 @@ export type Database = {
           verified?: boolean | null
         }
         Relationships: [
-          {
-            foreignKeyName: "business_profiles_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "business_subscriptions"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "business_profiles_user_id_fkey"
             columns: ["user_id"]
