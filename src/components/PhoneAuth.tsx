@@ -116,24 +116,6 @@ export const PhoneAuth = () => {
       const normalizedPhone = normalizePhoneNumber(phoneNumber, countryCode);
       const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
 
-      // Check again if user exists (safety check)
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone_number', normalizedPhone)
-        .maybeSingle();
-
-      if (existingProfile) {
-        toast({
-          title: "Account Exists",
-          description: "This number is already registered. Please login instead.",
-          variant: "destructive",
-        });
-        setIsNewUser(false);
-        setLoading(false);
-        return;
-      }
-
       // Create new user with phone as email and PIN as password
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -147,16 +129,16 @@ export const PhoneAuth = () => {
       });
 
       if (signUpError) {
-        // Check if it's a "user already exists" error
+        // If user already exists, try to login instead
         if (signUpError.message?.toLowerCase().includes('already registered') || 
             signUpError.message?.toLowerCase().includes('already exists')) {
+          console.log('[AUTH] User exists, attempting login instead');
           toast({
-            title: "Account Exists",
-            description: "This number is already registered. Redirecting to login...",
-            variant: "destructive",
+            title: "Logging In",
+            description: "Account found, signing you in...",
           });
-          setIsNewUser(false);
-          setLoading(false);
+          // Attempt to login with the PIN they entered
+          await handleLoginPin(pin);
           return;
         }
         throw signUpError;
@@ -177,6 +159,9 @@ export const PhoneAuth = () => {
         description: error.message || "Failed to create PIN",
         variant: "destructive",
       });
+      setStep('phone');
+      setFirstPin('');
+      setPhoneNumber('');
     } finally {
       setLoading(false);
     }
