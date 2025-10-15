@@ -42,7 +42,7 @@ export default function CareAccess() {
       icon: AlertTriangle,
       title: 'Emergency Services',
       description: 'Quick access to emergency care',
-      route: '/emergency',
+      route: '/emergency-services',
       color: 'from-red-500 to-red-600',
       badge: null
     },

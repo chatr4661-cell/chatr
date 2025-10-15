@@ -51,6 +51,7 @@ import Download from "./pages/Download";
 import Install from "./pages/Install";
 import Onboarding from "./pages/Onboarding";
 import EmergencyButton from "./pages/EmergencyButton";
+import EmergencyServices from "./pages/EmergencyServices";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -144,6 +145,7 @@ const App = () => {
             <Route path="/lab-reports" element={<LabReports />} />
             <Route path="/medicine-reminders" element={<MedicineReminders />} />
             <Route path="/emergency" element={<EmergencyButton />} />
+            <Route path="/emergency-services" element={<EmergencyServices />} />
             
             {/* Provider & Booking Routes */}
             <Route path="/booking" element={<BookingPage />} />
