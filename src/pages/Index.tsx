@@ -372,31 +372,6 @@ const Index = () => {
 
       <div className="max-w-2xl mx-auto px-4 space-y-6 mt-6">
 
-        {/* Brand Hero Section */}
-        <div className="text-center space-y-4 py-4">
-          <div className="flex justify-center mb-2">
-            <img 
-              src={chatrBrandLogo} 
-              alt="Chatr - Say It. Share It. Live It." 
-              className="h-28 w-auto drop-shadow-2xl hover:scale-105 transition-transform duration-500"
-            />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-cyan-500 to-primary bg-clip-text text-transparent animate-fade-in">
-              Your World of Communication
-            </h1>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-lg mx-auto">
-              Connect with loved ones, access healthcare, explore communities, and discover amazing mini apps - all in one powerful platform
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 pt-1">
-              <span className="px-3 py-1 bg-primary/10 rounded-full text-xs font-medium text-primary">📱 Messaging</span>
-              <span className="px-3 py-1 bg-emerald-500/10 rounded-full text-xs font-medium text-emerald-700">🏥 Healthcare</span>
-              <span className="px-3 py-1 bg-purple-500/10 rounded-full text-xs font-medium text-purple-700">👥 Community</span>
-              <span className="px-3 py-1 bg-amber-500/10 rounded-full text-xs font-medium text-amber-700">🎯 Mini Apps</span>
-            </div>
-          </div>
-        </div>
-
         {/* Quick Message Input */}
         <div 
           onClick={() => navigate('/chat')}
