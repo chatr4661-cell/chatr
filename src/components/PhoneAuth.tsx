@@ -225,34 +225,34 @@ export const PhoneAuth = () => {
   };
 
   return (
-    <Card className="w-full backdrop-blur-glass bg-gradient-glass border-glass-border shadow-glass">
-      <CardHeader>
-        <CardTitle>
+    <Card className="w-full glass-card border-0">
+      <CardHeader className="space-y-2 pb-4">
+        <CardTitle className="text-2xl font-bold">
           {step === 'phone' 
-            ? 'chatr+' 
+            ? 'Welcome' 
             : step === 'confirm-pin'
-            ? 'Confirm Your PIN'
+            ? 'Confirm PIN'
             : isNewUser 
-            ? 'Create Your PIN' 
-            : 'Enter Your PIN'}
+            ? 'Create PIN' 
+            : 'Enter PIN'}
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-sm">
           {step === 'phone' 
-            ? 'Enter your phone number to get started' 
+            ? 'Enter your phone number to continue' 
             : step === 'confirm-pin'
             ? 'Re-enter your 6-digit PIN to confirm'
             : isNewUser 
-            ? 'Choose a 6-digit PIN for your new account'
-            : 'Enter your 6-digit PIN to continue'}
+            ? 'Choose a secure 6-digit PIN for your account'
+            : 'Enter your 6-digit PIN to sign in'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {/* Phone Number Input */}
         {step === 'phone' && (
-          <form onSubmit={handlePhoneSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <div className="flex gap-2">
+          <form onSubmit={handlePhoneSubmit} className="space-y-5">
+            <div className="space-y-3">
+              <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+              <div className="flex gap-3">
                 <CountryCodeSelector
                   value={countryCode}
                   onChange={setCountryCode}
@@ -260,10 +260,10 @@ export const PhoneAuth = () => {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="Enter phone number"
+                  placeholder="Your phone number"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                  className="flex-1 bg-white/50 dark:bg-gray-900/50"
+                  className="flex-1 h-12 bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 rounded-xl transition-all"
                   required
                   autoFocus
                 />
@@ -271,17 +271,17 @@ export const PhoneAuth = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full"
+              className="w-full h-12 bg-gradient-hero hover:opacity-90 text-primary-foreground font-medium rounded-xl shadow-glow"
               disabled={loading}
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Verifying...
                 </>
               ) : (
                 <>
-                  <Phone className="mr-2 h-4 w-4" />
+                  <Phone className="mr-2 h-5 w-5" />
                   Continue
                 </>
               )}
@@ -291,17 +291,24 @@ export const PhoneAuth = () => {
 
         {/* PIN Input (Create or Login) */}
         {step === 'pin' && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <Button
               variant="ghost"
               onClick={handleBack}
-              className="mb-2"
+              className="mb-2 hover:bg-muted/50 rounded-lg"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <div className="space-y-2">
-              <Label>{isNewUser ? 'Create 6-Digit PIN' : 'Enter Your PIN'}</Label>
+            <div className="space-y-4">
+              <div className="text-center">
+                <Label className="text-sm font-medium">
+                  {isNewUser ? 'Create 6-Digit PIN' : 'Enter Your PIN'}
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {countryCode} {phoneNumber}
+                </p>
+              </div>
               <PINInput
                 key="initial-pin"
                 length={6}
@@ -310,29 +317,34 @@ export const PhoneAuth = () => {
               />
             </div>
             {loading && (
-              <div className="flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin" />
+              <div className="flex flex-col items-center justify-center gap-2 py-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {isNewUser ? 'Creating your account...' : 'Signing you in...'}
+                </p>
               </div>
             )}
-            <p className="text-sm text-muted-foreground text-center">
-              {countryCode} {phoneNumber}
-            </p>
           </div>
         )}
 
         {/* Confirm PIN Input (New Users Only) */}
         {step === 'confirm-pin' && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <Button
               variant="ghost"
               onClick={handleBack}
-              className="mb-2"
+              className="mb-2 hover:bg-muted/50 rounded-lg"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <div className="space-y-2">
-              <Label>Confirm 6-Digit PIN</Label>
+            <div className="space-y-4">
+              <div className="text-center">
+                <Label className="text-sm font-medium">Confirm 6-Digit PIN</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {countryCode} {phoneNumber}
+                </p>
+              </div>
               <PINInput
                 key="confirm-pin"
                 length={6}
@@ -341,13 +353,11 @@ export const PhoneAuth = () => {
               />
             </div>
             {loading && (
-              <div className="flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin" />
+              <div className="flex flex-col items-center justify-center gap-2 py-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Creating your account...</p>
               </div>
             )}
-            <p className="text-sm text-muted-foreground text-center">
-              {countryCode} {phoneNumber}
-            </p>
           </div>
         )}
       </CardContent>

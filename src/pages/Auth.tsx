@@ -122,36 +122,65 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-background/50 backdrop-blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-hero opacity-10" />
+      <div className="absolute inset-0" style={{ backgroundImage: 'var(--gradient-mesh)' }} />
       
-      <div className="relative w-full max-w-md space-y-6">
-        {/* Brand Hero Section */}
-        <div className="text-center space-y-4">
-          <div className="flex justify-center mb-2">
-            <img 
-              src={chatrBrandLogo} 
-              alt="Chatr - Say It. Share It. Live It." 
-              className="h-32 w-auto drop-shadow-2xl hover:scale-105 transition-transform duration-500"
-            />
-          </div>
-          <div className="space-y-3">
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-cyan-500 to-primary bg-clip-text text-transparent animate-fade-in">
-              Chatr+
-            </h1>
-            
-            {/* AI-Powered Chatr Features Image */}
-            <div className="my-6">
+      {/* Floating Elements */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      
+      <div className="relative w-full max-w-md z-10">
+        {/* Brand Section */}
+        <div className="text-center mb-8 space-y-6">
+          {/* Logo */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-hero blur-2xl opacity-50 rounded-full" />
               <img 
-                src={aiPoweredChatr} 
-                alt="AI-Powered Chatr - Smart Messaging, Privacy First, Built for Life + Work" 
-                className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
+                src={chatrBrandLogo} 
+                alt="Chatr - Say It. Share It. Live It." 
+                className="h-24 w-auto relative z-10 drop-shadow-2xl hover:scale-105 transition-transform duration-500"
               />
             </div>
           </div>
+          
+          {/* Title */}
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-2">
+              Chatr+
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Smart Messaging, Privacy First
+            </p>
+          </div>
         </div>
         
+        {/* Auth Card */}
         <PhoneAuth />
+        
+        {/* Footer Features */}
+        <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+          <div className="space-y-1">
+            <div className="w-10 h-10 mx-auto rounded-full bg-gradient-hero flex items-center justify-center">
+              <span className="text-xl">🔒</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Secure</p>
+          </div>
+          <div className="space-y-1">
+            <div className="w-10 h-10 mx-auto rounded-full bg-gradient-hero flex items-center justify-center">
+              <span className="text-xl">⚡</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Fast</p>
+          </div>
+          <div className="space-y-1">
+            <div className="w-10 h-10 mx-auto rounded-full bg-gradient-hero flex items-center justify-center">
+              <span className="text-xl">🤖</span>
+            </div>
+            <p className="text-xs text-muted-foreground">AI Powered</p>
+          </div>
+        </div>
       </div>
       
       {userId && (
