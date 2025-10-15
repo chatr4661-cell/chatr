@@ -18,7 +18,12 @@ export const useOptimisticChat = (conversationId: string | null, userId: string)
   const sendQueueRef = useRef<Map<string, OptimisticMessage>>(new Map());
 
   // Instantly add message to UI, then send to backend
-  const sendMessageOptimistic = useCallback(async (content: string, replyToId?: string) => {
+  const sendMessageOptimistic = useCallback(async (
+    content: string, 
+    messageType?: string, 
+    mediaUrl?: string,
+    replyToId?: string
+  ) => {
     if (!conversationId) return;
 
     const tempId = `temp_${Date.now()}_${Math.random()}`;
@@ -30,6 +35,8 @@ export const useOptimisticChat = (conversationId: string | null, userId: string)
       created_at: new Date().toISOString(),
       status: 'sending',
       is_optimistic: true,
+      message_type: messageType || 'text',
+      media_url: mediaUrl || null,
     };
 
     // Instantly add to UI
@@ -44,6 +51,8 @@ export const useOptimisticChat = (conversationId: string | null, userId: string)
           content,
           sender_id: userId,
           conversation_id: conversationId,
+          message_type: messageType || 'text',
+          media_url: mediaUrl || null,
           reply_to_id: replyToId,
         })
         .select()
@@ -67,19 +76,25 @@ export const useOptimisticChat = (conversationId: string | null, userId: string)
       toast.error('Failed to send message', {
         action: {
           label: 'Retry',
-          onClick: () => retryMessage(tempId, content, replyToId),
+          onClick: () => retryMessage(tempId, content, messageType, mediaUrl, replyToId),
         },
       });
     }
   }, [conversationId, userId]);
 
-  const retryMessage = useCallback(async (tempId: string, content: string, replyToId?: string) => {
+  const retryMessage = useCallback(async (
+    tempId: string, 
+    content: string, 
+    messageType?: string,
+    mediaUrl?: string,
+    replyToId?: string
+  ) => {
     // Remove failed message
     setMessages(prev => prev.filter(msg => msg.id !== tempId));
     sendQueueRef.current.delete(tempId);
     
     // Resend
-    await sendMessageOptimistic(content, replyToId);
+    await sendMessageOptimistic(content, messageType, mediaUrl, replyToId);
   }, [sendMessageOptimistic]);
 
   // Optimistic delete

@@ -304,8 +304,8 @@ const ChatEnhancedContent = () => {
   const handleSendMessage = async (content: string, type?: string, mediaUrl?: string) => {
     if (!activeConversationId) return;
     try {
-      // Use optimistic send for instant feedback
-      await sendMessageOptimistic(content);
+      // Use optimistic send for instant feedback with all parameters
+      await sendMessageOptimistic(content, type, mediaUrl);
     } catch (error) {
       toast.error('Failed to send message');
     }
