@@ -54,6 +54,10 @@ export default function ProductionVideoCall({
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const { toast } = useToast();
   const callTimerRef = useRef<NodeJS.Timeout>();
+  const iceRestartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const signalVersionRef = useRef<number>(1);
+  const lastFailedStateRef = useRef<number>(0);
+  const pendingIceCandidatesRef = useRef<any[]>([]);
   
   const { stats, currentQuality, connectionQuality: netConnectionQuality } = useNetworkStats({
     peerConnection: peerConnectionRef.current,
@@ -219,65 +223,55 @@ export default function ProductionVideoCall({
         }
       };
 
-      // Monitor ICE connection state
+      // Monitor ICE connection state with grace period
       pc.oniceconnectionstatechange = () => {
         console.log('❄️ [ICE Connection State]:', pc.iceConnectionState);
-        console.log('   Local Description:', pc.localDescription ? 'SET' : 'NOT SET');
-        console.log('   Remote Description:', pc.remoteDescription ? 'SET' : 'NOT SET');
         
-        if (pc.iceConnectionState === 'failed') {
-          console.error('❌ ICE connection failed - attempting restart');
-          pc.restartIce();
-        } else if (pc.iceConnectionState === 'connected') {
+        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
           console.log('✅ ICE connection established!');
-        } else if (pc.iceConnectionState === 'completed') {
-          console.log('✅ ICE gathering complete!');
+          lastFailedStateRef.current = 0; // Reset failure timer
+          
+          // Clear any pending ICE restart
+          if (iceRestartTimeoutRef.current) {
+            clearTimeout(iceRestartTimeoutRef.current);
+            iceRestartTimeoutRef.current = null;
+          }
+        } else if (pc.iceConnectionState === 'failed') {
+          console.log('⚠️ ICE connection failed - starting grace period');
+          
+          // Only restart if still failed after 10 seconds
+          const now = Date.now();
+          if (lastFailedStateRef.current === 0) {
+            lastFailedStateRef.current = now;
+            
+            iceRestartTimeoutRef.current = setTimeout(() => {
+              if (pc.iceConnectionState === 'failed') {
+                console.log('❌ Still failed after 10s grace period - restarting ICE');
+                pc.restartIce();
+              }
+            }, 10000);
+          }
+        } else if (pc.iceConnectionState === 'checking' || pc.iceConnectionState === 'new') {
+          // Reset failure timer when actively connecting
+          lastFailedStateRef.current = 0;
         }
       };
 
-      // Monitor connection state with auto-recovery
+      // Monitor connection state - DON'T auto-restart immediately
       pc.onconnectionstatechange = () => {
         console.log('🔗 [WebRTC Connection State]:', pc.connectionState);
-        console.log('   ICE Gathering:', pc.iceGatheringState);
-        console.log('   Signaling State:', pc.signalingState);
         
         if (pc.connectionState === "connected") {
           setCallStatus("connected");
           setConnectionQuality("excellent");
+          lastFailedStateRef.current = 0;
           console.log('✅ ✅ ✅ WebRTC P2P connection established!');
-        } else if (pc.connectionState === "failed") {
-          setCallStatus("reconnecting");
-          setConnectionQuality("reconnecting");
-          console.warn('⚠️ Connection failed, attempting ICE restart...');
-          
-          // Auto-recovery: restart ICE immediately
-          setTimeout(async () => {
-            if (pc.connectionState === "failed" && isInitiator) {
-              try {
-                const offer = await pc.createOffer({ iceRestart: true });
-                await pc.setLocalDescription(offer);
-                await sendSignal({ type: 'offer', callId, data: offer, to: partnerId });
-                console.log('🔄 ICE restart initiated');
-              } catch (e) {
-                console.error('❌ ICE restart failed:', e);
-              }
-            }
-          }, 1000);
         } else if (pc.connectionState === "disconnected") {
           setCallStatus("reconnecting");
           setConnectionQuality("reconnecting");
-          console.warn('⚠️ Connection disconnected - waiting for reconnection...');
-          
-          // Give it 5 seconds to reconnect, then force restart
-          setTimeout(() => {
-            if (pc.connectionState === "disconnected") {
-              console.warn('🔄 Still disconnected, forcing ICE restart');
-              pc.restartIce();
-            }
-          }, 5000);
-        } else if (pc.connectionState === "closed") {
-          console.log('📴 Connection closed');
+          console.warn('⚠️ Connection disconnected - allowing time to reconnect');
         }
+        // Don't treat "failed" here - let ICE state handle it
       };
 
       // **CRITICAL FIX**: Load past signals BEFORE subscribing to new ones
@@ -304,7 +298,7 @@ export default function ProductionVideoCall({
 
       // Create and send offer if initiator
       if (isInitiator) {
-        console.log('📞 [Initiator] Creating offer...');
+        console.log('📞 [Initiator] Creating offer (version:', signalVersionRef.current, ')');
         const offer = await pc.createOffer({
           offerToReceiveVideo: true,
           offerToReceiveAudio: true
@@ -317,7 +311,7 @@ export default function ProductionVideoCall({
           await sendSignal({
             type: 'offer',
             callId,
-            data: offer,
+            data: { ...offer, version: signalVersionRef.current },
             to: partnerId
           });
           console.log('✅ Offer sent successfully');
@@ -342,7 +336,6 @@ export default function ProductionVideoCall({
     const pc = peerConnectionRef.current;
     if (!pc) {
       console.warn('⚠️ [handleSignal] PeerConnection not initialized, queueing signal');
-      // Queue signal for when PC is ready
       setTimeout(() => handleSignal(signal), 200);
       return;
     }
@@ -350,64 +343,69 @@ export default function ProductionVideoCall({
     try {
       console.log('📥 [handleSignal] Processing signal:', {
         type: signal.signal_type,
-        from: signal.from_user,
-        signalingState: pc.signalingState,
-        iceConnectionState: pc.iceConnectionState
+        version: signal.signal_data?.version || 'no-version',
+        signalingState: pc.signalingState
       });
 
       if (signal.signal_type === 'offer') {
-        console.log('📞 [handleSignal] Received OFFER - setting as remote description');
+        console.log('📞 [handleSignal] Received OFFER');
         
-        // CRITICAL: Set remote description first
-        await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
-        console.log('✅ Remote description set from OFFER');
+        // Update signal version
+        if (signal.signal_data?.version) {
+          signalVersionRef.current = signal.signal_data.version;
+        }
         
-        // CRITICAL: Create answer immediately
-        console.log('📝 [handleSignal] Creating ANSWER...');
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        console.log('✅ Local description set (ANSWER)');
-        
-        // CRITICAL: Send answer back to caller
-        console.log('📤 [handleSignal] Sending ANSWER signal...');
-        await sendSignal({
-          type: 'answer',
-          callId,
-          data: answer,
-          to: partnerId
-        });
-        console.log('✅ ANSWER sent successfully - connection should establish');
+        // Allow remote description update during ICE restart or if none set
+        const currentRemote = pc.remoteDescription;
+        if (!currentRemote || currentRemote.type === 'offer') {
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+          
+          // Process pending ICE candidates
+          for (const candidate of pendingIceCandidatesRef.current) {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+          pendingIceCandidatesRef.current = [];
+
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+
+          await sendSignal({
+            type: 'answer',
+            callId,
+            to: partnerId,
+            data: { ...answer, version: signalVersionRef.current }
+          });
+
+          console.log('✅ ANSWER sent');
+        }
         
       } else if (signal.signal_type === 'answer') {
-        console.log('✅ [handleSignal] Received ANSWER - setting as remote description');
+        console.log('✅ [handleSignal] Received ANSWER');
         
-        // Only set if we don't already have remote description
-        if (!pc.remoteDescription) {
-          await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
-          console.log('✅ Remote description set from ANSWER - P2P connection should complete');
-        } else {
-          console.log('ℹ️ Remote description already set, skipping');
+        const signalVersion = signal.signal_data?.version || 0;
+        if (signalVersion >= signalVersionRef.current) {
+          if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'stable') {
+            await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+            
+            // Process pending ICE candidates
+            for (const candidate of pendingIceCandidatesRef.current) {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+            pendingIceCandidatesRef.current = [];
+            console.log('✅ Remote description set from ANSWER');
+          }
         }
         
       } else if (signal.signal_type === 'ice-candidate') {
-        // Queue if remote description not set yet
-        if (!pc.remoteDescription) {
-          console.warn('⚠️ [handleSignal] Remote description not set - queueing ICE candidate');
-          setTimeout(() => handleSignal(signal), 200);
-          return;
+        // Only add if we have remote description, otherwise queue
+        if (pc.remoteDescription) {
+          await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+        } else {
+          pendingIceCandidatesRef.current.push(signal.signal_data);
         }
-        
-        console.log('❄️ [handleSignal] Adding ICE candidate');
-        await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
-        console.log('✅ ICE candidate added successfully');
       }
     } catch (error) {
-      console.error("❌ [handleSignal] Error processing signal:", {
-        type: signal.signal_type,
-        error,
-        signalingState: pc?.signalingState,
-        iceConnectionState: pc?.iceConnectionState
-      });
+      console.error("❌ [handleSignal] Error:", error);
     }
   };
 
