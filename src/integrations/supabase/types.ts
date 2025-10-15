@@ -3576,6 +3576,7 @@ export type Database = {
           location_latitude: number | null
           location_longitude: number | null
           location_name: string | null
+          media_attachments: Json | null
           media_url: string | null
           message_type: string | null
           poll_options: Json | null
@@ -3606,6 +3607,7 @@ export type Database = {
           location_latitude?: number | null
           location_longitude?: number | null
           location_name?: string | null
+          media_attachments?: Json | null
           media_url?: string | null
           message_type?: string | null
           poll_options?: Json | null
@@ -3636,6 +3638,7 @@ export type Database = {
           location_latitude?: number | null
           location_longitude?: number | null
           location_name?: string | null
+          media_attachments?: Json | null
           media_url?: string | null
           message_type?: string | null
           poll_options?: Json | null

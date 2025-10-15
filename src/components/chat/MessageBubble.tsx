@@ -20,6 +20,7 @@ interface Message {
   read_at?: string;
   message_type?: string;
   media_url?: string;
+  media_attachments?: any;
   is_starred?: boolean;
   is_edited?: boolean;
   reactions?: any[];
@@ -143,14 +144,18 @@ const MessageBubbleComponent = ({
       ) : null}
 
       <div className={`flex flex-col gap-0.5 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
-        {/* Image message - MUST show before text check */}
-        {message.media_url && message.message_type === 'image' && (
-          <img
-            src={message.media_url}
-            alt="Shared media"
-            className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={() => window.open(message.media_url, '_blank')}
-          />
+        {/* Multiple media attachments */}
+        {message.media_attachments && Array.isArray(message.media_attachments) && message.media_attachments.length > 0 && (
+          <div className={`grid gap-1 mb-1 ${message.media_attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} max-w-[280px]`}>
+            {message.media_attachments.map((media: any, idx: number) => (
+              <img key={idx} src={media.url} alt={`Image ${idx + 1}`} className="rounded-lg object-cover cursor-pointer hover:opacity-90 w-full h-32" onClick={() => window.open(media.url, '_blank')} />
+            ))}
+          </div>
+        )}
+        
+        {/* Single image (legacy) */}
+        {message.media_url && message.message_type === 'image' && !message.media_attachments && (
+          <img src={message.media_url} alt="Shared media" className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(message.media_url, '_blank')} />
         )}
 
         {/* Poll message */}

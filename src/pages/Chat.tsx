@@ -16,7 +16,8 @@ import { VirtualizedConversationList } from '@/components/chat/VirtualizedConver
 import { VirtualMessageList } from '@/components/chat/VirtualMessageList';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
 import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
-import { useOptimizedMessages } from "@/hooks/useOptimizedMessages";
+import { useReliableMessages } from "@/hooks/useReliableMessages";
+import { AddParticipantDialog } from '@/components/chat/AddParticipantDialog';
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
@@ -84,8 +85,11 @@ const ChatEnhancedContent = () => {
     clearInsights
   } = useAIChatAssistant();
   
-  // Use ONLY useOptimizedMessages - it handles both real and optimistic messages
-  const { messages: displayMessages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
+  const [showAddParticipant, setShowAddParticipant] = React.useState(false);
+  const [conversationParticipants, setConversationParticipants] = React.useState<string[]>([]);
+  
+  // Use reliable messages hook - simple & predictable
+  const { messages: displayMessages, sendMessage, loadMessages, isLoading: messagesLoading, sending } = useReliableMessages(
     activeConversationId,
     user?.id || ''
   );
@@ -280,10 +284,10 @@ const ChatEnhancedContent = () => {
     setOtherUser(user);
   };
 
-  const handleSendMessage = async (content: string, type?: string, mediaUrl?: string) => {
+  const handleSendMessage = async (content: string, type?: string, mediaAttachments?: any[]) => {
     if (!activeConversationId) return;
     try {
-      await sendMessage(content, type, mediaUrl);
+      await sendMessage(content, type, mediaAttachments);
     } catch (error) {
       console.error('Send failed:', error);
       toast.error('Failed to send message');
@@ -315,13 +319,21 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Load messages when conversation changes
+  // Load messages when conversation changes - handled by hook
   React.useEffect(() => {
     if (activeConversationId) {
-      loadMessages(100, 0);
+      loadConversationParticipants(activeConversationId);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId]);
+  
+  const loadConversationParticipants = async (convId: string) => {
+    const { data } = await supabase
+      .from('conversation_participants')
+      .select('user_id')
+      .eq('conversation_id', convId);
+    
+    setConversationParticipants(data?.map(p => p.user_id) || []);
+  };
 
   const handleStartCall = async (callType: 'voice' | 'video') => {
     if (!activeConversationId || !otherUser) {
@@ -464,6 +476,17 @@ const ChatEnhancedContent = () => {
             )}
 
             <div className="flex items-center gap-1 shrink-0 ml-auto">
+              {conversationParticipants.length > 0 && conversationParticipants.length < 5 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowAddParticipant(true)}
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  title="Add Participant"
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -542,8 +565,8 @@ const ChatEnhancedContent = () => {
               messages={displayMessages}
               userId={user.id}
               otherUser={otherUser}
-              onLoadMore={() => loadMessages(30, displayMessages.length)}
-              hasMore={hasMore}
+              onLoadMore={() => {}}
+              hasMore={false}
               isLoading={messagesLoading}
               onForward={handleForwardMessage}
               onStar={handleStarMessage}
@@ -850,6 +873,20 @@ const ChatEnhancedContent = () => {
         messageContent={messageToForward?.content || ''}
         userId={user?.id || ''}
       />
+      
+      {/* Add Participant Dialog */}
+      {activeConversationId && (
+        <AddParticipantDialog
+          open={showAddParticipant}
+          onOpenChange={setShowAddParticipant}
+          conversationId={activeConversationId}
+          currentParticipants={conversationParticipants}
+          onParticipantAdded={() => {
+            loadConversationParticipants(activeConversationId);
+            loadMessages();
+          }}
+        />
+      )}
       </div>
     </>
   );
