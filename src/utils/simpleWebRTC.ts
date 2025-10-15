@@ -55,12 +55,17 @@ export class SimpleWebRTCCall {
       // Step 3: Subscribe to signals FIRST (before creating offer)
       await this.subscribeToSignals();
       
-      // Step 4: If initiator, create and send offer
+      // Step 4: If not initiator, fetch past signals (OFFER and ICE candidates sent before answering)
+      if (!this.isInitiator) {
+        await this.fetchPastSignals();
+      }
+      
+      // Step 5: If initiator, create and send offer
       if (this.isInitiator) {
         await this.createOffer();
       }
       
-      // Step 5: Set ICE connection timeout
+      // Step 6: Set ICE connection timeout
       this.setConnectionTimeout();
       
       console.log('✅ [SimpleWebRTC] Call setup complete');
@@ -161,6 +166,56 @@ export class SimpleWebRTCCall {
     }
   }
 
+  private async fetchPastSignals() {
+    if (this.isInitiator) {
+      console.log('⏭️ [SimpleWebRTC] Initiator - skipping past signals fetch');
+      return;
+    }
+
+    console.log('📥 [SimpleWebRTC] Fetching past signals for receiver...');
+    
+    try {
+      const { data: signals, error } = await supabase
+        .from('webrtc_signals')
+        .select('*')
+        .eq('call_id', this.callId)
+        .eq('to_user', this.userId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (signals && signals.length > 0) {
+        console.log(`📥 [SimpleWebRTC] Found ${signals.length} past signals`);
+        
+        // Process OFFER first
+        const offer = signals.find(s => s.signal_type === 'offer');
+        if (offer) {
+          console.log('📥 [SimpleWebRTC] Processing past OFFER...');
+          await this.handleSignal({
+            type: 'offer',
+            data: offer.signal_data,
+            from: offer.from_user
+          });
+        }
+
+        // Then process ICE candidates
+        const candidates = signals.filter(s => s.signal_type === 'ice-candidate');
+        console.log(`📥 [SimpleWebRTC] Processing ${candidates.length} past ICE candidates...`);
+        for (const candidate of candidates) {
+          await this.handleSignal({
+            type: 'ice-candidate',
+            data: candidate.signal_data,
+            from: candidate.from_user
+          });
+        }
+      } else {
+        console.log('📭 [SimpleWebRTC] No past signals found');
+      }
+    } catch (error) {
+      console.error('❌ [SimpleWebRTC] Failed to fetch past signals:', error);
+    }
+  }
+
   private async subscribeToSignals() {
     console.log('📡 [SimpleWebRTC] Subscribing to signals...');
     
@@ -177,7 +232,7 @@ export class SimpleWebRTCCall {
         (payload) => {
           const signal = payload.new;
           if (signal.to_user === this.userId) {
-            console.log('📥 [SimpleWebRTC] Signal received:', signal.signal_type);
+            console.log('📥 [SimpleWebRTC] Real-time signal received:', signal.signal_type);
             this.handleSignal({
               type: signal.signal_type as SignalType,
               data: signal.signal_data,
@@ -197,39 +252,47 @@ export class SimpleWebRTCCall {
       return;
     }
 
+    console.log(`🔄 [SimpleWebRTC] Processing ${signal.type} from ${signal.from}`);
+
     try {
       switch (signal.type) {
         case 'offer':
-          console.log('📥 [SimpleWebRTC] Processing offer...');
+          console.log('📥 [SimpleWebRTC] Processing OFFER...');
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+          console.log('✅ [SimpleWebRTC] Remote description (OFFER) set');
+          
           const answer = await this.pc.createAnswer();
+          console.log('📤 [SimpleWebRTC] ANSWER created');
+          
           await this.pc.setLocalDescription(answer);
+          console.log('✅ [SimpleWebRTC] Local description (ANSWER) set');
+          
           await this.sendSignal({
             type: 'answer',
             data: answer,
             from: this.userId
           });
-          console.log('✅ [SimpleWebRTC] Answer sent');
+          console.log('✅ [SimpleWebRTC] ANSWER sent to database');
           break;
 
         case 'answer':
-          console.log('📥 [SimpleWebRTC] Processing answer...');
+          console.log('📥 [SimpleWebRTC] Processing ANSWER...');
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-          console.log('✅ [SimpleWebRTC] Answer processed');
+          console.log('✅ [SimpleWebRTC] Remote description (ANSWER) set');
           break;
 
         case 'ice-candidate':
           console.log('📥 [SimpleWebRTC] Adding ICE candidate...');
           if (this.pc.remoteDescription) {
             await this.pc.addIceCandidate(new RTCIceCandidate(signal.data));
-            console.log('✅ [SimpleWebRTC] ICE candidate added');
+            console.log('✅ [SimpleWebRTC] ICE candidate added successfully');
           } else {
             console.warn('⚠️ [SimpleWebRTC] Skipping ICE candidate - no remote description yet');
           }
           break;
       }
     } catch (error) {
-      console.error('❌ [SimpleWebRTC] Error handling signal:', error);
+      console.error(`❌ [SimpleWebRTC] Error processing ${signal.type}:`, error);
     }
   }
 
