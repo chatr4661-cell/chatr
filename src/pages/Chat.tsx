@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff, Bluetooth } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ import { SmartRepliesPanel } from '@/components/chat/SmartRepliesPanel';
 import { useAIChatAssistant } from '@/hooks/useAIChatAssistant';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { OfflineChat } from '@/components/OfflineChat';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -60,6 +61,7 @@ const ChatEnhancedContent = () => {
   const [notificationCount, setNotificationCount] = React.useState(0);
   const { streak } = useStreakTracking('ai_chat');
   const networkQuality = useNetworkQuality();
+  const [showOfflineMode, setShowOfflineMode] = React.useState(false);
   
   // AI Features State
   const [showSmartReplies, setShowSmartReplies] = React.useState(false);
@@ -380,6 +382,24 @@ const ChatEnhancedContent = () => {
     return null;
   }
 
+  // Show offline mode if enabled
+  if (showOfflineMode) {
+    return (
+      <div className="relative h-screen">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-4 left-4 z-50"
+          onClick={() => setShowOfflineMode(false)}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Online Chat
+        </Button>
+        <OfflineChat />
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Call Notifications - CRITICAL: This handles ALL calls */}
@@ -445,6 +465,15 @@ const ChatEnhancedContent = () => {
                 title="Video Call"
               >
                 <Video className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowOfflineMode(true)}
+                className="h-9 w-9 rounded-full hover:bg-muted/50"
+                title="Bluetooth Mode"
+              >
+                <Bluetooth className="h-5 w-5" />
               </Button>
               <AIChatToolbar
                 onSummarize={async (type) => {
