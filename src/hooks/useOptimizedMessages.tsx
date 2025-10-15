@@ -41,14 +41,23 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         setMessages(prev => {
           const newMessages = [...prev];
           updateQueueRef.current.forEach(msg => {
-            const existingIndex = newMessages.findIndex(m => m.id === msg.id);
+            // Try to find by id OR tempId (for replacing optimistic messages)
+            const existingIndex = newMessages.findIndex(m => 
+              m.id === msg.id || (msg.tempId && m.tempId === msg.tempId)
+            );
             if (existingIndex >= 0) {
+              // Replace existing message
               newMessages[existingIndex] = msg;
             } else {
-              newMessages.push(msg);
+              // Add new message only if it doesn't exist
+              const isDuplicate = newMessages.some(m => m.id === msg.id);
+              if (!isDuplicate) {
+                newMessages.push(msg);
+              }
             }
           });
           updateQueueRef.current = [];
+          // Sort chronologically (oldest first, like WhatsApp)
           return newMessages.sort((a, b) => 
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           );
@@ -126,6 +135,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
       status: 'sending'
     };
 
+    // Add optimistic message instantly
     setMessages(prev => [...prev, optimisticMessage]);
 
     try {
@@ -143,13 +153,16 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
 
       if (error) throw error;
 
+      // Replace optimistic with real message (don't wait for realtime)
       setMessages(prev => prev.map(msg => 
-        msg.tempId === tempId ? { ...data, status: 'sent' } : msg
+        msg.tempId === tempId ? { ...data, status: 'sent' as const, tempId } : msg
       ));
+      
+      console.log('✅ Message sent:', { tempId, realId: data.id, content: content.substring(0, 30) });
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('❌ Send failed:', error);
       setMessages(prev => prev.map(msg =>
-        msg.tempId === tempId ? { ...msg, status: 'failed' } : msg
+        msg.tempId === tempId ? { ...msg, status: 'failed' as const } : msg
       ));
       throw error;
     }
@@ -176,8 +189,13 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         },
         (payload) => {
           const newMessage = payload.new as Message;
-          // Add all messages - handle both sent and received
-          batchUpdate({ ...newMessage, status: 'sent' });
+          // ONLY add messages from OTHER users (skip our own - they're already added optimistically)
+          if (newMessage.sender_id !== userId) {
+            console.log('📨 Received message from other user:', newMessage.id);
+            batchUpdate({ ...newMessage, status: 'sent' });
+          } else {
+            console.log('⏭️ Skipping own message (already optimistic):', newMessage.id);
+          }
         }
       )
       .on(
