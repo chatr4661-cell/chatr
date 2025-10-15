@@ -79,6 +79,13 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
           status: 'sent' as const
         }));
         
+        console.log('📥 Loaded messages:', {
+          count: formattedMessages.length,
+          offset,
+          conversationId,
+          sample: formattedMessages.slice(0, 3).map(m => ({ id: m.id, sender: m.sender_id, content: m.content?.substring(0, 30) }))
+        });
+        
         if (offset === 0) {
           setMessages(formattedMessages);
         } else {

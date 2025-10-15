@@ -104,7 +104,17 @@ const ChatEnhancedContent = () => {
   const displayMessages = React.useMemo(() => {
     const realMessages = messages.filter((m: any) => !m.is_optimistic);
     const optimistic = optimisticMessages.filter((m: any) => m.is_optimistic);
-    return [...realMessages, ...optimistic];
+    const merged = [...realMessages, ...optimistic];
+    console.log('📨 Display Messages:', {
+      realCount: realMessages.length,
+      optimisticCount: optimistic.length,
+      totalMessages: messages.length,
+      totalOptimistic: optimisticMessages.length,
+      merged: merged.length,
+      sampleReal: realMessages.slice(0, 2),
+      sampleOptimistic: optimistic.slice(0, 2)
+    });
+    return merged;
   }, [messages, optimisticMessages]);
 
   // Sync real messages to optimistic
