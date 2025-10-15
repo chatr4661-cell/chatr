@@ -362,21 +362,26 @@ export default function ProductionVoiceCall({
   const handleSignal = async (signal: any) => {
     const pc = peerConnectionRef.current;
     if (!pc) {
-      console.warn('⚠️ [handleSignal] PeerConnection not ready');
+      console.warn('⚠️ [handleSignal] PeerConnection not ready, queueing signal');
+      setTimeout(() => handleSignal(signal), 200);
       return;
     }
 
     try {
       console.log('📥 [handleSignal] Processing signal:', {
         type: signal.signal_type,
-        signalingState: pc.signalingState
+        signalingState: pc.signalingState,
+        iceConnectionState: pc.iceConnectionState
       });
 
       if (signal.signal_type === 'offer') {
         console.log('📞 [handleSignal] Received OFFER');
+        
+        // CRITICAL: Set remote description first
         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
         console.log('✅ Remote description set');
         
+        // CRITICAL: Create and send answer
         console.log('📝 [handleSignal] Creating ANSWER...');
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
@@ -389,27 +394,37 @@ export default function ProductionVoiceCall({
           data: answer,
           to: partnerId
         });
-        console.log('✅ ANSWER sent');
-        setCallStatus("connected");
+        console.log('✅ ANSWER sent - connection should establish');
         
       } else if (signal.signal_type === 'answer') {
         console.log('✅ [handleSignal] Received ANSWER');
-        await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
-        console.log('✅ Remote description set - connection establishing');
-        setCallStatus("connected");
+        
+        // Only set if we don't already have remote description
+        if (!pc.remoteDescription) {
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
+          console.log('✅ Remote description set - P2P connection establishing');
+        } else {
+          console.log('ℹ️ Remote description already set, skipping');
+        }
         
       } else if (signal.signal_type === 'ice-candidate') {
-        if (pc.remoteDescription) {
-          console.log('❄️ [handleSignal] Adding ICE candidate');
-          await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
-          console.log('✅ ICE candidate added');
-        } else {
+        // Queue if remote description not set
+        if (!pc.remoteDescription) {
           console.warn('⚠️ [handleSignal] Remote description not set - queueing ICE candidate');
-          setTimeout(() => handleSignal(signal), 100);
+          setTimeout(() => handleSignal(signal), 200);
+          return;
         }
+        
+        console.log('❄️ [handleSignal] Adding ICE candidate');
+        await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
+        console.log('✅ ICE candidate added');
       }
     } catch (error) {
-      console.error("❌ [handleSignal] Error:", error);
+      console.error("❌ [handleSignal] Error:", {
+        type: signal.signal_type,
+        error,
+        signalingState: pc?.signalingState
+      });
     }
   };
 

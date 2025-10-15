@@ -107,7 +107,7 @@ export function GlobalCallListener() {
     });
     setIncomingCall(null);
     
-    // Update call status in background
+    // Update call status in background - NO fake signals, WebRTC will handle it
     supabase
       .from('calls')
       .update({ 
@@ -120,16 +120,6 @@ export function GlobalCallListener() {
           console.error('Failed to update call status:', error);
         }
       });
-    
-    // Send call-accept signal in background
-    sendSignal({
-      type: 'answer' as any,
-      callId: incomingCall.id,
-      data: { accepted: true },
-      to: incomingCall.caller_id
-    }).catch(error => {
-      console.error('Failed to send accept signal:', error);
-    });
   };
 
   const handleReject = async () => {
