@@ -47,16 +47,21 @@ export const VirtualMessageList = React.memo(({
 
   // Optimized auto-scroll to bottom on new messages
   React.useLayoutEffect(() => {
-    if (messages.length > lastMessageCountRef.current && shouldAutoScroll && scrollRef.current) {
-      // Use requestAnimationFrame for smoother scrolling
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      });
+    if (scrollRef.current) {
+      const shouldScroll = messages.length > lastMessageCountRef.current || 
+                          (messages.length > 0 && lastMessageCountRef.current === 0);
+      
+      if (shouldScroll) {
+        // Always scroll to bottom for new messages
+        requestAnimationFrame(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          }
+        });
+      }
     }
     lastMessageCountRef.current = messages.length;
-  }, [messages.length, shouldAutoScroll]);
+  }, [messages.length]);
 
   const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;

@@ -57,16 +57,22 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
     }, 100); // Batch updates within 100ms
   }, []);
 
-  // Load messages with pagination - optimized with range queries
+  // Load messages with pagination - get most recent messages first
   const loadMessages = React.useCallback(async (limit = 50, offset = 0) => {
     if (!conversationId || limit <= 0) return;
 
     setIsLoading(true);
     try {
-      // Use range for better performance with indexes
-      const { data, error, count } = await supabase
+      // First get the total count
+      const { count: totalCount } = await supabase
         .from('messages')
-        .select('id, content, sender_id, conversation_id, created_at, message_type, media_url, read_at', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId);
+
+      // Then get the most recent messages
+      const { data, error } = await supabase
+        .from('messages')
+        .select('id, content, sender_id, conversation_id, created_at, message_type, media_url, read_at')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -74,6 +80,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
       if (error) throw error;
 
       if (data) {
+        // Reverse to show oldest first (chronological order)
         const formattedMessages = data.reverse().map(msg => ({
           ...msg,
           status: 'sent' as const
@@ -83,7 +90,8 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
           count: formattedMessages.length,
           offset,
           conversationId,
-          sample: formattedMessages.slice(0, 3).map(m => ({ id: m.id, sender: m.sender_id, content: m.content?.substring(0, 30) }))
+          total: totalCount,
+          newest: formattedMessages.slice(-3).map(m => ({ id: m.id, sender: m.sender_id, content: m.content?.substring(0, 30), time: m.created_at }))
         });
         
         if (offset === 0) {
@@ -92,7 +100,7 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
           setMessages(prev => [...formattedMessages, ...prev]);
         }
         
-        setHasMore((count || 0) > offset + limit);
+        setHasMore((totalCount || 0) > offset + limit);
       }
     } catch (error) {
       console.error('Error loading messages:', error);

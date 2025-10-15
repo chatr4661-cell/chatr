@@ -349,14 +349,13 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Load messages when conversation changes - adaptive based on network
+  // Load messages when conversation changes - load most recent messages
   React.useEffect(() => {
     if (activeConversationId) {
-      // Load fewer messages on slow networks
-      const initialLoad = networkQuality === 'slow' ? 20 : 50;
-      loadMessages(initialLoad, 0);
+      // Always load most recent 100 messages for better UX
+      loadMessages(100, 0);
     }
-  }, [activeConversationId, loadMessages, networkQuality]);
+  }, [activeConversationId, loadMessages]);
 
   const handleStartCall = async (callType: 'voice' | 'video') => {
     if (!activeConversationId || !otherUser) {
