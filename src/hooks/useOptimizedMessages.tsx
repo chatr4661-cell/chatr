@@ -113,21 +113,8 @@ export const useOptimizedMessages = (conversationId: string | null, userId: stri
         });
         
         if (offset === 0) {
-          // MERGE loaded messages with existing state, removing any that are now in DB
-          setMessages(prev => {
-            // Keep only optimistic messages that are still sending
-            const stillSending = prev.filter(m => m.tempId && m.status === 'sending');
-            
-            // Combine loaded messages with still-sending optimistic ones
-            const combined = [...formattedMessages, ...stillSending];
-            
-            // Remove duplicates by id (loaded messages take precedence)
-            const unique = Array.from(new Map(combined.map(m => [m.id, m])).values());
-            
-            return unique.sort((a, b) => 
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
-          });
+          // Simply use loaded messages - realtime handles updates
+          setMessages(formattedMessages);
         } else {
           setMessages(prev => [...formattedMessages, ...prev]);
         }

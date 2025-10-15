@@ -317,8 +317,8 @@ const ChatEnhancedContent = () => {
 
   // Load messages when conversation changes - load most recent messages
   React.useEffect(() => {
-    if (activeConversationId) {
-      // Always load most recent 100 messages for better UX
+    if (activeConversationId && displayMessages.length === 0) {
+      // Only load if we don't have messages yet
       loadMessages(100, 0);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
