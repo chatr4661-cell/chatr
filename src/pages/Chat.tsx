@@ -321,7 +321,8 @@ const ChatEnhancedContent = () => {
       // Always load most recent 100 messages for better UX
       loadMessages(100, 0);
     }
-  }, [activeConversationId, loadMessages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversationId]); // Only reload when conversation changes, NOT when loadMessages changes
 
   const handleStartCall = async (callType: 'voice' | 'video') => {
     if (!activeConversationId || !otherUser) {
