@@ -47,20 +47,14 @@ const Index = () => {
   React.useEffect(() => {
     setMounted(true);
     
-    let authCheckTimeout: NodeJS.Timeout;
-    
-    // Defer auth check slightly to allow UI to render first
-    authCheckTimeout = setTimeout(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) {
-          navigate('/auth');
-        } else {
-          setUser(session.user);
-          // Defer all heavy operations
-          deferHeavyOperations(session.user);
-        }
-      });
-    }, 50);
+    // Immediate auth check without timeout
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/auth');
+      } else {
+        setUser(session.user);
+      }
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
@@ -71,29 +65,24 @@ const Index = () => {
     });
 
     return () => {
-      clearTimeout(authCheckTimeout);
       subscription.unsubscribe();
     };
   }, [navigate]);
 
-  // Defer all heavy operations to after page load
-  const deferHeavyOperations = (user: any) => {
-    // Use requestIdleCallback for better performance
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(() => {
-        loadPointsData();
-        processDailyLogin();
-        autoSyncContactsOnLoad(user.id);
-      });
-    } else {
-      // Fallback for browsers without requestIdleCallback
-      setTimeout(() => {
-        loadPointsData();
-        processDailyLogin();
-        autoSyncContactsOnLoad(user.id);
-      }, 100);
-    }
-  };
+  // Defer all heavy operations to after page is visible
+  React.useEffect(() => {
+    if (!user) return;
+    
+    // Defer heavy operations by 100ms to allow UI to paint first
+    const timer = setTimeout(() => {
+      loadPointsData();
+      processDailyLogin();
+      // Defer contact sync even more (30 seconds after load)
+      setTimeout(() => autoSyncContactsOnLoad(user.id), 30000);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [user]);
 
   const autoSyncContactsOnLoad = async (userId: string) => {
     // Run in background - heavily deferred
@@ -174,10 +163,11 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [{ data: pointsData }, { data: streakData }, { data: referralData }] = await Promise.all([
-        supabase.from('user_points').select('balance').eq('user_id', user.id).maybeSingle(),
-        supabase.from('user_streaks').select('current_streak').eq('user_id', user.id).maybeSingle(),
-        supabase.from('chatr_referral_codes').select('code, qr_code_url').eq('user_id', user.id).maybeSingle()
+      // Fetch all data in parallel for speed
+      const [pointsData, streakData, referralData] = await Promise.all([
+        supabase.from('user_points').select('balance').eq('user_id', user.id).maybeSingle().then(r => r.data),
+        supabase.from('user_streaks').select('current_streak').eq('user_id', user.id).maybeSingle().then(r => r.data),
+        supabase.from('chatr_referral_codes').select('code, qr_code_url').eq('user_id', user.id).maybeSingle().then(r => r.data)
       ]);
 
       setPointsBalance(pointsData?.balance || 0);
@@ -188,6 +178,7 @@ const Index = () => {
         setQrCodeUrl(referralData.qr_code_url || '');
       }
     } catch (error) {
+      // Silently fail to not block UI
       console.error('Error loading points:', error);
     }
   };
@@ -381,29 +372,18 @@ const Index = () => {
     },
   ];
 
-  // Show skeleton while mounting
-  if (!mounted) {
+  // Show minimal skeleton while checking auth (no animations for speed)
+  if (!mounted || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
         <div className="bg-background/95 backdrop-blur-xl border-b border-border/40">
           <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-center gap-3">
-            <img src={chatrIconLogo} alt="Chatr" className="h-12 w-12" />
+            <img src={chatrIconLogo} alt="Chatr" className="h-12 w-12" loading="eager" />
             <div>
               <div className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
               </div>
               <div className="text-xs font-medium text-muted-foreground">Say It. Share It. Live It.</div>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-16 bg-muted/50 rounded-3xl w-3/4 mx-auto"></div>
-            <div className="h-10 bg-muted/50 rounded-2xl w-1/2 mx-auto"></div>
-            <div className="grid grid-cols-1 gap-4 mt-8">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-20 bg-muted/50 rounded-2xl"></div>
-              ))}
             </div>
           </div>
         </div>
@@ -417,7 +397,7 @@ const Index = () => {
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={chatrIconLogo} alt="Chatr Logo" className="h-10 w-10 hover:scale-110 transition-transform duration-300" />
+            <img src={chatrIconLogo} alt="Chatr Logo" className="h-10 w-10" loading="eager" />
             <div>
               <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
