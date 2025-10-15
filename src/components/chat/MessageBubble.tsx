@@ -126,6 +126,14 @@ const MessageBubbleComponent = ({
     { icon: Trash, label: 'Delete', action: () => onDelete?.(message.id), variant: 'destructive' as const, show: isOwn }
   ];
 
+  // Debug logging
+  console.log('[MessageBubble]', {
+    msgId: message.id.substring(0, 8),
+    isOwn,
+    senderId: message.sender_id,
+    content: message.content.substring(0, 15)
+  });
+
   return (
     <div
       className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end' : 'justify-start'}`}
