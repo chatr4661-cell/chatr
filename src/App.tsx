@@ -48,6 +48,7 @@ import NotificationSettings from "./pages/NotificationSettings";
 import Notifications from "./pages/Notifications";
 import DeviceManagement from "./pages/DeviceManagement";
 import Download from "./pages/Download";
+import Install from "./pages/Install";
 import Onboarding from "./pages/Onboarding";
 import EmergencyButton from "./pages/EmergencyButton";
 import AdminDashboard from "./pages/AdminDashboard";
