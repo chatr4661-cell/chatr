@@ -454,15 +454,15 @@ const ChatEnhancedContent = () => {
       ) : (
         // Conversation List View
         <>
-          {/* Clean Header - Enhanced Chatr+ Design */}
-          <div className="sticky top-0 z-10 border-b border-border/30 bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-lg">
-            <div className="flex items-center justify-between px-4 py-4">
+          {/* Clean Header */}
+          <div className="sticky top-0 z-10 border-b border-border/30 bg-background/95 backdrop-blur-lg">
+            <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/')}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  className="h-9 w-9 rounded-full hover:bg-accent/50 transition-colors"
                   title="Back"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -471,28 +471,8 @@ const ChatEnhancedContent = () => {
                 <img 
                   src="/chatr-logo.png" 
                   alt="chatr" 
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                 />
-                
-                <div className="flex flex-col">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent leading-tight">
-                    Chatr+
-                  </h1>
-                  <p className="text-xs font-medium text-foreground/70 -mt-0.5">
-                    Your complete communication hub
-                  </p>
-                </div>
-                
-                {/* Status Badge */}
-                <div className="flex items-center gap-1.5 ml-2">
-                  {isOnline ? (
-                    <><Wifi className="h-3.5 w-3.5 text-emerald-500" />
-                    <span className="text-xs text-emerald-600 font-medium">Online</span></>
-                  ) : (
-                    <><WifiOff className="h-3.5 w-3.5 text-amber-500" />
-                    <span className="text-xs text-amber-600 font-medium">Offline</span></>
-                  )}
-                </div>
               </div>
 
               <div className="flex items-center gap-0.5">
