@@ -182,7 +182,7 @@ export default function ChatrGrowth() {
           </Button>
           <h1 className="text-4xl font-bold mb-2 flex items-center gap-2">
             <Sparkles className="w-8 h-8" />
-            Growth Hub
+            Chatr Champions
           </h1>
           <p className="text-purple-100 text-lg">Earn ₹ by growing your network</p>
         </div>
@@ -358,7 +358,7 @@ export default function ChatrGrowth() {
           <div className="flex items-start gap-4">
             <Star className="w-12 h-12 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="text-2xl font-bold mb-2">Become a Campus Ambassador</h3>
+              <h3 className="text-2xl font-bold mb-2">Become a Chatr Partner</h3>
               <p className="mb-4 text-purple-100">Earn 5,000 bonus coins + exclusive perks</p>
               <Button 
                 variant="secondary" 

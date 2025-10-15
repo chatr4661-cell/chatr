@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const navItems = [
   { name: 'Chats', path: '/chat', icon: MessageCircle },
-  { name: 'Growth', path: '/growth', icon: TrendingUp, highlight: true },
+  { name: 'Champions', path: '/growth', icon: TrendingUp, highlight: true },
   { name: 'Communities', path: '/communities', icon: Users },
   { name: 'Notifications', path: '/notifications', icon: Bell },
   { name: 'More', path: '/', icon: Grid },

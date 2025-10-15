@@ -299,7 +299,7 @@ const Index = () => {
   const growthPrograms = [
     {
       icon: Flame,
-      title: 'Growth Hub',
+      title: 'Chatr Champions',
       description: 'Referral network & earnings dashboard',
       iconColor: 'bg-gradient-to-br from-orange-400 to-red-500',
       route: '/growth',
@@ -307,8 +307,8 @@ const Index = () => {
     },
     {
       icon: Users,
-      title: 'Ambassador',
-      description: 'Join our campus ambassador program',
+      title: 'Chatr Partner',
+      description: 'Join our campus partner program',
       iconColor: 'bg-gradient-to-br from-purple-400 to-pink-500',
       route: '/ambassador-program',
       badge: 'Apply'

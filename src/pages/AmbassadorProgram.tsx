@@ -113,7 +113,7 @@ export default function AmbassadorProgram() {
           
           <div className="flex items-center gap-3 mb-4">
             <Star className="w-12 h-12" />
-            <h1 className="text-5xl font-bold">Campus Ambassador Program</h1>
+            <h1 className="text-5xl font-bold">Chatr Partner Program</h1>
           </div>
           
           <p className="text-2xl text-purple-100 mb-6">
@@ -136,7 +136,7 @@ export default function AmbassadorProgram() {
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
         {/* Benefits Grid */}
         <div>
-          <h2 className="text-2xl font-bold mb-6">Why Become an Ambassador?</h2>
+          <h2 className="text-2xl font-bold mb-6">Why Become a Chatr Partner?</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {benefits.map((benefit) => (
               <Card key={benefit.title} className="p-5 hover:shadow-lg transition-all">
@@ -291,7 +291,7 @@ export default function AmbassadorProgram() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="whyJoin">Why do you want to be a Chatr Ambassador? *</Label>
+              <Label htmlFor="whyJoin">Why do you want to be a Chatr Partner? *</Label>
               <Textarea
                 id="whyJoin"
                 required
@@ -327,7 +327,7 @@ export default function AmbassadorProgram() {
         <Card className="p-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <Trophy className="w-7 h-7 text-green-600" />
-            Ambassador Success Stories
+            Partner Success Stories
           </h2>
           <div className="space-y-4">
             <div className="bg-background/50 p-4 rounded-lg">

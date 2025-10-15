@@ -201,7 +201,7 @@ export default function Account() {
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className="font-bold text-foreground flex items-center gap-2">
-                    Growth Hub
+                    Chatr Champions
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white">
                       Earn ₹
                     </span>
@@ -223,7 +223,7 @@ export default function Account() {
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className="font-bold text-foreground flex items-center gap-2">
-                    Ambassador Program
+                    Chatr Partner
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
                       Apply
                     </span>
