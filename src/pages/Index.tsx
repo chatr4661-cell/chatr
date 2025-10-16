@@ -288,14 +288,6 @@ const Index = () => {
       isNew: true
     },
     {
-      icon: Coins,
-      title: 'Rewards',
-      description: 'Points, wallet & premium',
-      iconColor: 'bg-gradient-to-br from-amber-400 to-yellow-500',
-      route: '/chatr-points',
-      isNew: false
-    },
-    {
       icon: Grid3x3,
       title: 'Mini-Apps',
       description: 'Discover & install apps',
