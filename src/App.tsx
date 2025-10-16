@@ -175,8 +175,7 @@ const App = () => {
           <Route path="/growth" element={<ChatrGrowth />} />
           <Route path="/ambassador-program" element={<AmbassadorProgram />} />
           <Route path="/doctor-onboarding" element={<DoctorOnboarding />} />
-            <Route path="/qr-payment" element={<QRPayment />} />
-            <Route path="/qr-login" element={<QRLogin />} />
+          <Route path="/qr-payment" element={<QRPayment />} />
             
             {/* AI & Settings Routes */}
             <Route path="/ai-assistant" element={<AIAssistant />} />

@@ -324,10 +324,10 @@ const Index = () => {
   const quickAccessServices = [
     {
       icon: QrCode,
-      title: 'QR Login',
-      description: 'Link desktop and mobile',
+      title: 'Chatr Growth',
+      description: 'Earn rewards & invite friends',
       iconColor: 'bg-gradient-to-br from-slate-400 to-slate-600',
-      route: '/qr-login'
+      route: '/growth'
     },
     {
       icon: Bot,

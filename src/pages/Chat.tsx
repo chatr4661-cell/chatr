@@ -666,9 +666,9 @@ const ChatEnhancedContent = () => {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => navigate('/qr-login')}
+                  onClick={() => navigate('/growth')}
                   className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
-                  title="QR Code"
+                  title="Rewards & Growth"
                 >
                   <QrCode className="h-5 w-5" />
                 </Button>

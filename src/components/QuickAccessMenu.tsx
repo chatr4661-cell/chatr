@@ -27,13 +27,13 @@ export const QuickAccessMenu: React.FC<QuickAccessMenuProps> = ({ className }) =
 
   const quickActions = [
     {
-      id: 'qr-login',
-      title: 'QR Login',
-      description: 'Scan to login on desktop',
+      id: 'growth',
+      title: 'Chatr Growth',
+      description: 'Earn rewards & invite friends',
       icon: QrCode,
       color: 'from-blue-500 to-cyan-500',
-      route: '/qr-login',
-      badge: 'Quick'
+      route: '/growth',
+      badge: 'Rewards'
     },
     {
       id: 'ai-assistant',
