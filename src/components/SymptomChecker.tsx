@@ -47,7 +47,11 @@ export default function SymptomChecker() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('symptom-checker', {
-        body: { symptoms, age, gender }
+        body: { 
+          symptoms, 
+          age: age ? parseInt(age) : undefined, 
+          gender: gender || undefined 
+        }
       });
 
       if (error) throw error;
