@@ -65,6 +65,15 @@ export default function ProductionVideoCall({
             localVideoRef.current.muted = true;
             localVideoRef.current.play().catch(e => console.log('Local video play:', e));
           }
+          
+          // When local stream is ready, ensure any remote stream is unmuted
+          setTimeout(() => {
+            if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
+              remoteVideoRef.current.muted = false;
+              remoteVideoRef.current.volume = 1.0;
+              console.log('🔊 Double-checking remote audio is unmuted');
+            }
+          }, 500);
         });
 
         call.on('remoteStream', (stream: MediaStream) => {
@@ -72,22 +81,34 @@ export default function ProductionVideoCall({
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
             remoteVideoRef.current.playsInline = true;
-            remoteVideoRef.current.muted = false;
             remoteVideoRef.current.autoplay = true;
-            remoteVideoRef.current.volume = 1.0; // Ensure volume is max
+            
+            // CRITICAL: Ensure audio is unmuted and volume is max
+            remoteVideoRef.current.muted = false;
+            remoteVideoRef.current.volume = 1.0;
+            
+            console.log('🔊 Remote video configured - muted=false, volume=1.0');
             
             // Force play with retry logic
             const forcePlay = async () => {
               try {
-                await remoteVideoRef.current?.play();
-                console.log('✅ Remote video/audio playing');
+                if (remoteVideoRef.current) {
+                  remoteVideoRef.current.muted = false; // Double-check unmuted
+                  remoteVideoRef.current.volume = 1.0;  // Double-check volume
+                  await remoteVideoRef.current.play();
+                  console.log('✅ Remote video/audio playing');
+                }
               } catch (err) {
                 console.warn('⚠️ Autoplay blocked, retrying on interaction:', err);
                 
                 const playOnInteraction = async () => {
                   try {
-                    await remoteVideoRef.current?.play();
-                    console.log('✅ Remote video/audio playing after interaction');
+                    if (remoteVideoRef.current) {
+                      remoteVideoRef.current.muted = false;
+                      remoteVideoRef.current.volume = 1.0;
+                      await remoteVideoRef.current.play();
+                      console.log('✅ Remote video/audio playing after interaction');
+                    }
                   } catch (e) {
                     console.error('Failed to play:', e);
                   }
@@ -108,9 +129,10 @@ export default function ProductionVideoCall({
               }
             };
             
-            // Try immediately and again after a short delay
+            // Try immediately and again after delays
             forcePlay();
-            setTimeout(forcePlay, 500);
+            setTimeout(forcePlay, 300);
+            setTimeout(forcePlay, 1000);
           }
         });
 
@@ -280,6 +302,15 @@ export default function ProductionVideoCall({
         muted={videoLayout === 'local-main'}
         className="w-full h-full object-cover"
         onDoubleClick={handleToggleFullScreen}
+        onLoadedMetadata={(e) => {
+          // Ensure audio is enabled when metadata loads
+          const video = e.currentTarget;
+          if (videoLayout === 'remote-main') {
+            video.muted = false;
+            video.volume = 1.0;
+            console.log('🔊 Remote video metadata loaded, audio enabled');
+          }
+        }}
       />
 
       {/* Picture-in-picture video */}
