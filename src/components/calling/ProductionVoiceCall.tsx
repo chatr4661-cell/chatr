@@ -6,6 +6,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
+// Browser detection
+const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isSafari = () => /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 interface ProductionVoiceCallProps {
   callId: string;
   contactName: string;
@@ -48,23 +52,66 @@ export default function ProductionVoiceCall({
 
         call.on('remoteStream', (stream: MediaStream) => {
           console.log('🔊 [ProductionVoiceCall] Remote stream received');
+          console.log('🌐 Browser:', { isIOS: isIOS(), isSafari: isSafari() });
+          
           if (!remoteAudioRef.current) {
             remoteAudioRef.current = new Audio();
             remoteAudioRef.current.autoplay = true;
           }
+          
           remoteAudioRef.current.srcObject = stream;
           remoteAudioRef.current.volume = 1.0;
           
-          remoteAudioRef.current.play()
-            .then(() => console.log('✅ Remote audio playing'))
-            .catch(e => {
-              console.error('❌ Audio play error:', e);
-              const playOnInteraction = () => {
-                remoteAudioRef.current?.play();
-                document.removeEventListener('click', playOnInteraction);
-              };
-              document.addEventListener('click', playOnInteraction, { once: true });
-            });
+          // Multi-stage audio playback with browser compatibility
+          const forcePlay = async (attempt = 1) => {
+            try {
+              if (remoteAudioRef.current) {
+                remoteAudioRef.current.volume = 1.0;
+                await remoteAudioRef.current.play();
+                console.log(`✅ Remote audio playing (attempt ${attempt})`);
+              }
+            } catch (e) {
+              console.warn(`⚠️ Audio play error (attempt ${attempt}):`, e);
+              
+              if (e.name === 'NotAllowedError' || e.name === 'NotSupportedError') {
+                const playOnInteraction = async () => {
+                  try {
+                    if (remoteAudioRef.current) {
+                      remoteAudioRef.current.volume = 1.0;
+                      await remoteAudioRef.current.play();
+                      console.log('✅ Audio playing after user interaction');
+                    }
+                  } catch (err) {
+                    console.error('Failed after interaction:', err);
+                  }
+                };
+                
+                // Listen for multiple interaction types
+                const events = ['click', 'touchstart', 'touchend', 'mousedown', 'keydown'];
+                events.forEach(eventType => {
+                  document.addEventListener(eventType, playOnInteraction, { once: true, capture: true });
+                });
+                
+                // Show toast for iOS/Safari
+                if (isIOS() || isSafari()) {
+                  toast.info('Tap anywhere to enable audio', {
+                    duration: 10000,
+                    action: {
+                      label: 'Enable Audio',
+                      onClick: () => playOnInteraction()
+                    }
+                  });
+                }
+              }
+            }
+          };
+          
+          // Retry with increasing delays
+          forcePlay(1);
+          setTimeout(() => forcePlay(2), 100);
+          setTimeout(() => forcePlay(3), 500);
+          setTimeout(() => forcePlay(4), 1500);
+          setTimeout(() => forcePlay(5), 3000);
         });
 
         call.on('connected', () => {

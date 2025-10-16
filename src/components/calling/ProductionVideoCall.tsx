@@ -9,6 +9,13 @@ import { useCallUI } from '@/hooks/useCallUI';
 import { NetworkQualityIndicator } from './NetworkQualityIndicator';
 import { Capacitor } from '@capacitor/core';
 
+// Browser detection utilities
+const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isSafari = () => /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const isFirefox = () => /firefox/i.test(navigator.userAgent);
+const isChrome = () => /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent);
+const isMobile = () => Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 interface ProductionVideoCallProps {
   callId: string;
   contactName: string;
@@ -30,7 +37,8 @@ export default function ProductionVideoCall({
   const [duration, setDuration] = useState(0);
   const [videoLayout, setVideoLayout] = useState<'remote-main' | 'local-main'>('remote-main');
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const isMobile = Capacitor.isNativePlatform();
+  const [userInteracted, setUserInteracted] = useState(false);
+  const isMobileDevice = isMobile();
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -78,6 +86,8 @@ export default function ProductionVideoCall({
 
         call.on('remoteStream', (stream: MediaStream) => {
           console.log('📺 [ProductionVideoCall] Remote stream received');
+          console.log('🌐 Browser:', { isIOS: isIOS(), isSafari: isSafari(), isFirefox: isFirefox(), isChrome: isChrome() });
+          
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
             remoteVideoRef.current.playsInline = true;
@@ -87,52 +97,79 @@ export default function ProductionVideoCall({
             remoteVideoRef.current.muted = false;
             remoteVideoRef.current.volume = 1.0;
             
+            // Safari/iOS specific: set webkit playsinline
+            remoteVideoRef.current.setAttribute('webkit-playsinline', 'true');
+            remoteVideoRef.current.setAttribute('playsinline', 'true');
+            
             console.log('🔊 Remote video configured - muted=false, volume=1.0');
             
-            // Force play with retry logic
-            const forcePlay = async () => {
+            // Universal play function with browser-specific handling
+            const forcePlay = async (requireGesture = false) => {
               try {
                 if (remoteVideoRef.current) {
-                  remoteVideoRef.current.muted = false; // Double-check unmuted
-                  remoteVideoRef.current.volume = 1.0;  // Double-check volume
+                  // Re-verify settings before play
+                  remoteVideoRef.current.muted = false;
+                  remoteVideoRef.current.volume = 1.0;
+                  
+                  // iOS/Safari: Must wait for user gesture
+                  if ((isIOS() || isSafari()) && !userInteracted && !requireGesture) {
+                    console.log('⏳ iOS/Safari detected - waiting for user interaction');
+                    return;
+                  }
+                  
                   await remoteVideoRef.current.play();
                   console.log('✅ Remote video/audio playing');
+                  setUserInteracted(true);
                 }
               } catch (err) {
-                console.warn('⚠️ Autoplay blocked, retrying on interaction:', err);
+                console.warn('⚠️ Play failed:', err);
                 
-                const playOnInteraction = async () => {
-                  try {
-                    if (remoteVideoRef.current) {
-                      remoteVideoRef.current.muted = false;
-                      remoteVideoRef.current.volume = 1.0;
-                      await remoteVideoRef.current.play();
-                      console.log('✅ Remote video/audio playing after interaction');
+                if (!requireGesture && (err.name === 'NotAllowedError' || err.name === 'NotSupportedError')) {
+                  console.log('🖱️ Requiring user gesture for playback');
+                  
+                  const playOnInteraction = async (e: Event) => {
+                    e.preventDefault();
+                    try {
+                      if (remoteVideoRef.current) {
+                        remoteVideoRef.current.muted = false;
+                        remoteVideoRef.current.volume = 1.0;
+                        await remoteVideoRef.current.play();
+                        console.log('✅ Remote playing after user interaction');
+                        setUserInteracted(true);
+                      }
+                    } catch (e) {
+                      console.error('Failed to play after interaction:', e);
                     }
-                  } catch (e) {
-                    console.error('Failed to play:', e);
+                  };
+                  
+                  // Listen for ANY user interaction
+                  const events = ['touchstart', 'touchend', 'click', 'mousedown', 'keydown'];
+                  events.forEach(eventType => {
+                    document.addEventListener(eventType, playOnInteraction, { once: true, capture: true });
+                  });
+                  
+                  // Show persistent toast for iOS/Safari
+                  if (isIOS() || isSafari()) {
+                    toast.info('Tap anywhere to enable audio', {
+                      duration: 10000,
+                      action: {
+                        label: 'Enable Audio',
+                        onClick: () => {
+                          playOnInteraction(new Event('click'));
+                        }
+                      }
+                    });
                   }
-                };
-                
-                // Multiple interaction triggers
-                document.addEventListener('touchstart', playOnInteraction, { once: true, capture: true });
-                document.addEventListener('click', playOnInteraction, { once: true, capture: true });
-                
-                // Show toast
-                toast.info('Tap to enable audio', {
-                  duration: 3000,
-                  action: {
-                    label: 'Enable',
-                    onClick: playOnInteraction
-                  }
-                });
+                }
               }
             };
             
-            // Try immediately and again after delays
+            // Multi-stage retry with increasing delays
             forcePlay();
-            setTimeout(forcePlay, 300);
-            setTimeout(forcePlay, 1000);
+            setTimeout(() => forcePlay(), 100);
+            setTimeout(() => forcePlay(), 500);
+            setTimeout(() => forcePlay(), 1500);
+            setTimeout(() => forcePlay(true), 3000); // Final attempt with gesture requirement
           }
         });
 
@@ -299,6 +336,7 @@ export default function ProductionVideoCall({
         ref={mainVideoRef}
         autoPlay
         playsInline
+        webkit-playsinline="true"
         muted={videoLayout === 'local-main'}
         className="w-full h-full object-cover"
         onDoubleClick={handleToggleFullScreen}
@@ -309,6 +347,26 @@ export default function ProductionVideoCall({
             video.muted = false;
             video.volume = 1.0;
             console.log('🔊 Remote video metadata loaded, audio enabled');
+            // Auto-play on metadata load for better compatibility
+            video.play().catch(err => console.log('Auto-play on metadata:', err));
+          }
+        }}
+        onCanPlay={(e) => {
+          // Additional play attempt when video is ready
+          const video = e.currentTarget;
+          if (videoLayout === 'remote-main' && video.paused) {
+            video.muted = false;
+            video.volume = 1.0;
+            video.play().catch(err => console.log('Auto-play on canplay:', err));
+          }
+        }}
+        onClick={() => {
+          // Ensure audio plays on any click
+          if (mainVideoRef.current && videoLayout === 'remote-main') {
+            mainVideoRef.current.muted = false;
+            mainVideoRef.current.volume = 1.0;
+            mainVideoRef.current.play().catch(err => console.log('Play on click:', err));
+            setUserInteracted(true);
           }
         }}
       />
@@ -320,6 +378,12 @@ export default function ProductionVideoCall({
         onClick={(e) => {
           e.stopPropagation();
           handleSwapVideos();
+          // Also ensure audio plays
+          if (pipVideoRef.current && videoLayout === 'local-main') {
+            pipVideoRef.current.muted = false;
+            pipVideoRef.current.volume = 1.0;
+            pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
+          }
         }}
         className="absolute top-4 right-4 w-32 h-48 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform"
       >
@@ -327,6 +391,7 @@ export default function ProductionVideoCall({
           ref={pipVideoRef}
           autoPlay
           playsInline
+          webkit-playsinline="true"
           muted={videoLayout === 'remote-main'}
           className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
         />
@@ -392,7 +457,7 @@ export default function ProductionVideoCall({
                 {videoEnabled ? <Video className="h-6 w-6 text-white" /> : <VideoOff className="h-6 w-6" />}
               </Button>
 
-              {isMobile && (
+              {isMobileDevice && (
                 <Button
                   size="lg"
                   variant="secondary"
