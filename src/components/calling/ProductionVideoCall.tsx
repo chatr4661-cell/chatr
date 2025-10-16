@@ -39,7 +39,7 @@ export default function ProductionVideoCall({
   const userIdRef = useRef<string | null>(null);
 
   const { controlsVisible, showControls } = useCallUI({ 
-    autoHideDelay: 5000, 
+    autoHideDelay: 10000, // Increased to 10 seconds for better UX
     enabled: true 
   });
 
@@ -74,35 +74,43 @@ export default function ProductionVideoCall({
             remoteVideoRef.current.playsInline = true;
             remoteVideoRef.current.muted = false;
             remoteVideoRef.current.autoplay = true;
+            remoteVideoRef.current.volume = 1.0; // Ensure volume is max
             
-            const playPromise = remoteVideoRef.current.play();
-            
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => console.log('✅ Remote video playing'))
-                .catch(err => {
-                  console.warn('⚠️ Autoplay blocked, waiting for user interaction:', err);
-                  
-                  toast.info('Tap anywhere to enable audio/video', {
-                    duration: 5000,
-                    action: {
-                      label: 'Enable',
-                      onClick: () => {
-                        remoteVideoRef.current?.play();
-                      }
-                    }
-                  });
-                  
-                  const playOnInteraction = () => {
-                    remoteVideoRef.current?.play();
-                    document.removeEventListener('touchstart', playOnInteraction);
-                    document.removeEventListener('click', playOnInteraction);
-                  };
-                  
-                  document.addEventListener('touchstart', playOnInteraction, { once: true });
-                  document.addEventListener('click', playOnInteraction, { once: true });
+            // Force play with retry logic
+            const forcePlay = async () => {
+              try {
+                await remoteVideoRef.current?.play();
+                console.log('✅ Remote video/audio playing');
+              } catch (err) {
+                console.warn('⚠️ Autoplay blocked, retrying on interaction:', err);
+                
+                const playOnInteraction = async () => {
+                  try {
+                    await remoteVideoRef.current?.play();
+                    console.log('✅ Remote video/audio playing after interaction');
+                  } catch (e) {
+                    console.error('Failed to play:', e);
+                  }
+                };
+                
+                // Multiple interaction triggers
+                document.addEventListener('touchstart', playOnInteraction, { once: true, capture: true });
+                document.addEventListener('click', playOnInteraction, { once: true, capture: true });
+                
+                // Show toast
+                toast.info('Tap to enable audio', {
+                  duration: 3000,
+                  action: {
+                    label: 'Enable',
+                    onClick: playOnInteraction
+                  }
                 });
-            }
+              }
+            };
+            
+            // Try immediately and again after a short delay
+            forcePlay();
+            setTimeout(forcePlay, 500);
           }
         });
 
@@ -311,14 +319,28 @@ export default function ProductionVideoCall({
         </div>
       )}
 
-      {/* Controls overlay */}
+      {/* Persistent End Call Button - Always visible */}
+      {!isFullScreen && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
+          <Button
+            size="lg"
+            variant="destructive"
+            className="rounded-full w-16 h-16 shadow-2xl"
+            onClick={handleEndCall}
+          >
+            <PhoneOff className="h-7 w-7" />
+          </Button>
+        </div>
+      )}
+
+      {/* Controls overlay - Additional controls */}
       <AnimatePresence>
         {controlsVisible && !isFullScreen && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-32 pb-8"
+            className="absolute bottom-24 left-0 right-0"
           >
             <div className="flex items-center justify-center gap-3">
               <Button
@@ -357,15 +379,6 @@ export default function ProductionVideoCall({
                 onClick={handleSwapVideos}
               >
                 <Repeat className="w-6 h-6 text-white" />
-              </Button>
-
-              <Button
-                size="lg"
-                variant="destructive"
-                className="rounded-full w-16 h-16"
-                onClick={handleEndCall}
-              >
-                <PhoneOff className="h-7 w-7" />
               </Button>
 
               <Button
