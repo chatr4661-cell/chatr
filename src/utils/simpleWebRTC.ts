@@ -194,10 +194,15 @@ export class SimpleWebRTCCall {
           this.clearConnectionTimeout();
           this.setupAdaptiveBitrate();
           console.log('🎉 [SimpleWebRTC] Call connected successfully!');
-        } else if (state === 'failed' || state === 'disconnected') {
+        } else if (state === 'failed') {
+          // Only fail on 'failed' state, not 'disconnected'
+          // 'disconnected' is temporary and can recover
           console.error('❌ [SimpleWebRTC] ICE connection failed');
           this.callState = 'failed';
           this.emit('failed', new Error('Connection failed'));
+        } else if (state === 'disconnected') {
+          console.warn('⚠️ [SimpleWebRTC] ICE disconnected - connection may recover');
+          // Don't fail immediately, give it time to reconnect
         }
       };
 
