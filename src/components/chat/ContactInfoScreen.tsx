@@ -32,7 +32,7 @@ interface ContactInfoScreenProps {
     status?: string;
   };
   onClose?: () => void;
-  onCall?: (type: 'audio' | 'video') => void;
+  onCall?: (type: 'voice' | 'video') => void;
 }
 
 export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
@@ -52,7 +52,7 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
   };
 
   const quickActions = [
-    { icon: Phone, label: 'Audio', color: 'text-green-600', onClick: () => onCall?.('audio') },
+    { icon: Phone, label: 'Audio', color: 'text-green-600', onClick: () => onCall?.('voice') },
     { icon: Video, label: 'Video', color: 'text-green-600', onClick: () => onCall?.('video') },
     { icon: IndianRupee, label: 'Pay', color: 'text-green-600', onClick: () => navigate('/qr-payment') },
     { icon: Search, label: 'Search', color: 'text-green-600', onClick: () => {} },

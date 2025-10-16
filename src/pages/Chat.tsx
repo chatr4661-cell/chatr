@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff, Bluetooth } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff, Bluetooth, Info } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,6 +41,7 @@ import { useAIChatAssistant } from '@/hooks/useAIChatAssistant';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { OfflineChat } from '@/components/OfflineChat';
+import { ContactInfoScreen } from '@/components/chat/ContactInfoScreen';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -65,6 +66,7 @@ const ChatEnhancedContent = () => {
   const [showOfflineMode, setShowOfflineMode] = React.useState(false);
   const [messageToForward, setMessageToForward] = React.useState<any>(null);
   const [showForwardDialog, setShowForwardDialog] = React.useState(false);
+  const [showContactInfo, setShowContactInfo] = React.useState(false);
   
   // AI Features State
   const [showSmartReplies, setShowSmartReplies] = React.useState(false);
@@ -460,18 +462,23 @@ const ChatEnhancedContent = () => {
             
             {otherUser && (
               <>
-                <Avatar className="w-10 h-10 shrink-0">
-                  <AvatarImage src={otherUser.avatar_url} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary">
-                    {otherUser.username?.[0]?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-[15px] truncate">{otherUser.username}</p>
-                  <p className="text-[12px] text-muted-foreground">
-                    {otherUser.is_online ? 'Online' : 'Offline'}
-                  </p>
-                </div>
+                <button 
+                  onClick={() => setShowContactInfo(true)}
+                  className="flex items-center gap-3 flex-1 min-w-0 hover:bg-muted/30 rounded-lg p-1.5 -m-1.5 transition-colors"
+                >
+                  <Avatar className="w-10 h-10 shrink-0">
+                    <AvatarImage src={otherUser.avatar_url} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary">
+                      {otherUser.username?.[0]?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="font-semibold text-[15px] truncate">{otherUser.username}</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {otherUser.is_online ? 'Online' : 'Offline'}
+                    </p>
+                  </div>
+                </button>
               </>
             )}
 
@@ -893,6 +900,26 @@ const ChatEnhancedContent = () => {
           }}
         />
       )}
+      
+      {/* Contact Info Dialog */}
+      <Dialog open={showContactInfo} onOpenChange={setShowContactInfo}>
+        <DialogContent className="p-0 max-w-md h-[90vh] overflow-hidden">
+          <ContactInfoScreen
+            contact={{
+              id: otherUser?.id || '',
+              username: otherUser?.username || 'Unknown',
+              avatar_url: otherUser?.avatar_url,
+              phone_number: otherUser?.phone_number,
+              status: otherUser?.status
+            }}
+            onClose={() => setShowContactInfo(false)}
+            onCall={(type) => {
+              setShowContactInfo(false);
+              handleStartCall(type);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
       </div>
     </>
   );
