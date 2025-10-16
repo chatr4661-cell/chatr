@@ -15,8 +15,9 @@ import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
 import { VirtualMessageList } from '@/components/chat/VirtualMessageList';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
-import { useOptimizedMessages } from "@/hooks/useOptimizedMessages";
-import { useOptimisticChat } from "@/hooks/useOptimisticChat";
+import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
+import { useReliableMessages } from "@/hooks/useReliableMessages";
+import { AddParticipantDialog } from '@/components/chat/AddParticipantDialog';
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClusterCreator } from '@/components/chat/ClusterCreator';
@@ -62,6 +63,8 @@ const ChatEnhancedContent = () => {
   const { streak } = useStreakTracking('ai_chat');
   const networkQuality = useNetworkQuality();
   const [showOfflineMode, setShowOfflineMode] = React.useState(false);
+  const [messageToForward, setMessageToForward] = React.useState<any>(null);
+  const [showForwardDialog, setShowForwardDialog] = React.useState(false);
   
   // AI Features State
   const [showSmartReplies, setShowSmartReplies] = React.useState(false);
@@ -82,34 +85,14 @@ const ChatEnhancedContent = () => {
     clearInsights
   } = useAIChatAssistant();
   
-  // Optimistic chat for instant UI updates
-  const {
-    messages: optimisticMessages,
-    setMessages: setOptimisticMessages,
-    sendMessageOptimistic,
-    deleteMessageOptimistic,
-    editMessageOptimistic,
-  } = useOptimisticChat(activeConversationId, user?.id || '');
-
-  // Optimized message handling with batching and pagination
-  const { messages, sendMessage, loadMessages, isLoading: messagesLoading, hasMore } = useOptimizedMessages(
+  const [showAddParticipant, setShowAddParticipant] = React.useState(false);
+  const [conversationParticipants, setConversationParticipants] = React.useState<string[]>([]);
+  
+  // Use reliable messages hook - simple & predictable
+  const { messages: displayMessages, sendMessage, loadMessages, isLoading: messagesLoading, sending } = useReliableMessages(
     activeConversationId,
     user?.id || ''
   );
-
-  // Merge optimistic with real messages
-  const displayMessages = React.useMemo(() => {
-    const realMessages = messages.filter((m: any) => !m.is_optimistic);
-    const optimistic = optimisticMessages.filter((m: any) => m.is_optimistic);
-    return [...realMessages, ...optimistic];
-  }, [messages, optimisticMessages]);
-
-  // Sync real messages to optimistic
-  React.useEffect(() => {
-    if (messages.length > 0) {
-      setOptimisticMessages(messages);
-    }
-  }, [messages, setOptimisticMessages]);
   
   // Enable push notifications only if user ID exists
   usePushNotifications(user?.id || undefined);
@@ -301,24 +284,56 @@ const ChatEnhancedContent = () => {
     setOtherUser(user);
   };
 
-  const handleSendMessage = async (content: string, type?: string, mediaUrl?: string) => {
+  const handleSendMessage = async (content: string, type?: string, mediaAttachments?: any[]) => {
     if (!activeConversationId) return;
     try {
-      // Use optimistic send for instant feedback
-      await sendMessageOptimistic(content);
+      await sendMessage(content, type, mediaAttachments);
     } catch (error) {
+      console.error('Send failed:', error);
       toast.error('Failed to send message');
     }
   };
 
-  // Load messages when conversation changes - adaptive based on network
+  const handleForwardMessage = (message: any) => {
+    setMessageToForward(message);
+    setShowForwardDialog(true);
+  };
+
+  const handleStarMessage = async (messageId: string) => {
+    try {
+      const { data: message } = await supabase
+        .from('messages')
+        .select('is_starred')
+        .eq('id', messageId)
+        .single();
+
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_starred: !message?.is_starred })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      toast.success(message?.is_starred ? 'Message unstarred' : 'Message starred');
+    } catch (error) {
+      toast.error('Failed to update message');
+    }
+  };
+
+  // Load messages when conversation changes - handled by hook
   React.useEffect(() => {
     if (activeConversationId) {
-      // Load fewer messages on slow networks
-      const initialLoad = networkQuality === 'slow' ? 20 : 50;
-      loadMessages(initialLoad, 0);
+      loadConversationParticipants(activeConversationId);
     }
-  }, [activeConversationId, loadMessages, networkQuality]);
+  }, [activeConversationId]);
+  
+  const loadConversationParticipants = async (convId: string) => {
+    const { data } = await supabase
+      .from('conversation_participants')
+      .select('user_id')
+      .eq('conversation_id', convId);
+    
+    setConversationParticipants(data?.map(p => p.user_id) || []);
+  };
 
   const handleStartCall = async (callType: 'voice' | 'video') => {
     if (!activeConversationId || !otherUser) {
@@ -385,17 +400,30 @@ const ChatEnhancedContent = () => {
   // Show offline mode if enabled
   if (showOfflineMode) {
     return (
-      <div className="relative h-screen">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="absolute top-4 left-4 z-50"
-          onClick={() => setShowOfflineMode(false)}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Online Chat
-        </Button>
-        <OfflineChat />
+      <div className="relative h-screen bg-background">
+        <div className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between bg-card/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowOfflineMode(false)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Online Chat
+          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="gap-1">
+              <Bluetooth className="w-3 h-3" />
+              Bluetooth Mode Active
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <WifiOff className="w-3 h-3" />
+              No Internet Required
+            </Badge>
+          </div>
+        </div>
+        <div className="pt-20 h-full">
+          <OfflineChat />
+        </div>
       </div>
     );
   }
@@ -448,6 +476,17 @@ const ChatEnhancedContent = () => {
             )}
 
             <div className="flex items-center gap-1 shrink-0 ml-auto">
+              {conversationParticipants.length > 0 && conversationParticipants.length < 5 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowAddParticipant(true)}
+                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  title="Add Participant"
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -477,14 +516,14 @@ const ChatEnhancedContent = () => {
               </Button>
               <AIChatToolbar
                 onSummarize={async (type) => {
-                  await generateSummary(messages, type);
+                  await generateSummary(displayMessages, type);
                   setShowSummary(true);
                 }}
                 onSmartReply={async () => {
-                  if (messages.length > 0) {
-                    const lastMsg = messages[messages.length - 1];
+                  if (displayMessages.length > 0) {
+                    const lastMsg = displayMessages[displayMessages.length - 1];
                     if (lastMsg.sender_id !== user?.id) {
-                      await generateSmartReplies(lastMsg.content, messages.slice(-5));
+                      await generateSmartReplies(lastMsg.content, displayMessages.slice(-5));
                       setShowSmartReplies(true);
                     } else {
                       toast.info('Smart replies work on received messages');
@@ -493,10 +532,10 @@ const ChatEnhancedContent = () => {
                 }}
                 onAnalyze={async (type) => {
                   setInsightsType(type);
-                  await analyzeMessages(messages, type);
+                  await analyzeMessages(displayMessages, type);
                   setShowInsights(true);
                 }}
-                disabled={messages.length === 0}
+                disabled={displayMessages.length === 0}
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -522,22 +561,30 @@ const ChatEnhancedContent = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-hidden">
-            <VirtualMessageList
-              messages={displayMessages}
-              userId={user.id}
-              otherUser={otherUser}
-              onLoadMore={() => loadMessages(30, displayMessages.length)}
-              hasMore={hasMore}
-              isLoading={messagesLoading}
-            />
+            {user?.id ? (
+              <VirtualMessageList
+                messages={displayMessages}
+                userId={user.id}
+                otherUser={otherUser}
+                onLoadMore={() => {}}
+                hasMore={false}
+                isLoading={messagesLoading}
+                onForward={handleForwardMessage}
+                onStar={handleStarMessage}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="w-6 h-6 border-2 border-primary/60 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </div>
 
           {/* Input */}
           <EnhancedMessageInput
             onSendMessage={handleSendMessage}
             disabled={messagesLoading}
-            lastMessage={messages.length > 0 && messages[messages.length - 1].sender_id !== user.id 
-              ? messages[messages.length - 1].content 
+            lastMessage={displayMessages.length > 0 && displayMessages[displayMessages.length - 1].sender_id !== user.id 
+              ? displayMessages[displayMessages.length - 1].content 
               : undefined}
           />
         </>
@@ -823,6 +870,29 @@ const ChatEnhancedContent = () => {
       
       {/* Voice AI Interface - Always available */}
       <VoiceInterface />
+
+      {/* Message Forward Dialog */}
+      <MessageForwardDialog
+        open={showForwardDialog}
+        onClose={() => setShowForwardDialog(false)}
+        messageId={messageToForward?.id || ''}
+        messageContent={messageToForward?.content || ''}
+        userId={user?.id || ''}
+      />
+      
+      {/* Add Participant Dialog */}
+      {activeConversationId && (
+        <AddParticipantDialog
+          open={showAddParticipant}
+          onOpenChange={setShowAddParticipant}
+          conversationId={activeConversationId}
+          currentParticipants={conversationParticipants}
+          onParticipantAdded={() => {
+            loadConversationParticipants(activeConversationId);
+            loadMessages();
+          }}
+        />
+      )}
       </div>
     </>
   );

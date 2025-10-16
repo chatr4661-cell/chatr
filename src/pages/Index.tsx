@@ -21,10 +21,14 @@ import {
   Flame,
   Grid3x3,
   CheckCircle,
-  Building2
+  Building2,
+  Share2
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { QRCodeSVG } from 'qrcode.react';
+import { Copy, Share } from 'lucide-react';
 
 // Lazy load heavy components
 const ServiceCard = React.lazy(() => import('@/components/ServiceCard'));
@@ -35,25 +39,22 @@ const Index = () => {
   const [pointsBalance, setPointsBalance] = React.useState<number>(0);
   const [currentStreak, setCurrentStreak] = React.useState<number>(0);
   const [mounted, setMounted] = React.useState(false);
+  const [showShareDialog, setShowShareDialog] = React.useState(false);
+  const [referralCode, setReferralCode] = React.useState<string>('');
+  const [qrCodeUrl, setQrCodeUrl] = React.useState<string>('');
 
   // Fast initial auth check - non-blocking
   React.useEffect(() => {
     setMounted(true);
     
-    let authCheckTimeout: NodeJS.Timeout;
-    
-    // Defer auth check slightly to allow UI to render first
-    authCheckTimeout = setTimeout(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) {
-          navigate('/auth');
-        } else {
-          setUser(session.user);
-          // Defer all heavy operations
-          deferHeavyOperations(session.user);
-        }
-      });
-    }, 50);
+    // Immediate auth check without timeout
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/auth');
+      } else {
+        setUser(session.user);
+      }
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
@@ -64,29 +65,24 @@ const Index = () => {
     });
 
     return () => {
-      clearTimeout(authCheckTimeout);
       subscription.unsubscribe();
     };
   }, [navigate]);
 
-  // Defer all heavy operations to after page load
-  const deferHeavyOperations = (user: any) => {
-    // Use requestIdleCallback for better performance
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(() => {
-        loadPointsData();
-        processDailyLogin();
-        autoSyncContactsOnLoad(user.id);
-      });
-    } else {
-      // Fallback for browsers without requestIdleCallback
-      setTimeout(() => {
-        loadPointsData();
-        processDailyLogin();
-        autoSyncContactsOnLoad(user.id);
-      }, 100);
-    }
-  };
+  // Defer all heavy operations to after page is visible
+  React.useEffect(() => {
+    if (!user) return;
+    
+    // Defer heavy operations by 100ms to allow UI to paint first
+    const timer = setTimeout(() => {
+      loadPointsData();
+      processDailyLogin();
+      // Defer contact sync even more (30 seconds after load)
+      setTimeout(() => autoSyncContactsOnLoad(user.id), 30000);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [user]);
 
   const autoSyncContactsOnLoad = async (userId: string) => {
     // Run in background - heavily deferred
@@ -167,14 +163,22 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [{ data: pointsData }, { data: streakData }] = await Promise.all([
-        supabase.from('user_points').select('balance').eq('user_id', user.id).maybeSingle(),
-        supabase.from('user_streaks').select('current_streak').eq('user_id', user.id).maybeSingle()
+      // Fetch all data in parallel for speed
+      const [pointsData, streakData, referralData] = await Promise.all([
+        supabase.from('user_points').select('balance').eq('user_id', user.id).maybeSingle().then(r => r.data),
+        supabase.from('user_streaks').select('current_streak').eq('user_id', user.id).maybeSingle().then(r => r.data),
+        supabase.from('chatr_referral_codes').select('code, qr_code_url').eq('user_id', user.id).maybeSingle().then(r => r.data)
       ]);
 
       setPointsBalance(pointsData?.balance || 0);
       setCurrentStreak(streakData?.current_streak || 0);
+      
+      if (referralData) {
+        setReferralCode(referralData.code);
+        setQrCodeUrl(referralData.qr_code_url || '');
+      }
     } catch (error) {
+      // Silently fail to not block UI
       console.error('Error loading points:', error);
     }
   };
@@ -203,6 +207,51 @@ const Index = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth');
+  };
+
+  const handleShareClick = async () => {
+    if (!referralCode) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-referral-code');
+        if (error) throw error;
+        if (data) {
+          setReferralCode(data.referralCode);
+          setQrCodeUrl(data.qrCodeUrl || '');
+        }
+      } catch (error) {
+        console.error('Error generating referral code:', error);
+        toast.error('Failed to load referral code');
+        return;
+      }
+    }
+    setShowShareDialog(true);
+  };
+
+  const copyReferralLink = async () => {
+    const link = `https://chatr.chat/auth?ref=${referralCode}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success('Referral link copied!');
+    } catch (error) {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const shareReferralLink = async () => {
+    const link = `https://chatr.chat/auth?ref=${referralCode}`;
+    const text = `Join me on Chatr+ and earn rewards! Use my code: ${referralCode}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Join Chatr+', text, url: link });
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          copyReferralLink();
+        }
+      }
+    } else {
+      copyReferralLink();
+    }
   };
 
   const mainHubs = [
@@ -323,29 +372,18 @@ const Index = () => {
     },
   ];
 
-  // Show skeleton while mounting
-  if (!mounted) {
+  // Show minimal skeleton while checking auth (no animations for speed)
+  if (!mounted || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
         <div className="bg-background/95 backdrop-blur-xl border-b border-border/40">
           <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-center gap-3">
-            <img src={chatrIconLogo} alt="Chatr" className="h-12 w-12" />
+            <img src={chatrIconLogo} alt="Chatr" className="h-12 w-12" loading="eager" />
             <div>
               <div className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
               </div>
               <div className="text-xs font-medium text-muted-foreground">Say It. Share It. Live It.</div>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-16 bg-muted/50 rounded-3xl w-3/4 mx-auto"></div>
-            <div className="h-10 bg-muted/50 rounded-2xl w-1/2 mx-auto"></div>
-            <div className="grid grid-cols-1 gap-4 mt-8">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-20 bg-muted/50 rounded-2xl"></div>
-              ))}
             </div>
           </div>
         </div>
@@ -359,7 +397,7 @@ const Index = () => {
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={chatrIconLogo} alt="Chatr Logo" className="h-10 w-10 hover:scale-110 transition-transform duration-300" />
+            <img src={chatrIconLogo} alt="Chatr Logo" className="h-10 w-10" loading="eager" />
             <div>
               <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
@@ -389,10 +427,11 @@ const Index = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/download')}
-              className="rounded-full h-9 px-4 text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+              onClick={handleShareClick}
+              className="rounded-full h-9 px-4 text-sm font-medium bg-gradient-to-r from-orange-500/10 to-red-500/10 hover:from-orange-500/20 hover:to-red-500/20 text-orange-600 dark:text-orange-400 transition-all gap-1.5"
             >
-              Download
+              <Share2 className="w-4 h-4" />
+              <span>Share & Earn</span>
             </Button>
             {user && (
               <Button
@@ -533,6 +572,88 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent font-bold">
+              Chatr Champions
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Referral Code Display */}
+            {referralCode && (
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">Your Referral Code</p>
+                <p className="text-xs text-muted-foreground">Your unique code</p>
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 rounded-xl p-4">
+                  <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent tracking-wider">
+                    {referralCode}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* QR Code */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="bg-white p-4 rounded-2xl shadow-lg">
+                {qrCodeUrl ? (
+                  <img src={qrCodeUrl} alt="Referral QR Code" className="w-48 h-48" />
+                ) : referralCode ? (
+                  <QRCodeSVG 
+                    value={`https://chatr.chat/auth?ref=${referralCode}`}
+                    size={192}
+                    level="H"
+                    includeMargin
+                  />
+                ) : (
+                  <div className="w-48 h-48 flex items-center justify-center bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Loading...</p>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Scan to join with your code</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={copyReferralLink}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Copy Link
+              </Button>
+              <Button
+                onClick={shareReferralLink}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 gap-2"
+              >
+                <Share className="w-4 h-4" />
+                Share
+              </Button>
+            </div>
+
+            {/* Info */}
+            <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-4">
+              <p className="text-sm text-center text-muted-foreground">
+                Share your code and earn <span className="font-bold text-orange-600 dark:text-orange-400">₹50</span> per referral + network bonuses!
+              </p>
+              <Button
+                variant="link"
+                onClick={() => {
+                  setShowShareDialog(false);
+                  navigate('/growth');
+                }}
+                className="w-full mt-2 text-orange-600 dark:text-orange-400"
+              >
+                View Full Dashboard →
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

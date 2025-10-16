@@ -79,13 +79,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle API requests (network first with 8s timeout for 2G, cache fallback)
+  // Handle API requests (network first with 25s timeout for 2G, cache fallback)
   if (url.pathname.includes('/api/') || url.pathname.includes('supabase')) {
     event.respondWith(
       Promise.race([
         fetch(request),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('timeout')), 8000) // 8s timeout for 2G
+          setTimeout(() => reject(new Error('timeout')), 25000) // 25s timeout for 2G
         )
       ])
         .then(response => {

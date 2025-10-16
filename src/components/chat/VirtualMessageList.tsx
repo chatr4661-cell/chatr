@@ -27,6 +27,8 @@ interface VirtualMessageListProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoading?: boolean;
+  onForward?: (message: Message) => void;
+  onStar?: (messageId: string) => void;
 }
 
 export const VirtualMessageList = React.memo(({
@@ -35,7 +37,9 @@ export const VirtualMessageList = React.memo(({
   otherUser,
   onLoadMore,
   hasMore,
-  isLoading = false
+  isLoading = false,
+  onForward,
+  onStar
 }: VirtualMessageListProps) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastMessageCountRef = React.useRef(messages.length);
@@ -43,16 +47,21 @@ export const VirtualMessageList = React.memo(({
 
   // Optimized auto-scroll to bottom on new messages
   React.useLayoutEffect(() => {
-    if (messages.length > lastMessageCountRef.current && shouldAutoScroll && scrollRef.current) {
-      // Use requestAnimationFrame for smoother scrolling
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      });
+    if (scrollRef.current) {
+      const shouldScroll = messages.length > lastMessageCountRef.current || 
+                          (messages.length > 0 && lastMessageCountRef.current === 0);
+      
+      if (shouldScroll) {
+        // Always scroll to bottom for new messages
+        requestAnimationFrame(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          }
+        });
+      }
     }
     lastMessageCountRef.current = messages.length;
-  }, [messages.length, shouldAutoScroll]);
+  }, [messages.length]);
 
   const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
@@ -77,9 +86,10 @@ export const VirtualMessageList = React.memo(({
     );
   }
 
+
   return (
     <ScrollArea className="flex-1 h-full bg-[hsl(200,25%,97%)]" ref={scrollRef} onScroll={handleScroll}>
-      <div className="py-3">
+      <div className="py-3 w-full">
         {isLoading && hasMore && (
           <div className="text-center py-2">
             <div className="w-4 h-4 border-2 border-primary/60 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -89,6 +99,17 @@ export const VirtualMessageList = React.memo(({
           const isOwn = message.sender_id === userId;
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const showAvatar = !prevMessage || prevMessage.sender_id !== message.sender_id;
+          
+          // Debug first 3 messages
+          if (index < 3) {
+            console.log(`[MSG ${index}]`, {
+              msgId: message.id.substring(0, 8),
+              senderId: message.sender_id,
+              userId: userId,
+              isOwn,
+              content: message.content.substring(0, 20)
+            });
+          }
 
           return (
             <MessageBubble
@@ -97,6 +118,8 @@ export const VirtualMessageList = React.memo(({
               isOwn={isOwn}
               showAvatar={showAvatar}
               otherUser={otherUser}
+              onForward={onForward}
+              onStar={onStar}
             />
           );
         })}

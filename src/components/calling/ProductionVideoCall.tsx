@@ -1,707 +1,385 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { sendSignal, subscribeToCallSignals, getTurnConfig } from "@/utils/webrtcSignaling";
-import { Capacitor } from "@capacitor/core";
-import { cn } from "@/lib/utils";
-import { getOptimalVideoConstraints, getOptimalAudioConstraints, setBandwidth, setPreferredCodec, QUALITY_PRESETS } from "@/utils/videoQualityManager";
-import { useNetworkStats } from "@/hooks/useNetworkStats";
-import { useCallUI } from "@/hooks/useCallUI";
-import { useCallHaptics } from "@/hooks/useCallHaptics";
-import { usePictureInPicture } from "@/hooks/usePictureInPicture";
-import { DraggableVideoWindow } from "./DraggableVideoWindow";
-import { CallStateTransition } from "./CallStateTransition";
-import { QualityIndicator } from "./QualityIndicator";
-import { VideoEffectsPanel } from "./VideoEffectsPanel";
-import { CallMediaCapture } from "./CallMediaCapture";
-import { motion, AnimatePresence } from "framer-motion";
-import { VIDEO_EFFECTS } from "@/utils/videoEffects";
+import { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2 } from 'lucide-react';
+import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCallUI } from '@/hooks/useCallUI';
+import { NetworkQualityIndicator } from './NetworkQualityIndicator';
+import { Capacitor } from '@capacitor/core';
 
 interface ProductionVideoCallProps {
   callId: string;
   contactName: string;
-  contactAvatar?: string;
   isInitiator: boolean;
   partnerId: string;
   onEnd: () => void;
-  onAddParticipant?: () => void;
 }
 
-export default function ProductionVideoCall({ 
-  callId, 
+export default function ProductionVideoCall({
+  callId,
   contactName,
-  isInitiator, 
-  partnerId, 
+  isInitiator,
+  partnerId,
   onEnd,
-  onAddParticipant
 }: ProductionVideoCallProps) {
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [callState, setCallState] = useState<'connecting' | 'connected' | 'failed'>('connecting');
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [callStatus, setCallStatus] = useState<"dialing" | "ringing" | "connecting" | "connected" | "reconnecting" | "ended">("dialing");
-  const [callDuration, setCallDuration] = useState(0);
-  const [connectionQuality, setConnectionQuality] = useState<"excellent" | "good" | "poor" | "reconnecting">("good");
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
-  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
-  
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [duration, setDuration] = useState(0);
+  const [videoLayout, setVideoLayout] = useState<'remote-main' | 'local-main'>('remote-main');
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const isMobile = Capacitor.isNativePlatform();
+
+  const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
-  const { toast } = useToast();
-  const callTimerRef = useRef<NodeJS.Timeout>();
-  
-  const { stats, currentQuality, connectionQuality: netConnectionQuality } = useNetworkStats({
-    peerConnection: peerConnectionRef.current,
-    enabled: callStatus === 'connected',
-    autoAdjust: true
-  });
+  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const userIdRef = useRef<string | null>(null);
 
   const { controlsVisible, showControls } = useCallUI({ 
-    autoHideDelay: 3000,
-    enabled: callStatus === 'connected'
-  });
-
-  const { trigger: triggerHaptic } = useCallHaptics();
-  
-  const { isPiPActive, isPiPSupported, togglePiP: toggleBrowserPiP } = usePictureInPicture({
-    videoRef: remoteVideoRef,
-    enabled: true
+    autoHideDelay: 5000, 
+    enabled: true 
   });
 
   useEffect(() => {
-    initializeCall();
-    
+    const initCall = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error('Not authenticated');
+          onEnd();
+          return;
+        }
+        userIdRef.current = user.id;
+
+        console.log('🎬 [ProductionVideoCall] Initializing video call...');
+        const call = new SimpleWebRTCCall(callId, partnerId, true, isInitiator, user.id);
+        webrtcRef.current = call;
+
+        call.on('localStream', (stream: MediaStream) => {
+          console.log('📹 [ProductionVideoCall] Local stream received');
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+            localVideoRef.current.muted = true;
+            localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+          }
+        });
+
+        call.on('remoteStream', (stream: MediaStream) => {
+          console.log('📺 [ProductionVideoCall] Remote stream received');
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = stream;
+            remoteVideoRef.current.playsInline = true;
+            remoteVideoRef.current.muted = false;
+            remoteVideoRef.current.autoplay = true;
+            
+            const playPromise = remoteVideoRef.current.play();
+            
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => console.log('✅ Remote video playing'))
+                .catch(err => {
+                  console.warn('⚠️ Autoplay blocked, waiting for user interaction:', err);
+                  
+                  toast.info('Tap anywhere to enable audio/video', {
+                    duration: 5000,
+                    action: {
+                      label: 'Enable',
+                      onClick: () => {
+                        remoteVideoRef.current?.play();
+                      }
+                    }
+                  });
+                  
+                  const playOnInteraction = () => {
+                    remoteVideoRef.current?.play();
+                    document.removeEventListener('touchstart', playOnInteraction);
+                    document.removeEventListener('click', playOnInteraction);
+                  };
+                  
+                  document.addEventListener('touchstart', playOnInteraction, { once: true });
+                  document.addEventListener('click', playOnInteraction, { once: true });
+                });
+            }
+          }
+        });
+
+        call.on('connected', () => {
+          console.log('🎉 [ProductionVideoCall] Call connected!');
+          setCallState('connected');
+          toast.success('Call connected');
+          startDurationTimer();
+          updateCallStatus('active');
+        });
+
+        call.on('failed', (error: Error) => {
+          console.error('❌ [ProductionVideoCall] Call failed:', error);
+          setCallState('failed');
+          
+          let errorMessage = 'Call failed';
+          let actionMessage = 'Please try again';
+          
+          if (error.message.includes('camera') || error.message.includes('microphone')) {
+            errorMessage = 'Camera/Microphone access denied';
+            actionMessage = 'Please allow camera and microphone access in your browser settings';
+          } else if (error.message.includes('timeout')) {
+            errorMessage = 'Connection timeout';
+            actionMessage = 'Check your internet connection and try again';
+          } else if (error.message.includes('ice') || error.message.includes('Connection failed')) {
+            errorMessage = 'Could not establish connection';
+            actionMessage = 'Your network may be blocking video calls. Try a different network.';
+          }
+          
+          toast.error(errorMessage, {
+            description: actionMessage,
+            duration: 5000
+          });
+          
+          setTimeout(() => handleEndCall(), 3000);
+        });
+
+        call.on('ended', () => {
+          console.log('👋 [ProductionVideoCall] Call ended');
+          handleEndCall();
+        });
+
+        await call.start();
+        await updateCallStatus('ringing');
+
+      } catch (error) {
+        console.error('❌ [ProductionVideoCall] Init error:', error);
+        toast.error('Failed to initialize call');
+        onEnd();
+      }
+    };
+
+    initCall();
+
     return () => {
       cleanup();
     };
   }, []);
 
-  useEffect(() => {
-    if (callStatus === "connected") {
-      callTimerRef.current = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (callTimerRef.current) clearInterval(callTimerRef.current);
-    };
-  }, [callStatus]);
-
-  // Update connection quality from network stats
-  useEffect(() => {
-    if (netConnectionQuality) {
-      setConnectionQuality(netConnectionQuality);
-    }
-  }, [netConnectionQuality]);
-
-
-  const initializeCall = async () => {
-    let callTimeout: NodeJS.Timeout | null = null;
-    
-    try {
-      console.log('🎥 [ProductionVideoCall] Initializing call...', { callId, contactName, isInitiator, partnerId });
-      setCallStatus(isInitiator ? "dialing" : "ringing");
-      
-      // Set call timeout - 60 seconds for unanswered calls
-      if (isInitiator) {
-        callTimeout = setTimeout(() => {
-          if (callStatus === 'dialing' || callStatus === 'ringing') {
-            console.warn('⏰ Call timed out - no answer');
-            toast({
-              title: "Call Timeout",
-              description: "No answer - call ended",
-              variant: "destructive"
-            });
-            endCall();
-          }
-        }, 60000);
-      }
-      
-      // Request camera and microphone permissions
-      console.log('📷 Requesting media permissions...');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode,
-          width: { ideal: 1920, max: 1920 },
-          height: { ideal: 1080, max: 1080 },
-          frameRate: { ideal: 30 }
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000
-        }
-      });
-      
-      console.log('✅ Media stream obtained:', stream.getTracks().map(t => `${t.kind}: ${t.label}`));
-      setLocalStream(stream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-        localVideoRef.current.muted = true; // Mute local to prevent feedback
-        localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-        console.log('✅ Local video ref set');
-      }
-
-      // Get ICE/TURN servers
-      console.log('🔧 Fetching TURN config...');
-      const iceServers = await getTurnConfig();
-      console.log('🔧 ICE servers:', iceServers.length, 'servers configured');
-
-      const pc = new RTCPeerConnection({
-        iceServers,
-        iceTransportPolicy: 'all',
-        bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require'
-      });
-      
-      peerConnectionRef.current = pc;
-      console.log('✅ PeerConnection created');
-
-      // Add tracks to peer connection
-      stream.getTracks().forEach(track => {
-        console.log(`➕ Adding ${track.kind} track to peer connection`);
-        pc.addTrack(track, stream);
-      });
-
-      // Handle incoming remote stream
-      pc.ontrack = (event) => {
-        console.log('📺 [ontrack] Received remote track:', event.track.kind);
-        const [remoteStream] = event.streams;
-        setRemoteStream(remoteStream);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = remoteStream;
-          // CRITICAL: Force video to play
-          remoteVideoRef.current.play().then(() => {
-            console.log('✅ Remote video playing!');
-          }).catch(err => {
-            console.error('❌ Remote video play failed:', err);
-            // Retry on user interaction
-            const playOnInteraction = () => {
-              remoteVideoRef.current?.play();
-              document.removeEventListener('click', playOnInteraction);
-            };
-            document.addEventListener('click', playOnInteraction, { once: true });
-          });
-          console.log('✅ Remote video ref set');
-        }
-        setCallStatus("connected");
-        console.log('✅ Call connected!');
-      };
-
-      // Handle ICE candidates
-      pc.onicecandidate = async (event) => {
-        if (event.candidate) {
-          console.log('📡 [onicecandidate] Sending ICE candidate:', {
-            candidate: event.candidate.candidate,
-            sdpMid: event.candidate.sdpMid,
-            sdpMLineIndex: event.candidate.sdpMLineIndex
-          });
-          try {
-            await sendSignal({
-              type: 'ice-candidate',
-              callId,
-              data: event.candidate,
-              to: partnerId
-            });
-            console.log('✅ ICE candidate sent successfully');
-          } catch (error) {
-            console.error('❌ Failed to send ICE candidate:', error);
-          }
-        } else {
-          console.log('📡 ✅ All ICE candidates sent (null candidate received)');
-        }
-      };
-
-      // Monitor ICE connection state
-      pc.oniceconnectionstatechange = () => {
-        console.log('❄️ [ICE Connection State]:', pc.iceConnectionState);
-        console.log('   Local Description:', pc.localDescription ? 'SET' : 'NOT SET');
-        console.log('   Remote Description:', pc.remoteDescription ? 'SET' : 'NOT SET');
-        
-        if (pc.iceConnectionState === 'failed') {
-          console.error('❌ ICE connection failed - attempting restart');
-          pc.restartIce();
-        } else if (pc.iceConnectionState === 'connected') {
-          console.log('✅ ICE connection established!');
-        } else if (pc.iceConnectionState === 'completed') {
-          console.log('✅ ICE gathering complete!');
-        }
-      };
-
-      // Monitor connection state with auto-recovery
-      pc.onconnectionstatechange = () => {
-        console.log('🔗 [WebRTC Connection State]:', pc.connectionState);
-        console.log('   ICE Gathering:', pc.iceGatheringState);
-        console.log('   Signaling State:', pc.signalingState);
-        
-        if (pc.connectionState === "connected") {
-          setCallStatus("connected");
-          setConnectionQuality("excellent");
-          console.log('✅ ✅ ✅ WebRTC P2P connection established!');
-        } else if (pc.connectionState === "failed") {
-          setCallStatus("reconnecting");
-          setConnectionQuality("reconnecting");
-          console.warn('⚠️ Connection failed, attempting ICE restart...');
-          
-          // Auto-recovery: restart ICE immediately
-          setTimeout(async () => {
-            if (pc.connectionState === "failed" && isInitiator) {
-              try {
-                const offer = await pc.createOffer({ iceRestart: true });
-                await pc.setLocalDescription(offer);
-                await sendSignal({ type: 'offer', callId, data: offer, to: partnerId });
-                console.log('🔄 ICE restart initiated');
-              } catch (e) {
-                console.error('❌ ICE restart failed:', e);
-              }
-            }
-          }, 1000);
-        } else if (pc.connectionState === "disconnected") {
-          setCallStatus("reconnecting");
-          setConnectionQuality("reconnecting");
-          console.warn('⚠️ Connection disconnected - waiting for reconnection...');
-          
-          // Give it 5 seconds to reconnect, then force restart
-          setTimeout(() => {
-            if (pc.connectionState === "disconnected") {
-              console.warn('🔄 Still disconnected, forcing ICE restart');
-              pc.restartIce();
-            }
-          }, 5000);
-        } else if (pc.connectionState === "closed") {
-          console.log('📴 Connection closed');
-        }
-      };
-
-      // **CRITICAL FIX**: Load past signals BEFORE subscribing to new ones
-      console.log('📥 Loading past signals for receiver...');
-      const { getSignals, deleteProcessedSignals } = await import('@/utils/webrtcSignaling');
-      const pastSignals = await getSignals(callId, isInitiator ? partnerId : (await supabase.auth.getUser()).data.user?.id || '');
-      
-      if (pastSignals.length > 0) {
-        console.log(`📥 Processing ${pastSignals.length} past signals`);
-        for (const signal of pastSignals) {
-          await handleSignal(signal);
-        }
-        // Clean up processed signals
-        await deleteProcessedSignals(callId, isInitiator ? partnerId : (await supabase.auth.getUser()).data.user?.id || '');
-      }
-
-      // Subscribe to future signals
-      console.log('📡 Subscribing to future signals...');
-      const { subscribeToCallSignals } = await import('@/utils/webrtcSignaling');
-      const unsubscribe = subscribeToCallSignals(callId, handleSignal);
-      
-      // Store unsubscribe function for cleanup
-      (window as any).__callSignalUnsubscribe = unsubscribe;
-
-      // Create and send offer if initiator
-      if (isInitiator) {
-        console.log('📞 [Initiator] Creating offer...');
-        const offer = await pc.createOffer({
-          offerToReceiveVideo: true,
-          offerToReceiveAudio: true
-        });
-        await pc.setLocalDescription(offer);
-        console.log('📞 Local description set');
-        
-        console.log('📤 Sending offer signal...');
-        try {
-          await sendSignal({
-            type: 'offer',
-            callId,
-            data: offer,
-            to: partnerId
-          });
-          console.log('✅ Offer sent successfully');
-        } catch (error) {
-          console.error('❌ Failed to send offer:', error);
-          throw error;
-        }
-      }
-
-    } catch (error: any) {
-      console.error("❌ [ProductionVideoCall] Error initializing call:", error);
-      toast({
-        title: "Call initialization failed",
-        description: error.message || "Failed to start video call. Please check camera/microphone permissions.",
-        variant: "destructive"
-      });
-      onEnd();
-    }
+  const startDurationTimer = () => {
+    durationIntervalRef.current = setInterval(() => {
+      setDuration(d => d + 1);
+    }, 1000);
   };
 
-  const handleSignal = async (signal: any) => {
-    const pc = peerConnectionRef.current;
-    if (!pc) {
-      console.warn('⚠️ [handleSignal] PeerConnection not initialized, ignoring signal');
-      return;
-    }
-
+  const updateCallStatus = async (status: string) => {
     try {
-      console.log('📥 [handleSignal] Processing signal:', {
-        type: signal.signal_type,
-        from: signal.from_user,
-        signalingState: pc.signalingState
-      });
-
-      if (signal.signal_type === 'offer') {
-        console.log('📞 [handleSignal] Received OFFER - setting as remote description');
-        await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
-        console.log('✅ Remote description set from OFFER');
-        
-        console.log('📝 [handleSignal] Creating ANSWER...');
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        console.log('✅ Local description set (ANSWER)');
-        
-        console.log('📤 [handleSignal] Sending ANSWER signal...');
-        await sendSignal({
-          type: 'answer',
-          callId,
-          data: answer,
-          to: partnerId
-        });
-        console.log('✅ ANSWER sent successfully');
-        
-      } else if (signal.signal_type === 'answer') {
-        console.log('✅ [handleSignal] Received ANSWER - setting as remote description');
-        await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
-        console.log('✅ Remote description set from ANSWER - connection should establish now');
-        
-      } else if (signal.signal_type === 'ice-candidate') {
-        if (pc.remoteDescription) {
-          console.log('❄️ [handleSignal] Adding ICE candidate:', signal.signal_data.candidate?.substring(0, 50));
-          await pc.addIceCandidate(new RTCIceCandidate(signal.signal_data));
-          console.log('✅ ICE candidate added');
-        } else {
-          console.warn('⚠️ [handleSignal] Remote description not set yet - queueing ICE candidate');
-          // Queue candidate for later processing
-          setTimeout(() => handleSignal(signal), 100);
-        }
-      }
+      await supabase
+        .from('calls')
+        .update({ 
+          status,
+          webrtc_state: status === 'active' ? 'connected' : 'signaling',
+          ...(status === 'active' ? { started_at: new Date().toISOString() } : {})
+        })
+        .eq('id', callId);
     } catch (error) {
-      console.error("❌ [handleSignal] Error processing signal:", {
-        type: signal.signal_type,
-        error,
-        signalingState: pc.signalingState
-      });
+      console.error('Failed to update call status:', error);
     }
   };
 
-  const toggleVideo = async () => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      videoTrack.enabled = !videoTrack.enabled;
-      setVideoEnabled(videoTrack.enabled);
-      await triggerHaptic(videoTrack.enabled ? 'unmute' : 'mute');
-    }
-  };
-
-  const toggleAudio = async () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      audioTrack.enabled = !audioTrack.enabled;
-      setAudioEnabled(audioTrack.enabled);
-      await triggerHaptic(audioTrack.enabled ? 'unmute' : 'mute');
-    }
-  };
-
-
-  const switchCamera = async () => {
-    if (!localStream) return;
-    
-    setIsSwitchingCamera(true);
-    const newFacingMode = facingMode === "user" ? "environment" : "user";
-    
-    try {
-      // Stop current video track first
-      const oldVideoTrack = localStream.getVideoTracks()[0];
-      if (oldVideoTrack) {
-        oldVideoTrack.stop();
-      }
-
-      // Get new stream with switched camera
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { exact: newFacingMode },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 60, min: 30 }
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000
-        }
-      });
-
-      const newVideoTrack = newStream.getVideoTracks()[0];
-      const newAudioTrack = newStream.getAudioTracks()[0];
-      
-      // Replace tracks in peer connection
-      const videoSender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
-      const audioSender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'audio');
-      
-      if (videoSender && newVideoTrack) {
-        await videoSender.replaceTrack(newVideoTrack);
-      }
-      
-      if (audioSender && newAudioTrack) {
-        await audioSender.replaceTrack(newAudioTrack);
-      }
-
-      // Update local stream
-      setLocalStream(newStream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = newStream;
-      }
-      setFacingMode(newFacingMode);
-      setIsSwitchingCamera(false);
-      
-      await triggerHaptic('cameraSwitch');
-      
-      toast({
-        title: `Switched to ${newFacingMode === 'user' ? 'front' : 'back'} camera`,
-      });
-    } catch (error) {
-      console.error("Error switching camera:", error);
-      setIsSwitchingCamera(false);
-      await triggerHaptic('error');
-      toast({
-        title: "Camera switch failed",
-        description: "Camera not available",
-        variant: "destructive"
-      });
-    }
-  };
-
-
-  const endCall = async () => {
-    // Clean up media streams and connections first
+  const handleEndCall = async () => {
     cleanup();
     
-    await triggerHaptic('end');
-    
-    // Update call status in database
-    await supabase
-      .from('calls')
-      .update({ 
-        status: 'ended', 
-        ended_at: new Date().toISOString(),
-        duration: callDuration
-      })
-      .eq('id', callId);
-    
-    // Reset call state and return to previous screen
+    try {
+      await supabase
+        .from('calls')
+        .update({ 
+          status: 'ended',
+          webrtc_state: 'ended',
+          ended_at: new Date().toISOString(),
+          duration
+        })
+        .eq('id', callId);
+    } catch (error) {
+      console.error('Failed to update call end:', error);
+    }
+
     onEnd();
   };
 
   const cleanup = () => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current);
     }
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-    }
-    if (callTimerRef.current) clearInterval(callTimerRef.current);
-    
-    // Unsubscribe from signals
-    if ((window as any).__callSignalUnsubscribe) {
-      (window as any).__callSignalUnsubscribe();
-      delete (window as any).__callSignalUnsubscribe;
+    if (webrtcRef.current) {
+      webrtcRef.current.end();
+      webrtcRef.current = null;
     }
   };
 
-  const formatDuration = (seconds: number) => {
+  const toggleAudio = () => {
+    const newState = !audioEnabled;
+    setAudioEnabled(newState);
+    webrtcRef.current?.toggleAudio(newState);
+  };
+
+  const toggleVideo = () => {
+    const newState = !videoEnabled;
+    setVideoEnabled(newState);
+    webrtcRef.current?.toggleVideo(newState);
+  };
+
+  const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getQualityStyles = () => {
-    switch (connectionQuality) {
-      case "excellent": 
-        return { bg: "bg-green-500/20", border: "border-green-500/30", dot: "bg-green-500", text: "text-green-500" };
-      case "good": 
-        return { bg: "bg-yellow-500/20", border: "border-yellow-500/30", dot: "bg-yellow-500", text: "text-yellow-500" };
-      case "poor": 
-        return { bg: "bg-red-500/20", border: "border-red-500/30", dot: "bg-red-500", text: "text-red-500" };
-      case "reconnecting":
-        return { bg: "bg-orange-500/20", border: "border-orange-500/30", dot: "bg-orange-500 animate-pulse", text: "text-orange-500" };
+  const handleSwapVideos = () => {
+    setVideoLayout(prev => prev === 'remote-main' ? 'local-main' : 'remote-main');
+    toast.info(videoLayout === 'remote-main' ? 'Your video is now main' : 'Their video is now main');
+  };
+
+  const handleToggleFullScreen = async () => {
+    if (!isFullScreen) {
+      await document.documentElement.requestFullscreen();
+      setIsFullScreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullScreen(false);
     }
   };
 
-  const qualityStyles = getQualityStyles();
+  const handleSwitchCamera = async () => {
+    if (!isMobile) return;
+    try {
+      const newMode = await webrtcRef.current?.switchCamera();
+      toast.success(`Switched to ${newMode === 'user' ? 'front' : 'back'} camera`);
+    } catch (error) {
+      toast.error('Failed to switch camera');
+    }
+  };
+
+  const mainVideoRef = videoLayout === 'remote-main' ? remoteVideoRef : localVideoRef;
+  const pipVideoRef = videoLayout === 'remote-main' ? localVideoRef : remoteVideoRef;
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black flex flex-col"
+      className="fixed inset-0 z-50 bg-black"
       onClick={showControls}
     >
-      {/* Call State Transition Overlay */}
-      <CallStateTransition 
-        state={callStatus === "dialing" || callStatus === "ringing" || callStatus === "connecting" ? callStatus : "connected"}
-        contactName={contactName}
-        callType="video"
+      {/* Main video */}
+      <video
+        ref={mainVideoRef}
+        autoPlay
+        playsInline
+        muted={videoLayout === 'local-main'}
+        className="w-full h-full object-cover"
+        onDoubleClick={handleToggleFullScreen}
       />
 
-      {/* Status Badge - FaceTime style (top left) */}
-      <AnimatePresence>
-        {callStatus === "connected" && controlsVisible && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="absolute top-6 left-6 z-10"
-          >
-            <div className="bg-white/10 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2">
-              <div className={cn(
-                "w-2 h-2 rounded-full",
-                connectionQuality === "excellent" && "bg-green-400",
-                connectionQuality === "good" && "bg-yellow-400",
-                connectionQuality === "poor" && "bg-red-400",
-                connectionQuality === "reconnecting" && "bg-orange-400 animate-pulse"
-              )} />
-              <span className="text-white/90 text-sm font-medium">
-                {formatDuration(callDuration)}
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Remote Video (Full Screen) - FaceTime black background */}
-      <div className="flex-1 relative bg-black">
-        <motion.video
-          ref={remoteVideoRef}
+      {/* Picture-in-picture video */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSwapVideos();
+        }}
+        className="absolute top-4 right-4 w-32 h-48 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+      >
+        <video
+          ref={pipVideoRef}
           autoPlay
           playsInline
-          className="w-full h-full object-contain"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: callStatus === 'connected' ? 1 : 0.3 }}
-          transition={{ duration: 0.5 }}
+          muted={videoLayout === 'remote-main'}
+          className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
         />
-      </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+          <Repeat className="w-6 h-6 text-white" />
+        </div>
+      </motion.div>
 
-      {/* Local Video - FaceTime style rounded rectangle (top right) */}
-      {!isPiPActive && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8, x: 100 }}
-          animate={{ 
-            opacity: isSwitchingCamera ? 0 : 1, 
-            scale: isSwitchingCamera ? 0.8 : 1,
-            x: 0
-          }}
-          transition={{ type: "spring", damping: 20 }}
-          className="absolute top-20 right-6 w-32 h-44 rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl z-10"
-        >
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover transform scale-x-[-1]"
-          />
-          {!videoEnabled && (
-            <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-              <VideoOff className="h-8 w-8 text-white/50" />
-            </div>
-          )}
-        </motion.div>
+      {/* Top info bar */}
+      {!isFullScreen && (
+        <div className="absolute top-4 left-4 flex items-center gap-3">
+          <div className="text-white bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
+            <h2 className="text-base font-semibold">{contactName}</h2>
+            <p className="text-xs text-white/80">
+              {callState === 'connecting' && 'Connecting...'}
+              {callState === 'connected' && formatDuration(duration)}
+              {callState === 'failed' && 'Connection failed'}
+            </p>
+          </div>
+          <NetworkQualityIndicator peerConnection={webrtcRef.current?.['pc']} />
+        </div>
       )}
 
-      {/* Camera Switch - Bottom left corner (FaceTime style) */}
-      {videoEnabled && controlsVisible && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          className="absolute bottom-8 left-6 z-20"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={switchCamera}
-            disabled={isSwitchingCamera}
-            className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-all disabled:opacity-50"
-            title={facingMode === 'user' ? 'Switch to Back Camera' : 'Switch to Front Camera'}
-          >
-            <SwitchCamera className={cn("h-5 w-5 text-white", isSwitchingCamera && "animate-spin")} />
-          </motion.button>
-        </motion.div>
-      )}
-
-      {/* FaceTime-style Bottom Controls */}
+      {/* Controls overlay */}
       <AnimatePresence>
-        {controlsVisible && (
+        {controlsVisible && !isFullScreen && (
           <motion.div
-            initial={{ opacity: 0, y: 100 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="absolute bottom-8 left-0 right-0 z-10 px-6"
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-32 pb-8"
           >
-            {/* Primary Controls - FaceTime style (minimal) */}
-            <div className="flex items-center justify-center gap-8">
-              {/* Video Toggle */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={toggleVideo}
-                className={cn(
-                  "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all",
-                  videoEnabled 
-                    ? "bg-gray-700 hover:bg-gray-600" 
-                    : "bg-red-500 hover:bg-red-600"
-                )}
-              >
-                {videoEnabled ? 
-                  <Video className="h-7 w-7 text-white" /> : 
-                  <VideoOff className="h-7 w-7 text-white" />
-                }
-              </motion.button>
-              
-              {/* End Call - Red button (larger) */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={endCall}
-                className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-2xl transition-all"
-              >
-                <PhoneOff className="h-8 w-8 text-white" />
-              </motion.button>
-
-              {/* Audio Toggle */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                size="lg"
+                variant={audioEnabled ? "secondary" : "destructive"}
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
                 onClick={toggleAudio}
-                className={cn(
-                  "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all",
-                  audioEnabled 
-                    ? "bg-gray-700 hover:bg-gray-600" 
-                    : "bg-red-500 hover:bg-red-600"
-                )}
               >
-                {audioEnabled ? 
-                  <Mic className="h-7 w-7 text-white" /> : 
-                  <MicOff className="h-7 w-7 text-white" />
-                }
-              </motion.button>
+                {audioEnabled ? <Mic className="h-6 w-6 text-white" /> : <MicOff className="h-6 w-6" />}
+              </Button>
+
+              <Button
+                size="lg"
+                variant={videoEnabled ? "secondary" : "destructive"}
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                onClick={toggleVideo}
+              >
+                {videoEnabled ? <Video className="h-6 w-6 text-white" /> : <VideoOff className="h-6 w-6" />}
+              </Button>
+
+              {isMobile && (
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                  onClick={handleSwitchCamera}
+                >
+                  <SwitchCamera className="w-6 h-6 text-white" />
+                </Button>
+              )}
+
+              <Button
+                size="lg"
+                variant="secondary"
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                onClick={handleSwapVideos}
+              >
+                <Repeat className="w-6 h-6 text-white" />
+              </Button>
+
+              <Button
+                size="lg"
+                variant="destructive"
+                className="rounded-full w-16 h-16"
+                onClick={handleEndCall}
+              >
+                <PhoneOff className="h-7 w-7" />
+              </Button>
+
+              <Button
+                size="lg"
+                variant="secondary"
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                onClick={handleToggleFullScreen}
+              >
+                {isFullScreen ? <Minimize2 className="w-6 h-6 text-white" /> : <Maximize2 className="w-6 h-6 text-white" />}
+              </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }

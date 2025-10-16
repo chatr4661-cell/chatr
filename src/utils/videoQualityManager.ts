@@ -29,6 +29,18 @@ export const QUALITY_PRESETS = {
     resolution: { width: 640, height: 480 },
     fps: 24,
     label: '480p'
+  },
+  'ultra-low': {
+    bitrate: 200000, // 200 Kbps - optimized for 2G
+    resolution: { width: 320, height: 240 },
+    fps: 15,
+    label: '240p (2G)'
+  },
+  'audio-only': {
+    bitrate: 64000, // 64 Kbps - audio only for 2G
+    resolution: { width: 0, height: 0 },
+    fps: 0,
+    label: 'Audio Only'
   }
 } as const;
 
@@ -67,25 +79,9 @@ export const setBandwidth = async (
   pc: RTCPeerConnection, 
   quality: QualityLevel
 ) => {
-  const preset = QUALITY_PRESETS[quality];
-  const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-  
-  if (sender) {
-    const parameters = sender.getParameters();
-    if (!parameters.encodings || parameters.encodings.length === 0) {
-      parameters.encodings = [{}];
-    }
-    
-    parameters.encodings[0].maxBitrate = preset.bitrate;
-    parameters.encodings[0].maxFramerate = preset.fps;
-    
-    try {
-      await sender.setParameters(parameters);
-      console.log(`✅ Quality set to ${preset.label} (${preset.bitrate / 1000000}Mbps)`);
-    } catch (error) {
-      console.error('Failed to set bandwidth:', error);
-    }
-  }
+  // DISABLED - was causing "read-only field" errors and crashing calls
+  console.log(`ℹ️ Bandwidth adjustment disabled for call stability (requested: ${quality})`);
+  return;
 };
 
 export const setPreferredCodec = (
@@ -188,6 +184,16 @@ export const getNetworkStats = async (pc: RTCPeerConnection): Promise<NetworkSta
 
 export const getOptimalQuality = (stats: NetworkStats): QualityLevel => {
   const { packetLoss, rtt, bandwidth } = stats;
+  
+  // 2G - Audio only
+  if (rtt > 600 || bandwidth < 100) {
+    return 'audio-only';
+  }
+  
+  // Poor 2G/3G - Ultra low quality
+  if (packetLoss > 15 || rtt > 500 || bandwidth < 300) {
+    return 'ultra-low';
+  }
   
   // Poor network conditions
   if (packetLoss > 5 || rtt > 300 || bandwidth < 800) {

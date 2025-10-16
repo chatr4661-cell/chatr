@@ -10,12 +10,14 @@ import { EventCreator } from './EventCreator';
 import { PaymentRequest } from './PaymentRequest';
 import { ContactPicker } from './ContactPicker';
 import { AIImageGenerator } from './AIImageGenerator';
+import { MultiImagePicker } from './MultiImagePicker';
 import { capturePhoto, pickImage, getCurrentLocation } from '@/utils/mediaUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MediaPreviewDialog } from './MediaPreviewDialog';
 
 interface EnhancedMessageInputProps {
-  onSendMessage: (content: string, type?: string, mediaUrl?: string) => Promise<void>;
+  onSendMessage: (content: string, type?: string, mediaAttachments?: any[]) => Promise<void>;
   disabled?: boolean;
   replyTo?: { id: string; content: string; sender: string } | null;
   onCancelReply?: () => void;
@@ -38,6 +40,12 @@ export const EnhancedMessageInput = ({
   const [showPaymentRequest, setShowPaymentRequest] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showAIImageGen, setShowAIImageGen] = useState(false);
+  const [showMultiImagePicker, setShowMultiImagePicker] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [mediaPreview, setMediaPreview] = useState<{
+    url: string;
+    type: 'image' | 'video';
+  } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,12 +58,43 @@ export const EnhancedMessageInput = ({
   }, [message]);
 
   const handleSend = async () => {
-    if (!message.trim() || sending || disabled) return;
+    if ((!message.trim() && selectedImages.length === 0) || sending || disabled) return;
 
     setSending(true);
     try {
-      await onSendMessage(message.trim());
+      // Upload images if any
+      let mediaAttachments: any[] = [];
+      
+      if (selectedImages.length > 0) {
+        toast.info(`Uploading ${selectedImages.length} image(s)...`);
+        
+        for (const file of selectedImages) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('social-media')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('social-media')
+            .getPublicUrl(filePath);
+
+          mediaAttachments.push({
+            url: publicUrl,
+            type: 'image',
+            filename: file.name,
+            size: file.size
+          });
+        }
+      }
+
+      await onSendMessage(message.trim() || '📷 Image', 'text', mediaAttachments);
       setMessage('');
+      setSelectedImages([]);
       if (onCancelReply) onCancelReply();
     } catch (error) {
       console.error('Error sending message:', error);
@@ -86,32 +125,11 @@ export const EnhancedMessageInput = ({
       const imageUrl = await pickImage();
       if (!imageUrl) return;
 
-      toast.info('Uploading image...');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Upload to Supabase Storage
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const fileExt = blob.type.split('/')[1] || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('social-media')
-        .upload(fileName, blob, { contentType: blob.type });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('social-media')
-        .getPublicUrl(fileName);
-
-      // Send message with media_url, not embedded base64
-      await onSendMessage('📷 Photo', 'image', publicUrl);
-      toast.success('Image sent successfully');
+      // Show preview instead of sending immediately
+      setMediaPreview({ url: imageUrl, type: 'image' });
     } catch (error) {
       console.error('Error picking image:', error);
-      toast.error('Failed to send image');
+      toast.error('Failed to pick image');
     }
   };
 
@@ -120,29 +138,8 @@ export const EnhancedMessageInput = ({
       const imageUrl = await capturePhoto();
       if (!imageUrl) return;
 
-      toast.info('Uploading photo...');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Upload to Supabase Storage
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const fileExt = blob.type.split('/')[1] || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('social-media')
-        .upload(fileName, blob, { contentType: blob.type });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('social-media')
-        .getPublicUrl(fileName);
-
-      // Send message with media_url, not embedded base64
-      await onSendMessage('📷 Photo', 'image', publicUrl);
-      toast.success('Photo sent successfully');
+      // Show preview instead of sending immediately
+      setMediaPreview({ url: imageUrl, type: 'image' });
     } catch (error) {
       console.error('Error capturing photo:', error);
       toast.error('Failed to capture photo');
@@ -165,6 +162,39 @@ export const EnhancedMessageInput = ({
     }
   };
 
+  const handleSendMedia = async (caption?: string) => {
+    if (!mediaPreview) return;
+
+    try {
+      toast.info('Uploading media...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const response = await fetch(mediaPreview.url);
+      const blob = await response.blob();
+      const fileExt = blob.type.split('/')[1] || 'jpg';
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('social-media')
+        .upload(fileName, blob, { contentType: blob.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('social-media')
+        .getPublicUrl(fileName);
+
+      await onSendMessage(caption || '📷 Photo', 'image', [{url: publicUrl, type: 'image'}]);
+      toast.success('Media sent successfully');
+      setMediaPreview(null);
+    } catch (error) {
+      console.error('Media upload error:', error);
+      toast.error('Failed to send media');
+      setMediaPreview(null);
+    }
+  };
+
   const handleDocument = () => {
     fileInputRef.current?.click();
   };
@@ -172,6 +202,14 @@ export const EnhancedMessageInput = ({
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        toast.error('File size exceeds 5MB limit');
+        e.target.value = ''; // Reset input
+        return;
+      }
+
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
@@ -196,6 +234,7 @@ export const EnhancedMessageInput = ({
         toast.error('Failed to upload document');
       }
     }
+    e.target.value = ''; // Reset input after processing
   };
 
   const handlePollSend = async (question: string, options: string[]) => {
@@ -260,6 +299,7 @@ export const EnhancedMessageInput = ({
       {showAttachments && (
         <AttachmentMenu
           onClose={() => setShowAttachments(false)}
+          onCamera={handleCamera}
           onPhotoVideo={handlePhotoVideo}
           onLocation={handleLocation}
           onContact={() => setShowContactPicker(true)}
@@ -311,6 +351,16 @@ export const EnhancedMessageInput = ({
 
       <div className="border-t bg-white/95 backdrop-blur-sm safe-bottom">
         <div className="p-3 pb-6">
+          {/* Multi-image preview */}
+          {selectedImages.length > 0 && (
+            <div className="mb-2">
+              <MultiImagePicker 
+                onImagesSelected={setSelectedImages}
+                maxImages={5}
+              />
+            </div>
+          )}
+          
           <div className="flex items-center gap-2 bg-[hsl(200,25,95%)] rounded-[24px] px-4 py-2">
             <Button
               variant="ghost"
@@ -358,6 +408,14 @@ export const EnhancedMessageInput = ({
           </div>
         </div>
       </div>
+
+      <MediaPreviewDialog
+        open={!!mediaPreview}
+        onClose={() => setMediaPreview(null)}
+        mediaUrl={mediaPreview?.url || ''}
+        mediaType={mediaPreview?.type || 'image'}
+        onSend={handleSendMedia}
+      />
     </>
   );
 };

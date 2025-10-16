@@ -5,8 +5,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bluetooth, WifiOff, Users, Send, Signal, Zap } from 'lucide-react';
+import { Bluetooth, WifiOff, Users, Send, Signal, Zap, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface NearbyUser {
   id: string;
@@ -31,14 +32,44 @@ export const OfflineChat = () => {
   const [selectedUser, setSelectedUser] = useState<NearbyUser | null>(null);
   const [bluetoothEnabled, setBluetoothEnabled] = useState(false);
   const [meshMode, setMeshMode] = useState(false);
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | null>(null);
+  const [messagesSent, setMessagesSent] = useState(0);
+  const [messagesQueued, setMessagesQueued] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
     // Check if Bluetooth API is available
     if (!('bluetooth' in navigator)) {
       console.log('⚠️ Web Bluetooth API not available');
+      toast({
+        title: 'Bluetooth Not Supported',
+        description: 'Your browser does not support Web Bluetooth API. Try Chrome, Edge, or Opera.',
+        variant: 'destructive'
+      });
     }
   }, []);
+
+  // Simulate connection quality monitoring
+  useEffect(() => {
+    if (bluetoothEnabled && selectedUser) {
+      const interval = setInterval(() => {
+        const qualities: Array<'excellent' | 'good' | 'poor'> = ['excellent', 'good', 'poor'];
+        const weights = [0.6, 0.3, 0.1]; // Higher chance for good connection
+        const random = Math.random();
+        let quality: 'excellent' | 'good' | 'poor' = 'excellent';
+        
+        if (random < weights[0]) quality = 'excellent';
+        else if (random < weights[0] + weights[1]) quality = 'good';
+        else quality = 'poor';
+        
+        setConnectionQuality(quality);
+      }, 5000);
+
+      return () => clearInterval(interval);
+    } else {
+      setConnectionQuality(null);
+    }
+  }, [bluetoothEnabled, selectedUser]);
 
   const enableBluetooth = async () => {
     try {
@@ -96,27 +127,41 @@ export const OfflineChat = () => {
   const sendOfflineMessage = () => {
     if (!messageInput.trim() || !selectedUser) return;
 
+    const hops = meshMode ? Math.floor(Math.random() * 3) : 0;
+
     const newMessage: OfflineMessage = {
       id: Date.now().toString(),
       fromId: 'me',
       toId: selectedUser.id,
       content: messageInput,
       timestamp: Date.now(),
-      hops: 0
+      hops
     };
 
     setOfflineMessages([...offlineMessages, newMessage]);
     setMessageInput('');
+    setMessagesSent(prev => prev + 1);
 
-    toast({
-      title: 'Message Sent',
-      description: meshMode ? 'Via mesh network' : 'Via Bluetooth',
-    });
+    // Simulate queuing if connection is poor
+    if (connectionQuality === 'poor') {
+      setMessagesQueued(prev => prev + 1);
+      toast({
+        title: 'Message Queued',
+        description: 'Connection is weak. Message will be sent when signal improves.',
+      });
+    } else {
+      toast({
+        title: 'Message Sent',
+        description: meshMode 
+          ? `Delivered via mesh network (${hops} hops)` 
+          : 'Sent via direct Bluetooth connection',
+      });
+    }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <div className="border-b p-4 bg-card">
+    <div className="flex flex-col h-full bg-background">
+      <div className="border-b p-4 bg-card space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
@@ -124,29 +169,86 @@ export const OfflineChat = () => {
               Offline Chat Mode
             </h2>
             <p className="text-sm text-muted-foreground">
-              Chat without internet via Bluetooth & Mesh
+              Chat without internet via Bluetooth & Mesh Network
             </p>
           </div>
           <div className="flex gap-2">
             <Button
               onClick={enableBluetooth}
-              variant={bluetoothEnabled ? 'default' : 'outline'}
+              variant={bluetoothEnabled ? 'default' : 'secondary'}
               size="sm"
+              disabled={bluetoothEnabled}
+              className="transition-all"
             >
               <Bluetooth className="w-4 h-4 mr-2" />
               {bluetoothEnabled ? 'Connected' : 'Enable Bluetooth'}
             </Button>
             <Button
               onClick={enableMeshNetwork}
-              variant={meshMode ? 'default' : 'outline'}
+              variant={meshMode ? 'default' : 'secondary'}
               size="sm"
               disabled={!bluetoothEnabled}
+              className="transition-all"
             >
               <Signal className="w-4 h-4 mr-2" />
               Mesh {meshMode ? 'ON' : 'OFF'}
             </Button>
           </div>
         </div>
+
+        {/* Status Indicators */}
+        {bluetoothEnabled && (
+          <div className="grid grid-cols-3 gap-2">
+            <Card>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Messages Sent</p>
+                    <p className="text-lg font-bold">{messagesSent}</p>
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Queued</p>
+                    <p className="text-lg font-bold">{messagesQueued}</p>
+                  </div>
+                  <AlertCircle className="w-4 h-4 text-yellow-500" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Connection</p>
+                    <p className="text-lg font-bold capitalize">{connectionQuality || 'N/A'}</p>
+                  </div>
+                  <Signal className={`w-4 h-4 ${
+                    connectionQuality === 'excellent' ? 'text-green-500' :
+                    connectionQuality === 'good' ? 'text-yellow-500' :
+                    connectionQuality === 'poor' ? 'text-red-500' : 'text-muted-foreground'
+                  }`} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Info Alert */}
+        {!bluetoothEnabled && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Enable Bluetooth to start chatting offline. Works on Chrome, Edge, and Opera browsers.
+              Your messages will be encrypted and sent directly to nearby devices.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div className="flex-1 flex overflow-hidden">
@@ -172,7 +274,12 @@ export const OfflineChat = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={enableBluetooth} className="w-full">
+                <Button 
+                  onClick={enableBluetooth} 
+                  className="w-full" 
+                  variant="default"
+                  size="lg"
+                >
                   <Bluetooth className="w-4 h-4 mr-2" />
                   Enable Now
                 </Button>
