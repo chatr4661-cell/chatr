@@ -98,7 +98,6 @@ import BusinessSettings from "./pages/business/Settings";
 import BusinessCatalog from "./pages/business/Catalog";
 import BusinessBroadcasts from "./pages/business/Broadcasts";
 import BusinessGroups from "./pages/business/Groups";
-import BluetoothTest from "./pages/BluetoothTest";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -184,7 +183,6 @@ const App = () => {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
             <Route path="/device-management" element={<DeviceManagement />} />
-            <Route path="/bluetooth-test" element={<BluetoothTest />} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminDashboard />} />

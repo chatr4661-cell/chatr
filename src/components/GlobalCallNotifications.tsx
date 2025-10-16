@@ -98,7 +98,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       });
 
       // Subscribe to signaling for answer
-      const unsub1 = await subscribeToCallSignals(call.id, userId, async (signal: any) => {
+      subscribeToCallSignals(call.id, async (signal: any) => {
         try {
           console.log('📥 Received signal:', signal.signal_type);
           
@@ -115,7 +115,6 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
           console.error('Error handling signal:', error);
         }
       });
-      (window as any).__globalCallNotifUnsubscribe1 = unsub1;
 
     } catch (error: any) {
       console.error('Start call error:', error);
@@ -235,7 +234,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
 
 
       // Subscribe to new signaling messages
-      const unsubscribe = await subscribeToCallSignals(call.id, userId, async (signal: any) => {
+      const unsubscribe = subscribeToCallSignals(call.id, async (signal: any) => {
         try {
           console.log('📥 Received new signal:', signal.signal_type);
           

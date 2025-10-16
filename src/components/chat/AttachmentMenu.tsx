@@ -9,15 +9,12 @@ import {
   Calendar,
   DollarSign,
   Sparkles,
-  X,
-  Camera
+  X
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface AttachmentMenuProps {
   onClose: () => void;
   onPhotoVideo: () => void;
-  onCamera?: () => void;
   onLocation: () => void;
   onContact: () => void;
   onDocument: () => void;
@@ -30,7 +27,6 @@ interface AttachmentMenuProps {
 export const AttachmentMenu = ({
   onClose,
   onPhotoVideo,
-  onCamera,
   onLocation,
   onContact,
   onDocument,
@@ -40,103 +36,55 @@ export const AttachmentMenu = ({
   onAIImage,
 }: AttachmentMenuProps) => {
   const options = [
-    { 
-      icon: Camera, 
-      label: 'Camera', 
-      description: 'Take photo',
-      onClick: onCamera || onPhotoVideo, 
-      gradient: 'from-blue-500 to-blue-600' 
-    },
-    { 
-      icon: Image, 
-      label: 'Gallery', 
-      description: 'Choose photo',
-      onClick: onPhotoVideo, 
-      gradient: 'from-purple-500 to-purple-600' 
-    },
-    { 
-      icon: MapPin, 
-      label: 'Location', 
-      description: 'Share location',
-      onClick: onLocation, 
-      gradient: 'from-green-500 to-green-600' 
-    },
-    { 
-      icon: User, 
-      label: 'Contact', 
-      description: 'Share contact',
-      onClick: onContact, 
-      gradient: 'from-cyan-500 to-cyan-600' 
-    },
-    { 
-      icon: FileText, 
-      label: 'Document', 
-      description: 'Share file',
-      onClick: onDocument, 
-      gradient: 'from-indigo-500 to-indigo-600' 
-    },
-    { 
-      icon: BarChart3, 
-      label: 'Poll', 
-      description: 'Create poll',
-      onClick: onPoll, 
-      gradient: 'from-orange-500 to-orange-600' 
-    },
+    { icon: Image, label: 'Photos & Videos', onClick: onPhotoVideo, color: 'text-purple-500' },
+    { icon: MapPin, label: 'Location', onClick: onLocation, color: 'text-green-500' },
+    { icon: User, label: 'Contact', onClick: onContact, color: 'text-blue-500' },
+    { icon: FileText, label: 'Document', onClick: onDocument, color: 'text-indigo-500' },
+    { icon: BarChart3, label: 'Poll', onClick: onPoll, color: 'text-orange-500' },
+    { icon: Calendar, label: 'Event', onClick: onEvent, color: 'text-red-500' },
+    { icon: DollarSign, label: 'Payment', onClick: onPayment, color: 'text-emerald-500' },
+    { icon: Sparkles, label: 'AI Image', onClick: onAIImage, color: 'text-amber-500' },
   ];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="absolute bottom-0 left-0 right-0 bg-card rounded-t-[2rem] p-6 pb-10 shadow-2xl border-t border-border"
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-50 animate-in fade-in duration-200" onClick={onClose}>
+      <div 
+        className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-card to-card/95 rounded-t-[2rem] p-5 pb-8 animate-in slide-in-from-bottom duration-300 shadow-2xl border-t border-border/50"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold">Send Attachment</h3>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-base font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Share</h3>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="rounded-full h-9 w-9"
+            className="rounded-full h-8 w-8 hover:bg-muted/50"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </Button>
         </div>
         
-        <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+        <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
           {options.map((option, index) => {
             const Icon = option.icon;
             return (
-              <motion.button
+              <button
                 key={index}
-                whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   option.onClick();
                   onClose();
                 }}
-                className="flex flex-col items-center gap-3 p-4 rounded-2xl transition-all active:scale-95 touch-manipulation"
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-muted/60 transition-all active:scale-95 touch-manipulation"
               >
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${option.gradient} text-white shadow-lg flex items-center justify-center`}>
-                  <Icon className="w-7 h-7" />
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-muted/80 to-muted flex items-center justify-center ${option.color} shadow-sm`}>
+                  <Icon className="w-6 h-6" />
                 </div>
-                <div className="text-center">
-                  <p className="font-semibold text-sm">{option.label}</p>
-                  <p className="text-xs text-muted-foreground">{option.description}</p>
-                </div>
-              </motion.button>
+                <span className="text-[10px] font-medium text-center leading-tight">{option.label}</span>
+              </button>
             );
           })}
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 };

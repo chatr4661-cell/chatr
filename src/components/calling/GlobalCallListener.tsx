@@ -97,29 +97,46 @@ export function GlobalCallListener() {
   const handleAnswer = async () => {
     if (!incomingCall) return;
     
-    console.log('✅ Answering call instantly:', incomingCall.id);
+    console.log('✅ Answering call:', incomingCall.id);
     
-    // Immediately transition to active call for instant UI response
+    // Update call status to active
+    const { error } = await supabase
+      .from('calls')
+      .update({ 
+        status: 'active',
+        started_at: new Date().toISOString()
+      })
+      .eq('id', incomingCall.id);
+    
+    if (error) {
+      console.error('Failed to update call status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to answer call",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Send call-accept signal to caller
+    try {
+      await sendSignal({
+        type: 'answer' as any,
+        callId: incomingCall.id,
+        data: { accepted: true },
+        to: incomingCall.caller_id
+      });
+    } catch (error) {
+      console.error('Failed to send accept signal:', error);
+    }
+    
+    // Move to active call
     setActiveCall({
       ...incomingCall,
       isInitiator: false,
       partnerId: incomingCall.caller_id
     });
     setIncomingCall(null);
-    
-    // Update call status in background - NO fake signals, WebRTC will handle it
-    supabase
-      .from('calls')
-      .update({ 
-        status: 'active',
-        started_at: new Date().toISOString()
-      })
-      .eq('id', incomingCall.id)
-      .then(({ error }) => {
-        if (error) {
-          console.error('Failed to update call status:', error);
-        }
-      });
   };
 
   const handleReject = async () => {
@@ -207,6 +224,7 @@ export function GlobalCallListener() {
         <ProductionVideoCall
           callId={activeCall.id}
           contactName={activeCall.callerName}
+          contactAvatar={activeCall.callerAvatar}
           isInitiator={activeCall.isInitiator}
           partnerId={activeCall.partnerId}
           onEnd={handleEndCall}
@@ -217,6 +235,7 @@ export function GlobalCallListener() {
         <ProductionVoiceCall
           callId={activeCall.id}
           contactName={activeCall.callerName}
+          contactAvatar={activeCall.callerAvatar}
           isInitiator={activeCall.isInitiator}
           partnerId={activeCall.partnerId}
           onEnd={handleEndCall}

@@ -288,16 +288,12 @@ export const useGroupCall = ({ callId, currentUserId, isVideo, onEnd }: UseGroup
 
   // Initialize
   useEffect(() => {
-    const setup = async () => {
-      initializeMedia();
-      const unsubscribe = await subscribeToCallSignals(callId, currentUserId, handleSignal);
-      (window as any).__groupCallUnsubscribe = unsubscribe;
-    };
-    setup();
+    initializeMedia();
+
+    const unsubscribe = subscribeToCallSignals(callId, handleSignal);
 
     return () => {
-      const unsub = (window as any).__groupCallUnsubscribe;
-      if (unsub) unsub();
+      unsubscribe();
       endCall();
     };
   }, [callId, handleSignal]);

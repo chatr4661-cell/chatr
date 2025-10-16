@@ -243,6 +243,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         <ProductionVoiceCall
           callId={activeCall.id}
           contactName={activeCall.caller_id === userId ? activeCall.receiver_name : activeCall.caller_name}
+          contactAvatar={activeCall.caller_id === userId ? activeCall.receiver_avatar : activeCall.caller_avatar}
           isInitiator={activeCall.caller_id === userId}
           partnerId={activeCall.caller_id === userId ? activeCall.receiver_id : activeCall.caller_id}
           onEnd={endActiveCall}
@@ -265,6 +266,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         <ProductionVideoCall
           callId={activeCall.id}
           contactName={activeCall.caller_id === userId ? activeCall.receiver_name : activeCall.caller_name}
+          contactAvatar={activeCall.caller_id === userId ? activeCall.receiver_avatar : activeCall.caller_avatar}
           isInitiator={activeCall.caller_id === userId}
           partnerId={activeCall.caller_id === userId ? activeCall.receiver_id : activeCall.caller_id}
           onEnd={endActiveCall}

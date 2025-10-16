@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Coins, Gift, History, ShoppingCart, TrendingUp, Trophy, Zap, Users, Share2, Target, Star, Flame, Medal, Award, CheckCircle, Clock, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
-import { SocialShareDialog } from "@/components/SocialShareDialog";
 
 interface UserPoints {
   balance: number;
@@ -83,7 +82,6 @@ export default function ChatrPoints() {
   });
   const [leaderboards, setLeaderboards] = useState<any[]>([]);
   const [leaderboardTab, setLeaderboardTab] = useState('referrals');
-  const [showShareDialog, setShowShareDialog] = useState(false);
 
   useEffect(() => {
     loadPointsData();
@@ -279,7 +277,7 @@ export default function ChatrPoints() {
   };
 
   const copyReferralLink = () => {
-    const shareUrl = `https://chatr.chat/auth?ref=${referralCode}`;
+    const shareUrl = `https://chatr.app/join/${referralCode}`;
     navigator.clipboard.writeText(shareUrl);
     toast({
       title: 'Copied!',
@@ -287,8 +285,23 @@ export default function ChatrPoints() {
     });
   };
 
-  const shareReferral = () => {
-    setShowShareDialog(true);
+  const shareReferral = async () => {
+    const shareUrl = `https://chatr.app/join/${referralCode}`;
+    const shareText = `Join me on Chatr and earn 100 coins! Use my code: ${referralCode}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join Chatr',
+          text: shareText,
+          url: shareUrl
+        });
+      } catch (error) {
+        console.log('Share cancelled');
+      }
+    } else {
+      copyReferralLink();
+    }
   };
 
   const getRankIcon = (rank: number) => {
@@ -1233,13 +1246,6 @@ export default function ChatrPoints() {
           </CardContent>
         </Card>
       </div>
-      
-      <SocialShareDialog
-        open={showShareDialog}
-        onOpenChange={setShowShareDialog}
-        referralCode={referralCode}
-        shareUrl={`https://chatr.chat/auth?ref=${referralCode}`}
-      />
     </div>
   );
 }

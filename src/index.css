@@ -239,14 +239,3 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
 .safe-bottom {
   padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
-
-/* Disable animations in lite mode for 2G optimization */
-body.disable-animations *,
-body.disable-animations *::before,
-body.disable-animations *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-  transition-property: none !important;
-}
-

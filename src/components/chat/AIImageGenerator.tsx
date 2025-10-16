@@ -30,8 +30,9 @@ export const AIImageGenerator = ({ open, onClose, onSend }: AIImageGeneratorProp
 
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-image-generator', {
+      const { data, error } = await supabase.functions.invoke('ai-chat-assistant', {
         body: { 
+          type: 'generate-image',
           prompt: prompt.trim() 
         }
       });
@@ -46,22 +47,12 @@ export const AIImageGenerator = ({ open, onClose, onSend }: AIImageGeneratorProp
           title: 'Success',
           description: 'Image generated successfully!'
         });
-      } else {
-        throw new Error('No image URL returned');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating image:', error);
-      
-      let errorMessage = 'Failed to generate image. Please try again.';
-      if (error?.message?.includes('Rate limit')) {
-        errorMessage = 'Rate limit exceeded. Please try again later.';
-      } else if (error?.message?.includes('Payment required')) {
-        errorMessage = 'Credits required. Please add credits to continue.';
-      }
-      
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: 'Failed to generate image. Please try again.',
         variant: 'destructive'
       });
     } finally {

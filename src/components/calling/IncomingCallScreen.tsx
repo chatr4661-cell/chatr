@@ -29,37 +29,29 @@ export function IncomingCallScreen({
   ringtoneUrl = "/ringtone.mp3"
 }: IncomingCallScreenProps) {
   const hapticIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [ringtoneEnabled, setRingtoneEnabled] = React.useState(true);
 
   useNativeRingtone({
-    enabled: ringtoneEnabled,
+    enabled: true,
     ringtoneUrl,
     volume: 1.0
   });
 
   useEffect(() => {
-    // Start ringtone immediately on mount
-    const ringtoneTiming = setTimeout(() => {
-      console.log('🔔 Ringtone active for incoming call');
-    }, 100);
-
-    // iOS-style haptic pattern - starts immediately
+    // iOS-style haptic pattern
     if (Capacitor.isNativePlatform()) {
       const hapticPattern = async () => {
         await Haptics.impact({ style: ImpactStyle.Heavy });
-        await new Promise(resolve => setTimeout(resolve, 150));
+        await new Promise(resolve => setTimeout(resolve, 200));
         await Haptics.impact({ style: ImpactStyle.Medium });
-        await new Promise(resolve => setTimeout(resolve, 150));
+        await new Promise(resolve => setTimeout(resolve, 200));
         await Haptics.impact({ style: ImpactStyle.Heavy });
       };
 
-      // Trigger immediately and repeat every 2 seconds
       hapticPattern();
       hapticIntervalRef.current = setInterval(hapticPattern, 2000);
     }
 
     return () => {
-      clearTimeout(ringtoneTiming);
       if (hapticIntervalRef.current) {
         clearInterval(hapticIntervalRef.current);
       }
@@ -67,30 +59,17 @@ export function IncomingCallScreen({
   }, []);
 
   const handleAnswer = async () => {
-    console.log('🔕 Stopping ringtone - call answered');
-    setRingtoneEnabled(false); // Stop ringtone BEFORE calling onAnswer
-    
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Medium });
     }
-    
-    // Small delay to ensure ringtone stops before transition
-    setTimeout(() => {
-      onAnswer();
-    }, 100);
+    onAnswer();
   };
 
   const handleReject = async () => {
-    console.log('🔕 Stopping ringtone - call rejected');
-    setRingtoneEnabled(false); // Stop ringtone BEFORE calling onReject
-    
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Light });
     }
-    
-    setTimeout(() => {
-      onReject();
-    }, 100);
+    onReject();
   };
 
   return (
