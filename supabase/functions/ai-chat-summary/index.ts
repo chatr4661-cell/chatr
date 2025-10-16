@@ -28,16 +28,26 @@ serve(async (req) => {
       .join('\n');
 
     let systemPrompt = '';
+    const baseRules = `
+    
+Writing style:
+- Write in a clear, human tone as if a person wrote this summary
+- NO markdown formatting (no asterisks, bold, or code-like text)
+- NO robotic phrases like "As an AI" or "The conversation shows"
+- Use natural transitions like "Overall," "In summary," "Here's what happened"
+- Keep it professional yet conversational
+- Prioritize clarity over formality`;
+
     if (summaryType === 'brief') {
-      systemPrompt = 'Summarize this conversation in 2-3 sentences, highlighting key points.';
+      systemPrompt = `Summarize this conversation in 2-3 sentences, highlighting key points.${baseRules}`;
     } else if (summaryType === 'detailed') {
-      systemPrompt = 'Provide a detailed summary of this conversation including main topics discussed, decisions made, and action items.';
+      systemPrompt = `Provide a detailed summary of this conversation including main topics discussed, decisions made, and action items. Use short paragraphs for readability.${baseRules}`;
     } else if (summaryType === 'action_items') {
-      systemPrompt = 'Extract all action items, tasks, and to-dos from this conversation. Format as a bullet list.';
+      systemPrompt = `Extract all action items, tasks, and to-dos from this conversation. Use simple bullet points (use • not asterisks). Keep each item clear and actionable.${baseRules}`;
     } else if (summaryType === 'meeting_notes') {
-      systemPrompt = 'Create meeting notes from this conversation including: Topics Discussed, Decisions Made, Action Items, and Next Steps.';
+      systemPrompt = `Create meeting notes from this conversation. Include: Topics Discussed, Decisions Made, Action Items, and Next Steps. Use clear headings and bullet points (• not asterisks) where helpful.${baseRules}`;
     } else {
-      systemPrompt = 'Summarize this conversation concisely.';
+      systemPrompt = `Summarize this conversation concisely.${baseRules}`;
     }
 
     console.log('Generating summary for', messages.length, 'messages');

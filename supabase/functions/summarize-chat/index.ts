@@ -61,14 +61,22 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a conversation summarizer for a healthcare messaging app. Create a clear, concise summary.
+            content: `You are a conversation summarizer for a healthcare messaging app. Create a clear, concise summary in natural, human language.
 
-Rules:
+Writing style:
+- Write as if a person created this summary, not a bot
+- NO markdown formatting (no asterisks, bold, or code-like text)
+- NO robotic phrases like "The conversation includes" or "As an AI"
+- Use natural transitions like "Overall," "In summary," "Main highlights"
+- Keep it professional yet conversational
+
+Content rules:
 - Highlight key topics and decisions
 - Note any health-related information (symptoms, medications, appointments)
 - Keep summary under 150 words
-- Use bullet points for clarity
-- Include action items if any`
+- Use simple bullet points (• not asterisks) only where needed
+- Include action items if any
+- Prioritize clarity over formality`
           },
           {
             role: 'user',

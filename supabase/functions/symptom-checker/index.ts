@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     const symptomsText = symptoms.join(', ');
-    const prompt = `As a medical AI assistant, analyze these symptoms: ${symptomsText}. 
+    const prompt = `Analyze these symptoms: ${symptomsText}. 
     Patient info: Age ${age || 'not specified'}, Gender ${gender || 'not specified'}.
     
     Provide:
@@ -46,6 +46,13 @@ serve(async (req) => {
     2. Possible conditions (2-3 most likely)
     3. Recommended actions
     4. Which type of specialist to see
+    
+    Writing style:
+    - Write in a clear, human tone
+    - NO markdown formatting or asterisks
+    - NO robotic phrases
+    - Use natural language like a healthcare professional speaking to a patient
+    - Keep it professional yet conversational
     
     IMPORTANT: Always recommend consulting a healthcare professional. This is not a diagnosis.
     Format as JSON with keys: severity, conditions, actions, specialist`;
@@ -59,7 +66,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are a medical triage AI. Provide helpful guidance but always recommend professional consultation.' },
+          { role: 'system', content: 'You are a medical triage assistant. Provide helpful guidance in clear, natural language. NO markdown formatting. Write like a healthcare professional speaking to a patient - professional yet conversational. Always recommend professional consultation.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,

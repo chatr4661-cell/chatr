@@ -29,9 +29,16 @@ serve(async (req) => {
         conversationContext.map((m: any) => `${m.sender_name}: ${m.content}`).join('\n');
     }
 
-    const systemPrompt = `Generate ${replyCount} short, natural, and contextually appropriate reply suggestions. 
-    Make them diverse: one casual, one professional, one with emoji/enthusiasm.
-    Keep each reply under 20 words. Return only the replies, one per line, without numbering.`;
+    const systemPrompt = `Generate ${replyCount} short, natural, and contextually appropriate reply suggestions.
+    
+    Style requirements:
+    - Write like a real person texting, not a bot
+    - Make them diverse: one casual, one professional, one with emoji or enthusiasm
+    - NO markdown formatting or asterisks
+    - Keep each reply under 20 words
+    - Sound natural and conversational
+    
+    Return only the replies, one per line, without numbering.`;
 
     console.log('Generating smart replies for:', lastMessage.substring(0, 50));
 

@@ -54,11 +54,13 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the given text to ${targetLanguage}. 
+            content: `You are a professional translator. Translate the given text to ${targetLanguage}.
             
-Rules:
+Translation rules:
 - Maintain the original tone and context
-- For medical/healthcare terms, use accurate medical terminology
+- For medical or healthcare terms, use accurate medical terminology
+- Sound natural in the target language, like a native speaker wrote it
+- NO markdown formatting or asterisks in the translation
 - Return ONLY the translated text, nothing else
 - Keep formatting (line breaks, punctuation) intact`
           },
