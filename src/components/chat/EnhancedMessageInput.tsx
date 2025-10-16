@@ -1,6 +1,7 @@
 import React, { useState, KeyboardEvent, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Send, Plus, Smile, Mic, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AttachmentMenu } from './AttachmentMenu';
@@ -294,6 +295,49 @@ export const EnhancedMessageInput = ({
     }
   };
 
+  const handleMultiImageSelect = async (files: File[]) => {
+    if (files.length === 0) return;
+
+    try {
+      toast.info(`Uploading ${files.length} images...`);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const uploadedUrls: string[] = [];
+
+      for (const file of files) {
+        const fileExt = file.type.split('/')[1] || 'jpg';
+        const fileName = `${user.id}/${Date.now()}_${Math.random()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('social-media')
+          .upload(fileName, file, { contentType: file.type });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('social-media')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      // Send all images as media attachments
+      await onSendMessage(
+        `📷 ${files.length} photo${files.length > 1 ? 's' : ''}`,
+        'image',
+        uploadedUrls.map(url => ({ type: 'image', url }))
+      );
+
+      setSelectedImages([]);
+      setShowMultiImagePicker(false);
+      toast.success(`${files.length} images sent successfully`);
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast.error('Failed to upload images');
+    }
+  };
+
   return (
     <>
       {showAttachments && (
@@ -301,6 +345,7 @@ export const EnhancedMessageInput = ({
           onClose={() => setShowAttachments(false)}
           onCamera={handleCamera}
           onPhotoVideo={handlePhotoVideo}
+          onMultiImage={() => setShowMultiImagePicker(true)}
           onLocation={handleLocation}
           onContact={() => setShowContactPicker(true)}
           onDocument={handleDocument}
@@ -349,18 +394,21 @@ export const EnhancedMessageInput = ({
         onSend={handleAIImageSend}
       />
 
+      {/* Multi-Image Picker Dialog */}
+      <Dialog open={showMultiImagePicker} onOpenChange={setShowMultiImagePicker}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Multiple Images</DialogTitle>
+          </DialogHeader>
+          <MultiImagePicker 
+            onImagesSelected={handleMultiImageSelect}
+            maxImages={10}
+          />
+        </DialogContent>
+      </Dialog>
+
       <div className="border-t bg-white/95 backdrop-blur-sm safe-bottom">
         <div className="p-3 pb-6">
-          {/* Multi-image preview */}
-          {selectedImages.length > 0 && (
-            <div className="mb-2">
-              <MultiImagePicker 
-                onImagesSelected={setSelectedImages}
-                maxImages={5}
-              />
-            </div>
-          )}
-          
           <div className="flex items-center gap-2 bg-[hsl(200,25,95%)] rounded-[24px] px-4 py-2">
             <Button
               variant="ghost"

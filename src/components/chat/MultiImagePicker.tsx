@@ -54,19 +54,19 @@ export const MultiImagePicker = ({ onImagesSelected, maxImages = 5 }: MultiImage
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {previews.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {previews.map((preview, index) => (
-            <div key={index} className="relative group">
+            <div key={index} className="relative group aspect-square">
               <img 
                 src={preview} 
                 alt={`Preview ${index + 1}`}
-                className="h-20 w-20 object-cover rounded-lg border border-border"
+                className="w-full h-full object-cover rounded-lg border border-border"
               />
               <button
                 onClick={() => removeImage(index)}
-                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -82,20 +82,31 @@ export const MultiImagePicker = ({ onImagesSelected, maxImages = 5 }: MultiImage
           size="sm"
           onClick={() => document.getElementById('multi-image-input')?.click()}
           disabled={selectedFiles.length >= maxImages}
+          className="flex-1"
         >
           <Upload className="h-4 w-4 mr-2" />
           {selectedFiles.length > 0 ? `Add More (${selectedFiles.length}/${maxImages})` : 'Select Images'}
         </Button>
         
         {selectedFiles.length > 0 && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={clearAll}
-          >
-            Clear All
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearAll}
+            >
+              Clear All
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={() => onImagesSelected(selectedFiles)}
+            >
+              Send {selectedFiles.length}
+            </Button>
+          </>
         )}
       </div>
 

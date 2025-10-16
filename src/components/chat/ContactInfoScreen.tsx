@@ -98,9 +98,11 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
           </Avatar>
           
           <h2 className="text-2xl font-bold text-foreground mb-1">
-            {contact.phone_number || 'Unknown'}
+            {contact.phone_number || contact.username || 'Chatr User'}
           </h2>
-          <p className="text-muted-foreground">~{contact.username}</p>
+          {contact.username && (
+            <p className="text-muted-foreground">~{contact.username}</p>
+          )}
         </div>
 
         {/* Quick Actions */}

@@ -25,6 +25,7 @@ interface AttachmentMenuProps {
   onEvent: () => void;
   onPayment: () => void;
   onAIImage: () => void;
+  onMultiImage?: () => void;
 }
 
 export const AttachmentMenu = ({
@@ -38,6 +39,7 @@ export const AttachmentMenu = ({
   onEvent,
   onPayment,
   onAIImage,
+  onMultiImage,
 }: AttachmentMenuProps) => {
   const options = [
     { 
@@ -49,11 +51,18 @@ export const AttachmentMenu = ({
     },
     { 
       icon: Image, 
-      label: 'Gallery', 
-      description: 'Choose photo',
+      label: 'Photo', 
+      description: 'Single photo',
       onClick: onPhotoVideo, 
       gradient: 'from-purple-500 to-purple-600' 
     },
+    ...(onMultiImage ? [{ 
+      icon: Image, 
+      label: 'Gallery', 
+      description: 'Multiple photos',
+      onClick: onMultiImage, 
+      gradient: 'from-pink-500 to-pink-600' 
+    }] : []),
     { 
       icon: MapPin, 
       label: 'Location', 
