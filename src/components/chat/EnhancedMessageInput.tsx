@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Send, Plus, Smile, Mic, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AttachmentMenu } from './AttachmentMenu';
-import { AISmartReplyPanel } from '../AISmartReplyPanel';
 import { PollCreator } from '../PollCreator';
 import { EventCreator } from './EventCreator';
 import { PaymentRequest } from './PaymentRequest';

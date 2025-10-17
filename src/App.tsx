@@ -2,14 +2,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import React from "react";
-import { useNativeOptimizations } from "@/hooks/useNativeOptimizations";
-import { useNativePerformance } from "@/hooks/useNativePerformance";
-
-const GlobalCallListener = React.lazy(() => 
-  import("@/components/calling/GlobalCallListener").then(module => ({ 
-    default: module.GlobalCallListener 
-  }))
-);
 
 // Pages
 import Index from "./pages/Index";
@@ -109,24 +101,21 @@ import BluetoothTest from "./pages/BluetoothTest";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5,
-      retry: 1,
+      staleTime: 1000 * 60 * 10,
+      gcTime: 1000 * 60 * 15,
+      retry: 0,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     },
   },
 });
 
 const App = () => {
-  // Initialize native optimizations for Twitter Lite-like performance
-  useNativeOptimizations();
-  useNativePerformance();
-
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <BrowserRouter>
-          <React.Suspense fallback={null}>
-            <GlobalCallListener />
-          </React.Suspense>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
