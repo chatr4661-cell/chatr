@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { 
   X,
   Phone, 
   Video, 
-  Coins,
+  DollarSign,
   Search,
   Image,
   Pin,
@@ -26,7 +25,10 @@ import {
   Sparkles,
   Flag,
   Users,
-  ShieldAlert
+  ShieldAlert,
+  MoreHorizontal,
+  Bookmark,
+  Link2
 } from 'lucide-react';
 
 interface ContactInfoScreenProps {
@@ -57,16 +59,16 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
   const quickActions = [
     { icon: Phone, label: 'Voice', onClick: () => onCall?.('voice') },
     { icon: Video, label: 'Video', onClick: () => onCall?.('video') },
-    { icon: Coins, label: 'Send Coin', onClick: () => navigate('/qr-payment') },
-    { icon: Search, label: 'Search', onClick: () => {} },
+    { icon: DollarSign, label: 'Send Coin', onClick: () => navigate('/qr-payment') },
+    { icon: Search, label: 'Chat Search', onClick: () => {} },
   ];
 
   const chatControls = [
-    { icon: Image, label: 'Media, Links & Docs', value: 'None', onClick: () => {} },
-    { icon: Pin, label: 'Pinned Messages', value: 'None', onClick: () => {} },
+    { icon: Image, label: 'Media, Links & Docs', onClick: () => {} },
+    { icon: Pin, label: 'Pinned Messages', onClick: () => {} },
     { icon: BellOff, label: 'Mute Notifications', onClick: () => {} },
-    { icon: Palette, label: 'Chat Theme', onClick: () => {} },
-    { icon: Download, label: 'Save Media to Gallery', value: 'Auto', onClick: () => {} },
+    { icon: Palette, label: 'Chat Theme', hasToggle: true, onClick: () => {} },
+    { icon: Bookmark, label: 'Save Media to Gallery', onClick: () => {} },
   ];
 
   const translationTools = [
@@ -81,82 +83,87 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
     { icon: ShieldAlert, label: 'Trust Level', value: 'Verified', onClick: () => {} },
   ];
 
-  const SectionHeader = ({ icon, title }: { icon: React.ReactNode; title: string }) => (
-    <div className="flex items-center gap-2 px-4 py-3 bg-muted/30">
-      {icon}
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+  const SectionHeader = ({ title }: { title: string }) => (
+    <div className="px-6 py-3 mt-2">
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
     </div>
   );
 
   const MenuItem = ({ item }: { item: any }) => (
     <button
       onClick={item.onClick}
-      className="w-full flex items-center justify-between px-4 py-4 bg-card hover:bg-accent/50 transition-all rounded-xl mb-2 mx-2 shadow-sm border border-border/50"
+      className="w-full flex items-center justify-between px-6 py-3.5 hover:bg-accent/30 transition-colors"
     >
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <item.icon className="w-5 h-5 text-primary" />
-        </div>
+      <div className="flex items-center gap-3">
+        <item.icon className="w-5 h-5 text-primary" strokeWidth={2.5} />
         <div className="flex flex-col items-start">
-          <span className="text-foreground font-medium">{item.label}</span>
+          <span className="text-foreground font-normal text-[15px]">{item.label}</span>
           {item.subtitle && (
-            <span className="text-sm text-muted-foreground">{item.subtitle}</span>
+            <span className="text-xs text-muted-foreground">{item.subtitle}</span>
           )}
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {item.value && (
-          <span className="text-muted-foreground text-sm">{item.value}</span>
+        {item.hasToggle ? (
+          <Switch />
+        ) : (
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
         )}
-        <ChevronRight className="w-5 h-5 text-muted-foreground" />
       </div>
     </button>
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-primary/5 via-background to-background">
-      {/* Gradient Header */}
-      <div className="relative bg-gradient-to-br from-primary via-primary/80 to-primary/60 pb-8 pt-4 px-4 rounded-b-3xl shadow-lg">
-        <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col h-screen bg-[#A8DDD8]">
+      {/* Header with Profile */}
+      <div className="relative bg-[#A8DDD8] pt-4 pb-6 px-4">
+        <div className="flex items-center justify-between mb-8">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={onClose}
-            className="text-primary-foreground hover:bg-primary-foreground/20"
+            className="text-foreground hover:bg-black/5"
           >
             <X className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-semibold text-primary-foreground">Profile Overview</h1>
           <div className="w-10" />
         </div>
 
         {/* Profile Section */}
         <div className="flex flex-col items-center">
-          <div className="relative mb-4">
-            {/* Animated Ring */}
-            <div className={`absolute inset-0 rounded-full ${isOnline ? 'animate-pulse bg-green-500/30' : 'bg-muted/30'} blur-lg`} />
-            <div className={`absolute inset-0 rounded-full border-4 ${isOnline ? 'border-green-500' : 'border-muted'}`} />
-            <Avatar className="w-32 h-32 relative">
+          <div className="relative mb-3">
+            {/* Cyan Ring */}
+            <div className="absolute -inset-3 rounded-full border-[3px] border-[#5FD4D0]" />
+            <Avatar className="w-[140px] h-[140px] relative">
               <AvatarImage src={contact.avatar_url} />
-              <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground text-3xl">
+              <AvatarFallback className="bg-white text-foreground text-4xl font-semibold">
                 {contact.username?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
-            {/* Online indicator */}
-            {isOnline && (
-              <div className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 rounded-full border-4 border-primary" />
-            )}
           </div>
           
-          <h2 className="text-2xl font-bold text-primary-foreground mb-1">
-            {contact.username || contact.phone_number || 'Chatr User'}
+          <h2 className="text-[28px] font-bold text-foreground mb-0.5 tracking-tight">
+            {contact.username?.toUpperCase() || 'CHATR USER'}
           </h2>
-          <p className="text-primary-foreground/80 text-sm mb-1">
-            ~{contact.username || 'username'}
+          <p className="text-foreground/70 text-[15px] mb-1">
+            @{contact.username || 'username'}
           </p>
-          <p className="text-primary-foreground/70 text-xs italic">
-            "Building meaningful connections 💬"
-          </p>
+          
+          {/* Phone Number */}
+          {contact.phone_number && (
+            <p className="text-foreground/60 text-sm mb-2">
+              {contact.phone_number}
+            </p>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <p className="text-foreground/80 text-[15px]">
+              Building meaningful connections
+            </p>
+            <button className="p-1 hover:bg-black/5 rounded-full transition-colors">
+              <MoreHorizontal className="w-4 h-4 text-foreground/60" />
+            </button>
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -165,128 +172,104 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
             <button
               key={index}
               onClick={action.onClick}
-              className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-all backdrop-blur-sm"
+              className="flex flex-col items-center gap-2"
             >
-              <div className="w-12 h-12 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                <action.icon className="w-6 h-6 text-primary-foreground" />
+              <div className="w-[60px] h-[60px] rounded-full bg-white/70 flex items-center justify-center shadow-sm hover:bg-white/90 transition-all">
+                <action.icon className="w-6 h-6 text-primary" strokeWidth={2.5} />
               </div>
-              <span className="text-xs text-primary-foreground font-medium">{action.label}</span>
+              <span className="text-[13px] text-foreground font-normal">{action.label}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto pt-4 pb-6">
+      <div className="flex-1 overflow-y-auto bg-[#E8F5F4] rounded-t-3xl">
         {/* Chat Controls Section */}
-        <SectionHeader icon={<span className="text-lg">💬</span>} title="Chat Controls" />
-        <div className="py-2">
+        <SectionHeader title="Chat Controls" />
+        <div className="bg-white/60 mx-4 rounded-2xl overflow-hidden mb-4">
           {chatControls.map((item, index) => (
-            <MenuItem key={index} item={item} />
+            <div key={index}>
+              <MenuItem item={item} />
+              {index < chatControls.length - 1 && (
+                <div className="border-b border-gray-200/50 mx-6" />
+              )}
+            </div>
           ))}
         </div>
 
         {/* Privacy & Security Section */}
-        <SectionHeader icon={<span className="text-lg">🔒</span>} title="Privacy & Security" />
-        <div className="py-2 px-2">
+        <SectionHeader title="Privacy & Security" />
+        <div className="bg-white/60 mx-4 rounded-2xl overflow-hidden mb-4">
           {/* Disappearing Messages */}
-          <div className="bg-card rounded-xl p-4 mb-2 shadow-sm border border-border/50">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-primary" />
-              </div>
-              <span className="text-foreground font-medium">Disappearing Messages</span>
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-foreground font-normal text-[15px]">Disappearing Messages</span>
             </div>
-            <div className="flex gap-2 flex-wrap ml-13">
-              {['off', '24h', '7d', '30d'].map((time) => (
+            <div className="flex gap-2">
+              {[
+                { value: 'off', label: 'Off' },
+                { value: '24h', label: '24 hrs' },
+                { value: '7d', label: '74 days' }
+              ].map((time) => (
                 <Button
-                  key={time}
+                  key={time.value}
                   size="sm"
-                  variant={disappearingTime === time ? 'default' : 'outline'}
-                  onClick={() => setDisappearingTime(time as any)}
-                  className="rounded-full"
+                  variant={disappearingTime === time.value ? 'default' : 'outline'}
+                  onClick={() => setDisappearingTime(time.value as any)}
+                  className="rounded-full text-xs px-4 h-7 border-gray-300"
                 >
-                  {time === 'off' ? 'Off' : time === '24h' ? '24 hrs' : time === '7d' ? '7 days' : '30 days'}
+                  {time.label}
                 </Button>
               ))}
             </div>
           </div>
 
+          <div className="border-b border-gray-200/50 mx-6" />
+
           {/* Lock Chat */}
-          <div className="bg-card rounded-xl p-4 mb-2 shadow-sm border border-border/50">
+          <div className="px-6 py-3.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <span className="text-foreground font-medium block">Lock Chat</span>
-                  <span className="text-xs text-muted-foreground">Face ID / PIN</span>
-                </div>
+              <div className="flex-1">
+                <span className="text-foreground font-normal text-[15px] block">Lock Chat</span>
               </div>
-              <Switch checked={lockChat} onCheckedChange={setLockChat} />
+              <span className="text-primary text-sm mr-2">Face ID / PIN</span>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
           </div>
 
+          <div className="border-b border-gray-200/50 mx-6" />
+
           {/* Stealth Mode */}
-          <div className="bg-card rounded-xl p-4 mb-2 shadow-sm border border-border/50">
+          <div className="px-6 py-3.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Eye className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <span className="text-foreground font-medium block">Stealth Mode</span>
-                  <span className="text-xs text-muted-foreground">Hide online & typing status</span>
-                </div>
-              </div>
+              <span className="text-foreground font-normal text-[15px]">Stealth Mode</span>
               <Switch checked={stealthMode} onCheckedChange={setStealthMode} />
             </div>
           </div>
 
+          <div className="border-b border-gray-200/50 mx-6" />
+
           {/* Read Receipts */}
-          <div className="bg-card rounded-xl p-4 mb-2 shadow-sm border border-border/50">
+          <div className="px-6 py-3.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <CheckCheck className="w-5 h-5 text-primary" />
-                </div>
-                <span className="text-foreground font-medium">Read Receipts</span>
-              </div>
+              <span className="text-foreground font-normal text-[15px]">Read Receipts</span>
               <Switch checked={readReceipts} onCheckedChange={setReadReceipts} />
             </div>
           </div>
         </div>
 
         {/* Translation & Tools Section */}
-        <SectionHeader icon={<span className="text-lg">🌍</span>} title="Translation & Tools" />
-        <div className="py-2">
+        <SectionHeader title="Translation & Tools" />
+        <div className="bg-white/60 mx-4 rounded-2xl overflow-hidden mb-20">
           {translationTools.map((item, index) => (
-            <MenuItem key={index} item={item} />
-          ))}
-        </div>
-
-        {/* Advanced Options Section */}
-        <SectionHeader icon={<span className="text-lg">⚙️</span>} title="Advanced Options" />
-        <div className="py-2">
-          {advancedOptions.map((item, index) => (
-            <MenuItem key={index} item={item} />
-          ))}
-        </div>
-
-        {/* Encryption Info */}
-        <div className="px-4 mt-4">
-          <div className="bg-card/50 rounded-xl p-4 border border-primary/20">
-            <div className="flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-primary mt-0.5" />
-              <div className="flex-1">
-                <div className="text-sm font-medium text-foreground mb-1">End-to-End Encrypted</div>
-                <div className="text-xs text-muted-foreground">
-                  Messages and calls are end-to-end encrypted. Tap to verify security code.
-                </div>
-              </div>
+            <div key={index}>
+              <MenuItem item={item} />
+              {index < translationTools.length - 1 && (
+                <div className="border-b border-gray-200/50 mx-6" />
+              )}
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
