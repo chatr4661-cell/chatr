@@ -40,11 +40,14 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
   }, [userId]);
 
   const answerCall = async (call: any) => {
-    // Stop ringtone immediately by clearing incoming call first
+    console.log('✅ Answering call instantly:', call.id);
+    
+    // CRITICAL: Stop ringtone FIRST by clearing incoming call
     setIncomingCall(null);
     
-    // Small delay to ensure ringtone stops before showing active call
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait longer to ensure ALL media devices are fully released
+    // This prevents "Device in use" errors
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     setActiveCall(call);
 

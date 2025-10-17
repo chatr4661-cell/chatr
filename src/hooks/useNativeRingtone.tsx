@@ -115,18 +115,33 @@ export function useNativeRingtone({
     } else if (audioRef.current) {
       console.log('🔕 Stopping ringtone (call answered)');
       playCountRef.current = maxPlays; // Stop further plays
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current.onended = null; // Remove event handler
-      audioRef.current = null;
+      
+      // CRITICAL: Properly release audio resources
+      try {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current.onended = null;
+        audioRef.current.src = ''; // Clear source to release resources
+        audioRef.current.load(); // Force unload
+        audioRef.current = null;
+      } catch (e) {
+        console.log('⚠️ Error stopping ringtone:', e);
+      }
+      
       stopVibration();
     }
 
     return () => {
       if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.onended = null;
-        audioRef.current = null;
+        try {
+          audioRef.current.pause();
+          audioRef.current.onended = null;
+          audioRef.current.src = '';
+          audioRef.current.load();
+          audioRef.current = null;
+        } catch (e) {
+          console.log('⚠️ Cleanup error:', e);
+        }
       }
       stopVibration();
       playCountRef.current = 0;
