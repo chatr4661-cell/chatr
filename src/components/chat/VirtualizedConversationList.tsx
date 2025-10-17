@@ -194,19 +194,27 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     if (!userId) return;
     loadConversations();
 
-    // Debounced realtime
     let timeout: NodeJS.Timeout;
-    const debouncedReload = () => {
+    const instantReload = () => {
       clearTimeout(timeout);
-      timeout = setTimeout(loadConversations, 500);
+      timeout = setTimeout(loadConversations, 100);
     };
 
     const channel = supabase
-      .channel('conv-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, debouncedReload)
+      .channel('conv-updates-realtime', {
+        config: { broadcast: { self: true } }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, instantReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, instantReload)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, instantReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, instantReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, instantReload)
       .subscribe();
 
+    const refreshInterval = setInterval(loadConversations, 5000);
+
     return () => {
+      clearInterval(refreshInterval);
       clearTimeout(timeout);
       supabase.removeChannel(channel);
     };

@@ -211,7 +211,7 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
     }
   }, [userId]);
 
-  // Realtime subscriptions with batching
+  // Aggressive real-time subscriptions (instant like WhatsApp)
   useEffect(() => {
     if (!conversationId) return;
 
@@ -230,7 +230,6 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
               newMessages[index] = update;
             }
           });
-          // Keep only last 100 messages
           return newMessages.slice(-MAX_MESSAGES_IN_MEMORY);
         });
         batchedUpdates.length = 0;
@@ -238,16 +237,24 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
     };
 
     const channel = supabase
-      .channel(`messages:${conversationId}`)
+      .channel(`messages:${conversationId}`, {
+        config: {
+          broadcast: { self: true },
+          presence: { key: userId }
+        }
+      })
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
-        batchedUpdates.push(payload.new as Message);
-        clearTimeout(batchTimeout);
-        batchTimeout = setTimeout(processBatch, 100);
+        const newMessage = payload.new as Message;
+        if (newMessage.sender_id !== userId) {
+          batchedUpdates.push(newMessage);
+          clearTimeout(batchTimeout);
+          batchTimeout = setTimeout(processBatch, 50);
+        }
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -267,14 +274,27 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
       }, (payload) => {
         setMessages(prev => prev.filter(m => m.id !== payload.old.id));
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[Real-time] Connected to message stream');
+        }
+      });
+
+    const heartbeat = setInterval(() => {
+      channel.send({
+        type: 'broadcast',
+        event: 'heartbeat',
+        payload: { userId, timestamp: Date.now() }
+      });
+    }, 5000);
 
     return () => {
+      clearInterval(heartbeat);
       clearTimeout(batchTimeout);
       processBatch();
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, userId]);
 
   // Load messages on conversation change
   useEffect(() => {

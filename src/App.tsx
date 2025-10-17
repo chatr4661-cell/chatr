@@ -101,12 +101,13 @@ import BluetoothTest from "./pages/BluetoothTest";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 10,
-      gcTime: 1000 * 60 * 15,
-      retry: 0,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
+      staleTime: 0,
+      gcTime: 1000 * 60 * 5,
+      retry: 3,
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      refetchInterval: 3000,
     },
   },
 });
