@@ -13,10 +13,25 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert']
     },
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 1500,
       backgroundColor: '#10b981',
       androidScaleType: 'CENTER_CROP',
-      showSpinner: false
+      showSpinner: false,
+      androidSplashResourceName: 'splash',
+      iosSplashResourceName: 'Splash',
+      launchAutoHide: true
+    },
+    StatusBar: {
+      style: 'dark',
+      backgroundColor: '#10b981'
+    },
+    Keyboard: {
+      resize: 'body',
+      style: 'dark',
+      resizeOnFullScreen: true
+    },
+    App: {
+      // App state and lifecycle
     },
     Device: {
       // Device ID will be used for fingerprinting
