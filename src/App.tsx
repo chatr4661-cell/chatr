@@ -49,6 +49,10 @@ import QRLogin from "./pages/QRLogin";
 import AIAssistant from "./pages/AIAssistant";
 import Account from "./pages/Account";
 import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Refund from "./pages/Refund";
+import Disclaimer from "./pages/Disclaimer";
 import NotificationSettings from "./pages/NotificationSettings";
 import Notifications from "./pages/Notifications";
 import DeviceManagement from "./pages/DeviceManagement";
@@ -128,7 +132,10 @@ const App = () => {
             <Route path="/download" element={<Download />} />
             <Route path="/install" element={<Install />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/refund" element={<Refund />} />
+            <Route path="/disclaimer" element={<Disclaimer />} />
             
             {/* Consolidated Hub Routes */}
             <Route path="/health" element={<HealthHub />} />

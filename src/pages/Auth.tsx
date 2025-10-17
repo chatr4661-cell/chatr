@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PhoneAuth } from '@/components/PhoneAuth';
 import { OnboardingDialog } from '@/components/OnboardingDialog';
 import { useOnboarding } from '@/hooks/useOnboarding';
+import { Footer } from '@/components/Footer';
 import logo from '@/assets/chatr-logo.png';
 import chatrBrandLogo from '@/assets/chatr-brand-logo.png';
 import aiPoweredChatr from '@/assets/ai-powered-chatr.jpeg';
@@ -181,7 +182,9 @@ const Auth = () => {
             <p className="text-xs text-muted-foreground">AI Powered</p>
           </div>
         </div>
-      </div>
+        </div>
+        
+        <Footer />
       
       {userId && (
         <OnboardingDialog
