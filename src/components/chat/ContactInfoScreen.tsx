@@ -108,97 +108,94 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
   ];
 
   const SectionHeader = ({ title }: { title: string }) => (
-    <div className="px-6 py-3 mt-2">
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+    <div className="px-4 py-2 mt-1">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
     </div>
   );
 
   const MenuItem = ({ item }: { item: any }) => (
     <button
       onClick={item.onClick}
-      className="w-full flex items-center justify-between px-6 py-3.5 hover:bg-accent/30 active:bg-accent/50 transition-colors touch-manipulation"
+      className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent/30 active:bg-accent/50 transition-colors touch-manipulation rounded-lg"
     >
-      <div className="flex items-center gap-3">
-        <item.icon className="w-5 h-5 text-primary" strokeWidth={2.5} />
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-full bg-gradient-hero/10 flex items-center justify-center">
+          <item.icon className="w-4 h-4 text-primary" strokeWidth={2.5} />
+        </div>
         <div className="flex flex-col items-start">
-          <span className="text-foreground font-normal text-[15px]">{item.label}</span>
+          <span className="text-foreground font-medium text-sm">{item.label}</span>
           {item.subtitle && (
             <span className="text-xs text-muted-foreground">{item.subtitle}</span>
           )}
         </div>
       </div>
-      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+      <ChevronRight className="w-4 h-4 text-muted-foreground" />
     </button>
   );
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-[#A8DDD8]">
-        {/* Compact Header */}
-        <div className="relative bg-[#A8DDD8] pt-3 pb-4 px-4">
-          <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-background relative overflow-hidden">
+        {/* Background Elements (matching Auth page) */}
+        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'var(--gradient-mesh)' }} />
+        <div className="absolute top-10 left-5 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-5 w-48 h-48 bg-accent/5 rounded-full blur-3xl" />
+        
+        {/* Smaller Compact Header */}
+        <div className="relative bg-card/40 backdrop-blur-xl border-b border-border/40 pt-2 pb-3 px-4 z-10">
+          <div className="flex items-center justify-between mb-3">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={onClose}
-              className="text-foreground hover:bg-black/5 touch-manipulation"
+              className="h-8 w-8 rounded-full hover:bg-accent/50 touch-manipulation"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </Button>
-            <div className="w-10" />
           </div>
 
           {/* Compact Profile Section */}
           <div className="flex flex-col items-center">
             <div className="relative mb-2">
-              <div className="absolute -inset-2 rounded-full border-[3px] border-[#5FD4D0]" />
-              <Avatar className="w-[100px] h-[100px] relative">
+              <div className="absolute -inset-1 rounded-full bg-gradient-hero opacity-20 blur" />
+              <Avatar className="w-20 h-20 relative border-2 border-primary/20">
                 <AvatarImage src={contact.avatar_url} />
-                <AvatarFallback className="bg-white text-foreground text-3xl font-semibold">
+                <AvatarFallback className="bg-gradient-hero text-white text-lg font-semibold">
                   {contact.username?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
             </div>
             
-            <h2 className="text-[22px] font-bold text-foreground mb-0.5 tracking-tight">
+            <h2 className="text-lg font-bold text-foreground mb-0.5">
               {contact.username?.toUpperCase() || 'CHATR USER'}
             </h2>
-            <p className="text-foreground/70 text-sm mb-1">
+            <p className="text-muted-foreground text-xs">
               @{contact.username || 'username'}
             </p>
-            
-            <div className="flex items-center gap-2">
-              <p className="text-foreground/80 text-sm">
-                Building meaningful connections
-              </p>
-              <button className="p-1 hover:bg-black/5 rounded-full transition-colors touch-manipulation">
-                <MoreHorizontal className="w-4 h-4 text-foreground/60" />
-              </button>
-            </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-4 gap-3 mt-4">
+          {/* Quick Actions - Smaller */}
+          <div className="grid grid-cols-4 gap-2 mt-3">
             {quickActions.map((action, index) => (
               <button
                 key={index}
                 onClick={action.onClick}
-                className="flex flex-col items-center gap-1.5 touch-manipulation active:scale-95 transition-transform"
+                className="flex flex-col items-center gap-1 touch-manipulation active:scale-95 transition-transform"
               >
-                <div className="w-[56px] h-[56px] rounded-full bg-white/70 flex items-center justify-center shadow-sm hover:bg-white/90 transition-all">
-                  <action.icon className="w-5 h-5 text-primary" strokeWidth={2.5} />
+                <div className="w-12 h-12 rounded-full bg-gradient-hero/10 backdrop-blur flex items-center justify-center shadow-sm hover:shadow-md transition-all">
+                  <action.icon className="w-4 h-4 text-primary" strokeWidth={2.5} />
                 </div>
-                <span className="text-[12px] text-foreground font-normal">{action.label}</span>
+                <span className="text-[11px] text-foreground font-medium">{action.label}</span>
               </button>
             ))}
           </div>
         </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto bg-[#E8F5F4] rounded-t-3xl">
+      <div className="flex-1 overflow-y-auto bg-background/60 backdrop-blur-sm rounded-t-3xl relative z-10">
         {/* Chat Controls Section */}
         <SectionHeader title="Chat Controls" />
-        <div className="bg-white/60 mx-4 rounded-2xl overflow-hidden mb-4">
+        <div className="bg-card/60 backdrop-blur-sm border border-border/40 mx-3 rounded-2xl overflow-hidden mb-3 shadow-sm">
           {chatControls.map((item, index) => (
             <div key={index}>
               <MenuItem item={item} />
@@ -211,24 +208,27 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
 
         {/* Privacy & Security Section */}
         <SectionHeader title="Privacy & Security" />
-        <div className="bg-white/60 mx-4 rounded-2xl overflow-hidden mb-4">
+        <div className="bg-card/60 backdrop-blur-sm border border-border/40 mx-3 rounded-2xl overflow-hidden mb-3 shadow-sm">
           {/* Disappearing Messages */}
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-foreground font-normal text-[15px]">Disappearing Messages</span>
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-foreground font-medium text-sm">Disappearing Messages</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               {[
                 { value: 'off', label: 'Off' },
                 { value: '24h', label: '24 hrs' },
-                { value: '7d', label: '74 days' }
+                { value: '7d', label: '7 days' }
               ].map((time) => (
                 <Button
                   key={time.value}
                   size="sm"
                   variant={disappearingTime === time.value ? 'default' : 'outline'}
-                  onClick={() => setDisappearingTime(time.value as any)}
-                  className="rounded-full text-xs px-4 h-7 border-gray-300"
+                  onClick={() => {
+                    setDisappearingTime(time.value as any);
+                    toast.success(`Messages will ${time.value === 'off' ? 'not disappear' : `disappear after ${time.label}`}`);
+                  }}
+                  className="flex-1 rounded-full text-xs px-3 h-7"
                 >
                   {time.label}
                 </Button>
@@ -236,46 +236,76 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
             </div>
           </div>
 
-          <div className="border-b border-gray-200/50 mx-6" />
+          <div className="border-b border-border/30 mx-4" />
 
           {/* Lock Chat */}
           <button
-            onClick={() => toast.info('Lock Chat settings coming soon')}
-            className="w-full px-6 py-3.5 hover:bg-accent/30 active:bg-accent/50 transition-colors touch-manipulation"
+            onClick={() => {
+              setLockChat(!lockChat);
+              toast.success(lockChat ? 'Chat unlocked' : 'Chat locked with Face ID / PIN');
+            }}
+            className="w-full px-4 py-3 hover:bg-accent/30 active:bg-accent/50 transition-colors touch-manipulation rounded-lg"
           >
             <div className="flex items-center justify-between">
-              <span className="text-foreground font-normal text-[15px]">Lock Chat</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-hero/10 flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-primary" strokeWidth={2.5} />
+                </div>
+                <span className="text-foreground font-medium text-sm">Lock Chat</span>
+              </div>
               <div className="flex items-center gap-2">
-                <span className="text-primary text-sm">Face ID / PIN</span>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Face ID / PIN</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
           </button>
 
-          <div className="border-b border-gray-200/50 mx-6" />
+          <div className="border-b border-border/30 mx-4" />
 
           {/* Stealth Mode */}
-          <div className="px-6 py-3.5">
+          <div className="px-4 py-3">
             <div className="flex items-center justify-between">
-              <span className="text-foreground font-normal text-[15px]">Stealth Mode</span>
-              <Switch checked={stealthMode} onCheckedChange={setStealthMode} />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-hero/10 flex items-center justify-center">
+                  <Eye className="w-4 h-4 text-primary" strokeWidth={2.5} />
+                </div>
+                <span className="text-foreground font-medium text-sm">Stealth Mode</span>
+              </div>
+              <Switch 
+                checked={stealthMode} 
+                onCheckedChange={(checked) => {
+                  setStealthMode(checked);
+                  toast.success(checked ? 'Stealth mode enabled' : 'Stealth mode disabled');
+                }}
+              />
             </div>
           </div>
 
-          <div className="border-b border-gray-200/50 mx-6" />
+          <div className="border-b border-border/30 mx-4" />
 
           {/* Read Receipts */}
-          <div className="px-6 py-3.5">
+          <div className="px-4 py-3">
             <div className="flex items-center justify-between">
-              <span className="text-foreground font-normal text-[15px]">Read Receipts</span>
-              <Switch checked={readReceipts} onCheckedChange={setReadReceipts} />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-hero/10 flex items-center justify-center">
+                  <CheckCheck className="w-4 h-4 text-primary" strokeWidth={2.5} />
+                </div>
+                <span className="text-foreground font-medium text-sm">Read Receipts</span>
+              </div>
+              <Switch 
+                checked={readReceipts} 
+                onCheckedChange={(checked) => {
+                  setReadReceipts(checked);
+                  toast.success(checked ? 'Read receipts enabled' : 'Read receipts disabled');
+                }}
+              />
             </div>
           </div>
         </div>
 
         {/* Translation & Tools Section */}
         <SectionHeader title="Translation & Tools" />
-        <div className="bg-white/60 mx-4 rounded-2xl overflow-hidden mb-20">
+        <div className="bg-card/60 backdrop-blur-sm border border-border/40 mx-3 rounded-2xl overflow-hidden mb-20 shadow-sm">
           {translationTools.map((item, index) => (
             <div key={index}>
               <MenuItem item={item} />
