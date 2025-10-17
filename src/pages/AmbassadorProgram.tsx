@@ -101,33 +101,33 @@ export default function AmbassadorProgram() {
     <div className="min-h-screen bg-gradient-to-br from-purple-500/10 via-background to-pink-500/10 pb-20">
       {/* Hero Header */}
       <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white">
-        <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="max-w-4xl mx-auto px-3 py-4">
           <Button
             variant="ghost"
             size="sm"
-            className="text-white mb-6 hover:bg-white/20"
+            className="text-white mb-2 hover:bg-white/20 h-8 text-xs"
             onClick={() => navigate('/growth')}
           >
             ← Back
           </Button>
           
-          <div className="flex items-center gap-3 mb-4">
-            <Star className="w-12 h-12" />
-            <h1 className="text-5xl font-bold">Chatr Partner Program</h1>
+          <div className="flex items-center gap-2 mb-2">
+            <Star className="w-6 h-6" />
+            <h1 className="text-xl font-bold">Chatr Partner Program</h1>
           </div>
           
-          <p className="text-2xl text-purple-100 mb-6">
+          <p className="text-sm text-purple-100 mb-3">
             Lead the health revolution at your campus
           </p>
           
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
-              <Sparkles className="w-5 h-5" />
-              <span className="font-semibold">100+ colleges already joined</span>
+          <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full text-xs">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="font-semibold">100+ colleges joined</span>
             </div>
-            <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
-              <TrendingUp className="w-5 h-5" />
-              <span className="font-semibold">₹50,000+ earned by top ambassadors</span>
+            <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full text-xs">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span className="font-semibold">₹50K+ earned</span>
             </div>
           </div>
         </div>

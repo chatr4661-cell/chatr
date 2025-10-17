@@ -94,24 +94,24 @@ export default function DoctorOnboarding() {
     <div className="min-h-screen bg-gradient-to-br from-blue-500/10 via-background to-teal-500/10 pb-20">
       {/* Hero */}
       <div className="bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          <div className="flex items-center gap-3 mb-4">
-            <Stethoscope className="w-12 h-12" />
-            <h1 className="text-5xl font-bold">Join Chatr as a Doctor</h1>
+        <div className="max-w-4xl mx-auto px-3 py-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Stethoscope className="w-6 h-6" />
+            <h1 className="text-xl font-bold">Join Chatr as a Doctor</h1>
           </div>
           
-          <p className="text-2xl text-blue-100 mb-6">
+          <p className="text-sm text-blue-100 mb-3">
             Reach patients instantly. Grow your practice digitally.
           </p>
           
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
-              <Award className="w-5 h-5" />
+          <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full text-xs">
+              <Award className="w-3.5 h-3.5" />
               <span className="font-semibold">FREE for first 50 doctors</span>
             </div>
-            <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
-              <Clock className="w-5 h-5" />
-              <span className="font-semibold">Get verified in 24 hours</span>
+            <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full text-xs">
+              <Clock className="w-3.5 h-3.5" />
+              <span className="font-semibold">Verified in 24 hours</span>
             </div>
           </div>
         </div>

@@ -114,15 +114,15 @@ export default function HealthHub() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <img src={logo} alt="Chatr" className="h-8" onClick={() => navigate('/')} />
-            <Button variant="ghost" size="sm" className="text-white" onClick={() => navigate('/')}>
+        <div className="max-w-6xl mx-auto px-3 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <img src={logo} alt="Chatr" className="h-6 cursor-pointer" onClick={() => navigate('/')} />
+            <Button variant="ghost" size="sm" className="text-white h-8 text-xs" onClick={() => navigate('/')}>
               Back
             </Button>
           </div>
-          <h1 className="text-3xl font-bold mb-2">Health Hub</h1>
-          <p className="text-emerald-50">Your complete health dashboard</p>
+          <h1 className="text-lg font-bold mb-1">Health Hub</h1>
+          <p className="text-xs text-emerald-50">Your complete health dashboard</p>
         </div>
       </div>
 

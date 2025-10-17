@@ -171,20 +171,20 @@ export default function ChatrGrowth() {
     <div className="min-h-screen bg-gradient-to-br from-purple-500/10 via-background to-pink-500/10 pb-20">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto px-3 py-4">
           <Button
             variant="ghost"
             size="sm"
-            className="text-white mb-4 hover:bg-white/20"
+            className="text-white mb-2 hover:bg-white/20 h-8 text-xs"
             onClick={() => navigate('/')}
           >
             ← Back
           </Button>
-          <h1 className="text-4xl font-bold mb-2 flex items-center gap-2">
-            <Sparkles className="w-8 h-8" />
+          <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
             Chatr Champions
           </h1>
-          <p className="text-purple-100 text-lg">Earn ₹ by growing your network</p>
+          <p className="text-purple-100 text-sm">Earn ₹ by growing your network</p>
         </div>
       </div>
 

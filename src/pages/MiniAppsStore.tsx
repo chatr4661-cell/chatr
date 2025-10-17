@@ -417,23 +417,23 @@ const MiniAppsStore = () => {
     <div className="min-h-screen bg-background pb-20">
       {/* Apple-style Premium Header */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-3">
+          <div className="flex items-center justify-between h-12">
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/')}
-                className="h-10 w-10 rounded-full hover:bg-muted/50 transition-all"
+                className="h-8 w-8 rounded-full hover:bg-muted/50 transition-all"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-xl font-semibold tracking-tight">Mini-Apps</h1>
+              <h1 className="text-base font-semibold tracking-tight">Mini-Apps</h1>
             </div>
             <Button
               variant="ghost"
               onClick={() => navigate('/developer-portal')}
-              className="text-sm font-medium hover:bg-muted/50"
+              className="text-xs font-medium hover:bg-muted/50 h-8"
             >
               Developers
             </Button>

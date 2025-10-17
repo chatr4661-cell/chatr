@@ -110,30 +110,30 @@ const OfficialAccounts = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="flex items-center gap-3 p-4 max-w-7xl mx-auto">
+        <div className="flex items-center gap-2 p-3 max-w-7xl mx-auto">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate('/')}
-            className="rounded-full"
+            className="rounded-full h-8 w-8"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2 flex-1">
-            <CheckCircle className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">Official Accounts</h1>
+            <CheckCircle className="h-5 w-5 text-primary" />
+            <h1 className="text-base font-bold">Official Accounts</h1>
           </div>
         </div>
 
         {/* Search */}
-        <div className="px-4 pb-4 max-w-7xl mx-auto">
+        <div className="px-3 pb-3 max-w-7xl mx-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search accounts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-9 text-sm"
             />
           </div>
         </div>
