@@ -71,8 +71,6 @@ const MessageBubbleComponent = ({
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
-  const longPressTimerRef = React.useRef<NodeJS.Timeout>();
-  const touchStartPosRef = React.useRef({ x: 0, y: 0 });
 
   const formatMessageTime = (date: Date) => {
     if (isToday(date)) {
@@ -84,48 +82,23 @@ const MessageBubbleComponent = ({
     }
   };
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    // Don't trigger menu in selection mode
-    if (selectionMode) return;
-    
-    const touch = e.touches[0];
-    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
-    
-    // Set a timer for long press (500ms)
-    longPressTimerRef.current = setTimeout(() => {
-      setMenuPosition({ x: touch.clientX, y: touch.clientY });
-      setShowMenu(true);
-    }, 500);
-  }, [selectionMode]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    // If user moves finger, cancel long press
-    const touch = e.touches[0];
-    const moveThreshold = 10; // pixels
-    const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
-    const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
-    
-    if (dx > moveThreshold || dy > moveThreshold) {
-      if (longPressTimerRef.current) {
-        clearTimeout(longPressTimerRef.current);
-      }
+  const handleMessageClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    // In selection mode, handle selection
+    if (selectionMode) {
+      onSelect?.(message.id);
+      return;
     }
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    // Clear the timer if touch ends before long press
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    return () => {
-      if (longPressTimerRef.current) {
-        clearTimeout(longPressTimerRef.current);
-      }
-    };
-  }, []);
+    
+    // Otherwise show context menu
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+    
+    setMenuPosition({ x: clientX || 0, y: clientY || 0 });
+    setShowMenu(true);
+  }, [selectionMode, message.id, onSelect]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -222,10 +195,6 @@ const MessageBubbleComponent = ({
   return (
     <div
       className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end flex-row-reverse' : 'justify-start'} ${selectionMode ? 'items-center' : ''}`}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onClick={selectionMode ? () => onSelect?.(message.id) : undefined}
     >
       {/* Selection checkbox */}
       {selectionMode && (
@@ -388,12 +357,14 @@ const MessageBubbleComponent = ({
          message.message_type !== 'payment' &&
          message.message_type !== 'image' && (
           <div 
-            className={`rounded-[18px] px-4 py-2.5 ${
+            className={`rounded-[18px] px-4 py-2.5 cursor-pointer active:opacity-80 transition-opacity ${
               isOwn
                 ? 'bg-teal-600 text-white'
                 : 'bg-gray-200 text-gray-900'
             }`}
             style={isOwn ? { backgroundColor: '#0d9488' } : undefined}
+            onClick={handleMessageClick}
+            onTouchStart={handleMessageClick}
           >
             <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
               {message.content}
