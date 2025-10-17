@@ -447,7 +447,7 @@ const ChatEnhancedContent = () => {
         // Conversation View
         <>
           {/* Header - Clean WhatsApp-style */}
-          <div className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm px-3 py-2.5 flex items-center gap-3">
+          <div data-chat-container className="sticky top-0 z-10 border-b bg-card/95 backdrop-blur-sm px-3 py-2 flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
@@ -455,26 +455,26 @@ const ChatEnhancedContent = () => {
                 setActiveConversationId(null);
                 setOtherUser(null);
               }}
-              className="h-9 w-9 rounded-full hover:bg-muted/50"
+              className="h-8 w-8 rounded-full hover:bg-muted/50"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             
             {otherUser && (
               <>
                 <button 
                   onClick={() => setShowContactInfo(true)}
-                  className="flex items-center gap-3 flex-1 min-w-0 hover:bg-muted/30 rounded-lg p-1.5 -m-1.5 transition-colors"
+                  className="flex items-center gap-2 flex-1 min-w-0 hover:bg-muted/30 rounded-lg p-1 -m-1 transition-colors"
                 >
-                  <Avatar className="w-10 h-10 shrink-0">
+                  <Avatar className="w-8 h-8 shrink-0">
                     <AvatarImage src={otherUser.avatar_url} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary text-xs">
                       {otherUser.username?.[0]?.toUpperCase() || '?'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1 text-left">
-                    <p className="font-semibold text-[15px] truncate">{otherUser.username}</p>
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="font-semibold text-xs truncate">{otherUser.username}</p>
+                    <p className="text-[10px] text-muted-foreground">
                       {otherUser.is_online ? 'Online' : 'Offline'}
                     </p>
                   </div>
@@ -482,41 +482,41 @@ const ChatEnhancedContent = () => {
               </>
             )}
 
-            <div className="flex items-center gap-1 shrink-0 ml-auto">
+            <div className="flex items-center gap-0.5 shrink-0 ml-auto">
               {conversationParticipants.length > 0 && conversationParticipants.length < 5 && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowAddParticipant(true)}
-                  className="h-9 w-9 rounded-full hover:bg-muted/50"
+                  className="h-8 w-8 rounded-full hover:bg-muted/50"
                   title="Add Participant"
                 >
-                  <Users className="h-5 w-5" />
+                  <Users className="h-4 w-4" />
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('voice')}
-                className="h-9 w-9 rounded-full hover:bg-muted/50"
+                className="h-8 w-8 rounded-full hover:bg-muted/50"
                 title="Voice Call"
               >
-                <Phone className="h-5 w-5" />
+                <Phone className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleStartCall('video')}
-                className="h-9 w-9 rounded-full hover:bg-muted/50"
+                className="h-8 w-8 rounded-full hover:bg-muted/50"
                 title="Video Call"
               >
-                <Video className="h-5 w-5" />
+                <Video className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowOfflineMode(true)}
-                className="h-9 w-9 rounded-full hover:bg-muted/50"
+                className="h-8 w-8 rounded-full hover:bg-muted/50"
                 title="Bluetooth Mode"
               >
                 <Bluetooth className="h-5 w-5" />
@@ -598,24 +598,24 @@ const ChatEnhancedContent = () => {
       ) : (
         // Conversation List View
         <>
-          {/* Clean Header */}
-          <div className="sticky top-0 z-10 border-b border-border/30 bg-background/95 backdrop-blur-lg">
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
+          {/* Clean Header - Compact */}
+          <div className="sticky top-0 z-10 border-b border-border/30 bg-card/95 backdrop-blur-lg">
+            <div className="flex items-center justify-between px-3 py-2">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/')}
-                  className="h-9 w-9 rounded-full hover:bg-accent/50 transition-colors"
+                  className="h-8 w-8 rounded-full hover:bg-accent/50"
                   title="Back"
                 >
-                  <ArrowLeft className="h-5 w-5" />
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
                 
                 <img 
                   src="/chatr-logo.png" 
                   alt="chatr" 
-                  className="h-8 w-8"
+                  className="h-6 w-6"
                 />
               </div>
 
@@ -624,39 +624,39 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/profile')}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  className="h-8 w-8 rounded-full hover:bg-accent/50"
                   title="Profile"
                 >
-                  <User className="h-5 w-5" />
+                  <User className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => setShowGroupCreator(true)}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  className="h-8 w-8 rounded-full hover:bg-accent/50"
                   title="Create Group"
                 >
-                  <Users className="h-5 w-5" />
+                  <Users className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => setShowGlobalSearch(true)}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  className="h-8 w-8 rounded-full hover:bg-accent/50"
                   title="Search"
                 >
-                  <Search className="h-5 w-5" />
+                  <Search className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/notifications')}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors relative"
+                  className="h-8 w-8 rounded-full hover:bg-accent/50 relative"
                   title="Notifications"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-4 w-4" />
                   {notificationCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px] bg-red-500 border-2 border-white">
+                    <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center p-0 text-[9px] bg-red-500 border border-white">
                       {notificationCount > 99 ? '99+' : notificationCount}
                     </Badge>
                   )}
@@ -665,19 +665,19 @@ const ChatEnhancedContent = () => {
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/call-history')}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  className="h-8 w-8 rounded-full hover:bg-accent/50"
                   title="Call History"
                 >
-                  <Phone className="h-5 w-5" />
+                  <Phone className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/growth')}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
-                  title="Rewards & Growth"
+                  className="h-8 w-8 rounded-full hover:bg-accent/50"
+                  title="Rewards"
                 >
-                  <QrCode className="h-5 w-5" />
+                  <QrCode className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -695,10 +695,10 @@ const ChatEnhancedContent = () => {
                       toast.success('Link copied to clipboard!');
                     }
                   }}
-                  className="h-10 w-10 rounded-full hover:bg-accent/50 transition-colors"
+                  className="h-8 w-8 rounded-full hover:bg-accent/50"
                   title="Share chatr"
                 >
-                  <Share2 className="h-5 w-5" />
+                  <Share2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>

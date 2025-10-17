@@ -138,16 +138,16 @@ const HomeServices = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-4">
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b">
+        <div className="container mx-auto px-3 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                <ArrowLeft className="h-5 w-5" />
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-8 w-8">
+                <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">🏠 Home Service Pro</h1>
-                <p className="text-sm text-muted-foreground">Professional home services at your fingertips</p>
+                <h1 className="text-sm font-bold">🏠 Home Service Pro</h1>
+                <p className="text-[10px] text-muted-foreground">Professional home services</p>
               </div>
             </div>
           </div>

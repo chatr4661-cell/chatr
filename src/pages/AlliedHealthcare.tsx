@@ -201,24 +201,22 @@ const AlliedHealthcare = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/90 border-b border-border/50 shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/')}
-                className="rounded-full"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  Allied Healthcare Directory
-                </h1>
-                <p className="text-sm text-muted-foreground">World's First Comprehensive Healthcare Professional Directory</p>
-              </div>
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-card/95 border-b border-border/40">
+        <div className="container mx-auto px-3 py-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="rounded-full h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-sm font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Allied Healthcare Directory
+              </h1>
+              <p className="text-[10px] text-muted-foreground">Healthcare Professional Directory</p>
             </div>
           </div>
 

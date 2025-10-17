@@ -62,6 +62,14 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
   const [themeOpen, setThemeOpen] = React.useState(false);
   const [selectedTheme, setSelectedTheme] = React.useState('default');
 
+  // Apply theme to parent chat window
+  React.useEffect(() => {
+    const chatContainer = document.querySelector('[data-chat-container]');
+    if (chatContainer) {
+      chatContainer.setAttribute('data-theme', selectedTheme);
+    }
+  }, [selectedTheme]);
+
   const handleAISummary = async () => {
     if (!conversationId) {
       toast.error('No conversation selected');

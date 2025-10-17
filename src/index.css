@@ -183,6 +183,25 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     display: none;
   }
 
+  /* Chat Theme Variations */
+  [data-theme="ocean"] {
+    --chat-bg: 195 100% 98%;
+    --chat-bubble-sent: 195 70% 50%;
+    --chat-bubble-received: 0 0% 95%;
+  }
+
+  [data-theme="sunset"] {
+    --chat-bg: 20 100% 98%;
+    --chat-bubble-sent: 20 90% 55%;
+    --chat-bubble-received: 0 0% 95%;
+  }
+
+  [data-theme="forest"] {
+    --chat-bg: 140 50% 98%;
+    --chat-bubble-sent: 140 60% 45%;
+    --chat-bubble-received: 0 0% 95%;
+  }
+
   /* Native card utilities */
   .glass {
     background: hsl(var(--card));

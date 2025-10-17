@@ -152,6 +152,9 @@ const App = () => {
             {/* Main App Routes */}
             <Route path="/chat" element={<Chat />} />
             <Route path="/chat/:conversationId" element={<Chat />} />
+            <Route path="/chat/:conversationId/media" 
+              Component={React.lazy(() => import('@/components/chat/MediaViewer').then(m => ({ default: m.MediaViewer })))} 
+            />
             <Route path="/profile" element={<Profile />} />
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/global-contacts" element={<GlobalContacts />} />
