@@ -467,6 +467,69 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Main Feature Hubs */}
+        <div className="grid grid-cols-1 gap-3">
+          <React.Suspense fallback={
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-16 bg-muted/50 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          }>
+            {mainHubs.map((hub, index) => (
+              <div 
+                key={hub.title} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Hub clicked:', hub.title, hub.route);
+                  navigate(hub.route);
+                }}
+                className="relative cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
+                style={{ animationDelay: `${index * 50}ms` }}
+                role="button"
+                tabIndex={0}
+              >
+                <ServiceCard {...hub} />
+                {hub.isNew && (
+                  <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg pointer-events-none">
+                    NEW
+                  </div>
+                )}
+              </div>
+            ))}
+          </React.Suspense>
+        </div>
+
+        {/* Growth & Opportunities */}
+        <div className="grid grid-cols-1 gap-3">
+          {growthPrograms.map((program, index) => (
+            <div 
+              key={program.title} 
+              onClick={() => navigate(program.route)}
+              className="group cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <div className="relative bg-gradient-to-br from-background to-muted/30 rounded-2xl border-2 border-border/40 p-4 shadow-lg hover:shadow-2xl hover:border-primary/40 transition-all">
+                <div className="flex items-center gap-4">
+                  <div className={`${program.iconColor} p-3 rounded-2xl shadow-lg group-hover:scale-110 transition-transform`}>
+                    <program.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-foreground">{program.title}</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                        {program.badge}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{program.description}</p>
+                  </div>
+                  <div className="text-muted-foreground group-hover:text-primary transition-colors">→</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Quick Access */}
         <div>
