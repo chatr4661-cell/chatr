@@ -88,6 +88,18 @@ export class SimpleWebRTCCall {
 
   private async getMedia() {
     try {
+      // CRITICAL: Release any existing media before requesting new
+      if (this.localStream) {
+        console.log('⚠️ [SimpleWebRTC] Releasing existing media stream before new request');
+        this.localStream.getTracks().forEach(track => {
+          track.stop();
+          this.localStream?.removeTrack(track);
+        });
+        this.localStream = null;
+        // Wait for devices to be fully released
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
       const isMobile = this.isMobileDevice();
       
       const videoConstraints = this.isVideo ? (isMobile ? {
@@ -117,8 +129,26 @@ export class SimpleWebRTCCall {
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('✅ [SimpleWebRTC] Media stream obtained');
       this.emit('localStream', this.localStream);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ [SimpleWebRTC] Media access denied:', error);
+      
+      // Handle "Device in use" error with retry
+      if (error.name === 'NotReadableError') {
+        console.log('⏳ [SimpleWebRTC] Device in use, waiting and retrying...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          const retryConstraints = {
+            audio: true,
+            video: this.isVideo ? { width: 640, height: 480 } : false
+          };
+          this.localStream = await navigator.mediaDevices.getUserMedia(retryConstraints);
+          this.emit('localStream', this.localStream);
+          return;
+        } catch (retryError) {
+          console.error('❌ [SimpleWebRTC] Retry failed:', retryError);
+          throw new Error('Camera/microphone still in use. Please wait a moment and try again.');
+        }
+      }
       
       if (this.isVideo && error.name === 'OverconstrainedError') {
         console.log('⚠️ Trying fallback constraints...');
@@ -493,20 +523,37 @@ export class SimpleWebRTCCall {
     
     this.clearConnectionTimeout();
 
+    // CRITICAL: Stop and remove all tracks properly
     if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop());
+      console.log('🛑 [SimpleWebRTC] Stopping all local media tracks');
+      this.localStream.getTracks().forEach(track => {
+        track.stop();
+        // Remove track from stream
+        this.localStream?.removeTrack(track);
+      });
       this.localStream = null;
     }
 
+    // Close peer connection
     if (this.pc) {
+      // Stop all senders' tracks
+      this.pc.getSenders().forEach(sender => {
+        if (sender.track) {
+          sender.track.stop();
+        }
+      });
       this.pc.close();
       this.pc = null;
     }
 
+    // Remove signal channel
     if (this.signalChannel) {
       await supabase.removeChannel(this.signalChannel);
       this.signalChannel = null;
     }
+
+    // Wait for devices to be fully released
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     console.log('✅ [SimpleWebRTC] Cleanup complete');
   }
