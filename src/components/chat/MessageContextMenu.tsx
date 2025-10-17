@@ -5,17 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { 
-  Reply, 
-  Forward, 
-  Star, 
-  Copy, 
-  Download, 
-  Share2, 
-  Edit, 
-  Trash 
-} from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 interface MessageAction {
   icon: React.ElementType;
@@ -40,11 +30,11 @@ export const MessageContextMenu = ({
 }: MessageContextMenuProps) => {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 bg-background/95 backdrop-blur-xl">
+      <DialogContent className="sm:max-w-md p-0 gap-0 bg-background border-border">
         <DialogHeader className="sr-only">
           <DialogTitle>Message Actions</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-4 gap-3 p-4">
+        <div className="divide-y divide-border">
           {actions.map((action, index) => {
             const Icon = action.icon;
             return (
@@ -54,20 +44,14 @@ export const MessageContextMenu = ({
                   action.action();
                   onClose();
                 }}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
+                className={`w-full flex items-center justify-between px-6 py-4 text-left transition-colors ${
                   action.variant === 'destructive'
-                    ? 'text-destructive hover:bg-destructive/10 active:scale-95'
-                    : 'text-foreground hover:bg-accent active:scale-95'
+                    ? 'text-destructive hover:bg-destructive/5 active:bg-destructive/10'
+                    : 'text-foreground hover:bg-accent/50 active:bg-accent'
                 }`}
               >
-                <div className={`p-3 rounded-full ${
-                  action.variant === 'destructive' 
-                    ? 'bg-destructive/10' 
-                    : 'bg-primary/10'
-                }`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-medium text-center">{action.label}</span>
+                <span className="text-[17px] font-normal">{action.label}</span>
+                <Icon className="w-6 h-6" strokeWidth={1.5} />
               </button>
             );
           })}

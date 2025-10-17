@@ -1,7 +1,7 @@
 import React, { useState, memo, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin } from 'lucide-react';
+import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { MessageContextMenu } from './MessageContextMenu';
@@ -115,14 +115,20 @@ const MessageBubbleComponent = ({
     return match ? match[1] : '';
   };
 
+  const handlePin = () => {
+    toast.success('Message pinned');
+  };
+
+  const handleReport = () => {
+    toast.success('Message reported');
+  };
+
   const messageActions = [
     { icon: Reply, label: 'Reply', action: () => onReply?.(message), show: true },
     { icon: Forward, label: 'Forward', action: () => onForward?.(message), show: true },
     { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: handleStar, show: true },
-    { icon: Copy, label: 'Copy', action: handleCopy, show: true },
-    { icon: Download, label: 'Download', action: handleDownload, show: !!message.media_url },
-    { icon: Share2, label: 'Share', action: handleShare, show: true },
-    { icon: Edit, label: 'Edit', action: () => onEdit?.(message.id, message.content), show: isOwn },
+    { icon: Pin, label: 'Pin', action: handlePin, show: true },
+    { icon: AlertTriangle, label: 'Report', action: handleReport, show: !isOwn },
     { icon: Trash, label: 'Delete', action: () => onDelete?.(message.id), variant: 'destructive' as const, show: isOwn }
   ];
 
