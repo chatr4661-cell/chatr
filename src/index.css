@@ -10,73 +10,71 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
 
 @layer base {
   :root {
-    /* Mobile-First Glass UI Theme */
-    --background: 200 25% 96%;
-    --foreground: 220 15% 15%;
+    /* Native App Theme - Clean & Minimal */
+    --background: 0 0% 100%;
+    --foreground: 220 9% 14%;
     
-    /* Glass card with blur */
-    --card: 200 40% 98%;
-    --card-foreground: 220 15% 15%;
+    /* Native card */
+    --card: 0 0% 100%;
+    --card-foreground: 220 9% 14%;
     
-    --popover: 200 40% 98%;
-    --popover-foreground: 220 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 9% 14%;
     
-    /* Primary - Deep Teal for better contrast */
-    --primary: 185 75% 35%;
+    /* Primary - Vibrant blue like Twitter/Native apps */
+    --primary: 211 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 185 75% 45%;
+    --primary-glow: 211 100% 60%;
     
-    /* Secondary - Soft glass */
-    --secondary: 200 30% 92%;
-    --secondary-foreground: 220 15% 15%;
+    /* Secondary - Light gray */
+    --secondary: 220 13% 95%;
+    --secondary-foreground: 220 9% 14%;
     
     /* Muted */
-    --muted: 200 25% 94%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 220 13% 95%;
+    --muted-foreground: 220 9% 46%;
     
-    /* Accent - Purple/Pink */
-    --accent: 280 70% 60%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent - Subtle blue */
+    --accent: 211 100% 96%;
+    --accent-foreground: 211 100% 50%;
     
     /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Borders & Inputs with glass effect */
-    --border: 200 20% 85%;
-    --input: 200 25% 92%;
-    --ring: 180 85% 45%;
+    /* Native borders */
+    --border: 220 13% 91%;
+    --input: 0 0% 100%;
+    --ring: 211 100% 50%;
     
-    /* Mobile-First: Extra rounded corners */
-    --radius: 1.5rem;
+    /* Native iOS/Android: Subtle rounded corners */
+    --radius: 0.75rem;
     
     /* Sidebar */
-    --sidebar-background: 200 30% 97%;
-    --sidebar-foreground: 220 15% 15%;
-    --sidebar-primary: 180 85% 45%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 9% 14%;
+    --sidebar-primary: 211 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 200 25% 94%;
-    --sidebar-accent-foreground: 220 15% 15%;
-    --sidebar-border: 200 20% 88%;
-    --sidebar-ring: 180 85% 45%;
+    --sidebar-accent: 220 13% 95%;
+    --sidebar-accent-foreground: 220 9% 14%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 211 100% 50%;
     
-    /* Glass Effects */
-    --glass-bg: 200 40% 98%;
-    --glass-border: 200 30% 88%;
+    /* Native Effects - Minimal shadows */
+    --glass-bg: 0 0% 100%;
+    --glass-border: 220 13% 91%;
     
-    /* Gradients - Vibrant glass theme */
-    --gradient-hero: linear-gradient(135deg, hsl(180, 85%, 45%) 0%, hsl(280, 70%, 60%) 100%);
-    --gradient-card: linear-gradient(135deg, hsla(200, 40%, 98%, 0.85) 0%, hsla(200, 40%, 98%, 0.65) 100%);
-    --gradient-glass: linear-gradient(135deg, hsla(200, 40%, 98%, 0.75) 0%, hsla(200, 40%, 98%, 0.55) 100%);
-    --gradient-mesh: radial-gradient(at 40% 20%, hsla(180, 85%, 60%, 0.15) 0px, transparent 50%),
-                     radial-gradient(at 80% 0%, hsla(280, 70%, 65%, 0.15) 0px, transparent 50%),
-                     radial-gradient(at 0% 50%, hsla(200, 70%, 70%, 0.1) 0px, transparent 50%);
+    /* Gradients - Clean native theme */
+    --gradient-hero: linear-gradient(135deg, hsl(211, 100%, 50%) 0%, hsl(211, 100%, 60%) 100%);
+    --gradient-card: linear-gradient(135deg, hsla(0, 0%, 100%, 1) 0%, hsla(220, 13%, 98%, 1) 100%);
+    --gradient-glass: linear-gradient(135deg, hsla(0, 0%, 100%, 0.95) 0%, hsla(220, 13%, 98%, 0.95) 100%);
+    --gradient-mesh: none;
     
-    /* Soft Shadows */
-    --shadow-card: 0 8px 32px hsla(180, 85%, 45%, 0.12);
-    --shadow-elevated: 0 16px 48px hsla(180, 85%, 45%, 0.18);
-    --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.15);
-    --shadow-glow: 0 0 30px hsla(180, 85%, 60%, 0.35);
+    /* Native Shadows - Subtle like iOS */
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.12);
+    --shadow-glass: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-glow: 0 0 20px hsla(211, 100%, 50%, 0.2);
   }
 
   .dark {
@@ -157,8 +155,7 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
 
   body {
     @apply bg-background text-foreground;
-    background-image: var(--gradient-mesh);
-    background-attachment: fixed;
+    background-color: hsl(var(--background));
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
@@ -186,23 +183,26 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     display: none;
   }
 
-  /* Glass UI utilities with extra roundedness */
+  /* Native card utilities */
   .glass {
-    background: var(--gradient-glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid hsla(var(--glass-border), 0.3);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-glass);
-    border-radius: 1.5rem;
+    border-radius: 0.75rem;
   }
 
   .glass-card {
-    background: var(--gradient-card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsla(var(--glass-border), 0.2);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-card);
-    border-radius: 1.5rem;
+    border-radius: 0.75rem;
+  }
+  
+  .native-card {
+    background: hsl(var(--card));
+    border: none;
+    box-shadow: var(--shadow-card);
+    border-radius: 0.75rem;
   }
 
   /* Mobile-First Spacing Utilities */

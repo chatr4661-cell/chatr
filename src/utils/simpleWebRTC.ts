@@ -137,21 +137,32 @@ export class SimpleWebRTCCall {
 
   private async createPeerConnection() {
     try {
-      // Get TURN servers
-      const { data: turnConfig } = await supabase.functions.invoke('get-turn-credentials');
-      const iceServers = turnConfig?.iceServers || [
+      // Get TURN servers with mobile-optimized fallback
+      let iceServers = [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' }
       ];
+
+      try {
+        const { data: turnConfig } = await supabase.functions.invoke('get-turn-credentials');
+        if (turnConfig?.iceServers) {
+          iceServers = turnConfig.iceServers;
+        }
+      } catch (err) {
+        console.warn('⚠️ [SimpleWebRTC] Using fallback STUN servers:', err);
+      }
 
       console.log('🔧 [SimpleWebRTC] Creating peer connection with ICE servers:', iceServers);
       
+      const isMobile = this.isMobileDevice();
       const configuration: RTCConfiguration = {
         iceServers,
         iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
         rtcpMuxPolicy: 'require',
-        iceCandidatePoolSize: this.isMobileDevice() ? 5 : 10
+        iceCandidatePoolSize: isMobile ? 10 : 15
       };
       
       this.pc = new RTCPeerConnection(configuration);
@@ -392,15 +403,16 @@ export class SimpleWebRTCCall {
   }
 
   private setConnectionTimeout() {
-    // Give 15 seconds for ICE connection to establish
+    // Give 30 seconds for ICE connection to establish (Android emulators are slow)
+    const timeout = this.isMobileDevice() ? 30000 : 20000;
     this.iceConnectionTimeout = setTimeout(() => {
       if (this.callState === 'connecting') {
-        console.error('⏰ [SimpleWebRTC] Connection timeout');
+        console.error('⏰ [SimpleWebRTC] Connection timeout after', timeout/1000, 'seconds');
         this.callState = 'failed';
-        this.emit('failed', new Error('Connection timeout'));
+        this.emit('failed', new Error('Connection timeout - please check your network settings'));
         this.cleanup();
       }
-    }, 15000);
+    }, timeout);
   }
 
   private clearConnectionTimeout() {
