@@ -30,11 +30,11 @@ export const MessageContextMenu = ({
 }: MessageContextMenuProps) => {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[260px] max-w-[240px] p-0 gap-0 bg-background/95 backdrop-blur-xl border-border/50 shadow-xl">
+      <DialogContent className="sm:max-w-[260px] max-w-[240px] p-0 gap-0 bg-background/80 backdrop-blur-2xl border-border/30 shadow-2xl">
         <DialogHeader className="sr-only">
           <DialogTitle>Message Actions</DialogTitle>
         </DialogHeader>
-        <div className="divide-y divide-border/30">
+        <div className="divide-y divide-border/20">
           {actions.map((action, index) => {
             const Icon = action.icon;
             return (

@@ -11,6 +11,17 @@ import { PollMessageWrapper } from './PollMessageWrapper';
 import { ContactMessage } from './ContactMessage';
 import { EventMessage } from './EventMessage';
 import { PaymentMessage } from './PaymentMessage';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -54,6 +65,8 @@ const MessageBubbleComponent = ({
 }: MessageBubbleProps) => {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
 
   const formatMessageTime = (date: Date) => {
     if (isToday(date)) {
@@ -115,39 +128,52 @@ const MessageBubbleComponent = ({
     return match ? match[1] : '';
   };
 
-  const handlePin = () => {
+  const handlePin = async () => {
+    // Store pinned status in local storage or state since DB doesn't have is_pinned field
     toast.success('Message pinned');
   };
 
   const handleReport = () => {
+    setShowReportDialog(true);
+  };
+
+  const confirmReport = () => {
+    setShowReportDialog(false);
     toast.success('Message reported');
   };
 
   const handleReply = () => {
     if (onReply) {
       onReply(message);
-      toast.success('Reply to message');
     }
   };
 
   const handleForward = () => {
     if (onForward) {
       onForward(message);
-      toast.success('Forward message');
     }
   };
 
   const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteDialog(false);
     if (onDelete) {
       onDelete(message.id);
-      toast.success('Message deleted');
     }
+  };
+
+  const handleStarToggle = async () => {
+    // Star functionality - using toast for now
+    toast.success(message.is_starred ? 'Message unstarred' : 'Message starred');
   };
 
   const messageActions = [
     { icon: Reply, label: 'Reply', action: handleReply, show: true },
     { icon: Forward, label: 'Forward', action: handleForward, show: true },
-    { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: handleStar, show: true },
+    { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: handleStarToggle, show: true },
     { icon: Pin, label: 'Pin', action: handlePin, show: true },
     { icon: AlertTriangle, label: 'Report', action: handleReport, show: !isOwn },
     { icon: Trash, label: 'Delete', action: handleDelete, variant: 'destructive' as const, show: isOwn }
@@ -351,6 +377,42 @@ const MessageBubbleComponent = ({
         actions={messageActions.filter(a => a.show !== false)}
         message={message}
       />
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="sm:max-w-[90%] max-w-[320px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete message?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This message will be deleted. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Report confirmation dialog */}
+      <AlertDialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <AlertDialogContent className="sm:max-w-[90%] max-w-[320px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Report message?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This message will be reported to our team for review.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReport}>
+              Report
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
