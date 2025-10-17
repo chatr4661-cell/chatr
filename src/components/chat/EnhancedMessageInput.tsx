@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Send, Plus, Smile, Mic, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AttachmentMenu } from './AttachmentMenu';
+import { AISmartReplyPanel } from '../AISmartReplyPanel';
+import { EmojiPicker } from '../EmojiPicker';
 import { PollCreator } from '../PollCreator';
 import { EventCreator } from './EventCreator';
 import { PaymentRequest } from './PaymentRequest';
@@ -406,6 +408,15 @@ export const EnhancedMessageInput = ({
         </DialogContent>
       </Dialog>
 
+      {/* AI Smart Reply Panel */}
+      <AISmartReplyPanel
+        lastMessage={lastMessage || ''}
+        onSelectReply={(reply) => {
+          setMessage(reply);
+          textareaRef.current?.focus();
+        }}
+      />
+
       <div className="border-t bg-white/95 backdrop-blur-sm safe-bottom">
         <div className="p-3 pb-6">
           <div className="flex items-center gap-2 bg-[hsl(200,25,95%)] rounded-[24px] px-4 py-2">
@@ -431,6 +442,8 @@ export const EnhancedMessageInput = ({
                 rows={1}
               />
             </div>
+
+            <EmojiPicker onEmojiSelect={(emoji) => setMessage(prev => prev + emoji)} />
 
             {message.trim() ? (
               <Button
