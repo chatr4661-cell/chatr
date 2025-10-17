@@ -20,19 +20,20 @@ const Communities = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-background/95 backdrop-blur-md border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+    <div className="min-h-screen bg-background pb-20">
+      {/* Mobile Header */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={() => navigate('/')}
-            className="rounded-full"
+            className="h-9 w-9 p-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-semibold">Communities</h1>
+          <h1 className="text-base font-semibold">Communities</h1>
+          <div className="w-9" /> {/* Spacer for center alignment */}
         </div>
       </div>
 

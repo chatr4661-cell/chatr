@@ -69,17 +69,17 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Profile Header */}
-      <div className="bg-gradient-to-b from-primary/10 to-background pt-8 pb-6 px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-background shadow-lg">
+      {/* Profile Header - Mobile Optimized */}
+      <div className="bg-background border-b border-border pt-safe">
+        <div className="px-4 py-6 text-center">
+          <Avatar className="h-20 w-20 mx-auto mb-3 border-2 border-border">
             <AvatarImage src={profile?.avatar_url} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+            <AvatarFallback className="bg-primary text-primary-foreground text-xl">
               {profile?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           
-          <h1 className="text-2xl font-bold mb-1">
+          <h1 className="text-xl font-bold mb-1">
             {profile?.username || 'Anonymous User'}
           </h1>
           
@@ -91,97 +91,107 @@ const Profile = () => {
             onClick={() => setIsEditDialogOpen(true)}
             variant="outline"
             size="sm"
-            className="rounded-full"
+            className="rounded-full h-9 px-6"
           >
             Edit Profile
           </Button>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="px-4 py-6 max-w-2xl mx-auto space-y-4">
-        <Card className="divide-y">
+      {/* Quick Actions - Mobile Cards */}
+      <div className="px-4 py-4 space-y-3">
+        {/* Health & Points Cards */}
+        <div className="native-card divide-y divide-border">
           <button
             onClick={() => navigate('/health-passport')}
-            className="w-full flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
+            className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
           >
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Heart className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1 text-left">
-              <h3 className="font-semibold">Health Passport</h3>
-              <p className="text-sm text-muted-foreground">Manage health records</p>
+            <div className="flex-1 text-left min-w-0">
+              <h3 className="font-medium text-sm">Health Passport</h3>
+              <p className="text-xs text-muted-foreground truncate">Manage health records</p>
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </button>
 
           <button
             onClick={() => navigate('/chatr-points')}
-            className="w-full flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
+            className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
           >
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Coins className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1 text-left">
-              <h3 className="font-semibold">Chatr Points</h3>
-              <p className="text-sm text-muted-foreground">View rewards & wallet</p>
+            <div className="flex-1 text-left min-w-0">
+              <h3 className="font-medium text-sm">Chatr Points</h3>
+              <p className="text-xs text-muted-foreground truncate">View rewards & wallet</p>
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </button>
 
           <button
             onClick={() => navigate('/device-management')}
-            className="w-full flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
+            className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
           >
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1 text-left">
-              <h3 className="font-semibold">Device Management</h3>
-              <p className="text-sm text-muted-foreground">Manage linked devices</p>
+            <div className="flex-1 text-left min-w-0">
+              <h3 className="font-medium text-sm">Device Management</h3>
+              <p className="text-xs text-muted-foreground truncate">Manage linked devices</p>
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </button>
-        </Card>
+        </div>
 
         {/* Settings Section */}
-        <Card className="divide-y">
-          <div className="p-4">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+        <div className="native-card divide-y divide-border">
+          <div className="px-4 py-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Settings
             </h3>
           </div>
 
-          <button className="w-full flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-1 text-left">
-              <h3 className="font-medium">Notifications</h3>
+          <button 
+            onClick={() => navigate('/notification-settings')}
+            className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
+          >
+            <Bell className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 text-left min-w-0">
+              <h3 className="font-medium text-sm">Notifications</h3>
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </button>
 
-          <button className="w-full flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors">
-            <Shield className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-1 text-left">
-              <h3 className="font-medium">Privacy & Security</h3>
+          <button 
+            onClick={() => navigate('/privacy')}
+            className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
+          >
+            <Shield className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 text-left min-w-0">
+              <h3 className="font-medium text-sm">Privacy & Security</h3>
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </button>
 
-          <button className="w-full flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors">
-            <Settings className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-1 text-left">
-              <h3 className="font-medium">Account Settings</h3>
+          <button 
+            onClick={() => navigate('/account')}
+            className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
+          >
+            <Settings className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 text-left min-w-0">
+              <h3 className="font-medium text-sm">Account Settings</h3>
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </button>
-        </Card>
+        </div>
 
         {/* Sign Out */}
         <Button
           onClick={handleSignOut}
           variant="destructive"
-          className="w-full"
+          className="w-full h-11"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Sign Out
