@@ -314,11 +314,11 @@ export default function ProductionVideoCall({
   };
 
   const handleSwitchCamera = async () => {
-    if (!isMobile) return;
     try {
       const newMode = await webrtcRef.current?.switchCamera();
       toast.success(`Switched to ${newMode === 'user' ? 'front' : 'back'} camera`);
     } catch (error) {
+      console.error('Camera switch error:', error);
       toast.error('Failed to switch camera');
     }
   };
@@ -457,16 +457,14 @@ export default function ProductionVideoCall({
                 {videoEnabled ? <Video className="h-6 w-6 text-white" /> : <VideoOff className="h-6 w-6" />}
               </Button>
 
-              {isMobileDevice && (
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
-                  onClick={handleSwitchCamera}
-                >
-                  <SwitchCamera className="w-6 h-6 text-white" />
-                </Button>
-              )}
+              <Button
+                size="lg"
+                variant="secondary"
+                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                onClick={handleSwitchCamera}
+              >
+                <SwitchCamera className="h-6 w-6 text-white" />
+              </Button>
 
               <Button
                 size="lg"

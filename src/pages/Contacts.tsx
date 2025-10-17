@@ -28,19 +28,20 @@ export default function Contacts() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-card">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/')}
-          className="rounded-full"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold">Contacts</h1>
-          <p className="text-sm text-muted-foreground">Find friends on Chatr</p>
+      {/* Native Header */}
+      <div className="sticky top-0 z-10 bg-white border-b">
+        <div className="flex items-center gap-2 p-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+            className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold">Contacts</h1>
+          </div>
         </div>
       </div>
 

@@ -114,14 +114,17 @@ export default function Account() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
+    <div className="min-h-screen bg-background">
+      {/* Native Header */}
+      <div className="sticky top-0 z-10 bg-white border-b">
+        <div className="flex items-center gap-2 p-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">Account Settings</h1>
+          <h1 className="text-lg font-semibold">Account Settings</h1>
         </div>
+      </div>
+      <div className="max-w-2xl mx-auto p-3">
 
         <Card>
           <CardHeader>

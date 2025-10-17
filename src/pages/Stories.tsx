@@ -94,20 +94,18 @@ const Stories = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-background/95 backdrop-blur-md border-b sticky top-0 z-50">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="rounded-full"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-xl font-semibold">Stories</h1>
-          </div>
+      {/* Native Header */}
+      <div className="sticky top-0 z-10 bg-white border-b">
+        <div className="flex items-center gap-2 p-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+            className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Stories</h1>
         </div>
       </div>
 

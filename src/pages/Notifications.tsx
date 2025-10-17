@@ -128,17 +128,17 @@ export default function Notifications() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 backdrop-blur-glass bg-gradient-glass border-b border-glass-border">
-        <div className="flex items-center justify-between p-4 max-w-2xl mx-auto">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+      {/* Native Header */}
+      <div className="sticky top-0 z-10 bg-white border-b">
+        <div className="flex items-center justify-between p-3">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold">Notifications</h1>
+              <h1 className="text-lg font-semibold">Notifications</h1>
               {notifications.filter(n => !n.read).length > 0 && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {notifications.filter(n => !n.read).length} unread
                 </p>
               )}
@@ -148,8 +148,9 @@ export default function Notifications() {
             variant="ghost"
             size="icon"
             onClick={() => navigate('/notifications/settings')}
+            className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted"
           >
-            <Settings className="h-5 w-5" />
+            <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
