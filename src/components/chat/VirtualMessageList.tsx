@@ -32,6 +32,9 @@ interface VirtualMessageListProps {
   onReply?: (message: Message) => void;
   onDelete?: (messageId: string) => void;
   onEdit?: (messageId: string, content: string) => void;
+  selectionMode?: boolean;
+  selectedMessages?: Set<string>;
+  onSelectMessage?: (messageId: string) => void;
 }
 
 export const VirtualMessageList = React.memo(({
@@ -45,7 +48,10 @@ export const VirtualMessageList = React.memo(({
   onStar,
   onReply,
   onDelete,
-  onEdit
+  onEdit,
+  selectionMode = false,
+  selectedMessages = new Set(),
+  onSelectMessage
 }: VirtualMessageListProps) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastMessageCountRef = React.useRef(messages.length);
@@ -129,6 +135,9 @@ export const VirtualMessageList = React.memo(({
               onReply={onReply}
               onDelete={onDelete}
               onEdit={onEdit}
+              selectionMode={selectionMode}
+              isSelected={selectedMessages.has(message.id)}
+              onSelect={onSelectMessage}
             />
           );
         })}

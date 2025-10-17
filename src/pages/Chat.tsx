@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff, Bluetooth, Info } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff, Bluetooth, Info, Trash } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -67,6 +67,10 @@ const ChatEnhancedContent = () => {
   const [messageToForward, setMessageToForward] = React.useState<any>(null);
   const [showForwardDialog, setShowForwardDialog] = React.useState(false);
   const [showContactInfo, setShowContactInfo] = React.useState(false);
+  
+  // Selection Mode State
+  const [selectionMode, setSelectionMode] = React.useState(false);
+  const [selectedMessages, setSelectedMessages] = React.useState<Set<string>>(new Set());
   
   // AI Features State
   const [showSmartReplies, setShowSmartReplies] = React.useState(false);
@@ -355,6 +359,44 @@ const ChatEnhancedContent = () => {
     }
   };
 
+  const handleSelectMessage = (messageId: string) => {
+    setSelectedMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      for (const msgId of selectedMessages) {
+        await deleteMessage(msgId);
+      }
+      toast.success(`Deleted ${selectedMessages.size} message${selectedMessages.size > 1 ? 's' : ''}`);
+      setSelectedMessages(new Set());
+      setSelectionMode(false);
+    } catch (error) {
+      toast.error('Failed to delete messages');
+    }
+  };
+
+  const handleForwardSelected = () => {
+    const messagesToForward = displayMessages.filter(m => selectedMessages.has(m.id));
+    if (messagesToForward.length > 0) {
+      setMessageToForward(messagesToForward[0]);
+      setShowForwardDialog(true);
+    }
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedMessages(new Set());
+  };
+
   // Load messages when conversation changes - handled by hook
   React.useEffect(() => {
     if (activeConversationId) {
@@ -482,41 +524,73 @@ const ChatEnhancedContent = () => {
         <>
           {/* Header - Clean WhatsApp-style */}
           <div data-chat-container className="sticky top-0 z-10 border-b bg-card/95 backdrop-blur-sm px-3 py-2 flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setActiveConversationId(null);
-                setOtherUser(null);
-              }}
-              className="h-8 w-8 rounded-full hover:bg-muted/50"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            
-            {otherUser && (
+            {selectionMode ? (
               <>
-                <button 
-                  onClick={() => setShowContactInfo(true)}
-                  className="flex items-center gap-2 flex-1 min-w-0 hover:bg-muted/30 rounded-lg p-1 -m-1 transition-colors"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={exitSelectionMode}
+                  className="h-8 w-8 rounded-full"
                 >
-                  <Avatar className="w-8 h-8 shrink-0">
-                    <AvatarImage src={otherUser.avatar_url} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary text-xs">
-                      {otherUser.username?.[0]?.toUpperCase() || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="font-semibold text-xs truncate">{otherUser.username}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {otherUser.is_online ? 'Online' : 'Offline'}
-                    </p>
-                  </div>
-                </button>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-medium text-sm flex-1">{selectedMessages.size} selected</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleForwardSelected}
+                    disabled={selectedMessages.size === 0}
+                    className="h-8 w-8 rounded-full"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleDeleteSelected}
+                    disabled={selectedMessages.size === 0}
+                    className="h-8 w-8 rounded-full text-destructive"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
               </>
-            )}
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setActiveConversationId(null);
+                    setOtherUser(null);
+                  }}
+                  className="h-8 w-8 rounded-full hover:bg-muted/50"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                
+                {otherUser && (
+                  <button 
+                    onClick={() => setShowContactInfo(true)}
+                    className="flex items-center gap-2 flex-1 min-w-0 hover:bg-muted/30 rounded-lg p-1 -m-1 transition-colors"
+                  >
+                    <Avatar className="w-8 h-8 shrink-0">
+                      <AvatarImage src={otherUser.avatar_url} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary text-xs">
+                        {otherUser.username?.[0]?.toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="font-semibold text-xs truncate">{otherUser.username}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {otherUser.is_online ? 'Online' : 'Offline'}
+                      </p>
+                    </div>
+                  </button>
+                )}
 
-            <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+                <div className="flex items-center gap-0.5 shrink-0 ml-auto">
               {conversationParticipants.length > 0 && conversationParticipants.length < 5 && (
                 <Button
                   variant="ghost"
@@ -578,26 +652,31 @@ const ChatEnhancedContent = () => {
                 }}
                 disabled={displayMessages.length === 0}
               />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-full hover:bg-muted/50"
-                  >
-                    <MoreVertical className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowDisappearingSettings(true)}>
-                    Disappearing Messages
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    View Profile
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-full hover:bg-muted/50"
+                      >
+                        <MoreVertical className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setSelectionMode(true)}>
+                        Select Messages
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowDisappearingSettings(true)}>
+                        Disappearing Messages
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/profile')}>
+                        View Profile
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Messages */}
@@ -615,6 +694,9 @@ const ChatEnhancedContent = () => {
                 onReply={handleReplyMessage}
                 onDelete={handleDeleteMessage}
                 onEdit={handleEditMessage}
+                selectionMode={selectionMode}
+                selectedMessages={selectedMessages}
+                onSelectMessage={handleSelectMessage}
               />
             ) : (
               <div className="flex items-center justify-center h-full">

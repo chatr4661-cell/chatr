@@ -5,8 +5,6 @@ import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2,
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { MessageContextMenu } from './MessageContextMenu';
-import { Capacitor } from '@capacitor/core';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { PollMessageWrapper } from './PollMessageWrapper';
 import { ContactMessage } from './ContactMessage';
 import { EventMessage } from './EventMessage';
@@ -50,6 +48,9 @@ interface MessageBubbleProps {
   onForward?: (message: Message) => void;
   onDelete?: (messageId: string) => void;
   onEdit?: (messageId: string, content: string) => void;
+  isSelected?: boolean;
+  onSelect?: (messageId: string) => void;
+  selectionMode?: boolean;
 }
 
 const MessageBubbleComponent = ({ 
@@ -61,7 +62,10 @@ const MessageBubbleComponent = ({
   onStar,
   onForward,
   onDelete,
-  onEdit
+  onEdit,
+  isSelected = false,
+  onSelect,
+  selectionMode = false
 }: MessageBubbleProps) => {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -83,10 +87,6 @@ const MessageBubbleComponent = ({
     const touch = e.touches[0];
     setMenuPosition({ x: touch.clientX, y: touch.clientY });
     setShowMenu(true);
-    
-    if (Capacitor.isNativePlatform()) {
-      Haptics.impact({ style: ImpactStyle.Medium });
-    }
   }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -189,14 +189,27 @@ const MessageBubbleComponent = ({
 
   return (
     <div
-      className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end flex-row-reverse' : 'justify-start'}`}
+      className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end flex-row-reverse' : 'justify-start'} ${selectionMode ? 'items-center' : ''}`}
       onTouchStart={handleLongPress}
       onContextMenu={handleContextMenu}
+      onClick={selectionMode ? () => onSelect?.(message.id) : undefined}
     >
-      {/* Debug badge */}
-      {isOwn && <div className="absolute -top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded">YOU</div>}
+      {/* Selection checkbox */}
+      {selectionMode && (
+        <div className={`shrink-0 ${isOwn ? 'order-last' : 'order-first'}`}>
+          <div 
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+              isSelected 
+                ? 'bg-primary border-primary' 
+                : 'border-muted-foreground/40 bg-background'
+            }`}
+          >
+            {isSelected && <Check className="w-3 h-3 text-white" />}
+          </div>
+        </div>
+      )}
       
-      {!isOwn && (
+      {!isOwn && !selectionMode && (
         showAvatar ? (
           <Avatar className="w-8 h-8 shrink-0">
             <AvatarImage src={otherUser?.avatar_url} />
