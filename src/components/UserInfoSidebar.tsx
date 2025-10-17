@@ -35,9 +35,10 @@ export const UserInfoSidebar = ({ contact, open, onOpenChange }: UserInfoSidebar
             phone_number: contact.phone_number || undefined,
             status: contact.status || undefined
           }}
+          conversationId={contact.id}
           onClose={() => onOpenChange(false)}
           onCall={(type) => {
-            // Handle call initiation here if needed
+            onOpenChange(false);
             console.log('Call type:', type);
           }}
         />
