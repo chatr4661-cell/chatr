@@ -1,11 +1,10 @@
 import React from 'react';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 interface MessageAction {
   icon: React.ElementType;
@@ -29,12 +28,15 @@ export const MessageContextMenu = ({
   actions 
 }: MessageContextMenuProps) => {
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[260px] max-w-[240px] p-0 gap-0 bg-background/80 backdrop-blur-2xl border-border/30 shadow-2xl">
-        <DialogHeader className="sr-only">
-          <DialogTitle>Message Actions</DialogTitle>
-        </DialogHeader>
-        <div className="divide-y divide-border/20">
+    <Sheet open={open} onOpenChange={onClose}>
+      <SheetContent 
+        side="bottom" 
+        className="p-0 rounded-t-3xl border-t bg-background/95 backdrop-blur-xl"
+      >
+        <SheetHeader className="sr-only">
+          <SheetTitle>Message Actions</SheetTitle>
+        </SheetHeader>
+        <div className="py-2">
           {actions.map((action, index) => {
             const Icon = action.icon;
             return (
@@ -44,19 +46,19 @@ export const MessageContextMenu = ({
                   action.action();
                   onClose();
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors ${
+                className={`w-full flex items-center gap-4 px-6 py-4 text-left transition-colors ${
                   action.variant === 'destructive'
                     ? 'text-destructive hover:bg-destructive/5 active:bg-destructive/10'
                     : 'text-foreground hover:bg-accent/30 active:bg-accent/50'
                 }`}
               >
-                <span className="text-[14px] font-normal">{action.label}</span>
-                <Icon className="w-[18px] h-[18px]" strokeWidth={1.5} />
+                <Icon className="w-5 h-5" strokeWidth={2} />
+                <span className="text-base font-medium">{action.label}</span>
               </button>
             );
           })}
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 };
