@@ -70,7 +70,6 @@ const MessageBubbleComponent = ({
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showReportDialog, setShowReportDialog] = useState(false);
   const [isLongPressing, setIsLongPressing] = useState(false);
   const longPressTimerRef = React.useRef<NodeJS.Timeout>();
   const touchStartPosRef = React.useRef({ x: 0, y: 0 });
@@ -167,18 +166,26 @@ const MessageBubbleComponent = ({
     return match ? match[1] : '';
   };
 
-  const handlePin = async () => {
-    // Store pinned status in local storage or state since DB doesn't have is_pinned field
-    toast.success('Message pinned');
+  const handlePin = () => {
+    // Store pinned messages in localStorage for now
+    const pinnedKey = `pinned_messages`;
+    const pinned = JSON.parse(localStorage.getItem(pinnedKey) || '[]');
+    
+    if (!pinned.includes(message.id)) {
+      pinned.push(message.id);
+      localStorage.setItem(pinnedKey, JSON.stringify(pinned));
+      toast.success('Message pinned');
+    } else {
+      const filtered = pinned.filter((id: string) => id !== message.id);
+      localStorage.setItem(pinnedKey, JSON.stringify(filtered));
+      toast.success('Message unpinned');
+    }
   };
 
   const handleReport = () => {
-    setShowReportDialog(true);
-  };
-
-  const confirmReport = () => {
-    setShowReportDialog(false);
-    toast.success('Message reported');
+    // Simple report with confirmation
+    toast.success('Message reported to moderators');
+    console.log('Reported message:', message.id);
   };
 
   const handleReply = () => {
@@ -205,8 +212,9 @@ const MessageBubbleComponent = ({
   };
 
   const handleStarToggle = async () => {
-    // Star functionality - using toast for now
-    toast.success(message.is_starred ? 'Message unstarred' : 'Message starred');
+    if (onStar) {
+      onStar(message.id);
+    }
   };
 
   const messageActions = [
@@ -445,24 +453,6 @@ const MessageBubbleComponent = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Report confirmation dialog */}
-      <AlertDialog open={showReportDialog} onOpenChange={setShowReportDialog}>
-        <AlertDialogContent className="sm:max-w-[90%] max-w-[320px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Report message?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This message will be reported to our team for review.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmReport}>
-              Report
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

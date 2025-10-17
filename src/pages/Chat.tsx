@@ -328,7 +328,10 @@ const ChatEnhancedContent = () => {
         .eq('id', messageId);
 
       if (error) throw error;
-      toast.success(message?.is_starred ? 'Message unstarred' : 'Message starred');
+      
+      // Reload messages to reflect the change
+      await loadMessages();
+      toast.success(message?.is_starred ? 'Unstarred' : 'Starred');
     } catch (error) {
       toast.error('Failed to update message');
     }
