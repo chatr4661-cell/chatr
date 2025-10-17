@@ -161,14 +161,26 @@ const MessageBubbleComponent = ({
         {message.media_attachments && Array.isArray(message.media_attachments) && message.media_attachments.length > 0 && (
           <div className={`grid gap-1 mb-1 ${message.media_attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} max-w-[280px]`}>
             {message.media_attachments.map((media: any, idx: number) => (
-              <img key={idx} src={media.url} alt={`Image ${idx + 1}`} className="rounded-lg object-cover cursor-pointer hover:opacity-90 w-full h-32" onClick={() => window.open(media.url, '_blank')} />
+              <div key={idx} className="relative group">
+                <img 
+                  src={media.url} 
+                  alt={`Image ${idx + 1}`} 
+                  className="rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity w-full h-32" 
+                  onClick={() => window.open(media.url, '_blank')} 
+                />
+              </div>
             ))}
           </div>
         )}
         
         {/* Single image (legacy) */}
         {message.media_url && message.message_type === 'image' && !message.media_attachments && (
-          <img src={message.media_url} alt="Shared media" className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(message.media_url, '_blank')} />
+          <img 
+            src={message.media_url} 
+            alt="Shared media" 
+            className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity" 
+            onClick={() => window.open(message.media_url, '_blank')} 
+          />
         )}
 
         {/* Poll message */}
@@ -178,7 +190,8 @@ const MessageBubbleComponent = ({
             return (
               <PollMessageWrapper 
                 messageId={message.id}
-                data={pollData} 
+                data={pollData}
+                isOwn={isOwn}
               />
             );
           } catch (error) {
@@ -189,14 +202,17 @@ const MessageBubbleComponent = ({
 
         {/* Contact message */}
         {message.message_type === 'contact' && message.content.startsWith('[Contact]') && (
-          <ContactMessage content={message.content.replace(/\[Contact\]\s*\[Contact\]\s*/g, '[Contact] ')} />
+          <ContactMessage 
+            content={message.content.replace(/\[Contact\]\s*\[Contact\]\s*/g, '[Contact] ')} 
+            isOwn={isOwn}
+          />
         )}
 
         {/* Event message */}
         {message.message_type === 'event' && message.content.startsWith('[Event]') && (() => {
           try {
             const eventData = JSON.parse(message.content.replace('[Event] ', ''));
-            return <EventMessage data={eventData} />;
+            return <EventMessage data={eventData} isOwn={isOwn} />;
           } catch (error) {
             console.error('Failed to parse event data:', error);
             return <div className="text-sm text-muted-foreground">Invalid event data</div>;
@@ -216,19 +232,19 @@ const MessageBubbleComponent = ({
 
         {/* Location message with map preview */}
         {message.message_type === 'location' && message.content.includes('maps.google.com') && (
-          <div className="rounded-2xl overflow-hidden border border-border mb-1 max-w-[280px]">
+          <div className={`rounded-2xl overflow-hidden border ${isOwn ? 'border-teal-600/20' : 'border-border'} mb-1 max-w-[280px] bg-background`}>
             <iframe
               src={`https://maps.google.com/maps?q=${extractLocationCoords(message.content)}&output=embed`}
               className="w-full h-40"
               loading="lazy"
               title="Location"
             />
-            <div className="p-3 bg-muted/50">
+            <div className={`p-3 ${isOwn ? 'bg-teal-600/10' : 'bg-muted/50'}`}>
               <a
                 href={message.content.split(' ').pop()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-primary font-medium text-sm"
+                className="flex items-center gap-2 text-primary font-medium text-sm hover:underline"
               >
                 <MapPin className="w-4 h-4" />
                 View in Maps
@@ -236,6 +252,33 @@ const MessageBubbleComponent = ({
             </div>
           </div>
         )}
+
+        {/* Document message */}
+        {message.message_type === 'document' && message.content.includes('[Document]') && (() => {
+          const docInfo = message.content.replace('[Document] ', '').split(': ');
+          const fileName = docInfo[0];
+          const fileUrl = docInfo[1];
+          return (
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center gap-3 p-3 rounded-2xl border transition-colors ${
+                isOwn 
+                  ? 'bg-teal-600/10 border-teal-600/20 hover:bg-teal-600/20' 
+                  : 'bg-muted/50 border-border hover:bg-muted'
+              } max-w-[280px]`}
+            >
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Download className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">{fileName}</p>
+                <p className="text-xs text-muted-foreground">Tap to download</p>
+              </div>
+            </a>
+          );
+        })()}
         
         {/* Regular text message - ONLY if not a special type */}
         {!message.media_url && 

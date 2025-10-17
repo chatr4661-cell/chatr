@@ -10,13 +10,16 @@ interface PollMessageProps {
   totalVotes: number;
   userVote?: number;
   onVote: (optionIndex: number) => void;
+  isOwn?: boolean;
 }
 
-export const PollMessage = ({ question, options, totalVotes, userVote, onVote }: PollMessageProps) => {
+export const PollMessage = ({ question, options, totalVotes, userVote, onVote, isOwn = false }: PollMessageProps) => {
   const hasVoted = userVote !== undefined;
 
   return (
-    <Card className="p-4 bg-gradient-card backdrop-blur-glass border-glass-border">
+    <Card className={`p-4 ${
+      isOwn ? 'bg-teal-600/10 border-teal-600/20' : 'bg-gradient-card backdrop-blur-glass border-glass-border'
+    }`}>
       <h4 className="font-semibold text-foreground mb-3">{question}</h4>
       <div className="space-y-2">
         {options.map((option, index) => {
@@ -32,19 +35,19 @@ export const PollMessage = ({ question, options, totalVotes, userVote, onVote }:
             >
               <div className={`relative p-3 rounded-lg border transition-all ${
                 isSelected 
-                  ? 'border-primary bg-primary/10' 
-                  : 'border-glass-border bg-background/50'
-              } ${!hasVoted ? 'hover:bg-primary/5 cursor-pointer' : ''}`}>
+                  ? `${isOwn ? 'border-teal-600 bg-teal-600/20' : 'border-primary bg-primary/10'}`
+                  : `border-glass-border ${isOwn ? 'bg-teal-600/5' : 'bg-background/50'}`
+              } ${!hasVoted ? `${isOwn ? 'hover:bg-teal-600/10' : 'hover:bg-primary/5'} cursor-pointer active:scale-95` : ''}`}>
                 {hasVoted && (
-                  <div className="absolute inset-0 bg-primary/5 rounded-lg" style={{ width: `${percentage}%` }} />
+                  <div className={`absolute inset-0 rounded-lg ${isOwn ? 'bg-teal-600/10' : 'bg-primary/5'}`} style={{ width: `${percentage}%` }} />
                 )}
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-1">
                     <span className="text-sm font-medium text-foreground">{option.text}</span>
-                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                    {isSelected && <CheckCircle2 className={`h-4 w-4 ${isOwn ? 'text-teal-600' : 'text-primary'}`} />}
                   </div>
                   {hasVoted && (
-                    <span className="text-sm text-muted-foreground ml-2">{percentage.toFixed(0)}%</span>
+                    <span className="text-sm text-muted-foreground ml-2 font-semibold">{percentage.toFixed(0)}%</span>
                   )}
                 </div>
               </div>

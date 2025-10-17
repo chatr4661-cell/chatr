@@ -5,19 +5,24 @@ import { User, Phone, Mail } from 'lucide-react';
 
 interface ContactMessageProps {
   content: string;
+  isOwn?: boolean;
 }
 
-export const ContactMessage: React.FC<ContactMessageProps> = ({ content }) => {
+export const ContactMessage: React.FC<ContactMessageProps> = ({ content, isOwn = false }) => {
   // Parse contact info from content: "[Contact] Name - phone"
   const contactInfo = content.replace('[Contact] ', '').split(' - ');
   const name = contactInfo[0] || 'Unknown Contact';
   const phoneOrEmail = contactInfo[1]?.replace('@chatr.local', '') || '';
 
   return (
-    <Card className="p-4 bg-card border max-w-[280px]">
+    <Card className={`p-4 border max-w-[280px] ${
+      isOwn ? 'bg-teal-600/10 border-teal-600/20' : 'bg-card border-border'
+    }`}>
       <div className="flex items-start gap-3">
-        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <User className="w-6 h-6 text-primary" />
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+          isOwn ? 'bg-teal-600/20' : 'bg-primary/20'
+        }`}>
+          <User className={`w-6 h-6 ${isOwn ? 'text-teal-600' : 'text-primary'}`} />
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-foreground truncate">{name}</h4>
@@ -34,7 +39,7 @@ export const ContactMessage: React.FC<ContactMessageProps> = ({ content }) => {
               </>
             )}
           </div>
-          <Button size="sm" className="mt-3 w-full">
+          <Button size="sm" className="mt-3 w-full h-9">
             View Contact
           </Button>
         </div>

@@ -11,7 +11,7 @@ interface PollMessageWrapperProps {
   };
 }
 
-export const PollMessageWrapper: React.FC<PollMessageWrapperProps> = ({ messageId, data }) => {
+export const PollMessageWrapper: React.FC<PollMessageWrapperProps & { isOwn?: boolean }> = ({ messageId, data, isOwn = false }) => {
   // Handle both string array and object array formats
   const initialOptions = Array.isArray(data.options)
     ? data.options.map(opt => 
@@ -53,6 +53,7 @@ export const PollMessageWrapper: React.FC<PollMessageWrapperProps> = ({ messageI
       totalVotes={pollData.totalVotes}
       userVote={pollData.userVote}
       onVote={handleVote}
+      isOwn={isOwn}
     />
   );
 };

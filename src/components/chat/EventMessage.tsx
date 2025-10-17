@@ -12,15 +12,20 @@ interface EventMessageProps {
     location?: string;
     description?: string;
   };
+  isOwn?: boolean;
 }
 
-export const EventMessage: React.FC<EventMessageProps> = ({ data }) => {
+export const EventMessage: React.FC<EventMessageProps> = ({ data, isOwn = false }) => {
   return (
-    <Card className="p-4 bg-card border max-w-[320px]">
+    <Card className={`p-4 border max-w-[320px] ${
+      isOwn ? 'bg-teal-600/10 border-teal-600/20' : 'bg-card border-border'
+    }`}>
       <div className="space-y-3">
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-            <Calendar className="w-6 h-6 text-primary" />
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+            isOwn ? 'bg-teal-600/20' : 'bg-primary/20'
+          }`}>
+            <Calendar className={`w-6 h-6 ${isOwn ? 'text-teal-600' : 'text-primary'}`} />
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-semibold text-foreground">{data.title}</h4>
@@ -49,7 +54,7 @@ export const EventMessage: React.FC<EventMessageProps> = ({ data }) => {
           )}
         </div>
 
-        <Button size="sm" className="w-full">
+        <Button size="sm" className="w-full h-9">
           Add to Calendar
         </Button>
       </div>
