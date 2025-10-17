@@ -1,4 +1,10 @@
 import React from 'react';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { 
   Reply, 
@@ -10,7 +16,6 @@ import {
   Edit, 
   Trash 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface MessageAction {
   icon: React.ElementType;
@@ -31,42 +36,15 @@ interface MessageContextMenuProps {
 export const MessageContextMenu = ({ 
   open, 
   onClose, 
-  position, 
   actions 
 }: MessageContextMenuProps) => {
-  React.useEffect(() => {
-    if (open) {
-      const handleClick = () => onClose();
-      const handleScroll = () => onClose();
-      
-      document.addEventListener('click', handleClick);
-      document.addEventListener('scroll', handleScroll, true);
-      
-      return () => {
-        document.removeEventListener('click', handleClick);
-        document.removeEventListener('scroll', handleScroll, true);
-      };
-    }
-  }, [open, onClose]);
-
-  if (!open) return null;
-
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.15 }}
-        className="fixed z-50 bg-card border border-border/50 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
-        style={{
-          top: position.y,
-          left: position.x,
-          minWidth: '180px'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="py-1">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md p-0 gap-0 bg-background/95 backdrop-blur-xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Message Actions</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-4 gap-3 p-4">
           {actions.map((action, index) => {
             const Icon = action.icon;
             return (
@@ -76,19 +54,25 @@ export const MessageContextMenu = ({
                   action.action();
                   onClose();
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
                   action.variant === 'destructive'
-                    ? 'text-destructive hover:bg-destructive/10'
-                    : 'text-foreground hover:bg-accent/50'
+                    ? 'text-destructive hover:bg-destructive/10 active:scale-95'
+                    : 'text-foreground hover:bg-accent active:scale-95'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span>{action.label}</span>
+                <div className={`p-3 rounded-full ${
+                  action.variant === 'destructive' 
+                    ? 'bg-destructive/10' 
+                    : 'bg-primary/10'
+                }`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-medium text-center">{action.label}</span>
               </button>
             );
           })}
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </DialogContent>
+    </Dialog>
   );
 };
