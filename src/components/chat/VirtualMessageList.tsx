@@ -29,6 +29,9 @@ interface VirtualMessageListProps {
   isLoading?: boolean;
   onForward?: (message: Message) => void;
   onStar?: (messageId: string) => void;
+  onReply?: (message: Message) => void;
+  onDelete?: (messageId: string) => void;
+  onEdit?: (messageId: string, content: string) => void;
 }
 
 export const VirtualMessageList = React.memo(({
@@ -39,7 +42,10 @@ export const VirtualMessageList = React.memo(({
   hasMore,
   isLoading = false,
   onForward,
-  onStar
+  onStar,
+  onReply,
+  onDelete,
+  onEdit
 }: VirtualMessageListProps) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastMessageCountRef = React.useRef(messages.length);
@@ -120,6 +126,9 @@ export const VirtualMessageList = React.memo(({
               otherUser={otherUser}
               onForward={onForward}
               onStar={onStar}
+              onReply={onReply}
+              onDelete={onDelete}
+              onEdit={onEdit}
             />
           );
         })}

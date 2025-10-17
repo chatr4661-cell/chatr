@@ -91,7 +91,16 @@ const ChatEnhancedContent = () => {
   const [conversationParticipants, setConversationParticipants] = React.useState<string[]>([]);
   
   // Use reliable messages hook - simple & predictable
-  const { messages: displayMessages, sendMessage, loadMessages, isLoading: messagesLoading, sending } = useReliableMessages(
+  const { 
+    messages: displayMessages, 
+    sendMessage, 
+    loadMessages, 
+    isLoading: messagesLoading, 
+    sending,
+    deleteMessage,
+    editMessage,
+    reactToMessage
+  } = useReliableMessages(
     activeConversationId,
     user?.id || ''
   );
@@ -318,6 +327,31 @@ const ChatEnhancedContent = () => {
       toast.success(message?.is_starred ? 'Message unstarred' : 'Message starred');
     } catch (error) {
       toast.error('Failed to update message');
+    }
+  };
+
+  const handleReplyMessage = (message: any) => {
+    // Set focus on input with reply context
+    toast.info('Reply to: ' + message.content.substring(0, 50));
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteMessage(messageId);
+      toast.success('Message deleted');
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error('Failed to delete message');
+    }
+  };
+
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    try {
+      await editMessage(messageId, newContent);
+      toast.success('Message updated');
+    } catch (error) {
+      console.error('Error editing message:', error);
+      toast.error('Failed to edit message');
     }
   };
 
@@ -578,6 +612,9 @@ const ChatEnhancedContent = () => {
                 isLoading={messagesLoading}
                 onForward={handleForwardMessage}
                 onStar={handleStarMessage}
+                onReply={handleReplyMessage}
+                onDelete={handleDeleteMessage}
+                onEdit={handleEditMessage}
               />
             ) : (
               <div className="flex items-center justify-center h-full">
