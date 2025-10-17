@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useAIChatAssistant } from '@/hooks/useAIChatAssistant';
+import { toast } from 'sonner';
 import { 
   X,
   Phone, 
@@ -49,10 +52,31 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
   onCall
 }) => {
   const navigate = useNavigate();
+  const { generateSummary, loading: summaryLoading } = useAIChatAssistant();
   const [lockChat, setLockChat] = React.useState(false);
   const [stealthMode, setStealthMode] = React.useState(false);
   const [readReceipts, setReadReceipts] = React.useState(true);
   const [disappearingTime, setDisappearingTime] = React.useState<'off' | '24h' | '7d' | '30d'>('off');
+  const [summaryOpen, setSummaryOpen] = React.useState(false);
+  const [summaryText, setSummaryText] = React.useState<string | null>(null);
+
+  const handleAISummary = async () => {
+    setSummaryOpen(true);
+    setSummaryText(null);
+    toast.loading('Generating AI summary...');
+    
+    // Mock messages - in real app, fetch from conversation
+    const mockMessages = [
+      { sender_name: contact.username, content: 'Hey, how are you?' },
+      { sender_name: 'You', content: 'Good! Just working on the app.' }
+    ];
+    
+    const summary = await generateSummary(mockMessages, 'brief');
+    if (summary) {
+      setSummaryText(summary);
+      toast.dismiss();
+    }
+  };
 
   const isOnline = contact.status === 'online' || false;
 
@@ -64,17 +88,17 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
   ];
 
   const chatControls = [
-    { icon: Image, label: 'Media, Links & Docs', onClick: () => {} },
-    { icon: Pin, label: 'Pinned Messages', onClick: () => {} },
-    { icon: BellOff, label: 'Mute Notifications', onClick: () => {} },
-    { icon: Palette, label: 'Chat Theme', hasToggle: true, onClick: () => {} },
-    { icon: Bookmark, label: 'Save Media to Gallery', onClick: () => {} },
+    { icon: Image, label: 'Media, Links & Docs', onClick: () => toast.info('Media viewer coming soon') },
+    { icon: Pin, label: 'Pinned Messages', onClick: () => toast.info('Pinned messages feature coming soon') },
+    { icon: BellOff, label: 'Mute Notifications', onClick: () => toast.info('Notification settings coming soon') },
+    { icon: Palette, label: 'Chat Theme', onClick: () => toast.info('Theme customization coming soon') },
+    { icon: Bookmark, label: 'Save Media to Gallery', onClick: () => toast.info('Gallery save feature coming soon') },
   ];
 
   const translationTools = [
-    { icon: Languages, label: 'Translate Chat Language', value: 'Auto → English', onClick: () => {} },
-    { icon: FileDown, label: 'Export Chat / Backup', onClick: () => {} },
-    { icon: Sparkles, label: 'AI Summary', subtitle: 'Generate key points from conversation', onClick: () => {} },
+    { icon: Languages, label: 'Translate Chat Language', onClick: () => toast.info('Translation settings coming soon') },
+    { icon: FileDown, label: 'Export Chat / Backup', onClick: () => toast.info('Export feature coming soon') },
+    { icon: Sparkles, label: 'AI Summary', subtitle: 'Generate key points from conversation', onClick: handleAISummary },
   ];
 
   const advancedOptions = [
@@ -92,7 +116,7 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
   const MenuItem = ({ item }: { item: any }) => (
     <button
       onClick={item.onClick}
-      className="w-full flex items-center justify-between px-6 py-3.5 hover:bg-accent/30 transition-colors"
+      className="w-full flex items-center justify-between px-6 py-3.5 hover:bg-accent/30 active:bg-accent/50 transition-colors touch-manipulation"
     >
       <div className="flex items-center gap-3">
         <item.icon className="w-5 h-5 text-primary" strokeWidth={2.5} />
@@ -103,85 +127,72 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        {item.hasToggle ? (
-          <Switch />
-        ) : (
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-        )}
-      </div>
+      <ChevronRight className="w-5 h-5 text-muted-foreground" />
     </button>
   );
 
   return (
-    <div className="flex flex-col h-screen bg-[#A8DDD8]">
-      {/* Header with Profile */}
-      <div className="relative bg-[#A8DDD8] pt-4 pb-6 px-4">
-        <div className="flex items-center justify-between mb-8">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onClose}
-            className="text-foreground hover:bg-black/5"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-          <div className="w-10" />
-        </div>
-
-        {/* Profile Section */}
-        <div className="flex flex-col items-center">
-          <div className="relative mb-3">
-            {/* Cyan Ring */}
-            <div className="absolute -inset-3 rounded-full border-[3px] border-[#5FD4D0]" />
-            <Avatar className="w-[140px] h-[140px] relative">
-              <AvatarImage src={contact.avatar_url} />
-              <AvatarFallback className="bg-white text-foreground text-4xl font-semibold">
-                {contact.username?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          
-          <h2 className="text-[28px] font-bold text-foreground mb-0.5 tracking-tight">
-            {contact.username?.toUpperCase() || 'CHATR USER'}
-          </h2>
-          <p className="text-foreground/70 text-[15px] mb-1">
-            @{contact.username || 'username'}
-          </p>
-          
-          {/* Phone Number */}
-          {contact.phone_number && (
-            <p className="text-foreground/60 text-sm mb-2">
-              {contact.phone_number}
-            </p>
-          )}
-          
-          <div className="flex items-center gap-2">
-            <p className="text-foreground/80 text-[15px]">
-              Building meaningful connections
-            </p>
-            <button className="p-1 hover:bg-black/5 rounded-full transition-colors">
-              <MoreHorizontal className="w-4 h-4 text-foreground/60" />
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-4 gap-3 mt-6">
-          {quickActions.map((action, index) => (
-            <button
-              key={index}
-              onClick={action.onClick}
-              className="flex flex-col items-center gap-2"
+    <>
+      <div className="flex flex-col h-screen bg-[#A8DDD8]">
+        {/* Compact Header */}
+        <div className="relative bg-[#A8DDD8] pt-3 pb-4 px-4">
+          <div className="flex items-center justify-between mb-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onClose}
+              className="text-foreground hover:bg-black/5 touch-manipulation"
             >
-              <div className="w-[60px] h-[60px] rounded-full bg-white/70 flex items-center justify-center shadow-sm hover:bg-white/90 transition-all">
-                <action.icon className="w-6 h-6 text-primary" strokeWidth={2.5} />
-              </div>
-              <span className="text-[13px] text-foreground font-normal">{action.label}</span>
-            </button>
-          ))}
+              <X className="w-5 h-5" />
+            </Button>
+            <div className="w-10" />
+          </div>
+
+          {/* Compact Profile Section */}
+          <div className="flex flex-col items-center">
+            <div className="relative mb-2">
+              <div className="absolute -inset-2 rounded-full border-[3px] border-[#5FD4D0]" />
+              <Avatar className="w-[100px] h-[100px] relative">
+                <AvatarImage src={contact.avatar_url} />
+                <AvatarFallback className="bg-white text-foreground text-3xl font-semibold">
+                  {contact.username?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            
+            <h2 className="text-[22px] font-bold text-foreground mb-0.5 tracking-tight">
+              {contact.username?.toUpperCase() || 'CHATR USER'}
+            </h2>
+            <p className="text-foreground/70 text-sm mb-1">
+              @{contact.username || 'username'}
+            </p>
+            
+            <div className="flex items-center gap-2">
+              <p className="text-foreground/80 text-sm">
+                Building meaningful connections
+              </p>
+              <button className="p-1 hover:bg-black/5 rounded-full transition-colors touch-manipulation">
+                <MoreHorizontal className="w-4 h-4 text-foreground/60" />
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-4 gap-3 mt-4">
+            {quickActions.map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                className="flex flex-col items-center gap-1.5 touch-manipulation active:scale-95 transition-transform"
+              >
+                <div className="w-[56px] h-[56px] rounded-full bg-white/70 flex items-center justify-center shadow-sm hover:bg-white/90 transition-all">
+                  <action.icon className="w-5 h-5 text-primary" strokeWidth={2.5} />
+                </div>
+                <span className="text-[12px] text-foreground font-normal">{action.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto bg-[#E8F5F4] rounded-t-3xl">
@@ -228,15 +239,18 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
           <div className="border-b border-gray-200/50 mx-6" />
 
           {/* Lock Chat */}
-          <div className="px-6 py-3.5">
+          <button
+            onClick={() => toast.info('Lock Chat settings coming soon')}
+            className="w-full px-6 py-3.5 hover:bg-accent/30 active:bg-accent/50 transition-colors touch-manipulation"
+          >
             <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <span className="text-foreground font-normal text-[15px] block">Lock Chat</span>
+              <span className="text-foreground font-normal text-[15px]">Lock Chat</span>
+              <div className="flex items-center gap-2">
+                <span className="text-primary text-sm">Face ID / PIN</span>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
-              <span className="text-primary text-sm mr-2">Face ID / PIN</span>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
-          </div>
+          </button>
 
           <div className="border-b border-gray-200/50 mx-6" />
 
@@ -273,5 +287,31 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
         </div>
       </div>
     </div>
+
+    {/* AI Summary Dialog */}
+    <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
+            AI Chat Summary
+          </DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          {summaryLoading || !summaryText ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {summaryText}
+              </p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 };
