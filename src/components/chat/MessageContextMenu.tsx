@@ -30,7 +30,7 @@ export const MessageContextMenu = ({
 }: MessageContextMenuProps) => {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 bg-background border-border">
+      <DialogContent className="sm:max-w-[320px] max-w-[280px] p-0 gap-0 bg-background border-border">
         <DialogHeader className="sr-only">
           <DialogTitle>Message Actions</DialogTitle>
         </DialogHeader>
@@ -44,14 +44,14 @@ export const MessageContextMenu = ({
                   action.action();
                   onClose();
                 }}
-                className={`w-full flex items-center justify-between px-6 py-4 text-left transition-colors ${
+                className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
                   action.variant === 'destructive'
                     ? 'text-destructive hover:bg-destructive/5 active:bg-destructive/10'
                     : 'text-foreground hover:bg-accent/50 active:bg-accent'
                 }`}
               >
-                <span className="text-[17px] font-normal">{action.label}</span>
-                <Icon className="w-6 h-6" strokeWidth={1.5} />
+                <span className="text-[15px] font-normal">{action.label}</span>
+                <Icon className="w-5 h-5" strokeWidth={1.5} />
               </button>
             );
           })}
