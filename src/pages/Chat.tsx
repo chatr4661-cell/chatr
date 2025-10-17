@@ -41,7 +41,7 @@ import { useAIChatAssistant } from '@/hooks/useAIChatAssistant';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { OfflineChat } from '@/components/OfflineChat';
-import { ContactInfoScreen } from '@/components/chat/ContactInfoScreen';
+import { UserInfoSidebar } from '@/components/UserInfoSidebar';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -901,25 +901,24 @@ const ChatEnhancedContent = () => {
         />
       )}
       
-      {/* Contact Info Dialog */}
-      <Dialog open={showContactInfo} onOpenChange={setShowContactInfo}>
-        <DialogContent className="p-0 max-w-md h-[90vh] overflow-hidden">
-          <ContactInfoScreen
-            contact={{
-              id: otherUser?.id || '',
-              username: otherUser?.username || 'Unknown',
-              avatar_url: otherUser?.avatar_url,
-              phone_number: otherUser?.phone_number,
-              status: otherUser?.status
-            }}
-            onClose={() => setShowContactInfo(false)}
-            onCall={(type) => {
-              setShowContactInfo(false);
-              handleStartCall(type);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Contact Info Sidebar */}
+      <UserInfoSidebar
+        contact={otherUser ? {
+          id: otherUser.id,
+          username: otherUser.username || 'Unknown',
+          avatar_url: otherUser.avatar_url || null,
+          email: null,
+          phone_number: otherUser.phone_number || null,
+          status: otherUser.status || null,
+          is_online: otherUser.is_online || false,
+          last_seen: otherUser.last_seen || new Date().toISOString(),
+          created_at: otherUser.created_at || new Date().toISOString(),
+          age: null,
+          gender: null
+        } : null}
+        open={showContactInfo}
+        onOpenChange={setShowContactInfo}
+      />
       </div>
     </>
   );

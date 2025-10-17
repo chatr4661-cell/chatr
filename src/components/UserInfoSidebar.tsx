@@ -26,7 +26,7 @@ export const UserInfoSidebar = ({ contact, open, onOpenChange }: UserInfoSidebar
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="p-0 w-full sm:max-w-md">
+      <SheetContent side="right" className="p-0 w-full sm:max-w-md overflow-y-auto">
         <ContactInfoScreen 
           contact={{
             id: contact.id,
@@ -36,6 +36,10 @@ export const UserInfoSidebar = ({ contact, open, onOpenChange }: UserInfoSidebar
             status: contact.status || undefined
           }}
           onClose={() => onOpenChange(false)}
+          onCall={(type) => {
+            // Handle call initiation here if needed
+            console.log('Call type:', type);
+          }}
         />
       </SheetContent>
     </Sheet>
