@@ -71,6 +71,7 @@ const MessageBubbleComponent = ({
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const [isLongPressing, setIsLongPressing] = useState(false);
   const longPressTimerRef = React.useRef<NodeJS.Timeout>();
   const touchStartPosRef = React.useRef({ x: 0, y: 0 });
 
@@ -93,9 +94,15 @@ const MessageBubbleComponent = ({
     const touch = e.touches[0];
     touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
     
+    setIsLongPressing(false);
     longPressTimerRef.current = setTimeout(() => {
+      setIsLongPressing(true);
       setMenuPosition({ x: touch.clientX, y: touch.clientY });
       setShowMenu(true);
+      // Vibrate on long press if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
     }, 500);
   }, [selectionMode, message.id, onSelect]);
 
@@ -116,6 +123,7 @@ const MessageBubbleComponent = ({
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
     }
+    setIsLongPressing(false);
   }, []);
 
   React.useEffect(() => {
@@ -386,7 +394,9 @@ const MessageBubbleComponent = ({
          message.message_type !== 'payment' &&
          message.message_type !== 'image' && (
           <div 
-            className={`rounded-[18px] px-4 py-2.5 ${
+            className={`rounded-[18px] px-4 py-2.5 transition-all ${
+              isLongPressing ? 'scale-95 opacity-70' : ''
+            } ${
               isOwn
                 ? 'bg-teal-600 text-white'
                 : 'bg-gray-200 text-gray-900'

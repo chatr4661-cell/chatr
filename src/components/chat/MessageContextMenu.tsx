@@ -4,6 +4,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 
 interface MessageAction {
@@ -35,6 +36,7 @@ export const MessageContextMenu = ({
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Message Actions</SheetTitle>
+          <SheetDescription>Choose an action for this message</SheetDescription>
         </SheetHeader>
         <div className="py-2">
           {actions.map((action, index) => {
