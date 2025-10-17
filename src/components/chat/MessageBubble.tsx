@@ -123,13 +123,34 @@ const MessageBubbleComponent = ({
     toast.success('Message reported');
   };
 
+  const handleReply = () => {
+    if (onReply) {
+      onReply(message);
+      toast.success('Reply to message');
+    }
+  };
+
+  const handleForward = () => {
+    if (onForward) {
+      onForward(message);
+      toast.success('Forward message');
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(message.id);
+      toast.success('Message deleted');
+    }
+  };
+
   const messageActions = [
-    { icon: Reply, label: 'Reply', action: () => onReply?.(message), show: true },
-    { icon: Forward, label: 'Forward', action: () => onForward?.(message), show: true },
+    { icon: Reply, label: 'Reply', action: handleReply, show: true },
+    { icon: Forward, label: 'Forward', action: handleForward, show: true },
     { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: handleStar, show: true },
     { icon: Pin, label: 'Pin', action: handlePin, show: true },
     { icon: AlertTriangle, label: 'Report', action: handleReport, show: !isOwn },
-    { icon: Trash, label: 'Delete', action: () => onDelete?.(message.id), variant: 'destructive' as const, show: isOwn }
+    { icon: Trash, label: 'Delete', action: handleDelete, variant: 'destructive' as const, show: isOwn }
   ];
 
   // Debug logging
