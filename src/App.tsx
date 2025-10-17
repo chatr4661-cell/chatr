@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import React from "react";
 import { useNativeOptimizations } from "@/hooks/useNativeOptimizations";
+import { useNativePerformance } from "@/hooks/useNativePerformance";
 
 const GlobalCallListener = React.lazy(() => 
   import("@/components/calling/GlobalCallListener").then(module => ({ 
@@ -117,6 +118,7 @@ const queryClient = new QueryClient({
 const App = () => {
   // Initialize native optimizations for Twitter Lite-like performance
   useNativeOptimizations();
+  useNativePerformance();
 
   return (
     <QueryClientProvider client={queryClient}>
