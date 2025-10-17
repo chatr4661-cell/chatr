@@ -316,23 +316,30 @@ const ChatEnhancedContent = () => {
 
   const handleStarMessage = async (messageId: string) => {
     try {
+      console.log('handleStarMessage called', messageId);
       const { data: message } = await supabase
         .from('messages')
         .select('is_starred')
         .eq('id', messageId)
-        .single();
+        .maybeSingle();
+
+      if (!message) {
+        toast.error('Message not found');
+        return;
+      }
 
       const { error } = await supabase
         .from('messages')
-        .update({ is_starred: !message?.is_starred })
+        .update({ is_starred: !message.is_starred })
         .eq('id', messageId);
 
       if (error) throw error;
       
       // Reload messages to reflect the change
       await loadMessages();
-      toast.success(message?.is_starred ? 'Unstarred' : 'Starred');
+      toast.success(message.is_starred ? 'Unstarred' : 'Starred');
     } catch (error) {
+      console.error('Star error:', error);
       toast.error('Failed to update message');
     }
   };

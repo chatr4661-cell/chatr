@@ -167,6 +167,7 @@ const MessageBubbleComponent = ({
   };
 
   const handlePin = () => {
+    console.log('Pin clicked', message.id);
     // Store pinned messages in localStorage for now
     const pinnedKey = `pinned_messages`;
     const pinned = JSON.parse(localStorage.getItem(pinnedKey) || '[]');
@@ -189,8 +190,11 @@ const MessageBubbleComponent = ({
   };
 
   const handleReply = () => {
+    console.log('Reply clicked', { hasOnReply: !!onReply, message: message.id });
     if (onReply) {
       onReply(message);
+    } else {
+      toast.error('Reply handler not connected');
     }
   };
 
@@ -201,6 +205,7 @@ const MessageBubbleComponent = ({
   };
 
   const handleDelete = () => {
+    console.log('Delete clicked', { hasOnDelete: !!onDelete, message: message.id });
     setShowDeleteDialog(true);
   };
 
@@ -212,8 +217,11 @@ const MessageBubbleComponent = ({
   };
 
   const handleStarToggle = async () => {
+    console.log('Star clicked', { hasOnStar: !!onStar, message: message.id });
     if (onStar) {
       onStar(message.id);
+    } else {
+      toast.error('Star handler not connected');
     }
   };
 
