@@ -13,10 +13,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
-import { VirtualMessageList } from '@/components/chat/VirtualMessageList';
+import { TrueVirtualMessageList } from '@/components/chat/TrueVirtualMessageList';
 import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
 import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
-import { useReliableMessages } from "@/hooks/useReliableMessages";
+import { useVirtualizedMessages } from "@/hooks/useVirtualizedMessages";
 import { AddParticipantDialog } from '@/components/chat/AddParticipantDialog';
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -94,17 +94,19 @@ const ChatEnhancedContent = () => {
   const [showAddParticipant, setShowAddParticipant] = React.useState(false);
   const [conversationParticipants, setConversationParticipants] = React.useState<string[]>([]);
   
-  // Use reliable messages hook - simple & predictable
+  // Use virtualized messages hook - WhatsApp-style performance
   const { 
     messages: displayMessages, 
     sendMessage, 
-    loadMessages, 
+    loadMessages,
+    loadOlderMessages,
+    hasMore,
     isLoading: messagesLoading, 
     sending,
     deleteMessage,
     editMessage,
     reactToMessage
-  } = useReliableMessages(
+  } = useVirtualizedMessages(
     activeConversationId,
     user?.id || ''
   );
@@ -692,12 +694,12 @@ const ChatEnhancedContent = () => {
           {/* Messages */}
           <div className="flex-1 overflow-hidden">
             {user?.id ? (
-              <VirtualMessageList
+              <TrueVirtualMessageList
                 messages={displayMessages}
                 userId={user.id}
                 otherUser={otherUser}
-                onLoadMore={() => {}}
-                hasMore={false}
+                onLoadMore={loadOlderMessages}
+                hasMore={hasMore}
                 isLoading={messagesLoading}
                 onForward={handleForwardMessage}
                 onStar={handleStarMessage}
