@@ -206,11 +206,16 @@ const MessageBubbleComponent = ({
 
   const handleDelete = () => {
     console.log('Delete clicked', { hasOnDelete: !!onDelete, message: message.id });
-    setShowDeleteDialog(true);
+    if (onDelete) {
+      setShowDeleteDialog(true);
+    } else {
+      toast.error('Delete handler not connected');
+    }
   };
 
   const confirmDelete = async () => {
     setShowDeleteDialog(false);
+    console.log('Confirm delete', message.id);
     if (onDelete) {
       onDelete(message.id);
     }
@@ -226,12 +231,30 @@ const MessageBubbleComponent = ({
   };
 
   const messageActions = [
-    { icon: Reply, label: 'Reply', action: handleReply, show: true },
-    { icon: Forward, label: 'Forward', action: handleForward, show: true },
-    { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: handleStarToggle, show: true },
-    { icon: Pin, label: 'Pin', action: handlePin, show: true },
-    { icon: AlertTriangle, label: 'Report', action: handleReport, show: !isOwn },
-    { icon: Trash, label: 'Delete', action: handleDelete, variant: 'destructive' as const, show: isOwn }
+    { icon: Reply, label: 'Reply', action: () => {
+      console.log('Action triggered: Reply');
+      handleReply();
+    }, show: true },
+    { icon: Forward, label: 'Forward', action: () => {
+      console.log('Action triggered: Forward');
+      handleForward();
+    }, show: true },
+    { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: () => {
+      console.log('Action triggered: Star');
+      handleStarToggle();
+    }, show: true },
+    { icon: Pin, label: 'Pin', action: () => {
+      console.log('Action triggered: Pin');
+      handlePin();
+    }, show: true },
+    { icon: AlertTriangle, label: 'Report', action: () => {
+      console.log('Action triggered: Report');
+      handleReport();
+    }, show: !isOwn },
+    { icon: Trash, label: 'Delete', action: () => {
+      console.log('Action triggered: Delete');
+      handleDelete();
+    }, variant: 'destructive' as const, show: isOwn }
   ];
 
   // Debug logging
