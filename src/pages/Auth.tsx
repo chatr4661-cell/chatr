@@ -182,9 +182,10 @@ const Auth = () => {
             <p className="text-xs text-muted-foreground">AI Powered</p>
           </div>
         </div>
-        </div>
         
+        {/* Footer */}
         <Footer />
+      </div>
       
       {userId && (
         <OnboardingDialog
