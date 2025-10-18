@@ -30,11 +30,8 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
+          redirectTo: `${window.location.origin}/`,
+          skipBrowserRedirect: false,
         },
       });
 
@@ -44,6 +41,7 @@ const Auth = () => {
       }
       
       logAuthEvent('Google OAuth redirect initiated');
+      // Don't set loading to false here - let the redirect happen
     } catch (error: any) {
       logAuthError('Google sign-in', error);
       toast({
@@ -148,21 +146,29 @@ const Auth = () => {
 
     // Listen for auth state changes (Google OAuth callback)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user.id);
+      logAuthEvent('Auth state changed', { event, userId: session?.user?.id });
       
       if (event === 'SIGNED_IN' && session) {
         setUserId(session.user.id);
         setGoogleLoading(false);
         
-        // Wait a bit for the trigger to create profile
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        logAuthEvent('User signed in, waiting for profile creation');
+        
+        // Wait for the trigger to create profile (give it 2 seconds)
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Check if profile exists and onboarding status
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('onboarding_completed, username, email')
+          .select('onboarding_completed, username, email, phone_number')
           .eq('id', session.user.id)
           .maybeSingle();
+        
+        logAuthEvent('Profile check after sign-in', { 
+          profile, 
+          error: profileError,
+          hasProfile: !!profile 
+        });
         
         if (profile?.onboarding_completed) {
           toast({
@@ -170,12 +176,16 @@ const Auth = () => {
             description: `Signed in as ${profile.username || profile.email}`,
           });
           navigate('/');
+        } else {
+          logAuthEvent('Showing onboarding for new user');
+          // Let the onboarding dialog show
         }
       }
       
       if (event === 'SIGNED_OUT') {
         setUserId(undefined);
         setGoogleLoading(false);
+        logAuthEvent('User signed out');
       }
     });
 
