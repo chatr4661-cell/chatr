@@ -12,6 +12,7 @@ import aiPoweredChatr from '@/assets/ai-powered-chatr.jpeg';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { logAuthEvent, logAuthError } from '@/utils/authDebug';
 
 const Auth = () => {
   const { toast } = useToast();
@@ -24,10 +25,12 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     try {
       setGoogleLoading(true);
+      logAuthEvent('Google sign-in initiated');
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/auth`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -35,12 +38,17 @@ const Auth = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        logAuthError('Google OAuth', error);
+        throw error;
+      }
+      
+      logAuthEvent('Google OAuth redirect initiated');
     } catch (error: any) {
-      console.error('Google sign in error:', error);
+      logAuthError('Google sign-in', error);
       toast({
         title: 'Sign in failed',
-        description: error.message || 'Failed to sign in with Google',
+        description: error.message || 'Failed to sign in with Google. Please try again.',
         variant: 'destructive',
       });
       setGoogleLoading(false);
@@ -50,9 +58,61 @@ const Auth = () => {
   React.useEffect(() => {
     const checkSession = async () => {
       try {
-        // Check for active device session
-        const deviceFingerprint = await getDeviceFingerprint();
+        logAuthEvent('Auth page: Checking session');
         
+        // First check for existing auth session (including Google OAuth)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          logAuthError('Session check', sessionError);
+          setLoading(false);
+          return;
+        }
+
+        if (session) {
+          logAuthEvent('Active session found', {
+            userId: session.user.id,
+            email: session.user.email,
+            provider: session.user.app_metadata?.provider,
+          });
+          setUserId(session.user.id);
+          
+          // Ensure profile exists (Google users should have profile created by trigger)
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Profile fetch error:', profileError);
+          }
+
+          if (profile) {
+            console.log('Profile found:', profile.username, 'Onboarding:', profile.onboarding_completed);
+            
+            // If onboarding is complete, redirect to home
+            if (profile.onboarding_completed) {
+              toast({
+                title: 'Welcome back!',
+                description: `Signed in as ${profile.username || profile.email}`,
+              });
+              navigate('/');
+              return;
+            }
+            // Otherwise, show onboarding dialog (handled by state)
+          } else {
+            console.warn('No profile found for user, will be created by trigger');
+            // Profile will be created by handle_new_user trigger
+            // Show onboarding for new users
+          }
+          
+          setLoading(false);
+          return;
+        }
+
+        // If no session, check for device session
+        const deviceFingerprint = await getDeviceFingerprint();
         const { data: deviceSession } = await supabase
           .from('device_sessions')
           .select('*')
@@ -62,9 +122,9 @@ const Auth = () => {
           .maybeSingle();
 
         if (deviceSession) {
+          console.log('Active device session found');
           setUserId(deviceSession.user_id);
           
-          // Check onboarding status
           const { data: profile } = await supabase
             .from('profiles')
             .select('onboarding_completed')
@@ -72,72 +132,55 @@ const Auth = () => {
             .single();
           
           if (profile?.onboarding_completed) {
-            window.location.href = '/';
-          }
-          return;
-        }
-
-        // Check for Google OAuth callback
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          setUserId(session.user.id);
-          
-          // Google OAuth recovery flow
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profile) {
-            // Check onboarding status
-            if (profile.onboarding_completed) {
-              toast({
-                title: 'Account Recovered',
-                description: 'Please set a new PIN for this device',
-              });
-              window.location.href = '/';
-            }
-          } else {
-            // New Google user, needs to link phone number
-            toast({
-              title: 'Link Phone Number',
-              description: 'Please link your phone number to continue',
-              variant: 'destructive'
-            });
-            await supabase.auth.signOut();
+            navigate('/');
+            return;
           }
         }
+
+        setLoading(false);
       } catch (error) {
         console.error('Session check error:', error);
-      } finally {
         setLoading(false);
       }
     };
 
     checkSession();
 
-    // Listen for auth state changes
+    // Listen for auth state changes (Google OAuth callback)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user.id);
+      
       if (event === 'SIGNED_IN' && session) {
         setUserId(session.user.id);
+        setGoogleLoading(false);
         
-        // Check onboarding status
+        // Wait a bit for the trigger to create profile
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Check if profile exists and onboarding status
         const { data: profile } = await supabase
           .from('profiles')
-          .select('onboarding_completed')
+          .select('onboarding_completed, username, email')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (profile?.onboarding_completed) {
-          window.location.href = '/';
+          toast({
+            title: 'Welcome back!',
+            description: `Signed in as ${profile.username || profile.email}`,
+          });
+          navigate('/');
         }
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        setUserId(undefined);
+        setGoogleLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [toast]);
+  }, [toast, navigate]);
 
   if (loading) {
     return (
