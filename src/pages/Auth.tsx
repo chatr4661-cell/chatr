@@ -89,13 +89,13 @@ const Auth = () => {
           if (profile) {
             console.log('Profile found:', profile.username, 'Onboarding:', profile.onboarding_completed);
             
-            // If onboarding is complete, redirect to home
+            // If onboarding is complete, redirect to chat
             if (profile.onboarding_completed) {
               toast({
                 title: 'Welcome back!',
                 description: `Signed in as ${profile.username || profile.email}`,
               });
-              navigate('/');
+              navigate('/chat', { replace: true });
               return;
             }
             // Otherwise, show onboarding dialog (handled by state)
@@ -130,7 +130,7 @@ const Auth = () => {
             .single();
           
           if (profile?.onboarding_completed) {
-            navigate('/');
+            navigate('/chat', { replace: true });
             return;
           }
         }
@@ -175,7 +175,7 @@ const Auth = () => {
             title: 'Welcome back!',
             description: `Signed in as ${profile.username || profile.email}`,
           });
-          navigate('/');
+          navigate('/chat', { replace: true });
         } else {
           logAuthEvent('Showing onboarding for new user');
           // Let the onboarding dialog show
@@ -318,11 +318,11 @@ const Auth = () => {
           userId={userId}
           onComplete={async () => {
             await onboarding.completeOnboarding();
-            navigate("/");
+            navigate("/chat", { replace: true });
           }}
           onSkip={async () => {
             await onboarding.skipOnboarding();
-            navigate("/");
+            navigate("/chat", { replace: true });
           }}
         />
       )}
