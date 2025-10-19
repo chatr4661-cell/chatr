@@ -43,24 +43,48 @@ const Index = () => {
   const [referralCode, setReferralCode] = React.useState<string>('');
   const [qrCodeUrl, setQrCodeUrl] = React.useState<string>('');
 
-  // Fast initial auth check - non-blocking
+  // Fast initial auth check - redirect logged-in users to chat
   React.useEffect(() => {
     setMounted(true);
     
     // Immediate auth check without timeout
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/auth');
+      if (session) {
+        // User is logged in - check if they've completed onboarding
+        supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.onboarding_completed !== false) {
+              // Redirect to chat for logged-in users
+              navigate('/chat');
+            } else {
+              // Show landing page for users who haven't onboarded
+              setUser(session.user);
+            }
+          });
       } else {
-        setUser(session.user);
+        setMounted(true); // Show landing page for non-logged-in users
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate('/auth');
-      } else {
-        setUser(session.user);
+      if (session) {
+        // Check onboarding status on auth changes
+        supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.onboarding_completed !== false) {
+              navigate('/chat');
+            } else {
+              setUser(session.user);
+            }
+          });
       }
     });
 

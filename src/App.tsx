@@ -101,13 +101,13 @@ import BluetoothTest from "./pages/BluetoothTest";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 0,
-      gcTime: 1000 * 60 * 5,
-      retry: 3,
-      refetchOnWindowFocus: true,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes
+      retry: 2,
+      refetchOnWindowFocus: false, // Reduced battery drain
       refetchOnMount: true,
       refetchOnReconnect: true,
-      refetchInterval: 3000,
+      refetchInterval: false, // Removed aggressive polling
     },
   },
 });
@@ -229,7 +229,6 @@ const App = () => {
             <Route path="/business/groups" element={<BusinessGroups />} />
             
             {/* Growth System Routes - redirect to unified chatr-points */}
-            <Route path="/growth" element={<ChatrPoints />} />
             <Route path="/leaderboard" element={<ChatrPoints />} />
             <Route path="/referrals" element={<ChatrPoints />} />
             

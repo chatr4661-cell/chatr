@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function Contacts() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -15,6 +16,7 @@ export default function Contacts() {
         navigate('/auth');
       } else {
         setUserId(session.user.id);
+        setLoading(false);
       }
     });
   }, [navigate]);
@@ -23,6 +25,17 @@ export default function Contacts() {
     // Navigate to chat with selected contact
     navigate('/chat', { state: { selectedContact: contact } });
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading contacts...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!userId) return null;
 
