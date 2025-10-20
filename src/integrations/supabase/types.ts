@@ -3233,6 +3233,36 @@ export type Database = {
         }
         Relationships: []
       }
+      media_files: {
+        Row: {
+          created_at: string | null
+          hash: string
+          id: string
+          size: number
+          type: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          hash: string
+          id?: string
+          size: number
+          type: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          hash?: string
+          id?: string
+          size?: number
+          type?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       medical_access_audit: {
         Row: {
           access_type: string
@@ -3577,8 +3607,10 @@ export type Database = {
           location_longitude: number | null
           location_name: string | null
           media_attachments: Json | null
+          media_thumbnail_url: string | null
           media_url: string | null
           message_type: string | null
+          original_message_id: string | null
           poll_options: Json | null
           poll_question: string | null
           reactions: Json | null
@@ -3608,8 +3640,10 @@ export type Database = {
           location_longitude?: number | null
           location_name?: string | null
           media_attachments?: Json | null
+          media_thumbnail_url?: string | null
           media_url?: string | null
           message_type?: string | null
+          original_message_id?: string | null
           poll_options?: Json | null
           poll_question?: string | null
           reactions?: Json | null
@@ -3639,8 +3673,10 @@ export type Database = {
           location_longitude?: number | null
           location_name?: string | null
           media_attachments?: Json | null
+          media_thumbnail_url?: string | null
           media_url?: string | null
           message_type?: string | null
+          original_message_id?: string | null
           poll_options?: Json | null
           poll_question?: string | null
           reactions?: Json | null
@@ -3661,6 +3697,13 @@ export type Database = {
           {
             foreignKeyName: "messages_forwarded_from_id_fkey"
             columns: ["forwarded_from_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_original_message_id_fkey"
+            columns: ["original_message_id"]
             isOneToOne: false
             referencedRelation: "messages"
             referencedColumns: ["id"]
