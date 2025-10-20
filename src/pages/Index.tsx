@@ -43,17 +43,38 @@ const Index = () => {
   const [referralCode, setReferralCode] = React.useState<string>('');
   const [qrCodeUrl, setQrCodeUrl] = React.useState<string>('');
 
-  // Redirect unauthenticated users to /auth
+  // Load user and check authentication
   React.useEffect(() => {
-    const checkAuth = async () => {
+    const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         // User is not logged in, redirect to auth
         navigate('/auth', { replace: true });
+        return;
       }
+      
+      // Set the user state for authenticated users
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setMounted(true);
     };
     
-    checkAuth();
+    initAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate('/auth', { replace: true });
+        setUser(null);
+      } else {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          setUser(user);
+          setMounted(true);
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   // Defer all heavy operations to after page is visible
