@@ -1,135 +1,138 @@
-/* Force complete rebuild - React deduplication fix 2025-01-09T18:40 */
+/* Premium Chatr Design System - World Class Polish */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-NOTE: This app is configured for Indian market with INR pricing and local emergency numbers.
-*/
-
 @layer base {
   :root {
-    /* Native App Theme - Clean & Minimal */
+    /* Premium Native Theme - iOS/Android Inspired */
     --background: 0 0% 100%;
-    --foreground: 220 9% 14%;
+    --foreground: 220 13% 10%;
     
-    /* Native card */
     --card: 0 0% 100%;
-    --card-foreground: 220 9% 14%;
+    --card-foreground: 220 13% 10%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 220 9% 14%;
+    --popover-foreground: 220 13% 10%;
     
-    /* Primary - Vibrant blue like Twitter/Native apps */
+    /* Primary - Vibrant blue */
     --primary: 211 100% 50%;
     --primary-foreground: 0 0% 100%;
+    --primary-light: 211 100% 95%;
     --primary-glow: 211 100% 60%;
     
     /* Secondary - Light gray */
-    --secondary: 220 13% 95%;
-    --secondary-foreground: 220 9% 14%;
+    --secondary: 220 13% 96%;
+    --secondary-foreground: 220 13% 10%;
     
     /* Muted */
-    --muted: 220 13% 95%;
+    --muted: 220 13% 96%;
     --muted-foreground: 220 9% 46%;
     
     /* Accent - Subtle blue */
     --accent: 211 100% 96%;
     --accent-foreground: 211 100% 50%;
     
-    /* Destructive */
+    /* Success, Warning, Error */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Native borders */
+    /* Borders & Inputs */
     --border: 220 13% 91%;
-    --input: 0 0% 100%;
+    --input: 220 13% 96%;
     --ring: 211 100% 50%;
     
-    /* Native iOS/Android: Subtle rounded corners */
-    --radius: 0.75rem;
+    /* Corner radius - iOS-style */
+    --radius: 0.875rem;
     
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 9% 14%;
+    --sidebar-foreground: 220 13% 10%;
     --sidebar-primary: 211 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 13% 95%;
-    --sidebar-accent-foreground: 220 9% 14%;
+    --sidebar-accent: 220 13% 96%;
+    --sidebar-accent-foreground: 220 13% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 211 100% 50%;
     
-    /* Native Effects - Minimal shadows */
-    --glass-bg: 0 0% 100%;
-    --glass-border: 220 13% 91%;
-    
-    /* Gradients - Clean native theme */
-    --gradient-hero: linear-gradient(135deg, hsl(211, 100%, 50%) 0%, hsl(211, 100%, 60%) 100%);
-    --gradient-card: linear-gradient(135deg, hsla(0, 0%, 100%, 1) 0%, hsla(220, 13%, 98%, 1) 100%);
+    /* Premium Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(211, 100%, 50%) 0%, hsl(211, 100%, 60%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(142, 76%, 46%) 100%);
+    --gradient-warning: linear-gradient(135deg, hsl(38, 92%, 50%) 0%, hsl(38, 92%, 60%) 100%);
+    --gradient-card: linear-gradient(135deg, hsla(0, 0%, 100%, 1) 0%, hsla(220, 13%, 99%, 1) 100%);
     --gradient-glass: linear-gradient(135deg, hsla(0, 0%, 100%, 0.95) 0%, hsla(220, 13%, 98%, 0.95) 100%);
-    --gradient-mesh: none;
     
-    /* Native Shadows - Subtle like iOS */
-    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.12);
-    --shadow-glass: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-glow: 0 0 20px hsla(211, 100%, 50%, 0.2);
+    /* Premium Shadows - Subtle elevation */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.1);
+    --shadow-glow: 0 0 24px hsla(211, 100%, 50%, 0.2);
   }
 
   .dark {
     --background: 220 20% 10%;
-    --foreground: 200 10% 95%;
+    --foreground: 0 0% 98%;
     
     --card: 220 18% 14%;
-    --card-foreground: 200 10% 95%;
+    --card-foreground: 0 0% 98%;
     
     --popover: 220 18% 14%;
-    --popover-foreground: 200 10% 95%;
+    --popover-foreground: 0 0% 98%;
     
-    --primary: 180 85% 50%;
+    --primary: 211 100% 55%;
     --primary-foreground: 220 20% 10%;
-    --primary-glow: 180 85% 65%;
+    --primary-light: 211 100% 20%;
+    --primary-glow: 211 100% 65%;
     
     --secondary: 220 15% 18%;
-    --secondary-foreground: 200 10% 95%;
+    --secondary-foreground: 0 0% 98%;
     
     --muted: 220 12% 16%;
     --muted-foreground: 220 8% 60%;
     
-    --accent: 280 70% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 211 100% 25%;
+    --accent-foreground: 0 0% 98%;
     
-    --destructive: 0 84% 50%;
+    --success: 142 76% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 100%;
     
     --border: 220 15% 22%;
     --input: 220 15% 18%;
-    --ring: 180 85% 50%;
+    --ring: 211 100% 55%;
     
     --sidebar-background: 220 18% 12%;
-    --sidebar-foreground: 200 10% 95%;
-    --sidebar-primary: 180 85% 50%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 211 100% 55%;
     --sidebar-primary-foreground: 220 20% 10%;
     --sidebar-accent: 220 15% 18%;
-    --sidebar-accent-foreground: 200 10% 95%;
+    --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 220 15% 22%;
-    --sidebar-ring: 180 85% 50%;
+    --sidebar-ring: 211 100% 55%;
     
-    --glass-bg: 220 18% 14%;
-    --glass-border: 220 12% 28%;
+    --gradient-primary: linear-gradient(135deg, hsl(211, 100%, 45%) 0%, hsl(211, 100%, 55%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142, 76%, 35%) 0%, hsl(142, 76%, 45%) 100%);
+    --gradient-warning: linear-gradient(135deg, hsl(38, 92%, 45%) 0%, hsl(38, 92%, 55%) 100%);
+    --gradient-card: linear-gradient(135deg, hsla(220, 18%, 14%, 0.85) 0%, hsla(220, 18%, 16%, 0.85) 100%);
+    --gradient-glass: linear-gradient(135deg, hsla(220, 18%, 14%, 0.75) 0%, hsla(220, 18%, 16%, 0.75) 100%);
     
-    --gradient-hero: linear-gradient(135deg, hsl(180, 85%, 30%) 0%, hsl(280, 70%, 40%) 100%);
-    --gradient-card: linear-gradient(135deg, hsla(220, 18%, 14%, 0.85) 0%, hsla(220, 18%, 14%, 0.65) 100%);
-    --gradient-glass: linear-gradient(135deg, hsla(220, 18%, 14%, 0.75) 0%, hsla(220, 18%, 14%, 0.55) 100%);
-    --gradient-mesh: radial-gradient(at 40% 20%, hsla(180, 85%, 40%, 0.2) 0px, transparent 50%),
-                     radial-gradient(at 80% 0%, hsla(280, 70%, 45%, 0.2) 0px, transparent 50%),
-                     radial-gradient(at 0% 50%, hsla(200, 70%, 50%, 0.15) 0px, transparent 50%);
-    
-    --shadow-card: 0 8px 32px hsla(180, 85%, 20%, 0.35);
-    --shadow-elevated: 0 16px 48px hsla(180, 85%, 20%, 0.45);
-    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.6);
-    --shadow-glow: 0 0 30px hsla(180, 85%, 50%, 0.45);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.45);
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.35);
+    --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 32px hsla(211, 100%, 50%, 0.3);
   }
 }
 
@@ -139,10 +142,12 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     -webkit-tap-highlight-color: transparent;
   }
   
+  /* Premium typography */
   html {
     overscroll-behavior: contain;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
     font-size: 14px;
   }
@@ -160,20 +165,23 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
   
+  /* Prevent zoom on input focus (iOS) */
   input, textarea, select {
-    font-size: 16px !important; /* Prevent iOS zoom on focus */
+    font-size: 16px !important;
   }
 
-  /* Premium Smooth Transitions */
+  /* Premium smooth transitions */
   * {
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 250ms;
+    transition-duration: 200ms;
   }
   
-  /* Scrollbar Styling */
+  /* Hide scrollbars but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -183,48 +191,106 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
     display: none;
   }
 
-  /* Chat Theme Variations */
-  [data-theme="ocean"] {
-    --chat-bg: 195 100% 98%;
-    --chat-bubble-sent: 195 70% 50%;
-    --chat-bubble-received: 0 0% 95%;
+  /* Custom scrollbar (premium look) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 9999px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
   }
 
-  [data-theme="sunset"] {
-    --chat-bg: 20 100% 98%;
-    --chat-bubble-sent: 20 90% 55%;
-    --chat-bubble-received: 0 0% 95%;
-  }
-
-  [data-theme="forest"] {
-    --chat-bg: 140 50% 98%;
-    --chat-bubble-sent: 140 60% 45%;
-    --chat-bubble-received: 0 0% 95%;
-  }
-
-  /* Native card utilities */
+  /* Premium glass effects */
   .glass {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-glass);
-    border-radius: 0.75rem;
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: var(--shadow-card);
   }
 
   .glass-card {
-    background: hsl(var(--card));
+    background: hsl(var(--card) / 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-card);
-    border-radius: 0.75rem;
+    border-radius: var(--radius);
   }
   
   .native-card {
     background: hsl(var(--card));
     border: none;
     box-shadow: var(--shadow-card);
-    border-radius: 0.75rem;
+    border-radius: var(--radius);
   }
 
-  /* Mobile-First Spacing Utilities */
+  /* Premium hover effects */
+  .hover-lift {
+    @apply transition-all duration-200;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200;
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+
+  /* Smooth page transitions */
+  .page-transition {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Loading shimmer */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Mobile-first spacing */
   .mobile-section {
     @apply px-4 py-6 md:px-6 md:py-8;
   }
@@ -234,17 +300,26 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
   }
 
   .mobile-input {
-    @apply px-4 py-3 text-sm rounded-2xl;
+    @apply px-4 py-3 text-base rounded-2xl;
   }
 
   .mobile-button {
-    @apply px-5 py-3 text-sm rounded-2xl;
+    @apply px-6 py-3 text-base font-medium rounded-2xl;
+  }
+
+  /* Safe area spacing */
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
 
-/* Mobile-specific touch optimizations */
+/* Touch-optimized interactions */
 @media (max-width: 768px) {
-  button, a {
+  button, a, [role="button"] {
     touch-action: manipulation;
     min-height: 44px;
     min-width: 44px;
@@ -255,17 +330,33 @@ NOTE: This app is configured for Indian market with INR pricing and local emerge
   }
 }
 
-.safe-bottom {
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-/* Disable animations in lite mode for 2G optimization */
-body.disable-animations *,
-body.disable-animations *::before,
-body.disable-animations *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-  transition-property: none !important;
+/* Focus states */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* Selection */
+::selection {
+  background: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary-foreground));
 }
 

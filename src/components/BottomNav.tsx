@@ -62,9 +62,13 @@ export const BottomNav = () => {
   if (shouldHide) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-bottom shadow-2xl">
-      <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2 relative">
-        {navItems.map((item) => {
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 safe-bottom">
+      {/* Premium glass background */}
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-xl" />
+      
+      {/* Navigation content */}
+      <div className="relative flex justify-around items-center h-16 max-w-md mx-auto px-2">
+        {navItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
           
@@ -73,35 +77,44 @@ export const BottomNav = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all duration-200",
-                item.highlight && !isActive && "bg-gradient-to-br from-orange-500/10 to-red-500/10",
-                "hover:bg-accent/30 min-w-[56px]"
+                "relative flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-2xl transition-all duration-300",
+                "hover:bg-accent/50 active:scale-95 min-w-[56px]",
+                item.highlight && !isActive && "bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-red-500/10"
               )}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
+              {/* Highlight pulse effect */}
               {item.highlight && !isActive && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-full animate-pulse shadow-lg" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-full animate-pulse shadow-lg" />
               )}
+              
+              {/* Icon container */}
               <div className="relative">
                 <Icon 
                   className={cn(
-                    "h-5 w-5 transition-all duration-200",
-                    isActive && item.highlight ? "text-white drop-shadow-lg scale-110" : "",
-                    isActive && !item.highlight ? "text-primary scale-110" : "",
-                    !isActive ? "text-muted-foreground" : ""
+                    "h-6 w-6 transition-all duration-300",
+                    isActive && item.highlight && "text-white drop-shadow-lg scale-110",
+                    isActive && !item.highlight && "text-primary scale-110",
+                    !isActive && "text-muted-foreground"
                   )}
+                  strokeWidth={isActive ? 2.5 : 2}
                 />
+                
+                {/* Notification badge */}
                 {item.name === 'Notifications' && notificationCount > 0 && (
                   <Badge 
                     variant="destructive" 
-                    className="absolute -top-2 -right-2 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center rounded-full font-bold shadow-md"
+                    className="absolute -top-2 -right-2 h-5 min-w-5 px-1.5 text-[10px] flex items-center justify-center rounded-full font-bold shadow-md animate-in zoom-in-50"
                   >
-                    {notificationCount}
+                    {notificationCount > 99 ? '99+' : notificationCount}
                   </Badge>
                 )}
               </div>
+              
+              {/* Label */}
               <span 
                 className={cn(
-                  "text-[10px] font-bold transition-all duration-200",
+                  "text-[10px] font-semibold transition-all duration-300 tracking-wide",
                   isActive && item.highlight && "text-white drop-shadow-lg",
                   isActive && !item.highlight && "text-primary",
                   !isActive && "text-muted-foreground"
@@ -109,11 +122,13 @@ export const BottomNav = () => {
               >
                 {item.name}
               </span>
+              
+              {/* Active indicator backgrounds */}
               {isActive && item.highlight && (
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl -z-10 shadow-lg" />
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl -z-10 shadow-lg animate-in fade-in zoom-in-95 duration-300" />
               )}
               {isActive && !item.highlight && (
-                <div className="absolute inset-0 bg-primary/10 rounded-xl -z-10" />
+                <div className="absolute inset-0 bg-primary/10 rounded-2xl -z-10 animate-in fade-in zoom-in-95 duration-300" />
               )}
             </NavLink>
           );
