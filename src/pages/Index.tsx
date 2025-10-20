@@ -43,20 +43,17 @@ const Index = () => {
   const [referralCode, setReferralCode] = React.useState<string>('');
   const [qrCodeUrl, setQrCodeUrl] = React.useState<string>('');
 
-  // Redirect unauthenticated users to /auth, authenticated users to /chat
+  // Redirect unauthenticated users to /auth
   React.useEffect(() => {
-    const checkAuthAndRedirect = async () => {
+    const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // User is logged in, redirect to chat
-        navigate('/chat', { replace: true });
-      } else {
+      if (!session) {
         // User is not logged in, redirect to auth
         navigate('/auth', { replace: true });
       }
     };
     
-    checkAuthAndRedirect();
+    checkAuth();
   }, [navigate]);
 
   // Defer all heavy operations to after page is visible
