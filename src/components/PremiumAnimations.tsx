@@ -12,13 +12,16 @@ import { ReactNode } from 'react';
 export const FadeIn = ({ 
   children, 
   delay = 0,
-  duration = 0.3 
+  duration = 0.3,
+  className
 }: { 
   children: ReactNode; 
   delay?: number;
   duration?: number;
+  className?: string;
 }) => (
   <motion.div
+    className={className}
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -10 }}
@@ -94,8 +97,15 @@ export const ScaleIn = ({
 /**
  * Stagger Children - Animate list items sequentially
  */
-export const StaggerChildren = ({ children }: { children: ReactNode }) => (
+export const StaggerChildren = ({ 
+  children,
+  className 
+}: { 
+  children: ReactNode;
+  className?: string;
+}) => (
   <motion.div
+    className={className}
     initial="hidden"
     animate="visible"
     variants={{

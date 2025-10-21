@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import React from "react";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Pages
 import Index from "./pages/Index";
@@ -97,6 +98,7 @@ import BusinessCatalog from "./pages/business/Catalog";
 import BusinessBroadcasts from "./pages/business/Broadcasts";
 import BusinessGroups from "./pages/business/Groups";
 import BluetoothTest from "./pages/BluetoothTest";
+import Launcher from "./pages/Launcher";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -119,8 +121,9 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
+          <Route path="/auth" element={<Auth />} />
             <Route path="/download" element={<Download />} />
             <Route path="/install" element={<Install />} />
             <Route path="/onboarding" element={<Onboarding />} />
