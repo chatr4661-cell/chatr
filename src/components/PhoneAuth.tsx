@@ -6,10 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Phone, ArrowLeft } from 'lucide-react';
+import { Loader2, Phone, ArrowLeft, ArrowRight } from 'lucide-react';
 import { PINInput } from './PINInput';
 import { CountryCodeSelector } from './CountryCodeSelector';
 import { normalizePhoneNumber } from '@/utils/phoneHashUtil';
+import { z } from 'zod';
+
+const phoneSchema = z.string()
+  .min(10, "Phone number must be at least 10 digits")
+  .max(15, "Phone number must be less than 15 digits")
+  .regex(/^[0-9]+$/, "Phone number must contain only digits");
 
 type AuthStep = 'phone' | 'pin' | 'confirm-pin';
 
@@ -36,10 +42,13 @@ export const PhoneAuth = () => {
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber.trim()) {
+    
+    // Validate phone number
+    const validation = phoneSchema.safeParse(phoneNumber.trim());
+    if (!validation.success) {
       toast({
-        title: "Phone Required",
-        description: "Please enter your phone number",
+        title: "Invalid Phone Number",
+        description: validation.error.errors[0].message,
         variant: "destructive",
       });
       return;
@@ -225,9 +234,9 @@ export const PhoneAuth = () => {
   };
 
   return (
-    <Card className="w-full glass-card border-0">
+    <Card className="w-full bg-white/90 backdrop-blur-sm border-white/20 shadow-xl">
       <CardHeader className="space-y-2 pb-4">
-        <CardTitle className="text-2xl font-bold">
+        <CardTitle className="text-2xl font-bold text-foreground">
           {step === 'phone' 
             ? 'Welcome' 
             : step === 'confirm-pin'
@@ -236,7 +245,7 @@ export const PhoneAuth = () => {
             ? 'Create PIN' 
             : 'Enter PIN'}
         </CardTitle>
-        <CardDescription className="text-sm">
+        <CardDescription className="text-sm text-muted-foreground">
           {step === 'phone' 
             ? 'Enter your phone number to continue' 
             : step === 'confirm-pin'
@@ -251,7 +260,9 @@ export const PhoneAuth = () => {
         {step === 'phone' && (
           <form onSubmit={handlePhoneSubmit} className="space-y-5">
             <div className="space-y-3">
-              <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+              <Label htmlFor="phone" className="text-sm font-medium text-foreground">
+                Phone Number
+              </Label>
               <div className="flex gap-3">
                 <CountryCodeSelector
                   value={countryCode}
@@ -263,16 +274,20 @@ export const PhoneAuth = () => {
                   placeholder="Your phone number"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                  className="flex-1 h-12 bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 rounded-xl transition-all"
+                  className="flex-1 h-14 text-base bg-white border-2 border-gray-200 focus:border-primary rounded-xl transition-all"
                   required
                   autoFocus
+                  maxLength={15}
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                We'll send you a verification code
+              </p>
             </div>
             <Button 
               type="submit" 
-              className="w-full h-12 bg-gradient-hero hover:opacity-90 text-primary-foreground font-medium rounded-xl shadow-glow"
-              disabled={loading}
+              className="w-full h-14 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold text-base rounded-xl shadow-lg hover:shadow-xl transition-all"
+              disabled={loading || phoneNumber.length < 10}
             >
               {loading ? (
                 <>
@@ -281,8 +296,8 @@ export const PhoneAuth = () => {
                 </>
               ) : (
                 <>
-                  <Phone className="mr-2 h-5 w-5" />
                   Continue
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
             </Button>
