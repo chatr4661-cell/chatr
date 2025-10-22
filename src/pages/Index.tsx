@@ -81,15 +81,29 @@ const Index = () => {
   React.useEffect(() => {
     if (!user) return;
     
-    // Defer heavy operations by 100ms to allow UI to paint first
-    const timer = setTimeout(() => {
-      loadPointsData();
-      processDailyLogin();
-      // Defer contact sync even more (30 seconds after load)
-      setTimeout(() => autoSyncContactsOnLoad(user.id), 30000);
-    }, 100);
+    // CRITICAL: Use requestIdleCallback for non-critical operations
+    // This prevents blocking the main thread during initial render
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        loadPointsData();
+        // Process daily login after points load
+        setTimeout(() => processDailyLogin(), 500);
+      });
+      
+      // Contact sync is non-critical - defer heavily
+      requestIdleCallback(() => {
+        setTimeout(() => autoSyncContactsOnLoad(user.id), 60000); // 1 minute
+      });
+    } else {
+      // Fallback for browsers without requestIdleCallback
+      setTimeout(() => {
+        loadPointsData();
+        setTimeout(() => processDailyLogin(), 500);
+        setTimeout(() => autoSyncContactsOnLoad(user.id), 60000);
+      }, 300);
+    }
 
-    return () => clearTimeout(timer);
+    return () => {};
   }, [user]);
 
   const autoSyncContactsOnLoad = async (userId: string) => {
@@ -196,6 +210,11 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if already processed today to avoid redundant calls
+      const lastProcessed = localStorage.getItem('last_daily_login');
+      const today = new Date().toDateString();
+      if (lastProcessed === today) return;
+
       const { data, error } = await supabase.functions.invoke('process-daily-login');
       
       if (error) throw error;
@@ -206,6 +225,8 @@ const Index = () => {
         });
         loadPointsData();
       }
+      
+      localStorage.setItem('last_daily_login', today);
     } catch (error) {
       console.error('Error processing daily login:', error);
     }

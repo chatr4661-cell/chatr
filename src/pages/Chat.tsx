@@ -186,8 +186,8 @@ const ChatEnhancedContent = () => {
   React.useEffect(() => {
     if (!user?.id) return;
 
-    // Defer contact loading to not block initial render
-    const timeoutId = setTimeout(() => {
+    // Use requestIdleCallback for better performance
+    const loadContactsIdle = () => {
       const loadContacts = async () => {
         const { data } = await supabase
           .from('contacts')
@@ -232,9 +232,16 @@ const ChatEnhancedContent = () => {
       };
 
       loadContacts();
-    }, 100); // Small delay to prioritize UI render
+    };
 
-    return () => clearTimeout(timeoutId);
+    // Use requestIdleCallback or fallback to setTimeout
+    if ('requestIdleCallback' in window) {
+      const idleId = requestIdleCallback(loadContactsIdle, { timeout: 2000 });
+      return () => cancelIdleCallback(idleId);
+    } else {
+      const timeoutId = setTimeout(loadContactsIdle, 500);
+      return () => clearTimeout(timeoutId);
+    }
   }, [user?.id]);
 
   // Fast auth check - non-blocking
