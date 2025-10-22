@@ -267,6 +267,53 @@ export type Database = {
           },
         ]
       }
+      app_builder_projects: {
+        Row: {
+          app_type: string | null
+          config: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_published: boolean | null
+          project_name: string
+          published_app_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          app_type?: string | null
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          project_name: string
+          published_app_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          app_type?: string | null
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          project_name?: string
+          published_app_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_builder_projects_published_app_id_fkey"
+            columns: ["published_app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_categories: {
         Row: {
           created_at: string | null
@@ -1744,6 +1791,53 @@ export type Database = {
           },
         ]
       }
+      coin_payments: {
+        Row: {
+          amount: number
+          app_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          merchant_id: string | null
+          metadata: Json | null
+          payment_type: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          app_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          merchant_id?: string | null
+          metadata?: Json | null
+          payment_type: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          app_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          merchant_id?: string | null
+          metadata?: Json | null
+          payment_type?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coin_payments_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_requests: {
         Row: {
           created_at: string | null
@@ -2203,6 +2297,38 @@ export type Database = {
           },
         ]
       }
+      deal_redemptions: {
+        Row: {
+          deal_id: string
+          id: string
+          qr_code: string | null
+          redeemed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          deal_id: string
+          id?: string
+          qr_code?: string | null
+          redeemed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          deal_id?: string
+          id?: string
+          qr_code?: string | null
+          redeemed_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_redemptions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "local_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       developer_profiles: {
         Row: {
           api_key: string | null
@@ -2615,6 +2741,153 @@ export type Database = {
           session_title?: string
         }
         Relationships: []
+      }
+      food_menu_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean | null
+          is_vegetarian: boolean | null
+          name: string
+          price: number
+          vendor_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          is_vegetarian?: boolean | null
+          name: string
+          price: number
+          vendor_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          is_vegetarian?: boolean | null
+          name?: string
+          price?: number
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_menu_items_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "food_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      food_orders: {
+        Row: {
+          created_at: string | null
+          delivery_address: string
+          id: string
+          items: Json
+          status: string | null
+          total_amount: number
+          user_id: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_address: string
+          id?: string
+          items: Json
+          status?: string | null
+          total_amount: number
+          user_id: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          delivery_address?: string
+          id?: string
+          items?: Json
+          status?: string | null
+          total_amount?: number
+          user_id?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "food_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      food_vendors: {
+        Row: {
+          avatar_url: string | null
+          business_id: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          cuisine_type: string | null
+          delivery_time_max: number | null
+          delivery_time_min: number | null
+          description: string | null
+          id: string
+          is_open: boolean | null
+          min_order_amount: number | null
+          name: string
+          rating_average: number | null
+          rating_count: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          business_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          cuisine_type?: string | null
+          delivery_time_max?: number | null
+          delivery_time_min?: number | null
+          description?: string | null
+          id?: string
+          is_open?: boolean | null
+          min_order_amount?: number | null
+          name: string
+          rating_average?: number | null
+          rating_count?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          business_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          cuisine_type?: string | null
+          delivery_time_max?: number | null
+          delivery_time_min?: number | null
+          description?: string | null
+          id?: string
+          is_open?: boolean | null
+          min_order_amount?: number | null
+          name?: string
+          rating_average?: number | null
+          rating_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_vendors_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       health_challenges: {
         Row: {
@@ -3202,6 +3475,68 @@ export type Database = {
           topic?: string | null
         }
         Relationships: []
+      }
+      local_deals: {
+        Row: {
+          business_id: string | null
+          category: string | null
+          created_at: string | null
+          current_redemptions: number | null
+          description: string | null
+          discount_percentage: number | null
+          discounted_price: number
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          location: string | null
+          max_redemptions: number | null
+          original_price: number
+          title: string
+          valid_until: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          category?: string | null
+          created_at?: string | null
+          current_redemptions?: number | null
+          description?: string | null
+          discount_percentage?: number | null
+          discounted_price: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          location?: string | null
+          max_redemptions?: number | null
+          original_price: number
+          title: string
+          valid_until?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          category?: string | null
+          created_at?: string | null
+          current_redemptions?: number | null
+          description?: string | null
+          discount_percentage?: number | null
+          discounted_price?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          location?: string | null
+          max_redemptions?: number | null
+          original_price?: number
+          title?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_deals_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       login_attempts: {
         Row: {
@@ -5592,6 +5927,41 @@ export type Database = {
           },
         ]
       }
+      user_installed_plugins: {
+        Row: {
+          app_id: string
+          id: string
+          installed_at: string | null
+          is_active: boolean | null
+          position: number | null
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          id?: string
+          installed_at?: string | null
+          is_active?: boolean | null
+          position?: number | null
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          id?: string
+          installed_at?: string | null
+          is_active?: boolean | null
+          position?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_installed_plugins_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_points: {
         Row: {
           balance: number
@@ -6178,6 +6548,17 @@ export type Database = {
       is_conversation_participant: {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
+      }
+      process_coin_payment: {
+        Args: {
+          p_amount: number
+          p_app_id?: string
+          p_description: string
+          p_merchant_id: string
+          p_payment_type: string
+          p_user_id: string
+        }
+        Returns: string
       }
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }

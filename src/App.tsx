@@ -99,6 +99,9 @@ import BusinessBroadcasts from "./pages/business/Broadcasts";
 import BusinessGroups from "./pages/business/Groups";
 import BluetoothTest from "./pages/BluetoothTest";
 import Launcher from "./pages/Launcher";
+import ChatrStudio from "./pages/ChatrStudio";
+import FoodOrdering from "./pages/FoodOrdering";
+import LocalDeals from "./pages/LocalDeals";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -177,6 +180,9 @@ const App = () => {
             <Route path="/mini-apps" element={<MiniAppsStore />} />
             <Route path="/developer-portal" element={<DeveloperPortal />} />
             <Route path="/official-accounts" element={<OfficialAccounts />} />
+            <Route path="/chatr-studio" element={<ChatrStudio />} />
+            <Route path="/food-ordering" element={<FoodOrdering />} />
+            <Route path="/local-deals" element={<LocalDeals />} />
             
             {/* Points & Payment Routes */}
             <Route path="/chatr-points" element={<ChatrPoints />} />

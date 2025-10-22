@@ -22,7 +22,8 @@ import {
   Grid3x3,
   CheckCircle,
   Building2,
-  Share2
+  Share2,
+  Percent
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -345,10 +346,10 @@ const Index = () => {
   const quickAccessServices = [
     {
       icon: QrCode,
-      title: 'Chatr Growth',
-      description: 'Earn rewards & invite friends',
-      iconColor: 'bg-gradient-to-br from-slate-400 to-slate-600',
-      route: '/growth'
+      title: 'Chatr Studio',
+      description: 'Build your own mini-apps',
+      iconColor: 'bg-gradient-to-br from-purple-400 to-pink-500',
+      route: '/chatr-studio'
     },
     {
       icon: Bot,
@@ -363,6 +364,30 @@ const Index = () => {
       description: 'Quick emergency access',
       iconColor: 'bg-gradient-to-br from-red-400 to-red-600',
       route: '/emergency'
+    },
+  ];
+
+  const ecosystemServices = [
+    {
+      icon: Bot,
+      title: 'Food Ordering',
+      description: 'Order from local restaurants',
+      iconColor: 'bg-gradient-to-br from-orange-400 to-red-500',
+      route: '/food-ordering'
+    },
+    {
+      icon: Percent,
+      title: 'Local Deals',
+      description: 'Exclusive community offers',
+      iconColor: 'bg-gradient-to-br from-green-400 to-emerald-500',
+      route: '/local-deals'
+    },
+    {
+      icon: QrCode,
+      title: 'Chatr Growth',
+      description: 'Earn rewards & invite friends',
+      iconColor: 'bg-gradient-to-br from-slate-400 to-slate-600',
+      route: '/growth'
     },
   ];
 
@@ -558,6 +583,28 @@ const Index = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Ecosystem Services */}
+        <div>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            {ecosystemServices.map((service, index) => (
+              <div 
+                key={service.title} 
+                onClick={() => navigate(service.route)}
+                className="aspect-square transform hover:scale-105 transition-all duration-300"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className={`h-full rounded-3xl ${service.iconColor} p-4 flex flex-col items-center justify-center cursor-pointer shadow-lg hover:shadow-xl transition-all`}>
+                  <service.icon className="w-9 h-9 text-white mb-2" />
+                  <span className="text-xs text-white text-center font-semibold">{service.title}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Quick Access */}
