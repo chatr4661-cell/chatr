@@ -111,70 +111,81 @@ export default function LocalDeals() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {deals.map((deal) => (
-          <Card key={deal.id} className="overflow-hidden">
-            {deal.image_url && (
-              <img src={deal.image_url} alt={deal.title} className="w-full h-48 object-cover" />
-            )}
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg">{deal.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{deal.description}</p>
-                  
-                  <div className="flex items-center gap-2 mt-3">
-                    {deal.location && (
+        {deals.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <div className="text-muted-foreground space-y-2">
+                <p className="text-lg font-semibold">No deals available</p>
+                <p className="text-sm">Check back soon for exclusive local offers!</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          deals.map((deal) => (
+            <Card key={deal.id} className="overflow-hidden">
+              {deal.image_url && (
+                <img src={deal.image_url} alt={deal.title} className="w-full h-48 object-cover" />
+              )}
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-bold text-lg">{deal.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{deal.description}</p>
+                    
+                    <div className="flex items-center gap-2 mt-3">
+                      {deal.location && (
+                        <Badge variant="outline" className="gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {deal.location}
+                        </Badge>
+                      )}
                       <Badge variant="outline" className="gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {deal.location}
+                        <Clock className="w-3 h-3" />
+                        {getTimeRemaining(deal.valid_until)} left
                       </Badge>
-                    )}
-                    <Badge variant="outline" className="gap-1">
-                      <Clock className="w-3 h-3" />
-                      {getTimeRemaining(deal.valid_until)} left
-                    </Badge>
+                    </div>
                   </div>
-                </div>
 
-                <div className="text-right">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 text-white">
-                    <div className="text-center">
-                      <Percent className="w-5 h-5 mx-auto" />
-                      <div className="text-xl font-bold leading-none">{deal.discount_percentage}</div>
+                  <div className="text-right">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 text-white">
+                      <div className="text-center">
+                        <Percent className="w-5 h-5 mx-auto" />
+                        <div className="text-xl font-bold leading-none">{deal.discount_percentage}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <div>
-                  <div className="text-sm text-muted-foreground line-through">₹{deal.original_price}</div>
-                  <div className="text-2xl font-bold text-primary">₹{deal.discounted_price}</div>
-                  <div className="text-xs text-muted-foreground">{deal.discounted_price} Chatr Coins</div>
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div>
+                    <div className="text-sm text-muted-foreground line-through">₹{deal.original_price}</div>
+                    <div className="text-2xl font-bold text-primary">₹{deal.discounted_price}</div>
+                    <div className="text-xs text-muted-foreground">{deal.discounted_price} Chatr Coins</div>
+                  </div>
+                  <Button onClick={() => handleRedeem(deal)}>
+                    <QrCodeIcon className="w-4 h-4 mr-2" />
+                    Redeem
+                  </Button>
                 </div>
-                <Button onClick={() => handleRedeem(deal)}>
-                  <QrCodeIcon className="w-4 h-4 mr-2" />
-                  Redeem
-                </Button>
-              </div>
 
-              {deal.max_redemptions && (
-                <div className="mt-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                    <span>{deal.current_redemptions} redeemed</span>
-                    <span>{deal.max_redemptions} available</span>
+                {deal.max_redemptions && (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>{deal.current_redemptions} redeemed</span>
+                      <span>{deal.max_redemptions} available</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
+                        style={{ width: `${(deal.current_redemptions / deal.max_redemptions) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
-                      style={{ width: `${(deal.current_redemptions / deal.max_redemptions) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* QR Code Dialog */}

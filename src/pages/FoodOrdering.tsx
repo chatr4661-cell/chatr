@@ -165,32 +165,43 @@ export default function FoodOrdering() {
 
         {/* Vendors */}
         <div className="space-y-3">
-          {vendors.map((vendor) => (
-            <Card key={vendor.id} onClick={() => handleVendorSelect(vendor)} className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex gap-4">
-                  {vendor.avatar_url && (
-                    <img src={vendor.avatar_url} alt={vendor.name} className="w-20 h-20 rounded-lg object-cover" />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{vendor.name}</h3>
-                    <p className="text-sm text-muted-foreground">{vendor.description}</p>
-                    <div className="flex items-center gap-3 mt-2">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium">{vendor.rating_average.toFixed(1)}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        {vendor.delivery_time_min}-{vendor.delivery_time_max} mins
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="mt-2">{vendor.cuisine_type}</Badge>
-                  </div>
+          {vendors.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="text-muted-foreground space-y-2">
+                  <p className="text-lg font-semibold">No restaurants available</p>
+                  <p className="text-sm">Check back soon for delicious food options!</p>
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            vendors.map((vendor) => (
+              <Card key={vendor.id} onClick={() => handleVendorSelect(vendor)} className="cursor-pointer hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    {vendor.avatar_url && (
+                      <img src={vendor.avatar_url} alt={vendor.name} className="w-20 h-20 rounded-lg object-cover" />
+                    )}
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{vendor.name}</h3>
+                      <p className="text-sm text-muted-foreground">{vendor.description}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">{vendor.rating_average.toFixed(1)}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          {vendor.delivery_time_min}-{vendor.delivery_time_max} mins
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="mt-2">{vendor.cuisine_type}</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </div>
