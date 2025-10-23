@@ -102,6 +102,7 @@ import Launcher from "./pages/Launcher";
 import ChatrStudio from "./pages/ChatrStudio";
 import FoodOrdering from "./pages/FoodOrdering";
 import LocalDeals from "./pages/LocalDeals";
+import Referrals from "./pages/Referrals";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -237,9 +238,14 @@ const App = () => {
             <Route path="/business/broadcasts" element={<BusinessBroadcasts />} />
             <Route path="/business/groups" element={<BusinessGroups />} />
             
-            {/* Growth System Routes - redirect to unified chatr-points */}
+            {/* Ecosystem Routes */}
+            <Route path="/chatr-studio" element={<ProtectedRoute><ChatrStudio /></ProtectedRoute>} />
+            <Route path="/food-ordering" element={<ProtectedRoute><FoodOrdering /></ProtectedRoute>} />
+            <Route path="/local-deals" element={<ProtectedRoute><LocalDeals /></ProtectedRoute>} />
+            <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
+            
+            {/* Growth System Routes */}
             <Route path="/leaderboard" element={<ChatrPoints />} />
-            <Route path="/referrals" element={<ChatrPoints />} />
             
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />

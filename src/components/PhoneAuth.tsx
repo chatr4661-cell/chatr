@@ -125,6 +125,8 @@ export const PhoneAuth = () => {
       const normalizedPhone = normalizePhoneNumber(phoneNumber, countryCode);
       const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
 
+      console.log('[AUTH] Creating account with phone:', normalizedPhone);
+
       // Create new user with phone as email and PIN as password
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -146,7 +148,6 @@ export const PhoneAuth = () => {
             title: "Logging In",
             description: "Account found, signing you in...",
           });
-          // Attempt to login with the PIN they entered
           await handleLoginPin(pin);
           return;
         }
@@ -155,14 +156,24 @@ export const PhoneAuth = () => {
 
       if (!authData.user) throw new Error('Failed to create user');
 
+      // Sync phone number to profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ phone_number: normalizedPhone })
+        .eq('id', authData.user.id);
+
+      if (profileError) {
+        console.error('[AUTH] Profile update error:', profileError);
+      }
+
       toast({
-        title: "Account Created",
-        description: "Welcome to Chatr!",
+        title: "Account Created! 🎉",
+        description: "Welcome to Chatr! You've received 100 welcome coins!",
       });
 
       navigate('/');
     } catch (error: any) {
-      console.error('PIN creation error:', error);
+      console.error('[AUTH] PIN creation error:', error);
       toast({
         title: "Registration Failed",
         description: error.message || "Failed to create PIN",

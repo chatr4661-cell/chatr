@@ -5125,6 +5125,38 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          user_id: string
+          uses: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+          uses?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+          uses?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_rewards: {
         Row: {
           completed_at: string | null
@@ -5157,6 +5189,45 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string | null
+          id: string
+          referred_id: string
+          referrer_id: string
+          reward_claimed: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          referred_id: string
+          referrer_id: string
+          reward_claimed?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          reward_claimed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       room_participants: {
         Row: {
@@ -5895,6 +5966,41 @@ export type Database = {
           },
         ]
       }
+      user_activities: {
+        Row: {
+          activity_type: string
+          coins_earned: number | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          coins_earned?: number | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          coins_earned?: number | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_installed_apps: {
         Row: {
           app_id: string
@@ -6457,18 +6563,9 @@ export type Database = {
         Args: { p_call_id: string; p_user_id: string }
         Returns: undefined
       }
-      backfill_phone_hashes: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_disappearing_messages: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_old_webrtc_signals: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      backfill_phone_hashes: { Args: never; Returns: undefined }
+      cleanup_disappearing_messages: { Args: never; Returns: undefined }
+      cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       create_direct_conversation: {
         Args: { other_user_id: string }
         Returns: string
@@ -6501,10 +6598,8 @@ export type Database = {
           username: string
         }[]
       }
-      generate_sso_token: {
-        Args: { app_id_param: string }
-        Returns: string
-      }
+      generate_sso_token: { Args: { app_id_param: string }; Returns: string }
+      generate_user_referral_code: { Args: never; Returns: string }
       get_call_participants: {
         Args: { p_call_id: string }
         Returns: {
@@ -6560,14 +6655,15 @@ export type Database = {
         }
         Returns: string
       }
+      process_referral_reward: {
+        Args: { referral_code_param: string }
+        Returns: boolean
+      }
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }
         Returns: undefined
       }
-      track_app_usage: {
-        Args: { p_app_id: string }
-        Returns: undefined
-      }
+      track_app_usage: { Args: { p_app_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "consumer" | "doctor" | "nurse" | "pharmacy" | "admin"

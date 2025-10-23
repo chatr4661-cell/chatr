@@ -94,10 +94,13 @@ const ChatEnhancedContent = () => {
   const [showAddParticipant, setShowAddParticipant] = React.useState(false);
   const [conversationParticipants, setConversationParticipants] = React.useState<string[]>([]);
   
+  // Error boundary for chat to prevent crashes
+  const [chatError, setChatError] = React.useState<Error | null>(null);
+  
   // Use virtualized messages hook - WhatsApp-style performance
   const { 
     messages: displayMessages, 
-    sendMessage, 
+    sendMessage,
     loadMessages,
     loadOlderMessages,
     hasMore,

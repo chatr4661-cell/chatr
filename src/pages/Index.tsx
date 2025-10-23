@@ -18,12 +18,13 @@ import {
   Users,
   Coins,
   QrCode,
+  Utensils,
+  Percent,
   Flame,
   Grid3x3,
   CheckCircle,
   Building2,
-  Share2,
-  Percent
+  Share2
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
