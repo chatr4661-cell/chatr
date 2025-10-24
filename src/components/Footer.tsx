@@ -11,7 +11,28 @@ export const Footer = () => {
           <p className="text-[11px] text-muted-foreground/70">
             © 2025 All rights reserved.
           </p>
-          <div className="flex items-center gap-2 text-[11px]">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px]">
+            <Link 
+              to="/about" 
+              className="text-muted-foreground/70 hover:text-primary transition-colors"
+            >
+              About
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link 
+              to="/help" 
+              className="text-muted-foreground/70 hover:text-primary transition-colors"
+            >
+              Help
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link 
+              to="/contact" 
+              className="text-muted-foreground/70 hover:text-primary transition-colors"
+            >
+              Contact
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
             <Link 
               to="/terms" 
               className="text-muted-foreground/70 hover:text-primary transition-colors"
@@ -24,13 +45,6 @@ export const Footer = () => {
               className="text-muted-foreground/70 hover:text-primary transition-colors"
             >
               Privacy
-            </Link>
-            <span className="text-muted-foreground/50">|</span>
-            <Link 
-              to="/refund" 
-              className="text-muted-foreground/70 hover:text-primary transition-colors"
-            >
-              Refund
             </Link>
             <span className="text-muted-foreground/50">|</span>
             <Link 

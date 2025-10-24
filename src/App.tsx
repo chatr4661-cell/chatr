@@ -60,6 +60,9 @@ import EmergencyServices from "./pages/EmergencyServices";
 import WellnessCircles from "./pages/WellnessCircles";
 import ExpertSessions from "./pages/ExpertSessions";
 import AdminDashboard from "./pages/AdminDashboard";
+import About from "./pages/About";
+import Help from "./pages/Help";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 // Consolidated Hub Pages
@@ -137,6 +140,9 @@ const App = () => {
             <Route path="/download" element={<Download />} />
             <Route path="/install" element={<Install />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/refund" element={<Refund />} />
