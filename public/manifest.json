@@ -40,70 +40,42 @@
   ],
   "screenshots": [
     {
-      "src": "/store-assets/screenshot-1-chat.png",
-      "sizes": "1280x720",
+      "src": "/assets/screenshots/screenshot-chat.png",
+      "sizes": "1080x1920",
       "type": "image/png",
-      "form_factor": "wide",
+      "form_factor": "narrow",
       "label": "Chat and messaging interface"
     },
     {
-      "src": "/store-assets/screenshot-2-calls.png",
-      "sizes": "540x720",
+      "src": "/assets/screenshots/screenshot-settings.png",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Voice and video calls"
+      "label": "Settings and preferences"
     },
     {
-      "src": "/store-assets/screenshot-3-health.png",
-      "sizes": "540x720",
+      "src": "/assets/screenshots/screenshot-groups.png",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Health Hub and wellness"
-    },
-    {
-      "src": "/store-assets/screenshot-4-miniapps.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Mini-apps ecosystem"
-    },
-    {
-      "src": "/store-assets/screenshot-5-community.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Community and social features"
+      "label": "Group conversations"
     }
   ],
-  "categories": ["social", "health", "medical", "lifestyle", "communication"],
+  "categories": ["social", "productivity", "communication"],
   "shortcuts": [
     {
       "name": "New Chat",
       "short_name": "Chat",
       "description": "Start a new conversation",
       "url": "/chat",
-      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
-      "name": "Health Hub",
-      "short_name": "Health",
-      "description": "Access health & wellness",
-      "url": "/health",
-      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Communities",
-      "short_name": "Community",
-      "description": "Join communities",
-      "url": "/community",
-      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Business Hub",
-      "short_name": "Business",
-      "description": "Manage your business",
-      "url": "/business",
-      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Manage app settings",
+      "url": "/account",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "share_target": {
@@ -122,117 +94,6 @@
       ]
     }
   },
-  "file_handlers": [
-    {
-      "action": "/lab-reports",
-      "accept": {
-        "application/pdf": [".pdf"],
-        "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"]
-      },
-      "icons": [{ "src": "/chatr-logo.png", "sizes": "192x192" }],
-      "launch_type": "single-client"
-    }
-  ],
-  "protocol_handlers": [
-    {
-      "protocol": "web+chatr",
-      "url": "/chat?url=%s"
-    },
-    {
-      "protocol": "chatr",
-      "url": "/chat?url=%s"
-    }
-  ],
-  "launch_handler": {
-    "client_mode": ["navigate-existing", "auto"]
-  },
-  "display_override": ["tabbed", "window-controls-overlay", "standalone"],
-  "edge_side_panel": {
-    "preferred_width": 480
-  },
-  "scope_extensions": [
-    {
-      "origin": "https://chatr.chat"
-    },
-    {
-      "origin": "https://cdn.chatr.chat"
-    },
-    {
-      "origin": "https://api.chatr.chat"
-    },
-    {
-      "origin": "https://*.chatr.app"
-    }
-  ],
-  "widgets": [
-    {
-      "name": "Quick Message",
-      "short_name": "Message",
-      "description": "Send a quick message",
-      "tag": "quick-message",
-      "template": "quick-message-template",
-      "ms_ac_template": "widgets/message-widget.json",
-      "data": "widgets/message-data.json",
-      "type": "application/json",
-      "screenshots": [
-        {
-          "src": "/chatr-logo.png",
-          "sizes": "600x400",
-          "label": "Quick message widget"
-        }
-      ],
-      "icons": [
-        {
-          "src": "/chatr-logo.png",
-          "sizes": "192x192"
-        }
-      ],
-      "auth": false,
-      "update": 86400
-    },
-    {
-      "name": "Health Status",
-      "short_name": "Health",
-      "description": "View your health status",
-      "tag": "health-status",
-      "template": "health-status-template",
-      "ms_ac_template": "widgets/health-widget.json",
-      "data": "widgets/health-data.json",
-      "type": "application/json",
-      "screenshots": [
-        {
-          "src": "/chatr-logo.png",
-          "sizes": "600x400",
-          "label": "Health status widget"
-        }
-      ],
-      "icons": [
-        {
-          "src": "/chatr-logo.png",
-          "sizes": "192x192"
-        }
-      ],
-      "auth": true,
-      "update": 3600
-    }
-  ],
-  "note_taking": {
-    "new_note_url": "/chat?note=new"
-  },
-  "related_applications": [
-    {
-      "platform": "play",
-      "url": "https://play.google.com/store/apps/details?id=app.lovable.chatr",
-      "id": "app.lovable.chatr"
-    },
-    {
-      "platform": "itunes",
-      "url": "https://apps.apple.com/app/chatr/id123456789"
-    },
-    {
-      "platform": "windows",
-      "url": "https://www.microsoft.com/store/apps/chatr"
-    }
-  ],
+  "display_override": ["standalone", "minimal-ui"],
   "prefer_related_applications": false
 }
