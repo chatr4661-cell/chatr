@@ -1,24 +1,30 @@
 # Chatr+ 💬
 
-Fast, simple, and secure chat application built as a Progressive Web App (PWA) with Android support.
+Fast, simple, and secure chat application with Firebase authentication, real-time chat persistence, and push notifications. Built as a Progressive Web App (PWA) with full Android support.
 
 ## 🚀 Features
 
+### Core Features
+- ✅ **Firebase Authentication** - Google Sign-In integration
+- ✅ **Real-time Chat** - Cloud Firestore with live updates
+- ✅ **Push Notifications** - Firebase Cloud Messaging (FCM)
 - ✅ **PWA-Compliant** - Installable on any device
-- ✅ **Offline Support** - Service Worker caching
-- ✅ **Android Ready** - Capacitor integration
+- ✅ **Offline Support** - Service Worker caching + Firestore offline
+- ✅ **Android Ready** - Full Capacitor integration
 - ✅ **Modern UI** - Material Design with purple theme
-- ✅ **Secure** - Privacy-focused messaging
-- ✅ **Fast** - Optimized performance
+- ✅ **Secure** - Firestore security rules + authentication
+- ✅ **Fast** - Optimized performance + lazy loading
 - ✅ **Responsive** - Works on all screen sizes
 
 ## 📦 Tech Stack
 
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite
+- **Frontend**: React 18 + TypeScript + Vite
 - **Mobile**: Capacitor 7
-- **UI**: Tailwind CSS + Radix UI
-- **Backend**: Supabase (Lovable Cloud)
+- **UI**: Tailwind CSS + Radix UI + shadcn/ui
+- **Authentication**: Firebase Auth (Google Sign-In)
+- **Database**: Cloud Firestore (real-time)
+- **Push**: Firebase Cloud Messaging (FCM)
+- **Backend**: Supabase (Lovable Cloud) + Firebase
 - **State**: TanStack Query
 
 ## 🛠️ Setup
@@ -43,12 +49,73 @@ cd chatr-plus
 npm install
 ```
 
-3. **Run development server**
+3. **Configure Firebase** (IMPORTANT)
+
+Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+The Firebase config in `src/firebase.ts` is already set up with the project credentials. For production, you should:
+
+- Enable **Google Authentication** in Firebase Console
+- Set up **Cloud Firestore** database
+- Enable **Cloud Messaging** for push notifications
+- Deploy **Firestore security rules** from `firestore.rules`
+
+4. **Run development server**
 ```bash
 npm run dev
 ```
 
 The app will be available at `http://localhost:8080`
+
+## 🔥 Firebase Setup
+
+### 1. Create Firebase Project
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project (or use existing `chatr-91067`)
+3. Register your web app
+
+### 2. Enable Authentication
+
+1. Go to **Authentication** → **Sign-in method**
+2. Enable **Google** sign-in provider
+3. Add authorized domains (your Lovable preview URL + deployed domain)
+
+### 3. Create Firestore Database
+
+1. Go to **Firestore Database**
+2. Click **Create Database**
+3. Start in **test mode** (or use security rules from `firestore.rules`)
+4. Select a region (e.g., `us-central1`)
+
+### 4. Deploy Security Rules
+
+Copy the contents of `firestore.rules` and paste into:
+- **Firestore Database** → **Rules** tab
+
+### 5. Enable Cloud Messaging (Push Notifications)
+
+1. Go to **Project Settings** → **Cloud Messaging**
+2. Under **Web Push certificates**, click **Generate key pair**
+3. Copy the VAPID key
+4. Add to `.env.local`:
+```bash
+VITE_FIREBASE_VAPID_KEY=your_vapid_key_here
+```
+
+### 6. Configure Firebase in Code
+
+The Firebase configuration in `src/firebase.ts` uses:
+```typescript
+apiKey: "AIzaSyDUUbQlOmkHsrEyMw9AmQBXbjNx11iM7w4"
+projectId: "chatr-91067"
+// ... other config
+```
+
+**For production:** Update these values with your own Firebase project credentials.
 
 ### Build for Production
 

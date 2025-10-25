@@ -6,6 +6,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useNativeOptimizations } from "./hooks/useNativeOptimizations";
 import { useNativePerformance } from "./hooks/useNativePerformance";
 
+// Firebase Pages
+import FirebaseLogin from "./pages/FirebaseLogin";
+import FirebaseChat from "./pages/FirebaseChat";
+
 // Pages
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -134,9 +138,14 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
-          <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Index />} />
+            
+            {/* Firebase Routes */}
+            <Route path="/firebase-login" element={<FirebaseLogin />} />
+            <Route path="/firebase-chat" element={<FirebaseChat />} />
+            
+            <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/download" element={<Download />} />
             <Route path="/install" element={<Install />} />
             <Route path="/onboarding" element={<Onboarding />} />
