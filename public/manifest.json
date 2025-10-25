@@ -94,6 +94,66 @@
       ]
     }
   },
-  "display_override": ["standalone", "minimal-ui"],
+  "file_handlers": [
+    {
+      "action": "/firebase-chat",
+      "accept": {
+        "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+        "video/*": [".mp4", ".webm"]
+      },
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }],
+      "launch_type": "single-client"
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+chatr",
+      "url": "/firebase-chat?url=%s"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "widgets": [
+    {
+      "name": "Quick Message",
+      "short_name": "Message",
+      "description": "Send a quick message",
+      "tag": "quick-message",
+      "template": "quick-message",
+      "ms_ac_template": "widgets/message.json",
+      "data": "widgets/message-data.json",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "/icons/icon-512x512.png",
+          "sizes": "512x512",
+          "label": "Quick message widget"
+        }
+      ],
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ],
+      "auth": false,
+      "update": 86400
+    }
+  ],
+  "note_taking": {
+    "new_note_url": "/firebase-chat?note=new"
+  },
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.chatr.app",
+      "id": "com.chatr.app"
+    }
+  ],
   "prefer_related_applications": false
 }
