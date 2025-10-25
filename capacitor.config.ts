@@ -1,9 +1,10 @@
 import { CapacitorConfig } from '@capacitor/core';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a',
-  appName: 'chatr',
+  appId: 'com.chatr.app',
+  appName: 'Chatr+',
   webDir: 'dist',
+  bundledWebRuntime: false,
   server: {
     url: 'https://6d6a8a57-1c02-4ddc-bd7f-2c0ec6dd878a.lovableproject.com?forceHideBadge=true',
     cleartext: true
@@ -14,7 +15,7 @@ const config: CapacitorConfig = {
     },
     SplashScreen: {
       launchShowDuration: 1500,
-      backgroundColor: '#10b981',
+      backgroundColor: '#6200ee',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
       androidSplashResourceName: 'splash',
@@ -22,8 +23,8 @@ const config: CapacitorConfig = {
       launchAutoHide: true
     },
     StatusBar: {
-      style: 'dark',
-      backgroundColor: '#10b981'
+      style: 'light',
+      backgroundColor: '#6200ee'
     },
     Keyboard: {
       resize: 'body',

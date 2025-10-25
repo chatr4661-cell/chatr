@@ -1,0 +1,61 @@
+Chatr+ is a lightweight, modern messaging app that keeps your chats secure, responsive, and accessible offline. Built as a PWA for the best web + native experience.
+
+KEY FEATURES:
+
+🚀 Lightning Fast
+Send and receive messages instantly with our optimized messaging engine.
+
+🔒 Privacy First
+End-to-end encryption keeps your conversations private and secure.
+
+📱 Works Offline
+Read messages and compose new ones even without an internet connection.
+
+💬 Group Chats
+Create groups, share media, and stay connected with multiple people at once.
+
+🎨 Modern Design
+Beautiful, clean interface with Material Design principles.
+
+🔔 Smart Notifications
+Get notified about new messages with customizable notification settings.
+
+📸 Rich Media Support
+Share photos, videos, documents, and more with ease.
+
+🌙 Dark Mode
+Easy on the eyes with automatic dark mode support.
+
+WHY CHATR+?
+
+✓ No ads or tracking
+✓ Free forever
+✓ Open source technology
+✓ Cross-platform compatibility
+✓ Progressive Web App technology
+✓ Small app size
+✓ Regular updates
+
+PERFECT FOR:
+
+• Personal messaging
+• Group conversations
+• Team communication
+• Family chats
+• Community groups
+
+Download Chatr+ today and experience messaging the way it should be - fast, simple, and secure.
+
+PERMISSIONS:
+
+• Internet - To send and receive messages
+• Storage - To save media and offline messages
+• Notifications - To alert you about new messages
+• Camera - To take and share photos (optional)
+
+SUPPORT:
+
+Have questions or feedback? Contact us at support@chatr.app
+
+Privacy Policy: https://chatr.app/privacy
+Terms of Service: https://chatr.app/terms
