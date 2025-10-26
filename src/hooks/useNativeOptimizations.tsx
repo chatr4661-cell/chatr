@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Keyboard } from '@capacitor/keyboard';
-import { App } from '@capacitor/app';
+import { App as CapacitorApp } from '@capacitor/app';
 import { Network } from '@capacitor/network';
 import { ScreenReader } from '@capacitor/screen-reader';
 
@@ -46,7 +46,7 @@ export const useNativeOptimizations = () => {
         });
 
         // 4. App state management for battery optimization
-        App.addListener('appStateChange', ({ isActive }) => {
+        CapacitorApp.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
             // App resumed - sync data, reconnect realtime
             console.log('App resumed');
@@ -59,16 +59,16 @@ export const useNativeOptimizations = () => {
         });
 
         // 5. Handle deep links (like Twitter)
-        App.addListener('appUrlOpen', (data) => {
+        CapacitorApp.addListener('appUrlOpen', (data) => {
           console.log('App opened with URL:', data);
           // Handle deep links
           window.dispatchEvent(new CustomEvent('deepLink', { detail: data }));
         });
 
         // 6. Back button handling (Android)
-        App.addListener('backButton', ({ canGoBack }) => {
+        CapacitorApp.addListener('backButton', ({ canGoBack }) => {
           if (!canGoBack) {
-            App.exitApp();
+            CapacitorApp.exitApp();
           } else {
             window.history.back();
           }
@@ -93,7 +93,7 @@ export const useNativeOptimizations = () => {
     return () => {
       if (Capacitor.isNativePlatform()) {
         Keyboard.removeAllListeners();
-        App.removeAllListeners();
+        CapacitorApp.removeAllListeners();
         Network.removeAllListeners();
         ScreenReader.removeAllListeners();
       }
