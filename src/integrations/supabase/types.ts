@@ -581,6 +581,53 @@ export type Database = {
           },
         ]
       }
+      ar_brand_filters: {
+        Row: {
+          brand_id: string | null
+          category: string | null
+          created_at: string | null
+          filter_asset_url: string
+          filter_description: string | null
+          filter_name: string
+          id: string
+          is_featured: boolean | null
+          preview_image_url: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          brand_id?: string | null
+          category?: string | null
+          created_at?: string | null
+          filter_asset_url: string
+          filter_description?: string | null
+          filter_name: string
+          id?: string
+          is_featured?: boolean | null
+          preview_image_url?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          brand_id?: string | null
+          category?: string | null
+          created_at?: string | null
+          filter_asset_url?: string
+          filter_description?: string | null
+          filter_name?: string
+          id?: string
+          is_featured?: boolean | null
+          preview_image_url?: string | null
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_brand_filters_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_partnerships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_history: {
         Row: {
           backup_key: string
@@ -642,6 +689,153 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      brand_impressions: {
+        Row: {
+          brand_id: string | null
+          created_at: string | null
+          detected_object: string | null
+          duration_seconds: number | null
+          id: string
+          impression_type: string | null
+          placement_id: string | null
+          user_id: string | null
+          video_session_id: string | null
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string | null
+          detected_object?: string | null
+          duration_seconds?: number | null
+          id?: string
+          impression_type?: string | null
+          placement_id?: string | null
+          user_id?: string | null
+          video_session_id?: string | null
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string | null
+          detected_object?: string | null
+          duration_seconds?: number | null
+          id?: string
+          impression_type?: string | null
+          placement_id?: string | null
+          user_id?: string | null
+          video_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_impressions_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_partnerships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_impressions_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "brand_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_impressions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_partnerships: {
+        Row: {
+          brand_logo_url: string | null
+          brand_name: string
+          brand_website: string | null
+          budget_remaining: number | null
+          contact_email: string | null
+          cost_per_impression: number | null
+          cost_per_interaction: number | null
+          created_at: string | null
+          id: string
+          status: string | null
+          target_categories: string[] | null
+          target_demographics: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          brand_logo_url?: string | null
+          brand_name: string
+          brand_website?: string | null
+          budget_remaining?: number | null
+          contact_email?: string | null
+          cost_per_impression?: number | null
+          cost_per_interaction?: number | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          target_categories?: string[] | null
+          target_demographics?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          brand_logo_url?: string | null
+          brand_name?: string
+          brand_website?: string | null
+          budget_remaining?: number | null
+          contact_email?: string | null
+          cost_per_impression?: number | null
+          cost_per_interaction?: number | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          target_categories?: string[] | null
+          target_demographics?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      brand_placements: {
+        Row: {
+          brand_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          object_type: string
+          priority: number | null
+          replacement_asset_url: string
+          replacement_type: string | null
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          object_type: string
+          priority?: number | null
+          replacement_asset_url: string
+          replacement_type?: string | null
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          object_type?: string
+          priority?: number | null
+          replacement_asset_url?: string
+          replacement_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_placements_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_partnerships"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       broadcast_lists: {
         Row: {
@@ -1353,6 +1547,50 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "fame_cam_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_brand_triggers: {
+        Row: {
+          brand_id: string | null
+          created_at: string | null
+          current_daily_count: number | null
+          id: string
+          last_reset_date: string | null
+          max_daily_triggers: number | null
+          response_asset_url: string | null
+          response_type: string | null
+          trigger_keywords: string[]
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string | null
+          current_daily_count?: number | null
+          id?: string
+          last_reset_date?: string | null
+          max_daily_triggers?: number | null
+          response_asset_url?: string | null
+          response_type?: string | null
+          trigger_keywords: string[]
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string | null
+          current_daily_count?: number | null
+          id?: string
+          last_reset_date?: string | null
+          max_daily_triggers?: number | null
+          response_asset_url?: string | null
+          response_type?: string | null
+          trigger_keywords?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_brand_triggers_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_partnerships"
             referencedColumns: ["id"]
           },
         ]
@@ -6924,6 +7162,16 @@ export type Database = {
       }
       generate_sso_token: { Args: { app_id_param: string }; Returns: string }
       generate_user_referral_code: { Args: never; Returns: string }
+      get_brand_for_object: {
+        Args: { p_object_type: string; p_user_id?: string }
+        Returns: {
+          brand_id: string
+          brand_name: string
+          placement_id: string
+          replacement_asset_url: string
+          replacement_type: string
+        }[]
+      }
       get_call_participants: {
         Args: { p_call_id: string }
         Returns: {
@@ -6988,6 +7236,17 @@ export type Database = {
         Returns: undefined
       }
       track_app_usage: { Args: { p_app_id: string }; Returns: undefined }
+      track_brand_impression: {
+        Args: {
+          p_brand_id: string
+          p_detected_object?: string
+          p_duration?: number
+          p_impression_type: string
+          p_placement_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "consumer" | "doctor" | "nurse" | "pharmacy" | "admin"

@@ -114,6 +114,7 @@ import LocalDeals from "./pages/LocalDeals";
 import Referrals from "./pages/Referrals";
 import FameCam from "./pages/FameCam";
 import FameLeaderboard from "./pages/FameLeaderboard";
+import BrandPartnerships from "./pages/admin/BrandPartnerships";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -237,6 +238,7 @@ const App = () => {
             <Route path="/admin/doctor-applications" element={<AdminDoctorApplications />} />
             <Route path="/admin/official-accounts" element={<OfficialAccountsManager />} />
             <Route path="/admin/broadcast" element={<BroadcastManager />} />
+            <Route path="/admin/brand-partnerships" element={<BrandPartnerships />} />
             <Route path="/chatr-tutors" element={<ChatrTutors />} />
             <Route path="/tutors" element={<ChatrTutors />} />
             <Route path="/home-services" element={<HomeServices />} />
