@@ -132,6 +132,7 @@ export const PhoneAuth = () => {
         email,
         password: pin,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             phone_number: normalizedPhone,
             username: phoneNumber,
@@ -145,8 +146,8 @@ export const PhoneAuth = () => {
             signUpError.message?.toLowerCase().includes('already exists')) {
           console.log('[AUTH] User exists, attempting login instead');
           toast({
-            title: "Logging In",
-            description: "Account found, signing you in...",
+            title: "Account Found",
+            description: "Logging you in...",
           });
           await handleLoginPin(pin);
           return;
@@ -156,27 +157,57 @@ export const PhoneAuth = () => {
 
       if (!authData.user) throw new Error('Failed to create user');
 
-      // Sync phone number to profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ phone_number: normalizedPhone })
-        .eq('id', authData.user.id);
+      console.log('[AUTH] User created successfully:', authData.user.id);
 
-      if (profileError) {
-        console.error('[AUTH] Profile update error:', profileError);
+      // Wait for trigger to create profile and award welcome coins
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Verify profile was created
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, phone_number')
+        .eq('id', authData.user.id)
+        .maybeSingle();
+
+      if (!profile) {
+        console.error('[AUTH] Profile not found after creation, creating manually');
+        // Create profile manually if trigger failed
+        await supabase.from('profiles').insert({
+          id: authData.user.id,
+          phone_number: normalizedPhone,
+          username: phoneNumber,
+        });
+      } else if (!profile.phone_number || profile.phone_number !== normalizedPhone) {
+        // Update phone number if not set correctly
+        await supabase
+          .from('profiles')
+          .update({ phone_number: normalizedPhone })
+          .eq('id', authData.user.id);
       }
+
+      // Check if welcome coins were awarded
+      const { data: points } = await supabase
+        .from('user_points')
+        .select('balance')
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+
+      console.log('[AUTH] User points:', points);
 
       toast({
         title: "Account Created! 🎉",
-        description: "Welcome to Chatr! You've received 100 welcome coins!",
+        description: points 
+          ? `Welcome to Chatr! You've received ${points.balance} Chatr Coins!`
+          : "Welcome to Chatr!",
       });
 
+      // The session is already active, redirect will happen via auth state change
       navigate('/');
     } catch (error: any) {
       console.error('[AUTH] PIN creation error:', error);
       toast({
         title: "Registration Failed",
-        description: error.message || "Failed to create PIN",
+        description: error.message || "Failed to create account. Please try again.",
         variant: "destructive",
       });
       setStep('phone');
