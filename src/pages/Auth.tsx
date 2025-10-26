@@ -73,6 +73,8 @@ const Auth = () => {
             email: session.user.email,
             provider: session.user.app_metadata?.provider,
           });
+          
+          console.log('[AUTH] Setting userId:', session.user.id);
           setUserId(session.user.id);
           
           // Ensure profile exists (Google users should have profile created by trigger)
@@ -83,26 +85,31 @@ const Auth = () => {
             .maybeSingle();
 
           if (profileError) {
-            console.error('Profile fetch error:', profileError);
+            console.error('[AUTH] Profile fetch error:', profileError);
           }
 
+          console.log('[AUTH] Profile status:', { 
+            found: !!profile,
+            username: profile?.username,
+            onboardingCompleted: profile?.onboarding_completed 
+          });
+
           if (profile) {
-            console.log('Profile found:', profile.username, 'Onboarding:', profile.onboarding_completed);
-            
             // If onboarding is complete, redirect to chat
             if (profile.onboarding_completed) {
+              console.log('[AUTH] Onboarding already completed, redirecting to chat');
               toast({
-                title: 'Welcome back!',
+                title: 'Welcome back! 👋',
                 description: `Signed in as ${profile.username || profile.email}`,
               });
               navigate('/chat', { replace: true });
               return;
+            } else {
+              console.log('[AUTH] Onboarding not completed - staying on auth page to show dialog');
+              // Stay on auth page, onboarding dialog will show
             }
-            // Otherwise, show onboarding dialog (handled by state)
           } else {
-            console.warn('No profile found for user, will be created by trigger');
-            // Profile will be created by handle_new_user trigger
-            // Show onboarding for new users
+            console.warn('[AUTH] No profile found for user, will be created by trigger or shown in onboarding');
           }
           
           setLoading(false);
@@ -146,17 +153,17 @@ const Auth = () => {
 
     // Listen for auth state changes (Google OAuth callback and phone auth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[AUTH STATE]', event, 'User ID:', session?.user?.id);
+      console.log('[AUTH STATE CHANGE]', event, 'User ID:', session?.user?.id);
       logAuthEvent('Auth state changed', { event, userId: session?.user?.id });
       
       if (event === 'SIGNED_IN' && session) {
-        console.log('[AUTH STATE] User signed in, processing...');
+        console.log('[AUTH STATE] ✅ User signed in, setting userId and checking profile...');
         setUserId(session.user.id);
         setGoogleLoading(false);
         
         // Wait for the trigger to create profile
-        console.log('[AUTH STATE] Waiting 2s for profile creation...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('[AUTH STATE] ⏳ Waiting 2.5s for profile creation...');
+        await new Promise(resolve => setTimeout(resolve, 2500));
         
         // Check if profile exists and onboarding status
         const { data: profile, error: profileError } = await supabase
@@ -165,24 +172,32 @@ const Auth = () => {
           .eq('id', session.user.id)
           .maybeSingle();
         
-        console.log('[AUTH STATE] Profile check:', { 
-          found: !!profile,
+        console.log('[AUTH STATE] 📋 Profile check result:', { 
+          profileFound: !!profile,
           onboardingCompleted: profile?.onboarding_completed,
           username: profile?.username,
+          phone: profile?.phone_number,
           error: profileError?.message
         });
         
         if (profile?.onboarding_completed) {
-          console.log('[AUTH STATE] Onboarding complete, redirecting to chat');
+          console.log('[AUTH STATE] ✅ Onboarding complete → Redirecting to /chat');
           toast({
             title: 'Welcome back! 👋',
             description: `Signed in as ${profile.username || profile.phone_number || profile.email}`,
           });
           navigate('/chat', { replace: true });
         } else {
-          console.log('[AUTH STATE] New user - onboarding will show');
-          // Onboarding dialog will show because userId is set and onboarding_completed is false
-          // Stay on auth page to show onboarding
+          console.log('[AUTH STATE] 🆕 New user detected → Staying on /auth, onboarding will show');
+          console.log('[AUTH STATE] userId is now:', session.user.id);
+          console.log('[AUTH STATE] Onboarding dialog should appear below');
+          
+          // Explicitly trigger a re-render to ensure onboarding dialog shows
+          setUserId(prevId => {
+            console.log('[AUTH STATE] Re-setting userId to trigger onboarding:', session.user.id);
+            return session.user.id;
+          });
+          
           toast({
             title: 'Welcome! 🎉',
             description: 'Let\'s set up your profile',
@@ -191,7 +206,7 @@ const Auth = () => {
       }
       
       if (event === 'SIGNED_OUT') {
-        console.log('[AUTH STATE] User signed out');
+        console.log('[AUTH STATE] 👋 User signed out');
         setUserId(undefined);
         setGoogleLoading(false);
         logAuthEvent('User signed out');
@@ -321,19 +336,31 @@ const Auth = () => {
         <Footer />
       </div>
       
+      {/* Onboarding Dialog - Shows for new users */}
       {userId && (
-        <OnboardingDialog
-          isOpen={onboarding.isOpen}
-          userId={userId}
-          onComplete={async () => {
-            await onboarding.completeOnboarding();
-            navigate("/chat", { replace: true });
-          }}
-          onSkip={async () => {
-            await onboarding.skipOnboarding();
-            navigate("/chat", { replace: true });
-          }}
-        />
+        <>
+          {console.log('[RENDER] Onboarding Dialog:', { 
+            userId, 
+            isOpen: onboarding.isOpen,
+            shouldShow: !!userId 
+          })}
+          <OnboardingDialog
+            isOpen={onboarding.isOpen}
+            userId={userId}
+            onComplete={async () => {
+              console.log('[ONBOARDING] Completing onboarding...');
+              await onboarding.completeOnboarding();
+              console.log('[ONBOARDING] Redirecting to /chat');
+              navigate("/chat", { replace: true });
+            }}
+            onSkip={async () => {
+              console.log('[ONBOARDING] Skipping onboarding...');
+              await onboarding.skipOnboarding();
+              console.log('[ONBOARDING] Redirecting to /chat');
+              navigate("/chat", { replace: true });
+            }}
+          />
+        </>
       )}
     </div>
   );
