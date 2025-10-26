@@ -95,14 +95,27 @@ const Auth = () => {
           });
 
           if (profile) {
-            // If onboarding is complete, redirect to chat
+            // Check if user is admin
+            const { data: roles } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", session.user.id);
+            
+            const isAdmin = roles?.some(r => r.role === "admin");
+            
+            // If onboarding is complete, redirect appropriately
             if (profile.onboarding_completed) {
-              console.log('[AUTH] Onboarding already completed, redirecting to chat');
+              console.log('[AUTH] Onboarding already completed, redirecting...');
               toast({
                 title: 'Welcome back! 👋',
                 description: `Signed in as ${profile.username || profile.email}`,
               });
-              navigate('/chat', { replace: true });
+              
+              if (isAdmin) {
+                navigate('/admin', { replace: true });
+              } else {
+                navigate('/chat', { replace: true });
+              }
               return;
             } else {
               console.log('[AUTH] Onboarding not completed - staying on auth page to show dialog');
