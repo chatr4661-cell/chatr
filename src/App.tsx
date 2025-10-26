@@ -112,6 +112,8 @@ import ChatrStudio from "./pages/ChatrStudio";
 import FoodOrdering from "./pages/FoodOrdering";
 import LocalDeals from "./pages/LocalDeals";
 import Referrals from "./pages/Referrals";
+import FameCam from "./pages/FameCam";
+import FameLeaderboard from "./pages/FameLeaderboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -267,6 +269,10 @@ const App = () => {
             
             {/* Growth System Routes */}
             <Route path="/leaderboard" element={<ChatrPoints />} />
+            
+            {/* FameCam Routes */}
+            <Route path="/fame-cam" element={<ProtectedRoute><FameCam /></ProtectedRoute>} />
+            <Route path="/fame-leaderboard" element={<ProtectedRoute><FameLeaderboard /></ProtectedRoute>} />
             
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />

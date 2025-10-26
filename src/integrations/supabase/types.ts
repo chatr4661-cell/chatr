@@ -1312,6 +1312,51 @@ export type Database = {
           },
         ]
       }
+      challenge_participations: {
+        Row: {
+          challenge_id: string | null
+          coins_awarded: number | null
+          completed: boolean | null
+          created_at: string | null
+          id: string
+          post_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          challenge_id?: string | null
+          coins_awarded?: number | null
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          challenge_id?: string | null
+          coins_awarded?: number | null
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participations_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "fame_cam_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_participations_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "fame_cam_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chatr_badges: {
         Row: {
           badge_type: string
@@ -2772,6 +2817,193 @@ export type Database = {
           recording_url?: string | null
           session_date?: string
           session_title?: string
+        }
+        Relationships: []
+      }
+      fame_achievements: {
+        Row: {
+          badge_emoji: string | null
+          coin_reward: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          requirement_type: string | null
+          requirement_value: number | null
+        }
+        Insert: {
+          badge_emoji?: string | null
+          coin_reward?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          requirement_type?: string | null
+          requirement_value?: number | null
+        }
+        Update: {
+          badge_emoji?: string | null
+          coin_reward?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          requirement_type?: string | null
+          requirement_value?: number | null
+        }
+        Relationships: []
+      }
+      fame_cam_challenges: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          difficulty: string | null
+          duration_seconds: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          participants_count: number | null
+          reward_coins: number | null
+          title: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          duration_seconds?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          participants_count?: number | null
+          reward_coins?: number | null
+          title: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          duration_seconds?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          participants_count?: number | null
+          reward_coins?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fame_cam_challenges_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "trending_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fame_cam_posts: {
+        Row: {
+          actual_engagement: number | null
+          ai_virality_score: number | null
+          caption: string | null
+          category_id: string | null
+          coins_earned: number | null
+          created_at: string | null
+          hashtags: string[] | null
+          id: string
+          is_viral: boolean | null
+          likes_count: number | null
+          media_type: string
+          media_url: string
+          posted_to_external: boolean | null
+          shares_count: number | null
+          updated_at: string | null
+          user_id: string
+          views_count: number | null
+        }
+        Insert: {
+          actual_engagement?: number | null
+          ai_virality_score?: number | null
+          caption?: string | null
+          category_id?: string | null
+          coins_earned?: number | null
+          created_at?: string | null
+          hashtags?: string[] | null
+          id?: string
+          is_viral?: boolean | null
+          likes_count?: number | null
+          media_type: string
+          media_url: string
+          posted_to_external?: boolean | null
+          shares_count?: number | null
+          updated_at?: string | null
+          user_id: string
+          views_count?: number | null
+        }
+        Update: {
+          actual_engagement?: number | null
+          ai_virality_score?: number | null
+          caption?: string | null
+          category_id?: string | null
+          coins_earned?: number | null
+          created_at?: string | null
+          hashtags?: string[] | null
+          id?: string
+          is_viral?: boolean | null
+          likes_count?: number | null
+          media_type?: string
+          media_url?: string
+          posted_to_external?: boolean | null
+          shares_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fame_cam_posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "trending_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fame_leaderboard: {
+        Row: {
+          id: string
+          period: string | null
+          rank: number | null
+          total_coins_earned: number | null
+          total_fame_score: number | null
+          total_posts: number | null
+          total_viral_posts: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          period?: string | null
+          rank?: number | null
+          total_coins_earned?: number | null
+          total_fame_score?: number | null
+          total_posts?: number | null
+          total_viral_posts?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          period?: string | null
+          rank?: number | null
+          total_coins_earned?: number | null
+          total_fame_score?: number | null
+          total_posts?: number | null
+          total_viral_posts?: number | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -5771,6 +6003,36 @@ export type Database = {
           },
         ]
       }
+      trending_categories: {
+        Row: {
+          category_name: string
+          created_at: string | null
+          emoji: string | null
+          id: string
+          region: string | null
+          trend_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category_name: string
+          created_at?: string | null
+          emoji?: string | null
+          id?: string
+          region?: string | null
+          trend_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category_name?: string
+          created_at?: string | null
+          emoji?: string | null
+          id?: string
+          region?: string | null
+          trend_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tutor_bookings: {
         Row: {
           amount_paid: number | null
@@ -6030,6 +6292,35 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_fame_achievements: {
+        Row: {
+          achievement_id: string | null
+          earned_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          achievement_id?: string | null
+          earned_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          achievement_id?: string | null
+          earned_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_fame_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "fame_achievements"
             referencedColumns: ["id"]
           },
         ]
