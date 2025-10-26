@@ -20,10 +20,23 @@ export default function FameCam() {
   const [aiGuidance, setAiGuidance] = useState<any>(null);
   const [userCoins, setUserCoins] = useState(0);
   const [currentCategory, setCurrentCategory] = useState("Dance");
+  const [fameScore, setFameScore] = useState(50);
+  const [showSparkAnimation, setShowSparkAnimation] = useState(false);
 
   useEffect(() => {
     fetchUserCoins();
     fetchAIGuidance();
+    
+    // Simulate dynamic fame score fluctuation
+    const scoreInterval = setInterval(() => {
+      setFameScore(prev => {
+        const change = Math.random() * 10 - 5;
+        const newScore = Math.max(30, Math.min(95, prev + change));
+        return newScore;
+      });
+    }, 2000);
+
+    return () => clearInterval(scoreInterval);
   }, []);
 
   const fetchUserCoins = async () => {
@@ -54,15 +67,23 @@ export default function FameCam() {
 
   const handleCapture = async () => {
     setIsCapturing(true);
+    setShowSparkAnimation(true);
+    
     try {
       const imageData = await capturePhoto();
       if (imageData) {
         setCapturedImage(imageData);
-        setShowPreview(true);
+        
+        // Show "Fame Spark" animation
+        setTimeout(() => {
+          setShowPreview(true);
+          setShowSparkAnimation(false);
+        }, 1000);
       }
     } catch (error) {
       console.error('Capture error:', error);
       toast.error("Failed to capture photo");
+      setShowSparkAnimation(false);
     } finally {
       setIsCapturing(false);
     }
@@ -115,8 +136,20 @@ export default function FameCam() {
 
         {/* Fame Meter (left side) */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-          <FameMeter score={75} />
+          <FameMeter score={fameScore} />
         </div>
+
+        {/* Fame Spark Animation */}
+        {showSparkAnimation && (
+          <div className="absolute inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-30 animate-fade-in">
+            <div className="text-center">
+              <div className="text-6xl mb-4 animate-bounce">✨</div>
+              <div className="text-2xl font-bold text-white drop-shadow-lg animate-pulse">
+                Fame Spark Detected!
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Capture Button */}

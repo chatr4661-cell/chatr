@@ -116,9 +116,15 @@ export default function PostPreviewDialog({
           description: `FameCam post reward`
         });
 
-      toast.success(`+${analysis?.estimatedCoins || 50} Chatr Coins! 🪙`, {
-        description: analysis?.isLikelyViral ? "This could go viral! 🔥" : "Great post!"
-      });
+      // Show "Fame Spark" moment with custom component
+      toast.success(
+        <div className="flex flex-col gap-1">
+          <div className="text-lg font-bold">✨ Fame Spark Detected!</div>
+          <div>You earned {analysis?.estimatedCoins || 50} FameCoins 🪙</div>
+          {analysis?.isLikelyViral && <div className="text-xs text-green-400">This could go viral! 🔥</div>}
+        </div>,
+        { duration: 3000 }
+      );
 
       onSuccess();
       onOpenChange(false);
