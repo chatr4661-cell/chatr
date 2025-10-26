@@ -8,21 +8,8 @@ export const useOnboarding = (userId: string | undefined) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId) return;
-
-    const checkOnboardingStatus = async () => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarding_completed')
-        .eq('id', userId)
-        .single();
-
-      if (profile && !profile.onboarding_completed) {
-        setIsOpen(true);
-      }
-    };
-
-    checkOnboardingStatus();
+    // Onboarding disabled - users can complete profile anytime from settings
+    setIsOpen(false);
   }, [userId]);
 
   const completeStep = async (stepName: string) => {

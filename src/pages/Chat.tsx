@@ -5,6 +5,7 @@ import { NetworkStatus } from '@/components/NetworkStatus';
 import { ProductionCallNotifications } from '@/components/calling/ProductionCallNotifications';
 import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useChatPushNotifications } from '@/hooks/useChatPushNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -116,6 +117,12 @@ const ChatEnhancedContent = () => {
   
   // Enable push notifications only if user ID exists
   usePushNotifications(user?.id || undefined);
+  
+  // Enable WhatsApp-style chat push notifications
+  useChatPushNotifications({ 
+    userId: user?.id || '', 
+    activeConversationId 
+  });
 
   // Load user profile
   React.useEffect(() => {
