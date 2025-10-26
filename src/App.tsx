@@ -68,6 +68,8 @@ import About from "./pages/About";
 import Help from "./pages/Help";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
+import { AdminLayout } from "./components/AdminLayout";
+import BrandPartnerships from "./pages/admin/BrandPartnerships";
 
 // Consolidated Hub Pages
 import HealthHub from "./pages/HealthHub";
@@ -114,7 +116,6 @@ import LocalDeals from "./pages/LocalDeals";
 import Referrals from "./pages/Referrals";
 import FameCam from "./pages/FameCam";
 import FameLeaderboard from "./pages/FameLeaderboard";
-import BrandPartnerships from "./pages/admin/BrandPartnerships";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -226,19 +227,21 @@ const App = () => {
             <Route path="/bluetooth-test" element={<BluetoothTest />} />
             
             {/* Admin Routes */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/providers" element={<AdminProviders />} />
-            <Route path="/admin/analytics" element={<AdminAnalytics />} />
-            <Route path="/admin/payments" element={<AdminPayments />} />
-            <Route path="/admin/points" element={<AdminPoints />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-            <Route path="/admin/announcements" element={<AdminAnnouncements />} />
-            <Route path="/admin/documents" element={<AdminDocuments />} />
-            <Route path="/admin/doctor-applications" element={<AdminDoctorApplications />} />
-            <Route path="/admin/official-accounts" element={<OfficialAccountsManager />} />
-            <Route path="/admin/broadcast" element={<BroadcastManager />} />
-            <Route path="/admin/brand-partnerships" element={<BrandPartnerships />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="providers" element={<AdminProviders />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="payments" element={<AdminPayments />} />
+              <Route path="points" element={<AdminPoints />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="announcements" element={<AdminAnnouncements />} />
+              <Route path="documents" element={<AdminDocuments />} />
+              <Route path="doctor-applications" element={<AdminDoctorApplications />} />
+              <Route path="official-accounts" element={<OfficialAccountsManager />} />
+              <Route path="broadcast" element={<BroadcastManager />} />
+              <Route path="brand-partnerships" element={<BrandPartnerships />} />
+            </Route>
             <Route path="/chatr-tutors" element={<ChatrTutors />} />
             <Route path="/tutors" element={<ChatrTutors />} />
             <Route path="/home-services" element={<HomeServices />} />
