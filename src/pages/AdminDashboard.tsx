@@ -2,24 +2,20 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { 
   Users, 
   Building2, 
   DollarSign, 
   Calendar,
-  ArrowLeft,
-  Upload,
-  Plus,
   BarChart3,
   CreditCard,
   Coins,
   Settings,
   Megaphone,
   UserCog,
-  MessageCircle
+  MessageCircle,
+  Upload
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -40,7 +36,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     checkAdminAccess();
-    loadStats();
   }, []);
 
   const checkAdminAccess = async () => {
@@ -63,6 +58,7 @@ const AdminDashboard = () => {
     }
 
     setIsAdmin(true);
+    await loadStats();
     setLoading(false);
   };
 
@@ -76,21 +72,18 @@ const AdminDashboard = () => {
       supabase.from("conversations").select("id", { count: "exact", head: true })
     ]);
 
-    // Calculate new users today
     const today = new Date().toISOString().split('T')[0];
     const newUsersToday = users.data?.filter(u => u.created_at?.startsWith(today)).length || 0;
-
-    // Calculate pending appointments
-    const pendingAppointments = appointments.data?.filter(a => a.status === 'pending').length || 0;
-
-    // Calculate successful payments
-    const successfulPayments = payments.data?.filter(p => p.payment_status === 'completed').length || 0;
+    const pendingAppointments = appointments.data?.filter((a: any) => a.status === 'pending').length || 0;
+    const totalRevenue = payments.data?.filter((p: any) => p.payment_status === 'completed')
+      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+    const successfulPayments = payments.data?.filter((p: any) => p.payment_status === 'completed').length || 0;
 
     setStats({
       totalUsers: users.count || 0,
       totalProviders: providers.count || 0,
       totalAppointments: appointments.count || 0,
-      totalRevenue: payments.data?.reduce((sum, p) => sum + Number(p.amount), 0) || 0,
+      totalRevenue,
       newUsersToday,
       pendingAppointments,
       successfulPayments,
@@ -100,258 +93,183 @@ const AdminDashboard = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-xs">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Header */}
-      <div className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
-        <div className="flex items-center justify-between p-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/")}
-            className="h-7"
-          >
-            <ArrowLeft className="h-3 w-3 mr-1" />
-            <span className="text-xs">Back</span>
-          </Button>
-          <h1 className="text-sm font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Admin Dashboard
           </h1>
-          <div className="w-16" />
+          <p className="text-muted-foreground mt-1">Manage and monitor your platform</p>
         </div>
       </div>
 
-      <div className="p-3 pb-20 max-w-6xl mx-auto">
-        {/* Stats Grid - Primary Metrics */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <Card className="p-3 backdrop-blur-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-blue-500/20">
-                <Users className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Total Users</p>
-                <p className="text-lg font-bold">{stats.totalUsers}</p>
-                <p className="text-[9px] text-blue-500">+{stats.newUsersToday} today</p>
-              </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Users</p>
+              <p className="text-3xl font-bold mt-1">{stats.totalUsers}</p>
+              <p className="text-xs text-primary mt-1">+{stats.newUsersToday} today</p>
             </div>
-          </Card>
+            <Users className="h-10 w-10 text-primary opacity-20" />
+          </div>
+        </Card>
 
-          <Card className="p-3 backdrop-blur-xl bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-green-500/20">
-                <Building2 className="h-4 w-4 text-green-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Providers</p>
-                <p className="text-lg font-bold">{stats.totalProviders}</p>
-                <p className="text-[9px] text-green-500">Active</p>
-              </div>
+        <Card className="p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Providers</p>
+              <p className="text-3xl font-bold mt-1">{stats.totalProviders}</p>
             </div>
-          </Card>
+            <Building2 className="h-10 w-10 text-primary opacity-20" />
+          </div>
+        </Card>
 
-          <Card className="p-3 backdrop-blur-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-purple-500/20">
-                <Calendar className="h-4 w-4 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Appointments</p>
-                <p className="text-lg font-bold">{stats.totalAppointments}</p>
-                <p className="text-[9px] text-purple-500">{stats.pendingAppointments} pending</p>
-              </div>
+        <Card className="p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Appointments</p>
+              <p className="text-3xl font-bold mt-1">{stats.totalAppointments}</p>
+              <p className="text-xs text-orange-500 mt-1">{stats.pendingAppointments} pending</p>
             </div>
-          </Card>
+            <Calendar className="h-10 w-10 text-primary opacity-20" />
+          </div>
+        </Card>
 
-          <Card className="p-3 backdrop-blur-xl bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-orange-500/20">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-orange-500/20">
-                <DollarSign className="h-4 w-4 text-orange-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Revenue</p>
-                <p className="text-lg font-bold">₹{stats.totalRevenue.toLocaleString()}</p>
-                <p className="text-[9px] text-orange-500">{stats.successfulPayments} payments</p>
-              </div>
+        <Card className="p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Revenue</p>
+              <p className="text-3xl font-bold mt-1">₹{stats.totalRevenue.toLocaleString()}</p>
+              <p className="text-xs text-green-500 mt-1">{stats.successfulPayments} payments</p>
             </div>
-          </Card>
-        </div>
+            <DollarSign className="h-10 w-10 text-primary opacity-20" />
+          </div>
+        </Card>
+      </div>
 
-        {/* Secondary Stats */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <Card className="p-3 backdrop-blur-xl bg-gradient-to-br from-background/90 to-primary/5 border-border/30">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-cyan-500/10">
-                <MessageCircle className="h-3.5 w-3.5 text-cyan-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Messages</p>
-                <p className="text-sm font-bold">{stats.totalMessages.toLocaleString()}</p>
-              </div>
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Messages</p>
+              <p className="text-2xl font-bold mt-1">{stats.totalMessages.toLocaleString()}</p>
             </div>
-          </Card>
+            <MessageCircle className="h-8 w-8 text-primary opacity-20" />
+          </div>
+        </Card>
 
-          <Card className="p-3 backdrop-blur-xl bg-gradient-to-br from-background/90 to-primary/5 border-border/30">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-pink-500/10">
-                <MessageCircle className="h-3.5 w-3.5 text-pink-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Conversations</p>
-                <p className="text-sm font-bold">{stats.totalConversations}</p>
-              </div>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Active Conversations</p>
+              <p className="text-2xl font-bold mt-1">{stats.totalConversations.toLocaleString()}</p>
             </div>
-          </Card>
-        </div>
+            <Users className="h-8 w-8 text-primary opacity-20" />
+          </div>
+        </Card>
+      </div>
 
-        {/* Action Cards */}
-        <div className="space-y-2">
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card 
-            className="p-3 backdrop-blur-xl bg-gradient-to-r from-indigo-500/10 to-indigo-600/10 border-indigo-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
             onClick={() => navigate("/admin/users")}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <UserCog className="h-4 w-4 text-indigo-500" />
-                <div>
-                  <h3 className="text-xs font-semibold">User Management</h3>
-                  <p className="text-[10px] text-muted-foreground">View and manage all users</p>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                Open
-              </Button>
-            </div>
+            <Users className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">User Management</h3>
+            <p className="text-sm text-muted-foreground">View and manage all users</p>
           </Card>
 
           <Card 
-            className="p-3 backdrop-blur-xl bg-gradient-to-r from-cyan-500/10 to-cyan-600/10 border-cyan-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
             onClick={() => navigate("/admin/announcements")}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-cyan-500" />
-                <div>
-                  <h3 className="text-xs font-semibold">Announcements</h3>
-                  <p className="text-[10px] text-muted-foreground">Send updates to all users</p>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                Open
-              </Button>
-            </div>
+            <Megaphone className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">Announcements</h3>
+            <p className="text-sm text-muted-foreground">Create platform announcements</p>
           </Card>
 
           <Card 
-            className="p-3 backdrop-blur-xl bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-500/20 cursor-pointer hover:scale-[1.01] transition-all"
-            onClick={() => navigate("/admin/providers")}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Plus className="h-4 w-4 text-blue-500" />
-                <div>
-                  <h3 className="text-xs font-semibold">Add Providers</h3>
-                  <p className="text-[10px] text-muted-foreground">Manage service providers</p>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                Open
-              </Button>
-            </div>
-          </Card>
-
-          <Card 
-            className="p-3 backdrop-blur-xl bg-gradient-to-r from-green-500/10 to-green-600/10 border-green-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
             onClick={() => navigate("/admin/payments")}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-green-500" />
-                <div>
-                  <h3 className="text-xs font-semibold">Payment Management</h3>
-                  <p className="text-[10px] text-muted-foreground">Track and manage payments</p>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                Open
-              </Button>
-            </div>
+            <CreditCard className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">Payment Management</h3>
+            <p className="text-sm text-muted-foreground">Review and process payments</p>
           </Card>
 
           <Card 
-            className="p-3 backdrop-blur-xl bg-gradient-to-r from-purple-500/10 to-purple-600/10 border-purple-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
             onClick={() => navigate("/admin/analytics")}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-purple-500" />
-                <div>
-                  <h3 className="text-xs font-semibold">Analytics & Reports</h3>
-                  <p className="text-[10px] text-muted-foreground">View detailed analytics</p>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                Open
-              </Button>
-            </div>
+            <BarChart3 className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">Analytics</h3>
+            <p className="text-sm text-muted-foreground">View detailed analytics</p>
           </Card>
 
           <Card 
-            className="p-3 backdrop-blur-xl bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-orange-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
+            onClick={() => navigate("/admin/providers")}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Upload className="h-4 w-4 text-orange-500" />
-                <div>
-                  <h3 className="text-xs font-semibold">Upload Documents</h3>
-                  <p className="text-[10px] text-muted-foreground">Upload provider certificates</p>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                Upload
-              </Button>
-            </div>
+            <Building2 className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">Service Providers</h3>
+            <p className="text-sm text-muted-foreground">Manage healthcare providers</p>
           </Card>
 
           <Card 
-            className="p-3 backdrop-blur-xl bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border-yellow-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
             onClick={() => navigate("/admin/points")}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Coins className="h-4 w-4 text-yellow-500" />
-                <div>
-                  <h3 className="text-xs font-semibold">Chatr Points</h3>
-                  <p className="text-[10px] text-muted-foreground">Manage points economy</p>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                Open
-              </Button>
-            </div>
+            <Coins className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">Points System</h3>
+            <p className="text-sm text-muted-foreground">Manage Chatr Coins</p>
           </Card>
 
           <Card 
-            className="p-3 backdrop-blur-xl bg-gradient-to-r from-pink-500/10 to-pink-600/10 border-pink-500/20 cursor-pointer hover:scale-[1.01] transition-all"
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
+            onClick={() => navigate("/admin/documents")}
+          >
+            <Upload className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">Documents</h3>
+            <p className="text-sm text-muted-foreground">Upload provider certificates</p>
+          </Card>
+
+          <Card 
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
+            onClick={() => navigate("/admin/doctor-applications")}
+          >
+            <UserCog className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">Doctor Applications</h3>
+            <p className="text-sm text-muted-foreground">Review doctor applications</p>
+          </Card>
+
+          <Card 
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
             onClick={() => navigate("/admin/settings")}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Settings className="h-4 w-4 text-pink-500" />
-                <div>
-                  <h3 className="text-xs font-semibold">Ringtone Settings</h3>
-                  <p className="text-[10px] text-muted-foreground">Customize notification sounds</p>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                Open
-              </Button>
-            </div>
+            <Settings className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">Settings</h3>
+            <p className="text-sm text-muted-foreground">Configure admin settings</p>
           </Card>
         </div>
       </div>
