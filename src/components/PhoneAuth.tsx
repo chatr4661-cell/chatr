@@ -157,26 +157,34 @@ export const PhoneAuth = () => {
 
       if (!authData.user) throw new Error('Failed to create user');
 
-      console.log('[AUTH] User created successfully:', authData.user.id);
+      console.log('[AUTH] ✅ User created successfully:', authData.user.id);
 
       // Wait for trigger to create profile and award welcome coins
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('[AUTH] Waiting for profile creation...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Verify profile was created
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, phone_number')
+        .select('id, phone_number, onboarding_completed')
         .eq('id', authData.user.id)
         .maybeSingle();
+
+      console.log('[AUTH] Profile check:', { profile, profileError });
 
       if (!profile) {
         console.error('[AUTH] Profile not found after creation, creating manually');
         // Create profile manually if trigger failed
-        await supabase.from('profiles').insert({
+        const { error: insertError } = await supabase.from('profiles').insert({
           id: authData.user.id,
           phone_number: normalizedPhone,
           username: phoneNumber,
+          onboarding_completed: false,
         });
+        
+        if (insertError) {
+          console.error('[AUTH] Manual profile creation failed:', insertError);
+        }
       } else if (!profile.phone_number || profile.phone_number !== normalizedPhone) {
         // Update phone number if not set correctly
         await supabase
@@ -198,11 +206,14 @@ export const PhoneAuth = () => {
         title: "Account Created! 🎉",
         description: points 
           ? `Welcome to Chatr! You've received ${points.balance} Chatr Coins!`
-          : "Welcome to Chatr!",
+          : "Welcome to Chatr! Complete your profile to get started.",
       });
 
-      // The session is already active, redirect will happen via auth state change
-      navigate('/');
+      console.log('[AUTH] Account creation complete, waiting for auth state change to handle redirect');
+      
+      // Don't navigate here - let Auth.tsx handle it via onAuthStateChange
+      // This ensures proper session establishment and onboarding flow
+      setLoading(false);
     } catch (error: any) {
       console.error('[AUTH] PIN creation error:', error);
       toast({
@@ -224,7 +235,7 @@ export const PhoneAuth = () => {
       const normalizedPhone = normalizePhoneNumber(phoneNumber, countryCode);
       const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
 
-      console.log('[AUTH] Login attempt:', { normalizedPhone, email, pin });
+      console.log('[AUTH] Login attempt for:', normalizedPhone);
 
       // Sign in with phone as email and PIN as password
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -232,7 +243,11 @@ export const PhoneAuth = () => {
         password: pin,
       });
 
-      console.log('[AUTH] Sign in result:', { data, error: signInError });
+      console.log('[AUTH] Sign in result:', { 
+        success: !!data.session, 
+        userId: data.user?.id,
+        error: signInError?.message 
+      });
 
       if (signInError) {
         console.error('[AUTH] Sign in error:', signInError);
@@ -246,11 +261,14 @@ export const PhoneAuth = () => {
       }
 
       toast({
-        title: "Welcome Back",
-        description: "You've been signed in successfully",
+        title: "Welcome Back! 👋",
+        description: "Signing you in...",
       });
 
-      navigate('/');
+      console.log('[AUTH] Login successful, auth state change will handle redirect');
+      setLoading(false);
+      
+      // Don't navigate here - let Auth.tsx handle it via onAuthStateChange
     } catch (error: any) {
       console.error('[AUTH] Login error:', error);
       toast({

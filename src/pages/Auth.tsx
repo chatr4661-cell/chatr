@@ -144,17 +144,18 @@ const Auth = () => {
 
     checkSession();
 
-    // Listen for auth state changes (Google OAuth callback)
+    // Listen for auth state changes (Google OAuth callback and phone auth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[AUTH STATE]', event, 'User ID:', session?.user?.id);
       logAuthEvent('Auth state changed', { event, userId: session?.user?.id });
       
       if (event === 'SIGNED_IN' && session) {
+        console.log('[AUTH STATE] User signed in, processing...');
         setUserId(session.user.id);
         setGoogleLoading(false);
         
-        logAuthEvent('User signed in, waiting for profile creation');
-        
-        // Wait for the trigger to create profile (give it 2 seconds)
+        // Wait for the trigger to create profile
+        console.log('[AUTH STATE] Waiting 2s for profile creation...');
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Check if profile exists and onboarding status
@@ -164,25 +165,33 @@ const Auth = () => {
           .eq('id', session.user.id)
           .maybeSingle();
         
-        logAuthEvent('Profile check after sign-in', { 
-          profile, 
-          error: profileError,
-          hasProfile: !!profile 
+        console.log('[AUTH STATE] Profile check:', { 
+          found: !!profile,
+          onboardingCompleted: profile?.onboarding_completed,
+          username: profile?.username,
+          error: profileError?.message
         });
         
         if (profile?.onboarding_completed) {
+          console.log('[AUTH STATE] Onboarding complete, redirecting to chat');
           toast({
-            title: 'Welcome back!',
-            description: `Signed in as ${profile.username || profile.email}`,
+            title: 'Welcome back! 👋',
+            description: `Signed in as ${profile.username || profile.phone_number || profile.email}`,
           });
           navigate('/chat', { replace: true });
         } else {
-          logAuthEvent('Showing onboarding for new user');
-          // Let the onboarding dialog show
+          console.log('[AUTH STATE] New user - onboarding will show');
+          // Onboarding dialog will show because userId is set and onboarding_completed is false
+          // Stay on auth page to show onboarding
+          toast({
+            title: 'Welcome! 🎉',
+            description: 'Let\'s set up your profile',
+          });
         }
       }
       
       if (event === 'SIGNED_OUT') {
+        console.log('[AUTH STATE] User signed out');
         setUserId(undefined);
         setGoogleLoading(false);
         logAuthEvent('User signed out');
