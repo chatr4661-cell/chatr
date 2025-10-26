@@ -8,18 +8,29 @@ export const useOnboarding = (userId: string | undefined) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setIsOpen(false);
+      return;
+    }
 
     const checkOnboardingStatus = async () => {
-      const { data: profile } = await supabase
+      console.log('[ONBOARDING HOOK] Checking for userId:', userId);
+      
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('onboarding_completed')
         .eq('id', userId)
         .single();
 
-      // Show onboarding for new users who haven't completed it
-      if (profile && !profile.onboarding_completed) {
+      console.log('[ONBOARDING HOOK] Profile check:', { profile, error });
+
+      // Show onboarding for new users who haven't completed it OR if profile doesn't exist
+      if (!profile || (profile && !profile.onboarding_completed)) {
+        console.log('[ONBOARDING HOOK] Opening onboarding dialog');
         setIsOpen(true);
+      } else {
+        console.log('[ONBOARDING HOOK] Profile complete, not showing dialog');
+        setIsOpen(false);
       }
     };
 
