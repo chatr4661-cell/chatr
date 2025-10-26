@@ -91,6 +91,8 @@ import AdminSettings from "./pages/admin/Settings";
 import AdminAnnouncements from "./pages/admin/Announcements";
 import AdminDocuments from "./pages/admin/Documents";
 import AdminDoctorApplications from "./pages/admin/DoctorApplications";
+import FeatureBuilder from "./pages/admin/FeatureBuilder";
+import SchemaManager from "./pages/admin/SchemaManager";
 
 // Provider Pages
 import ProviderAppointments from "./pages/provider/Appointments";
@@ -229,6 +231,8 @@ const App = () => {
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="feature-builder" element={<FeatureBuilder />} />
+              <Route path="schema-manager" element={<SchemaManager />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="providers" element={<AdminProviders />} />
               <Route path="analytics" element={<AdminAnalytics />} />

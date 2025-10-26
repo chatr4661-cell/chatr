@@ -12,7 +12,9 @@ import {
   Building2, 
   Coins, 
   Sparkles,
-  LogOut
+  LogOut,
+  Wand2,
+  Database
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,6 +35,8 @@ import { toast } from "sonner";
 
 const adminMenuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "Feature Builder", url: "/admin/feature-builder", icon: Wand2 },
+  { title: "Schema Manager", url: "/admin/schema-manager", icon: Database },
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Announcements", url: "/admin/announcements", icon: Megaphone },
