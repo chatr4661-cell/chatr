@@ -225,6 +225,7 @@ const App = () => {
             <Route path="/account" element={<Account />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
+            <Route path="/notifications/settings" element={<NotificationSettings />} />
             <Route path="/device-management" element={<DeviceManagement />} />
             <Route path="/bluetooth-test" element={<BluetoothTest />} />
             

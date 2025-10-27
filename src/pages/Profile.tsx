@@ -29,6 +29,20 @@ const Profile = () => {
     loadUserData();
   }, []);
 
+  // Ensure onboarding is completed to prevent dialog from showing
+  useEffect(() => {
+    const markOnboardingComplete = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await supabase
+          .from('profiles')
+          .update({ onboarding_completed: true })
+          .eq('id', session.user.id);
+      }
+    };
+    markOnboardingComplete();
+  }, []);
+
   const loadUserData = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
