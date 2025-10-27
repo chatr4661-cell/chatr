@@ -192,27 +192,106 @@ const ChatEnhancedContent = () => {
   // Clear active conversation on mount - removed to improve performance
   // Users will see conversation list immediately
 
-  // Optimized contact loading - deferred for performance
+  // Auto-sync contacts on login and load registered contacts
   React.useEffect(() => {
     if (!user?.id) return;
 
-    // Use requestIdleCallback for better performance
-    const loadContactsIdle = () => {
-      const loadContacts = async () => {
+    const syncAndLoadContacts = async () => {
+      try {
+        // Auto-sync contacts from phone (native only)
+        const { Capacitor } = await import('@capacitor/core');
+        const isNative = Capacitor.isNativePlatform();
+        
+        if (isNative) {
+          console.log('🔄 Auto-syncing contacts on login...');
+          const { Contacts } = await import('@capacitor-community/contacts');
+          
+          try {
+            const permission = await Contacts.requestPermissions();
+            
+            if (permission.contacts === 'granted') {
+              const result = await Contacts.getContacts({
+                projection: { name: true, phones: true }
+              });
+
+              if (result?.contacts?.length) {
+                // Hash phone numbers and sync
+                const phoneHashes = new Set<string>();
+                const contactsMap = new Map();
+
+                for (const contact of result.contacts) {
+                  const phone = contact.phones?.[0]?.number;
+                  if (phone) {
+                    const normalized = phone.replace(/\D/g, '');
+                    const fullPhone = normalized.length === 10 ? `+91${normalized}` : `+${normalized}`;
+                    const msgBuffer = new TextEncoder().encode(normalized);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    
+                    phoneHashes.add(hash);
+                    contactsMap.set(hash, {
+                      name: contact.name?.display || 'Unknown',
+                      phone: fullPhone,
+                      hash
+                    });
+                  }
+                }
+
+                // Find registered users
+                const { data: registeredProfiles } = await supabase
+                  .from('profiles')
+                  .select('id, username, phone_number, phone_hash')
+                  .in('phone_hash', Array.from(phoneHashes))
+                  .not('phone_hash', 'is', null);
+
+                // Upsert contacts
+                const contactsToUpsert = Array.from(contactsMap.values()).map(contact => {
+                  const registered = registeredProfiles?.find(p => p.phone_hash === contact.hash);
+                  return {
+                    user_id: user.id,
+                    contact_name: contact.name,
+                    contact_phone: contact.phone,
+                    contact_phone_hash: contact.hash,
+                    is_registered: !!registered,
+                    contact_user_id: registered?.id || null
+                  };
+                });
+
+                if (contactsToUpsert.length > 0) {
+                  await supabase.from('contacts').upsert(contactsToUpsert, {
+                    onConflict: 'user_id,contact_phone',
+                    ignoreDuplicates: false
+                  });
+                }
+
+                await supabase.from('profiles').update({ 
+                  contacts_synced: true,
+                  last_contact_sync: new Date().toISOString()
+                }).eq('id', user.id);
+
+                console.log(`✅ Synced ${contactsToUpsert.length} contacts (${registeredProfiles?.length || 0} on platform)`);
+              }
+            }
+          } catch (err) {
+            console.log('Contact sync skipped:', err);
+          }
+        }
+
+        // Load registered contacts for display
         const { data } = await supabase
           .from('contacts')
           .select('contact_user_id, contact_name, contact_phone')
           .eq('user_id', user.id)
           .eq('is_registered', true)
           .not('contact_user_id', 'is', null)
-          .limit(50); // Limit for performance
+          .limit(50);
 
         if (!data?.length) {
           setContacts([]);
           return;
         }
 
-        // Batch fetch all profiles at once
         const userIds = data.map(c => c.contact_user_id).filter(Boolean);
         const { data: profiles } = await supabase
           .from('profiles')
@@ -224,7 +303,6 @@ const ChatEnhancedContent = () => {
           return;
         }
 
-        // Map profiles efficiently
         const profileMap = new Map(profiles.map(p => [p.id, p]));
         const contactProfiles = data
           .map(contact => {
@@ -239,19 +317,13 @@ const ChatEnhancedContent = () => {
           .filter(Boolean);
 
         setContacts(contactProfiles);
-      };
-
-      loadContacts();
+      } catch (error) {
+        console.error('Error syncing contacts:', error);
+        setContacts([]);
+      }
     };
 
-    // Use requestIdleCallback or fallback to setTimeout
-    if ('requestIdleCallback' in window) {
-      const idleId = requestIdleCallback(loadContactsIdle, { timeout: 2000 });
-      return () => cancelIdleCallback(idleId);
-    } else {
-      const timeoutId = setTimeout(loadContactsIdle, 500);
-      return () => clearTimeout(timeoutId);
-    }
+    syncAndLoadContacts();
   }, [user?.id]);
 
   // Fast auth check - non-blocking

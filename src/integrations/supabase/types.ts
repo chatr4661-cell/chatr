@@ -2185,6 +2185,7 @@ export type Database = {
         Row: {
           contact_name: string | null
           contact_phone: string
+          contact_phone_hash: string | null
           contact_user_id: string | null
           created_at: string | null
           id: string
@@ -2194,6 +2195,7 @@ export type Database = {
         Insert: {
           contact_name?: string | null
           contact_phone: string
+          contact_phone_hash?: string | null
           contact_user_id?: string | null
           created_at?: string | null
           id?: string
@@ -2203,6 +2205,7 @@ export type Database = {
         Update: {
           contact_name?: string | null
           contact_phone?: string
+          contact_phone_hash?: string | null
           contact_user_id?: string | null
           created_at?: string | null
           id?: string

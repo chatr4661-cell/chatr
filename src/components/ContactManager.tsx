@@ -67,23 +67,13 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const { toast } = useToast();
 
-  // Auto-sync on mount (like WhatsApp)
+  // Auto-sync on mount (like WhatsApp) - ALWAYS run on login
   useEffect(() => {
     if (!userId) return;
     
     const autoSync = async () => {
-      const lastSync = localStorage.getItem(`last_sync_${userId}`);
-      const now = new Date().getTime();
-      
-      // Auto-sync if never synced or last sync was more than 24 hours ago
-      if (!lastSync || (now - parseInt(lastSync)) > 24 * 60 * 60 * 1000) {
-        console.log('🔄 Auto-syncing contacts (first launch or 24h elapsed)...');
-        await autoSyncContacts();
-      } else {
-        // Just load existing contacts
-        await loadContacts();
-        setLastSyncTime(new Date(parseInt(lastSync)));
-      }
+      console.log('🔄 Auto-syncing contacts on login...');
+      await autoSyncContacts();
     };
     
     autoSync();
@@ -323,6 +313,7 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
               user_id: userId,
               contact_name: contactInfo.name,
               contact_phone: contactInfo.phone,
+              contact_phone_hash: hash,
               contact_user_id: matchedUser?.id || null,
               is_registered: !!matchedUser
             }, {
@@ -427,12 +418,22 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
         }
         
         if (!matchedUser && phone) {
+          const normalized = normalizePhoneNumber(phone);
+          const hash = await hashPhoneNumber(normalized);
+          
           const { data } = await supabase
             .from('profiles')
-            .select('id, username')
-            .eq('phone_number', phone)
+            .select('id, username, phone_hash')
+            .or(`phone_number.eq.${normalized},phone_hash.eq.${hash}`)
             .maybeSingle();
           matchedUser = data;
+        }
+
+        // Hash the phone number for storage
+        let phoneHash = null;
+        if (phone) {
+          const normalized = normalizePhoneNumber(phone);
+          phoneHash = await hashPhoneNumber(normalized);
         }
 
         // Insert or update contact
@@ -442,6 +443,7 @@ export const ContactManager = ({ userId, onContactSelect }: ContactManagerProps)
             user_id: userId,
             contact_name: name,
             contact_phone: identifier,
+            contact_phone_hash: phoneHash,
             contact_user_id: matchedUser?.id || null,
             is_registered: !!matchedUser
           }, {
