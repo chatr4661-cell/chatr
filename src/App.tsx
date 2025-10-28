@@ -119,7 +119,6 @@ import Referrals from "./pages/Referrals";
 import FameCam from "./pages/FameCam";
 import FameLeaderboard from "./pages/FameLeaderboard";
 
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
