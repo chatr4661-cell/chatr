@@ -298,8 +298,8 @@ const Index = () => {
     },
     {
       icon: Search,
-      title: 'AI Browser',
-      description: 'Search & AI assistant',
+      title: 'Chatr Browser',
+      description: 'Deep Multiverse Search Engine',
       iconColor: 'bg-gradient-to-br from-violet-400 to-purple-600',
       route: '/home',
       isNew: true

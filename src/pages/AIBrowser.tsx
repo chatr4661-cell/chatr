@@ -59,28 +59,36 @@ export default function AIBrowser() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-card border-b px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <Search className="h-5 w-5 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search or ask AI anything..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-            className="flex-1"
-            disabled={loading}
-          />
-          <Button 
-            size="icon" 
-            onClick={() => handleSearch(searchQuery)}
-            disabled={loading}
-          >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-          </Button>
-          <Button size="icon" variant="ghost" onClick={() => navigate('/capture')}>
-            <Camera className="h-5 w-5" />
-          </Button>
+      <header className="sticky top-0 z-10 bg-gradient-to-br from-violet-500 to-purple-600 text-white border-b px-4 py-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-3">
+            <h1 className="text-2xl font-bold">Chatr Browser</h1>
+            <p className="text-sm text-white/90">Deep Multiverse Search Engine</p>
+            <p className="text-xs text-white/70 mt-1">Not a browser. A discovery engine that thinks deeper than the web.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Search className="h-5 w-5 text-white/80" />
+            <Input
+              type="text"
+              placeholder="Search or ask AI anything..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+              className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/60"
+              disabled={loading}
+            />
+            <Button 
+              size="icon" 
+              onClick={() => handleSearch(searchQuery)}
+              disabled={loading}
+              variant="secondary"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+            </Button>
+            <Button size="icon" variant="secondary" onClick={() => navigate('/capture')}>
+              <Camera className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
