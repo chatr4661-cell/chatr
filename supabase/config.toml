@@ -1,5 +1,8 @@
 project_id = "sbayuqgomlflmxgicplz"
 
+[functions.ai-browser-search]
+verify_jwt = true
+
 [functions.ai-health-assistant]
 verify_jwt = false
 
