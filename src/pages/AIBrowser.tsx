@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Search, Sparkles, Camera, Loader2, ExternalLink, Mic, Image as ImageIcon } from 'lucide-react';
+import { Search, Sparkles, Camera, Loader2, ExternalLink, Mic, Image as ImageIcon, Home, User, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 interface SearchResult {
   title: string;
@@ -30,7 +31,7 @@ export default function AIBrowser() {
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
-      toast.error('Please enter a search query');
+      toast({ description: 'Please enter a search query', variant: 'destructive' });
       return;
     }
 
@@ -43,215 +44,182 @@ export default function AIBrowser() {
       if (error) throw error;
 
       if (data?.error) {
-        toast.error(data.error);
+        toast({ description: data.error, variant: 'destructive' });
         return;
       }
 
       setSearchData(data);
-      toast.success('Search completed!');
+      toast({ description: 'Search completed!' });
     } catch (error: any) {
       console.error('Search error:', error);
-      toast.error('Search failed. Please try again.');
+      toast({ description: 'Search failed. Please try again.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-violet-950/20 to-slate-950">
-      {/* Holographic Background Effect */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.15),transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(168,85,247,0.1),transparent_50%)] pointer-events-none" />
-      
+    <div className="min-h-screen bg-gradient-to-b from-violet-50 via-purple-50 to-pink-50 pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-20 backdrop-blur-xl bg-violet-500/10 border-b border-violet-500/20 px-4 py-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-4 animate-fade-in">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-200 via-purple-200 to-pink-200 bg-clip-text text-transparent">
-              Chatr Browser
-            </h1>
-            <p className="text-sm text-violet-200/90 mt-1">Deep Multiverse Search Engine</p>
-            <p className="text-xs text-violet-300/60 mt-1">Not a browser. A discovery engine that thinks deeper than the web.</p>
-          </div>
-          <div className="flex items-center gap-3 animate-scale-in">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-violet-300/60" />
-              <Input
-                type="text"
-                placeholder="Search across all sources..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                className="pl-10 bg-white/5 border-violet-400/30 text-white placeholder:text-violet-300/40 focus:border-violet-400/60 focus:ring-violet-400/30 backdrop-blur-sm"
-                disabled={loading}
-              />
-            </div>
-            <Button 
-              size="icon" 
-              onClick={() => handleSearch(searchQuery)}
-              disabled={loading}
-              className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/50 transition-all hover:shadow-violet-500/70 hover:scale-105"
-            >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-            </Button>
-          </div>
+      <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 px-4 py-3">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-900">Chatr.AI</h1>
+          <Avatar className="h-9 w-9 border-2 border-violet-200">
+            <AvatarImage src="" />
+            <AvatarFallback className="bg-gradient-to-br from-violet-400 to-purple-500 text-white text-sm">U</AvatarFallback>
+          </Avatar>
         </div>
       </header>
 
-      {/* AI Input Section */}
-      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
-        <Card className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 backdrop-blur-xl border-violet-400/30 shadow-2xl shadow-violet-500/20 hover:shadow-violet-500/30 transition-all animate-fade-in">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/50">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <CardTitle className="text-white">AI Deep Search</CardTitle>
-            </div>
-            <CardDescription className="text-violet-200/70">
-              Parallel query across 15+ sources with AI-powered fusion & citations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="Ask anything - AI will search, analyze, and synthesize..."
-                value={aiQuery}
-                onChange={(e) => setAiQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch(aiQuery)}
-                disabled={loading}
-                className="bg-white/5 border-violet-400/30 text-white placeholder:text-violet-300/40 focus:border-violet-400/60 focus:ring-violet-400/30"
-              />
-              <Button 
-                onClick={() => handleSearch(aiQuery)}
-                disabled={loading}
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/50 transition-all hover:shadow-violet-500/70 hover:scale-105"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                Deep Search
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+          <Input
+            type="text"
+            placeholder="Search or ask anything..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+            className="pl-11 pr-12 h-12 bg-white/90 border-slate-200 rounded-2xl text-base placeholder:text-slate-400 focus:border-violet-300 focus:ring-violet-200"
+            disabled={loading}
+          />
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 text-slate-500 hover:text-violet-600"
+            onClick={() => toast({ description: 'Voice search coming soon!' })}
+          >
+            <Mic className="h-5 w-5" />
+          </Button>
+        </div>
 
-      {/* Results Section */}
-      <div className="max-w-6xl mx-auto px-4 pb-32 relative z-10">
+        {/* Tab Navigation */}
+        <div className="flex gap-2">
+          {[
+            { id: 'all', label: 'Web' },
+            { id: 'news', label: 'Chat' },
+            { id: 'research', label: 'Image' },
+            { id: 'social', label: 'News' }
+          ].map((tab) => (
+            <Button
+              key={tab.id}
+              variant={activeTab === tab.id ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab(tab.id as any)}
+              className={activeTab === tab.id 
+                ? 'bg-white text-slate-900 shadow-sm hover:bg-white rounded-xl px-4' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl px-4'
+              }
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Loading State */}
         {loading && (
-          <div className="text-center py-20 animate-fade-in">
-            <div className="relative inline-block">
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-600 blur-2xl opacity-50 animate-pulse" />
-              <Loader2 className="h-16 w-16 mx-auto mb-4 animate-spin text-violet-300 relative" />
-            </div>
-            <p className="text-violet-200/80 text-lg font-medium">Searching across multiverse sources...</p>
-            <p className="text-violet-300/50 text-sm mt-2">Querying 15+ engines in parallel</p>
+          <div className="text-center py-16">
+            <Loader2 className="h-10 w-10 mx-auto mb-3 animate-spin text-violet-500" />
+            <p className="text-slate-600">Searching...</p>
           </div>
         )}
 
+        {/* Empty State */}
         {!loading && !searchData && (
-          <div className="text-center py-20 text-violet-200/60 animate-fade-in">
-            <div className="relative inline-block mb-6">
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-500/30 to-purple-600/30 blur-3xl" />
-              <Search className="h-16 w-16 mx-auto opacity-30 relative" />
-            </div>
-            <p className="text-xl font-medium">Begin Your Deep Search</p>
-            <p className="text-sm mt-2 text-violet-300/40">Enter a query to unlock multiverse intelligence</p>
+          <div className="text-center py-16">
+            <Search className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-500">Start searching to see results</p>
           </div>
         )}
 
+        {/* Results */}
         {!loading && searchData && (
-          <div className="space-y-6 animate-fade-in">
-            {/* Source Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {['all', 'web', 'news', 'research', 'social'].map((tab) => (
-                <Button
-                  key={tab}
-                  variant={activeTab === tab ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab(tab as any)}
-                  className={activeTab === tab 
-                    ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/50 border-0' 
-                    : 'bg-white/5 border-violet-400/30 text-violet-200 hover:bg-violet-500/20 hover:text-white'
-                  }
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </Button>
-              ))}
-            </div>
-
-            {/* AI Summary - Neon Glass Card */}
-            <Card className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 backdrop-blur-2xl border-violet-400/40 shadow-2xl shadow-violet-500/30 hover:shadow-violet-500/40 transition-all animate-scale-in">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/60 animate-pulse">
-                    <Sparkles className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-white text-lg">AI Fusion Summary</CardTitle>
-                    <CardDescription className="text-violet-200/70 text-sm">
-                      Synthesized from {searchData.results.length} sources • {searchData.query}
-                    </CardDescription>
-                  </div>
-                </div>
+          <div className="space-y-4">
+            {/* Main Result Card */}
+            <Card className="bg-white/90 backdrop-blur-sm border-violet-100 shadow-sm rounded-3xl overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-slate-900">{searchData.query}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <p className="text-violet-100 leading-relaxed whitespace-pre-wrap hover-citation">
-                    {searchData.summary}
-                  </p>
-                </div>
-                {searchData.results.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-violet-400/20">
-                    <p className="text-xs text-violet-300/60 flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                      Trust Score: High (verified from {searchData.results.length} reliable sources)
-                    </p>
-                  </div>
-                )}
+              <CardContent className="space-y-4">
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  {searchData.summary}
+                </p>
+                
+                {/* Ask AI Button */}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="w-full bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 rounded-xl"
+                  onClick={() => navigate('/chat-ai')}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Ask AI
+                </Button>
               </CardContent>
             </Card>
 
-            {/* Search Results - Neon Glass Cards */}
+            {/* Live Actions */}
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">Live Actions</h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <Button
+                  variant="outline"
+                  className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                  onClick={() => toast({ description: 'Booking feature coming soon!' })}
+                >
+                  Book
+                </Button>
+                <Button
+                  variant="outline"
+                  className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                  onClick={() => navigate('/capture')}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Scan
+                </Button>
+                <Button
+                  variant="outline"
+                  className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
+                  onClick={() => toast({ description: 'Install feature coming soon!' })}
+                >
+                  Install app
+                </Button>
+              </div>
+            </div>
+
+            {/* Sources */}
             {searchData.results.length > 0 && (
-              <div className="animate-fade-in">
-                <h3 className="text-xl font-semibold mb-5 text-white flex items-center gap-2">
-                  <span className="inline-block w-1 h-6 bg-gradient-to-b from-violet-400 to-purple-600 rounded-full" />
-                  Sources ({searchData.results.length})
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                  Sources: {searchData.results.map(r => r.source).join(', ')}
                 </h3>
-                <div className="grid gap-4">
+                <div className="space-y-3">
                   {searchData.results.map((result, index) => (
                     <Card 
-                      key={index} 
-                      className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 backdrop-blur-xl border-violet-400/30 hover:border-violet-400/60 shadow-lg shadow-violet-500/10 hover:shadow-violet-500/30 transition-all hover:scale-[1.02] cursor-pointer animate-scale-in"
-                      style={{ animationDelay: `${index * 0.05}s` }}
+                      key={index}
+                      className="bg-white/90 border-violet-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
                     >
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-3">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-500/30 text-violet-200 border border-violet-400/30">
-                                {result.source}
-                              </span>
-                            </div>
-                            <CardTitle className="text-base text-white line-clamp-2 group-hover:text-violet-200 transition-colors">
+                            <h4 className="font-medium text-slate-900 text-sm mb-1 line-clamp-2">
                               {result.title}
-                            </CardTitle>
+                            </h4>
+                            <p className="text-xs text-slate-500 mb-2">{result.source}</p>
+                            <p className="text-sm text-slate-600 line-clamp-2">
+                              {result.snippet}
+                            </p>
                           </div>
                           <Button
                             size="icon"
                             variant="ghost"
+                            className="shrink-0 h-8 w-8 text-slate-400 hover:text-violet-600"
                             onClick={() => window.open(result.url, '_blank')}
-                            className="text-violet-300 hover:text-white hover:bg-violet-500/20 shrink-0"
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-violet-200/70 line-clamp-3 leading-relaxed">
-                          {result.snippet}
-                        </p>
                       </CardContent>
                     </Card>
                   ))}
@@ -262,32 +230,43 @@ export default function AIBrowser() {
         )}
       </div>
 
-      {/* Floating Action Buttons - Holographic Style */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-30 animate-fade-in">
-        <Button
-          size="icon"
-          className="h-14 w-14 rounded-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 shadow-2xl shadow-pink-500/50 hover:shadow-pink-500/70 transition-all hover:scale-110 border-2 border-pink-400/30"
-          onClick={() => toast.info('Voice search coming soon!')}
-        >
-          <Mic className="h-6 w-6" />
-        </Button>
-        
-        <Button
-          size="icon"
-          className="h-14 w-14 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 shadow-2xl shadow-cyan-500/50 hover:shadow-cyan-500/70 transition-all hover:scale-110 border-2 border-cyan-400/30"
-          onClick={() => navigate('/capture')}
-        >
-          <ImageIcon className="h-6 w-6" />
-        </Button>
-
-        <Button
-          size="icon"
-          className="h-14 w-14 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-2xl shadow-violet-500/50 hover:shadow-violet-500/70 transition-all hover:scale-110 border-2 border-violet-400/30"
-          onClick={() => navigate('/chat-ai')}
-        >
-          <Sparkles className="h-6 w-6" />
-        </Button>
-      </div>
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-violet-100 px-6 py-3 z-50">
+        <div className="max-w-2xl mx-auto flex items-center justify-around">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-12 w-12 text-slate-600 hover:text-violet-600 hover:bg-transparent"
+            onClick={() => navigate('/')}
+          >
+            <Home className="h-6 w-6" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-12 w-12 text-violet-600 hover:text-violet-700 hover:bg-transparent relative"
+          >
+            <Search className="h-6 w-6" />
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-slate-900 rounded-full" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-12 w-12 text-slate-600 hover:text-violet-600 hover:bg-transparent"
+            onClick={() => navigate('/chat-ai')}
+          >
+            <Clock className="h-6 w-6" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-12 w-12 text-slate-600 hover:text-violet-600 hover:bg-transparent"
+            onClick={() => navigate('/profile')}
+          >
+            <User className="h-6 w-6" />
+          </Button>
+        </div>
+      </nav>
     </div>
   );
 }
