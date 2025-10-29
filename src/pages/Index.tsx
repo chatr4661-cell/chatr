@@ -24,7 +24,9 @@ import {
   Grid3x3,
   CheckCircle,
   Building2,
-  Share2
+  Share2,
+  Search,
+  Sparkles
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -293,6 +295,14 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
       route: '/chat',
       isNew: false
+    },
+    {
+      icon: Search,
+      title: 'AI Browser',
+      description: 'Search & AI assistant',
+      iconColor: 'bg-gradient-to-br from-violet-400 to-purple-600',
+      route: '/home',
+      isNew: true
     },
     {
       icon: Heart,
