@@ -118,6 +118,9 @@ import LocalDeals from "./pages/LocalDeals";
 import Referrals from "./pages/Referrals";
 import FameCam from "./pages/FameCam";
 import FameLeaderboard from "./pages/FameLeaderboard";
+import AIBrowser from "./pages/AIBrowser";
+import AIChat from "./pages/AIChat";
+import Capture from "./pages/Capture";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -222,6 +225,9 @@ const App = () => {
             
             {/* AI & Settings Routes */}
             <Route path="/ai-assistant" element={<AIAssistant />} />
+            <Route path="/home" element={<AIBrowser />} />
+            <Route path="/chat-ai" element={<AIChat />} />
+            <Route path="/capture" element={<Capture />} />
             <Route path="/account" element={<Account />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
