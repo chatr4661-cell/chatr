@@ -13,12 +13,23 @@ interface SearchResult {
   url: string;
   snippet: string;
   source: string;
+  category?: string;
+  thumbnail?: string;
 }
 
 interface SearchResponse {
   summary: string;
   results: SearchResult[];
+  allResults?: {
+    web: SearchResult[];
+    tech: SearchResult[];
+    social: SearchResult[];
+    research: SearchResult[];
+    all: SearchResult[];
+  };
   query: string;
+  searchTime?: number;
+  resultCount?: number;
 }
 
 export default function AIBrowser() {
@@ -29,16 +40,21 @@ export default function AIBrowser() {
   const [activeTab, setActiveTab] = useState<'all' | 'web' | 'news' | 'research' | 'social'>('all');
   const navigate = useNavigate();
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (query: string, category?: string) => {
     if (!query.trim()) {
       toast({ description: 'Please enter a search query', variant: 'destructive' });
       return;
     }
 
     setLoading(true);
+    const searchCategory = category || activeTab;
+    
     try {
       const { data, error } = await supabase.functions.invoke('ai-browser-search', {
-        body: { query: query.trim() }
+        body: { 
+          query: query.trim(),
+          category: searchCategory === 'news' ? 'web' : searchCategory
+        }
       });
 
       if (error) throw error;
@@ -49,7 +65,9 @@ export default function AIBrowser() {
       }
 
       setSearchData(data);
-      toast({ description: 'Search completed!' });
+      const time = data.searchTime ? `${data.searchTime}ms` : '';
+      const count = data.resultCount || 0;
+      toast({ description: `Found ${count} results ${time ? `in ${time}` : ''}` });
     } catch (error: any) {
       console.error('Search error:', error);
       toast({ description: 'Search failed. Please try again.', variant: 'destructive' });
@@ -95,23 +113,27 @@ export default function AIBrowser() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {[
-            { id: 'all', label: 'Web' },
-            { id: 'news', label: 'Chat' },
-            { id: 'research', label: 'Image' },
-            { id: 'social', label: 'News' }
+            { id: 'web', label: 'Web', icon: '🌐' },
+            { id: 'tech', label: 'Tech', icon: '💻' },
+            { id: 'social', label: 'Social', icon: '💬' },
+            { id: 'research', label: 'Research', icon: '📚' }
           ].map((tab) => (
             <Button
               key={tab.id}
               variant={activeTab === tab.id ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => {
+                setActiveTab(tab.id as any);
+                if (searchData) handleSearch(searchData.query, tab.id);
+              }}
               className={activeTab === tab.id 
-                ? 'bg-white text-slate-900 shadow-sm hover:bg-white rounded-xl px-4' 
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl px-4'
+                ? 'bg-white text-slate-900 shadow-sm hover:bg-white rounded-xl px-4 whitespace-nowrap' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl px-4 whitespace-nowrap'
               }
             >
+              <span className="mr-1">{tab.icon}</span>
               {tab.label}
             </Button>
           ))}
@@ -121,7 +143,8 @@ export default function AIBrowser() {
         {loading && (
           <div className="text-center py-16">
             <Loader2 className="h-10 w-10 mx-auto mb-3 animate-spin text-violet-500" />
-            <p className="text-slate-600">Searching...</p>
+            <p className="text-slate-600 font-medium">Deep multiverse search in progress...</p>
+            <p className="text-xs text-slate-500 mt-2">Querying GitHub, Stack Overflow, Reddit, arXiv, Wikipedia & more</p>
           </div>
         )}
 
@@ -191,9 +214,16 @@ export default function AIBrowser() {
             {/* Sources */}
             {searchData.results.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-slate-900 mb-3">
-                  Sources: {searchData.results.map(r => r.source).join(', ')}
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    {searchData.resultCount || searchData.results.length} sources • {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  </h3>
+                  {searchData.searchTime && (
+                    <span className="text-xs text-slate-500">
+                      {searchData.searchTime}ms
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-3">
                   {searchData.results.map((result, index) => (
                     <Card 
@@ -201,24 +231,45 @@ export default function AIBrowser() {
                       className="bg-white/90 border-violet-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
                     >
                       <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-slate-900 text-sm mb-1 line-clamp-2">
-                              {result.title}
-                            </h4>
-                            <p className="text-xs text-slate-500 mb-2">{result.source}</p>
-                            <p className="text-sm text-slate-600 line-clamp-2">
-                              {result.snippet}
-                            </p>
+                        <div className="flex items-start gap-3">
+                          {result.thumbnail && (
+                            <img 
+                              src={result.thumbnail} 
+                              alt=""
+                              className="w-12 h-12 rounded-lg object-cover shrink-0"
+                              onError={(e) => (e.currentTarget.style.display = 'none')}
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-slate-900 text-sm mb-1 line-clamp-2">
+                                  {result.title}
+                                </h4>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-xs font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded">
+                                    {result.source}
+                                  </span>
+                                  {result.category && (
+                                    <span className="text-xs text-slate-500">
+                                      {result.category}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-slate-600 line-clamp-3">
+                                  {result.snippet}
+                                </p>
+                              </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="shrink-0 h-8 w-8 text-slate-400 hover:text-violet-600"
+                                onClick={() => window.open(result.url, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="shrink-0 h-8 w-8 text-slate-400 hover:text-violet-600"
-                            onClick={() => window.open(result.url, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
                         </div>
                       </CardContent>
                     </Card>

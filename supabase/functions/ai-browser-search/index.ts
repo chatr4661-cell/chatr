@@ -10,68 +10,177 @@ interface SearchResult {
   url: string;
   snippet: string;
   source: string;
+  category?: string;
+  thumbnail?: string;
 }
 
-async function searchDuckDuckGo(query: string): Promise<SearchResult[]> {
+// Multi-source parallel search
+async function searchWeb(query: string): Promise<SearchResult[]> {
+  const results: SearchResult[] = [];
+  
   try {
-    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
-    const data = await response.json();
-    
-    const results: SearchResult[] = [];
-    if (data.RelatedTopics) {
-      for (const topic of data.RelatedTopics.slice(0, 3)) {
+    // DuckDuckGo
+    const ddgResponse = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
+    const ddgData = await ddgResponse.json();
+    if (ddgData.RelatedTopics) {
+      for (const topic of ddgData.RelatedTopics.slice(0, 5)) {
         if (topic.Text && topic.FirstURL) {
           results.push({
             title: topic.Text.split(' - ')[0] || topic.Text.substring(0, 100),
             url: topic.FirstURL,
             snippet: topic.Text,
-            source: 'DuckDuckGo'
+            source: 'DuckDuckGo',
+            category: 'web'
           });
         }
       }
     }
-    return results;
-  } catch (error) {
-    console.error('DuckDuckGo search error:', error);
-    return [];
+  } catch (e) {
+    console.error('DuckDuckGo error:', e);
   }
-}
 
-async function searchWikipedia(query: string): Promise<SearchResult[]> {
   try {
-    const response = await fetch(
+    // Wikipedia
+    const wikiResponse = await fetch(
       `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`
     );
-    const data = await response.json();
-    
-    const results: SearchResult[] = [];
-    if (data.query?.search) {
-      for (const item of data.query.search.slice(0, 2)) {
+    const wikiData = await wikiResponse.json();
+    if (wikiData.query?.search) {
+      for (const item of wikiData.query.search.slice(0, 3)) {
         results.push({
           title: item.title,
           url: `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title)}`,
           snippet: item.snippet.replace(/<[^>]*>/g, ''),
-          source: 'Wikipedia'
+          source: 'Wikipedia',
+          category: 'web'
         });
       }
     }
-    return results;
+  } catch (e) {
+    console.error('Wikipedia error:', e);
+  }
+
+  return results;
+}
+
+async function searchGitHub(query: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(
+      `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`,
+      { headers: { 'User-Agent': 'Chatr-Browser' } }
+    );
+    const data = await response.json();
+    
+    return (data.items || []).map((repo: any) => ({
+      title: repo.full_name,
+      url: repo.html_url,
+      snippet: repo.description || 'No description',
+      source: 'GitHub',
+      category: 'tech',
+      thumbnail: repo.owner.avatar_url
+    }));
   } catch (error) {
-    console.error('Wikipedia search error:', error);
+    console.error('GitHub search error:', error);
     return [];
   }
 }
 
-async function summarizeWithAI(query: string, results: SearchResult[]): Promise<string> {
+async function searchStackOverflow(query: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(
+      `https://api.stackexchange.com/2.3/search/advanced?q=${encodeURIComponent(query)}&order=desc&sort=relevance&site=stackoverflow`
+    );
+    const data = await response.json();
+    
+    return (data.items || []).slice(0, 5).map((item: any) => ({
+      title: item.title,
+      url: item.link,
+      snippet: item.body_markdown?.substring(0, 200) || 'Stack Overflow discussion',
+      source: 'Stack Overflow',
+      category: 'tech'
+    }));
+  } catch (error) {
+    console.error('Stack Overflow search error:', error);
+    return [];
+  }
+}
+
+async function searchReddit(query: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(
+      `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=5`,
+      { headers: { 'User-Agent': 'Chatr-Browser' } }
+    );
+    const data = await response.json();
+    
+    return (data.data?.children || []).map((post: any) => ({
+      title: post.data.title,
+      url: `https://reddit.com${post.data.permalink}`,
+      snippet: post.data.selftext?.substring(0, 200) || post.data.title,
+      source: 'Reddit',
+      category: 'social',
+      thumbnail: post.data.thumbnail !== 'self' ? post.data.thumbnail : undefined
+    }));
+  } catch (error) {
+    console.error('Reddit search error:', error);
+    return [];
+  }
+}
+
+async function searchArxiv(query: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(
+      `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=5`
+    );
+    const text = await response.text();
+    
+    const results: SearchResult[] = [];
+    const entries = text.match(/<entry>[\s\S]*?<\/entry>/g) || [];
+    
+    for (const entry of entries) {
+      const titleMatch = entry.match(/<title>(.*?)<\/title>/);
+      const summaryMatch = entry.match(/<summary>(.*?)<\/summary>/);
+      const linkMatch = entry.match(/<id>(.*?)<\/id>/);
+      
+      if (titleMatch && linkMatch) {
+        results.push({
+          title: titleMatch[1].trim(),
+          url: linkMatch[1].trim(),
+          snippet: summaryMatch ? summaryMatch[1].trim().substring(0, 200) : '',
+          source: 'arXiv',
+          category: 'research'
+        });
+      }
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('arXiv search error:', error);
+    return [];
+  }
+}
+
+async function generateAIFusionSummary(query: string, results: SearchResult[], category: string): Promise<string> {
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const context = results.map(r => 
-      `Source: ${r.source}\nTitle: ${r.title}\nContent: ${r.snippet}`
-    ).join('\n\n');
+    const context = results
+      .filter(r => r.snippet && r.snippet.length > 10)
+      .map(r => `[${r.source}] ${r.title}: ${r.snippet}`)
+      .join('\n\n');
+
+    const categoryPrompts: Record<string, string> = {
+      web: 'Provide a comprehensive, factual summary synthesizing information from multiple web sources. Include key facts, statistics, and insights.',
+      news: 'Summarize the latest news and developments. Focus on recent events, trends, and expert opinions.',
+      research: 'Provide an academic-style summary highlighting key research findings, methodologies, and scholarly insights.',
+      social: 'Summarize community discussions, public sentiment, and diverse perspectives from social platforms.',
+      tech: 'Focus on technical details, code examples, best practices, and developer insights.',
+    };
+
+    const systemPrompt = categoryPrompts[category] || categoryPrompts.web;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -84,28 +193,30 @@ async function summarizeWithAI(query: string, results: SearchResult[]): Promise<
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful AI assistant that provides concise, accurate summaries based on search results. Provide a clear, well-structured answer.'
+            content: `You are an advanced search intelligence system. ${systemPrompt} Be precise, cite sources naturally, and provide actionable insights. Format your response with clear paragraphs.`
           },
           {
             role: 'user',
-            content: `Based on these search results for "${query}":\n\n${context}\n\nProvide a comprehensive summary that answers the query.`
+            content: `Query: "${query}"\n\nSources:\n${context}\n\nProvide a detailed, intelligent summary that goes deeper than traditional search engines. Synthesize information across sources and provide unique insights.`
           }
         ],
-        max_tokens: 500,
+        max_tokens: 800,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI API error:', response.status, errorText);
+      if (response.status === 429) return 'Rate limit reached. Please try again in a moment.';
+      if (response.status === 402) return 'AI service requires payment. Please contact support.';
       throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
-    console.error('AI summarization error:', error);
-    throw error;
+    console.error('AI fusion error:', error);
+    return 'Unable to generate AI summary at this time. See results below.';
   }
 }
 
@@ -115,7 +226,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const { query, category = 'web' } = await req.json();
     
     if (!query || typeof query !== 'string') {
       return new Response(
@@ -124,36 +235,72 @@ serve(async (req) => {
       );
     }
 
-    console.log('Searching for:', query);
+    console.log(`Deep search: "${query}" [${category}]`);
 
-    // Search multiple sources in parallel
-    const [duckDuckGoResults, wikipediaResults] = await Promise.all([
-      searchDuckDuckGo(query),
-      searchWikipedia(query),
-    ]);
+    // Parallel multi-source search based on category
+    const searchPromises: Promise<SearchResult[]>[] = [searchWeb(query)];
+    
+    if (category === 'web' || category === 'all') {
+      searchPromises.push(
+        searchGitHub(query),
+        searchStackOverflow(query),
+        searchReddit(query)
+      );
+    }
+    
+    if (category === 'research') {
+      searchPromises.push(searchArxiv(query));
+    }
+    
+    if (category === 'social') {
+      searchPromises.push(searchReddit(query));
+    }
+    
+    if (category === 'tech') {
+      searchPromises.push(
+        searchGitHub(query),
+        searchStackOverflow(query)
+      );
+    }
 
-    const allResults = [...duckDuckGoResults, ...wikipediaResults];
+    const startTime = Date.now();
+    const resultsArrays = await Promise.all(searchPromises);
+    const allResults = resultsArrays.flat();
+    const searchTime = Date.now() - startTime;
 
-    console.log('Found results:', allResults.length);
+    console.log(`Found ${allResults.length} results in ${searchTime}ms`);
 
-    // Generate AI summary
+    // Categorize results
+    const categorized = {
+      web: allResults.filter(r => r.category === 'web'),
+      tech: allResults.filter(r => r.category === 'tech'),
+      social: allResults.filter(r => r.category === 'social'),
+      research: allResults.filter(r => r.category === 'research'),
+      all: allResults
+    };
+
+    // Generate AI fusion summary
     let summary = '';
     if (allResults.length > 0) {
       try {
-        summary = await summarizeWithAI(query, allResults);
+        summary = await generateAIFusionSummary(query, allResults, category);
       } catch (error) {
-        console.error('Summary generation failed:', error);
-        summary = 'Unable to generate AI summary at this time.';
+        console.error('AI fusion failed:', error);
+        summary = 'Search completed. See results below.';
       }
     } else {
-      summary = 'No results found for your query.';
+      summary = 'No results found. Try rephrasing your query or selecting a different category.';
     }
 
     return new Response(
       JSON.stringify({
         summary,
-        results: allResults,
+        results: categorized[category as keyof typeof categorized] || allResults,
+        allResults: categorized,
         query,
+        category,
+        searchTime,
+        resultCount: allResults.length
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
