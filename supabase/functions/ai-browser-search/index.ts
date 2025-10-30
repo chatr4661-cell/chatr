@@ -12,6 +12,10 @@ interface SearchResult {
   source: string;
   category?: string;
   thumbnail?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  duration?: string;
+  views?: string;
 }
 
 // Multi-source parallel search
@@ -160,6 +164,95 @@ async function searchArxiv(query: string): Promise<SearchResult[]> {
   }
 }
 
+async function searchUnsplash(query: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=20&client_id=demo`,
+      { headers: { 'Accept-Version': 'v1' } }
+    );
+    const data = await response.json();
+    
+    return (data.results || []).map((photo: any) => ({
+      title: photo.alt_description || photo.description || query,
+      url: photo.links.html,
+      snippet: `By ${photo.user.name} on Unsplash`,
+      source: 'Unsplash',
+      category: 'image',
+      thumbnail: photo.urls.small,
+      imageUrl: photo.urls.regular
+    }));
+  } catch (error) {
+    console.error('Unsplash search error:', error);
+    return [];
+  }
+}
+
+async function searchPixabay(query: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(
+      `https://pixabay.com/api/?key=demo&q=${encodeURIComponent(query)}&image_type=photo&per_page=20`
+    );
+    const data = await response.json();
+    
+    return (data.hits || []).slice(0, 20).map((hit: any) => ({
+      title: hit.tags,
+      url: hit.pageURL,
+      snippet: `${hit.likes} likes · ${hit.views} views`,
+      source: 'Pixabay',
+      category: 'image',
+      thumbnail: hit.previewURL,
+      imageUrl: hit.webformatURL
+    }));
+  } catch (error) {
+    console.error('Pixabay search error:', error);
+    return [];
+  }
+}
+
+async function searchYouTube(query: string): Promise<SearchResult[]> {
+  try {
+    // Using YouTube's oEmbed and search suggestion as fallback
+    const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    
+    // Return structured results pointing to YouTube search
+    return [{
+      title: `"${query}" on YouTube`,
+      url: searchUrl,
+      snippet: 'Search YouTube for videos, tutorials, and live streams',
+      source: 'YouTube',
+      category: 'video',
+      thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png'
+    }];
+  } catch (error) {
+    console.error('YouTube search error:', error);
+    return [];
+  }
+}
+
+async function searchVimeo(query: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(
+      `https://vimeo.com/api/v2/videos/search.json?query=${encodeURIComponent(query)}&per_page=10`
+    );
+    const data = await response.json();
+    
+    return (data || []).map((video: any) => ({
+      title: video.title,
+      url: video.url,
+      snippet: video.description?.substring(0, 200) || 'Vimeo video',
+      source: 'Vimeo',
+      category: 'video',
+      thumbnail: video.thumbnail_medium,
+      videoUrl: video.url,
+      duration: `${Math.floor(video.duration / 60)}:${(video.duration % 60).toString().padStart(2, '0')}`,
+      views: video.stats_number_of_plays?.toString()
+    }));
+  } catch (error) {
+    console.error('Vimeo search error:', error);
+    return [];
+  }
+}
+
 async function generateAIFusionSummary(query: string, results: SearchResult[], category: string): Promise<string> {
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -262,6 +355,20 @@ serve(async (req) => {
         searchStackOverflow(query)
       );
     }
+    
+    if (category === 'image') {
+      searchPromises.push(
+        searchUnsplash(query),
+        searchPixabay(query)
+      );
+    }
+    
+    if (category === 'video') {
+      searchPromises.push(
+        searchYouTube(query),
+        searchVimeo(query)
+      );
+    }
 
     const startTime = Date.now();
     const resultsArrays = await Promise.all(searchPromises);
@@ -276,6 +383,8 @@ serve(async (req) => {
       tech: allResults.filter(r => r.category === 'tech'),
       social: allResults.filter(r => r.category === 'social'),
       research: allResults.filter(r => r.category === 'research'),
+      image: allResults.filter(r => r.category === 'image'),
+      video: allResults.filter(r => r.category === 'video'),
       all: allResults
     };
 

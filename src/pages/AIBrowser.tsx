@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Sparkles, Camera, Loader2, ExternalLink, Mic, Image as ImageIcon, Home, User, Clock, Plus } from 'lucide-react';
+import { Search, Sparkles, Camera, Loader2, ExternalLink, Mic, Image as ImageIcon, Home, User, Clock, Plus, Globe, Code, Users, GraduationCap, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,10 @@ interface SearchResult {
   source: string;
   category?: string;
   thumbnail?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  duration?: string;
+  views?: string;
 }
 
 interface SearchResponse {
@@ -25,6 +29,8 @@ interface SearchResponse {
     tech: SearchResult[];
     social: SearchResult[];
     research: SearchResult[];
+    image: SearchResult[];
+    video: SearchResult[];
     all: SearchResult[];
   };
   query: string;
@@ -37,7 +43,7 @@ export default function AIBrowser() {
   const [aiQuery, setAiQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchData, setSearchData] = useState<SearchResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'web' | 'news' | 'research' | 'social'>('all');
+  const [activeTab, setActiveTab] = useState<'web' | 'image' | 'video' | 'tech' | 'social' | 'research'>('web');
   const navigate = useNavigate();
 
   const handleSearch = async (query: string, category?: string) => {
@@ -53,7 +59,7 @@ export default function AIBrowser() {
       const { data, error } = await supabase.functions.invoke('ai-browser-search', {
         body: { 
           query: query.trim(),
-          category: searchCategory === 'news' ? 'web' : searchCategory
+          category: searchCategory
         }
       });
 
@@ -115,28 +121,33 @@ export default function AIBrowser() {
         {/* Tab Navigation */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {[
-            { id: 'web', label: 'Web', icon: '🌐' },
-            { id: 'tech', label: 'Tech', icon: '💻' },
-            { id: 'social', label: 'Social', icon: '💬' },
-            { id: 'research', label: 'Research', icon: '📚' }
-          ].map((tab) => (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => {
-                setActiveTab(tab.id as any);
-                if (searchData) handleSearch(searchData.query, tab.id);
-              }}
-              className={activeTab === tab.id 
-                ? 'bg-white text-slate-900 shadow-sm hover:bg-white rounded-xl px-4 whitespace-nowrap' 
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl px-4 whitespace-nowrap'
-              }
-            >
-              <span className="mr-1">{tab.icon}</span>
-              {tab.label}
-            </Button>
-          ))}
+            { id: 'web', label: 'Web', icon: Globe },
+            { id: 'image', label: 'Images', icon: ImageIcon },
+            { id: 'video', label: 'Videos', icon: Video },
+            { id: 'tech', label: 'Tech', icon: Code },
+            { id: 'social', label: 'Social', icon: Users },
+            { id: 'research', label: 'Research', icon: GraduationCap }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <Button
+                key={tab.id}
+                variant={activeTab === tab.id ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => {
+                  setActiveTab(tab.id as any);
+                  if (searchData) handleSearch(searchData.query, tab.id);
+                }}
+                className={activeTab === tab.id 
+                  ? 'bg-white text-slate-900 shadow-sm hover:bg-white rounded-xl px-4 whitespace-nowrap' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl px-4 whitespace-nowrap'
+                }
+              >
+                <Icon className="h-4 w-4 mr-1" />
+                {tab.label}
+              </Button>
+            );
+          })}
         </div>
 
         {/* Loading State */}
@@ -224,53 +235,89 @@ export default function AIBrowser() {
                     </span>
                   )}
                 </div>
-                <div className="space-y-3">
+                <div className={activeTab === 'image' ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
                   {searchData.results.map((result, index) => (
                     <Card 
                       key={index}
                       className="bg-white/90 border-violet-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          {result.thumbnail && (
+                      <CardContent className={activeTab === 'image' ? 'p-2' : 'p-4'}>
+                        {activeTab === 'image' ? (
+                          <a href={result.url} target="_blank" rel="noopener noreferrer" className="block">
                             <img 
-                              src={result.thumbnail} 
-                              alt=""
-                              className="w-12 h-12 rounded-lg object-cover shrink-0"
-                              onError={(e) => (e.currentTarget.style.display = 'none')}
+                              src={result.imageUrl || result.thumbnail} 
+                              alt={result.title}
+                              className="w-full aspect-square rounded-lg object-cover mb-2"
                             />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-slate-900 text-sm mb-1 line-clamp-2">
-                                  {result.title}
-                                </h4>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-xs font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded">
-                                    {result.source}
-                                  </span>
-                                  {result.category && (
-                                    <span className="text-xs text-slate-500">
-                                      {result.category}
-                                    </span>
-                                  )}
+                            <p className="text-xs text-slate-700 line-clamp-1 font-medium px-1">
+                              {result.title}
+                            </p>
+                            <p className="text-xs text-violet-600 px-1">{result.source}</p>
+                          </a>
+                        ) : activeTab === 'video' ? (
+                          <a href={result.url} target="_blank" rel="noopener noreferrer" className="block">
+                            <div className="relative mb-2">
+                              <img 
+                                src={result.thumbnail} 
+                                alt={result.title}
+                                className="w-full aspect-video rounded-lg object-cover"
+                              />
+                              {result.duration && (
+                                <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                                  {result.duration}
                                 </div>
-                                <p className="text-sm text-slate-600 line-clamp-3">
-                                  {result.snippet}
-                                </p>
+                              )}
+                            </div>
+                            <h4 className="text-sm font-medium text-slate-900 line-clamp-2 mb-1">
+                              {result.title}
+                            </h4>
+                            <p className="text-xs text-violet-600">
+                              {result.source}
+                              {result.views && ` • ${result.views} views`}
+                            </p>
+                          </a>
+                        ) : (
+                          <div className="flex items-start gap-3">
+                            {result.thumbnail && (
+                              <img 
+                                src={result.thumbnail} 
+                                alt=""
+                                className="w-12 h-12 rounded-lg object-cover shrink-0"
+                                onError={(e) => (e.currentTarget.style.display = 'none')}
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-slate-900 text-sm mb-1 line-clamp-2">
+                                    {result.title}
+                                  </h4>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-xs font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded">
+                                      {result.source}
+                                    </span>
+                                    {result.category && (
+                                      <span className="text-xs text-slate-500">
+                                        {result.category}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-slate-600 line-clamp-3">
+                                    {result.snippet}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="shrink-0 h-8 w-8 text-slate-400 hover:text-violet-600"
+                                  onClick={() => window.open(result.url, '_blank')}
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
                               </div>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="shrink-0 h-8 w-8 text-slate-400 hover:text-violet-600"
-                                onClick={() => window.open(result.url, '_blank')}
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
