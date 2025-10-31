@@ -813,6 +813,28 @@ const ChatEnhancedContent = () => {
             lastMessage={displayMessages.length > 0 && displayMessages[displayMessages.length - 1].sender_id !== user.id 
               ? displayMessages[displayMessages.length - 1].content 
               : undefined}
+            conversationContext={displayMessages.slice(-5).map(m => m.content)}
+            onAIAction={async (action) => {
+              if (action === 'smart_reply') {
+                if (displayMessages.length > 0) {
+                  const lastMsg = displayMessages[displayMessages.length - 1];
+                  if (lastMsg.sender_id !== user?.id) {
+                    await generateSmartReplies(lastMsg.content, displayMessages.slice(-5));
+                    setShowSmartReplies(true);
+                  } else {
+                    toast.info('Smart replies work on received messages');
+                  }
+                }
+              } else if (action === 'summarize') {
+                await generateSummary(displayMessages, 'brief');
+                setShowSummary(true);
+              } else if (action === 'translate') {
+                toast.info('Translation feature coming soon!');
+              } else if (action === 'extract_action') {
+                await analyzeMessages(displayMessages, 'topics');
+                setShowInsights(true);
+              }
+            }}
           />
         </>
       ) : (

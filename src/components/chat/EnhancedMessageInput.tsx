@@ -24,6 +24,8 @@ interface EnhancedMessageInputProps {
   replyTo?: { id: string; content: string; sender: string } | null;
   onCancelReply?: () => void;
   lastMessage?: string;
+  conversationContext?: string[];
+  onAIAction?: (action: any) => void;
 }
 
 export const EnhancedMessageInput = ({ 
@@ -31,7 +33,9 @@ export const EnhancedMessageInput = ({
   disabled,
   replyTo,
   onCancelReply,
-  lastMessage
+  lastMessage,
+  conversationContext,
+  onAIAction
 }: EnhancedMessageInputProps) => {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
