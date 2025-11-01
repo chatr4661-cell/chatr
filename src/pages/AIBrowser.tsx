@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, Sparkles, Camera, Loader2, ExternalLink, Mic, Image as ImageIcon, Home, User, Clock, Plus, Globe, Code, Users, GraduationCap, Video } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Search, Sparkles, Camera, Loader2, ExternalLink, Mic, Image as ImageIcon, Home, User, Clock, Plus, Globe, Code, Users, GraduationCap, Video, MessageSquare, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 interface SearchResult {
   title: string;
@@ -38,13 +39,26 @@ interface SearchResponse {
   resultCount?: number;
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export default function AIBrowser() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [aiQuery, setAiQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchData, setSearchData] = useState<SearchResponse | null>(null);
   const [activeTab, setActiveTab] = useState<'web' | 'image' | 'video' | 'tech' | 'social' | 'research'>('web');
+  const [chatMode, setChatMode] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   const handleSearch = async (query: string, category?: string) => {
     if (!query.trim()) {
@@ -82,41 +96,166 @@ export default function AIBrowser() {
     }
   };
 
+  const handleChatSend = async () => {
+    if (!chatInput.trim()) return;
+
+    const userMessage: ChatMessage = { role: 'user', content: chatInput };
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-smart-reply', {
+        body: { 
+          message: chatInput,
+          context: chatMessages.map(m => `${m.role}: ${m.content}`).join('\n')
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.reply) {
+        const assistantMessage: ChatMessage = { 
+          role: 'assistant', 
+          content: data.reply 
+        };
+        setChatMessages(prev => [...prev, assistantMessage]);
+      }
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      toast({ description: 'Chat failed. Please try again.', variant: 'destructive' });
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-violet-50 via-purple-50 to-pink-50 pb-20">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 px-4 py-3">
+      <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 px-4 py-3 sticky top-0 z-40">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-900">Chatr.AI</h1>
-          <Avatar className="h-9 w-9 border-2 border-violet-200">
-            <AvatarImage src="" />
-            <AvatarFallback className="bg-gradient-to-br from-violet-400 to-purple-500 text-white text-sm">U</AvatarFallback>
-          </Avatar>
+          <h1 className="text-xl font-bold text-slate-900">Chatr.AI Browser</h1>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant={chatMode ? 'default' : 'ghost'}
+              onClick={() => setChatMode(!chatMode)}
+              className="rounded-xl"
+            >
+              {chatMode ? <Search className="h-4 w-4 mr-1" /> : <MessageSquare className="h-4 w-4 mr-1" />}
+              {chatMode ? 'Search' : 'Chat'}
+            </Button>
+            <Avatar className="h-9 w-9 border-2 border-violet-200">
+              <AvatarImage src="" />
+              <AvatarFallback className="bg-gradient-to-br from-violet-400 to-purple-500 text-white text-sm">U</AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-          <Input
-            type="text"
-            placeholder="Search or ask anything..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-            className="pl-11 pr-12 h-12 bg-white/90 border-slate-200 rounded-2xl text-base placeholder:text-slate-400 focus:border-violet-300 focus:ring-violet-200"
-            disabled={loading}
-          />
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 text-slate-500 hover:text-violet-600"
-            onClick={() => toast({ description: 'Voice search coming soon!' })}
-          >
-            <Mic className="h-5 w-5" />
-          </Button>
-        </div>
+        {/* Chat Mode */}
+        {chatMode ? (
+          <div className="space-y-4">
+            {/* Chat Messages */}
+            <div className="bg-white/90 backdrop-blur-sm border border-violet-100 rounded-3xl p-4 min-h-[60vh] max-h-[60vh] overflow-y-auto space-y-3">
+              {chatMessages.length === 0 ? (
+                <div className="text-center py-16">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-3 text-violet-300" />
+                  <p className="text-slate-500 font-medium">Ask me anything!</p>
+                  <p className="text-xs text-slate-400 mt-2">Powered by Lovable AI</p>
+                </div>
+              ) : (
+                <>
+                  {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-4 py-2 ${
+                        msg.role === 'user' 
+                          ? 'bg-violet-500 text-white' 
+                          : 'bg-slate-100 text-slate-900'
+                      }`}>
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-slate-100 rounded-2xl px-4 py-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </>
+              )}
+            </div>
+
+            {/* Chat Input */}
+            <div className="bg-white/90 backdrop-blur-sm border border-violet-100 rounded-2xl p-3 flex items-end gap-2">
+              <Textarea
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleChatSend();
+                  }
+                }}
+                placeholder="Type your message..."
+                className="flex-1 min-h-[40px] max-h-[120px] resize-none border-0 focus-visible:ring-0 bg-transparent"
+                disabled={chatLoading}
+              />
+              <Button
+                size="icon"
+                onClick={handleChatSend}
+                disabled={chatLoading || !chatInput.trim()}
+                className="shrink-0 h-10 w-10 rounded-xl bg-violet-500 hover:bg-violet-600"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Quick Actions for Chat */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {['Summarize web search', 'Latest tech news', 'Explain quantum computing', 'Random fact'].map((prompt) => (
+                <Button
+                  key={prompt}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setChatInput(prompt);
+                    setTimeout(() => handleChatSend(), 100);
+                  }}
+                  className="bg-white border-violet-200 text-slate-700 hover:bg-violet-50 rounded-xl whitespace-nowrap"
+                >
+                  {prompt}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search or ask anything..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+                className="pl-11 pr-12 h-12 bg-white/90 border-slate-200 rounded-2xl text-base placeholder:text-slate-400 focus:border-violet-300 focus:ring-violet-200"
+                disabled={loading}
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 text-slate-500 hover:text-violet-600"
+                onClick={() => toast({ description: 'Voice search coming soon!' })}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+            </div>
 
         {/* Tab Navigation */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -326,6 +465,8 @@ export default function AIBrowser() {
             )}
           </div>
         )}
+        </>
+        )}
       </div>
 
       {/* Bottom Navigation */}
@@ -335,7 +476,7 @@ export default function AIBrowser() {
             variant="ghost"
             size="icon"
             className="h-12 w-12 text-slate-600 hover:text-violet-600 hover:bg-transparent"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/chat')}
           >
             <Home className="h-6 w-6" />
           </Button>
@@ -345,15 +486,15 @@ export default function AIBrowser() {
             className="h-12 w-12 text-violet-600 hover:text-violet-700 hover:bg-transparent relative"
           >
             <Search className="h-6 w-6" />
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-slate-900 rounded-full" />
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-violet-600 rounded-full" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             className="h-12 w-12 text-slate-600 hover:text-violet-600 hover:bg-transparent"
-            onClick={() => navigate('/chat-ai')}
+            onClick={() => setChatMode(!chatMode)}
           >
-            <Clock className="h-6 w-6" />
+            <MessageSquare className="h-6 w-6" />
           </Button>
           <Button
             variant="ghost"
