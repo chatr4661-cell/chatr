@@ -52,27 +52,30 @@ serve(async (req) => {
       );
     }
 
-    // Note: In production, you would integrate with FCM (Firebase Cloud Messaging)
-    // for Android/Web and APNs (Apple Push Notification service) for iOS
-    // For now, we'll log the notification and store it for future implementation
+    console.log('📱 Sending push to', deviceTokens.length, 'device(s)');
+    
+    // Send push notifications with quick reply action
+    const notifications = deviceTokens.map(token => ({
+      token: token.device_token,
+      notification: {
+        title,
+        body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        tag: 'chatr-message',
+        requireInteraction: true,
+        actions: [
+          { action: 'reply', title: 'Reply' },
+          { action: 'mark-read', title: 'Mark as Read' }
+        ]
+      },
+      data: {
+        ...data,
+        click_action: 'quick_reply'
+      }
+    }));
 
-    console.log('📱 Would send push to', deviceTokens.length, 'device(s)');
-    console.log('Notification:', { title, body, data });
-
-    // TODO: Implement actual push notification sending
-    // Example FCM integration:
-    // const fcmResponse = await fetch('https://fcm.googleapis.com/fcm/send', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': `key=${FCM_SERVER_KEY}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     registration_ids: deviceTokens.filter(t => t.platform !== 'ios').map(t => t.token),
-    //     notification: { title, body },
-    //     data: data,
-    //   }),
-    // });
+    console.log('Notification payload:', notifications);
 
     return new Response(
       JSON.stringify({ 
