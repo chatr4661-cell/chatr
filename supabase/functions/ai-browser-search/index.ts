@@ -18,23 +18,65 @@ interface SearchResult {
   views?: string;
 }
 
-// Multi-source parallel search
-async function searchWeb(query: string): Promise<SearchResult[]> {
+// Brave Search API (has generous free tier)
+async function searchBrave(query: string): Promise<SearchResult[]> {
+  try {
+    // Using Brave's public search (no API key needed for basic search)
+    const response = await fetch(
+      `https://search.brave.com/search?q=${encodeURIComponent(query)}&source=web`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ChatrBot/1.0)',
+          'Accept': 'text/html'
+        },
+        signal: AbortSignal.timeout(3000) // 3 second timeout
+      }
+    );
+    
+    if (!response.ok) throw new Error('Brave search failed');
+    
+    // For now, return empty as we'd need to parse HTML
+    // In production, you'd add BRAVE_API_KEY to secrets for proper API access
+    return [];
+  } catch (e) {
+    console.error('Brave search error:', e);
+    return [];
+  }
+}
+
+// DuckDuckGo Instant Answer API
+async function searchDuckDuckGo(query: string): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
   
   try {
-    // DuckDuckGo
-    const ddgResponse = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
-    const ddgData = await ddgResponse.json();
-    if (ddgData.RelatedTopics) {
-      for (const topic of ddgData.RelatedTopics.slice(0, 5)) {
+    const response = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const data = await response.json();
+    
+    // Abstract
+    if (data.Abstract) {
+      results.push({
+        title: data.Heading || query,
+        url: data.AbstractURL,
+        snippet: data.Abstract,
+        source: 'DuckDuckGo',
+        category: 'web'
+      });
+    }
+    
+    // Related Topics
+    if (data.RelatedTopics) {
+      for (const topic of data.RelatedTopics.slice(0, 5)) {
         if (topic.Text && topic.FirstURL) {
           results.push({
             title: topic.Text.split(' - ')[0] || topic.Text.substring(0, 100),
             url: topic.FirstURL,
             snippet: topic.Text,
             source: 'DuckDuckGo',
-            category: 'web'
+            category: 'web',
+            thumbnail: topic.Icon?.URL
           });
         }
       }
@@ -43,42 +85,50 @@ async function searchWeb(query: string): Promise<SearchResult[]> {
     console.error('DuckDuckGo error:', e);
   }
 
+  return results;
+}
+
+// Wikipedia API
+async function searchWikipedia(query: string): Promise<SearchResult[]> {
   try {
-    // Wikipedia
-    const wikiResponse = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`
+    const response = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=8`,
+      { signal: AbortSignal.timeout(5000) }
     );
-    const wikiData = await wikiResponse.json();
-    if (wikiData.query?.search) {
-      for (const item of wikiData.query.search.slice(0, 3)) {
-        results.push({
-          title: item.title,
-          url: `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title)}`,
-          snippet: item.snippet.replace(/<[^>]*>/g, ''),
-          source: 'Wikipedia',
-          category: 'web'
-        });
-      }
+    const data = await response.json();
+    
+    if (data.query?.search) {
+      return data.query.search.map((item: any) => ({
+        title: item.title,
+        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title)}`,
+        snippet: item.snippet.replace(/<[^>]*>/g, ''),
+        source: 'Wikipedia',
+        category: 'web'
+      }));
     }
   } catch (e) {
     console.error('Wikipedia error:', e);
   }
-
-  return results;
+  
+  return [];
 }
 
+// GitHub Search API
 async function searchGitHub(query: string): Promise<SearchResult[]> {
   try {
     const response = await fetch(
-      `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`,
-      { headers: { 'User-Agent': 'Chatr-Browser' } }
+      `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=8`,
+      { 
+        headers: { 'User-Agent': 'Chatr-Browser' },
+        signal: AbortSignal.timeout(5000)
+      }
     );
     const data = await response.json();
     
     return (data.items || []).map((repo: any) => ({
       title: repo.full_name,
       url: repo.html_url,
-      snippet: repo.description || 'No description',
+      snippet: repo.description || 'No description available',
       source: 'GitHub',
       category: 'tech',
       thumbnail: repo.owner.avatar_url
@@ -89,17 +139,19 @@ async function searchGitHub(query: string): Promise<SearchResult[]> {
   }
 }
 
+// Stack Overflow Search
 async function searchStackOverflow(query: string): Promise<SearchResult[]> {
   try {
     const response = await fetch(
-      `https://api.stackexchange.com/2.3/search/advanced?q=${encodeURIComponent(query)}&order=desc&sort=relevance&site=stackoverflow`
+      `https://api.stackexchange.com/2.3/search/advanced?q=${encodeURIComponent(query)}&order=desc&sort=relevance&site=stackoverflow&pagesize=8`,
+      { signal: AbortSignal.timeout(5000) }
     );
     const data = await response.json();
     
-    return (data.items || []).slice(0, 5).map((item: any) => ({
+    return (data.items || []).map((item: any) => ({
       title: item.title,
       url: item.link,
-      snippet: item.body_markdown?.substring(0, 200) || 'Stack Overflow discussion',
+      snippet: (item.body_markdown?.substring(0, 200) || 'Stack Overflow discussion') + '...',
       source: 'Stack Overflow',
       category: 'tech'
     }));
@@ -109,21 +161,25 @@ async function searchStackOverflow(query: string): Promise<SearchResult[]> {
   }
 }
 
+// Reddit Search
 async function searchReddit(query: string): Promise<SearchResult[]> {
   try {
     const response = await fetch(
-      `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=5`,
-      { headers: { 'User-Agent': 'Chatr-Browser' } }
+      `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=8&sort=relevance`,
+      { 
+        headers: { 'User-Agent': 'Chatr-Browser' },
+        signal: AbortSignal.timeout(5000)
+      }
     );
     const data = await response.json();
     
     return (data.data?.children || []).map((post: any) => ({
       title: post.data.title,
       url: `https://reddit.com${post.data.permalink}`,
-      snippet: post.data.selftext?.substring(0, 200) || post.data.title,
+      snippet: (post.data.selftext?.substring(0, 200) || post.data.title) + '...',
       source: 'Reddit',
       category: 'social',
-      thumbnail: post.data.thumbnail !== 'self' ? post.data.thumbnail : undefined
+      thumbnail: post.data.thumbnail !== 'self' && post.data.thumbnail?.startsWith('http') ? post.data.thumbnail : undefined
     }));
   } catch (error) {
     console.error('Reddit search error:', error);
@@ -131,10 +187,12 @@ async function searchReddit(query: string): Promise<SearchResult[]> {
   }
 }
 
+// arXiv Research Papers
 async function searchArxiv(query: string): Promise<SearchResult[]> {
   try {
     const response = await fetch(
-      `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=5`
+      `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=8`,
+      { signal: AbortSignal.timeout(6000) }
     );
     const text = await response.text();
     
@@ -148,9 +206,9 @@ async function searchArxiv(query: string): Promise<SearchResult[]> {
       
       if (titleMatch && linkMatch) {
         results.push({
-          title: titleMatch[1].trim(),
+          title: titleMatch[1].trim().replace(/\n/g, ' '),
           url: linkMatch[1].trim(),
-          snippet: summaryMatch ? summaryMatch[1].trim().substring(0, 200) : '',
+          snippet: summaryMatch ? summaryMatch[1].trim().substring(0, 200) + '...' : '',
           source: 'arXiv',
           category: 'research'
         });
@@ -347,18 +405,19 @@ serve(async (req) => {
     const cleanQuery = query.trim();
     console.log(`🔍 Search: "${cleanQuery}" [${category}]`);
 
-    // Parallel multi-source search
-    const searchPromises: Promise<SearchResult[]>[] = [];
+    // Ultra-fast parallel search across ALL sources
+    const searchPromises: Promise<SearchResult[]>[] = [
+      searchDuckDuckGo(cleanQuery),
+      searchWikipedia(cleanQuery),
+    ];
     
-    // Always search web sources
-    searchPromises.push(searchWeb(cleanQuery));
-    
-    // Add category-specific searches
+    // Add category-specific searches in parallel
     if (category === 'web' || category === 'all') {
       searchPromises.push(
         searchGitHub(cleanQuery),
         searchStackOverflow(cleanQuery),
-        searchReddit(cleanQuery)
+        searchReddit(cleanQuery),
+        searchBrave(cleanQuery)
       );
     } else if (category === 'research') {
       searchPromises.push(searchArxiv(cleanQuery));
@@ -382,12 +441,15 @@ serve(async (req) => {
     }
 
     const startTime = Date.now();
+    
+    // Use Promise.allSettled for resilience - don't fail if one source fails
     const resultsArrays = await Promise.allSettled(searchPromises);
     
     // Collect successful results
     const allResults = resultsArrays
       .filter(r => r.status === 'fulfilled')
-      .flatMap(r => (r as PromiseFulfilledResult<SearchResult[]>).value);
+      .flatMap(r => (r as PromiseFulfilledResult<SearchResult[]>).value)
+      .filter(r => r && r.title && r.url); // Filter out invalid results
     
     const searchTime = Date.now() - startTime;
 
