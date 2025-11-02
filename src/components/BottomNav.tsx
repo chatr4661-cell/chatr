@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { MessageCircle, Phone, Users, Circle, User } from 'lucide-react';
+import { MessageCircle, Phone, Users, Circle, User, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 
 const navItems = [
+  { name: 'Browser', path: '/home', icon: Globe, highlight: true },
   { name: 'Chats', path: '/chat', icon: MessageCircle, highlight: false },
   { name: 'Calls', path: '/call-history', icon: Phone, highlight: false },
   { name: 'People', path: '/contacts', icon: Users, highlight: false },
   { name: 'Updates', path: '/stories', icon: Circle, highlight: false },
-  { name: 'Settings', path: '/account', icon: User, highlight: false },
 ];
 
 export const BottomNav = () => {

@@ -11,11 +11,75 @@ serve(async (req) => {
   }
 
   try {
-    const { lastMessage, context = [], replyCount = 3, tone, action } = await req.json();
+    const { lastMessage, message, context = [], replyCount = 3, tone, action } = await req.json();
+    const userMessage = message || lastMessage;
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
+    }
+
+    // Handle chat mode (direct AI conversation)
+    if (message && !action) {
+      const messages = [];
+      
+      // Add context as conversation history
+      if (context.length > 0) {
+        context.forEach((msg: string) => {
+          const [role, ...contentParts] = msg.split(': ');
+          messages.push({
+            role: role.toLowerCase() === 'user' ? 'user' : 'assistant',
+            content: contentParts.join(': ')
+          });
+        });
+      }
+      
+      // Add current user message
+      messages.push({ role: 'user', content: userMessage });
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You are a helpful AI assistant. Provide clear, concise, and friendly responses. Keep answers under 200 words unless specifically asked for more detail.'
+            },
+            ...messages
+          ]
+        }),
+      });
+
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI credits depleted. Please add funds to continue.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const reply = data.choices[0]?.message?.content;
+
+      return new Response(
+        JSON.stringify({ reply }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Handle different AI actions
@@ -40,7 +104,7 @@ serve(async (req) => {
               role: 'system', 
               content: `${tonePrompts[tone as keyof typeof tonePrompts]}. Return only the improved message without explanations.` 
             },
-            { role: 'user', content: lastMessage }
+            { role: 'user', content: userMessage }
           ]
         }),
       });
@@ -85,7 +149,7 @@ Return ONLY a JSON array of replies with this exact format:
 
 Do not include any other text or formatting.`
           },
-          { role: 'user', content: `Last message: "${lastMessage}"${contextStr}` }
+          { role: 'user', content: `Last message: "${userMessage}"${contextStr}` }
         ]
       }),
     });
