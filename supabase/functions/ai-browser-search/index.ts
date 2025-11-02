@@ -257,20 +257,29 @@ async function generateAIFusionSummary(query: string, results: SearchResult[], c
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+      console.error('LOVABLE_API_KEY not configured');
+      return 'AI summary unavailable. See search results below.';
     }
 
-    const context = results
-      .filter(r => r.snippet && r.snippet.length > 10)
-      .map(r => `[${r.source}] ${r.title}: ${r.snippet}`)
+    // Take top 10 most relevant results
+    const topResults = results.slice(0, 10);
+    const context = topResults
+      .filter(r => r.snippet && r.snippet.length > 20)
+      .map((r, i) => `[${i + 1}] ${r.source}: ${r.title}\n${r.snippet}`)
       .join('\n\n');
 
+    if (!context) {
+      return 'No sufficient data found. Try refining your search.';
+    }
+
     const categoryPrompts: Record<string, string> = {
-      web: 'Provide a comprehensive, factual summary synthesizing information from multiple web sources. Include key facts, statistics, and insights.',
-      news: 'Summarize the latest news and developments. Focus on recent events, trends, and expert opinions.',
-      research: 'Provide an academic-style summary highlighting key research findings, methodologies, and scholarly insights.',
-      social: 'Summarize community discussions, public sentiment, and diverse perspectives from social platforms.',
-      tech: 'Focus on technical details, code examples, best practices, and developer insights.',
+      web: 'You are an expert search assistant. Provide a comprehensive, factual answer synthesizing information from multiple sources. Include specific facts, statistics, and cite sources using [1], [2], etc.',
+      news: 'Summarize the latest news and developments. Focus on recent events, key facts, and expert insights. Cite sources.',
+      research: 'Provide an academic-style answer highlighting key research findings, methodologies, and scholarly insights. Use formal language and cite sources.',
+      social: 'Summarize community discussions and public sentiment from social platforms. Mention diverse perspectives and cite sources.',
+      tech: 'Focus on technical details, best practices, and developer insights. Include code concepts if relevant and cite sources.',
+      image: 'Describe what these images show and their context. Mention key visual elements and sources.',
+      video: 'Summarize the video content available. Mention key topics and creators.',
     };
 
     const systemPrompt = categoryPrompts[category] || categoryPrompts.web;
@@ -286,30 +295,37 @@ async function generateAIFusionSummary(query: string, results: SearchResult[], c
         messages: [
           {
             role: 'system',
-            content: `You are an advanced search intelligence system. ${systemPrompt} Be precise, cite sources naturally, and provide actionable insights. Format your response with clear paragraphs.`
+            content: `${systemPrompt}
+
+CRITICAL INSTRUCTIONS:
+- Write in clear paragraphs (2-4 sentences each)
+- Start with a direct answer to the query
+- Include specific facts, data, and examples
+- Cite sources naturally using [1], [2], etc.
+- Be comprehensive but concise (200-300 words)
+- Use proper formatting with line breaks between paragraphs`
           },
           {
             role: 'user',
-            content: `Query: "${query}"\n\nSources:\n${context}\n\nProvide a detailed, intelligent summary that goes deeper than traditional search engines. Synthesize information across sources and provide unique insights.`
+            content: `Query: "${query}"\n\nSearch Results:\n${context}\n\nProvide a comprehensive answer with source citations.`
           }
         ],
-        max_tokens: 800,
+        max_tokens: 500,
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      if (response.status === 429) return 'Rate limit reached. Please try again in a moment.';
-      if (response.status === 402) return 'AI service requires payment. Please contact support.';
+      console.error('AI API error:', response.status);
+      if (response.status === 429) return 'Rate limit reached. Showing search results below.';
+      if (response.status === 402) return 'AI credits depleted. Showing search results below.';
       throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    return data.choices[0].message.content || 'Unable to generate summary. See results below.';
   } catch (error) {
     console.error('AI fusion error:', error);
-    return 'Unable to generate AI summary at this time. See results below.';
+    return 'AI summary unavailable. See search results below.';
   }
 }
 
@@ -321,61 +337,76 @@ serve(async (req) => {
   try {
     const { query, category = 'web' } = await req.json();
     
-    if (!query || typeof query !== 'string') {
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Query is required' }),
+        JSON.stringify({ error: 'Valid search query is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Deep search: "${query}" [${category}]`);
+    const cleanQuery = query.trim();
+    console.log(`🔍 Search: "${cleanQuery}" [${category}]`);
 
-    // Parallel multi-source search based on category
-    const searchPromises: Promise<SearchResult[]>[] = [searchWeb(query)];
+    // Parallel multi-source search
+    const searchPromises: Promise<SearchResult[]>[] = [];
     
+    // Always search web sources
+    searchPromises.push(searchWeb(cleanQuery));
+    
+    // Add category-specific searches
     if (category === 'web' || category === 'all') {
       searchPromises.push(
-        searchGitHub(query),
-        searchStackOverflow(query),
-        searchReddit(query)
+        searchGitHub(cleanQuery),
+        searchStackOverflow(cleanQuery),
+        searchReddit(cleanQuery)
       );
-    }
-    
-    if (category === 'research') {
-      searchPromises.push(searchArxiv(query));
-    }
-    
-    if (category === 'social') {
-      searchPromises.push(searchReddit(query));
-    }
-    
-    if (category === 'tech') {
+    } else if (category === 'research') {
+      searchPromises.push(searchArxiv(cleanQuery));
+    } else if (category === 'social') {
+      searchPromises.push(searchReddit(cleanQuery));
+    } else if (category === 'tech') {
       searchPromises.push(
-        searchGitHub(query),
-        searchStackOverflow(query)
+        searchGitHub(cleanQuery),
+        searchStackOverflow(cleanQuery)
       );
-    }
-    
-    if (category === 'image') {
+    } else if (category === 'image') {
       searchPromises.push(
-        searchUnsplash(query),
-        searchPixabay(query)
+        searchUnsplash(cleanQuery),
+        searchPixabay(cleanQuery)
       );
-    }
-    
-    if (category === 'video') {
+    } else if (category === 'video') {
       searchPromises.push(
-        searchYouTube(query),
-        searchVimeo(query)
+        searchYouTube(cleanQuery),
+        searchVimeo(cleanQuery)
       );
     }
 
     const startTime = Date.now();
-    const resultsArrays = await Promise.all(searchPromises);
-    const allResults = resultsArrays.flat();
+    const resultsArrays = await Promise.allSettled(searchPromises);
+    
+    // Collect successful results
+    const allResults = resultsArrays
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => (r as PromiseFulfilledResult<SearchResult[]>).value);
+    
     const searchTime = Date.now() - startTime;
 
-    console.log(`Found ${allResults.length} results in ${searchTime}ms`);
+    console.log(`✅ Found ${allResults.length} results in ${searchTime}ms`);
+
+    if (allResults.length === 0) {
+      return new Response(
+        JSON.stringify({
+          summary: 'No results found. Try different keywords or check your spelling.',
+          results: [],
+          allResults: { web: [], tech: [], social: [], research: [], image: [], video: [], all: [] },
+          query: cleanQuery,
+          category,
+          searchTime,
+          resultCount: 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Categorize results
     const categorized = {
@@ -388,42 +419,30 @@ serve(async (req) => {
       all: allResults
     };
 
-    // Generate AI fusion summary
-    let summary = '';
-    if (allResults.length > 0) {
-      try {
-        summary = await generateAIFusionSummary(query, allResults, category);
-      } catch (error) {
-        console.error('AI fusion failed:', error);
-        summary = 'Search completed. See results below.';
-      }
-    } else {
-      summary = 'No results found. Try rephrasing your query or selecting a different category.';
-    }
+    // Generate AI summary
+    console.log('🤖 Generating AI summary...');
+    const summary = await generateAIFusionSummary(cleanQuery, allResults, category);
+
+    const response = {
+      summary,
+      results: categorized[category as keyof typeof categorized] || allResults,
+      allResults: categorized,
+      query: cleanQuery,
+      category,
+      searchTime,
+      resultCount: allResults.length
+    };
 
     return new Response(
-      JSON.stringify({
-        summary,
-        results: categorized[category as keyof typeof categorized] || allResults,
-        allResults: categorized,
-        query,
-        category,
-        searchTime,
-        resultCount: allResults.length
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify(response),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Search error:', error);
+    console.error('❌ Search error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Search failed';
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

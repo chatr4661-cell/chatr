@@ -130,11 +130,16 @@ export default function AIBrowser() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-violet-50 via-purple-50 to-pink-50 pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 pb-20">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 px-4 py-3 sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-900">Chatr.AI Browser</h1>
+      <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 px-4 py-3 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+            <h1 className="text-xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 dark:from-violet-400 dark:to-purple-400 bg-clip-text text-transparent">
+              AI Search
+            </h1>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -145,43 +150,38 @@ export default function AIBrowser() {
               {chatMode ? <Search className="h-4 w-4 mr-1" /> : <MessageSquare className="h-4 w-4 mr-1" />}
               {chatMode ? 'Search' : 'Chat'}
             </Button>
-            <Avatar className="h-9 w-9 border-2 border-violet-200">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-gradient-to-br from-violet-400 to-purple-500 text-white text-sm">U</AvatarFallback>
-            </Avatar>
           </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Chat Mode */}
         {chatMode ? (
           <div className="space-y-4">
-            {/* Chat Messages */}
-            <div className="bg-white/90 backdrop-blur-sm border border-violet-100 rounded-3xl p-4 min-h-[60vh] max-h-[60vh] overflow-y-auto space-y-3">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-4 min-h-[65vh] max-h-[65vh] overflow-y-auto space-y-3">
               {chatMessages.length === 0 ? (
-                <div className="text-center py-16">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-3 text-violet-300" />
-                  <p className="text-slate-500 font-medium">Ask me anything!</p>
-                  <p className="text-xs text-slate-400 mt-2">Powered by Lovable AI</p>
+                <div className="text-center py-20">
+                  <MessageSquare className="h-16 w-16 mx-auto mb-4 text-violet-300 dark:text-violet-500" />
+                  <p className="text-slate-600 dark:text-slate-300 font-medium text-lg">Ask me anything!</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Powered by Lovable AI</p>
                 </div>
               ) : (
                 <>
                   {chatMessages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] rounded-2xl px-4 py-2 ${
+                      <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                         msg.role === 'user' 
-                          ? 'bg-violet-500 text-white' 
-                          : 'bg-slate-100 text-slate-900'
+                          ? 'bg-violet-600 text-white' 
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100'
                       }`}>
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                       </div>
                     </div>
                   ))}
                   {chatLoading && (
                     <div className="flex justify-start">
-                      <div className="bg-slate-100 rounded-2xl px-4 py-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
+                      <div className="bg-slate-100 dark:bg-slate-700 rounded-2xl px-4 py-3">
+                        <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
                       </div>
                     </div>
                   )}
@@ -190,8 +190,7 @@ export default function AIBrowser() {
               )}
             </div>
 
-            {/* Chat Input */}
-            <div className="bg-white/90 backdrop-blur-sm border border-violet-100 rounded-2xl p-3 flex items-end gap-2">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex items-end gap-2 shadow-sm">
               <Textarea
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
@@ -202,35 +201,17 @@ export default function AIBrowser() {
                   }
                 }}
                 placeholder="Type your message..."
-                className="flex-1 min-h-[40px] max-h-[120px] resize-none border-0 focus-visible:ring-0 bg-transparent"
+                className="flex-1 min-h-[48px] max-h-[150px] resize-none border-0 focus-visible:ring-0 bg-transparent text-slate-900 dark:text-slate-100"
                 disabled={chatLoading}
               />
               <Button
                 size="icon"
                 onClick={handleChatSend}
                 disabled={chatLoading || !chatInput.trim()}
-                className="shrink-0 h-10 w-10 rounded-xl bg-violet-500 hover:bg-violet-600"
+                className="shrink-0 h-12 w-12 rounded-xl bg-violet-600 hover:bg-violet-700"
               >
                 <Send className="h-5 w-5" />
               </Button>
-            </div>
-
-            {/* Quick Actions for Chat */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {['Summarize web search', 'Latest tech news', 'Explain quantum computing', 'Random fact'].map((prompt) => (
-                <Button
-                  key={prompt}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setChatInput(prompt);
-                    setTimeout(() => handleChatSend(), 100);
-                  }}
-                  className="bg-white border-violet-200 text-slate-700 hover:bg-violet-50 rounded-xl whitespace-nowrap"
-                >
-                  {prompt}
-                </Button>
-              ))}
             </div>
           </div>
         ) : (
@@ -240,272 +221,178 @@ export default function AIBrowser() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <Input
                 type="text"
-                placeholder="Search or ask anything..."
+                placeholder="Ask anything..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                className="pl-11 pr-12 h-12 bg-white/90 border-slate-200 rounded-2xl text-base placeholder:text-slate-400 focus:border-violet-300 focus:ring-violet-200"
+                onKeyDown={(e) => e.key === 'Enter' && !loading && handleSearch(searchQuery)}
+                className="pl-12 pr-4 h-14 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 rounded-2xl text-base shadow-sm focus:shadow-md transition-shadow"
                 disabled={loading}
               />
-              <Button
-                size="icon"
-                variant="ghost"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 text-slate-500 hover:text-violet-600"
-                onClick={() => toast({ description: 'Voice search coming soon!' })}
-              >
-                <Mic className="h-5 w-5" />
-              </Button>
             </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {[
-            { id: 'web', label: 'Web', icon: Globe },
-            { id: 'image', label: 'Images', icon: ImageIcon },
-            { id: 'video', label: 'Videos', icon: Video },
-            { id: 'tech', label: 'Tech', icon: Code },
-            { id: 'social', label: 'Social', icon: Users },
-            { id: 'research', label: 'Research', icon: GraduationCap }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <Button
-                key={tab.id}
-                variant={activeTab === tab.id ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => {
-                  setActiveTab(tab.id as any);
-                  if (searchData) handleSearch(searchData.query, tab.id);
-                }}
-                className={activeTab === tab.id 
-                  ? 'bg-white text-slate-900 shadow-sm hover:bg-white rounded-xl px-4 whitespace-nowrap' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl px-4 whitespace-nowrap'
-                }
-              >
-                <Icon className="h-4 w-4 mr-1" />
-                {tab.label}
-              </Button>
-            );
-          })}
-        </div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-16">
-            <Loader2 className="h-10 w-10 mx-auto mb-3 animate-spin text-violet-500" />
-            <p className="text-slate-600 font-medium">Deep multiverse search in progress...</p>
-            <p className="text-xs text-slate-500 mt-2">Querying GitHub, Stack Overflow, Reddit, arXiv, Wikipedia & more</p>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && !searchData && (
-          <div className="text-center py-16">
-            <Search className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-            <p className="text-slate-500">Start searching to see results</p>
-          </div>
-        )}
-
-        {/* Results */}
-        {!loading && searchData && (
-          <div className="space-y-4">
-            {/* Main Result Card */}
-            <Card className="bg-white/90 backdrop-blur-sm border-violet-100 shadow-sm rounded-3xl overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-slate-900">{searchData.query}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {searchData.summary}
-                </p>
-                
-                {/* Ask AI Button */}
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="w-full bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 rounded-xl"
-                  onClick={() => navigate('/chat-ai')}
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Ask AI
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Live Actions */}
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">Live Actions</h3>
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                <Button
-                  variant="outline"
-                  className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                  onClick={() => toast({ description: 'Booking feature coming soon!' })}
-                >
-                  Book
-                </Button>
-                <Button
-                  variant="outline"
-                  className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                  onClick={() => navigate('/capture')}
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  Scan
-                </Button>
-                <Button
-                  variant="outline"
-                  className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl whitespace-nowrap"
-                  onClick={() => toast({ description: 'Install feature coming soon!' })}
-                >
-                  Install app
-                </Button>
-              </div>
+            {/* Category Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {[
+                { id: 'web', label: 'All', icon: Globe },
+                { id: 'image', label: 'Images', icon: ImageIcon },
+                { id: 'video', label: 'Videos', icon: Video },
+                { id: 'tech', label: 'Tech', icon: Code },
+                { id: 'social', label: 'Social', icon: Users },
+                { id: 'research', label: 'Research', icon: GraduationCap }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <Button
+                    key={tab.id}
+                    variant={activeTab === tab.id ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => {
+                      setActiveTab(tab.id as any);
+                      if (searchData) handleSearch(searchData.query, tab.id);
+                    }}
+                    className={`rounded-xl px-4 whitespace-nowrap ${
+                      activeTab === tab.id 
+                        ? 'bg-violet-600 text-white shadow-md' 
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 mr-1.5" />
+                    {tab.label}
+                  </Button>
+                );
+              })}
             </div>
 
-            {/* Sources */}
-            {searchData.results.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    {searchData.resultCount || searchData.results.length} sources • {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                  </h3>
-                  {searchData.searchTime && (
-                    <span className="text-xs text-slate-500">
-                      {searchData.searchTime}ms
-                    </span>
-                  )}
-                </div>
-                <div className={activeTab === 'image' ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
-                  {searchData.results.map((result, index) => (
-                    <Card 
-                      key={index}
-                      className="bg-white/90 border-violet-100 shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                      <CardContent className={activeTab === 'image' ? 'p-2' : 'p-4'}>
-                        {activeTab === 'image' ? (
-                          <a href={result.url} target="_blank" rel="noopener noreferrer" className="block">
-                            <img 
-                              src={result.imageUrl || result.thumbnail} 
-                              alt={result.title}
-                              className="w-full aspect-square rounded-lg object-cover mb-2"
-                            />
-                            <p className="text-xs text-slate-700 line-clamp-1 font-medium px-1">
-                              {result.title}
-                            </p>
-                            <p className="text-xs text-violet-600 px-1">{result.source}</p>
-                          </a>
-                        ) : activeTab === 'video' ? (
-                          <a href={result.url} target="_blank" rel="noopener noreferrer" className="block">
-                            <div className="relative mb-2">
-                              <img 
-                                src={result.thumbnail} 
-                                alt={result.title}
-                                className="w-full aspect-video rounded-lg object-cover"
-                              />
-                              {result.duration && (
-                                <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                                  {result.duration}
-                                </div>
-                              )}
-                            </div>
-                            <h4 className="text-sm font-medium text-slate-900 line-clamp-2 mb-1">
-                              {result.title}
-                            </h4>
-                            <p className="text-xs text-violet-600">
-                              {result.source}
-                              {result.views && ` • ${result.views} views`}
-                            </p>
-                          </a>
-                        ) : (
-                          <div className="flex items-start gap-3">
-                            {result.thumbnail && (
-                              <img 
-                                src={result.thumbnail} 
-                                alt=""
-                                className="w-12 h-12 rounded-lg object-cover shrink-0"
-                                onError={(e) => (e.currentTarget.style.display = 'none')}
-                              />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
-                                  <h4 className="font-medium text-slate-900 text-sm mb-1 line-clamp-2">
-                                    {result.title}
-                                  </h4>
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-xs font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded">
-                                      {result.source}
-                                    </span>
-                                    {result.category && (
-                                      <span className="text-xs text-slate-500">
-                                        {result.category}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-slate-600 line-clamp-3">
-                                    {result.snippet}
-                                  </p>
-                                </div>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="shrink-0 h-8 w-8 text-slate-400 hover:text-violet-600"
-                                  onClick={() => window.open(result.url, '_blank')}
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-20">
+                <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-violet-600" />
+                <p className="text-slate-700 dark:text-slate-300 font-medium text-lg">Searching the web...</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Querying multiple sources</p>
               </div>
             )}
-          </div>
-        )}
-        </>
+
+            {/* Empty State */}
+            {!loading && !searchData && (
+              <div className="text-center py-20">
+                <Search className="h-16 w-16 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+                <p className="text-slate-600 dark:text-slate-400 text-lg font-medium">What would you like to know?</p>
+                <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">Search powered by AI</p>
+              </div>
+            )}
+
+            {/* Results */}
+            {!loading && searchData && (
+              <div className="space-y-6">
+                {/* AI Answer Card */}
+                <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 border-violet-200 dark:border-slate-600 shadow-lg rounded-3xl overflow-hidden">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                      <CardTitle className="text-lg text-slate-900 dark:text-slate-100">AI Answer</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <p className="text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                        {searchData.summary}
+                      </p>
+                    </div>
+                    {searchData.searchTime && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {searchData.resultCount} sources • {searchData.searchTime}ms
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Source Results */}
+                {searchData.results.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Sources ({searchData.results.length})
+                    </h3>
+                    <div className={activeTab === 'image' ? 'grid grid-cols-2 md:grid-cols-3 gap-3' : 'space-y-3'}>
+                      {searchData.results.map((result, index) => (
+                        <Card 
+                          key={index}
+                          className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all rounded-2xl overflow-hidden group"
+                        >
+                          <CardContent className={activeTab === 'image' ? 'p-0' : 'p-4'}>
+                            {activeTab === 'image' ? (
+                              <a href={result.url} target="_blank" rel="noopener noreferrer" className="block">
+                                <img 
+                                  src={result.imageUrl || result.thumbnail} 
+                                  alt={result.title}
+                                  className="w-full aspect-square object-cover group-hover:scale-105 transition-transform"
+                                />
+                                <div className="p-2">
+                                  <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-1 font-medium">
+                                    {result.title}
+                                  </p>
+                                  <p className="text-xs text-violet-600 dark:text-violet-400">{result.source}</p>
+                                </div>
+                              </a>
+                            ) : activeTab === 'video' ? (
+                              <a href={result.url} target="_blank" rel="noopener noreferrer" className="block">
+                                {result.thumbnail && (
+                                  <div className="relative mb-3">
+                                    <img 
+                                      src={result.thumbnail} 
+                                      alt={result.title}
+                                      className="w-full aspect-video rounded-lg object-cover"
+                                    />
+                                    {result.duration && (
+                                      <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                                        {result.duration}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 line-clamp-2 mb-1">
+                                  {result.title}
+                                </h4>
+                                <p className="text-xs text-violet-600 dark:text-violet-400">
+                                  {result.source}
+                                  {result.views && ` • ${result.views} views`}
+                                </p>
+                              </a>
+                            ) : (
+                              <a href={result.url} target="_blank" rel="noopener noreferrer" className="block space-y-2">
+                                <div className="flex items-start gap-3">
+                                  {result.thumbnail && (
+                                    <img 
+                                      src={result.thumbnail} 
+                                      alt=""
+                                      className="w-14 h-14 rounded-lg object-cover shrink-0"
+                                    />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 line-clamp-2 mb-1 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                                      {result.title}
+                                    </h4>
+                                    <p className="text-xs text-violet-600 dark:text-violet-400 font-medium mb-1">
+                                      {result.source}
+                                    </p>
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                                      {result.snippet}
+                                    </p>
+                                  </div>
+                                </div>
+                              </a>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-violet-100 px-6 py-3 z-50">
-        <div className="max-w-2xl mx-auto flex items-center justify-around">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-12 w-12 text-slate-600 hover:text-violet-600 hover:bg-transparent"
-            onClick={() => navigate('/chat')}
-          >
-            <Home className="h-6 w-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-12 w-12 text-violet-600 hover:text-violet-700 hover:bg-transparent relative"
-          >
-            <Search className="h-6 w-6" />
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-violet-600 rounded-full" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-12 w-12 text-slate-600 hover:text-violet-600 hover:bg-transparent"
-            onClick={() => setChatMode(!chatMode)}
-          >
-            <MessageSquare className="h-6 w-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-12 w-12 text-slate-600 hover:text-violet-600 hover:bg-transparent"
-            onClick={() => navigate('/profile')}
-          >
-            <User className="h-6 w-6" />
-          </Button>
-        </div>
-      </nav>
     </div>
   );
 }
