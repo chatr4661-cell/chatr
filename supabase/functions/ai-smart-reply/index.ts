@@ -24,8 +24,10 @@ serve(async (req) => {
       const messages = [];
       
       // Add context as conversation history
-      if (context.length > 0) {
-        context.forEach((msg: string) => {
+      if (context && (typeof context === 'string' ? context.length > 0 : context.length > 0)) {
+        const contextArray = typeof context === 'string' ? context.split('\n') : context;
+        contextArray.forEach((msg: string) => {
+          if (!msg || msg.trim() === '') return;
           const [role, ...contentParts] = msg.split(': ');
           messages.push({
             role: role.toLowerCase() === 'user' ? 'user' : 'assistant',
