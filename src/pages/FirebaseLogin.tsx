@@ -44,6 +44,7 @@ const FirebaseLogin = () => {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [phoneError, setPhoneError] = useState("");
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+  const [recaptchaReady, setRecaptchaReady] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -61,78 +62,92 @@ const FirebaseLogin = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Setup reCAPTCHA - only once when component mounts
+  // Setup reCAPTCHA - initialize once on mount
   useEffect(() => {
     let mounted = true;
     let verifier: RecaptchaVerifier | null = null;
 
     const initRecaptcha = async () => {
-      // Don't initialize if already exists
+      console.log('[reCAPTCHA] Starting initialization...');
+      
+      // Check if already initialized
       if (recaptchaVerifier) {
-        console.log('reCAPTCHA already exists');
+        console.log('[reCAPTCHA] Already initialized');
+        setRecaptchaReady(true);
         return;
       }
 
-      // Wait for container to be in DOM
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait a bit for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      if (!mounted) return;
+      if (!mounted) {
+        console.log('[reCAPTCHA] Component unmounted, aborting');
+        return;
+      }
 
       const container = document.getElementById('recaptcha-container');
       
       if (!container) {
-        console.error('reCAPTCHA container not found');
+        console.error('[reCAPTCHA] Container element not found!');
+        setPhoneError('reCAPTCHA container missing. Please refresh the page.');
         return;
       }
 
+      console.log('[reCAPTCHA] Container found, creating verifier...');
+
       try {
-        console.log('Creating reCAPTCHA verifier...');
-        
         verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: (response: any) => {
-            console.log('reCAPTCHA verified successfully');
+            console.log('[reCAPTCHA] ✓ Verification successful');
           },
           'expired-callback': () => {
-            console.warn('reCAPTCHA expired');
+            console.warn('[reCAPTCHA] ⚠ Expired');
             if (mounted) {
               setPhoneError('Security verification expired. Please try again.');
+              setRecaptchaReady(false);
             }
           }
         });
 
-        // Render it
+        console.log('[reCAPTCHA] Rendering...');
         await verifier.render();
         
         if (mounted) {
-          console.log('reCAPTCHA initialized and rendered');
+          console.log('[reCAPTCHA] ✓ Initialization complete!');
           setRecaptchaVerifier(verifier);
+          setRecaptchaReady(true);
+          setPhoneError('');
         } else {
-          // Component unmounted, clean up
+          console.log('[reCAPTCHA] Component unmounted during render, cleaning up');
           verifier.clear();
         }
       } catch (error: any) {
-        console.error('reCAPTCHA initialization failed:', error);
+        console.error('[reCAPTCHA] ✗ Initialization failed:', error);
+        console.error('[reCAPTCHA] Error details:', error.message, error.code);
         if (mounted) {
-          setPhoneError('Failed to initialize security verification. Please refresh the page.');
+          setPhoneError(`Security verification failed: ${error.message || 'Unknown error'}. Please refresh the page.`);
+          setRecaptchaReady(false);
         }
       }
     };
 
+    // Start initialization
     initRecaptcha();
 
     return () => {
+      console.log('[reCAPTCHA] Component unmounting, cleaning up...');
       mounted = false;
       if (verifier) {
         try {
           verifier.clear();
-          console.log('reCAPTCHA cleaned up');
+          console.log('[reCAPTCHA] Cleaned up');
         } catch (e) {
-          console.log('Error cleaning up reCAPTCHA:', e);
+          console.log('[reCAPTCHA] Error during cleanup:', e);
         }
       }
     };
-  }, []); // Empty deps - only run once
+  }, []); // Empty deps array - run only once
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,11 +229,15 @@ const FirebaseLogin = () => {
       return;
     }
 
-    if (!recaptchaVerifier) {
-      setPhoneError("Security verification not ready. Please wait a moment and try again.");
+    console.log('[Phone Auth] Verifier ready:', !!recaptchaVerifier);
+    console.log('[Phone Auth] reCAPTCHA ready:', recaptchaReady);
+    
+    if (!recaptchaVerifier || !recaptchaReady) {
+      const errorMsg = "Security verification is still loading. Please wait 2-3 seconds and try again.";
+      setPhoneError(errorMsg);
       toast({
         title: "Please Wait",
-        description: "Initializing security verification...",
+        description: errorMsg,
         variant: "destructive",
       });
       return;
@@ -502,6 +521,20 @@ const FirebaseLogin = () => {
                         </div>
                       </div>
 
+                      {!recaptchaReady && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                          <div className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                          Initializing security verification...
+                        </div>
+                      )}
+
+                      {recaptchaReady && (
+                        <div className="text-xs text-green-600 flex items-center gap-2">
+                          <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                          Security verification ready
+                        </div>
+                      )}
+
                       {phoneError && (
                         <p className="text-sm text-destructive">{phoneError}</p>
                       )}
@@ -509,9 +542,9 @@ const FirebaseLogin = () => {
                       <Button
                         type="submit"
                         className="w-full"
-                        disabled={loading}
+                        disabled={loading || !recaptchaReady}
                       >
-                        {loading ? "Sending OTP..." : "Send OTP"}
+                        {loading ? "Sending OTP..." : recaptchaReady ? "Send OTP" : "Initializing..."}
                       </Button>
                     </form>
                   ) : (
