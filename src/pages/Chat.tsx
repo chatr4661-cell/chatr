@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
 import { TrueVirtualMessageList } from '@/components/chat/TrueVirtualMessageList';
-import { EnhancedMessageInput } from '@/components/chat/EnhancedMessageInput';
+import { WhatsAppStyleInput } from '@/components/chat/WhatsAppStyleInput';
 import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
 import { useVirtualizedMessages } from "@/hooks/useVirtualizedMessages";
 import { AddParticipantDialog } from '@/components/chat/AddParticipantDialog';
@@ -807,8 +807,10 @@ const ChatEnhancedContent = () => {
           </div>
 
           {/* Input */}
-          <EnhancedMessageInput
+          <WhatsAppStyleInput
             onSendMessage={handleSendMessage}
+            conversationId={activeConversationId}
+            userId={user.id}
             disabled={messagesLoading}
             lastMessage={displayMessages.length > 0 && displayMessages[displayMessages.length - 1].sender_id !== user.id 
               ? displayMessages[displayMessages.length - 1].content 

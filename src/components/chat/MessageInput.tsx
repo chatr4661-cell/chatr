@@ -2,7 +2,7 @@ import React from 'react';
 import { WhatsAppStyleInput } from './WhatsAppStyleInput';
 
 interface MessageInputProps {
-  onSendMessage: (content: string, type?: string, mediaUrl?: string) => Promise<void>;
+  onSendMessage: (content: string, type?: string, mediaAttachments?: any[]) => Promise<void>;
   conversationId: string;
   userId: string;
   disabled?: boolean;

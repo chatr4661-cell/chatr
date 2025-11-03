@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/popover';
 
 interface WhatsAppStyleInputProps {
-  onSendMessage: (content: string, type?: string, mediaUrl?: string) => Promise<void>;
+  onSendMessage: (content: string, type?: string, mediaAttachments?: any[]) => Promise<void>;
   conversationId: string;
   userId: string;
   disabled?: boolean;
@@ -124,7 +124,7 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
                          file.type.startsWith('video/') ? 'video' : 
                          file.type.startsWith('audio/') ? 'audio' : 'file';
 
-      await onSendMessage(file.name, messageType, publicUrl);
+      await onSendMessage(file.name, messageType, [{ url: publicUrl, type: messageType }]);
       
       toast.success('File sent successfully!');
       setSelectedFile(null);
@@ -159,7 +159,7 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
           .from('chat-media')
           .getPublicUrl(fileName);
 
-        await onSendMessage(transcription, 'voice', publicUrl);
+        await onSendMessage(transcription, 'voice', [{ url: publicUrl, type: 'voice' }]);
       } else {
         await onSendMessage(transcription, 'text');
       }
