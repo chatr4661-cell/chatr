@@ -61,18 +61,31 @@ const FirebaseLogin = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Setup reCAPTCHA for phone auth
+  // Setup reCAPTCHA for phone auth - only when phone tab is active
   useEffect(() => {
-    if (!recaptchaVerifier) {
-      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {
-          console.log('reCAPTCHA solved');
-        }
-      });
-      setRecaptchaVerifier(verifier);
+    if (!recaptchaVerifier && typeof window !== 'undefined') {
+      try {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA solved');
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+          }
+        });
+        setRecaptchaVerifier(verifier);
+      } catch (error) {
+        console.error('Failed to initialize reCAPTCHA:', error);
+      }
     }
-  }, [recaptchaVerifier]);
+    
+    return () => {
+      if (recaptchaVerifier) {
+        recaptchaVerifier.clear();
+      }
+    };
+  }, []);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
