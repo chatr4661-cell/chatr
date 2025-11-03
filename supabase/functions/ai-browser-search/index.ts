@@ -492,35 +492,57 @@ async function generateAIFusionSummary(query: string, results: SearchResult[], c
       return 'AI summary unavailable. See search results below.';
     }
 
-    // Take top 15 most relevant results for better context
-    const topResults = results.slice(0, 15);
+    // Prioritize official domains and most relevant results
+    const prioritizedResults = [...results].sort((a, b) => {
+      // Boost official domains (.com, .dev, .org from main sites)
+      const aIsOfficial = a.url.includes('.com/') || a.url.includes('.dev') || a.url.includes('.org');
+      const bIsOfficial = b.url.includes('.com/') || b.url.includes('.dev') || b.url.includes('.org');
+      if (aIsOfficial && !bIsOfficial) return -1;
+      if (!aIsOfficial && bIsOfficial) return 1;
+      
+      // Boost results from authoritative sources
+      const authoritativeSources = ['Wikipedia', 'Google Knowledge Graph', 'GitHub'];
+      const aIsAuth = authoritativeSources.includes(a.source);
+      const bIsAuth = authoritativeSources.includes(b.source);
+      if (aIsAuth && !bIsAuth) return -1;
+      if (!aIsAuth && bIsAuth) return 1;
+      
+      return 0;
+    });
+
+    // Take top 12 most relevant results
+    const topResults = prioritizedResults.slice(0, 12);
     const context = topResults
       .filter(r => r.snippet && r.snippet.length > 20)
-      .map((r, i) => `[${i + 1}] ${r.source}: ${r.title}\n${r.snippet}`)
+      .map((r, i) => `[${i + 1}] ${r.source} - ${r.url}\n${r.title}\n${r.snippet}`)
       .join('\n\n');
 
     if (!context) {
       return 'No sufficient data found. Try refining your search.';
     }
 
-    const systemPrompt = `You are Google AI Search Assistant. Provide highly accurate, structured summaries exactly like Google AI.
+    const systemPrompt = `You are a precise AI search assistant that provides accurate, well-structured summaries based on search results.
 
-FORMAT YOUR RESPONSE LIKE THIS:
+CRITICAL RULES:
+1. ALWAYS prioritize official websites and authoritative sources
+2. For company/product searches, focus on the ACTUAL company/product, not general definitions
+3. If searching for a specific entity (company, product, person), mention it first with official URL
+4. Use sources marked with URLs like .dev, .com, official GitHub repos
+5. Ignore generic dictionary definitions when specific entities exist
 
-First paragraph: Direct answer with key facts about the query subject.
+FORMAT:
+First paragraph: Direct, specific answer about what the user is looking for (prioritize official sources)
 
-**Section Title 1**
-• Bullet point with specific detail
-• Another key fact or statistic
-• Additional relevant information
+**Key Information**
+• Specific facts from official sources
+• Important details with source citations [1], [2]
+• Relevant data or statistics
 
-**Section Title 2** (if needed)
-• More structured information
-• Key insights or data points
+**Additional Context** (if needed)
+• Secondary information
+• Related topics
 
-Use bold **text** for emphasis on important terms and section headers.
-Cite sources as [1], [2], etc.
-Be factual, concise, and well-organized.`;
+Be specific, factual, and prioritize the most relevant official information.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -537,25 +559,27 @@ Be factual, concise, and well-organized.`;
           },
           {
             role: 'user',
-            content: `Query: "${query}"\n\nCategory: ${category}\n\nSearch Results:\n${context}\n\nProvide a structured AI summary like Google AI.`
+            content: `Query: "${query}"\n\nPrioritize specific companies, products, or entities over general definitions.\n\nSearch Results (ranked by relevance):\n${context}\n\nProvide a focused, accurate summary.`
           }
         ],
-        max_tokens: 600,
-        temperature: 0.3
+        max_tokens: 500,
+        temperature: 0.2
       }),
     });
 
     if (!response.ok) {
       console.error('AI API error:', response.status);
       if (response.status === 429) return 'Rate limit reached. Showing search results below.';
-      if (response.status === 402) return 'AI credits depleted. Showing search results below.';
-      throw new Error(`AI API error: ${response.status}`);
+      if (response.status === 402) return 'AI service unavailable. Showing search results below.';
+      return 'AI summary temporarily unavailable. See search results below.';
     }
 
     const data = await response.json();
-    return data.choices[0].message.content || 'Unable to generate summary. See results below.';
+    const summary = data.choices?.[0]?.message?.content || 'Summary generation failed.';
+    
+    return summary;
   } catch (error) {
-    console.error('AI fusion error:', error);
+    console.error('AI summary error:', error);
     return 'AI summary unavailable. See search results below.';
   }
 }
