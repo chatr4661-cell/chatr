@@ -18,28 +18,123 @@ interface SearchResult {
   views?: string;
 }
 
-// Brave Search API (has generous free tier)
-async function searchBrave(query: string): Promise<SearchResult[]> {
+// Google Search via SerpAPI (primary search source)
+async function searchGoogle(query: string): Promise<SearchResult[]> {
   try {
-    // Using Brave's public search (no API key needed for basic search)
-    const response = await fetch(
-      `https://search.brave.com/search?q=${encodeURIComponent(query)}&source=web`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ChatrBot/1.0)',
-          'Accept': 'text/html'
-        },
-        signal: AbortSignal.timeout(3000) // 3 second timeout
+    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
+    if (!SERPER_API_KEY) {
+      console.log('SERPER_API_KEY not set, skipping Google search');
+      return [];
+    }
+
+    const response = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': SERPER_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ q: query, num: 10 }),
+      signal: AbortSignal.timeout(5000)
+    });
+
+    const data = await response.json();
+    const results: SearchResult[] = [];
+
+    // Organic results
+    if (data.organic) {
+      for (const item of data.organic) {
+        results.push({
+          title: item.title,
+          url: item.link,
+          snippet: item.snippet || '',
+          source: 'Google',
+          category: 'web',
+          thumbnail: item.imageUrl
+        });
       }
-    );
-    
-    if (!response.ok) throw new Error('Brave search failed');
-    
-    // For now, return empty as we'd need to parse HTML
-    // In production, you'd add BRAVE_API_KEY to secrets for proper API access
-    return [];
+    }
+
+    // Knowledge graph
+    if (data.knowledgeGraph) {
+      const kg = data.knowledgeGraph;
+      results.unshift({
+        title: kg.title || query,
+        url: kg.website || kg.descriptionLink || '',
+        snippet: kg.description || '',
+        source: 'Google Knowledge Graph',
+        category: 'web',
+        thumbnail: kg.imageUrl
+      });
+    }
+
+    return results;
   } catch (e) {
-    console.error('Brave search error:', e);
+    console.error('Google search error:', e);
+    return [];
+  }
+}
+
+// Google Images via SerpAPI
+async function searchGoogleImages(query: string): Promise<SearchResult[]> {
+  try {
+    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
+    if (!SERPER_API_KEY) return [];
+
+    const response = await fetch('https://google.serper.dev/images', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': SERPER_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ q: query, num: 20 }),
+      signal: AbortSignal.timeout(5000)
+    });
+
+    const data = await response.json();
+    
+    return (data.images || []).map((img: any) => ({
+      title: img.title,
+      url: img.link,
+      snippet: img.source || 'Google Images',
+      source: 'Google Images',
+      category: 'image',
+      imageUrl: img.imageUrl,
+      thumbnail: img.thumbnailUrl || img.imageUrl
+    }));
+  } catch (e) {
+    console.error('Google Images error:', e);
+    return [];
+  }
+}
+
+// Google News via SerpAPI
+async function searchGoogleNews(query: string): Promise<SearchResult[]> {
+  try {
+    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
+    if (!SERPER_API_KEY) return [];
+
+    const response = await fetch('https://google.serper.dev/news', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': SERPER_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ q: query, num: 10 }),
+      signal: AbortSignal.timeout(5000)
+    });
+
+    const data = await response.json();
+    
+    return (data.news || []).map((article: any) => ({
+      title: article.title,
+      url: article.link,
+      snippet: article.snippet || '',
+      source: article.source || 'Google News',
+      category: 'news',
+      thumbnail: article.imageUrl
+    }));
+  } catch (e) {
+    console.error('Google News error:', e);
     return [];
   }
 }
@@ -320,20 +415,45 @@ async function searchPixabay(query: string): Promise<SearchResult[]> {
   }
 }
 
+// YouTube via SerpAPI
 async function searchYouTube(query: string): Promise<SearchResult[]> {
   try {
-    // Using YouTube's oEmbed and search suggestion as fallback
-    const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
+    if (!SERPER_API_KEY) {
+      // Fallback to search page
+      return [{
+        title: `"${query}" on YouTube`,
+        url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+        snippet: 'Search YouTube for videos, tutorials, and live streams',
+        source: 'YouTube',
+        category: 'video',
+        thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png'
+      }];
+    }
+
+    const response = await fetch('https://google.serper.dev/videos', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': SERPER_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ q: query, num: 10 }),
+      signal: AbortSignal.timeout(5000)
+    });
+
+    const data = await response.json();
     
-    // Return structured results pointing to YouTube search
-    return [{
-      title: `"${query}" on YouTube`,
-      url: searchUrl,
-      snippet: 'Search YouTube for videos, tutorials, and live streams',
+    return (data.videos || []).map((video: any) => ({
+      title: video.title,
+      url: video.link,
+      snippet: video.snippet || '',
       source: 'YouTube',
       category: 'video',
-      thumbnail: 'https://www.youtube.com/img/desktop/yt_1200.png'
-    }];
+      thumbnail: video.imageUrl,
+      videoUrl: video.link,
+      duration: video.duration,
+      views: video.views
+    }));
   } catch (error) {
     console.error('YouTube search error:', error);
     return [];
@@ -372,8 +492,8 @@ async function generateAIFusionSummary(query: string, results: SearchResult[], c
       return 'AI summary unavailable. See search results below.';
     }
 
-    // Take top 10 most relevant results
-    const topResults = results.slice(0, 10);
+    // Take top 15 most relevant results for better context
+    const topResults = results.slice(0, 15);
     const context = topResults
       .filter(r => r.snippet && r.snippet.length > 20)
       .map((r, i) => `[${i + 1}] ${r.source}: ${r.title}\n${r.snippet}`)
@@ -383,17 +503,24 @@ async function generateAIFusionSummary(query: string, results: SearchResult[], c
       return 'No sufficient data found. Try refining your search.';
     }
 
-    const categoryPrompts: Record<string, string> = {
-      web: 'You are an expert search assistant. Provide a comprehensive, factual answer synthesizing information from multiple sources. Include specific facts, statistics, and cite sources using [1], [2], etc.',
-      news: 'Summarize the latest news and developments. Focus on recent events, key facts, and expert insights. Cite sources.',
-      research: 'Provide an academic-style answer highlighting key research findings, methodologies, and scholarly insights. Use formal language and cite sources.',
-      social: 'Summarize community discussions and public sentiment from social platforms. Mention diverse perspectives and cite sources.',
-      tech: 'Focus on technical details, best practices, and developer insights. Include code concepts if relevant and cite sources.',
-      image: 'Describe what these images show and their context. Mention key visual elements and sources.',
-      video: 'Summarize the video content available. Mention key topics and creators.',
-    };
+    const systemPrompt = `You are Google AI Search Assistant. Provide highly accurate, structured summaries exactly like Google AI.
 
-    const systemPrompt = categoryPrompts[category] || categoryPrompts.web;
+FORMAT YOUR RESPONSE LIKE THIS:
+
+First paragraph: Direct answer with key facts about the query subject.
+
+**Section Title 1**
+• Bullet point with specific detail
+• Another key fact or statistic
+• Additional relevant information
+
+**Section Title 2** (if needed)
+• More structured information
+• Key insights or data points
+
+Use bold **text** for emphasis on important terms and section headers.
+Cite sources as [1], [2], etc.
+Be factual, concise, and well-organized.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -406,22 +533,15 @@ async function generateAIFusionSummary(query: string, results: SearchResult[], c
         messages: [
           {
             role: 'system',
-            content: `${systemPrompt}
-
-CRITICAL INSTRUCTIONS:
-- Write in clear paragraphs (2-4 sentences each)
-- Start with a direct answer to the query
-- Include specific facts, data, and examples
-- Cite sources naturally using [1], [2], etc.
-- Be comprehensive but concise (200-300 words)
-- Use proper formatting with line breaks between paragraphs`
+            content: systemPrompt
           },
           {
             role: 'user',
-            content: `Query: "${query}"\n\nSearch Results:\n${context}\n\nProvide a comprehensive answer with source citations.`
+            content: `Query: "${query}"\n\nCategory: ${category}\n\nSearch Results:\n${context}\n\nProvide a structured AI summary like Google AI.`
           }
         ],
-        max_tokens: 500,
+        max_tokens: 600,
+        temperature: 0.3
       }),
     });
 
@@ -458,35 +578,17 @@ serve(async (req) => {
     const cleanQuery = query.trim();
     console.log(`🔍 Search: "${cleanQuery}" [${category}]`);
 
-    // Ultra-fast parallel search across ALL sources
+    // Ultra-fast parallel search with Google as primary source
     const searchPromises: Promise<SearchResult[]>[] = [
-      searchDuckDuckGo(cleanQuery),
-      searchWikipedia(cleanQuery),
-      searchBing(cleanQuery),
+      searchGoogle(cleanQuery),        // Primary: Google Search
+      searchDuckDuckGo(cleanQuery),    // Fallback
+      searchWikipedia(cleanQuery),     // Knowledge base
     ];
     
     // Add category-specific searches in parallel
-    if (category === 'web' || category === 'all') {
+    if (category === 'image') {
       searchPromises.push(
-        searchGitHub(cleanQuery),
-        searchStackOverflow(cleanQuery),
-        searchReddit(cleanQuery),
-        searchBrave(cleanQuery),
-        searchNews(cleanQuery)
-      );
-    } else if (category === 'news') {
-      searchPromises.push(searchNews(cleanQuery), searchReddit(cleanQuery));
-    } else if (category === 'research') {
-      searchPromises.push(searchArxiv(cleanQuery));
-    } else if (category === 'social') {
-      searchPromises.push(searchReddit(cleanQuery));
-    } else if (category === 'tech') {
-      searchPromises.push(
-        searchGitHub(cleanQuery),
-        searchStackOverflow(cleanQuery)
-      );
-    } else if (category === 'image') {
-      searchPromises.push(
+        searchGoogleImages(cleanQuery),
         searchUnsplash(cleanQuery),
         searchPixabay(cleanQuery)
       );
@@ -494,6 +596,35 @@ serve(async (req) => {
       searchPromises.push(
         searchYouTube(cleanQuery),
         searchVimeo(cleanQuery)
+      );
+    } else if (category === 'news') {
+      searchPromises.push(
+        searchGoogleNews(cleanQuery),
+        searchNews(cleanQuery),
+        searchReddit(cleanQuery)
+      );
+    } else if (category === 'tech') {
+      searchPromises.push(
+        searchGitHub(cleanQuery),
+        searchStackOverflow(cleanQuery)
+      );
+    } else if (category === 'social') {
+      searchPromises.push(
+        searchReddit(cleanQuery),
+        searchStackOverflow(cleanQuery)
+      );
+    } else if (category === 'research') {
+      searchPromises.push(searchArxiv(cleanQuery));
+    } else if (category === 'web' || category === 'all') {
+      // For general web search, include everything
+      searchPromises.push(
+        searchGoogleNews(cleanQuery),
+        searchGoogleImages(cleanQuery),
+        searchYouTube(cleanQuery),
+        searchGitHub(cleanQuery),
+        searchStackOverflow(cleanQuery),
+        searchReddit(cleanQuery),
+        searchNews(cleanQuery)
       );
     }
 

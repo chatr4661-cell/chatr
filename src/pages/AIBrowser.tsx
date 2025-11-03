@@ -284,25 +284,57 @@ export default function AIBrowser() {
             {/* Results */}
             {!loading && searchData && (
               <div className="space-y-6">
-                {/* AI Answer Card */}
-                <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 border-violet-200 dark:border-slate-600 shadow-lg rounded-3xl overflow-hidden">
+                {/* AI Overview Card - Google AI Style */}
+                <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm rounded-3xl overflow-hidden">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                      <CardTitle className="text-lg text-slate-900 dark:text-slate-100">AI Answer</CardTitle>
+                      <div className="bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-1.5 rounded-lg">
+                        <Sparkles className="h-4 w-4 text-white" />
+                      </div>
+                      <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                        AI Overview
+                      </CardTitle>
+                      {searchData.resultCount && (
+                        <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">
+                          • {searchData.resultCount} sources
+                        </span>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <p className="text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
-                        {searchData.summary}
-                      </p>
+                    <div 
+                      className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed"
+                      dangerouslySetInnerHTML={{ 
+                        __html: searchData.summary
+                          .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-slate-900 dark:text-white">$1</strong>')
+                          .replace(/\n\n/g, '</p><p class="mt-4">')
+                          .replace(/^(.*)$/gm, (match) => {
+                            if (match.trim() && !match.includes('<p')) return `<p>${match}</p>`;
+                            return match;
+                          })
+                          .replace(/• /g, '<li class="ml-4">')
+                          .replace(/<li class="ml-4">(.*?)(?=<\/p>|<p>|$)/gs, '<ul class="list-disc ml-6 space-y-1"><li>$1</li></ul>')
+                      }}
+                    />
+                    <div className="flex items-center gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setChatMode(true);
+                          setChatInput(`Tell me more about: ${searchData.query}`);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-1.5" />
+                        Ask follow-up
+                      </Button>
+                      {searchData.searchTime && (
+                        <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
+                          Generated in {searchData.searchTime}ms
+                        </span>
+                      )}
                     </div>
-                    {searchData.searchTime && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {searchData.resultCount} sources • {searchData.searchTime}ms
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
 
