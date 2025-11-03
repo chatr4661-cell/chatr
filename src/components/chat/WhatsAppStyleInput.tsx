@@ -44,7 +44,7 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showMediaPreview, setShowMediaPreview] = useState(false);
-  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' | 'document'; fileName?: string } | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' | 'document'; fileName?: string; fileSize?: number } | null>(null);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -101,63 +101,110 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
+    // Check file size limit
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      toast.error(`File size must be less than ${maxSize / (1024 * 1024)}MB`);
       return;
     }
 
     // Show preview for images/videos
     if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPreviewMedia({
-          url: event.target?.result as string,
-          type: file.type.startsWith('image/') ? 'image' : 'video',
-          fileName: file.name
-        });
-        setSelectedFile(file);
-        setShowMediaPreview(true);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setPreviewMedia({
+            url: event.target?.result as string,
+            type: file.type.startsWith('image/') ? 'image' : 'video',
+            fileName: file.name,
+            fileSize: file.size
+          });
+          setSelectedFile(file);
+          setShowMediaPreview(true);
+        };
+        reader.onerror = () => {
+          toast.error('Failed to read file');
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('File read error:', error);
+        toast.error('Failed to process file');
+      }
     } else {
-      // Direct upload for documents
-      await uploadAndSendFile(file);
+      // Show preview for documents too
+      setPreviewMedia({
+        url: '',
+        type: 'document',
+        fileName: file.name,
+        fileSize: file.size
+      });
+      setSelectedFile(file);
+      setShowMediaPreview(true);
     }
 
     // Clear input
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (imageInputRef.current) imageInputRef.current.value = '';
+    setShowAttachMenu(false);
   };
 
   const uploadAndSendFile = async (file: File, caption?: string) => {
     setUploadingFile(true);
+    
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${conversationId}/${Date.now()}.${fileExt}`;
+      // Show upload progress
+      toast.info(`Uploading ${file.name}...`);
+      
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'file';
+      const timestamp = Date.now();
+      const fileName = `${userId}/${conversationId}/${timestamp}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      // Upload to Supabase Storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('chat-media')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(uploadError.message);
+      }
 
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('chat-media')
         .getPublicUrl(fileName);
 
-      const messageType = file.type.startsWith('image/') ? 'image' : 
-                         file.type.startsWith('video/') ? 'video' : 
-                         file.type.startsWith('audio/') ? 'audio' : 'file';
+      // Determine message type
+      let messageType = 'file';
+      if (file.type.startsWith('image/')) messageType = 'image';
+      else if (file.type.startsWith('video/')) messageType = 'video';
+      else if (file.type.startsWith('audio/')) messageType = 'audio';
+      else if (file.type.includes('pdf') || file.type.includes('document')) messageType = 'document';
 
-      await onSendMessage(caption || file.name, messageType, [{ url: publicUrl, type: messageType }]);
+      // Create media attachment
+      const mediaAttachment = {
+        url: publicUrl,
+        type: messageType,
+        name: file.name,
+        size: file.size,
+        mimeType: file.type
+      };
+
+      // Send message with attachment
+      await onSendMessage(
+        caption || file.name, 
+        messageType, 
+        [mediaAttachment]
+      );
       
-      toast.success('File sent successfully!');
+      toast.success(`${file.name} sent successfully!`);
     } catch (error: any) {
       console.error('File upload error:', error);
-      toast.error('Failed to upload file');
+      toast.error(error.message || 'Failed to upload file. Please try again.');
     } finally {
       setUploadingFile(false);
       setSelectedFile(null);
@@ -174,12 +221,15 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
 
   const handleCameraCapture = async () => {
     try {
+      toast.info('Opening camera...');
       const photoDataUrl = await capturePhoto();
+      
       if (photoDataUrl) {
         setPreviewMedia({
           url: photoDataUrl,
           type: 'image',
-          fileName: 'Camera Photo'
+          fileName: `Photo ${new Date().toLocaleTimeString()}`,
+          fileSize: undefined
         });
         
         // Convert data URL to File
@@ -188,22 +238,27 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
         const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
         setSelectedFile(file);
         setShowMediaPreview(true);
+      } else {
+        toast.error('No photo captured');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Camera capture error:', error);
-      toast.error('Failed to capture photo');
+      toast.error(error.message || 'Failed to access camera. Please enable camera permissions.');
     }
     setShowAttachMenu(false);
   };
 
   const handleGalleryPick = async () => {
     try {
+      toast.info('Opening gallery...');
       const imageDataUrl = await pickImage();
+      
       if (imageDataUrl) {
         setPreviewMedia({
           url: imageDataUrl,
           type: 'image',
-          fileName: 'Gallery Image'
+          fileName: `Image ${new Date().toLocaleTimeString()}`,
+          fileSize: undefined
         });
         
         // Convert data URL to File
@@ -212,37 +267,62 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
         const file = new File([blob], `image_${Date.now()}.jpg`, { type: 'image/jpeg' });
         setSelectedFile(file);
         setShowMediaPreview(true);
+      } else {
+        toast.error('No image selected');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Gallery pick error:', error);
-      toast.error('Failed to pick image');
+      toast.error(error.message || 'Failed to access gallery. Please enable photo permissions.');
     }
     setShowAttachMenu(false);
   };
 
   const handleLocationShare = async () => {
     try {
+      toast.info('Getting your location...');
       const location = await getCurrentLocation();
       if (location) {
-        const locationMessage = `📍 Location: https://maps.google.com/?q=${location.latitude},${location.longitude}`;
-        await onSendMessage(locationMessage, 'text');
-        toast.success('Location shared!');
+        // Create rich location message
+        const locationData = {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          mapUrl: `https://maps.google.com/?q=${location.latitude},${location.longitude}`
+        };
+        
+        await onSendMessage(
+          `📍 Location\nhttps://maps.google.com/?q=${location.latitude},${location.longitude}`,
+          'location',
+          [locationData]
+        );
+        toast.success('Location shared successfully!');
+      } else {
+        toast.error('Could not get your location');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Location share error:', error);
-      toast.error('Failed to share location');
+      toast.error(error.message || 'Failed to share location. Please enable location permissions.');
     }
     setShowAttachMenu(false);
   };
 
   const handleContactShare = async (contact: any) => {
     try {
-      const contactMessage = `👤 Contact: ${contact.contact_name}\n📞 ${contact.contact_phone}`;
-      await onSendMessage(contactMessage, 'contact', [{ 
-        name: contact.contact_name, 
-        phone: contact.contact_phone 
-      }]);
-      toast.success('Contact shared!');
+      // Create a properly formatted contact card message
+      const contactCard = {
+        name: contact.contact_name,
+        phone: contact.contact_phone,
+        avatar: contact.avatar_url
+      };
+      
+      // Send as contact type with metadata
+      await onSendMessage(
+        `📇 ${contact.contact_name}\n📱 ${contact.contact_phone}`, 
+        'contact', 
+        [contactCard]
+      );
+      
+      toast.success(`Shared ${contact.contact_name}'s contact`);
+      setShowContactPicker(false);
     } catch (error) {
       console.error('Contact share error:', error);
       toast.error('Failed to share contact');
@@ -289,11 +369,41 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
   };
 
   const attachmentOptions = [
-    { icon: Camera, label: 'Camera', action: handleCameraCapture, color: 'bg-pink-500' },
-    { icon: ImageIcon, label: 'Gallery', action: handleGalleryPick, color: 'bg-purple-500' },
-    { icon: FileText, label: 'Document', action: () => fileInputRef.current?.click(), color: 'bg-blue-500' },
-    { icon: MapPin, label: 'Location', action: handleLocationShare, color: 'bg-green-500' },
-    { icon: User, label: 'Contact', action: () => { setShowContactPicker(true); setShowAttachMenu(false); }, color: 'bg-orange-500' },
+    { 
+      icon: Camera, 
+      label: 'Camera', 
+      action: handleCameraCapture, 
+      color: 'bg-gradient-to-br from-pink-500 to-pink-600',
+      description: 'Take a photo'
+    },
+    { 
+      icon: ImageIcon, 
+      label: 'Gallery', 
+      action: handleGalleryPick, 
+      color: 'bg-gradient-to-br from-purple-500 to-purple-600',
+      description: 'Choose from gallery'
+    },
+    { 
+      icon: FileText, 
+      label: 'Document', 
+      action: () => { fileInputRef.current?.click(); setShowAttachMenu(false); }, 
+      color: 'bg-gradient-to-br from-blue-500 to-blue-600',
+      description: 'Share a file'
+    },
+    { 
+      icon: MapPin, 
+      label: 'Location', 
+      action: handleLocationShare, 
+      color: 'bg-gradient-to-br from-green-500 to-green-600',
+      description: 'Share your location'
+    },
+    { 
+      icon: User, 
+      label: 'Contact', 
+      action: () => { setShowContactPicker(true); setShowAttachMenu(false); }, 
+      color: 'bg-gradient-to-br from-orange-500 to-orange-600',
+      description: 'Share a contact'
+    },
   ];
 
   return (
@@ -318,9 +428,12 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
       ) : (
         <>
           {uploadingFile && (
-            <div className="mb-2 flex items-center gap-2 text-sm text-primary bg-primary/5 px-3 py-2 rounded-lg">
-              <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <span>Uploading {selectedFile?.name}...</span>
+            <div className="mb-3 flex items-center gap-3 text-sm bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 rounded-2xl border border-primary/20">
+              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="flex-1">
+                <p className="font-medium text-primary">Uploading...</p>
+                <p className="text-xs text-muted-foreground">{selectedFile?.name}</p>
+              </div>
             </div>
           )}
           
@@ -359,22 +472,24 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
                   <Plus className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-2" align="start" side="top">
+              <PopoverContent className="w-64 p-2" align="start" side="top">
                 <div className="grid gap-1">
                   {attachmentOptions.map((option, idx) => (
                     <Button
                       key={idx}
                       variant="ghost"
-                      className="w-full justify-start h-auto py-2 px-3"
+                      className="w-full justify-start h-auto py-3 px-3 hover:bg-accent transition-colors"
                       onClick={() => {
                         option.action();
-                        setShowAttachMenu(false);
                       }}
                     >
-                      <div className={`w-8 h-8 rounded-full ${option.color} flex items-center justify-center mr-3`}>
-                        <option.icon className="w-4 h-4 text-white" />
+                      <div className={`w-10 h-10 rounded-full ${option.color} flex items-center justify-center mr-3 shadow-md`}>
+                        <option.icon className="w-5 h-5 text-white" />
                       </div>
-                      <span className="text-sm">{option.label}</span>
+                      <div className="flex-1 text-left">
+                        <p className="text-sm font-medium">{option.label}</p>
+                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                      </div>
                     </Button>
                   ))}
                 </div>
@@ -432,6 +547,7 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
           mediaUrl={previewMedia.url}
           mediaType={previewMedia.type}
           fileName={previewMedia.fileName}
+          fileSize={previewMedia.fileSize}
         />
       )}
 
