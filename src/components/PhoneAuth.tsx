@@ -178,6 +178,7 @@ export const PhoneAuth = () => {
         const { error: insertError } = await supabase.from('profiles').insert({
           id: authData.user.id,
           phone_number: normalizedPhone,
+          email: `pending_${authData.user.id}@chatr.chat`,
           username: phoneNumber,
           onboarding_completed: false,
         });

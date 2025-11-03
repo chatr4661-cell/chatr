@@ -367,10 +367,12 @@ const Auth = () => {
               navigate("/chat", { replace: true });
             }}
             onSkip={async () => {
-              console.log('[ONBOARDING] Skipping onboarding...');
-              await onboarding.skipOnboarding();
-              console.log('[ONBOARDING] Redirecting to /chat');
-              navigate("/chat", { replace: true });
+              console.log('[ONBOARDING] Cannot skip - redirecting to complete onboarding');
+              toast({
+                title: "Complete Your Profile",
+                description: "Please fill in your email and phone number to continue",
+                variant: "destructive",
+              });
             }}
           />
         </>

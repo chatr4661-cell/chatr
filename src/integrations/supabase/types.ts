@@ -5368,7 +5368,7 @@ export type Database = {
           call_ringtone: string | null
           contacts_synced: boolean | null
           created_at: string | null
-          email: string | null
+          email: string
           full_name: string | null
           gender: string | null
           google_id: string | null
@@ -5409,7 +5409,7 @@ export type Database = {
           call_ringtone?: string | null
           contacts_synced?: boolean | null
           created_at?: string | null
-          email?: string | null
+          email: string
           full_name?: string | null
           gender?: string | null
           google_id?: string | null
@@ -5450,7 +5450,7 @@ export type Database = {
           call_ringtone?: string | null
           contacts_synced?: boolean | null
           created_at?: string | null
-          email?: string | null
+          email?: string
           full_name?: string | null
           gender?: string | null
           google_id?: string | null
