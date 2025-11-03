@@ -14,9 +14,10 @@ import { POPULAR_COUNTRIES, ALL_COUNTRIES, type Country } from "@/utils/countryC
 interface CountryCodeSelectorProps {
   value: string;
   onChange: (dialCode: string) => void;
+  disabled?: boolean;
 }
 
-export const CountryCodeSelector = ({ value, onChange }: CountryCodeSelectorProps) => {
+export const CountryCodeSelector = ({ value, onChange, disabled }: CountryCodeSelectorProps) => {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
@@ -44,6 +45,7 @@ export const CountryCodeSelector = ({ value, onChange }: CountryCodeSelectorProp
           role="combobox"
           aria-expanded={open}
           className="w-[110px] justify-between"
+          disabled={disabled}
         >
           <span className="flex items-center gap-1.5">
             <span className="text-lg">{selectedCountry.flag}</span>

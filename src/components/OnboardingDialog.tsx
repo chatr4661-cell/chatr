@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Contacts } from '@capacitor-community/contacts';
+import { z } from 'zod';
+import { CountryCodeSelector } from '@/components/CountryCodeSelector';
 
 interface OnboardingDialogProps {
   isOpen: boolean;
@@ -23,15 +25,48 @@ interface OnboardingDialogProps {
   onSkip: () => void;
 }
 
+const profileSchema = z.object({
+  fullName: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  phoneNumber: z.string().trim().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be less than 15 digits"),
+});
+
 export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: OnboardingDialogProps) => {
   const [step, setStep] = React.useState(1);
   const [fullName, setFullName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [countryCode, setCountryCode] = React.useState("+91");
   const [statusMessage, setStatusMessage] = React.useState("Hey there! I'm using chatr.chat");
   const [avatarUrl, setAvatarUrl] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
   const [referralCode, setReferralCode] = React.useState("");
+  const [existingEmail, setExistingEmail] = React.useState("");
+  const [existingPhone, setExistingPhone] = React.useState("");
   const { toast } = useToast();
+
+  // Load existing profile data
+  React.useEffect(() => {
+    const loadProfile = async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, phone_number, full_name, avatar_url')
+        .eq('id', userId)
+        .single();
+      
+      if (profile) {
+        setExistingEmail(profile.email || "");
+        setExistingPhone(profile.phone_number || "");
+        setEmail(profile.email || "");
+        setPhoneNumber(profile.phone_number?.replace(countryCode, "") || "");
+        setFullName(profile.full_name || "");
+        setAvatarUrl(profile.avatar_url || "");
+      }
+    };
+    
+    if (userId) loadProfile();
+  }, [userId, countryCode]);
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
@@ -78,19 +113,32 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
   };
 
   const handleStep1Next = async () => {
-    if (!fullName.trim()) {
-      toast({
-        title: "Name required",
-        description: "Please enter your name to continue",
-        variant: "destructive",
+    const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+    
+    // Validate all required fields
+    try {
+      profileSchema.parse({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phoneNumber: fullPhoneNumber,
       });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      }
       return;
     }
 
     const { error } = await supabase
       .from('profiles')
       .update({
-        full_name: fullName,
+        full_name: fullName.trim(),
+        email: email.trim(),
+        phone_number: fullPhoneNumber,
         status_message: statusMessage,
         avatar_url: avatarUrl || null,
       })
@@ -250,7 +298,48 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your name"
+                maxLength={100}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={existingEmail || "Enter your email"}
+                disabled={!!existingEmail}
+                maxLength={255}
+              />
+              {existingEmail && (
+                <p className="text-xs text-muted-foreground">Email from your sign-in method</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <div className="flex gap-2">
+                <CountryCodeSelector 
+                  value={countryCode} 
+                  onChange={setCountryCode}
+                  disabled={!!existingPhone}
+                />
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                  placeholder={existingPhone ? existingPhone.replace(countryCode, "") : "Enter phone number"}
+                  disabled={!!existingPhone}
+                  maxLength={15}
+                  className="flex-1"
+                />
+              </div>
+              {existingPhone && (
+                <p className="text-xs text-muted-foreground">Phone from your sign-in method</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -261,17 +350,13 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
                 onChange={(e) => setStatusMessage(e.target.value)}
                 placeholder="What's on your mind?"
                 rows={2}
+                maxLength={200}
               />
             </div>
 
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onSkip} className="flex-1">
-                Skip
-              </Button>
-              <Button onClick={handleStep1Next} className="flex-1">
-                Next
-              </Button>
-            </div>
+            <Button onClick={handleStep1Next} className="w-full">
+              Next
+            </Button>
           </div>
         )}
 
