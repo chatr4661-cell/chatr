@@ -10,6 +10,7 @@ import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { AIAssistantButton, AIAction } from './AIAssistantButton';
 import { useAISmartReplies } from '@/hooks/useAISmartReplies';
 import { MediaPreviewDialog } from './MediaPreviewDialog';
+import { MultiMediaPreviewDialog } from './MultiMediaPreviewDialog';
 import { ContactPicker } from './ContactPicker';
 import { capturePhoto, pickImage, getCurrentLocation } from '@/utils/mediaUtils';
 import {
@@ -41,10 +42,10 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
   const [sending, setSending] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showMediaPreview, setShowMediaPreview] = useState(false);
-  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' | 'document'; fileName?: string; fileSize?: number } | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<Array<{ url: string; type: 'image' | 'video' | 'document'; fileName?: string; fileSize?: number; file: File }>>([]);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -98,49 +99,63 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // Check file size limit
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxSize) {
-      toast.error(`File size must be less than ${maxSize / (1024 * 1024)}MB`);
+    // Check file limit
+    const maxFiles = 40;
+    if (files.length > maxFiles) {
+      toast.error(`You can only select up to ${maxFiles} files at once`);
       return;
     }
 
-    // Show preview for images/videos
-    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-      try {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setPreviewMedia({
-            url: event.target?.result as string,
+    // Check file size limit for each file
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    const oversizedFiles = files.filter(f => f.size > maxSize);
+    if (oversizedFiles.length > 0) {
+      toast.error(`Some files exceed ${maxSize / (1024 * 1024)}MB limit`);
+      return;
+    }
+
+    // Process all files
+    const previews: Array<{ url: string; type: 'image' | 'video' | 'document'; fileName?: string; fileSize?: number; file: File }> = [];
+    
+    for (const file of files) {
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        try {
+          const url = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target?.result as string);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+          });
+          
+          previews.push({
+            url,
             type: file.type.startsWith('image/') ? 'image' : 'video',
             fileName: file.name,
-            fileSize: file.size
+            fileSize: file.size,
+            file
           });
-          setSelectedFile(file);
-          setShowMediaPreview(true);
-        };
-        reader.onerror = () => {
-          toast.error('Failed to read file');
-        };
-        reader.readAsDataURL(file);
-      } catch (error) {
-        console.error('File read error:', error);
-        toast.error('Failed to process file');
+        } catch (error) {
+          console.error('File read error:', error);
+          toast.error(`Failed to process ${file.name}`);
+        }
+      } else {
+        // Document
+        previews.push({
+          url: '',
+          type: 'document',
+          fileName: file.name,
+          fileSize: file.size,
+          file
+        });
       }
-    } else {
-      // Show preview for documents too
-      setPreviewMedia({
-        url: '',
-        type: 'document',
-        fileName: file.name,
-        fileSize: file.size
-      });
-      setSelectedFile(file);
-      setShowMediaPreview(true);
     }
+
+    setPreviewMedia(previews);
+    setSelectedFiles(files);
+    setShowMediaPreview(true);
 
     // Clear input
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -148,82 +163,97 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
     setShowAttachMenu(false);
   };
 
-  const uploadAndSendFile = async (file: File, caption?: string) => {
+  const uploadAndSendFiles = async (files: File[], caption?: string) => {
     setUploadingFile(true);
     
     try {
-      // Show upload progress
-      toast.info(`Uploading ${file.name}...`);
+      toast.info(`Uploading ${files.length} file${files.length > 1 ? 's' : ''}...`);
       
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'file';
-      const timestamp = Date.now();
-      const fileName = `${userId}/${conversationId}/${timestamp}.${fileExt}`;
+      const mediaAttachments = [];
+      
+      // Upload all files
+      for (const file of files) {
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'file';
+        const timestamp = Date.now() + Math.random(); // Unique timestamp
+        const fileName = `${userId}/${conversationId}/${timestamp}.${fileExt}`;
 
-      // Upload to Supabase Storage
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from('chat-media')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type
+        const { error: uploadError } = await supabase.storage
+          .from('chat-media')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('chat-media')
+          .getPublicUrl(fileName);
+
+        // Determine message type
+        let messageType = 'file';
+        if (file.type.startsWith('image/')) messageType = 'image';
+        else if (file.type.startsWith('video/')) messageType = 'video';
+        else if (file.type.startsWith('audio/')) messageType = 'audio';
+        else if (file.type.includes('pdf') || file.type.includes('document')) messageType = 'document';
+
+        mediaAttachments.push({
+          url: publicUrl,
+          type: messageType,
+          name: file.name,
+          size: file.size,
+          mimeType: file.type
         });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error(uploadError.message);
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-media')
-        .getPublicUrl(fileName);
+      // Determine primary message type (image if any images, video if any videos, etc.)
+      let primaryType = 'file';
+      if (mediaAttachments.some(m => m.type === 'image')) primaryType = 'image';
+      else if (mediaAttachments.some(m => m.type === 'video')) primaryType = 'video';
+      else if (mediaAttachments.some(m => m.type === 'document')) primaryType = 'document';
 
-      // Determine message type
-      let messageType = 'file';
-      if (file.type.startsWith('image/')) messageType = 'image';
-      else if (file.type.startsWith('video/')) messageType = 'video';
-      else if (file.type.startsWith('audio/')) messageType = 'audio';
-      else if (file.type.includes('pdf') || file.type.includes('document')) messageType = 'document';
-
-      // Create media attachment
-      const mediaAttachment = {
-        url: publicUrl,
-        type: messageType,
-        name: file.name,
-        size: file.size,
-        mimeType: file.type
-      };
-
-      // Format content based on type
-      let messageContent = caption || file.name;
-      if (messageType === 'document' && !caption) {
-        messageContent = `[Document] ${file.name}: ${publicUrl}`;
+      // Format content
+      let messageContent = caption || `${files.length} file${files.length > 1 ? 's' : ''}`;
+      if (primaryType === 'image' && !caption) {
+        messageContent = `image_${Date.now()}`;
+      } else if (primaryType === 'document' && !caption) {
+        messageContent = `[Document] ${files[0].name}`;
       }
 
-      // Send message with attachment
-      console.log('📤 Sending media:', { messageContent, messageType, mediaAttachment });
+      // Send message with all attachments
+      console.log('📤 Sending media:', { messageContent, primaryType, attachments: mediaAttachments.length });
       await onSendMessage(
         messageContent, 
-        messageType, 
-        [mediaAttachment]
+        primaryType, 
+        mediaAttachments
       );
       
-      toast.success(`${file.name} sent successfully!`);
+      toast.success(`${files.length} file${files.length > 1 ? 's' : ''} sent successfully!`);
     } catch (error: any) {
       console.error('File upload error:', error);
-      toast.error(error.message || 'Failed to upload file. Please try again.');
+      toast.error(error.message || 'Failed to upload files. Please try again.');
     } finally {
       setUploadingFile(false);
-      setSelectedFile(null);
+      setSelectedFiles([]);
     }
   };
 
   const handleMediaPreviewSend = async (caption?: string) => {
-    if (selectedFile) {
-      await uploadAndSendFile(selectedFile, caption);
+    if (selectedFiles.length > 0) {
+      await uploadAndSendFiles(selectedFiles, caption);
       setShowMediaPreview(false);
-      setPreviewMedia(null);
+      setPreviewMedia([]);
     }
+  };
+
+  const handleRemoveMedia = (index: number) => {
+    setPreviewMedia(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleCameraCapture = async () => {
@@ -232,18 +262,18 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
       const photoDataUrl = await capturePhoto();
       
       if (photoDataUrl) {
-        setPreviewMedia({
-          url: photoDataUrl,
-          type: 'image',
-          fileName: `Photo ${new Date().toLocaleTimeString()}`,
-          fileSize: undefined
-        });
-        
-        // Convert data URL to File
         const response = await fetch(photoDataUrl);
         const blob = await response.blob();
         const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        setSelectedFile(file);
+        
+        setPreviewMedia([{
+          url: photoDataUrl,
+          type: 'image',
+          fileName: `Photo ${new Date().toLocaleTimeString()}`,
+          fileSize: blob.size,
+          file
+        }]);
+        setSelectedFiles([file]);
         setShowMediaPreview(true);
       } else {
         toast.error('No photo captured');
@@ -258,25 +288,8 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
   const handleGalleryPick = async () => {
     try {
       toast.info('Opening gallery...');
-      const imageDataUrl = await pickImage();
-      
-      if (imageDataUrl) {
-        setPreviewMedia({
-          url: imageDataUrl,
-          type: 'image',
-          fileName: `Image ${new Date().toLocaleTimeString()}`,
-          fileSize: undefined
-        });
-        
-        // Convert data URL to File
-        const response = await fetch(imageDataUrl);
-        const blob = await response.blob();
-        const file = new File([blob], `image_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        setSelectedFile(file);
-        setShowMediaPreview(true);
-      } else {
-        toast.error('No image selected');
-      }
+      // Trigger the image input which now supports multiple
+      imageInputRef.current?.click();
     } catch (error: any) {
       console.error('Gallery pick error:', error);
       toast.error(error.message || 'Failed to access gallery. Please enable photo permissions.');
@@ -440,7 +453,7 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
               <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <div className="flex-1">
                 <p className="font-medium text-primary">Uploading...</p>
-                <p className="text-xs text-muted-foreground">{selectedFile?.name}</p>
+                <p className="text-xs text-muted-foreground">{selectedFiles[0]?.name}</p>
               </div>
             </div>
           )}
@@ -460,6 +473,7 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
               className="hidden"
               onChange={handleFileSelect}
               accept="image/*,video/*"
+              multiple
             />
 
             {/* AI Assistant Button */}
@@ -543,19 +557,17 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
       )}
 
       {/* Media Preview Dialog */}
-      {previewMedia && (
-        <MediaPreviewDialog
+      {previewMedia.length > 0 && (
+        <MultiMediaPreviewDialog
           open={showMediaPreview}
           onClose={() => {
             setShowMediaPreview(false);
-            setPreviewMedia(null);
-            setSelectedFile(null);
+            setPreviewMedia([]);
+            setSelectedFiles([]);
           }}
           onSend={handleMediaPreviewSend}
-          mediaUrl={previewMedia.url}
-          mediaType={previewMedia.type}
-          fileName={previewMedia.fileName}
-          fileSize={previewMedia.fileSize}
+          media={previewMedia}
+          onRemove={handleRemoveMedia}
         />
       )}
 
