@@ -61,70 +61,78 @@ const FirebaseLogin = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Setup reCAPTCHA for phone auth - initialize on mount
+  // Setup reCAPTCHA - only once when component mounts
   useEffect(() => {
-    // Only initialize if container exists and verifier doesn't exist
-    const initRecaptcha = () => {
+    let mounted = true;
+    let verifier: RecaptchaVerifier | null = null;
+
+    const initRecaptcha = async () => {
+      // Don't initialize if already exists
+      if (recaptchaVerifier) {
+        console.log('reCAPTCHA already exists');
+        return;
+      }
+
+      // Wait for container to be in DOM
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (!mounted) return;
+
       const container = document.getElementById('recaptcha-container');
       
       if (!container) {
-        console.log('reCAPTCHA container not found yet');
-        return;
-      }
-      
-      if (recaptchaVerifier) {
-        console.log('reCAPTCHA already initialized');
+        console.error('reCAPTCHA container not found');
         return;
       }
 
       try {
-        console.log('Initializing reCAPTCHA...');
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        console.log('Creating reCAPTCHA verifier...');
+        
+        verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: (response: any) => {
-            console.log('reCAPTCHA solved', response);
+            console.log('reCAPTCHA verified successfully');
           },
           'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-            setPhoneError('reCAPTCHA expired. Please refresh and try again.');
+            console.warn('reCAPTCHA expired');
+            if (mounted) {
+              setPhoneError('Security verification expired. Please try again.');
+            }
           }
         });
+
+        // Render it
+        await verifier.render();
         
-        // Render the reCAPTCHA
-        verifier.render().then(() => {
-          console.log('reCAPTCHA rendered successfully');
+        if (mounted) {
+          console.log('reCAPTCHA initialized and rendered');
           setRecaptchaVerifier(verifier);
-        }).catch((error) => {
-          console.error('reCAPTCHA render error:', error);
-          setPhoneError('Failed to initialize reCAPTCHA. Please refresh the page.');
-        });
-      } catch (error) {
-        console.error('Failed to create reCAPTCHA:', error);
-        setPhoneError('Failed to initialize reCAPTCHA. Please refresh the page.');
-      }
-    };
-
-    // Wait for DOM and try to initialize
-    const timer = setTimeout(initRecaptcha, 500);
-    
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
-
-  // Cleanup reCAPTCHA on unmount
-  useEffect(() => {
-    return () => {
-      if (recaptchaVerifier) {
-        try {
-          recaptchaVerifier.clear();
-          console.log('reCAPTCHA cleared');
-        } catch (e) {
-          console.log('Error clearing reCAPTCHA:', e);
+        } else {
+          // Component unmounted, clean up
+          verifier.clear();
+        }
+      } catch (error: any) {
+        console.error('reCAPTCHA initialization failed:', error);
+        if (mounted) {
+          setPhoneError('Failed to initialize security verification. Please refresh the page.');
         }
       }
     };
-  }, [recaptchaVerifier]);
+
+    initRecaptcha();
+
+    return () => {
+      mounted = false;
+      if (verifier) {
+        try {
+          verifier.clear();
+          console.log('reCAPTCHA cleaned up');
+        } catch (e) {
+          console.log('Error cleaning up reCAPTCHA:', e);
+        }
+      }
+    };
+  }, []); // Empty deps - only run once
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,12 +215,20 @@ const FirebaseLogin = () => {
     }
 
     if (!recaptchaVerifier) {
-      setPhoneError("reCAPTCHA not initialized");
+      setPhoneError("Security verification not ready. Please wait a moment and try again.");
+      toast({
+        title: "Please Wait",
+        description: "Initializing security verification...",
+        variant: "destructive",
+      });
       return;
     }
 
     setLoading(true);
+    setPhoneError("");
+    
     try {
+      console.log('Sending OTP to:', fullPhone);
       const confirmation = await signInWithPhoneNumber(auth, fullPhone, recaptchaVerifier);
       setConfirmationResult(confirmation);
       toast({
@@ -380,7 +396,8 @@ const FirebaseLogin = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-4">
-      <div id="recaptcha-container"></div>
+      {/* reCAPTCHA container - must remain in DOM */}
+      <div id="recaptcha-container" className="fixed top-0 left-0 z-[-1]"></div>
       
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-2">
