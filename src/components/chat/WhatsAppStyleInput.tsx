@@ -201,6 +201,7 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
       }
 
       // Send message with attachment
+      console.log('📤 Sending media:', { messageContent, messageType, mediaAttachment });
       await onSendMessage(
         messageContent, 
         messageType, 

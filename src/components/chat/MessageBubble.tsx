@@ -302,46 +302,57 @@ const MessageBubbleComponent = ({
 
       <div className={`flex flex-col gap-0.5 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
         {/* Multiple media attachments - Images/Videos */}
-        {message.media_attachments && Array.isArray(message.media_attachments) && message.media_attachments.length > 0 && 
-         (message.message_type === 'image' || message.message_type === 'video') && (
-          <div className="max-w-[280px]">
-            <div className={`grid gap-1 mb-1 ${message.media_attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-              {message.media_attachments.map((media: any, idx: number) => (
-                <div key={idx} className="relative group rounded-xl overflow-hidden">
-                  {message.message_type === 'video' ? (
-                    <video 
-                      src={media.url} 
-                      className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                      controls
-                      onClick={() => window.open(media.url, '_blank')} 
-                    />
-                  ) : (
-                    <img 
-                      src={media.url} 
-                      alt={media.name || `Image ${idx + 1}`} 
-                      className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity" 
-                      onClick={() => window.open(media.url, '_blank')} 
-                    />
-                  )}
+        {(() => {
+          const hasMediaAttachments = message.media_attachments && 
+                                       (Array.isArray(message.media_attachments) ? message.media_attachments.length > 0 : Object.keys(message.media_attachments).length > 0);
+          const isMediaType = message.message_type === 'image' || message.message_type === 'video';
+          
+          if (hasMediaAttachments && isMediaType) {
+            const attachments = Array.isArray(message.media_attachments) ? message.media_attachments : [message.media_attachments];
+            console.log('🖼️ Rendering media:', { type: message.message_type, attachments });
+            
+            return (
+              <div className="max-w-[280px]">
+                <div className={`grid gap-1 mb-1 ${attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {attachments.map((media: any, idx: number) => (
+                    <div key={idx} className="relative group rounded-xl overflow-hidden">
+                      {message.message_type === 'video' ? (
+                        <video 
+                          src={media.url} 
+                          className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          controls
+                          onClick={() => window.open(media.url, '_blank')} 
+                        />
+                      ) : (
+                        <img 
+                          src={media.url} 
+                          alt={media.name || `Image ${idx + 1}`} 
+                          className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity" 
+                          onClick={() => window.open(media.url, '_blank')} 
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {/* Caption if present */}
-            {message.content && !message.content.startsWith('image_') && !message.content.startsWith('photo_') && (
-              <div className={`rounded-2xl px-4 py-2.5 mt-1 ${
-                isOwn
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-gray-200 text-gray-900'
-              }`}
-              style={isOwn ? { backgroundColor: '#0d9488' } : undefined}
-              >
-                <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
-                  {message.content}
-                </p>
+                {/* Caption if present */}
+                {message.content && !message.content.startsWith('image_') && !message.content.startsWith('photo_') && (
+                  <div className={`rounded-2xl px-4 py-2.5 mt-1 ${
+                    isOwn
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-gray-200 text-gray-900'
+                  }`}
+                  style={isOwn ? { backgroundColor: '#0d9488' } : undefined}
+                  >
+                    <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
+                      {message.content}
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            );
+          }
+          return null;
+        })()}
         
         {/* Single image (legacy) */}
         {message.media_url && message.message_type === 'image' && !message.media_attachments && (
@@ -401,7 +412,9 @@ const MessageBubbleComponent = ({
         })()}
 
         {/* Location message with map preview */}
-        {message.message_type === 'location' && message.content.includes('maps.google.com') && (
+        {message.message_type === 'location' && message.content && message.content.includes('maps.google.com') && (() => {
+          console.log('📍 Rendering location:', message.content);
+          return (
           <div className={`rounded-2xl overflow-hidden border ${isOwn ? 'border-teal-600/20' : 'border-border'} mb-1 max-w-[280px] bg-background`}>
             <iframe
               src={`https://maps.google.com/maps?q=${extractLocationCoords(message.content)}&output=embed`}
@@ -421,11 +434,16 @@ const MessageBubbleComponent = ({
               </a>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Document message */}
-        {message.message_type === 'document' && message.media_attachments && message.media_attachments.length > 0 && (() => {
-          const doc = message.media_attachments[0];
+        {message.message_type === 'document' && message.media_attachments && (() => {
+          const attachments = Array.isArray(message.media_attachments) ? message.media_attachments : [message.media_attachments];
+          if (attachments.length === 0) return null;
+          
+          const doc = attachments[0];
+          console.log('📄 Rendering document:', doc);
           const fileUrl = doc.url;
           const fileName = doc.name || 'Document';
           const fileSize = doc.size;
