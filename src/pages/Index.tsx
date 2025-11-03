@@ -34,8 +34,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Share } from 'lucide-react';
 
-// Lazy load heavy components
-const ServiceCard = React.lazy(() => import('@/components/ServiceCard'));
+// Import ServiceCard directly (small component, no need for lazy loading)
+import ServiceCard from '@/components/ServiceCard';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -534,36 +534,28 @@ const Index = () => {
 
         {/* Main Feature Hubs */}
         <div className="grid grid-cols-1 gap-3">
-          <React.Suspense fallback={
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-muted/50 rounded-2xl animate-pulse" />
-              ))}
+          {mainHubs.map((hub, index) => (
+            <div 
+              key={hub.title} 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Hub clicked:', hub.title, hub.route);
+                navigate(hub.route);
+              }}
+              className="relative cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
+              style={{ animationDelay: `${index * 50}ms` }}
+              role="button"
+              tabIndex={0}
+            >
+              <ServiceCard {...hub} />
+              {hub.isNew && (
+                <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg pointer-events-none">
+                  NEW
+                </div>
+              )}
             </div>
-          }>
-            {mainHubs.map((hub, index) => (
-              <div 
-                key={hub.title} 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Hub clicked:', hub.title, hub.route);
-                  navigate(hub.route);
-                }}
-                className="relative cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
-                style={{ animationDelay: `${index * 50}ms` }}
-                role="button"
-                tabIndex={0}
-              >
-                <ServiceCard {...hub} />
-                {hub.isNew && (
-                  <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg pointer-events-none">
-                    NEW
-                  </div>
-                )}
-              </div>
-            ))}
-          </React.Suspense>
+          ))}
         </div>
 
         {/* Growth & Opportunities */}
