@@ -1,57 +1,70 @@
-Chatr+ is a lightweight, modern messaging app that keeps your chats secure, responsive, and accessible offline. Built as a PWA for the best web + native experience.
+Chatr.Chat — Where Every Connection Feels Alive! 🌟
+
+Experience conversations like never before — smooth, secure, and full of heart. Your all-in-one smart connection hub for modern communication.
 
 KEY FEATURES:
 
-🚀 Lightning Fast
-Send and receive messages instantly with our optimized messaging engine.
-
-🔒 Privacy First
-End-to-end encryption keeps your conversations private and secure.
-
-📱 Works Offline
-Read messages and compose new ones even without an internet connection.
-
-💬 Group Chats
-Create groups, share media, and stay connected with multiple people at once.
-
-🎨 Modern Design
-Beautiful, clean interface with Material Design principles.
+📞 Caller Display Magic
+Instantly see who's calling with live name, profile, and location updates. Know where your contacts are calling from in real-time.
 
 🔔 Smart Notifications
-Get notified about new messages with customizable notification settings.
+Never miss a moment with real-time message and call alerts, personalized just for you with intelligent priority handling.
 
-📸 Rich Media Support
-Share photos, videos, documents, and more with ease.
+📍 GPS & IP Location Insights
+Stay connected with context — see approximate location and presence awareness of your contacts, all while maintaining your privacy.
 
-🌙 Dark Mode
-Easy on the eyes with automatic dark mode support.
+📸 Camera Auto-Enable
+Jump into face-to-face video calls instantly — no setup, just smiles. Seamless video calling experience.
 
-WHY CHATR+?
+👥 Auto Contact Sync
+All your friends, one tap away. Automatic synchronization with your phone contacts.
 
-✓ No ads or tracking
-✓ Free forever
-✓ Open source technology
-✓ Cross-platform compatibility
-✓ Progressive Web App technology
-✓ Small app size
-✓ Regular updates
+💬 Crystal-Clear Calls
+FaceTime-style HD calling (voice & video) that feels real, not robotic. Professional-grade WebRTC technology.
+
+💗 Health & Wellness Tracker
+Integrated with Google Health — track your wellness, mood, and activity because your well-being matters too.
+
+🚀 Lightning Fast Performance
+Optimized messaging engine with offline support and intelligent data saving for 2G networks.
+
+🔒 Privacy & Security
+End-to-end encryption, customizable location sharing, and granular privacy controls keep you safe.
+
+WHY CHATR.CHAT?
+
+✓ AI-powered smart features
+✓ Real-time location presence
+✓ Professional HD calling (voice & video)
+✓ Health & wellness integration
+✓ Auto contact sync
+✓ Smart notifications
+✓ Privacy-first design with customizable location sharing
+✓ Works great on slow networks (2G optimized)
+✓ Free to use
+✓ Regular updates with new features
 
 PERFECT FOR:
 
-• Personal messaging
-• Group conversations
+• Personal messaging with location context
+• HD video & voice calls
+• Family wellness tracking
 • Team communication
-• Family chats
 • Community groups
+• Health-conscious users
+• Anyone who values privacy and smart features
 
-Download Chatr+ today and experience messaging the way it should be - fast, simple, and secure.
+Join Chatr.Chat today and experience communication that truly connects — fast, intelligent, and heartfelt.
 
 PERMISSIONS:
 
-• Internet - To send and receive messages
+• Internet - To send and receive messages & calls
 • Storage - To save media and offline messages
-• Notifications - To alert you about new messages
-• Camera - To take and share photos (optional)
+• Notifications - For real-time message and call alerts
+• Camera - For video calls and photo sharing
+• Microphone - For voice and video calls
+• Location (Optional) - To share your presence with contacts (fully customizable)
+• Contacts (Optional) - For automatic contact synchronization
 
 SUPPORT:
 

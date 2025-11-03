@@ -13,6 +13,7 @@ import { useNetworkQuality } from '@/hooks/useNetworkQuality';
 import { useLiteMode } from '@/hooks/useLiteMode';
 import { useDataUsageTracking } from '@/hooks/useDataUsageTracking';
 import { useBandwidthEstimation } from '@/hooks/useBandwidthEstimation';
+import { LocationPrivacySettings } from '@/components/settings/LocationPrivacySettings';
 
 export default function Account() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function Account() {
   const { stats, formatBytes, getSavingsPercentage, resetStats } = useDataUsageTracking();
   const { bandwidth, measuredSpeed, isSlowNetwork } = useBandwidthEstimation();
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const [settings, setSettings] = useState({
     language: 'en',
     theme: 'system',
@@ -61,13 +63,15 @@ export default function Account() {
 
   const loadSettings = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+      
+      setUser(currentUser);
 
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -80,7 +84,7 @@ export default function Account() {
         });
       } else {
         // Create default settings
-        await supabase.from('user_settings').insert({ user_id: user.id });
+        await supabase.from('user_settings').insert({ user_id: currentUser.id });
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -460,6 +464,9 @@ export default function Account() {
             </button>
           </CardContent>
         </Card>
+
+        {/* Location & Privacy Settings */}
+        {user && <LocationPrivacySettings userId={user.id} />}
       </div>
     </div>
   );

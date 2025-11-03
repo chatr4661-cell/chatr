@@ -2,7 +2,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Phone, Mail, User, Calendar, MapPin } from 'lucide-react';
+import { Phone, Mail, User, Calendar } from 'lucide-react';
+import { LocationPresenceBadge } from '@/components/LocationPresenceBadge';
 
 interface UserProfile {
   id: string;
@@ -16,6 +17,11 @@ interface UserProfile {
   created_at: string;
   age: number | null;
   gender: string | null;
+  location_city?: string | null;
+  location_country?: string | null;
+  location_sharing_enabled?: boolean | null;
+  location_precision?: 'exact' | 'city' | 'off' | null;
+  last_seen_at?: string | null;
 }
 
 interface UserProfileDialogProps {
@@ -61,6 +67,18 @@ export const UserProfileDialog = ({ user, open, onOpenChange }: UserProfileDialo
                 <Badge variant={user.is_online ? "default" : "secondary"} className="mt-2">
                   {user.is_online ? 'Online' : 'Offline'}
                 </Badge>
+                
+                {/* Location Presence */}
+                <LocationPresenceBadge
+                  city={user.location_city || undefined}
+                  country={user.location_country || undefined}
+                  lastSeenAt={user.last_seen_at || undefined}
+                  locationSharingEnabled={user.location_sharing_enabled ?? true}
+                  locationPrecision={(user.location_precision as 'exact' | 'city' | 'off') || 'city'}
+                  showLastSeen={true}
+                  compact={false}
+                  className="justify-center"
+                />
               </div>
             </div>
           </DialogHeader>
@@ -131,14 +149,6 @@ export const UserProfileDialog = ({ user, open, onOpenChange }: UserProfileDialo
               Activity
             </h3>
             <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">
-                    {user.is_online ? 'Active now' : 'Not active'}
-                  </p>
-                </div>
-              </div>
               {user.created_at && (
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Calendar className="w-5 h-5 text-primary flex-shrink-0" />

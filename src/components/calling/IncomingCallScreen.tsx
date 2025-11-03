@@ -8,6 +8,7 @@ import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { cn } from "@/lib/utils";
 import { useNativeRingtone } from "@/hooks/useNativeRingtone";
 import { motion } from "framer-motion";
+import { LocationPresenceBadge } from "@/components/LocationPresenceBadge";
 
 interface IncomingCallScreenProps {
   callerName: string;
@@ -17,6 +18,10 @@ interface IncomingCallScreenProps {
   onReject: () => void;
   onSendMessage?: () => void;
   ringtoneUrl?: string;
+  callerCity?: string;
+  callerCountry?: string;
+  callerLocationSharing?: boolean;
+  callerLocationPrecision?: 'exact' | 'city' | 'off';
 }
 
 export function IncomingCallScreen({
@@ -26,7 +31,11 @@ export function IncomingCallScreen({
   onAnswer,
   onReject,
   onSendMessage,
-  ringtoneUrl = "/ringtone.mp3"
+  ringtoneUrl = "/ringtone.mp3",
+  callerCity,
+  callerCountry,
+  callerLocationSharing,
+  callerLocationPrecision
 }: IncomingCallScreenProps) {
   const hapticIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [ringtoneEnabled, setRingtoneEnabled] = React.useState(true);
@@ -106,20 +115,36 @@ export function IncomingCallScreen({
         </div>
       </motion.div>
 
-      {/* Local video preview - top right rounded rectangle (FaceTime style) */}
+      {/* Caller Info - Center */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.8, x: 100 }}
-        animate={{ opacity: 1, scale: 1, x: 0 }}
-        transition={{ delay: 0.2, type: "spring", damping: 20 }}
-        className="absolute top-8 right-8 w-40 h-52 rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl z-20"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="absolute top-1/3 left-0 right-0 flex flex-col items-center gap-6 z-20"
       >
-        <div className="relative w-full h-full bg-gray-900">
-          <Avatar className="absolute inset-0 w-full h-full rounded-none">
-            <AvatarImage src={callerAvatar} className="object-cover" />
-            <AvatarFallback className="bg-gradient-to-br from-gray-700 to-gray-800 text-white text-5xl rounded-none">
-              {callerName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+        <Avatar className="h-32 w-32 ring-4 ring-white/20 shadow-2xl">
+          <AvatarImage src={callerAvatar} />
+          <AvatarFallback className="bg-gradient-to-br from-gray-700 to-gray-800 text-white text-5xl">
+            {callerName.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="text-center space-y-2">
+          <h2 className="text-white text-3xl font-semibold">{callerName}</h2>
+          <p className="text-white/70 text-lg">
+            {callType === 'video' ? 'Video Call' : 'Voice Call'}
+          </p>
+          
+          {/* Location Display */}
+          <LocationPresenceBadge
+            city={callerCity}
+            country={callerCountry}
+            locationSharingEnabled={callerLocationSharing}
+            locationPrecision={callerLocationPrecision}
+            showLastSeen={false}
+            compact={true}
+            className="justify-center text-white/60"
+          />
         </div>
       </motion.div>
 

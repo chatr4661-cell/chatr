@@ -5379,7 +5379,16 @@ export type Database = {
           last_backup_at: string | null
           last_contact_sync: string | null
           last_seen: string | null
+          last_seen_at: string | null
           lifestyle: Json | null
+          location_city: string | null
+          location_country: string | null
+          location_ip: string | null
+          location_latitude: number | null
+          location_longitude: number | null
+          location_precision: string | null
+          location_sharing_enabled: boolean | null
+          location_updated_at: string | null
           medical_history: Json | null
           notification_tone: string | null
           onboarding_completed: boolean | null
@@ -5420,7 +5429,16 @@ export type Database = {
           last_backup_at?: string | null
           last_contact_sync?: string | null
           last_seen?: string | null
+          last_seen_at?: string | null
           lifestyle?: Json | null
+          location_city?: string | null
+          location_country?: string | null
+          location_ip?: string | null
+          location_latitude?: number | null
+          location_longitude?: number | null
+          location_precision?: string | null
+          location_sharing_enabled?: boolean | null
+          location_updated_at?: string | null
           medical_history?: Json | null
           notification_tone?: string | null
           onboarding_completed?: boolean | null
@@ -5461,7 +5479,16 @@ export type Database = {
           last_backup_at?: string | null
           last_contact_sync?: string | null
           last_seen?: string | null
+          last_seen_at?: string | null
           lifestyle?: Json | null
+          location_city?: string | null
+          location_country?: string | null
+          location_ip?: string | null
+          location_latitude?: number | null
+          location_longitude?: number | null
+          location_precision?: string | null
+          location_sharing_enabled?: boolean | null
+          location_updated_at?: string | null
           medical_history?: Json | null
           notification_tone?: string | null
           onboarding_completed?: boolean | null

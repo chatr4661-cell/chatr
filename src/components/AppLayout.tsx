@@ -5,6 +5,7 @@ import { InstallPWAPrompt } from './InstallPWAPrompt';
 import { BottomNav } from './BottomNav';
 import { Toaster } from './ui/toaster';
 import { Toaster as Sonner } from './ui/sonner';
+import { useLocationStatus } from '@/hooks/useLocationStatus';
 
 const ProductionCallNotifications = React.lazy(() => 
   import('./calling/ProductionCallNotifications').then(module => ({ 
@@ -21,6 +22,9 @@ interface AppLayoutProps {
 export const AppLayout = ({ children, user, profile }: AppLayoutProps) => {
   const location = useLocation();
   const isIndexPage = location.pathname === '/';
+  
+  // Track user location and presence
+  useLocationStatus(user?.id);
   
   return (
     <>
