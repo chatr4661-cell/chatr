@@ -1,4 +1,4 @@
-import { Sparkles, TrendingUp, Target, Palette, DollarSign } from "lucide-react";
+import { Sparkles, TrendingUp, Target, Palette, DollarSign, Volume2, VolumeX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -8,9 +8,13 @@ interface AIGuidanceOverlayProps {
     category: string;
     tips: string[];
     trendingNow: boolean;
+    realtimeGuidance?: string;
+    fameScore?: number;
+    captureNow?: boolean;
   };
   currentCategory: string;
   onCategoryChange: (category: string) => void;
+  onVoiceToggle?: (enabled: boolean) => void;
 }
 
 type AIMode = "viral" | "creative" | "brand";
@@ -32,37 +36,92 @@ const aiModes = [
 export default function AIGuidanceOverlay({
   guidance,
   currentCategory,
-  onCategoryChange
+  onCategoryChange,
+  onVoiceToggle
 }: AIGuidanceOverlayProps) {
   const [currentMode, setCurrentMode] = useState<AIMode>("viral");
   const [whisperTip, setWhisperTip] = useState("");
   const [showWhisper, setShowWhisper] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
 
-  // Rotate whisper tips every 4 seconds
+  // Voice synthesis for AI guidance
+  const speakGuidance = (text: string) => {
+    if (!voiceEnabled || !('speechSynthesis' in window)) return;
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.1;
+    utterance.pitch = 1.0;
+    utterance.volume = 0.8;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleVoice = () => {
+    const newState = !voiceEnabled;
+    setVoiceEnabled(newState);
+    onVoiceToggle?.(newState);
+    
+    if (newState) {
+      speakGuidance("AI voice guidance enabled. I'll help you create viral content.");
+    }
+  };
+
+  // Real-time whisper tips rotation
   useEffect(() => {
-    const whispers = [
-      "Perfect lighting 🔥 Keep that angle!",
-      "Hold it! This pose is trending!",
-      "You're nailing it! 💯",
-      "This angle is fire 🔥",
-      "Keep steady... almost there!",
-    ];
+    const tips = guidance.realtimeGuidance 
+      ? [guidance.realtimeGuidance]
+      : [
+          "Perfect lighting 🔥 Keep that angle!",
+          "Hold it! This pose is trending!",
+          "You're nailing it! 💯",
+          "This angle is fire 🔥",
+          "Keep steady... almost there!",
+        ];
     
     let index = 0;
     const interval = setInterval(() => {
-      setWhisperTip(whispers[index]);
+      const tip = tips[index % tips.length];
+      setWhisperTip(tip);
       setShowWhisper(true);
+      
+      // Speak the tip if voice enabled
+      if (voiceEnabled) {
+        speakGuidance(tip);
+      }
+      
       setTimeout(() => setShowWhisper(false), 3000);
-      index = (index + 1) % whispers.length;
-    }, 4000);
+      index++;
+    }, 5000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      window.speechSynthesis?.cancel();
+    };
+  }, [guidance.realtimeGuidance, voiceEnabled]);
+
+  // Announce capture moment
+  useEffect(() => {
+    if (guidance.captureNow && voiceEnabled) {
+      speakGuidance("Perfect! Capture now for maximum viral potential!");
+    }
+  }, [guidance.captureNow, voiceEnabled]);
 
   return (
     <div className="absolute inset-0 pointer-events-none">
-      {/* AI Mode Switcher */}
-      <div className="absolute top-20 left-4 pointer-events-auto">
+      {/* Voice Toggle & AI Mode Switcher */}
+      <div className="absolute top-20 left-4 pointer-events-auto flex gap-2">
+        {/* Voice Toggle */}
+        <button
+          onClick={toggleVoice}
+          className={`p-2 rounded-full transition-all ${
+            voiceEnabled 
+              ? 'bg-primary text-white shadow-[0_0_20px_rgba(98,0,238,0.6)] animate-pulse' 
+              : 'bg-black/60 text-white/70 border border-white/20'
+          } backdrop-blur-md`}
+        >
+          {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        </button>
+
+        {/* AI Mode Switcher */}
         <div className="flex gap-2 bg-black/60 backdrop-blur-md rounded-full p-1 border border-white/20">
           {aiModes.map((mode) => {
             const Icon = mode.icon;
@@ -84,12 +143,31 @@ export default function AIGuidanceOverlay({
         </div>
       </div>
 
-      {/* AI Whisper Prompt */}
+      {/* AI Orb Whisper Prompt - Floating purple-glow AI assistant */}
       {showWhisper && (
         <div className="absolute top-40 left-1/2 -translate-x-1/2 pointer-events-none">
-          <div className="bg-gradient-to-r from-primary/90 to-primary-glow/90 backdrop-blur-md rounded-full px-6 py-3 border border-white/30 shadow-[0_0_30px_rgba(98,0,238,0.6)] animate-fade-in">
-            <p className="text-white font-semibold text-sm whitespace-nowrap">
-              {whisperTip}
+          <div className="relative">
+            {/* Glowing AI Orb */}
+            <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary shadow-[0_0_40px_rgba(98,0,238,0.8)] animate-pulse flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white animate-spin" style={{ animationDuration: '3s' }} />
+            </div>
+            
+            {/* Whisper Bubble */}
+            <div className="bg-gradient-to-r from-primary/90 to-primary-glow/90 backdrop-blur-md rounded-full px-6 py-3 border border-white/30 shadow-[0_0_30px_rgba(98,0,238,0.6)] animate-fade-in ml-2">
+              <p className="text-white font-semibold text-sm whitespace-nowrap">
+                {whisperTip}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Capture Now Pulse */}
+      {guidance.captureNow && (
+        <div className="absolute bottom-1/3 left-1/2 -translate-x-1/2 pointer-events-none">
+          <div className="bg-green-500/90 backdrop-blur-md rounded-full px-8 py-4 border-2 border-white shadow-[0_0_40px_rgba(34,197,94,0.8)] animate-bounce">
+            <p className="text-white font-bold text-lg whitespace-nowrap">
+              🎯 CAPTURE NOW! Peak Viral Moment!
             </p>
           </div>
         </div>
@@ -120,7 +198,7 @@ export default function AIGuidanceOverlay({
         </div>
       </div>
 
-      {/* AI Tips */}
+      {/* AI Tips Panel */}
       <div className="absolute bottom-32 left-4 right-4 pointer-events-auto">
         <div className="bg-black/70 backdrop-blur-md rounded-2xl p-4 border border-primary/30 animate-fade-in">
           <div className="flex items-center gap-2 mb-3">
@@ -146,10 +224,12 @@ export default function AIGuidanceOverlay({
         </div>
       </div>
 
-      {/* Frame Guidelines (subtle) */}
-      <div className="absolute inset-4 border-2 border-primary/20 rounded-3xl pointer-events-none animate-pulse" />
-      <div className="absolute top-1/3 left-1/2 w-1 h-1/3 bg-primary/10" />
-      <div className="absolute top-1/2 left-1/3 w-1/3 h-1 bg-primary/10" />
+      {/* Frame Guidelines (rule of thirds) */}
+      <div className="absolute inset-4 border-2 border-primary/20 rounded-3xl pointer-events-none" />
+      <div className="absolute top-1/3 left-0 right-0 h-px bg-primary/10" />
+      <div className="absolute top-2/3 left-0 right-0 h-px bg-primary/10" />
+      <div className="absolute left-1/3 top-0 bottom-0 w-px bg-primary/10" />
+      <div className="absolute left-2/3 top-0 bottom-0 w-px bg-primary/10" />
     </div>
   );
 }

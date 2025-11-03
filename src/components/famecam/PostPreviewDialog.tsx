@@ -3,10 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, TrendingUp, Coins, Share2, Instagram, Twitter } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { Instagram, Youtube, Share2, Sparkles, TrendingUp, DollarSign } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PostPreviewDialogProps {
   open: boolean;
@@ -22,10 +22,10 @@ export default function PostPreviewDialog({
   onSuccess
 }: PostPreviewDialogProps) {
   const [caption, setCaption] = useState("");
-  const [analysis, setAnalysis] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(true);
+  const [hashtags, setHashtags] = useState<string[]>([]);
   const [posting, setPosting] = useState(false);
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [analyzing, setAnalyzing] = useState(true);
 
   useEffect(() => {
     if (open && imageUrl) {
@@ -37,19 +37,21 @@ export default function PostPreviewDialog({
     setAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-fame-content', {
-        body: { imageUrl, caption, category: 'general' }
+        body: { 
+          imageData: imageUrl,
+          category: 'General',
+          analysisType: 'optimization'
+        }
       });
 
       if (error) throw error;
-      setAnalysis(data);
-      
-      // Auto-populate suggested hashtags
-      if (data.trendingHashtags?.length > 0) {
-        setCaption(prev => prev + '\n\n' + data.trendingHashtags.join(' '));
-      }
+
+      setAnalysis(data.analysis || {});
+      setCaption(data.analysis?.enhancedCaption || "");
+      setHashtags(data.analysis?.hashtags || ["#FameCam", "#Viral", "#Trending"]);
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error("AI analysis unavailable");
+      setHashtags(["#FameCam", "#Viral", "#Trending"]);
     } finally {
       setAnalyzing(false);
     }
@@ -59,41 +61,40 @@ export default function PostPreviewDialog({
     setPosting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) throw new Error('Not authenticated');
 
-      // Upload image to storage
-      const fileName = `${user.id}/${Date.now()}.jpg`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('chat-media')
-        .upload(fileName, await fetch(imageUrl).then(r => r.blob()), {
-          contentType: 'image/jpeg',
-          upsert: false
-        });
+      const fileName = `fame-${user.id}-${Date.now()}.jpg`;
+      const blob = await fetch(imageUrl).then(r => r.blob());
+      
+      const { error: uploadError } = await supabase.storage
+        .from('social-media')
+        .upload(fileName, blob, { contentType: 'image/jpeg' });
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('chat-media')
+      const { data: { publicUrl } } = supabase.storage
+        .from('social-media')
         .getPublicUrl(fileName);
 
-      // Create fame cam post
+      // Create fame post
       const { error: postError } = await supabase
         .from('fame_cam_posts')
         .insert({
-          user_id: user.id,
-          media_url: urlData.publicUrl,
+          media_url: publicUrl,
           media_type: 'photo',
-          caption,
-          hashtags: analysis?.trendingHashtags || [],
-          ai_virality_score: analysis?.viralityScore || 50,
-          coins_earned: analysis?.estimatedCoins || 50,
-          is_viral: analysis?.isLikelyViral || false
+          caption: caption,
+          ai_virality_score: analysis?.fameScore || 75,
+          is_viral: (analysis?.fameScore || 75) >= 80,
+          coins_earned: analysis?.viralPrediction?.estimatedCoins || 50
         });
 
       if (postError) throw postError;
 
-      // Award coins
-      const { data: currentPoints } = await supabase
+      const baseCoins = 10;
+      const viralBonus = analysis?.viralPrediction?.estimatedCoins || 0;
+      const totalCoins = baseCoins + viralBonus;
+
+      const { data: pointsData } = await supabase
         .from('user_points')
         .select('balance')
         .eq('user_id', user.id)
@@ -101,40 +102,33 @@ export default function PostPreviewDialog({
 
       await supabase
         .from('user_points')
-        .update({ 
-          balance: (currentPoints?.balance || 0) + (analysis?.estimatedCoins || 50)
-        })
+        .update({ balance: (pointsData?.balance || 0) + totalCoins })
         .eq('user_id', user.id);
 
       await supabase
         .from('point_transactions')
         .insert({
           user_id: user.id,
-          amount: analysis?.estimatedCoins || 50,
+          amount: totalCoins,
           transaction_type: 'earn',
           source: 'fame_cam',
-          description: `FameCam post reward`
+          description: `FameCam post reward: ${totalCoins} coins`
         });
 
-      // Show "Fame Spark" moment with custom component
-      toast.success(
-        <div className="flex flex-col gap-1">
-          <div className="text-lg font-bold">✨ Fame Spark Detected!</div>
-          <div>You earned {analysis?.estimatedCoins || 50} FameCoins 🪙</div>
-          {analysis?.isLikelyViral && <div className="text-xs text-green-400">This could go viral! 🔥</div>}
-        </div>,
-        { duration: 3000 }
-      );
-
+      toast.success(`Posted! You earned ${totalCoins} Chatr Coins 🪙`);
       onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error('Post error:', error);
-      toast.error("Failed to post");
+      toast.error('Failed to post. Please try again.');
     } finally {
       setPosting(false);
     }
   };
+
+  const fameScore = analysis?.fameScore || 75;
+  const viralLikelihood = analysis?.viralPrediction?.likelihood || 'medium';
+  const estimatedCoins = analysis?.viralPrediction?.estimatedCoins || 50;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -142,87 +136,124 @@ export default function PostPreviewDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            Post Your Content
+            Post Your Fame
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Preview Image */}
-          <div className="relative rounded-lg overflow-hidden bg-accent">
+        <div className="space-y-6">
+          <div className="relative rounded-lg overflow-hidden">
             <img src={imageUrl} alt="Preview" className="w-full h-auto" />
+            
+            {analyzing && (
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                <div className="text-center text-white">
+                  <Sparkles className="w-8 h-8 mx-auto mb-2 animate-spin" />
+                  <p>AI analyzing your content...</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* AI Analysis */}
-          {analyzing ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Analyzing virality...</span>
-                <Sparkles className="w-4 h-4 animate-pulse text-primary" />
-              </div>
-              <Progress value={66} className="h-1" />
-            </div>
-          ) : analysis && (
-            <div className="space-y-3 p-4 bg-accent/50 rounded-lg border border-border">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  <span className="font-semibold">Virality Score</span>
+          {!analyzing && analysis && (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary-glow/10 rounded-lg p-4 border border-primary/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold">Fame Score</span>
+                  <span className="text-2xl font-bold text-primary">{fameScore}/100</span>
                 </div>
-                <Badge variant={analysis.viralityScore >= 80 ? "default" : "secondary"}>
-                  {analysis.viralityScore}/100
-                </Badge>
+                <Progress value={fameScore} className="h-3" />
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Estimated Earnings</span>
-                <div className="flex items-center gap-1 font-semibold">
-                  <Coins className="w-4 h-4 text-yellow-500" />
-                  {analysis.estimatedCoins} coins
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-secondary rounded-lg p-3 text-center">
+                  <TrendingUp className="w-5 h-5 mx-auto mb-1 text-green-500" />
+                  <p className="text-xs text-muted-foreground">Viral Chance</p>
+                  <p className="font-bold capitalize">{viralLikelihood}</p>
+                </div>
+                <div className="bg-secondary rounded-lg p-3 text-center">
+                  <DollarSign className="w-5 h-5 mx-auto mb-1 text-yellow-500" />
+                  <p className="text-xs text-muted-foreground">Est. Coins</p>
+                  <p className="font-bold">+{estimatedCoins}</p>
+                </div>
+                <div className="bg-secondary rounded-lg p-3 text-center">
+                  <Share2 className="w-5 h-5 mx-auto mb-1 text-blue-500" />
+                  <p className="text-xs text-muted-foreground">Est. Reach</p>
+                  <p className="font-bold">{analysis.viralPrediction?.estimatedReach || '5k+'}</p>
                 </div>
               </div>
 
-              {analysis.suggestions?.length > 0 && (
-                <div className="space-y-1">
-                  <span className="text-sm font-medium">AI Suggestions:</span>
-                  {analysis.suggestions.slice(0, 3).map((sug: any, idx: number) => (
-                    <div key={idx} className="text-xs text-muted-foreground flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      <span>{sug.tip}</span>
-                    </div>
-                  ))}
+              {analysis.optimizations && analysis.optimizations.length > 0 && (
+                <div className="bg-secondary rounded-lg p-4">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    AI Optimization Tips
+                  </h4>
+                  <ul className="space-y-1 text-sm">
+                    {analysis.optimizations.map((tip: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="text-primary">•</span>
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
           )}
 
-          {/* Caption */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Caption & Hashtags</label>
+            <label className="text-sm font-medium">Caption</label>
             <Textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Write a catchy caption... ✨"
-              rows={4}
+              placeholder="Write an engaging caption..."
+              rows={3}
               className="resize-none"
             />
           </div>
 
-          {/* Post Actions */}
-          <div className="flex gap-2">
-            <Button
-              onClick={handlePost}
-              disabled={posting || analyzing}
-              className="flex-1"
-            >
-              {posting ? "Posting..." : "Post to Chatr Feed"}
-            </Button>
-            <Button variant="outline" size="icon" disabled>
-              <Instagram className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="icon" disabled>
-              <Twitter className="w-4 h-4" />
-            </Button>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">AI Suggested Hashtags</label>
+            <div className="flex flex-wrap gap-2">
+              {hashtags.map((tag, idx) => (
+                <Badge key={idx} variant="secondary">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Share To</label>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" disabled>
+                <Instagram className="w-4 h-4 mr-2" />
+                Instagram
+              </Button>
+              <Button variant="outline" className="flex-1" disabled>
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+                </svg>
+                TikTok
+              </Button>
+              <Button variant="outline" className="flex-1" disabled>
+                <Youtube className="w-4 h-4 mr-2" />
+                Shorts
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Cross-platform sharing coming soon!
+            </p>
+          </div>
+
+          <Button
+            onClick={handlePost}
+            disabled={posting || !caption.trim()}
+            className="w-full"
+            size="lg"
+          >
+            {posting ? 'Posting...' : `Post & Earn ${estimatedCoins} Coins 🪙`}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

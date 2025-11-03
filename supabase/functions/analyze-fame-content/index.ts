@@ -1,6 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,52 +11,76 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, caption, category } = await req.json();
+    const { imageData, category, analysisType = 'full' } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
+
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Analyze content with AI
-    const analysisPrompt = `Analyze this social media content for viral potential.
+    // System prompts for different analysis types
+    const systemPrompts = {
+      full: `You are a viral content AI analyst. Analyze images for viral potential across social media platforms.
 
-Content Details:
-- Category: ${category || 'general'}
-- Caption: ${caption || 'no caption'}
-- Has Image: ${imageUrl ? 'yes' : 'no'}
-
-Provide a comprehensive analysis as JSON with:
+Provide analysis in this exact JSON format:
 {
-  "viralityScore": (0-100),
-  "engagementPrediction": "low|medium|high|viral",
-  "suggestions": [
-    {"type": "angle|lighting|timing|hashtag|caption", "tip": "specific suggestion"},
-    ...
-  ],
-  "trendingHashtags": ["#tag1", "#tag2", ...],
-  "estimatedCoins": (10-1000),
-  "isLikelyViral": true/false,
-  "improvements": ["specific improvement 1", "specific improvement 2"]
-}
+  "fameScore": number (0-100),
+  "category": string,
+  "viralPrediction": {
+    "likelihood": "low|medium|high|viral",
+    "estimatedReach": string,
+    "estimatedCoins": number
+  },
+  "composition": {
+    "lighting": "poor|good|excellent",
+    "framing": "poor|good|excellent",
+    "angle": "poor|good|excellent",
+    "background": "cluttered|acceptable|clean"
+  },
+  "suggestions": string[],
+  "trending": {
+    "isOnTrend": boolean,
+    "trendName": string,
+    "trendScore": number
+  },
+  "improvements": string[],
+  "hashtags": string[],
+  "estimatedEngagement": {
+    "likes": string,
+    "shares": string,
+    "comments": string
+  }
+}`,
+      realtime: `You are a real-time camera guidance AI. Provide instant feedback for improving shot composition.
 
-Be realistic but encouraging. Focus on actionable tips.`;
+Provide brief, actionable guidance in JSON:
+{
+  "guidance": string,
+  "fameScore": number (0-100),
+  "quickTips": string[],
+  "captureNow": boolean
+}`,
+      optimization: `You are a post-capture optimization AI. Suggest improvements for already captured content.
 
-    const messages: any[] = [
-      { role: "system", content: "You are an expert social media virality analyst. Analyze content and provide actionable insights." },
-      { role: "user", content: analysisPrompt }
-    ];
+Provide optimization suggestions in JSON:
+{
+  "optimizations": string[],
+  "enhancedCaption": string,
+  "hashtags": string[],
+  "bestPostingTime": string,
+  "crossPlatformTips": {
+    "instagram": string,
+    "tiktok": string,
+    "youtube": string
+  }
+}`
+    };
 
-    // Add image if available
-    if (imageUrl) {
-      messages.push({
-        role: "user",
-        content: [
-          { type: "text", text: "Analyze this image:" },
-          { type: "image_url", image_url: { url: imageUrl } }
-        ]
-      });
-    }
+    const prompt = analysisType === 'realtime' 
+      ? 'Analyze this live camera feed for composition, lighting, and viral potential. Give immediate, actionable guidance.'
+      : analysisType === 'optimization'
+      ? 'This is a captured image. Suggest optimizations for maximum engagement and virality.'
+      : `Analyze this ${category} content for viral potential. Consider composition, trends, and engagement factors.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -68,52 +90,57 @@ Be realistic but encouraging. Focus on actionable tips.`;
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages,
-        response_format: { type: "json_object" }
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompts[analysisType as keyof typeof systemPrompts] || systemPrompts.full
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: imageData } }
+            ]
+          }
+        ],
+        max_tokens: 800,
+        temperature: 0.3
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', errorText);
-      
+      console.error('AI API error:', response.status);
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }), {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
           status: 429,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits depleted. Please add credits to continue.' }), {
+        return new Response(JSON.stringify({ error: 'Payment required' }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-
       throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const analysis = JSON.parse(data.choices[0].message.content);
+    const content = data.choices?.[0]?.message?.content || '{}';
+    
+    // Extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
-    return new Response(JSON.stringify(analysis), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({ analysis, rawResponse: content }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('Error in analyze-fame-content:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      viralityScore: 50,
-      engagementPrediction: 'medium',
-      suggestions: [],
-      trendingHashtags: [],
-      estimatedCoins: 50,
-      isLikelyViral: false
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error analyzing content:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Analysis failed' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
