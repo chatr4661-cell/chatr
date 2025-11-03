@@ -1,7 +1,7 @@
 import React, { useState, memo, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle } from 'lucide-react';
+import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { MessageContextMenu } from './MessageContextMenu';
@@ -301,19 +301,45 @@ const MessageBubbleComponent = ({
       )}
 
       <div className={`flex flex-col gap-0.5 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
-        {/* Multiple media attachments */}
-        {message.media_attachments && Array.isArray(message.media_attachments) && message.media_attachments.length > 0 && (
-          <div className={`grid gap-1 mb-1 ${message.media_attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} max-w-[280px]`}>
-            {message.media_attachments.map((media: any, idx: number) => (
-              <div key={idx} className="relative group">
-                <img 
-                  src={media.url} 
-                  alt={`Image ${idx + 1}`} 
-                  className="rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity w-full h-32" 
-                  onClick={() => window.open(media.url, '_blank')} 
-                />
+        {/* Multiple media attachments - Images/Videos */}
+        {message.media_attachments && Array.isArray(message.media_attachments) && message.media_attachments.length > 0 && 
+         (message.message_type === 'image' || message.message_type === 'video') && (
+          <div className="max-w-[280px]">
+            <div className={`grid gap-1 mb-1 ${message.media_attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              {message.media_attachments.map((media: any, idx: number) => (
+                <div key={idx} className="relative group rounded-xl overflow-hidden">
+                  {message.message_type === 'video' ? (
+                    <video 
+                      src={media.url} 
+                      className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      controls
+                      onClick={() => window.open(media.url, '_blank')} 
+                    />
+                  ) : (
+                    <img 
+                      src={media.url} 
+                      alt={media.name || `Image ${idx + 1}`} 
+                      className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity" 
+                      onClick={() => window.open(media.url, '_blank')} 
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Caption if present */}
+            {message.content && !message.content.startsWith('image_') && !message.content.startsWith('photo_') && (
+              <div className={`rounded-2xl px-4 py-2.5 mt-1 ${
+                isOwn
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-gray-200 text-gray-900'
+              }`}
+              style={isOwn ? { backgroundColor: '#0d9488' } : undefined}
+              >
+                <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
+                  {message.content}
+                </p>
               </div>
-            ))}
+            )}
           </div>
         )}
         
@@ -398,10 +424,19 @@ const MessageBubbleComponent = ({
         )}
 
         {/* Document message */}
-        {message.message_type === 'document' && message.content.includes('[Document]') && (() => {
-          const docInfo = message.content.replace('[Document] ', '').split(': ');
-          const fileName = docInfo[0];
-          const fileUrl = docInfo[1];
+        {message.message_type === 'document' && message.media_attachments && message.media_attachments.length > 0 && (() => {
+          const doc = message.media_attachments[0];
+          const fileUrl = doc.url;
+          const fileName = doc.name || 'Document';
+          const fileSize = doc.size;
+          
+          const formatSize = (bytes?: number) => {
+            if (!bytes) return '';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+          };
+          
           return (
             <a
               href={fileUrl}
@@ -414,11 +449,11 @@ const MessageBubbleComponent = ({
               } max-w-[280px]`}
             >
               <div className="p-2 rounded-lg bg-primary/10">
-                <Download className="w-5 h-5 text-primary" />
+                <FileText className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{fileName}</p>
-                <p className="text-xs text-muted-foreground">Tap to download</p>
+                <p className="text-xs text-muted-foreground">{formatSize(fileSize) || 'Tap to download'}</p>
               </div>
             </a>
           );
@@ -431,7 +466,9 @@ const MessageBubbleComponent = ({
          message.message_type !== 'contact' &&
          message.message_type !== 'event' &&
          message.message_type !== 'payment' &&
-         message.message_type !== 'image' && (
+         message.message_type !== 'image' &&
+         message.message_type !== 'video' &&
+         message.message_type !== 'document' && (
           <div 
             className={`rounded-[18px] px-4 py-2.5 transition-all ${
               isLongPressing ? 'scale-95 opacity-70' : ''

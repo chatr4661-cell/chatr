@@ -194,9 +194,15 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
         mimeType: file.type
       };
 
+      // Format content based on type
+      let messageContent = caption || file.name;
+      if (messageType === 'document' && !caption) {
+        messageContent = `[Document] ${file.name}: ${publicUrl}`;
+      }
+
       // Send message with attachment
       await onSendMessage(
-        caption || file.name, 
+        messageContent, 
         messageType, 
         [mediaAttachment]
       );
@@ -307,16 +313,17 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
 
   const handleContactShare = async (contact: any) => {
     try {
-      // Create a properly formatted contact card message
+      // Format: [Contact] Name - Phone
+      const formattedContact = `[Contact] ${contact.contact_name} - ${contact.contact_phone}`;
+      
       const contactCard = {
         name: contact.contact_name,
         phone: contact.contact_phone,
         avatar: contact.avatar_url
       };
       
-      // Send as contact type with metadata
       await onSendMessage(
-        `📇 ${contact.contact_name}\n📱 ${contact.contact_phone}`, 
+        formattedContact, 
         'contact', 
         [contactCard]
       );
