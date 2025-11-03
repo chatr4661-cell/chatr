@@ -13,7 +13,8 @@ import {
   Bot,
   AlertTriangle,
   Flame,
-  QrCode
+  QrCode,
+  Globe
 } from 'lucide-react';
 import chatrIconLogo from '@/assets/chatr-icon-logo.png';
 import { Button } from '@/components/ui/button';
@@ -86,6 +87,13 @@ export const LauncherHome: React.FC<LauncherHomeProps> = ({
   ];
 
   const quickAccessServices = [
+    {
+      icon: Globe,
+      title: 'AI Browser',
+      description: 'Search & browse with AI assistance',
+      iconColor: 'bg-gradient-to-br from-blue-400 to-cyan-500',
+      route: '/ai-browser-home'
+    },
     {
       icon: QrCode,
       title: 'Chatr Growth',

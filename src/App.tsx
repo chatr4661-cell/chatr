@@ -73,6 +73,8 @@ import BrandPartnerships from "./pages/admin/BrandPartnerships";
 import HealthHub from "./pages/HealthHub";
 import CareAccess from "./pages/CareAccess";
 import CommunitySpace from "./pages/CommunitySpace";
+import AIBrowserHome from "./pages/AIBrowserHome";
+import AIBrowserView from "./pages/AIBrowserView";
 
 // New Feature Pages
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
@@ -222,6 +224,8 @@ const App = () => {
             {/* AI & Settings Routes */}
             <Route path="/ai-assistant" element={<AIAssistant />} />
             <Route path="/home" element={<AIBrowser />} />
+            <Route path="/ai-browser-home" element={<AIBrowserHome />} />
+            <Route path="/ai-browser" element={<AIBrowserView />} />
             <Route path="/chat-ai" element={<AIChat />} />
             <Route path="/capture" element={<Capture />} />
             <Route path="/account" element={<Account />} />
