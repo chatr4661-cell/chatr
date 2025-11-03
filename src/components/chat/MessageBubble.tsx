@@ -9,6 +9,7 @@ import { PollMessageWrapper } from './PollMessageWrapper';
 import { ContactMessage } from './ContactMessage';
 import { EventMessage } from './EventMessage';
 import { PaymentMessage } from './PaymentMessage';
+import { MediaLightbox } from './MediaLightbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,6 +72,8 @@ const MessageBubbleComponent = ({
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isLongPressing, setIsLongPressing] = useState(false);
+  const [showMediaViewer, setShowMediaViewer] = useState(false);
+  const [mediaViewerIndex, setMediaViewerIndex] = useState(0);
   const longPressTimerRef = React.useRef<NodeJS.Timeout>();
   const touchStartPosRef = React.useRef({ x: 0, y: 0 });
 
@@ -311,29 +314,46 @@ const MessageBubbleComponent = ({
             const attachments = Array.isArray(message.media_attachments) ? message.media_attachments : [message.media_attachments];
             console.log('🖼️ Rendering media:', { type: message.message_type, attachments });
             
+            const mediaItems = attachments.map((media: any) => ({
+              url: media.url,
+              type: message.message_type as 'image' | 'video',
+              filename: media.name,
+              path: media.url.split('/chat-media/')[1] // Extract storage path
+            }));
+
             return (
               <div className="max-w-[280px]">
                 <div className={`grid gap-1 mb-1 ${attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   {attachments.map((media: any, idx: number) => (
-                    <div key={idx} className="relative group rounded-xl overflow-hidden">
+                    <div 
+                      key={idx} 
+                      className="relative group rounded-xl overflow-hidden cursor-pointer"
+                      onClick={() => {
+                        setMediaViewerIndex(idx);
+                        setShowMediaViewer(true);
+                      }}
+                    >
                       {message.message_type === 'video' ? (
                         <video 
                           src={media.url} 
-                          className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                          controls
-                          onClick={() => window.open(media.url, '_blank')} 
+                          className="w-full h-32 object-cover hover:opacity-90 transition-opacity"
                         />
                       ) : (
                         <img 
                           src={media.url} 
                           alt={media.name || `Image ${idx + 1}`} 
-                          className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity" 
-                          onClick={() => window.open(media.url, '_blank')} 
+                          className="w-full h-32 object-cover hover:opacity-90 transition-opacity" 
                         />
                       )}
                     </div>
                   ))}
                 </div>
+                <MediaLightbox
+                  media={mediaItems}
+                  initialIndex={mediaViewerIndex}
+                  open={showMediaViewer}
+                  onClose={() => setShowMediaViewer(false)}
+                />
                 {/* Caption if present */}
                 {message.content && !message.content.startsWith('image_') && !message.content.startsWith('photo_') && (
                   <div className={`rounded-2xl px-4 py-2.5 mt-1 ${
@@ -355,14 +375,34 @@ const MessageBubbleComponent = ({
         })()}
         
         {/* Single image (legacy) */}
-        {message.media_url && message.message_type === 'image' && !message.media_attachments && (
-          <img 
-            src={message.media_url} 
-            alt="Shared media" 
-            className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity" 
-            onClick={() => window.open(message.media_url, '_blank')} 
-          />
-        )}
+        {message.media_url && message.message_type === 'image' && !message.media_attachments && (() => {
+          const legacyMedia = [{
+            url: message.media_url,
+            type: 'image' as const,
+            filename: 'Image',
+            path: message.media_url.split('/chat-media/')[1]
+          }];
+          
+          return (
+            <>
+              <img 
+                src={message.media_url} 
+                alt="Shared media" 
+                className="rounded-2xl max-w-[240px] max-h-[240px] object-cover mb-1 cursor-pointer hover:opacity-90 transition-opacity" 
+                onClick={() => {
+                  setMediaViewerIndex(0);
+                  setShowMediaViewer(true);
+                }} 
+              />
+              <MediaLightbox
+                media={legacyMedia}
+                initialIndex={0}
+                open={showMediaViewer}
+                onClose={() => setShowMediaViewer(false)}
+              />
+            </>
+          );
+        })()}
 
         {/* Poll message */}
         {message.message_type === 'poll' && message.content.startsWith('[Poll]') && (() => {

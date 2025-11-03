@@ -145,6 +145,41 @@ export const uploadMedia = async (
 };
 
 /**
+ * Get signed URL for private media
+ */
+export const getSignedUrl = async (path: string): Promise<string> => {
+  // Check cache first (5 min expiry)
+  const cacheKey = `signed_url_${path}`;
+  const cached = localStorage.getItem(cacheKey);
+  
+  if (cached) {
+    const { url, expiry } = JSON.parse(cached);
+    if (Date.now() < expiry) {
+      return url;
+    }
+  }
+
+  // Generate new signed URL
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase.functions.invoke('generate-media-url', {
+    body: { path }
+  });
+
+  if (error) throw error;
+
+  // Cache for 4 minutes (before 5 min expiry)
+  const expiry = Date.now() + (4 * 60 * 1000);
+  localStorage.setItem(cacheKey, JSON.stringify({ 
+    url: data.signedUrl, 
+    expiry 
+  }));
+
+  return data.signedUrl;
+};
+
+/**
  * Download and cache media
  */
 export const downloadMedia = async (url: string): Promise<Blob> => {

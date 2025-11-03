@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { X, Download, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getSignedUrl } from '@/services/storageService';
+import { toast } from 'sonner';
+
+interface MediaItem {
+  url: string;
+  type: 'image' | 'video' | 'document';
+  filename?: string;
+  path?: string; // Storage path for signed URL
+}
 
 interface MediaLightboxProps {
-  media: {
-    url: string;
-    type: 'image' | 'video';
-    filename?: string;
-  }[];
+  media: MediaItem[];
   initialIndex: number;
   open: boolean;
   onClose: () => void;
@@ -20,11 +25,39 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
   open,
   onClose
 }) => {
-  const [currentIndex, setCurrentIndex] = React.useState(initialIndex);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [signedUrl, setSignedUrl] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
+
+  useEffect(() => {
+    if (open && media[currentIndex]) {
+      loadSignedUrl();
+    }
+  }, [currentIndex, open]);
+
+  const loadSignedUrl = async () => {
+    setLoading(true);
+    try {
+      const currentMedia = media[currentIndex];
+      if (currentMedia.path) {
+        const url = await getSignedUrl(currentMedia.path);
+        setSignedUrl(url);
+      } else {
+        // Fallback to direct URL if no path
+        setSignedUrl(currentMedia.url);
+      }
+    } catch (error) {
+      console.error('Error loading media:', error);
+      toast.error('Failed to load media');
+      setSignedUrl(media[currentIndex].url); // Fallback
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const currentMedia = media[currentIndex];
   const hasMultiple = media.length > 1;
@@ -37,13 +70,19 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
     setCurrentIndex((prev) => (prev < media.length - 1 ? prev + 1 : 0));
   };
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = currentMedia.url;
-    link.download = currentMedia.filename || 'download';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async () => {
+    try {
+      const link = document.createElement('a');
+      link.href = signedUrl || currentMedia.url;
+      link.download = currentMedia.filename || 'download';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Download started');
+    } catch (error) {
+      toast.error('Download failed');
+    }
   };
 
   return (
@@ -76,20 +115,30 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
 
         {/* Media Content */}
         <div className="flex items-center justify-center min-h-[400px] max-h-[90vh] p-12">
-          {currentMedia.type === 'image' ? (
+          {loading ? (
+            <div className="text-white">Loading...</div>
+          ) : currentMedia.type === 'image' ? (
             <img
-              src={currentMedia.url}
-              alt="Media preview"
+              src={signedUrl}
+              alt={currentMedia.filename || 'Media preview'}
               className="max-w-full max-h-full object-contain rounded-lg"
             />
-          ) : (
+          ) : currentMedia.type === 'video' ? (
             <video
-              src={currentMedia.url}
+              src={signedUrl}
               controls
               autoPlay
               className="max-w-full max-h-full rounded-lg"
             />
-          )}
+          ) : currentMedia.type === 'document' ? (
+            <div className="flex flex-col items-center gap-4 text-white">
+              <FileText className="w-24 h-24 text-white/70" />
+              <p className="text-lg">{currentMedia.filename}</p>
+              <Button onClick={handleDownload} className="bg-white text-black hover:bg-white/90">
+                Download Document
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         {/* Navigation */}
