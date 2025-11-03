@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RingtonePickerDialog } from '@/components/RingtonePickerDialog';
+import { MediaAutoSaveSettings } from '@/components/settings/MediaAutoSaveSettings';
 import { CALL_RINGTONES } from '@/config/ringtones';
 
 export default function NotificationSettings() {
@@ -223,6 +224,11 @@ export default function NotificationSettings() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Media Auto-Save Settings */}
+        <div className="mt-6">
+          <MediaAutoSaveSettings />
+        </div>
       </div>
 
       <RingtonePickerDialog

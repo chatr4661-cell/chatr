@@ -1,4 +1,4 @@
-import React, { useState, memo, useCallback } from 'react';
+import React, { useState, memo, useCallback, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
 import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle, FileText } from 'lucide-react';
@@ -10,6 +10,7 @@ import { ContactMessage } from './ContactMessage';
 import { EventMessage } from './EventMessage';
 import { PaymentMessage } from './PaymentMessage';
 import { MediaLightbox } from './MediaLightbox';
+import { autoSaveReceivedMedia } from '@/utils/mediaGallery';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,6 +77,20 @@ const MessageBubbleComponent = ({
   const [mediaViewerIndex, setMediaViewerIndex] = useState(0);
   const longPressTimerRef = React.useRef<NodeJS.Timeout>();
   const touchStartPosRef = React.useRef({ x: 0, y: 0 });
+  const autoSaveAttemptedRef = React.useRef(false);
+
+  // Auto-save received media (once per message)
+  useEffect(() => {
+    if (!isOwn && !autoSaveAttemptedRef.current && message.media_url && 
+        (message.message_type === 'image' || message.message_type === 'video')) {
+      autoSaveAttemptedRef.current = true;
+      autoSaveReceivedMedia(
+        message.media_url,
+        `chatr-${message.id}`,
+        message.message_type as 'image' | 'video'
+      );
+    }
+  }, [message, isOwn]);
 
   const formatMessageTime = (date: Date) => {
     if (isToday(date)) {

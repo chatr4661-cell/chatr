@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { X, Download, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { X, Download, ChevronLeft, ChevronRight, FileText, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSignedUrl } from '@/services/storageService';
+import { saveMediaToGallery } from '@/utils/mediaGallery';
 import { toast } from 'sonner';
 
 interface MediaItem {
@@ -70,6 +71,20 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
     setCurrentIndex((prev) => (prev < media.length - 1 ? prev + 1 : 0));
   };
 
+  const handleSaveToGallery = async () => {
+    try {
+      await saveMediaToGallery(
+        signedUrl || currentMedia.url,
+        currentMedia.filename || `chatr-${Date.now()}`,
+        currentMedia.type
+      );
+      toast.success('Saved to Gallery! 📸');
+    } catch (error) {
+      console.error('Save failed:', error);
+      toast.error('Could not save to gallery');
+    }
+  };
+
   const handleDownload = async () => {
     try {
       const link = document.createElement('a');
@@ -94,11 +109,23 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
             {hasMultiple && `${currentIndex + 1} / ${media.length}`}
           </div>
           <div className="flex items-center gap-2">
+            {(currentMedia.type === 'image' || currentMedia.type === 'video') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSaveToGallery}
+                className="text-white hover:bg-white/20 rounded-full"
+                title="Save to Gallery"
+              >
+                <Image className="h-5 w-5" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
               onClick={handleDownload}
               className="text-white hover:bg-white/20 rounded-full"
+              title="Download"
             >
               <Download className="h-5 w-5" />
             </Button>
