@@ -3,11 +3,8 @@ import {
   signInWithPopup, 
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   onAuthStateChanged, 
-  signOut,
-  ConfirmationResult
+  signOut
 } from "firebase/auth";
 import { auth, googleProvider } from "@/firebase";
 import { useNavigate } from "react-router-dom";
@@ -17,22 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, MessageCircle, Mail, Phone } from "lucide-react";
+import { LogOut, MessageCircle, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { CountryCodeSelector } from "@/components/CountryCodeSelector";
-
-// Extend window interface for recaptcha verifier
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-  }
-}
 
 // Validation schemas
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
-const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format");
 
 const FirebaseLogin = () => {
   const [user, setUser] = useState<any>(null);
@@ -43,14 +31,6 @@ const FirebaseLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
-  
-  // Phone auth state
-  const [countryCode, setCountryCode] = useState("+91");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [phoneError, setPhoneError] = useState("");
-  const [recaptchaReady, setRecaptchaReady] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -67,82 +47,6 @@ const FirebaseLogin = () => {
 
     return () => unsubscribe();
   }, [navigate]);
-
-  // Setup reCAPTCHA - initialize once on mount
-  useEffect(() => {
-    let mounted = true;
-
-    const initRecaptcha = async () => {
-      console.log('[reCAPTCHA] Starting initialization...');
-      
-      // Check if already initialized on window
-      if (window.recaptchaVerifier) {
-        console.log('[reCAPTCHA] Already initialized on window');
-        setRecaptchaReady(true);
-        return;
-      }
-
-      // Wait for DOM to be ready
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (!mounted) {
-        console.log('[reCAPTCHA] Component unmounted, aborting');
-        return;
-      }
-
-      const container = document.getElementById('recaptcha-container');
-      
-      if (!container) {
-        console.error('[reCAPTCHA] Container element not found!');
-        setPhoneError('reCAPTCHA container missing. Please refresh the page.');
-        return;
-      }
-
-      console.log('[reCAPTCHA] Container found, creating verifier...');
-
-      try {
-        // Store on window object to prevent garbage collection
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: (response: any) => {
-            console.log('[reCAPTCHA] ✓ Verification successful');
-          },
-          'expired-callback': () => {
-            console.warn('[reCAPTCHA] ⚠ Expired');
-            if (mounted) {
-              setPhoneError('Security verification expired. Please try again.');
-              setRecaptchaReady(false);
-            }
-          }
-        });
-
-        console.log('[reCAPTCHA] Rendering...');
-        await window.recaptchaVerifier.render();
-        
-        if (mounted) {
-          console.log('[reCAPTCHA] ✓ Initialization complete!');
-          setRecaptchaReady(true);
-          setPhoneError('');
-        }
-      } catch (error: any) {
-        console.error('[reCAPTCHA] ✗ Initialization failed:', error);
-        console.error('[reCAPTCHA] Error details:', error.message, error.code);
-        if (mounted) {
-          setPhoneError(`Security verification failed: ${error.message || 'Unknown error'}. Please refresh the page.`);
-          setRecaptchaReady(false);
-        }
-      }
-    };
-
-    // Start initialization
-    initRecaptcha();
-
-    return () => {
-      console.log('[reCAPTCHA] Component unmounting...');
-      mounted = false;
-      // Keep verifier on window - don't clear it
-    };
-  }, []); // Empty deps array - run only once
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,111 +111,6 @@ const FirebaseLogin = () => {
         variant: "destructive",
       });
       setEmailError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePhoneAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPhoneError("");
-
-    const fullPhone = `${countryCode}${phoneNumber}`;
-    const phoneValidation = phoneSchema.safeParse(fullPhone);
-
-    if (!phoneValidation.success) {
-      setPhoneError(phoneValidation.error.errors[0].message);
-      return;
-    }
-
-    console.log('[Phone Auth] Verifier ready:', !!window.recaptchaVerifier);
-    console.log('[Phone Auth] reCAPTCHA ready:', recaptchaReady);
-    
-    if (!window.recaptchaVerifier || !recaptchaReady) {
-      const errorMsg = "Security verification is still loading. Please wait 2-3 seconds and try again.";
-      setPhoneError(errorMsg);
-      toast({
-        title: "Please Wait",
-        description: errorMsg,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    setPhoneError("");
-    
-    try {
-      console.log('Sending OTP to:', fullPhone);
-      const confirmation = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
-      setConfirmationResult(confirmation);
-      toast({
-        title: "OTP Sent",
-        description: "Check your phone for the verification code",
-      });
-    } catch (error: any) {
-      let errorMessage = "Failed to send OTP";
-      
-      switch (error.code) {
-        case 'auth/invalid-phone-number':
-          errorMessage = "Invalid phone number format";
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = "Too many attempts. Please try again later.";
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage = "Phone authentication is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Phone.";
-          break;
-        case 'auth/quota-exceeded':
-          errorMessage = "SMS quota exceeded. Phone auth requires Firebase Blaze plan (billing enabled).";
-          break;
-        case 'auth/missing-phone-number':
-          errorMessage = "Please enter a valid phone number";
-          break;
-        default:
-          errorMessage = error.message || "Failed to send OTP";
-      }
-      
-      toast({
-        title: "Phone Authentication Failed",
-        description: errorMessage,
-        variant: "destructive",
-        duration: 8000,
-      });
-      setPhoneError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!confirmationResult) {
-      setPhoneError("Please request OTP first");
-      return;
-    }
-
-    if (!otp || otp.length !== 6) {
-      setPhoneError("Please enter a valid 6-digit OTP");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await confirmationResult.confirm(otp);
-      toast({
-        title: "Success!",
-        description: "Phone number verified",
-      });
-      navigate("/firebase-chat");
-    } catch (error: any) {
-      toast({
-        title: "Verification Failed",
-        description: "Invalid OTP. Please try again.",
-        variant: "destructive",
-      });
-      setPhoneError("Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -410,9 +209,6 @@ const FirebaseLogin = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-4">
-      {/* reCAPTCHA container - must remain in DOM */}
-      <div id="recaptcha-container" className="fixed top-0 left-0 z-[-1]"></div>
-      
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-4">
@@ -427,19 +223,17 @@ const FirebaseLogin = () => {
         <CardContent className="space-y-6">
           {!user ? (
             <>
-              <Tabs defaultValue="email" className="w-full">
+              <Tabs defaultValue={authMode} value={authMode} onValueChange={(v) => setAuthMode(v as 'login' | 'signup')} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="email">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Email
+                  <TabsTrigger value="login">
+                    Sign In
                   </TabsTrigger>
-                  <TabsTrigger value="phone">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Phone
+                  <TabsTrigger value="signup">
+                    Sign Up
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="email">
+                <TabsContent value="login">
                   <form onSubmit={handleEmailAuth} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
@@ -478,116 +272,49 @@ const FirebaseLogin = () => {
                     >
                       {loading ? "Processing..." : authMode === 'login' ? "Sign In" : "Sign Up"}
                     </Button>
-
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="w-full"
-                      onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-                      disabled={loading}
-                    >
-                      {authMode === 'login' 
-                        ? "Don't have an account? Sign up" 
-                        : "Already have an account? Sign in"}
-                    </Button>
                   </form>
                 </TabsContent>
 
-                <TabsContent value="phone">
-                  {!confirmationResult ? (
-                    <form onSubmit={handlePhoneAuth} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <div className="flex gap-2">
-                          <CountryCodeSelector
-                            value={countryCode}
-                            onChange={setCountryCode}
-                          />
-                          <Input
-                            id="phone"
-                            type="tel"
-                            placeholder="9876543210"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                            disabled={loading}
-                            className="flex-1"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      {!recaptchaReady && (
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <div className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                          Initializing security verification...
-                        </div>
-                      )}
-
-                      {recaptchaReady && (
-                        <div className="text-xs text-green-600 flex items-center gap-2">
-                          <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                          Security verification ready
-                        </div>
-                      )}
-
-                      {phoneError && (
-                        <p className="text-sm text-destructive">{phoneError}</p>
-                      )}
-
-                      <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={loading || !recaptchaReady}
-                      >
-                        {loading ? "Sending OTP..." : recaptchaReady ? "Send OTP" : "Initializing..."}
-                      </Button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleOtpVerification} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="otp">Enter OTP</Label>
-                        <Input
-                          id="otp"
-                          type="text"
-                          placeholder="123456"
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          disabled={loading}
-                          maxLength={6}
-                          required
-                        />
-                        <p className="text-sm text-muted-foreground">
-                          OTP sent to {countryCode}{phoneNumber}
-                        </p>
-                      </div>
-
-                      {phoneError && (
-                        <p className="text-sm text-destructive">{phoneError}</p>
-                      )}
-
-                      <Button
-                        type="submit"
-                        className="w-full"
+                <TabsContent value="signup">
+                  <form onSubmit={handleEmailAuth} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email-signup">Email</Label>
+                      <Input
+                        id="email-signup"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         disabled={loading}
-                      >
-                        {loading ? "Verifying..." : "Verify OTP"}
-                      </Button>
+                        required
+                      />
+                    </div>
 
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="w-full"
-                        onClick={() => {
-                          setConfirmationResult(null);
-                          setOtp("");
-                          setPhoneError("");
-                        }}
+                    <div className="space-y-2">
+                      <Label htmlFor="password-signup">Password</Label>
+                      <Input
+                        id="password-signup"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         disabled={loading}
-                      >
-                        Use different number
-                      </Button>
-                    </form>
-                  )}
+                        required
+                      />
+                    </div>
+
+                    {emailError && (
+                      <p className="text-sm text-destructive">{emailError}</p>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={loading}
+                    >
+                      {loading ? "Processing..." : "Create Account"}
+                    </Button>
+                  </form>
                 </TabsContent>
               </Tabs>
 
