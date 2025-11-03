@@ -65,7 +65,6 @@ const FirebaseLogin = () => {
   // Setup reCAPTCHA - initialize once on mount
   useEffect(() => {
     let mounted = true;
-    let verifier: RecaptchaVerifier | null = null;
 
     const initRecaptcha = async () => {
       console.log('[reCAPTCHA] Starting initialization...');
@@ -77,8 +76,8 @@ const FirebaseLogin = () => {
         return;
       }
 
-      // Wait a bit for DOM to be ready
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Wait for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       if (!mounted) {
         console.log('[reCAPTCHA] Component unmounted, aborting');
@@ -96,7 +95,7 @@ const FirebaseLogin = () => {
       console.log('[reCAPTCHA] Container found, creating verifier...');
 
       try {
-        verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: (response: any) => {
             console.log('[reCAPTCHA] ✓ Verification successful');
@@ -138,14 +137,7 @@ const FirebaseLogin = () => {
     return () => {
       console.log('[reCAPTCHA] Component unmounting, cleaning up...');
       mounted = false;
-      if (verifier) {
-        try {
-          verifier.clear();
-          console.log('[reCAPTCHA] Cleaned up');
-        } catch (e) {
-          console.log('[reCAPTCHA] Error during cleanup:', e);
-        }
-      }
+      // Don't clear verifier on unmount to prevent removal errors
     };
   }, []); // Empty deps array - run only once
 
