@@ -256,20 +256,9 @@ const MessageBubbleComponent = ({
     { icon: Reply, label: 'Reply', action: () => handleReply(), show: true },
     { icon: Forward, label: 'Forward', action: () => handleForward(), show: true },
     { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: () => handleStarToggle(), show: true },
-    { icon: Pin, label: 'Pin', action: () => onPin?.(message.id), show: !!onPin },
-    { icon: AlertTriangle, label: 'Report', action: () => onReport?.(message), variant: 'destructive' as const, show: !!onReport && !isOwn },
-    { icon: Trash, label: 'Delete', action: () => setShowDeleteDialog(true), variant: 'destructive' as const, show: true }
-  ];
-      handlePin();
-    }, show: true },
-    { icon: AlertTriangle, label: 'Report', action: () => {
-      console.log('Action triggered: Report');
-      handleReport();
-    }, show: !isOwn },
-    { icon: Trash, label: 'Delete', action: () => {
-      console.log('Action triggered: Delete');
-      handleDelete();
-    }, variant: 'destructive' as const, show: isOwn }
+    { icon: Pin, label: 'Pin', action: () => handlePin(), show: true },
+    { icon: AlertTriangle, label: 'Report', action: () => handleReport(), variant: 'destructive' as const, show: !isOwn },
+    { icon: Trash, label: 'Delete', action: () => handleDelete(), variant: 'destructive' as const, show: isOwn }
   ];
 
   // Debug logging
