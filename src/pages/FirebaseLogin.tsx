@@ -22,6 +22,13 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { CountryCodeSelector } from "@/components/CountryCodeSelector";
 
+// Extend window interface for recaptcha verifier
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+  }
+}
+
 // Validation schemas
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -43,7 +50,6 @@ const FirebaseLogin = () => {
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [phoneError, setPhoneError] = useState("");
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const [recaptchaReady, setRecaptchaReady] = useState(false);
   
   const navigate = useNavigate();
@@ -69,9 +75,9 @@ const FirebaseLogin = () => {
     const initRecaptcha = async () => {
       console.log('[reCAPTCHA] Starting initialization...');
       
-      // Check if already initialized
-      if (recaptchaVerifier) {
-        console.log('[reCAPTCHA] Already initialized');
+      // Check if already initialized on window
+      if (window.recaptchaVerifier) {
+        console.log('[reCAPTCHA] Already initialized on window');
         setRecaptchaReady(true);
         return;
       }
@@ -95,7 +101,8 @@ const FirebaseLogin = () => {
       console.log('[reCAPTCHA] Container found, creating verifier...');
 
       try {
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        // Store on window object to prevent garbage collection
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: (response: any) => {
             console.log('[reCAPTCHA] ✓ Verification successful');
@@ -110,16 +117,12 @@ const FirebaseLogin = () => {
         });
 
         console.log('[reCAPTCHA] Rendering...');
-        await verifier.render();
+        await window.recaptchaVerifier.render();
         
         if (mounted) {
           console.log('[reCAPTCHA] ✓ Initialization complete!');
-          setRecaptchaVerifier(verifier);
           setRecaptchaReady(true);
           setPhoneError('');
-        } else {
-          console.log('[reCAPTCHA] Component unmounted during render, cleaning up');
-          verifier.clear();
         }
       } catch (error: any) {
         console.error('[reCAPTCHA] ✗ Initialization failed:', error);
@@ -135,9 +138,9 @@ const FirebaseLogin = () => {
     initRecaptcha();
 
     return () => {
-      console.log('[reCAPTCHA] Component unmounting, cleaning up...');
+      console.log('[reCAPTCHA] Component unmounting...');
       mounted = false;
-      // Don't clear verifier on unmount to prevent removal errors
+      // Keep verifier on window - don't clear it
     };
   }, []); // Empty deps array - run only once
 
@@ -221,10 +224,10 @@ const FirebaseLogin = () => {
       return;
     }
 
-    console.log('[Phone Auth] Verifier ready:', !!recaptchaVerifier);
+    console.log('[Phone Auth] Verifier ready:', !!window.recaptchaVerifier);
     console.log('[Phone Auth] reCAPTCHA ready:', recaptchaReady);
     
-    if (!recaptchaVerifier || !recaptchaReady) {
+    if (!window.recaptchaVerifier || !recaptchaReady) {
       const errorMsg = "Security verification is still loading. Please wait 2-3 seconds and try again.";
       setPhoneError(errorMsg);
       toast({
@@ -240,7 +243,7 @@ const FirebaseLogin = () => {
     
     try {
       console.log('Sending OTP to:', fullPhone);
-      const confirmation = await signInWithPhoneNumber(auth, fullPhone, recaptchaVerifier);
+      const confirmation = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
       setConfirmationResult(confirmation);
       toast({
         title: "OTP Sent",
