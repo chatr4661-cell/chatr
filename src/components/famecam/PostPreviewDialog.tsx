@@ -76,13 +76,15 @@ export default function PostPreviewDialog({
         .from('social-media')
         .getPublicUrl(fileName);
 
-      // Create fame post
+      // Create fame post with user_id
       const { error: postError } = await supabase
         .from('fame_cam_posts')
         .insert({
+          user_id: user.id,
           media_url: publicUrl,
           media_type: 'photo',
           caption: caption,
+          hashtags: hashtags,
           ai_virality_score: analysis?.fameScore || 75,
           is_viral: (analysis?.fameScore || 75) >= 80,
           coins_earned: analysis?.viralPrediction?.estimatedCoins || 50
