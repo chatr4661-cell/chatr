@@ -61,41 +61,70 @@ const FirebaseLogin = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Setup reCAPTCHA for phone auth after component mounts
+  // Setup reCAPTCHA for phone auth - initialize on mount
   useEffect(() => {
-    // Wait for DOM to be ready
-    const timer = setTimeout(() => {
+    // Only initialize if container exists and verifier doesn't exist
+    const initRecaptcha = () => {
       const container = document.getElementById('recaptcha-container');
-      if (container && !recaptchaVerifier) {
-        try {
-          const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            size: 'invisible',
-            callback: () => {
-              console.log('reCAPTCHA solved');
-            },
-            'expired-callback': () => {
-              console.log('reCAPTCHA expired');
-              setPhoneError('reCAPTCHA expired. Please try again.');
-            }
-          });
-          setRecaptchaVerifier(verifier);
-        } catch (error) {
-          console.error('Failed to initialize reCAPTCHA:', error);
-        }
+      
+      if (!container) {
+        console.log('reCAPTCHA container not found yet');
+        return;
       }
-    }, 100);
+      
+      if (recaptchaVerifier) {
+        console.log('reCAPTCHA already initialized');
+        return;
+      }
+
+      try {
+        console.log('Initializing reCAPTCHA...');
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: (response: any) => {
+            console.log('reCAPTCHA solved', response);
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            setPhoneError('reCAPTCHA expired. Please refresh and try again.');
+          }
+        });
+        
+        // Render the reCAPTCHA
+        verifier.render().then(() => {
+          console.log('reCAPTCHA rendered successfully');
+          setRecaptchaVerifier(verifier);
+        }).catch((error) => {
+          console.error('reCAPTCHA render error:', error);
+          setPhoneError('Failed to initialize reCAPTCHA. Please refresh the page.');
+        });
+      } catch (error) {
+        console.error('Failed to create reCAPTCHA:', error);
+        setPhoneError('Failed to initialize reCAPTCHA. Please refresh the page.');
+      }
+    };
+
+    // Wait for DOM and try to initialize
+    const timer = setTimeout(initRecaptcha, 500);
     
     return () => {
       clearTimeout(timer);
+    };
+  }, []);
+
+  // Cleanup reCAPTCHA on unmount
+  useEffect(() => {
+    return () => {
       if (recaptchaVerifier) {
         try {
           recaptchaVerifier.clear();
+          console.log('reCAPTCHA cleared');
         } catch (e) {
-          console.log('Error clearing recaptcha:', e);
+          console.log('Error clearing reCAPTCHA:', e);
         }
       }
     };
-  }, []);
+  }, [recaptchaVerifier]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,48 +290,56 @@ const FirebaseLogin = () => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     setEmailError("");
+    
     try {
-      // Clear any previous auth state
-      await signOut(auth).catch(() => {});
+      console.log('Starting Google sign-in...');
       
+      // Force sign out first to ensure clean state
+      try {
+        await signOut(auth);
+      } catch (e) {
+        console.log('No previous session to clear');
+      }
+      
+      // Try Google sign-in
       const result = await signInWithPopup(auth, googleProvider);
+      
+      console.log('Google sign-in successful:', result.user.email);
       
       if (result.user) {
         toast({
           title: "Welcome!",
           description: `Signed in as ${result.user.displayName || result.user.email}`,
         });
-        navigate("/firebase-chat");
+        
+        // Small delay to ensure auth state updates
+        setTimeout(() => {
+          navigate("/firebase-chat");
+        }, 100);
       }
     } catch (error: any) {
       console.error('Google login error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
       
       let errorMessage = "Failed to sign in with Google";
       
-      switch (error.code) {
-        case 'auth/popup-closed-by-user':
-          errorMessage = "Sign-in popup was closed. Please try again.";
-          break;
-        case 'auth/cancelled-popup-request':
-          errorMessage = "Another popup is already open. Please close it and try again.";
-          break;
-        case 'auth/popup-blocked':
-          errorMessage = "Popup was blocked by your browser. Please allow popups for this site.";
-          break;
-        case 'auth/invalid-credential':
-          errorMessage = "Google authentication is not properly configured. Please enable Google sign-in in Firebase Console → Authentication → Sign-in method.";
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage = "Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Google.";
-          break;
-        case 'auth/account-exists-with-different-credential':
-          errorMessage = "An account already exists with this email using a different sign-in method.";
-          break;
-        case 'auth/configuration-not-found':
-          errorMessage = "Firebase project configuration is incomplete. Please check your Firebase Console settings.";
-          break;
-        default:
-          errorMessage = error.message || "Failed to sign in with Google";
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Sign-in popup was closed. Please try again.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = "Another popup is already open. Please close it and try again.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Popup was blocked by your browser. Please allow popups and try again.";
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = "Google sign-in configuration error. Make sure you're using the correct Firebase web app configuration.";
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = "Google sign-in is disabled in Firebase Console. Please enable it in Authentication → Sign-in method → Google.";
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        errorMessage = "An account already exists with this email using a different sign-in method.";
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = "This domain is not authorized. Add it to Firebase Console → Authentication → Settings → Authorized domains.";
+      } else {
+        errorMessage = error.message || "Failed to sign in with Google";
       }
       
       toast({

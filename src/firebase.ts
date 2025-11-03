@@ -19,11 +19,16 @@ const app = initializeApp(firebaseConfig);
 // Firebase services
 export const auth = getAuth(app);
 
-// Configure Google Provider
+// Configure Google Provider with better settings
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  // Force account selection every time
+  login_hint: ''
 });
+// Add scopes for email and profile
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
 
 export const db = getFirestore(app);
 
