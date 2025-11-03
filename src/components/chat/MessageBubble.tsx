@@ -508,11 +508,16 @@ const MessageBubbleComponent = ({
             {formatMessageTime(new Date(message.created_at))}
           </span>
           {isOwn && (
-            message.read_at ? (
-              <CheckCheck className="w-3.5 h-3.5 text-primary" />
-            ) : (
-              <Check className="w-3.5 h-3.5 text-muted-foreground/50" />
-            )
+            <span title={message.read_at ? "Read" : "Delivered"}>
+              {message.read_at ? (
+                <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
+              ) : (
+                <Check className="w-3.5 h-3.5 text-muted-foreground/60" />
+              )}
+            </span>
+          )}
+          {message.is_edited && (
+            <span className="text-[10px] text-muted-foreground/70">(edited)</span>
           )}
         </div>
       </div>

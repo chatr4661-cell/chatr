@@ -211,30 +211,36 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
     }
   }, [userId]);
 
+  // Mark messages as read when viewing conversation
+  useEffect(() => {
+    if (!conversationId || !userId) return;
+    
+    const markMessagesRead = async () => {
+      try {
+        // Mark all unread messages from other users as read
+        const { error } = await supabase
+          .from('messages')
+          .update({ read_at: new Date().toISOString() })
+          .eq('conversation_id', conversationId)
+          .neq('sender_id', userId)
+          .is('read_at', null);
+        
+        if (error) {
+          console.error('[Mark Read] Error:', error);
+        }
+      } catch (error) {
+        console.error('[Mark Read] Failed:', error);
+      }
+    };
+    
+    // Mark as read after a short delay
+    const timer = setTimeout(markMessagesRead, 500);
+    return () => clearTimeout(timer);
+  }, [conversationId, userId]);
+
   // Aggressive real-time subscriptions (instant like WhatsApp)
   useEffect(() => {
     if (!conversationId) return;
-
-    const batchedUpdates: Message[] = [];
-    let batchTimeout: NodeJS.Timeout;
-
-    const processBatch = () => {
-      if (batchedUpdates.length > 0) {
-        setMessages(prev => {
-          const newMessages = [...prev];
-          batchedUpdates.forEach(update => {
-            const index = newMessages.findIndex(m => m.id === update.id);
-            if (index === -1) {
-              newMessages.push(update);
-            } else {
-              newMessages[index] = update;
-            }
-          });
-          return newMessages.slice(-MAX_MESSAGES_IN_MEMORY);
-        });
-        batchedUpdates.length = 0;
-      }
-    };
 
     const channel = supabase
       .channel(`messages:${conversationId}`, {
@@ -250,11 +256,13 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
         filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
         const newMessage = payload.new as Message;
-        if (newMessage.sender_id !== userId) {
-          batchedUpdates.push(newMessage);
-          clearTimeout(batchTimeout);
-          batchTimeout = setTimeout(processBatch, 50);
-        }
+        // Instant update - no batching
+        setMessages(prev => {
+          // Prevent duplicates
+          if (prev.some(m => m.id === newMessage.id)) return prev;
+          const updated = [...prev, newMessage];
+          return updated.slice(-MAX_MESSAGES_IN_MEMORY);
+        });
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -262,8 +270,9 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
+        // Instant update for read receipts and edits
         setMessages(prev => prev.map(m => 
-          m.id === payload.new.id ? payload.new as Message : m
+          m.id === payload.new.id ? { ...m, ...(payload.new as Message) } : m
         ));
       })
       .on('postgres_changes', {
@@ -276,22 +285,13 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[Real-time] Connected to message stream');
+          console.log('[Real-time] ✅ Connected to message stream');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[Real-time] ❌ Channel error');
         }
       });
 
-    const heartbeat = setInterval(() => {
-      channel.send({
-        type: 'broadcast',
-        event: 'heartbeat',
-        payload: { userId, timestamp: Date.now() }
-      });
-    }, 5000);
-
     return () => {
-      clearInterval(heartbeat);
-      clearTimeout(batchTimeout);
-      processBatch();
       supabase.removeChannel(channel);
     };
   }, [conversationId, userId]);

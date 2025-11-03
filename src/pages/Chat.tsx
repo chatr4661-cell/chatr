@@ -6,6 +6,7 @@ import { ProductionCallNotifications } from '@/components/calling/ProductionCall
 import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useChatPushNotifications } from '@/hooks/useChatPushNotifications';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -123,6 +124,9 @@ const ChatEnhancedContent = () => {
     userId: user?.id || '', 
     activeConversationId 
   });
+  
+  // Enable realtime notifications with sound
+  useRealtimeNotifications(user?.id);
 
   // Load user profile
   React.useEffect(() => {
