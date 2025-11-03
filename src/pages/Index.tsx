@@ -111,7 +111,7 @@ const Index = () => {
   }, [user]);
 
   const autoSyncContactsOnLoad = async (userId: string) => {
-    // Run in background - heavily deferred
+    // Auto-sync contacts on first load (background)
     setTimeout(async () => {
       try {
         const [{ Contacts }, { Capacitor }] = await Promise.all([
@@ -124,9 +124,13 @@ const Index = () => {
         const lastSync = localStorage.getItem(`last_sync_${userId}`);
         const now = new Date().getTime();
         
+        // Auto-sync every 6 hours or on first launch
         if (!lastSync || (now - parseInt(lastSync)) > 6 * 60 * 60 * 1000) {
           const permission = await Contacts.requestPermissions();
-          if (permission.contacts !== 'granted') return;
+          if (permission.contacts !== 'granted') {
+            console.log('Contacts permission not granted - sync skipped');
+            return;
+          }
           
           const result = await Contacts.getContacts({
             projection: { name: true, phones: true, emails: true }
@@ -134,54 +138,43 @@ const Index = () => {
           
           if (!result.contacts || result.contacts.length === 0) return;
           
-          const contactsToSync = result.contacts.slice(0, 50);
-          
-          const contactData = await Promise.all(
-            contactsToSync.map(async (contact) => {
-              const name = contact.name?.display || 'Unknown';
-              const phone = contact.phones?.[0]?.number;
-              const email = contact.emails?.[0]?.address;
-              
-              if (!phone && !email) return null;
-              
-              const identifier = email || phone || '';
-              
-              let matchedUserId = null;
-              if (email) {
-                const { data } = await supabase
-                  .from('profiles')
-                  .select('id')
-                  .eq('email', email)
-                  .maybeSingle();
-                matchedUserId = data?.id;
-              }
-              
-              return {
-                user_id: userId,
-                contact_name: name,
-                contact_phone: identifier,
-                contact_user_id: matchedUserId,
-                is_registered: !!matchedUserId
-              };
-            })
-          );
-          
-          const validContacts = contactData.filter(c => c !== null);
-          if (validContacts.length > 0) {
-            await supabase
-              .from('contacts')
-              .upsert(validContacts, { 
-                onConflict: 'user_id,contact_phone',
-                ignoreDuplicates: true 
+          // Process in batches of 100 for better performance
+          const batchSize = 100;
+          for (let i = 0; i < result.contacts.length; i += batchSize) {
+            const batch = result.contacts.slice(i, i + batchSize);
+            
+            const contactData = batch
+              .map((contact) => {
+                const name = contact.name?.display || 'Unknown';
+                const phone = contact.phones?.[0]?.number;
+                const email = contact.emails?.[0]?.address;
+                
+                if (!phone && !email) return null;
+                
+                return {
+                  name: name,
+                  phone: phone || '',
+                  email: email || ''
+                };
+              })
+              .filter(c => c !== null);
+            
+            if (contactData.length > 0) {
+              // Use the database function for efficient sync
+              await supabase.rpc('sync_user_contacts', {
+                user_uuid: userId,
+                contact_list: contactData
               });
+            }
           }
           
           localStorage.setItem(`last_sync_${userId}`, now.toString());
+          console.log(`✅ Synced ${result.contacts.length} contacts successfully`);
         }
       } catch (error) {
         console.log('Auto-sync error:', error);
       }
-    }, 5000); // Delay 5 seconds - page is fully loaded by then
+    }, 3000); // Delay 3 seconds after page load
   };
 
   const loadPointsData = async () => {

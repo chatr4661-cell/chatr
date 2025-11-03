@@ -1,21 +1,20 @@
-import React from 'react';
-import { X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Story {
   id: string;
   user_id: string;
-  media_url: string;
-  media_type: string;
-  caption: string | null;
+  media_url: string | null;
+  media_type: 'image' | 'video' | 'text';
+  caption: string;
   created_at: string;
   expires_at: string;
-  profile: {
+  profile?: {
     username: string;
-    avatar_url: string | null;
+    avatar_url: string;
   };
 }
 
@@ -28,181 +27,117 @@ interface StoryViewerProps {
   onPrevious: () => void;
 }
 
-export const StoryViewer = ({
-  stories,
-  currentIndex,
-  userId,
-  onClose,
-  onNext,
-  onPrevious
-}: StoryViewerProps) => {
-  const [progress, setProgress] = React.useState(0);
-  const [viewCount, setViewCount] = React.useState(0);
+export const StoryViewer = ({ stories, currentIndex, userId, onClose, onNext, onPrevious }: StoryViewerProps) => {
+  const [progress, setProgress] = useState(0);
   const currentStory = stories[currentIndex];
-  const timerRef = React.useRef<NodeJS.Timeout>();
+  const duration = currentStory.media_type === 'video' ? 15000 : 5000;
 
-  React.useEffect(() => {
-    if (!currentStory) return;
-
-    // Mark story as viewed
-    markAsViewed(currentStory.id);
-
-    // Load view count if it's the user's own story
-    if (currentStory.user_id === userId) {
-      loadViewCount(currentStory.id);
-    }
-
-    // Reset progress
-    setProgress(0);
-
-    // Auto-advance timer (5 seconds for images, longer for videos)
-    const duration = currentStory.media_type === 'video' ? 15000 : 5000;
-    const interval = 50;
-    const increment = (interval / duration) * 100;
-
-    timerRef.current = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          onNext();
-          return 0;
-        }
-        return prev + increment;
-      });
-    }, interval);
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+  useEffect(() => {
+    const markAsViewed = async () => {
+      await supabase.from('story_views').upsert({
+        story_id: currentStory.id,
+        viewer_id: userId,
+        viewed_at: new Date().toISOString()
+      }, { onConflict: 'story_id,viewer_id' });
     };
-  }, [currentIndex, currentStory?.id]);
 
-  const markAsViewed = async (storyId: string) => {
-    try {
-      await supabase
-        .from('story_views')
-        .upsert({
-          story_id: storyId,
-          viewer_id: userId
-        }, {
-          onConflict: 'story_id,viewer_id'
-        });
-    } catch (error) {
-      console.error('Error marking story as viewed:', error);
-    }
-  };
+    markAsViewed();
 
-  const loadViewCount = async (storyId: string) => {
-    try {
-      const { count, error } = await supabase
-        .from('story_views')
-        .select('*', { count: 'exact', head: true })
-        .eq('story_id', storyId);
-
-      if (!error && count !== null) {
-        setViewCount(count);
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const newProgress = (elapsed / duration) * 100;
+      
+      if (newProgress >= 100) {
+        onNext();
+      } else {
+        setProgress(newProgress);
       }
-    } catch (error) {
-      console.error('Error loading view count:', error);
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [currentStory.id, currentIndex, duration, userId, onNext]);
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setProgress(0);
+      onPrevious();
     }
   };
 
-  if (!currentStory) return null;
+  const handleNext = () => {
+    setProgress(0);
+    onNext();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black">
-      {/* Progress bars */}
-      <div className="absolute top-0 left-0 right-0 flex gap-1 p-2 z-10">
+    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+      <div className="absolute top-0 left-0 right-0 z-10 flex gap-1 p-2">
         {stories.map((_, idx) => (
-          <div key={idx} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-white transition-all duration-100"
-              style={{
-                width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%'
-              }}
-            />
+          <div key={idx} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
+            <div className="h-full bg-white transition-all" style={{ width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%' }} />
           </div>
         ))}
       </div>
 
-      {/* Header */}
-      <div className="absolute top-4 left-0 right-0 flex items-center justify-between px-4 z-10">
+      <div className="absolute top-4 left-0 right-0 z-10 px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-white">
-            <AvatarImage src={currentStory.profile?.avatar_url || undefined} />
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {currentStory.profile?.username?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
+            <AvatarImage src={currentStory.profile?.avatar_url} />
+            <AvatarFallback className="bg-primary text-white">{currentStory.profile?.username?.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <div className="text-white">
-            <p className="font-semibold">{currentStory.profile?.username}</p>
-            <p className="text-xs opacity-75">
-              {formatDistanceToNow(new Date(currentStory.created_at), { addSuffix: true })}
-            </p>
+          <div>
+            <p className="text-white font-semibold text-sm">{currentStory.profile?.username}</p>
+            <p className="text-white/70 text-xs">{getTimeAgo(currentStory.created_at)}</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          {currentStory.user_id === userId && (
-            <div className="flex items-center gap-1 text-white">
-              <Eye className="h-4 w-4" />
-              <span className="text-sm">{viewCount}</span>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-white hover:bg-white/20"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
+          <X className="h-6 w-6" />
+        </Button>
       </div>
 
-      {/* Navigation zones */}
-      <button
-        onClick={onPrevious}
-        className="absolute left-0 top-0 bottom-0 w-1/3 z-5 flex items-center justify-start pl-4"
-        disabled={currentIndex === 0}
-      >
-        {currentIndex > 0 && (
-          <ChevronLeft className="h-8 w-8 text-white opacity-50 hover:opacity-100" />
-        )}
-      </button>
+      <div className="flex-1 flex items-center justify-center relative">
+        <div className="absolute left-0 top-0 bottom-0 w-1/3 cursor-pointer z-5" onClick={handlePrevious} />
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 cursor-pointer z-5" onClick={handleNext} />
 
-      <button
-        onClick={onNext}
-        className="absolute right-0 top-0 bottom-0 w-1/3 z-5 flex items-center justify-end pr-4"
-      >
-        <ChevronRight className="h-8 w-8 text-white opacity-50 hover:opacity-100" />
-      </button>
-
-      {/* Media */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {currentStory.media_type === 'image' ? (
-          <img
-            src={currentStory.media_url}
-            alt="Story"
-            className="max-h-full max-w-full object-contain"
-          />
+        {currentStory.media_type === 'text' ? (
+          <div className="w-full h-full flex items-center justify-center p-8">
+            <p className="text-white text-2xl text-center leading-relaxed max-w-lg">{currentStory.caption}</p>
+          </div>
+        ) : currentStory.media_type === 'video' ? (
+          <video src={currentStory.media_url!} className="w-full h-full object-contain" autoPlay playsInline muted />
         ) : (
-          <video
-            src={currentStory.media_url}
-            className="max-h-full max-w-full object-contain"
-            autoPlay
-            muted
-            playsInline
-          />
+          <img src={currentStory.media_url!} alt="Story" className="w-full h-full object-contain" />
+        )}
+
+        {currentStory.caption && currentStory.media_type !== 'text' && (
+          <div className="absolute bottom-8 left-0 right-0 px-6">
+            <p className="text-white text-lg text-center drop-shadow-lg">{currentStory.caption}</p>
+          </div>
         )}
       </div>
 
-      {/* Caption */}
-      {currentStory.caption && (
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
-          <p className="text-white text-center">{currentStory.caption}</p>
-        </div>
+      {currentIndex > 0 && (
+        <button onClick={handlePrevious} className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 p-2 rounded-full hover:bg-black/70 transition-colors z-10">
+          <ChevronLeft className="h-6 w-6 text-white" />
+        </button>
+      )}
+      {currentIndex < stories.length - 1 && (
+        <button onClick={handleNext} className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 p-2 rounded-full hover:bg-black/70 transition-colors z-10">
+          <ChevronRight className="h-6 w-6 text-white" />
+        </button>
       )}
     </div>
   );
 };
+
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}

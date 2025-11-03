@@ -1,7 +1,7 @@
-import React, { useState, KeyboardEvent, useRef } from 'react';
+import React, { useState, KeyboardEvent, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Paperclip, Mic, WifiOff, X, Plus, Camera, Image as ImageIcon, FileText } from 'lucide-react';
+import { Send, Paperclip, Mic, WifiOff, X, Plus, Camera, Image as ImageIcon, FileText, Mic2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useInputValidation } from '@/hooks/useInputValidation';
 import { useMessageQueue } from '@/hooks/useMessageQueue';
