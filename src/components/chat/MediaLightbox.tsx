@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { X, Download, ChevronLeft, ChevronRight, FileText, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getSignedUrl } from '@/services/storageService';
 import { saveMediaToGallery } from '@/utils/mediaGallery';
 import { toast } from 'sonner';
 
@@ -27,38 +26,10 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
   onClose
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [signedUrl, setSignedUrl] = useState<string>('');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
-
-  useEffect(() => {
-    if (open && media[currentIndex]) {
-      loadSignedUrl();
-    }
-  }, [currentIndex, open]);
-
-  const loadSignedUrl = async () => {
-    setLoading(true);
-    try {
-      const currentMedia = media[currentIndex];
-      if (currentMedia.path) {
-        const url = await getSignedUrl(currentMedia.path);
-        setSignedUrl(url);
-      } else {
-        // Fallback to direct URL if no path
-        setSignedUrl(currentMedia.url);
-      }
-    } catch (error) {
-      console.error('Error loading media:', error);
-      toast.error('Failed to load media');
-      setSignedUrl(media[currentIndex].url); // Fallback
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const currentMedia = media[currentIndex];
   const hasMultiple = media.length > 1;
@@ -74,7 +45,7 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
   const handleSaveToGallery = async () => {
     try {
       await saveMediaToGallery(
-        signedUrl || currentMedia.url,
+        currentMedia.url,
         currentMedia.filename || `chatr-${Date.now()}`,
         currentMedia.type
       );
@@ -88,7 +59,7 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
   const handleDownload = async () => {
     try {
       const link = document.createElement('a');
-      link.href = signedUrl || currentMedia.url;
+      link.href = currentMedia.url;
       link.download = currentMedia.filename || 'download';
       link.target = '_blank';
       document.body.appendChild(link);
@@ -142,17 +113,15 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
 
         {/* Media Content */}
         <div className="flex items-center justify-center min-h-[400px] max-h-[90vh] p-12">
-          {loading ? (
-            <div className="text-white">Loading...</div>
-          ) : currentMedia.type === 'image' ? (
+          {currentMedia.type === 'image' ? (
             <img
-              src={signedUrl}
+              src={currentMedia.url}
               alt={currentMedia.filename || 'Media preview'}
               className="max-w-full max-h-full object-contain rounded-lg"
             />
           ) : currentMedia.type === 'video' ? (
             <video
-              src={signedUrl}
+              src={currentMedia.url}
               controls
               autoPlay
               className="max-w-full max-h-full rounded-lg"
