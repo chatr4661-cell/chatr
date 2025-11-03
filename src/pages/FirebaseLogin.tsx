@@ -200,14 +200,24 @@ const FirebaseLogin = () => {
         case 'auth/too-many-requests':
           errorMessage = "Too many attempts. Please try again later.";
           break;
+        case 'auth/operation-not-allowed':
+          errorMessage = "Phone authentication is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Phone.";
+          break;
+        case 'auth/quota-exceeded':
+          errorMessage = "SMS quota exceeded. Phone auth requires Firebase Blaze plan (billing enabled).";
+          break;
+        case 'auth/missing-phone-number':
+          errorMessage = "Please enter a valid phone number";
+          break;
         default:
-          errorMessage = error.message;
+          errorMessage = error.message || "Failed to send OTP";
       }
       
       toast({
         title: "Phone Authentication Failed",
         description: errorMessage,
         variant: "destructive",
+        duration: 8000,
       });
       setPhoneError(errorMessage);
     } finally {
@@ -280,10 +290,16 @@ const FirebaseLogin = () => {
           errorMessage = "Popup was blocked by your browser. Please allow popups for this site.";
           break;
         case 'auth/invalid-credential':
-          errorMessage = "Google authentication is not properly configured. Please contact support.";
+          errorMessage = "Google authentication is not properly configured. Please enable Google sign-in in Firebase Console → Authentication → Sign-in method.";
+          break;
+        case 'auth/operation-not-allowed':
+          errorMessage = "Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Google.";
           break;
         case 'auth/account-exists-with-different-credential':
           errorMessage = "An account already exists with this email using a different sign-in method.";
+          break;
+        case 'auth/configuration-not-found':
+          errorMessage = "Firebase project configuration is incomplete. Please check your Firebase Console settings.";
           break;
         default:
           errorMessage = error.message || "Failed to sign in with Google";
@@ -293,6 +309,7 @@ const FirebaseLogin = () => {
         title: "Google Sign-In Failed",
         description: errorMessage,
         variant: "destructive",
+        duration: 8000,
       });
       setEmailError(errorMessage);
     } finally {
