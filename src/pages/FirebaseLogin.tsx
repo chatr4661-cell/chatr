@@ -61,28 +61,38 @@ const FirebaseLogin = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Setup reCAPTCHA for phone auth - only when phone tab is active
+  // Setup reCAPTCHA for phone auth after component mounts
   useEffect(() => {
-    if (!recaptchaVerifier && typeof window !== 'undefined') {
-      try {
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA solved');
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-          }
-        });
-        setRecaptchaVerifier(verifier);
-      } catch (error) {
-        console.error('Failed to initialize reCAPTCHA:', error);
+    // Wait for DOM to be ready
+    const timer = setTimeout(() => {
+      const container = document.getElementById('recaptcha-container');
+      if (container && !recaptchaVerifier) {
+        try {
+          const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+            callback: () => {
+              console.log('reCAPTCHA solved');
+            },
+            'expired-callback': () => {
+              console.log('reCAPTCHA expired');
+              setPhoneError('reCAPTCHA expired. Please try again.');
+            }
+          });
+          setRecaptchaVerifier(verifier);
+        } catch (error) {
+          console.error('Failed to initialize reCAPTCHA:', error);
+        }
       }
-    }
+    }, 100);
     
     return () => {
+      clearTimeout(timer);
       if (recaptchaVerifier) {
-        recaptchaVerifier.clear();
+        try {
+          recaptchaVerifier.clear();
+        } catch (e) {
+          console.log('Error clearing recaptcha:', e);
+        }
       }
     };
   }, []);
@@ -240,19 +250,51 @@ const FirebaseLogin = () => {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setEmailError("");
     try {
+      // Clear any previous auth state
+      await signOut(auth).catch(() => {});
+      
       const result = await signInWithPopup(auth, googleProvider);
-      toast({
-        title: "Welcome!",
-        description: `Signed in as ${result.user.displayName}`,
-      });
-      navigate("/firebase-chat");
+      
+      if (result.user) {
+        toast({
+          title: "Welcome!",
+          description: `Signed in as ${result.user.displayName || result.user.email}`,
+        });
+        navigate("/firebase-chat");
+      }
     } catch (error: any) {
+      console.error('Google login error:', error);
+      
+      let errorMessage = "Failed to sign in with Google";
+      
+      switch (error.code) {
+        case 'auth/popup-closed-by-user':
+          errorMessage = "Sign-in popup was closed. Please try again.";
+          break;
+        case 'auth/cancelled-popup-request':
+          errorMessage = "Another popup is already open. Please close it and try again.";
+          break;
+        case 'auth/popup-blocked':
+          errorMessage = "Popup was blocked by your browser. Please allow popups for this site.";
+          break;
+        case 'auth/invalid-credential':
+          errorMessage = "Google authentication is not properly configured. Please contact support.";
+          break;
+        case 'auth/account-exists-with-different-credential':
+          errorMessage = "An account already exists with this email using a different sign-in method.";
+          break;
+        default:
+          errorMessage = error.message || "Failed to sign in with Google";
+      }
+      
       toast({
-        title: "Login Failed",
-        description: error.message || "Failed to sign in with Google",
+        title: "Google Sign-In Failed",
+        description: errorMessage,
         variant: "destructive",
       });
+      setEmailError(errorMessage);
     } finally {
       setLoading(false);
     }

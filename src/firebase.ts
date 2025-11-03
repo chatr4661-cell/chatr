@@ -9,7 +9,8 @@ const firebaseConfig = {
   projectId: "chatr-91067",
   storageBucket: "chatr-91067.firebasestorage.app",
   messagingSenderId: "839345688435",
-  appId: "1:839345688435:android:17283f3299c22c1c233f06"
+  appId: "1:839345688435:web:17283f3299c22c1c233f06",
+  measurementId: "G-XXXXXXXXXX"
 };
 
 // Initialize Firebase
@@ -17,7 +18,13 @@ const app = initializeApp(firebaseConfig);
 
 // Firebase services
 export const auth = getAuth(app);
+
+// Configure Google Provider
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
 export const db = getFirestore(app);
 
 // Messaging with support check
