@@ -27,6 +27,8 @@ interface WhatsAppStyleInputProps {
   lastMessage?: string;
   conversationContext?: string[];
   onAIAction?: (action: AIAction) => void;
+  replyToMessage?: any;
+  onCancelReply?: () => void;
 }
 
 export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({ 
@@ -36,7 +38,9 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
   disabled,
   lastMessage,
   conversationContext = [],
-  onAIAction
+  onAIAction,
+  replyToMessage,
+  onCancelReply
 }) => {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);

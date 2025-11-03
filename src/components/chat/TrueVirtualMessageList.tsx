@@ -32,6 +32,8 @@ interface TrueVirtualMessageListProps {
   onReply?: (message: Message) => void;
   onDelete?: (messageId: string) => void;
   onEdit?: (messageId: string, content: string) => void;
+  onPin?: (messageId: string) => void;
+  onReport?: (message: Message) => void;
   selectionMode?: boolean;
   selectedMessages?: Set<string>;
   onSelectMessage?: (messageId: string) => void;
@@ -49,6 +51,8 @@ export const TrueVirtualMessageList = React.memo(({
   onReply,
   onDelete,
   onEdit,
+  onPin,
+  onReport,
   selectionMode = false,
   selectedMessages = new Set(),
   onSelectMessage
@@ -134,6 +138,8 @@ export const TrueVirtualMessageList = React.memo(({
                 onReply={onReply}
                 onDelete={onDelete}
                 onEdit={onEdit}
+                onPin={onPin}
+                onReport={onReport}
                 selectionMode={selectionMode}
                 isSelected={selectedMessages.has(message.id)}
                 onSelect={onSelectMessage}

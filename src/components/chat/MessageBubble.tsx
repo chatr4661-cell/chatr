@@ -50,6 +50,8 @@ interface MessageBubbleProps {
   onForward?: (message: Message) => void;
   onDelete?: (messageId: string) => void;
   onEdit?: (messageId: string, content: string) => void;
+  onPin?: (messageId: string) => void;
+  onReport?: (message: Message) => void;
   isSelected?: boolean;
   onSelect?: (messageId: string) => void;
   selectionMode?: boolean;
@@ -65,6 +67,8 @@ const MessageBubbleComponent = ({
   onForward,
   onDelete,
   onEdit,
+  onPin,
+  onReport,
   isSelected = false,
   onSelect,
   selectionMode = false
@@ -249,20 +253,13 @@ const MessageBubbleComponent = ({
   };
 
   const messageActions = [
-    { icon: Reply, label: 'Reply', action: () => {
-      console.log('Action triggered: Reply');
-      handleReply();
-    }, show: true },
-    { icon: Forward, label: 'Forward', action: () => {
-      console.log('Action triggered: Forward');
-      handleForward();
-    }, show: true },
-    { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: () => {
-      console.log('Action triggered: Star');
-      handleStarToggle();
-    }, show: true },
-    { icon: Pin, label: 'Pin', action: () => {
-      console.log('Action triggered: Pin');
+    { icon: Reply, label: 'Reply', action: () => handleReply(), show: true },
+    { icon: Forward, label: 'Forward', action: () => handleForward(), show: true },
+    { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: () => handleStarToggle(), show: true },
+    { icon: Pin, label: 'Pin', action: () => onPin?.(message.id), show: !!onPin },
+    { icon: AlertTriangle, label: 'Report', action: () => onReport?.(message), variant: 'destructive' as const, show: !!onReport && !isOwn },
+    { icon: Trash, label: 'Delete', action: () => setShowDeleteDialog(true), variant: 'destructive' as const, show: true }
+  ];
       handlePin();
     }, show: true },
     { icon: AlertTriangle, label: 'Report', action: () => {

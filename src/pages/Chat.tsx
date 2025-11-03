@@ -18,6 +18,7 @@ import { VirtualizedConversationList } from '@/components/chat/VirtualizedConver
 import { TrueVirtualMessageList } from '@/components/chat/TrueVirtualMessageList';
 import { WhatsAppStyleInput } from '@/components/chat/WhatsAppStyleInput';
 import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
+import { MessageReportDialog } from '@/components/chat/MessageReportDialog';
 import { useVirtualizedMessages } from "@/hooks/useVirtualizedMessages";
 import { AddParticipantDialog } from '@/components/chat/AddParticipantDialog';
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
@@ -411,42 +412,149 @@ const ChatEnhancedContent = () => {
 
   const handleStarMessage = async (messageId: string) => {
     try {
-      console.log('handleStarMessage called', messageId);
-      const { data: message } = await supabase
-        .from('messages')
-        .select('is_starred')
-        .eq('id', messageId)
+      if (!user?.id) return;
+
+      // Check if already starred
+      const { data: existing } = await supabase
+        .from('starred_messages')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('message_id', messageId)
         .maybeSingle();
 
-      if (!message) {
-        toast.error('Message not found');
-        return;
+      if (existing) {
+        // Unstar
+        const { error } = await supabase
+          .from('starred_messages')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('message_id', messageId);
+
+        if (error) throw error;
+        toast.success('Message unstarred');
+      } else {
+        // Star
+        const { error } = await supabase
+          .from('starred_messages')
+          .insert({
+            user_id: user.id,
+            message_id: messageId,
+            conversation_id: activeConversationId!,
+          });
+
+        if (error) throw error;
+        toast.success('Message starred');
       }
-
-      const { error } = await supabase
-        .from('messages')
-        .update({ is_starred: !message.is_starred })
-        .eq('id', messageId);
-
-      if (error) throw error;
       
       // Reload messages to reflect the change
       await loadMessages();
-      toast.success(message.is_starred ? 'Unstarred' : 'Starred');
     } catch (error) {
       console.error('Star error:', error);
       toast.error('Failed to update message');
     }
   };
 
+  const [replyToMessage, setReplyToMessage] = React.useState<any>(null);
+  const [showReportDialog, setShowReportDialog] = React.useState(false);
+  const [messageToReport, setMessageToReport] = React.useState<any>(null);
+
   const handleReplyMessage = (message: any) => {
-    // Set focus on input with reply context
-    toast.info('Reply to: ' + message.content.substring(0, 50));
+    setReplyToMessage(message);
+  };
+
+  const cancelReply = () => {
+    setReplyToMessage(null);
+  };
+
+  const handlePinMessage = async (messageId: string) => {
+    try {
+      if (!user?.id || !activeConversationId) return;
+
+      // Check if already pinned
+      const { data: existing } = await supabase
+        .from('pinned_messages')
+        .select('id')
+        .eq('conversation_id', activeConversationId)
+        .eq('message_id', messageId)
+        .maybeSingle();
+
+      if (existing) {
+        // Unpin
+        const { error } = await supabase
+          .from('pinned_messages')
+          .delete()
+          .eq('conversation_id', activeConversationId)
+          .eq('message_id', messageId);
+
+        if (error) throw error;
+        toast.success('Message unpinned');
+      } else {
+        // Check pin limit (max 3)
+        const { data: pinnedCount } = await supabase
+          .from('pinned_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('conversation_id', activeConversationId);
+
+        if (pinnedCount && (pinnedCount as any).count >= 3) {
+          toast.error('Maximum 3 messages can be pinned per chat');
+          return;
+        }
+
+        // Pin
+        const { error } = await supabase
+          .from('pinned_messages')
+          .insert({
+            conversation_id: activeConversationId,
+            message_id: messageId,
+            pinned_by: user.id,
+          });
+
+        if (error) throw error;
+        toast.success('Message pinned');
+      }
+      
+      // Reload messages
+      await loadMessages();
+    } catch (error) {
+      console.error('Pin error:', error);
+      toast.error('Failed to update message');
+    }
+  };
+
+  const handleReportMessage = (message: any) => {
+    setMessageToReport(message);
+    setShowReportDialog(true);
   };
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      await deleteMessage(messageId);
+      const message = displayMessages.find(m => m.id === messageId);
+      if (!message) return;
+
+      // Check if message is within 2 minutes window (for non-owners)
+      const messageTime = new Date(message.created_at).getTime();
+      const now = Date.now();
+      const twoMinutes = 2 * 60 * 1000;
+      const canDelete = message.sender_id === user?.id && (now - messageTime) <= twoMinutes;
+
+      if (!canDelete && message.sender_id === user?.id) {
+        toast.error('Messages can only be deleted within 2 minutes');
+        return;
+      }
+
+      // Soft delete
+      const { error } = await supabase
+        .from('messages')
+        .update({ 
+          is_deleted: true, 
+          deleted_at: new Date().toISOString(),
+          content: '' // Clear content for privacy
+        })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      
+      await loadMessages();
       toast.success('Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
@@ -799,6 +907,8 @@ const ChatEnhancedContent = () => {
                 onReply={handleReplyMessage}
                 onDelete={handleDeleteMessage}
                 onEdit={handleEditMessage}
+                onPin={handlePinMessage}
+                onReport={handleReportMessage}
                 selectionMode={selectionMode}
                 selectedMessages={selectedMessages}
                 onSelectMessage={handleSelectMessage}
@@ -816,6 +926,8 @@ const ChatEnhancedContent = () => {
             conversationId={activeConversationId}
             userId={user.id}
             disabled={messagesLoading}
+            replyToMessage={replyToMessage}
+            onCancelReply={cancelReply}
             lastMessage={displayMessages.length > 0 && displayMessages[displayMessages.length - 1].sender_id !== user.id 
               ? displayMessages[displayMessages.length - 1].content 
               : undefined}
@@ -1167,6 +1279,35 @@ const ChatEnhancedContent = () => {
         open={showContactInfo}
         onOpenChange={setShowContactInfo}
       />
+
+      {/* Message Forward Dialog */}
+      {messageToForward && (
+        <MessageForwardDialog
+          open={showForwardDialog}
+          onClose={() => {
+            setShowForwardDialog(false);
+            setMessageToForward(null);
+          }}
+          messageId={messageToForward.id}
+          messageContent={messageToForward.content}
+          userId={user.id}
+        />
+      )}
+
+      {/* Message Report Dialog */}
+      {messageToReport && (
+        <MessageReportDialog
+          open={showReportDialog}
+          onClose={() => {
+            setShowReportDialog(false);
+            setMessageToReport(null);
+          }}
+          messageId={messageToReport.id}
+          conversationId={activeConversationId!}
+          reportedUserId={messageToReport.sender_id}
+          userId={user.id}
+        />
+      )}
       </div>
     </>
   );
