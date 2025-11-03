@@ -1,16 +1,50 @@
 import { useState, useEffect } from "react";
-import { signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
+import { 
+  signInWithPopup, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  onAuthStateChanged, 
+  signOut,
+  ConfirmationResult
+} from "firebase/auth";
 import { auth, googleProvider } from "@/firebase";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, MessageCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LogOut, MessageCircle, Mail, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { CountryCodeSelector } from "@/components/CountryCodeSelector";
+
+// Validation schemas
+const emailSchema = z.string().email("Invalid email address");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format");
 
 const FirebaseLogin = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  
+  // Email auth state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  
+  // Phone auth state
+  const [countryCode, setCountryCode] = useState("+91");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otp, setOtp] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [phoneError, setPhoneError] = useState("");
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -20,7 +54,6 @@ const FirebaseLogin = () => {
       setLoading(false);
       
       if (currentUser) {
-        // User is signed in, redirect to chat
         navigate("/firebase-chat");
       }
     });
@@ -28,19 +61,180 @@ const FirebaseLogin = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  const handleGoogleLogin = async () => {
+  // Setup reCAPTCHA for phone auth
+  useEffect(() => {
+    if (!recaptchaVerifier) {
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {
+          console.log('reCAPTCHA solved');
+        }
+      });
+      setRecaptchaVerifier(verifier);
+    }
+  }, [recaptchaVerifier]);
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError("");
+
+    // Validate inputs
+    const emailValidation = emailSchema.safeParse(email);
+    const passwordValidation = passwordSchema.safeParse(password);
+
+    if (!emailValidation.success) {
+      setEmailError(emailValidation.error.errors[0].message);
+      return;
+    }
+
+    if (!passwordValidation.success) {
+      setEmailError(passwordValidation.error.errors[0].message);
+      return;
+    }
+
+    setLoading(true);
     try {
-      setLoading(true);
-      const result = await signInWithPopup(auth, googleProvider);
+      if (authMode === 'signup') {
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        toast({
+          title: "Account created!",
+          description: `Welcome, ${result.user.email}`,
+        });
+      } else {
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        toast({
+          title: "Welcome back!",
+          description: `Signed in as ${result.user.email}`,
+        });
+      }
+      navigate("/firebase-chat");
+    } catch (error: any) {
+      let errorMessage = "Authentication failed";
       
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = "Email already in use. Try logging in instead.";
+          break;
+        case 'auth/invalid-email':
+          errorMessage = "Invalid email address";
+          break;
+        case 'auth/user-not-found':
+          errorMessage = "No account found. Please sign up.";
+          break;
+        case 'auth/wrong-password':
+          errorMessage = "Incorrect password";
+          break;
+        case 'auth/weak-password':
+          errorMessage = "Password is too weak. Use at least 6 characters.";
+          break;
+        default:
+          errorMessage = error.message;
+      }
+      
+      toast({
+        title: authMode === 'signup' ? "Signup Failed" : "Login Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setEmailError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhoneAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPhoneError("");
+
+    const fullPhone = `${countryCode}${phoneNumber}`;
+    const phoneValidation = phoneSchema.safeParse(fullPhone);
+
+    if (!phoneValidation.success) {
+      setPhoneError(phoneValidation.error.errors[0].message);
+      return;
+    }
+
+    if (!recaptchaVerifier) {
+      setPhoneError("reCAPTCHA not initialized");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const confirmation = await signInWithPhoneNumber(auth, fullPhone, recaptchaVerifier);
+      setConfirmationResult(confirmation);
+      toast({
+        title: "OTP Sent",
+        description: "Check your phone for the verification code",
+      });
+    } catch (error: any) {
+      let errorMessage = "Failed to send OTP";
+      
+      switch (error.code) {
+        case 'auth/invalid-phone-number':
+          errorMessage = "Invalid phone number format";
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = "Too many attempts. Please try again later.";
+          break;
+        default:
+          errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Phone Authentication Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setPhoneError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!confirmationResult) {
+      setPhoneError("Please request OTP first");
+      return;
+    }
+
+    if (!otp || otp.length !== 6) {
+      setPhoneError("Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await confirmationResult.confirm(otp);
+      toast({
+        title: "Success!",
+        description: "Phone number verified",
+      });
+      navigate("/firebase-chat");
+    } catch (error: any) {
+      toast({
+        title: "Verification Failed",
+        description: "Invalid OTP. Please try again.",
+        variant: "destructive",
+      });
+      setPhoneError("Invalid OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
       toast({
         title: "Welcome!",
         description: `Signed in as ${result.user.displayName}`,
       });
-      
       navigate("/firebase-chat");
     } catch (error: any) {
-      console.error("Login failed:", error);
       toast({
         title: "Login Failed",
         description: error.message || "Failed to sign in with Google",
@@ -77,6 +271,8 @@ const FirebaseLogin = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-4">
+      <div id="recaptcha-container"></div>
+      
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-4">
@@ -91,11 +287,172 @@ const FirebaseLogin = () => {
         <CardContent className="space-y-6">
           {!user ? (
             <>
+              <Tabs defaultValue="email" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="email">
+                    <Mail className="w-4 h-4 mr-2" />
+                    Email
+                  </TabsTrigger>
+                  <TabsTrigger value="phone">
+                    <Phone className="w-4 h-4 mr-2" />
+                    Phone
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="email">
+                  <form onSubmit={handleEmailAuth} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                        required
+                      />
+                    </div>
+
+                    {emailError && (
+                      <p className="text-sm text-destructive">{emailError}</p>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={loading}
+                    >
+                      {loading ? "Processing..." : authMode === 'login' ? "Sign In" : "Sign Up"}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="w-full"
+                      onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+                      disabled={loading}
+                    >
+                      {authMode === 'login' 
+                        ? "Don't have an account? Sign up" 
+                        : "Already have an account? Sign in"}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="phone">
+                  {!confirmationResult ? (
+                    <form onSubmit={handlePhoneAuth} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <div className="flex gap-2">
+                          <CountryCodeSelector
+                            value={countryCode}
+                            onChange={setCountryCode}
+                          />
+                          <Input
+                            id="phone"
+                            type="tel"
+                            placeholder="9876543210"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                            disabled={loading}
+                            className="flex-1"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {phoneError && (
+                        <p className="text-sm text-destructive">{phoneError}</p>
+                      )}
+
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={loading}
+                      >
+                        {loading ? "Sending OTP..." : "Send OTP"}
+                      </Button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleOtpVerification} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="otp">Enter OTP</Label>
+                        <Input
+                          id="otp"
+                          type="text"
+                          placeholder="123456"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          disabled={loading}
+                          maxLength={6}
+                          required
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          OTP sent to {countryCode}{phoneNumber}
+                        </p>
+                      </div>
+
+                      {phoneError && (
+                        <p className="text-sm text-destructive">{phoneError}</p>
+                      )}
+
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={loading}
+                      >
+                        {loading ? "Verifying..." : "Verify OTP"}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="w-full"
+                        onClick={() => {
+                          setConfirmationResult(null);
+                          setOtp("");
+                          setPhoneError("");
+                        }}
+                        disabled={loading}
+                      >
+                        Use different number
+                      </Button>
+                    </form>
+                  )}
+                </TabsContent>
+              </Tabs>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
               <Button
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full h-12 text-lg"
-                size="lg"
+                variant="outline"
+                className="w-full"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path
@@ -127,11 +484,16 @@ const FirebaseLogin = () => {
               <div className="flex items-center space-x-4 p-4 bg-secondary rounded-lg">
                 <Avatar className="w-12 h-12">
                   <AvatarImage src={user.photoURL || ""} />
-                  <AvatarFallback>{user.displayName?.[0] || "U"}</AvatarFallback>
+                  <AvatarFallback>
+                    {user.displayName?.[0] || user.email?.[0] || user.phoneNumber?.[0] || "U"}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <p className="font-semibold">{user.displayName}</p>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <p className="font-semibold">
+                    {user.displayName || user.email || user.phoneNumber}
+                  </p>
+                  {user.email && <p className="text-sm text-muted-foreground">{user.email}</p>}
+                  {user.phoneNumber && <p className="text-sm text-muted-foreground">{user.phoneNumber}</p>}
                 </div>
               </div>
               
