@@ -68,7 +68,7 @@ async function searchDuckDuckGo(query: string): Promise<SearchResult[]> {
     
     // Related Topics
     if (data.RelatedTopics) {
-      for (const topic of data.RelatedTopics.slice(0, 5)) {
+      for (const topic of data.RelatedTopics.slice(0, 8)) {
         if (topic.Text && topic.FirstURL) {
           results.push({
             title: topic.Text.split(' - ')[0] || topic.Text.substring(0, 100),
@@ -86,6 +86,59 @@ async function searchDuckDuckGo(query: string): Promise<SearchResult[]> {
   }
 
   return results;
+}
+
+// Bing Search (free tier available)
+async function searchBing(query: string): Promise<SearchResult[]> {
+  try {
+    // Using Bing's public search (requires API key for production)
+    // For now, return empty - users can add BING_SEARCH_KEY to secrets
+    const BING_KEY = Deno.env.get('BING_SEARCH_KEY');
+    if (!BING_KEY) return [];
+
+    const response = await fetch(
+      `https://api.bing.microsoft.com/v7.0/search?q=${encodeURIComponent(query)}&count=10`,
+      {
+        headers: { 'Ocp-Apim-Subscription-Key': BING_KEY },
+        signal: AbortSignal.timeout(5000)
+      }
+    );
+    const data = await response.json();
+    
+    return (data.webPages?.value || []).map((item: any) => ({
+      title: item.name,
+      url: item.url,
+      snippet: item.snippet,
+      source: 'Bing',
+      category: 'web'
+    }));
+  } catch (e) {
+    console.error('Bing search error:', e);
+    return [];
+  }
+}
+
+// News API for trending news
+async function searchNews(query: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(
+      `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=relevancy&pageSize=8&language=en&apiKey=demo`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const data = await response.json();
+    
+    return (data.articles || []).slice(0, 8).map((article: any) => ({
+      title: article.title,
+      url: article.url,
+      snippet: article.description || article.content?.substring(0, 200),
+      source: article.source.name,
+      category: 'news',
+      thumbnail: article.urlToImage
+    }));
+  } catch (e) {
+    console.error('News search error:', e);
+    return [];
+  }
 }
 
 // Wikipedia API
@@ -409,6 +462,7 @@ serve(async (req) => {
     const searchPromises: Promise<SearchResult[]>[] = [
       searchDuckDuckGo(cleanQuery),
       searchWikipedia(cleanQuery),
+      searchBing(cleanQuery),
     ];
     
     // Add category-specific searches in parallel
@@ -417,8 +471,11 @@ serve(async (req) => {
         searchGitHub(cleanQuery),
         searchStackOverflow(cleanQuery),
         searchReddit(cleanQuery),
-        searchBrave(cleanQuery)
+        searchBrave(cleanQuery),
+        searchNews(cleanQuery)
       );
+    } else if (category === 'news') {
+      searchPromises.push(searchNews(cleanQuery), searchReddit(cleanQuery));
     } else if (category === 'research') {
       searchPromises.push(searchArxiv(cleanQuery));
     } else if (category === 'social') {
@@ -478,6 +535,7 @@ serve(async (req) => {
       research: allResults.filter(r => r.category === 'research'),
       image: allResults.filter(r => r.category === 'image'),
       video: allResults.filter(r => r.category === 'video'),
+      news: allResults.filter(r => r.category === 'news'),
       all: allResults
     };
 
