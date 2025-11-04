@@ -450,7 +450,7 @@ const Index = () => {
               <div className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
               </div>
-              <div className="text-xs font-medium text-muted-foreground">Say It. Share It. Live It.</div>
+              <div className="text-xs font-medium text-muted-foreground">The AI Superapp for India</div>
             </div>
           </div>
         </div>
@@ -469,7 +469,7 @@ const Index = () => {
               <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
               </div>
-              <div className="text-[10px] font-medium text-muted-foreground">Say It. Share It. Live It.</div>
+              <div className="text-[10px] font-medium text-muted-foreground">The AI Superapp for India</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
