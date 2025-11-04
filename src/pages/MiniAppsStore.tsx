@@ -7,10 +7,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2, X, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useSSOToken } from '@/hooks/useSSOToken';
+import { QuickAppSubmission } from '@/components/QuickAppSubmission';
 
 interface MiniApp {
   id: string;
@@ -58,6 +59,7 @@ const MiniAppsStore = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [minRating, setMinRating] = useState<number>(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [showSubmission, setShowSubmission] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -415,6 +417,8 @@ const MiniAppsStore = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <QuickAppSubmission open={showSubmission} onOpenChange={setShowSubmission} />
+      
       {/* Apple-style Premium Header */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="max-w-7xl mx-auto px-3">
@@ -428,15 +432,22 @@ const MiniAppsStore = () => {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-base font-semibold tracking-tight">Mini-Apps</h1>
+              <h1 className="text-base font-semibold tracking-tight flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Mini-Apps Marketplace
+              </h1>
             </div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/developer-portal')}
-              className="text-xs font-medium hover:bg-muted/50 h-8"
-            >
-              Developers
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setShowSubmission(true)}
+                className="h-8 gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Submit App</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

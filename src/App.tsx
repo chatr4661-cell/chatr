@@ -68,6 +68,7 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/AdminLayout";
 import BrandPartnerships from "./pages/admin/BrandPartnerships";
+import AppApprovals from "./pages/admin/AppApprovals";
 
 // Consolidated Hub Pages
 import HealthHub from "./pages/HealthHub";
@@ -252,6 +253,7 @@ const App = () => {
               <Route path="official-accounts" element={<OfficialAccountsManager />} />
               <Route path="broadcast" element={<BroadcastManager />} />
               <Route path="brand-partnerships" element={<BrandPartnerships />} />
+              <Route path="app-approvals" element={<AppApprovals />} />
             </Route>
             <Route path="/chatr-tutors" element={<ChatrTutors />} />
             <Route path="/tutors" element={<ChatrTutors />} />
