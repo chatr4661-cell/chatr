@@ -283,6 +283,14 @@ const Index = () => {
 
   const mainHubs = [
     {
+      icon: Sparkles,
+      title: 'AI Agents',
+      description: 'Create your AI self',
+      iconColor: 'bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-600',
+      route: '/ai-agents',
+      isNew: true
+    },
+    {
       icon: Zap,
       title: 'Chatr World',
       description: 'Conversational Multiverse AI',

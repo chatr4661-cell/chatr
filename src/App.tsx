@@ -123,6 +123,7 @@ import AIBrowser from "./pages/AIBrowser";
 import AIChat from "./pages/AIChat";
 import Capture from "./pages/Capture";
 import ChatrWorld from "./pages/ChatrWorld";
+import AIAgents from "./pages/AIAgents";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -225,6 +226,7 @@ const App = () => {
             
             {/* AI & Settings Routes */}
             <Route path="/chatr-world" element={<ChatrWorld />} />
+            <Route path="/ai-agents" element={<AIAgents />} />
             <Route path="/ai-assistant" element={<AIAssistant />} />
             <Route path="/home" element={<AIBrowser />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
