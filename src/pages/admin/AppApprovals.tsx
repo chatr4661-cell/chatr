@@ -82,10 +82,14 @@ export default function AppApprovals() {
           is_verified: true,
           is_active: true,
           rating_average: 5.0,
-          revenue_share_percent: revenueShare
+          revenue_share_percent: revenueShare,
+          rating_count: 0
         });
 
-      if (appError) throw appError;
+      if (appError) {
+        console.error('Error creating app:', appError);
+        throw appError;
+      }
 
       // Update submission status
       const { error: updateError } = await supabase

@@ -12,7 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    const { query, userId } = await req.json();
+    const { query, userId, location } = await req.json();
+    
+    console.log('Received request:', { query, userId, location });
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -101,15 +103,22 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
     if (analysis.modules.includes('business')) {
       fetchPromises.push(
         (async () => {
-          const { data } = await supabase
+          let query = supabase
             .from('service_providers')
-            .select('*')
-            .limit(5);
+            .select('*');
+          
+          // Filter by location if available
+          if (location?.city) {
+            query = query.ilike('location', `%${location.city}%`);
+          }
+          
+          const { data } = await query.limit(10);
           
           results.data.business = {
             type: 'service_providers',
             providers: data || [],
-            count: data?.length || 0
+            count: data?.length || 0,
+            location: location?.city || 'all locations'
           };
         })()
       );
@@ -157,15 +166,22 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
     if (analysis.modules.includes('food')) {
       fetchPromises.push(
         (async () => {
-          const { data } = await supabase
+          let query = supabase
             .from('food_vendors')
-            .select('*')
-            .limit(5);
+            .select('*');
+          
+          // Filter by location if available
+          if (location?.city) {
+            query = query.ilike('location', `%${location.city}%`);
+          }
+          
+          const { data } = await query.limit(10);
           
           results.data.food = {
             type: 'food_vendors',
             vendors: data || [],
-            count: data?.length || 0
+            count: data?.length || 0,
+            location: location?.city || 'all locations'
           };
         })()
       );
@@ -175,16 +191,23 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
     if (analysis.modules.includes('deals')) {
       fetchPromises.push(
         (async () => {
-          const { data } = await supabase
+          let query = supabase
             .from('local_deals')
             .select('*')
-            .eq('is_active', true)
-            .limit(5);
+            .eq('is_active', true);
+          
+          // Filter by location if available
+          if (location?.city) {
+            query = query.ilike('city', `%${location.city}%`);
+          }
+          
+          const { data } = await query.limit(10);
           
           results.data.deals = {
             type: 'local_deals',
             deals: data || [],
-            count: data?.length || 0
+            count: data?.length || 0,
+            location: location?.city || 'all locations'
           };
         })()
       );
@@ -204,11 +227,34 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
         messages: [
           {
             role: 'system',
-            content: `You are Chatr World - a conversational multiverse interface. Synthesize data from multiple modules into a natural, helpful response. Be concise and actionable. Format your response with markdown for better readability.`
+            content: `You are Chatr World - a conversational multiverse interface that helps users find and order services, food, deals, healthcare, and more. 
+
+When presenting results:
+- Show specific items with names, prices, and details
+- Include actionable next steps (how to order, book, purchase)
+- Mention delivery/pickup options for food
+- Include contact info or booking methods for services
+- Be conversational and helpful
+
+Format your response with markdown for better readability.`
           },
           {
             role: 'user',
-            content: `User asked: "${query}"\n\nData gathered:\n${JSON.stringify(results.data, null, 2)}\n\nProvide a conversational response combining all relevant information.`
+            content: `User location: ${location?.city || 'unknown'}, ${location?.country || 'unknown'}
+            
+User asked: "${query}"
+
+Data gathered from modules:
+${JSON.stringify(results.data, null, 2)}
+
+Provide a helpful, conversational response that:
+1. Acknowledges their location if relevant
+2. Presents available options with specific details
+3. Explains how they can order/book/purchase
+4. Mentions any deals or special offers
+5. Provides next steps
+
+Be specific about what's available and how to get it.`
           }
         ]
       })

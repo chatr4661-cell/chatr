@@ -5,9 +5,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Send, Sparkles, Globe, Heart, Briefcase, Users, UtensilsCrossed, Tag, Loader2, ArrowLeft } from 'lucide-react';
+import { Send, Sparkles, Globe, Heart, Briefcase, Users, UtensilsCrossed, Tag, Loader2, ArrowLeft, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import { useLocationStatus } from '@/hooks/useLocationStatus';
 
 interface Message {
   id: string;
@@ -38,17 +39,27 @@ const moduleColors: Record<string, string> = {
 
 export default function ChatrWorld() {
   const navigate = useNavigate();
+  const [userId, setUserId] = useState<string>('');
+  const { status: locationStatus } = useLocationStatus(userId);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'assistant',
-      content: '👋 Welcome to **Chatr World** - your conversational multiverse interface!\n\nAsk me anything and I\'ll search across Chat, Browser, Health, Business, Community, Food, and Deals to give you the perfect answer.',
+      content: '👋 Welcome to **Chatr World** - your conversational multiverse interface!\n\nAsk me anything and I\'ll search across Chat, Browser, Health, Business, Community, Food, and Deals to give you the perfect answer.\n\n📍 Location-based results enabled for personalized recommendations!',
       timestamp: new Date()
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) setUserId(user.id);
+    };
+    getUser();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -78,7 +89,13 @@ export default function ChatrWorld() {
       const { data, error } = await supabase.functions.invoke('chatr-world', {
         body: { 
           query: input,
-          userId: user?.id
+          userId: user?.id,
+          location: locationStatus.latitude && locationStatus.longitude ? {
+            latitude: locationStatus.latitude,
+            longitude: locationStatus.longitude,
+            city: locationStatus.city,
+            country: locationStatus.country
+          } : null
         }
       });
 
@@ -138,7 +155,15 @@ export default function ChatrWorld() {
                 </div>
                 <div>
                   <h1 className="text-lg font-bold">Chatr World</h1>
-                  <p className="text-xs text-muted-foreground">Conversational Multiverse</p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground">Conversational Multiverse</p>
+                    {locationStatus.city && (
+                      <span className="flex items-center gap-0.5 text-xs text-primary">
+                        <MapPin className="h-3 w-3" />
+                        {locationStatus.city}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
