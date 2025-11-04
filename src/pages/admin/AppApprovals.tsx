@@ -102,6 +102,13 @@ export default function AppApprovals() {
 
       if (updateError) throw updateError;
 
+      // Send chat notification to developer
+      await sendNotificationToUser(
+        submission.developer_id,
+        `🎉 Great news! Your app "${submission.app_name}" has been approved and is now live in the Chatr Mini Apps Store!`,
+        'approval'
+      );
+
       toast.success(`${submission.app_name} approved and published!`);
       setSelectedApp(null);
       loadSubmissions();
@@ -117,6 +124,8 @@ export default function AppApprovals() {
       return;
     }
 
+    if (!selectedApp) return;
+
     try {
       const { error } = await supabase
         .from('app_submissions')
@@ -129,6 +138,13 @@ export default function AppApprovals() {
 
       if (error) throw error;
 
+      // Send chat notification to developer
+      await sendNotificationToUser(
+        selectedApp.developer_id,
+        `Your app submission "${selectedApp.app_name}" was not approved. Reason: ${rejectionReason}\n\nYou can resubmit after addressing the feedback.`,
+        'rejection'
+      );
+
       toast.success('App submission rejected');
       setSelectedApp(null);
       setRejectionReason('');
@@ -136,6 +152,39 @@ export default function AppApprovals() {
     } catch (error) {
       console.error('Rejection error:', error);
       toast.error('Failed to reject app');
+    }
+  };
+
+  const sendNotificationToUser = async (
+    developerId: string | null,
+    message: string,
+    type: 'approval' | 'rejection'
+  ) => {
+    if (!developerId) return;
+
+    try {
+      // Get admin user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create or get conversation with developer
+      const { data: conversationId } = await supabase.rpc('create_direct_conversation', {
+        other_user_id: developerId
+      });
+
+      if (conversationId) {
+        // Send message in conversation
+        await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content: message,
+            message_type: 'text'
+          });
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
     }
   };
 

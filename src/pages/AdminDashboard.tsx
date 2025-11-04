@@ -15,7 +15,8 @@ import {
   Megaphone,
   UserCog,
   MessageCircle,
-  Upload
+  Upload,
+  CheckSquare
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -270,6 +271,15 @@ const AdminDashboard = () => {
             <Settings className="h-8 w-8 text-primary mb-3" />
             <h3 className="font-semibold mb-1">Settings</h3>
             <p className="text-sm text-muted-foreground">Configure admin settings</p>
+          </Card>
+
+          <Card 
+            className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary"
+            onClick={() => navigate("/admin/app-approvals")}
+          >
+            <CheckSquare className="h-8 w-8 text-primary mb-3" />
+            <h3 className="font-semibold mb-1">App Approvals</h3>
+            <p className="text-sm text-muted-foreground">Review mini-app submissions</p>
           </Card>
         </div>
       </div>
