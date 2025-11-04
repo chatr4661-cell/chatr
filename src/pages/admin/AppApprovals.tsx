@@ -203,8 +203,6 @@ export default function AppApprovals() {
                     <p className="text-sm text-muted-foreground mb-2">{app.description}</p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span>By: {app.developer_name}</span>
-                      <span>Category: {app.category}</span>
-                      <span>Revenue Share: {app.revenue_share_percent}%</span>
                       <a 
                         href={app.app_url} 
                         target="_blank" 
