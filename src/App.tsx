@@ -122,6 +122,7 @@ import FameLeaderboard from "./pages/FameLeaderboard";
 import AIBrowser from "./pages/AIBrowser";
 import AIChat from "./pages/AIChat";
 import Capture from "./pages/Capture";
+import ChatrWorld from "./pages/ChatrWorld";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -223,6 +224,7 @@ const App = () => {
           <Route path="/qr-payment" element={<QRPayment />} />
             
             {/* AI & Settings Routes */}
+            <Route path="/chatr-world" element={<ChatrWorld />} />
             <Route path="/ai-assistant" element={<AIAssistant />} />
             <Route path="/home" element={<AIBrowser />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />

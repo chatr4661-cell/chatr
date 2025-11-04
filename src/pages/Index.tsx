@@ -26,7 +26,8 @@ import {
   Building2,
   Share2,
   Search,
-  Sparkles
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -281,6 +282,14 @@ const Index = () => {
   };
 
   const mainHubs = [
+    {
+      icon: Zap,
+      title: 'Chatr World',
+      description: 'Conversational Multiverse AI',
+      iconColor: 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-600',
+      route: '/chatr-world',
+      isNew: true
+    },
     {
       icon: MessageCircle,
       title: 'Chat',

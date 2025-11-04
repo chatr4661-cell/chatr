@@ -220,7 +220,7 @@ export default function AppApprovals() {
                       size="sm" 
                       onClick={() => {
                         setSelectedApp(app);
-                        setRevenueShare(app.revenue_share_percent);
+                        setRevenueShare(7.5);
                       }}
                     >
                       Review
