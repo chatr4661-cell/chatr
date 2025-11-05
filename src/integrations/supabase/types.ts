@@ -43,6 +43,133 @@ export type Database = {
           },
         ]
       }
+      ai_agent_analytics: {
+        Row: {
+          agent_id: string
+          average_response_time_seconds: number | null
+          conversations_started: number | null
+          created_at: string | null
+          date: string
+          id: string
+          messages_sent: number | null
+        }
+        Insert: {
+          agent_id: string
+          average_response_time_seconds?: number | null
+          conversations_started?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          messages_sent?: number | null
+        }
+        Update: {
+          agent_id?: string
+          average_response_time_seconds?: number | null
+          conversations_started?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          messages_sent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_analytics_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_training: {
+        Row: {
+          agent_id: string
+          answer: string
+          created_at: string | null
+          id: string
+          question: string
+        }
+        Insert: {
+          agent_id: string
+          answer: string
+          created_at?: string | null
+          id?: string
+          question: string
+        }
+        Update: {
+          agent_id?: string
+          answer?: string
+          created_at?: string | null
+          id?: string
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_training_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agents: {
+        Row: {
+          agent_avatar_url: string | null
+          agent_description: string | null
+          agent_name: string
+          agent_personality: string
+          agent_purpose: string
+          auto_reply_enabled: boolean | null
+          created_at: string | null
+          greeting_message: string | null
+          id: string
+          is_active: boolean | null
+          knowledge_base: string | null
+          response_delay_seconds: number | null
+          total_conversations: number | null
+          total_messages: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_avatar_url?: string | null
+          agent_description?: string | null
+          agent_name: string
+          agent_personality?: string
+          agent_purpose: string
+          auto_reply_enabled?: boolean | null
+          created_at?: string | null
+          greeting_message?: string | null
+          id?: string
+          is_active?: boolean | null
+          knowledge_base?: string | null
+          response_delay_seconds?: number | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_avatar_url?: string | null
+          agent_description?: string | null
+          agent_name?: string
+          agent_personality?: string
+          agent_purpose?: string
+          auto_reply_enabled?: boolean | null
+          created_at?: string | null
+          greeting_message?: string | null
+          id?: string
+          is_active?: boolean | null
+          knowledge_base?: string | null
+          response_delay_seconds?: number | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_moments: {
         Row: {
           conversation_snippet: string
