@@ -540,10 +540,11 @@ export default function AIAgents() {
                           className="flex-1"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleToggleAgent(agent);
+                            navigate(`/ai-agents/chat/${agent.id}`);
                           }}
                         >
-                          {agent.is_active ? 'Pause' : 'Activate'}
+                          <MessageSquare className="h-3 w-3 mr-1" />
+                          Chat
                         </Button>
                         <Button 
                           size="sm" 

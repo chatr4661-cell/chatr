@@ -44,6 +44,8 @@ import DoctorOnboarding from "./pages/DoctorOnboarding";
 import QRPayment from "./pages/QRPayment";
 import HomeServices from "./pages/HomeServices";
 import QRLogin from "./pages/QRLogin";
+import AIAgents from "./pages/AIAgents";
+import AIAgentChat from "./pages/AIAgentChat";
 import AIAssistant from "./pages/AIAssistant";
 import Account from "./pages/Account";
 import Privacy from "./pages/Privacy";
@@ -123,7 +125,6 @@ import AIBrowser from "./pages/AIBrowser";
 import AIChat from "./pages/AIChat";
 import Capture from "./pages/Capture";
 import ChatrWorld from "./pages/ChatrWorld";
-import AIAgents from "./pages/AIAgents";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -226,8 +227,9 @@ const App = () => {
             
             {/* AI & Settings Routes */}
             <Route path="/chatr-world" element={<ChatrWorld />} />
-            <Route path="/ai-agents" element={<AIAgents />} />
-            <Route path="/ai-assistant" element={<AIAssistant />} />
+          <Route path="/ai-agents" element={<AIAgents />} />
+          <Route path="/ai-agents/chat/:agentId" element={<AIAgentChat />} />
+          <Route path="/ai-assistant" element={<AIAssistant />} />
             <Route path="/home" element={<AIBrowser />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
             <Route path="/ai-browser" element={<AIBrowserView />} />
