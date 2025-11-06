@@ -27,7 +27,8 @@ import {
   Share2,
   Search,
   Sparkles,
-  Zap
+  Zap,
+  Briefcase
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -292,9 +293,23 @@ const Index = () => {
     {
       icon: Zap,
       title: 'Chatr World',
-      description: 'Conversational Multiverse AI',
+      description: 'AI Search + Location',
       iconColor: 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-600',
       route: '/chatr-world'
+    },
+    {
+      icon: Briefcase,
+      title: 'Local Jobs',
+      description: 'Jobs near you',
+      iconColor: 'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600',
+      route: '/local-jobs'
+    },
+    {
+      icon: Stethoscope,
+      title: 'Healthcare',
+      description: 'Clinics & doctors nearby',
+      iconColor: 'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600',
+      route: '/local-healthcare'
     },
     {
       icon: MessageCircle,

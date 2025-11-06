@@ -2248,6 +2248,95 @@ export type Database = {
           },
         ]
       }
+      community_events_db: {
+        Row: {
+          address: string
+          city: string
+          created_at: string | null
+          current_participants: number | null
+          end_date: string | null
+          entry_fee: number | null
+          event_date: string
+          event_description: string
+          event_title: string
+          event_type: string
+          id: string
+          is_featured: boolean | null
+          is_free: boolean | null
+          latitude: number | null
+          longitude: number | null
+          max_participants: number | null
+          organizer_id: string
+          organizer_name: string
+          pincode: string | null
+          state: string
+          updated_at: string | null
+          venue_name: string | null
+          verified: boolean | null
+          view_count: number | null
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string | null
+          current_participants?: number | null
+          end_date?: string | null
+          entry_fee?: number | null
+          event_date: string
+          event_description: string
+          event_title: string
+          event_type: string
+          id?: string
+          is_featured?: boolean | null
+          is_free?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          max_participants?: number | null
+          organizer_id: string
+          organizer_name: string
+          pincode?: string | null
+          state: string
+          updated_at?: string | null
+          venue_name?: string | null
+          verified?: boolean | null
+          view_count?: number | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string | null
+          current_participants?: number | null
+          end_date?: string | null
+          entry_fee?: number | null
+          event_date?: string
+          event_description?: string
+          event_title?: string
+          event_type?: string
+          id?: string
+          is_featured?: boolean | null
+          is_free?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          max_participants?: number | null
+          organizer_id?: string
+          organizer_name?: string
+          pincode?: string | null
+          state?: string
+          updated_at?: string | null
+          venue_name?: string | null
+          verified?: boolean | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_events_db_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_requests: {
         Row: {
           created_at: string | null
@@ -3765,6 +3854,105 @@ export type Database = {
         }
         Relationships: []
       }
+      healthcare_db: {
+        Row: {
+          added_by: string
+          address: string
+          city: string
+          created_at: string | null
+          description: string | null
+          email: string | null
+          id: string
+          is_monetized: boolean | null
+          latitude: number | null
+          longitude: number | null
+          monetization_tier: string | null
+          name: string
+          phone_number: string | null
+          pincode: string
+          rating_average: number | null
+          rating_count: number | null
+          services_offered: string[] | null
+          specialties: string[] | null
+          state: string
+          type: string
+          updated_at: string | null
+          verified: boolean | null
+          verified_at: string | null
+          verified_by: string | null
+          website: string | null
+        }
+        Insert: {
+          added_by: string
+          address: string
+          city: string
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_monetized?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          monetization_tier?: string | null
+          name: string
+          phone_number?: string | null
+          pincode: string
+          rating_average?: number | null
+          rating_count?: number | null
+          services_offered?: string[] | null
+          specialties?: string[] | null
+          state: string
+          type: string
+          updated_at?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          added_by?: string
+          address?: string
+          city?: string
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_monetized?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          monetization_tier?: string | null
+          name?: string
+          phone_number?: string | null
+          pincode?: string
+          rating_average?: number | null
+          rating_count?: number | null
+          services_offered?: string[] | null
+          specialties?: string[] | null
+          state?: string
+          type?: string
+          updated_at?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "healthcare_db_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "healthcare_db_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       home_service_bookings: {
         Row: {
           address: string
@@ -4109,6 +4297,111 @@ export type Database = {
         }
         Relationships: []
       }
+      local_business_db: {
+        Row: {
+          added_by: string
+          address: string
+          business_hours: Json | null
+          business_name: string
+          business_type: string
+          category: string
+          city: string
+          created_at: string | null
+          description: string | null
+          email: string | null
+          has_active_offers: boolean | null
+          id: string
+          is_partner: boolean | null
+          latitude: number | null
+          longitude: number | null
+          monetization_tier: string | null
+          phone_number: string | null
+          pincode: string
+          rating_average: number | null
+          rating_count: number | null
+          services_products: string[] | null
+          state: string
+          updated_at: string | null
+          verified: boolean | null
+          verified_at: string | null
+          verified_by: string | null
+          website: string | null
+        }
+        Insert: {
+          added_by: string
+          address: string
+          business_hours?: Json | null
+          business_name: string
+          business_type: string
+          category: string
+          city: string
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          has_active_offers?: boolean | null
+          id?: string
+          is_partner?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          monetization_tier?: string | null
+          phone_number?: string | null
+          pincode: string
+          rating_average?: number | null
+          rating_count?: number | null
+          services_products?: string[] | null
+          state: string
+          updated_at?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          added_by?: string
+          address?: string
+          business_hours?: Json | null
+          business_name?: string
+          business_type?: string
+          category?: string
+          city?: string
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          has_active_offers?: boolean | null
+          id?: string
+          is_partner?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          monetization_tier?: string | null
+          phone_number?: string | null
+          pincode?: string
+          rating_average?: number | null
+          rating_count?: number | null
+          services_products?: string[] | null
+          state?: string
+          updated_at?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_business_db_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_business_db_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       local_deals: {
         Row: {
           business_id: string | null
@@ -4167,6 +4460,281 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_jobs_db: {
+        Row: {
+          address: string | null
+          application_count: number | null
+          application_url: string | null
+          category: string
+          city: string
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          description: string
+          expires_at: string | null
+          id: string
+          is_featured: boolean | null
+          is_remote: boolean | null
+          job_title: string
+          job_type: string
+          latitude: number | null
+          longitude: number | null
+          monetization_tier: string | null
+          pincode: string | null
+          posted_by: string
+          requirements: string[] | null
+          salary_range: string | null
+          state: string
+          updated_at: string | null
+          verified: boolean | null
+          verified_at: string | null
+          verified_by: string | null
+          view_count: number | null
+        }
+        Insert: {
+          address?: string | null
+          application_count?: number | null
+          application_url?: string | null
+          category: string
+          city: string
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description: string
+          expires_at?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_remote?: boolean | null
+          job_title: string
+          job_type: string
+          latitude?: number | null
+          longitude?: number | null
+          monetization_tier?: string | null
+          pincode?: string | null
+          posted_by: string
+          requirements?: string[] | null
+          salary_range?: string | null
+          state: string
+          updated_at?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          address?: string | null
+          application_count?: number | null
+          application_url?: string | null
+          category?: string
+          city?: string
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string
+          expires_at?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_remote?: boolean | null
+          job_title?: string
+          job_type?: string
+          latitude?: number | null
+          longitude?: number | null
+          monetization_tier?: string | null
+          pincode?: string | null
+          posted_by?: string
+          requirements?: string[] | null
+          salary_range?: string | null
+          state?: string
+          updated_at?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_jobs_db_posted_by_fkey"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_jobs_db_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_offers_db: {
+        Row: {
+          address: string | null
+          business_id: string | null
+          business_name: string
+          city: string
+          created_at: string | null
+          discount_percentage: number | null
+          id: string
+          is_sponsored: boolean | null
+          latitude: number | null
+          longitude: number | null
+          max_redemptions: number | null
+          monetization_tier: string | null
+          offer_description: string
+          offer_price: number | null
+          offer_title: string
+          offer_type: string
+          original_price: number | null
+          pincode: string | null
+          posted_by: string
+          redemption_code: string | null
+          redemption_count: number | null
+          state: string
+          terms_conditions: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+          verified: boolean | null
+          view_count: number | null
+        }
+        Insert: {
+          address?: string | null
+          business_id?: string | null
+          business_name: string
+          city: string
+          created_at?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_sponsored?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          max_redemptions?: number | null
+          monetization_tier?: string | null
+          offer_description: string
+          offer_price?: number | null
+          offer_title: string
+          offer_type: string
+          original_price?: number | null
+          pincode?: string | null
+          posted_by: string
+          redemption_code?: string | null
+          redemption_count?: number | null
+          state: string
+          terms_conditions?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          verified?: boolean | null
+          view_count?: number | null
+        }
+        Update: {
+          address?: string | null
+          business_id?: string | null
+          business_name?: string
+          city?: string
+          created_at?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_sponsored?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          max_redemptions?: number | null
+          monetization_tier?: string | null
+          offer_description?: string
+          offer_price?: number | null
+          offer_title?: string
+          offer_type?: string
+          original_price?: number | null
+          pincode?: string | null
+          posted_by?: string
+          redemption_code?: string | null
+          redemption_count?: number | null
+          state?: string
+          terms_conditions?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          verified?: boolean | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_offers_db_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "local_business_db"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_offers_db_posted_by_fkey"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_searches: {
+        Row: {
+          city: string | null
+          clicked_result_id: string | null
+          clicked_result_type: string | null
+          created_at: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          pincode: string | null
+          results_count: number | null
+          search_query: string
+          search_type: string
+          state: string | null
+          user_id: string | null
+        }
+        Insert: {
+          city?: string | null
+          clicked_result_id?: string | null
+          clicked_result_type?: string | null
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          pincode?: string | null
+          results_count?: number | null
+          search_query: string
+          search_type: string
+          state?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          city?: string | null
+          clicked_result_id?: string | null
+          clicked_result_type?: string | null
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          pincode?: string | null
+          results_count?: number | null
+          search_query?: string
+          search_type?: string
+          state?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_searches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4863,6 +5431,59 @@ export type Database = {
             columns: ["moment_id"]
             isOneToOne: false
             referencedRelation: "ai_moments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monetization_leads: {
+        Row: {
+          action_type: string
+          converted_at: string | null
+          created_at: string | null
+          id: string
+          is_converted: boolean | null
+          lead_type: string
+          listing_id: string
+          listing_type: string
+          location_city: string | null
+          location_pincode: string | null
+          revenue_potential: number | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          converted_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_converted?: boolean | null
+          lead_type: string
+          listing_id: string
+          listing_type: string
+          location_city?: string | null
+          location_pincode?: string | null
+          revenue_potential?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          converted_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_converted?: boolean | null
+          lead_type?: string
+          listing_id?: string
+          listing_type?: string
+          location_city?: string | null
+          location_pincode?: string | null
+          revenue_potential?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monetization_leads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
