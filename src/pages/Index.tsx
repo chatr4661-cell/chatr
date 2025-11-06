@@ -287,80 +287,70 @@ const Index = () => {
       title: 'AI Agents',
       description: 'Create your AI self',
       iconColor: 'bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-600',
-      route: '/ai-agents',
-      isNew: true
+      route: '/ai-agents'
     },
     {
       icon: Zap,
       title: 'Chatr World',
       description: 'Conversational Multiverse AI',
       iconColor: 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-600',
-      route: '/chatr-world',
-      isNew: true
+      route: '/chatr-world'
     },
     {
       icon: MessageCircle,
       title: 'Chat',
       description: 'Messages, calls & video',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
-      route: '/chat',
-      isNew: false
+      route: '/chat'
     },
     {
       icon: Search,
       title: 'Chatr Browser',
       description: 'Deep Multiverse Search Engine',
       iconColor: 'bg-gradient-to-br from-violet-400 to-purple-600',
-      route: '/home',
-      isNew: true
+      route: '/home'
     },
     {
       icon: Heart,
       title: 'Health Hub',
       description: 'AI assistant, vitals & reports',
       iconColor: 'bg-gradient-to-br from-emerald-400 to-teal-600',
-      route: '/health',
-      isNew: true
+      route: '/health'
     },
     {
       icon: Stethoscope,
       title: 'Care Access',
       description: 'Book doctors & emergency',
       iconColor: 'bg-gradient-to-br from-blue-400 to-indigo-600',
-      route: '/care',
-      isNew: true
+      route: '/care'
     },
     {
       icon: Users,
       title: 'Community',
       description: 'Groups, stories & challenges',
       iconColor: 'bg-gradient-to-br from-purple-400 to-pink-600',
-      route: '/community',
-      isNew: true
+      route: '/community'
     },
     {
       icon: Grid3x3,
       title: 'Mini-Apps',
       description: 'Discover & install apps',
       iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
-      route: '/mini-apps',
-      isNew: true
+      route: '/mini-apps'
     },
     {
       icon: CheckCircle,
       title: 'Official',
       description: 'Verified accounts & services',
       iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
-      route: '/official-accounts',
-      isNew: true
+      route: '/official-accounts'
     },
     {
       icon: Building2,
       title: 'Business',
       description: 'CRM, inbox & analytics',
       iconColor: 'bg-gradient-to-br from-blue-500 to-cyan-600',
-      route: '/business',
-      isNew: true
+      route: '/business'
     },
   ];
 
@@ -516,54 +506,33 @@ const Index = () => {
 
       <div className="max-w-2xl mx-auto px-4 space-y-6 mt-6">
 
-        {/* Quick Message Input */}
+        {/* Search Bar */}
         <div 
-          onClick={() => navigate('/chat')}
-          className="cursor-pointer group hover:scale-[1.02] transition-all duration-300"
+          onClick={() => navigate('/home')}
+          className="cursor-pointer group"
         >
-          <div className="relative bg-gradient-to-r from-primary/5 to-cyan-500/5 rounded-3xl border-2 border-primary/20 p-4 shadow-lg hover:shadow-xl">
+          <div className="relative bg-background/80 backdrop-blur-xl rounded-2xl border border-border/40 p-3 shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-colors duration-300">
-                <MessageCircle className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Start a new conversation...</p>
-                <p className="text-xs text-muted-foreground">Message, voice call, or video chat</p>
-              </div>
-              <div className="flex gap-1">
-                <div className="p-2 bg-background/50 rounded-full">
-                  <Paperclip className="h-4 w-4 text-primary" />
-                </div>
-                <div className="p-2 bg-background/50 rounded-full">
-                  <Mic className="h-4 w-4 text-primary" />
-                </div>
-              </div>
+              <Search className="h-5 w-5 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Search</p>
             </div>
           </div>
         </div>
 
-        {/* Main Feature Hubs */}
-        <div className="grid grid-cols-1 gap-3">
+        {/* iOS-style App Grid */}
+        <div className="grid grid-cols-4 gap-4 px-2">
           {mainHubs.map((hub, index) => (
             <div 
               key={hub.title} 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Hub clicked:', hub.title, hub.route);
-                navigate(hub.route);
-              }}
-              className="relative cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
-              style={{ animationDelay: `${index * 50}ms` }}
-              role="button"
-              tabIndex={0}
+              onClick={() => navigate(hub.route)}
+              className="flex flex-col items-center gap-2 cursor-pointer group"
             >
-              <ServiceCard {...hub} />
-              {hub.isNew && (
-                <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg pointer-events-none">
-                  NEW
-                </div>
-              )}
+              <div className={`${hub.iconColor} w-16 h-16 rounded-[1.25rem] shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                <hub.icon className="w-8 h-8 text-white" strokeWidth={1.5} />
+              </div>
+              <span className="text-[11px] text-foreground text-center leading-tight w-full line-clamp-2">
+                {hub.title}
+              </span>
             </div>
           ))}
         </div>
