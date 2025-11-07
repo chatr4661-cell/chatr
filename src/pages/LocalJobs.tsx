@@ -32,90 +32,10 @@ export default function LocalJobs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState<{ city: string; pincode: string; latitude?: number; longitude?: number }>();
   const [loading, setLoading] = useState(true);
-  const [fetchingNearby, setFetchingNearby] = useState(false);
-  const [locationRequested, setLocationRequested] = useState(false);
 
   useEffect(() => {
     loadJobs();
-    requestLocationAndFetch();
   }, []);
-
-  const requestLocationAndFetch = async () => {
-    if (locationRequested) return;
-    setLocationRequested(true);
-    
-    try {
-      if ('geolocation' in navigator) {
-        setFetchingNearby(true);
-        toast({
-          title: "Finding opportunities near you...",
-          description: "Please allow location access"
-        });
-
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            
-            // Reverse geocode to get city name
-            const city = await reverseGeocode(latitude, longitude);
-            
-            setLocation({ city, pincode: '', latitude, longitude });
-            
-            // Fetch nearby jobs
-            await fetchNearbyJobs(city, latitude, longitude);
-            
-            setFetchingNearby(false);
-            toast({
-              title: `Found jobs near ${city}`,
-              description: "Showing opportunities in your area"
-            });
-          },
-          (error) => {
-            console.error('Location error:', error);
-            setFetchingNearby(false);
-            toast({
-              title: "Location access denied",
-              description: "Please enter your city manually",
-              variant: "destructive"
-            });
-          }
-        );
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setFetchingNearby(false);
-    }
-  };
-
-  const reverseGeocode = async (lat: number, lon: number): Promise<string> => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-      );
-      const data = await response.json();
-      return data.address.city || data.address.town || data.address.village || 'Unknown';
-    } catch (error) {
-      console.error('Reverse geocode error:', error);
-      return 'Unknown';
-    }
-  };
-
-  const fetchNearbyJobs = async (city: string, latitude: number, longitude: number) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('search-local-jobs', {
-        body: { city, latitude, longitude }
-      });
-
-      if (error) throw error;
-      
-      if (data?.success) {
-        // Reload jobs to include newly added ones
-        await loadJobs();
-      }
-    } catch (error) {
-      console.error('Error fetching nearby jobs:', error);
-    }
-  };
 
   useEffect(() => {
     filterJobs();
@@ -225,12 +145,6 @@ export default function LocalJobs() {
       </div>
 
       <div className="p-4 space-y-4">
-        {fetchingNearby && (
-          <div className="text-center py-4 bg-primary/10 rounded-lg">
-            <p className="text-sm font-medium">🌍 Fetching opportunities near you...</p>
-          </div>
-        )}
-        
         {/* Location Filter */}
         <LocationFilter onLocationChange={setLocation} />
 
