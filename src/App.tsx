@@ -127,6 +127,8 @@ import AIBrowser from "./pages/AIBrowser";
 import AIChat from "./pages/AIChat";
 import Capture from "./pages/Capture";
 import ChatrWorld from "./pages/ChatrWorld";
+import Community from "./pages/Community";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -271,6 +273,8 @@ const App = () => {
             <Route path="/wellness-circles" element={<WellnessCircles />} />
             <Route path="/wellness-circles/:circleId" element={<WellnessCircles />} />
             <Route path="/expert-sessions" element={<ExpertSessions />} />
+            <Route path="/community" element={<Community />} />
+            
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
