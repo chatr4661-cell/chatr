@@ -34,15 +34,26 @@ export default function LocalJobs() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadJobs();
-  }, []);
+    fetchAndLoadJobs();
+  }, [location]);
 
   useEffect(() => {
     filterJobs();
   }, [jobs, location, searchQuery]);
 
-  const loadJobs = async () => {
+  const fetchAndLoadJobs = async () => {
+    setLoading(true);
     try {
+      // Fetch jobs from external sources via edge function
+      await supabase.functions.invoke('fetch-jobs', {
+        body: { 
+          city: location?.city,
+          latitude: location?.latitude,
+          longitude: location?.longitude
+        }
+      });
+
+      // Load jobs from database
       const { data, error } = await supabase
         .from('local_jobs_db')
         .select('*')

@@ -37,15 +37,26 @@ export default function LocalHealthcare() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadHealthcare();
-  }, []);
+    fetchAndLoadHealthcare();
+  }, [location]);
 
   useEffect(() => {
     filterListings();
   }, [listings, location, searchQuery, selectedType]);
 
-  const loadHealthcare = async () => {
+  const fetchAndLoadHealthcare = async () => {
+    setLoading(true);
     try {
+      // Fetch healthcare providers from external sources via edge function
+      await supabase.functions.invoke('fetch-healthcare', {
+        body: { 
+          city: location?.city,
+          latitude: location?.latitude,
+          longitude: location?.longitude
+        }
+      });
+
+      // Load healthcare providers from database
       const { data, error } = await supabase
         .from('healthcare_db')
         .select('*')
