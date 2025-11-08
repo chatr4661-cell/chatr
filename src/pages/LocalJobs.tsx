@@ -180,11 +180,8 @@ export default function LocalJobs() {
           ) : filteredJobs.length === 0 ? (
             <div className="text-center py-8">
               <Briefcase className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No jobs found in your area</p>
-              <Button className="mt-4" onClick={() => navigate('/add-job')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Post a Job
-              </Button>
+              <p className="text-muted-foreground mb-2">No jobs found in your area</p>
+              <p className="text-xs text-muted-foreground">Try adjusting your location or search filters</p>
             </div>
           ) : (
             filteredJobs
@@ -196,13 +193,6 @@ export default function LocalJobs() {
         </div>
       </div>
 
-      {/* Add Job FAB */}
-      <Button
-        className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg"
-        onClick={() => navigate('/add-job')}
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
     </div>
   );
 }

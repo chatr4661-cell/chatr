@@ -53,97 +53,125 @@ export default function Community() {
   };
 
   const loadCommunities = async () => {
-    const query = supabase
-      .from('wellness_communities')
-      .select('*')
-      .eq('is_active', true)
-      .order('members_count', { ascending: false })
-      .limit(6);
+    try {
+      let query = supabase
+        .from('wellness_communities' as any)
+        .select('*')
+        .eq('is_active', true)
+        .order('members_count', { ascending: false })
+        .limit(6);
 
-    if (locationStatus.city) {
-      query.or(`city.eq.${locationStatus.city},city.is.null`);
+      if (locationStatus.city) {
+        query = query.or(`city.eq.${locationStatus.city},city.is.null`);
+      }
+
+      const { data } = await query;
+      setCommunities(data || []);
+    } catch (error) {
+      console.error('Error loading communities:', error);
     }
-
-    const { data } = await query;
-    setCommunities(data || []);
   };
 
   const loadStories = async () => {
-    const { data } = await supabase
-      .from('wellness_stories')
-      .select(`
-        *,
-        profiles:user_id (username, avatar_url)
-      `)
-      .eq('is_public', true)
-      .order('likes_count', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(10);
+    try {
+      const { data } = await supabase
+        .from('wellness_stories' as any)
+        .select(`
+          *,
+          profiles:user_id (username, avatar_url)
+        `)
+        .eq('is_public', true)
+        .order('likes_count', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-    setStories(data || []);
+      setStories(data || []);
+    } catch (error) {
+      console.error('Error loading stories:', error);
+    }
   };
 
   const loadPrograms = async () => {
-    const query = supabase
-      .from('wellness_programs')
-      .select('*')
-      .eq('is_active', true)
-      .gte('event_date', new Date().toISOString())
-      .order('event_date', { ascending: true })
-      .limit(5);
+    try {
+      let query = supabase
+        .from('wellness_programs' as any)
+        .select('*')
+        .eq('is_active', true)
+        .gte('event_date', new Date().toISOString())
+        .order('event_date', { ascending: true })
+        .limit(5);
 
-    if (locationStatus.city) {
-      query.or(`city.eq.${locationStatus.city},event_type.eq.online`);
+      if (locationStatus.city) {
+        query = query.or(`city.eq.${locationStatus.city},event_type.eq.online`);
+      }
+
+      const { data } = await query;
+      setPrograms(data || []);
+    } catch (error) {
+      console.error('Error loading programs:', error);
     }
-
-    const { data } = await query;
-    setPrograms(data || []);
   };
 
   const loadCircles = async () => {
-    const { data } = await supabase
-      .from('wellness_circles')
-      .select('*')
-      .eq('is_private', false)
-      .order('members_count', { ascending: false })
-      .limit(8);
+    try {
+      const { data } = await supabase
+        .from('wellness_circles' as any)
+        .select('*')
+        .eq('is_private', false)
+        .order('members_count', { ascending: false })
+        .limit(8);
 
-    setCircles(data || []);
+      setCircles(data || []);
+    } catch (error) {
+      console.error('Error loading circles:', error);
+    }
   };
 
   const loadSessions = async () => {
-    const { data } = await supabase
-      .from('expert_sessions')
-      .select('*')
-      .in('status', ['upcoming', 'live'])
-      .order('session_datetime', { ascending: true })
-      .limit(4);
+    try {
+      const { data } = await supabase
+        .from('expert_sessions' as any)
+        .select('*')
+        .in('status', ['upcoming', 'live'])
+        .order('session_datetime', { ascending: true })
+        .limit(4);
 
-    setSessions(data || []);
+      setSessions(data || []);
+    } catch (error) {
+      console.error('Error loading sessions:', error);
+    }
   };
 
   const loadChallenges = async () => {
-    const { data } = await supabase
-      .from('health_challenges')
-      .select('*')
-      .eq('is_active', true)
-      .order('participant_count', { ascending: false })
-      .limit(6);
+    try {
+      const { data } = await supabase
+        .from('health_challenges' as any)
+        .select('*')
+        .eq('is_active', true)
+        .order('participant_count', { ascending: false })
+        .limit(6);
 
-    setChallenges(data || []);
+      setChallenges(data || []);
+    } catch (error) {
+      console.error('Error loading challenges:', error);
+    }
   };
 
   const loadLeaderboard = async () => {
-    const { data } = await supabase
-      .from('user_stats')
-      .select(`
-        *,
-        profiles:user_id (username, avatar_url)
-      `)
-      .order('total_points', { ascending: false })
-      .limit(10);
+    try {
+      const { data } = await supabase
+        .from('user_stats' as any)
+        .select(`
+          *,
+          profiles:user_id (username, avatar_url)
+        `)
+        .order('total_points', { ascending: false })
+        .limit(10);
 
-    setLeaderboard(data || []);
+      setLeaderboard(data || []);
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+    }
   };
 
   const subscribeToUpdates = () => {
@@ -173,7 +201,7 @@ export default function Community() {
     }
 
     const { error } = await supabase
-      .from('community_members')
+      .from('community_members' as any)
       .insert({ community_id: communityId, user_id: userId });
 
     if (error) {
@@ -188,7 +216,7 @@ export default function Community() {
     if (!userId) return;
 
     const { error } = await supabase
-      .from('story_likes')
+      .from('story_likes' as any)
       .insert({ story_id: storyId, user_id: userId });
 
     if (!error) {
@@ -203,7 +231,7 @@ export default function Community() {
     }
 
     const { error } = await supabase
-      .from('circle_members')
+      .from('circle_members' as any)
       .insert({ circle_id: circleId, user_id: userId });
 
     if (error) {
@@ -221,7 +249,7 @@ export default function Community() {
     }
 
     const { error } = await supabase
-      .from('session_participants')
+      .from('session_participants' as any)
       .insert({ session_id: sessionId, user_id: userId });
 
     if (error) {
