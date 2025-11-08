@@ -29,10 +29,12 @@ serve(async (req) => {
         description: 'Develop web applications using React and Node.js',
         salary_range: '₹5-8 LPA',
         city: city || 'Mumbai',
+        state: 'Maharashtra',
         pincode: '400001',
         is_remote: false,
         is_featured: true,
-        view_count: 0
+        view_count: 0,
+        posted_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         job_title: 'Marketing Manager',
@@ -42,10 +44,12 @@ serve(async (req) => {
         description: 'Lead marketing campaigns and team management',
         salary_range: '₹6-10 LPA',
         city: city || 'Mumbai',
+        state: 'Maharashtra',
         pincode: '400002',
         is_remote: true,
         is_featured: false,
-        view_count: 0
+        view_count: 0,
+        posted_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         job_title: 'Sales Executive',
@@ -54,11 +58,13 @@ serve(async (req) => {
         category: 'Sales',
         description: 'B2B sales and client relationship management',
         salary_range: '₹3-5 LPA',
-        city: city || 'Mumbai',
-        pincode: '400003',
+        city: city || 'Delhi',
+        state: 'Delhi',
+        pincode: '110001',
         is_remote: false,
         is_featured: false,
-        view_count: 0
+        view_count: 0,
+        posted_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         job_title: 'Graphic Designer',
@@ -67,11 +73,13 @@ serve(async (req) => {
         category: 'Design',
         description: 'Create visual content for digital platforms',
         salary_range: '₹2-4 LPA',
-        city: city || 'Mumbai',
-        pincode: '400004',
+        city: city || 'Bangalore',
+        state: 'Karnataka',
+        pincode: '560001',
         is_remote: true,
         is_featured: false,
-        view_count: 0
+        view_count: 0,
+        posted_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         job_title: 'Customer Support',
@@ -80,11 +88,13 @@ serve(async (req) => {
         category: 'Customer Service',
         description: 'Provide customer support via phone and email',
         salary_range: '₹2-3 LPA',
-        city: city || 'Mumbai',
-        pincode: '400005',
+        city: city || 'Pune',
+        state: 'Maharashtra',
+        pincode: '411001',
         is_remote: false,
         is_featured: false,
-        view_count: 0
+        view_count: 0,
+        posted_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         job_title: 'Data Analyst',
@@ -93,11 +103,13 @@ serve(async (req) => {
         category: 'Technology',
         description: 'Analyze data and create reports using Python',
         salary_range: '₹4-7 LPA',
-        city: city || 'Mumbai',
-        pincode: '400006',
+        city: city || 'Hyderabad',
+        state: 'Telangana',
+        pincode: '500001',
         is_remote: true,
         is_featured: true,
-        view_count: 0
+        view_count: 0,
+        posted_by: '00000000-0000-0000-0000-000000000000'
       }
     ];
 

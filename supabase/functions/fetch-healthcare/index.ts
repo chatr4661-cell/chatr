@@ -27,6 +27,7 @@ serve(async (req) => {
         description: 'Multi-specialty clinic with experienced doctors',
         address: 'Main Street, Near City Center',
         city: city || 'Mumbai',
+        state: 'Maharashtra',
         pincode: '400001',
         phone_number: '+91-22-12345678',
         specialties: ['General Medicine', 'Pediatrics', 'Dermatology'],
@@ -34,7 +35,8 @@ serve(async (req) => {
         rating_average: 4.5,
         rating_count: 120,
         verified: true,
-        is_monetized: false
+        is_monetized: false,
+        added_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         name: 'City General Hospital',
@@ -42,6 +44,7 @@ serve(async (req) => {
         description: '24/7 emergency and multi-specialty hospital',
         address: 'Hospital Road, Central Area',
         city: city || 'Mumbai',
+        state: 'Maharashtra',
         pincode: '400002',
         phone_number: '+91-22-23456789',
         specialties: ['Emergency', 'Surgery', 'Cardiology', 'Orthopedics'],
@@ -49,52 +52,59 @@ serve(async (req) => {
         rating_average: 4.2,
         rating_count: 250,
         verified: true,
-        is_monetized: false
+        is_monetized: false,
+        added_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         name: 'MedPlus Pharmacy',
         type: 'pharmacy',
         description: 'Trusted pharmacy with wide range of medicines',
         address: 'Market Square, Shopping District',
-        city: city || 'Mumbai',
-        pincode: '400003',
-        phone_number: '+91-22-34567890',
+        city: city || 'Delhi',
+        state: 'Delhi',
+        pincode: '110001',
+        phone_number: '+91-11-12345678',
         specialties: ['Prescription Medicines', 'OTC Products'],
         services_offered: ['Home Delivery', 'Online Orders'],
         rating_average: 4.0,
         rating_count: 80,
         verified: true,
-        is_monetized: false
+        is_monetized: false,
+        added_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         name: 'HealthCare Diagnostics',
         type: 'lab',
         description: 'Advanced diagnostic center with modern equipment',
         address: 'Medical Complex, Healthcare Zone',
-        city: city || 'Mumbai',
-        pincode: '400004',
-        phone_number: '+91-22-45678901',
+        city: city || 'Bangalore',
+        state: 'Karnataka',
+        pincode: '560001',
+        phone_number: '+91-80-12345678',
         specialties: ['Blood Tests', 'X-Ray', 'Ultrasound', 'CT Scan'],
         services_offered: ['Pathology', 'Radiology', 'Home Collection'],
         rating_average: 4.3,
         rating_count: 150,
         verified: true,
-        is_monetized: false
+        is_monetized: false,
+        added_by: '00000000-0000-0000-0000-000000000000'
       },
       {
         name: 'Family Care Clinic',
         type: 'clinic',
         description: 'Family healthcare with personalized attention',
         address: 'Residential Area, Park Lane',
-        city: city || 'Mumbai',
-        pincode: '400005',
-        phone_number: '+91-22-56789012',
+        city: city || 'Pune',
+        state: 'Maharashtra',
+        pincode: '411001',
+        phone_number: '+91-20-12345678',
         specialties: ['Family Medicine', 'Vaccination', 'Health Checkups'],
         services_offered: ['Consultation', 'Preventive Care'],
         rating_average: 4.6,
         rating_count: 95,
         verified: true,
-        is_monetized: false
+        is_monetized: false,
+        added_by: '00000000-0000-0000-0000-000000000000'
       }
     ];
 
