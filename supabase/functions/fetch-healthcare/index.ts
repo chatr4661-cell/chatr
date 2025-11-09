@@ -6,30 +6,54 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Calculate distance between two coordinates in km
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { city, latitude, longitude } = await req.json();
+    const { latitude, longitude, radius = 10 } = await req.json();
+    
+    if (!latitude || !longitude) {
+      throw new Error('Latitude and longitude are required');
+    }
     
     const supabaseClient = createClient(
       Deno.env.get('VITE_SUPABASE_URL') ?? '',
       Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY') ?? ''
     );
 
-    // Sample healthcare data based on location
+    console.log('Fetching healthcare near:', latitude, longitude, 'within', radius, 'km');
+
+    // TODO: Integrate Google Maps Places API for real healthcare data
+    // const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
+    
+    // For now, using sample data with realistic locations around user
     const sampleProviders = [
       {
         name: 'Apollo Clinic',
         type: 'clinic',
         description: 'Multi-specialty clinic with experienced doctors',
         address: 'Main Street, Near City Center',
-        city: city || 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001',
+        latitude: latitude + 0.03,
+        longitude: longitude + 0.02,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         phone_number: '+91-22-12345678',
+        timings: '9:00 AM - 9:00 PM',
         specialties: ['General Medicine', 'Pediatrics', 'Dermatology'],
         services_offered: ['Consultation', 'Laboratory', 'Pharmacy'],
         rating_average: 4.5,
@@ -43,10 +67,13 @@ serve(async (req) => {
         type: 'hospital',
         description: '24/7 emergency and multi-specialty hospital',
         address: 'Hospital Road, Central Area',
-        city: city || 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400002',
+        latitude: latitude + 0.01,
+        longitude: longitude - 0.02,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         phone_number: '+91-22-23456789',
+        timings: '24/7',
         specialties: ['Emergency', 'Surgery', 'Cardiology', 'Orthopedics'],
         services_offered: ['Emergency', 'ICU', 'Surgery', 'Diagnostics'],
         rating_average: 4.2,
@@ -60,10 +87,13 @@ serve(async (req) => {
         type: 'pharmacy',
         description: 'Trusted pharmacy with wide range of medicines',
         address: 'Market Square, Shopping District',
-        city: city || 'Delhi',
-        state: 'Delhi',
-        pincode: '110001',
+        latitude: latitude - 0.02,
+        longitude: longitude + 0.03,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         phone_number: '+91-11-12345678',
+        timings: '8:00 AM - 10:00 PM',
         specialties: ['Prescription Medicines', 'OTC Products'],
         services_offered: ['Home Delivery', 'Online Orders'],
         rating_average: 4.0,
@@ -77,10 +107,13 @@ serve(async (req) => {
         type: 'lab',
         description: 'Advanced diagnostic center with modern equipment',
         address: 'Medical Complex, Healthcare Zone',
-        city: city || 'Bangalore',
-        state: 'Karnataka',
-        pincode: '560001',
+        latitude: latitude + 0.04,
+        longitude: longitude + 0.05,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         phone_number: '+91-80-12345678',
+        timings: '7:00 AM - 8:00 PM',
         specialties: ['Blood Tests', 'X-Ray', 'Ultrasound', 'CT Scan'],
         services_offered: ['Pathology', 'Radiology', 'Home Collection'],
         rating_average: 4.3,
@@ -94,10 +127,13 @@ serve(async (req) => {
         type: 'clinic',
         description: 'Family healthcare with personalized attention',
         address: 'Residential Area, Park Lane',
-        city: city || 'Pune',
-        state: 'Maharashtra',
-        pincode: '411001',
+        latitude: latitude - 0.05,
+        longitude: longitude - 0.01,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         phone_number: '+91-20-12345678',
+        timings: '10:00 AM - 6:00 PM',
         specialties: ['Family Medicine', 'Vaccination', 'Health Checkups'],
         services_offered: ['Consultation', 'Preventive Care'],
         rating_average: 4.6,
@@ -108,15 +144,30 @@ serve(async (req) => {
       }
     ];
 
+    // Filter providers within radius and calculate distance
+    const providersWithDistance = sampleProviders.map(provider => {
+      const distance = calculateDistance(latitude, longitude, provider.latitude, provider.longitude);
+      return { ...provider, distance: parseFloat(distance.toFixed(1)) };
+    }).filter(provider => provider.distance <= radius);
+
     // Insert healthcare providers into database
     const { data, error } = await supabaseClient
       .from('healthcare_db')
-      .upsert(sampleProviders, { onConflict: 'name,city', ignoreDuplicates: true });
+      .upsert(providersWithDistance, { onConflict: 'name,city', ignoreDuplicates: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database error:', error);
+      throw error;
+    }
+
+    console.log('Inserted', providersWithDistance.length, 'providers within', radius, 'km');
 
     return new Response(
-      JSON.stringify({ success: true, count: sampleProviders.length }),
+      JSON.stringify({ 
+        success: true, 
+        count: providersWithDistance.length,
+        providers: providersWithDistance 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

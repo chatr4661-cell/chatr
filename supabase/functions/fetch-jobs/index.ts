@@ -6,20 +6,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Calculate distance between two coordinates in km
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { city, latitude, longitude } = await req.json();
+    const { latitude, longitude, radius = 10 } = await req.json();
+    
+    if (!latitude || !longitude) {
+      throw new Error('Latitude and longitude are required');
+    }
     
     const supabaseClient = createClient(
       Deno.env.get('VITE_SUPABASE_URL') ?? '',
       Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY') ?? ''
     );
 
-    // Sample job data based on location
+    console.log('Fetching jobs near:', latitude, longitude, 'within', radius, 'km');
+
+    // TODO: Integrate real job APIs (Adzuna, Google Jobs, etc.)
+    // const ADZUNA_API_KEY = Deno.env.get('ADZUNA_API_KEY');
+    // const ADZUNA_APP_ID = Deno.env.get('ADZUNA_APP_ID');
+    
+    // For now, using sample data with realistic locations around user
     const sampleJobs = [
       {
         job_title: 'Software Developer',
@@ -28,9 +50,11 @@ serve(async (req) => {
         category: 'Technology',
         description: 'Develop web applications using React and Node.js',
         salary_range: '₹5-8 LPA',
-        city: city || 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001',
+        latitude: latitude + 0.02,
+        longitude: longitude + 0.01,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         is_remote: false,
         is_featured: true,
         view_count: 0,
@@ -43,9 +67,11 @@ serve(async (req) => {
         category: 'Marketing',
         description: 'Lead marketing campaigns and team management',
         salary_range: '₹6-10 LPA',
-        city: city || 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400002',
+        latitude: latitude + 0.05,
+        longitude: longitude - 0.02,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         is_remote: true,
         is_featured: false,
         view_count: 0,
@@ -58,9 +84,11 @@ serve(async (req) => {
         category: 'Sales',
         description: 'B2B sales and client relationship management',
         salary_range: '₹3-5 LPA',
-        city: city || 'Delhi',
-        state: 'Delhi',
-        pincode: '110001',
+        latitude: latitude + 0.07,
+        longitude: longitude + 0.03,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         is_remote: false,
         is_featured: false,
         view_count: 0,
@@ -73,9 +101,11 @@ serve(async (req) => {
         category: 'Design',
         description: 'Create visual content for digital platforms',
         salary_range: '₹2-4 LPA',
-        city: city || 'Bangalore',
-        state: 'Karnataka',
-        pincode: '560001',
+        latitude: latitude - 0.03,
+        longitude: longitude + 0.04,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         is_remote: true,
         is_featured: false,
         view_count: 0,
@@ -88,9 +118,11 @@ serve(async (req) => {
         category: 'Customer Service',
         description: 'Provide customer support via phone and email',
         salary_range: '₹2-3 LPA',
-        city: city || 'Pune',
-        state: 'Maharashtra',
-        pincode: '411001',
+        latitude: latitude + 0.01,
+        longitude: longitude - 0.05,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         is_remote: false,
         is_featured: false,
         view_count: 0,
@@ -103,9 +135,11 @@ serve(async (req) => {
         category: 'Technology',
         description: 'Analyze data and create reports using Python',
         salary_range: '₹4-7 LPA',
-        city: city || 'Hyderabad',
-        state: 'Telangana',
-        pincode: '500001',
+        latitude: latitude - 0.06,
+        longitude: longitude - 0.01,
+        city: 'Near You',
+        state: 'Local',
+        pincode: '000000',
         is_remote: true,
         is_featured: true,
         view_count: 0,
@@ -113,15 +147,30 @@ serve(async (req) => {
       }
     ];
 
+    // Filter jobs within radius and calculate distance
+    const jobsWithDistance = sampleJobs.map(job => {
+      const distance = calculateDistance(latitude, longitude, job.latitude, job.longitude);
+      return { ...job, distance: parseFloat(distance.toFixed(1)) };
+    }).filter(job => job.distance <= radius);
+
     // Insert jobs into database
     const { data, error } = await supabaseClient
       .from('local_jobs_db')
-      .upsert(sampleJobs, { onConflict: 'job_title,company_name', ignoreDuplicates: true });
+      .upsert(jobsWithDistance, { onConflict: 'job_title,company_name', ignoreDuplicates: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database error:', error);
+      throw error;
+    }
+
+    console.log('Inserted', jobsWithDistance.length, 'jobs within', radius, 'km');
 
     return new Response(
-      JSON.stringify({ success: true, count: sampleJobs.length }),
+      JSON.stringify({ 
+        success: true, 
+        count: jobsWithDistance.length,
+        jobs: jobsWithDistance 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

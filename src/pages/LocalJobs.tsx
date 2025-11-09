@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Briefcase, MapPin, Plus, Clock, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Briefcase, MapPin, Navigation, Clock, TrendingUp, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { LocationFilter } from '@/components/LocationFilter';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLocationStatus } from '@/hooks/useLocationStatus';
 
 interface Job {
   id: string;
@@ -17,10 +18,11 @@ interface Job {
   description: string;
   salary_range?: string;
   city: string;
-  pincode?: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number;
   is_remote: boolean;
   is_featured: boolean;
-  created_at: string;
   view_count: number;
 }
 
@@ -30,39 +32,68 @@ export default function LocalJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [location, setLocation] = useState<{ city: string; pincode: string; latitude?: number; longitude?: number }>();
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string>();
+  const [radiusKm, setRadiusKm] = useState(10);
+  const { status } = useLocationStatus(userId);
 
   useEffect(() => {
-    fetchAndLoadJobs();
-  }, [location]);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (status.latitude && status.longitude) {
+      fetchAndLoadJobs(status.latitude, status.longitude);
+    }
+  }, [status.latitude, status.longitude, radiusKm]);
 
   useEffect(() => {
     filterJobs();
-  }, [jobs, location, searchQuery]);
+  }, [jobs, searchQuery]);
 
-  const fetchAndLoadJobs = async () => {
+  const fetchAndLoadJobs = async (latitude: number, longitude: number) => {
     setLoading(true);
     try {
-      // Fetch jobs from external sources via edge function
-      await supabase.functions.invoke('fetch-jobs', {
-        body: { 
-          city: location?.city,
-          latitude: location?.latitude,
-          longitude: location?.longitude
-        }
+      console.log('Fetching jobs near:', latitude, longitude, 'radius:', radiusKm);
+      
+      // Call edge function to fetch and populate jobs based on GPS location
+      const { data: edgeFunctionData, error: edgeFunctionError } = await supabase.functions.invoke('fetch-jobs', {
+        body: { latitude, longitude, radius: radiusKm }
       });
+
+      if (edgeFunctionError) {
+        console.error('Edge function error:', edgeFunctionError);
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch jobs',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      console.log('Edge function response:', edgeFunctionData);
 
       // Load jobs from database
       const { data, error } = await supabase
         .from('local_jobs_db')
         .select('*')
-        .order('is_featured', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('distance', { ascending: true })
+        .order('is_featured', { ascending: false });
 
       if (error) throw error;
-      setJobs(data || []);
+      
+      // Filter by radius on client side as well
+      const jobsInRadius = (data || []).filter((job: Job) => 
+        !job.distance || job.distance <= radiusKm
+      );
+      
+      setJobs(jobsInRadius);
+      toast({
+        title: 'Success',
+        description: `Found ${jobsInRadius.length} jobs within ${radiusKm}km`
+      });
     } catch (error) {
       console.error('Error loading jobs:', error);
       toast({
@@ -76,20 +107,8 @@ export default function LocalJobs() {
   };
 
   const filterJobs = () => {
-    let filtered = jobs;
+    let filtered = [...jobs];
 
-    // Location filter
-    if (location?.city) {
-      filtered = filtered.filter(job => 
-        job.city.toLowerCase().includes(location.city.toLowerCase()) || job.is_remote
-      );
-    } else if (location?.pincode) {
-      filtered = filtered.filter(job => 
-        job.pincode === location.pincode || job.is_remote
-      );
-    }
-
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(job =>
         job.job_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -128,9 +147,7 @@ export default function LocalJobs() {
             listing_id: jobId,
             listing_type: 'local_jobs_db',
             user_id: user.id,
-            action_type: 'view',
-            location_city: location?.city,
-            location_pincode: location?.pincode
+            action_type: 'view'
           });
       }
     } catch (error) {
@@ -142,22 +159,50 @@ export default function LocalJobs() {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="flex items-center gap-3 p-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold">Local Jobs</h1>
-            <p className="text-sm text-muted-foreground">
-              {filteredJobs.length} opportunities
-            </p>
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                Local Jobs
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {filteredJobs.length} opportunities
+              </p>
+            </div>
           </div>
+          {status.city && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Navigation className="h-4 w-4 text-primary" />
+              <span>{status.city}</span>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Location Filter */}
-        <LocationFilter onLocationChange={setLocation} />
+        {/* Distance Filter */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <MapPin className="h-4 w-4 text-primary" />
+            <span>Within</span>
+          </div>
+          <div className="flex gap-2">
+            {[5, 10, 20].map(km => (
+              <Button
+                key={km}
+                size="sm"
+                variant={radiusKm === km ? 'default' : 'outline'}
+                onClick={() => setRadiusKm(km)}
+              >
+                {km} km
+              </Button>
+            ))}
+          </div>
+        </div>
 
         {/* Search */}
         <Input
@@ -168,42 +213,53 @@ export default function LocalJobs() {
           className="w-full"
         />
 
-        {/* Featured Jobs */}
-        {filteredJobs.some(j => j.is_featured) && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <h2 className="font-semibold">Featured Jobs</h2>
-            </div>
-            {filteredJobs
-              .filter(job => job.is_featured)
-              .map(job => (
-                <JobCard key={job.id} job={job} onView={trackJobView} />
-              ))}
+        {/* Loading / Error States */}
+        {status.isLoading || loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-muted-foreground">Finding jobs near you...</p>
           </div>
-        )}
+        ) : !status.latitude ? (
+          <div className="text-center py-8">
+            <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground mb-2">Enable location to find jobs near you</p>
+            <p className="text-xs text-muted-foreground">Grant location permission in your browser</p>
+          </div>
+        ) : filteredJobs.length === 0 ? (
+          <div className="text-center py-8">
+            <Briefcase className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground mb-2">No jobs found within {radiusKm}km</p>
+            <p className="text-xs text-muted-foreground">Try increasing the radius</p>
+          </div>
+        ) : (
+          <>
+            {/* Featured Jobs */}
+            {filteredJobs.some(j => j.is_featured) && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <h2 className="font-semibold">Featured Jobs</h2>
+                </div>
+                {filteredJobs
+                  .filter(job => job.is_featured)
+                  .map(job => (
+                    <JobCard key={job.id} job={job} onView={trackJobView} />
+                  ))}
+              </div>
+            )}
 
-        {/* All Jobs */}
-        <div className="space-y-3">
-          <h2 className="font-semibold">All Jobs</h2>
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading...</div>
-          ) : filteredJobs.length === 0 ? (
-            <div className="text-center py-8">
-              <Briefcase className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground mb-2">No jobs found in your area</p>
-              <p className="text-xs text-muted-foreground">Try adjusting your location or search filters</p>
+            {/* All Jobs */}
+            <div className="space-y-3">
+              <h2 className="font-semibold">All Jobs ({filteredJobs.length})</h2>
+              {filteredJobs
+                .filter(job => !job.is_featured)
+                .map(job => (
+                  <JobCard key={job.id} job={job} onView={trackJobView} />
+                ))}
             </div>
-          ) : (
-            filteredJobs
-              .filter(job => !job.is_featured)
-              .map(job => (
-                <JobCard key={job.id} job={job} onView={trackJobView} />
-              ))
-          )}
-        </div>
+          </>
+        )}
       </div>
-
     </div>
   );
 }
@@ -219,20 +275,28 @@ function JobCard({ job, onView }: { job: Job; onView: (id: string) => void }) {
           <h3 className="font-semibold text-lg">{job.job_title}</h3>
           <p className="text-sm text-muted-foreground">{job.company_name}</p>
         </div>
-        {job.is_featured && (
-          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-            Featured
-          </span>
-        )}
+        <div className="flex flex-col items-end gap-1">
+          {job.is_featured && (
+            <Badge className="bg-yellow-500/10 text-yellow-600">Featured</Badge>
+          )}
+          {job.distance !== undefined && (
+            <Badge variant="outline" className="bg-primary/10 text-primary font-semibold">
+              {job.distance} km
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">
-        <span className="text-xs bg-secondary px-2 py-1 rounded">{job.job_type}</span>
-        <span className="text-xs bg-secondary px-2 py-1 rounded">{job.category}</span>
+        <Badge variant="secondary" className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          {job.job_type}
+        </Badge>
+        <Badge variant="outline">{job.category}</Badge>
         {job.is_remote && (
-          <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded">
+          <Badge variant="outline" className="bg-green-500/10 text-green-600">
             Remote
-          </span>
+          </Badge>
         )}
       </div>
 
@@ -240,14 +304,16 @@ function JobCard({ job, onView }: { job: Job; onView: (id: string) => void }) {
         {job.description}
       </p>
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <MapPin className="h-3 w-3" />
-          <span>{job.city}</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          {job.salary_range && (
+            <span className="flex items-center gap-1 text-primary font-medium">
+              <DollarSign className="h-4 w-4" />
+              {job.salary_range}
+            </span>
+          )}
         </div>
-        {job.salary_range && (
-          <span className="font-medium text-primary">{job.salary_range}</span>
-        )}
+        <Button size="sm">Apply Now</Button>
       </div>
     </Card>
   );
