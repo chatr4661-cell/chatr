@@ -169,9 +169,13 @@ const queryClient = new QueryClient({
 
 // Component to handle subdomain redirect
 const SubdomainRedirect = () => {
-  // Check if we're on seller subdomain for immediate redirect
-  const hostname = window.location.hostname;
-  if (hostname.startsWith('seller.') && window.location.pathname === '/') {
+  // Check once on mount using useMemo to prevent re-renders
+  const shouldRedirect = React.useMemo(() => {
+    const hostname = window.location.hostname;
+    return hostname.startsWith('seller.') && window.location.pathname === '/';
+  }, []);
+
+  if (shouldRedirect) {
     return <Navigate to="/seller/portal" replace />;
   }
 
