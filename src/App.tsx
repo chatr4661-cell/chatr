@@ -169,17 +169,6 @@ const queryClient = new QueryClient({
 
 // Component to handle subdomain redirect
 const SubdomainRedirect = () => {
-  useEffect(() => {
-    const hostname = window.location.hostname;
-    // Check if we're on the seller subdomain
-    if (hostname.startsWith('seller.')) {
-      // Redirect to seller portal if we're on the root
-      if (window.location.pathname === '/') {
-        window.location.href = '/seller/portal';
-      }
-    }
-  }, []);
-
   // Check if we're on seller subdomain for immediate redirect
   const hostname = window.location.hostname;
   if (hostname.startsWith('seller.') && window.location.pathname === '/') {
