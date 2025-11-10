@@ -6523,6 +6523,51 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          app_updates: boolean | null
+          call_notifications: boolean | null
+          chat_notifications: boolean | null
+          created_at: string | null
+          group_notifications: boolean | null
+          id: string
+          marketing_alerts: boolean | null
+          sound_enabled: boolean | null
+          transaction_alerts: boolean | null
+          updated_at: string | null
+          user_id: string
+          vibration_enabled: boolean | null
+        }
+        Insert: {
+          app_updates?: boolean | null
+          call_notifications?: boolean | null
+          chat_notifications?: boolean | null
+          created_at?: string | null
+          group_notifications?: boolean | null
+          id?: string
+          marketing_alerts?: boolean | null
+          sound_enabled?: boolean | null
+          transaction_alerts?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          vibration_enabled?: boolean | null
+        }
+        Update: {
+          app_updates?: boolean | null
+          call_notifications?: boolean | null
+          chat_notifications?: boolean | null
+          created_at?: string | null
+          group_notifications?: boolean | null
+          id?: string
+          marketing_alerts?: boolean | null
+          sound_enabled?: boolean | null
+          transaction_alerts?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          vibration_enabled?: boolean | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null

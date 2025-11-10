@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import React, { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { NativeAppProvider } from "./components/NativeAppProvider";
+import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 
 // Pages
 import Index from "./pages/Index";
@@ -59,6 +60,7 @@ import Refund from "./pages/Refund";
 import Disclaimer from "./pages/Disclaimer";
 import NotificationSettings from "./pages/NotificationSettings";
 import Notifications from "./pages/Notifications";
+import Settings from "./pages/Settings";
 import DeviceManagement from "./pages/DeviceManagement";
 import Download from "./pages/Download";
 import Install from "./pages/Install";
@@ -188,6 +190,15 @@ const SubdomainRedirect = () => {
 };
 
 const App = () => {
+  // Register service worker for push notifications
+  useEffect(() => {
+    registerServiceWorker().then((registration) => {
+      if (registration) {
+        console.log('✅ Service Worker initialized for push notifications');
+      }
+    });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
@@ -289,6 +300,7 @@ const App = () => {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
             <Route path="/notifications/settings" element={<NotificationSettings />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/device-management" element={<DeviceManagement />} />
             <Route path="/bluetooth-test" element={<BluetoothTest />} />
             

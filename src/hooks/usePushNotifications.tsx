@@ -61,49 +61,80 @@ export const usePushNotifications = (userId?: string) => {
 
         // Handle registration
         await PushNotifications.addListener('registration', async (token) => {
-          console.log('Push registration success, token:', token.value);
+          console.log('✅ Push registration success, token:', token.value.substring(0, 20) + '...');
           
-          // Save token to backend
+          // Save token to backend with device info
           try {
             const platform = Capacitor.getPlatform() as 'ios' | 'android' | 'web';
+            
+            // Get device info
+            let deviceInfo: any = { platform };
+            try {
+              const { Device } = await import('@capacitor/device');
+              const info = await Device.getInfo();
+              deviceInfo = {
+                model: info.model,
+                platform: info.platform,
+                osVersion: info.osVersion,
+                manufacturer: info.manufacturer,
+                timestamp: new Date().toISOString()
+              };
+            } catch (e) {
+              console.log('Could not get device info:', e);
+            }
+
             const { error } = await supabase
               .from('device_tokens')
               .upsert({
                 user_id: userId,
                 device_token: token.value,
-                platform: platform,
+                platform: platform === 'ios' ? 'ios' : 'android',
+                device_info: deviceInfo,
                 last_used_at: new Date().toISOString(),
               }, {
-                onConflict: 'device_token'
+                onConflict: 'user_id,device_token'
               });
 
             if (error) {
-              console.error('Error saving device token:', error);
+              console.error('❌ Error saving device token:', error);
             } else {
               console.log('✅ Device token saved successfully');
             }
           } catch (error) {
-            console.error('Error saving device token:', error);
+            console.error('❌ Error saving device token:', error);
           }
         });
 
         // Handle registration errors
         await PushNotifications.addListener('registrationError', (error) => {
-          console.error('Error on registration:', error);
+          console.error('❌ Error on registration:', error);
         });
 
         // Handle notifications received while app is in foreground
         await PushNotifications.addListener('pushNotificationReceived', (notification) => {
-          console.log('Push notification received:', notification);
+          console.log('📬 Push notification received:', notification);
           toast(notification.title || 'New notification', {
             description: notification.body
           });
         });
 
-        // Handle notification tapped
+        // Handle notification tapped (deep linking)
         await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-          console.log('Push notification action performed:', notification);
-          // TODO: Navigate to relevant screen based on notification data
+          console.log('👆 Push notification action performed:', notification);
+          
+          // Handle deep linking based on notification data
+          const data = notification.notification.data;
+          if (data?.click_action) {
+            window.location.href = data.click_action;
+          } else if (data?.conversationId) {
+            window.location.href = `/chat/${data.conversationId}`;
+          } else if (data?.notificationType === 'call') {
+            // Handle incoming call navigation
+            window.location.href = '/call-history';
+          } else {
+            // Default: go to notifications page
+            window.location.href = '/notifications';
+          }
         });
       } catch (error) {
         console.error('Error setting up push notifications:', error);
