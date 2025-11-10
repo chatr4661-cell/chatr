@@ -136,6 +136,7 @@ import ChatrPlusSubscribe from "./pages/ChatrPlusSubscribe";
 import ChatrPlusServiceDetail from "./pages/ChatrPlusServiceDetail";
 import ChatrPlusSellerRegistration from "./pages/ChatrPlusSellerRegistration";
 import ChatrPlusSellerDashboard from "./pages/ChatrPlusSellerDashboard";
+import ChatrPlusCategoryPage from "./pages/ChatrPlusCategoryPage";
 
 
 const queryClient = new QueryClient({
@@ -291,6 +292,7 @@ const App = () => {
             <Route path="/chatr-plus/service/:id" element={<ChatrPlusServiceDetail />} />
             <Route path="/chatr-plus/seller-registration" element={<ChatrPlusSellerRegistration />} />
             <Route path="/chatr-plus/seller/dashboard" element={<ChatrPlusSellerDashboard />} />
+            <Route path="/chatr-plus/category/:slug" element={<ChatrPlusCategoryPage />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
