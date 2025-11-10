@@ -7,25 +7,30 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2, X, Plus, Sparkles } from 'lucide-react';
+import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2, X, Plus, Sparkles, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useSSOToken } from '@/hooks/useSSOToken';
 import { QuickAppSubmission } from '@/components/QuickAppSubmission';
+import { Browser } from '@capacitor/browser';
+import { useNativeStorage } from '@/hooks/useNativeStorage';
 
 interface MiniApp {
   id: string;
   app_name: string;
   description: string;
   icon_url: string;
-  app_url: string;
+  url?: string;
+  app_url?: string; // for backwards compatibility
   rating_average: number;
   install_count: number;
   is_verified: boolean;
-  category_id: string;
+  category?: string;
+  category_id?: string; // for backwards compatibility
   tags?: string[];
   is_trending?: boolean;
   launch_date?: string;
+  created_at?: string;
   monthly_active_users?: number;
 }
 
@@ -60,6 +65,9 @@ const MiniAppsStore = () => {
   const [minRating, setMinRating] = useState<number>(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [showSubmission, setShowSubmission] = useState(false);
+  
+  // Offline cache using native storage
+  const { value: cachedApps, setValue: setCachedApps } = useNativeStorage<MiniApp[]>('cached_mini_apps', []);
 
   useEffect(() => {
     loadCategories();
@@ -85,7 +93,9 @@ const MiniAppsStore = () => {
       .eq('is_active', true);
 
     if (selectedCategory !== 'all') {
-      query = query.eq('category_id', selectedCategory);
+      // Try both category and category_id for backwards compatibility
+      const categoryFilter = selectedCategory;
+      query = query.or(`category.eq.${categoryFilter},category_id.eq.${categoryFilter}`);
     }
 
     // Apply sorting
@@ -94,11 +104,25 @@ const MiniAppsStore = () => {
     } else if (sortBy === 'rating') {
       query = query.order('rating_average', { ascending: false });
     } else if (sortBy === 'newest') {
-      query = query.order('launch_date', { ascending: false });
+      query = query.order('created_at', { ascending: false });
     }
 
-    const { data } = await query;
-    if (data) setApps(data);
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Failed to load apps:', error);
+      // Use cached data if available
+      if (cachedApps && cachedApps.length > 0) {
+        setApps(cachedApps as any);
+        toast.info('Showing cached apps (offline mode)');
+      }
+    } else if (data) {
+      setApps(data as any);
+      // Update cache
+      if (setCachedApps) {
+        setCachedApps(data as any);
+      }
+    }
     setLoading(false);
   };
 
@@ -239,6 +263,8 @@ const MiniAppsStore = () => {
 
   const openApp = async (app: MiniApp) => {
     try {
+      const appUrl = app.url || app.app_url || '';
+      
       // Track usage
       await trackAppUsage(app.id);
       
@@ -248,34 +274,78 @@ const MiniAppsStore = () => {
         // Update last opened time
         await supabase
           .from('user_installed_apps')
-          .update({ last_opened_at: new Date().toISOString() })
+          .update({ last_opened_at: new Date().toISOString() } as any)
           .eq('user_id', user.id)
           .eq('app_id', app.id);
 
         // Track analytics
-        await supabase.from('app_analytics').insert({
+        await supabase.from('app_analytics')?.insert({
           app_id: app.id,
           user_id: user.id,
           event_type: 'open'
         });
       }
 
-      // Check if it's an internal route or external URL
-      if (app.app_url.startsWith('/')) {
-        // Internal Chatr route - navigate within app
-        navigate(app.app_url);
-        toast.success(`Opening ${app.app_name}...`);
-      } else {
-        // External URL - open with SSO
-        if (user) {
-          toast.loading(`Opening ${app.app_name}...`, { id: `open-${app.id}` });
-          await openAppWithSSO(app.app_url, app.id);
-          toast.success(`${app.app_name} opened in new tab`, { id: `open-${app.id}` });
-        } else {
-          window.open(app.app_url, '_blank');
-          toast.success(`${app.app_name} opened in new tab`);
+      // Load session data if exists
+      let sessionData = null;
+      if (user) {
+        try {
+          const { data } = await supabase
+            .from('app_session_data' as any)
+            .select('session_data')
+            .eq('user_id', user.id)
+            .eq('app_id', app.id)
+            .maybeSingle() as any;
+          
+          sessionData = data?.session_data || null;
+        } catch (err) {
+          console.log('Session data not available:', err);
         }
       }
+
+      // Store session data in local storage for WebView access
+      if (sessionData) {
+        localStorage.setItem(`app_session_${app.id}`, JSON.stringify(sessionData));
+      }
+
+      // Check if it's an internal route or external URL
+      if (appUrl.startsWith('/')) {
+        // Internal Chatr route - navigate within app
+        navigate(appUrl);
+        toast.success(`Opening ${app.app_name}...`);
+      } else {
+        // Open in WebView with session support
+        toast.loading(`Opening ${app.app_name}...`, { id: `open-${app.id}` });
+        
+        await Browser.open({
+          url: appUrl,
+          presentationStyle: 'fullscreen',
+          toolbarColor: '#1a1a2e',
+        });
+
+        // Listen for app close to sync session data back
+        Browser.addListener('browserFinished', async () => {
+          const updatedSession = localStorage.getItem(`app_session_${app.id}`);
+          if (updatedSession && user) {
+            try {
+              await supabase
+                .from('app_session_data' as any)
+                .upsert({
+                  user_id: user.id,
+                  app_id: app.id,
+                  session_data: JSON.parse(updatedSession),
+                  last_synced: new Date().toISOString(),
+                });
+            } catch (err) {
+              console.log('Failed to sync session data:', err);
+            }
+          }
+        });
+
+        toast.success(`${app.app_name} opened`, { id: `open-${app.id}` });
+      }
+      
+      loadRecentlyUsed();
     } catch (error) {
       console.error('Error opening app:', error);
       toast.error('Failed to open app. Please try again.');
@@ -297,9 +367,9 @@ const MiniAppsStore = () => {
     return matchesSearch && matchesRating && matchesVerified;
   });
 
-  const trendingApps = apps.filter(app => app.is_trending);
+  const trendingApps = apps.filter(app => app.is_trending).slice(0, 6);
   const recentApps = [...apps].sort((a, b) => 
-    new Date(b.launch_date || 0).getTime() - new Date(a.launch_date || 0).getTime()
+    new Date(b.created_at || b.launch_date || 0).getTime() - new Date(a.created_at || a.launch_date || 0).getTime()
   ).slice(0, 6);
   
   const continueUsingApps = apps.filter(app => 
