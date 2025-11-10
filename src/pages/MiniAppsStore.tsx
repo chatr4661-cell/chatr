@@ -366,6 +366,11 @@ const MiniAppsStore = () => {
     shoppingApps.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
   ).slice(0, 4);
 
+  const foodDeliveryApps = ['Zomato', 'Swiggy', 'Dunzo'];
+  const foodDeliveryCollection = apps.filter(app =>
+    foodDeliveryApps.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
+  ).slice(0, 3);
+
   const renderAppCard = (app: MiniApp) => (
     <motion.div
       key={app.id}
@@ -671,6 +676,25 @@ const MiniAppsStore = () => {
                   </motion.div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Food & Delivery Collection */}
+        {foodDeliveryCollection.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
+                  Food & Delivery
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Order food & groceries from your favorite restaurants
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+              {foodDeliveryCollection.map(renderAppCard)}
             </div>
           </div>
         )}
