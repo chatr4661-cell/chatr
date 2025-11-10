@@ -339,6 +339,12 @@ const MiniAppsStore = () => {
     return new Date(bUsage?.last_used_at || 0).getTime() - new Date(aUsage?.last_used_at || 0).getTime();
   });
 
+  // Featured Indian apps
+  const featuredAppNames = ['Zomato', 'Paytm', 'Flipkart', 'PhonePe', 'Swiggy'];
+  const featuredApps = apps.filter(app => 
+    featuredAppNames.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
+  ).slice(0, 5);
+
   const renderAppCard = (app: MiniApp) => (
     <motion.div
       key={app.id}
@@ -557,6 +563,97 @@ const MiniAppsStore = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
+        {/* Featured Apps Banner */}
+        {featuredApps.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+                  Featured Indian Apps
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Popular apps trusted by millions
+                </p>
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+                {featuredApps.map((app) => (
+                  <motion.div
+                    key={app.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex-shrink-0 w-[85%] sm:w-[45%] lg:w-[30%] snap-start"
+                  >
+                    <Card className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5 border-primary/20 hover:border-primary/40 hover:shadow-glow transition-all duration-300 h-full">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
+                      <div className="relative p-6 flex flex-col h-full">
+                        <div className="flex items-start gap-4 mb-4">
+                          <div className="relative w-20 h-20 rounded-3xl bg-background shadow-lg flex items-center justify-center shrink-0 overflow-hidden">
+                            {app.icon_url && (app.icon_url.startsWith('http') || app.icon_url.startsWith('/')) ? (
+                              <img src={app.icon_url} alt={app.app_name} className="w-18 h-18 rounded-2xl object-cover" />
+                            ) : (
+                              <span className="text-5xl">{app.icon_url || app.app_name[0]}</span>
+                            )}
+                            {app.is_verified && (
+                              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center border-2 border-background">
+                                <span className="text-primary-foreground text-sm">✓</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-lg mb-1">{app.app_name}</h3>
+                            <div className="flex items-center gap-3 text-xs">
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                <span className="font-semibold">{app.rating_average.toFixed(1)}</span>
+                              </div>
+                              <span className="text-border">•</span>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Download className="h-3.5 w-3.5" />
+                                <span>{(app.install_count / 1000).toFixed(0)}K+</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground/90 mb-4 line-clamp-2 flex-1">
+                          {app.description}
+                        </p>
+
+                        <Button
+                          className="w-full rounded-xl font-semibold bg-primary hover:bg-primary-glow shadow-lg"
+                          onClick={() => installedApps.has(app.id) ? openApp(app) : installAndOpenApp(app)}
+                          disabled={installingAppId === app.id}
+                        >
+                          {installingAppId === app.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Installing...
+                            </>
+                          ) : installedApps.has(app.id) ? (
+                            <>
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              Open App
+                            </>
+                          ) : (
+                            <>
+                              <Download className="mr-2 h-4 w-4" />
+                              Get Now
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Apple-style Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full justify-start bg-transparent border-b border-border/40 rounded-none h-12 p-0">
