@@ -46,6 +46,8 @@ const Geofences = () => {
   const [user, setUser] = useState<any>(null);
   const [allGeofences, setAllGeofences] = useState<Geofence[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { geofences, activeZones, isMonitoring, refetchGeofences } = useGeofencing(user?.id);
 
   // Get current user
@@ -110,6 +112,15 @@ const Geofences = () => {
       toast.error('Failed to delete geofence');
     }
   };
+
+  // Filter geofences
+  const filteredGeofences = allGeofences.filter((geofence) => {
+    const typeMatch = typeFilter === 'all' || geofence.type === typeFilter;
+    const statusMatch = statusFilter === 'all' || 
+      (statusFilter === 'active' && geofence.active) || 
+      (statusFilter === 'inactive' && !geofence.active);
+    return typeMatch && statusMatch;
+  });
 
   return (
     <div className="min-h-screen bg-background p-4 pb-24">
@@ -205,8 +216,35 @@ const Geofences = () => {
 
         {/* All Geofences */}
         <div className="space-y-3">
-          <h2 className="text-xl font-semibold">All Zones</h2>
-          {allGeofences.length === 0 ? (
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">All Zones</h2>
+            <div className="flex gap-2">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="hospital">Hospital</SelectItem>
+                  <SelectItem value="job">Job Site</SelectItem>
+                  <SelectItem value="event">Event</SelectItem>
+                  <SelectItem value="community">Community</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {filteredGeofences.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -217,7 +255,7 @@ const Geofences = () => {
               </CardContent>
             </Card>
           ) : (
-            allGeofences.map((geofence) => (
+            filteredGeofences.map((geofence) => (
               <Card key={geofence.id} className={activeZones.includes(geofence.id) ? 'border-primary' : ''}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
