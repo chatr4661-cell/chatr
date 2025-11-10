@@ -61,7 +61,11 @@ export const NotificationSettings = ({ userId }: { userId?: string }) => {
     };
 
     loadPreferences();
-    setNotificationPermission(Notification.permission);
+    
+    // Check if Notification API is available
+    if (typeof Notification !== 'undefined') {
+      setNotificationPermission(Notification.permission);
+    }
   }, [userId]);
 
   const updatePreference = async (key: keyof NotificationPreferences, value: boolean) => {

@@ -27,6 +27,12 @@ export const useFirebaseMessaging = (userId?: string) => {
     // Request notification permission
     const requestPermission = async () => {
       try {
+        // Check if Notification API is available
+        if (typeof Notification === 'undefined') {
+          console.log("Notification API not available");
+          return;
+        }
+        
         const permission = await Notification.requestPermission();
         setNotificationPermission(permission);
 
@@ -80,7 +86,7 @@ export const useFirebaseMessaging = (userId?: string) => {
       });
 
       // Show browser notification
-      if (Notification.permission === "granted") {
+      if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
         new Notification(payload.notification?.title || "New message", {
           body: payload.notification?.body,
           icon: "/icons/icon-192x192.png",
