@@ -537,17 +537,40 @@ const Index = () => {
 
       <div className="max-w-2xl mx-auto px-4 space-y-6 mt-6">
 
-        {/* Search Bar */}
-        <div 
-          onClick={() => navigate('/home')}
-          className="cursor-pointer group"
-        >
-          <div className="relative bg-background/80 backdrop-blur-xl rounded-2xl border border-border/40 p-3 shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3">
-              <Search className="h-5 w-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Search</p>
-            </div>
+        {/* Universal Search Bar */}
+        <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h3 className="font-bold text-lg">Universal AI Search</h3>
           </div>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input 
+                placeholder="Find plumber, order biryani, dentist near me..."
+                className="pl-10 h-12 bg-background/80 backdrop-blur"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const query = (e.target as HTMLInputElement).value;
+                    if (query) navigate(`/search?q=${encodeURIComponent(query)}`);
+                  }
+                }}
+              />
+            </div>
+            <Button 
+              size="lg"
+              onClick={() => {
+                const input = document.querySelector('input') as HTMLInputElement;
+                if (input?.value) navigate(`/search?q=${encodeURIComponent(input.value)}`);
+              }}
+              className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 px-6"
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            AI-powered search across services, jobs, healthcare, food & more
+          </p>
         </div>
 
         {/* iOS-style App Grid */}

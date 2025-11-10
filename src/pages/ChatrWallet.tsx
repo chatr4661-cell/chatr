@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import walletIcon from '@/assets/chatrpay-wallet-icon.png';
 import { 
   Wallet, 
   ArrowLeft, 
@@ -133,10 +134,11 @@ const ChatrWallet = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-green-500/5">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
+          <img src={walletIcon} alt="ChatrPay" className="w-8 h-8" />
           <div>
             <h1 className="text-lg font-bold">ChatrPay Wallet</h1>
             <p className="text-xs text-muted-foreground">Your digital wallet</p>
