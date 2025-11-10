@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, PhoneOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Volume2, VolumeX, Speaker } from 'lucide-react';
 import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -27,7 +27,7 @@ export default function ProductionVoiceCall({
 }: ProductionVoiceCallProps) {
   const [callState, setCallState] = useState<'connecting' | 'connected' | 'failed'>('connecting');
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [speakerEnabled, setSpeakerEnabled] = useState(true);
+  const [speakerEnabled, setSpeakerEnabled] = useState(false);
   const [duration, setDuration] = useState(0);
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
@@ -210,11 +210,35 @@ export default function ProductionVoiceCall({
     webrtcRef.current?.toggleAudio(newState);
   };
 
-  const toggleSpeaker = () => {
+  const toggleSpeaker = async () => {
     const newState = !speakerEnabled;
     setSpeakerEnabled(newState);
+    
     if (remoteAudioRef.current) {
-      remoteAudioRef.current.volume = newState ? 1.0 : 0;
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioDevices = devices.filter(device => device.kind === 'audiooutput');
+        
+        if (audioDevices.length > 0 && 'setSinkId' in remoteAudioRef.current) {
+          const targetDevice = newState 
+            ? audioDevices.find(d => d.label.toLowerCase().includes('speaker'))?.deviceId 
+            : audioDevices.find(d => d.label.toLowerCase().includes('earpiece') || d.label.toLowerCase().includes('phone'))?.deviceId;
+          
+          if (targetDevice) {
+            await (remoteAudioRef.current as any).setSinkId(targetDevice);
+            toast.success(newState ? 'Speaker enabled' : 'Earpiece enabled');
+          } else {
+            // Fallback: just adjust volume
+            remoteAudioRef.current.volume = newState ? 1.0 : 0.7;
+          }
+        } else {
+          // Fallback for browsers that don't support setSinkId
+          remoteAudioRef.current.volume = newState ? 1.0 : 0.7;
+        }
+      } catch (error) {
+        console.error('Failed to switch audio output:', error);
+        toast.error('Audio routing not supported on this device');
+      }
     }
   };
 
@@ -231,9 +255,13 @@ export default function ProductionVoiceCall({
         animate={{ scale: 1, opacity: 1 }}
         className="flex flex-col items-center gap-8 p-8"
       >
-        <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center">
+        <motion.div 
+          animate={{ scale: callState === 'connecting' ? [1, 1.05, 1] : 1 }}
+          transition={{ repeat: callState === 'connecting' ? Infinity : 0, duration: 2 }}
+          className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center shadow-2xl"
+        >
           <span className="text-5xl">{contactName[0]?.toUpperCase()}</span>
-        </div>
+        </motion.div>
 
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-2">{contactName}</h2>
@@ -248,7 +276,7 @@ export default function ProductionVoiceCall({
           <Button
             size="lg"
             variant={audioEnabled ? "default" : "destructive"}
-            className="rounded-full w-14 h-14"
+            className="rounded-full w-14 h-14 shadow-lg"
             onClick={toggleAudio}
           >
             {audioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
@@ -257,16 +285,16 @@ export default function ProductionVoiceCall({
           <Button
             size="lg"
             variant={speakerEnabled ? "default" : "secondary"}
-            className="rounded-full w-14 h-14"
+            className="rounded-full w-14 h-14 shadow-lg"
             onClick={toggleSpeaker}
           >
-            {speakerEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
+            {speakerEnabled ? <Speaker className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
           </Button>
 
           <Button
             size="lg"
             variant="destructive"
-            className="rounded-full w-16 h-16"
+            className="rounded-full w-16 h-16 shadow-2xl bg-red-500 hover:bg-red-600"
             onClick={handleEndCall}
           >
             <PhoneOff className="h-7 w-7" />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX } from 'lucide-react';
 import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ export default function ProductionVideoCall({
   const [callState, setCallState] = useState<'connecting' | 'connected' | 'failed'>('connecting');
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
+  const [speakerEnabled, setSpeakerEnabled] = useState(false);
   const [duration, setDuration] = useState(0);
   const [videoLayout, setVideoLayout] = useState<'remote-main' | 'local-main'>('remote-main');
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -296,6 +297,33 @@ export default function ProductionVideoCall({
     webrtcRef.current?.toggleVideo(newState);
   };
 
+  const toggleSpeaker = async () => {
+    const newState = !speakerEnabled;
+    setSpeakerEnabled(newState);
+    
+    // Toggle audio output device
+    if (remoteVideoRef.current) {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioDevices = devices.filter(device => device.kind === 'audiooutput');
+        
+        if (audioDevices.length > 0) {
+          const targetDevice = newState 
+            ? audioDevices.find(d => d.label.toLowerCase().includes('speaker'))?.deviceId 
+            : audioDevices.find(d => d.label.toLowerCase().includes('earpiece') || d.label.toLowerCase().includes('phone'))?.deviceId;
+          
+          if (targetDevice && 'setSinkId' in remoteVideoRef.current) {
+            await (remoteVideoRef.current as any).setSinkId(targetDevice);
+            toast.success(newState ? 'Speaker enabled' : 'Earpiece enabled');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to switch audio output:', error);
+        toast.error('Failed to switch audio output');
+      }
+    }
+  };
+
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -370,21 +398,20 @@ export default function ProductionVideoCall({
         }}
       />
 
-      {/* Picture-in-picture video */}
+      {/* FaceTime-style Picture-in-picture video */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         onClick={(e) => {
           e.stopPropagation();
           handleSwapVideos();
-          // Also ensure audio plays
           if (pipVideoRef.current && videoLayout === 'local-main') {
             pipVideoRef.current.muted = false;
             pipVideoRef.current.volume = 1.0;
             pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
           }
         }}
-        className="absolute top-4 right-4 w-32 h-48 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+        className="absolute top-20 right-4 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm"
       >
         <video
           ref={pipVideoRef}
@@ -399,90 +426,86 @@ export default function ProductionVideoCall({
         </div>
       </motion.div>
 
-      {/* Top info bar */}
+      {/* FaceTime-style Top Bar with Glassmorphism */}
       {!isFullScreen && (
-        <div className="absolute top-4 left-4 flex items-center gap-3">
-          <div className="text-white bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
-            <h2 className="text-base font-semibold">{contactName}</h2>
-            <p className="text-xs text-white/80">
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-3"
+        >
+          <div className="text-white bg-black/40 backdrop-blur-xl px-6 py-3 rounded-full border border-white/10 shadow-2xl">
+            <h2 className="text-sm font-semibold text-center">{contactName}</h2>
+            <p className="text-xs text-white/70 text-center">
               {callState === 'connecting' && 'Connecting...'}
               {callState === 'connected' && formatDuration(duration)}
               {callState === 'failed' && 'Connection failed'}
             </p>
           </div>
-          <NetworkQualityIndicator peerConnection={webrtcRef.current?.['pc']} />
-        </div>
+        </motion.div>
       )}
 
-      {/* Persistent End Call Button - Always visible */}
+      {/* FaceTime-style End Call Button - Bottom Center */}
       {!isFullScreen && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50"
+        >
           <Button
             size="lg"
             variant="destructive"
-            className="rounded-full w-16 h-16 shadow-2xl"
+            className="rounded-full w-16 h-16 shadow-2xl bg-red-500 hover:bg-red-600"
             onClick={handleEndCall}
           >
             <PhoneOff className="h-7 w-7" />
           </Button>
-        </div>
+        </motion.div>
       )}
 
-      {/* Controls overlay - Additional controls */}
+      {/* FaceTime-style Controls - Bottom Right */}
       <AnimatePresence>
         {controlsVisible && !isFullScreen && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-24 left-0 right-0"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute bottom-8 right-8 flex flex-col gap-3"
           >
-            <div className="flex items-center justify-center gap-3">
-              <Button
-                size="lg"
-                variant={audioEnabled ? "secondary" : "destructive"}
-                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
-                onClick={toggleAudio}
-              >
-                {audioEnabled ? <Mic className="h-6 w-6 text-white" /> : <MicOff className="h-6 w-6" />}
-              </Button>
+            <Button
+              size="lg"
+              variant="secondary"
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              onClick={handleSwitchCamera}
+            >
+              <SwitchCamera className="h-5 w-5 text-white" />
+            </Button>
 
-              <Button
-                size="lg"
-                variant={videoEnabled ? "secondary" : "destructive"}
-                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
-                onClick={toggleVideo}
-              >
-                {videoEnabled ? <Video className="h-6 w-6 text-white" /> : <VideoOff className="h-6 w-6" />}
-              </Button>
+            <Button
+              size="lg"
+              variant={audioEnabled ? "secondary" : "destructive"}
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              onClick={toggleAudio}
+            >
+              {audioEnabled ? <Mic className="h-5 w-5 text-white" /> : <MicOff className="h-5 w-5" />}
+            </Button>
 
-              <Button
-                size="lg"
-                variant="secondary"
-                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
-                onClick={handleSwitchCamera}
-              >
-                <SwitchCamera className="h-6 w-6 text-white" />
-              </Button>
+            <Button
+              size="lg"
+              variant={videoEnabled ? "secondary" : "destructive"}
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              onClick={toggleVideo}
+            >
+              {videoEnabled ? <Video className="h-5 w-5 text-white" /> : <VideoOff className="h-5 w-5" />}
+            </Button>
 
-              <Button
-                size="lg"
-                variant="secondary"
-                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
-                onClick={handleSwapVideos}
-              >
-                <Repeat className="w-6 h-6 text-white" />
-              </Button>
-
-              <Button
-                size="lg"
-                variant="secondary"
-                className="rounded-full w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20"
-                onClick={handleToggleFullScreen}
-              >
-                {isFullScreen ? <Minimize2 className="w-6 h-6 text-white" /> : <Maximize2 className="w-6 h-6 text-white" />}
-              </Button>
-            </div>
+            <Button
+              size="lg"
+              variant={speakerEnabled ? "default" : "secondary"}
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              onClick={toggleSpeaker}
+            >
+              {speakerEnabled ? <Volume2 className="h-5 w-5 text-white" /> : <VolumeX className="h-5 w-5 text-white" />}
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>

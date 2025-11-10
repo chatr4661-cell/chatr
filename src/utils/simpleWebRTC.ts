@@ -434,8 +434,8 @@ export class SimpleWebRTCCall {
   }
 
   private setConnectionTimeout() {
-    // Give 30 seconds for ICE connection to establish (Android emulators are slow)
-    const timeout = this.isMobileDevice() ? 30000 : 20000;
+    // Optimized timeout: 15s for mobile, 10s for desktop (FaceTime-grade speed)
+    const timeout = this.isMobileDevice() ? 15000 : 10000;
     this.iceConnectionTimeout = setTimeout(() => {
       if (this.callState === 'connecting') {
         console.error('⏰ [SimpleWebRTC] Connection timeout after', timeout/1000, 'seconds');
