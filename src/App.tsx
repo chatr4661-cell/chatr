@@ -141,6 +141,7 @@ import ChatrPlusWallet from "./pages/ChatrPlusWallet";
 import SellerPortal from "./pages/SellerPortal";
 import SellerBookings from "./pages/SellerBookings";
 import SellerServices from "./pages/SellerServices";
+import SellerAnalytics from "./pages/SellerAnalytics";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -323,6 +324,7 @@ const App = () => {
             <Route path="/seller/portal" element={<SellerPortal />} />
             <Route path="/seller/bookings" element={<SellerBookings />} />
             <Route path="/seller/services" element={<SellerServices />} />
+            <Route path="/seller/analytics" element={<SellerAnalytics />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
