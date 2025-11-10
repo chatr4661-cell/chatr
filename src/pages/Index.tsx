@@ -28,7 +28,8 @@ import {
   Search,
   Sparkles,
   Zap,
-  Briefcase
+  Briefcase,
+  Crown
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -284,6 +285,13 @@ const Index = () => {
 
   const mainHubs = [
     {
+      icon: Search,
+      title: 'Universal Search',
+      description: 'Find anything with AI',
+      iconColor: 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600',
+      route: '/search'
+    },
+    {
       icon: Sparkles,
       title: 'AI Agents',
       description: 'Create your AI self',
@@ -371,6 +379,13 @@ const Index = () => {
 
   const quickAccessServices = [
     {
+      icon: Coins,
+      title: 'ChatrPay Wallet',
+      description: 'UPI, cashback & rewards',
+      iconColor: 'bg-gradient-to-br from-green-400 to-emerald-500',
+      route: '/wallet'
+    },
+    {
       icon: QrCode,
       title: 'Chatr Studio',
       description: 'Build your own mini-apps',
@@ -395,7 +410,7 @@ const Index = () => {
 
   const ecosystemServices = [
     {
-      icon: Bot,
+      icon: Utensils,
       title: 'Food Ordering',
       description: 'Order from local restaurants',
       iconColor: 'bg-gradient-to-br from-orange-400 to-red-500',
@@ -409,11 +424,12 @@ const Index = () => {
       route: '/local-deals'
     },
     {
-      icon: QrCode,
-      title: 'Chatr Growth',
-      description: 'Earn rewards & invite friends',
-      iconColor: 'bg-gradient-to-br from-slate-400 to-slate-600',
-      route: '/growth'
+      icon: Crown,
+      title: 'Chatr Premium',
+      description: 'Upgrade to unlock everything',
+      iconColor: 'bg-gradient-to-br from-purple-400 to-pink-500',
+      route: '/subscription',
+      badge: '₹99/mo'
     },
   ];
 

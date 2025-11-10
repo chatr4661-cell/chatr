@@ -2063,6 +2063,108 @@ export type Database = {
         }
         Relationships: []
       }
+      chatr_payment_methods: {
+        Row: {
+          card_last_4: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          metadata: Json | null
+          method_type: string
+          provider: string | null
+          updated_at: string
+          upi_id: string | null
+          user_id: string
+        }
+        Insert: {
+          card_last_4?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          metadata?: Json | null
+          method_type: string
+          provider?: string | null
+          updated_at?: string
+          upi_id?: string | null
+          user_id: string
+        }
+        Update: {
+          card_last_4?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          metadata?: Json | null
+          method_type?: string
+          provider?: string | null
+          updated_at?: string
+          upi_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_platform_fees: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          id: string
+          platform_fee_amount: number
+          platform_fee_percent: number | null
+          processing_fee_amount: number
+          processing_fee_percent: number | null
+          seller_id: string | null
+          seller_payout: number
+          status: string | null
+          total_fee: number
+          transaction_amount: number
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          platform_fee_amount: number
+          platform_fee_percent?: number | null
+          processing_fee_amount: number
+          processing_fee_percent?: number | null
+          seller_id?: string | null
+          seller_payout: number
+          status?: string | null
+          total_fee: number
+          transaction_amount: number
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          platform_fee_amount?: number
+          platform_fee_percent?: number | null
+          processing_fee_amount?: number
+          processing_fee_percent?: number | null
+          seller_id?: string | null
+          seller_payout?: number
+          status?: string | null
+          total_fee?: number
+          transaction_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_platform_fees_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatr_platform_fees_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chatr_plus_bookings: {
         Row: {
           booking_date: string
@@ -2665,6 +2767,98 @@ export type Database = {
         }
         Relationships: []
       }
+      chatr_search_history: {
+        Row: {
+          category: string | null
+          clicked_result_id: string | null
+          clicked_result_type: string | null
+          created_at: string
+          id: string
+          location: Json | null
+          results_count: number | null
+          search_intent: string | null
+          search_query: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          clicked_result_id?: string | null
+          clicked_result_type?: string | null
+          created_at?: string
+          id?: string
+          location?: Json | null
+          results_count?: number | null
+          search_intent?: string | null
+          search_query: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          clicked_result_id?: string | null
+          clicked_result_type?: string | null
+          created_at?: string
+          id?: string
+          location?: Json | null
+          results_count?: number | null
+          search_intent?: string | null
+          search_query?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chatr_seller_subscription_plans: {
+        Row: {
+          auto_renew: boolean | null
+          created_at: string
+          end_date: string | null
+          features: Json | null
+          id: string
+          monthly_price: number
+          plan_tier: string
+          seller_id: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          features?: Json | null
+          id?: string
+          monthly_price: number
+          plan_tier?: string
+          seller_id: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_renew?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          features?: Json | null
+          id?: string
+          monthly_price?: number
+          plan_tier?: string
+          seller_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_seller_subscription_plans_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: true
+            referencedRelation: "chatr_plus_sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chatr_shares: {
         Row: {
           clicks: number | null
@@ -2704,6 +2898,45 @@ export type Database = {
         }
         Relationships: []
       }
+      chatr_subscription_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean | null
+          monthly_price: number
+          plan_name: string
+          plan_type: string
+          target_audience: string | null
+          yearly_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          monthly_price: number
+          plan_name: string
+          plan_type: string
+          target_audience?: string | null
+          yearly_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          monthly_price?: number
+          plan_name?: string
+          plan_type?: string
+          target_audience?: string | null
+          yearly_price?: number | null
+        }
+        Relationships: []
+      }
       chatr_user_badges: {
         Row: {
           badge_id: string
@@ -2729,6 +2962,140 @@ export type Database = {
             columns: ["badge_id"]
             isOneToOne: false
             referencedRelation: "chatr_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_user_subscriptions: {
+        Row: {
+          auto_renew: boolean | null
+          created_at: string
+          end_date: string | null
+          id: string
+          payment_method: string | null
+          plan_type: string
+          price: number
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          payment_method?: string | null
+          plan_type?: string
+          price?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_renew?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          payment_method?: string | null
+          plan_type?: string
+          price?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_wallet: {
+        Row: {
+          balance: number
+          cashback_balance: number
+          created_at: string
+          currency: string | null
+          id: string
+          referral_earnings: number
+          total_earned: number
+          total_spent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          cashback_balance?: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          referral_earnings?: number
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          cashback_balance?: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          referral_earnings?: number
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          reference_type: string | null
+          status: string | null
+          type: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string | null
+          type: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string | null
+          type?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_wallet"
             referencedColumns: ["id"]
           },
         ]
@@ -8961,6 +9328,17 @@ export type Database = {
       process_referral_reward: {
         Args: { referral_code_param: string }
         Returns: boolean
+      }
+      process_wallet_transaction: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }

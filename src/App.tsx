@@ -147,6 +147,9 @@ import SellerSettings from "./pages/SellerSettings";
 import SellerReviews from "./pages/SellerReviews";
 import SellerPayouts from "./pages/SellerPayouts";
 import SellerSubscription from "./pages/SellerSubscription";
+import UniversalSearch from "./pages/UniversalSearch";
+import UserSubscription from "./pages/UserSubscription";
+import ChatrWallet from "./pages/ChatrWallet";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -320,6 +323,9 @@ const App = () => {
             <Route path="/chatr-plus" element={<ChatrPlus />} />
             <Route path="/chatr-plus/search" element={<ChatrPlusSearch />} />
             <Route path="/chatr-plus/subscribe" element={<ChatrPlusSubscribe />} />
+            <Route path="/search" element={<UniversalSearch />} />
+            <Route path="/subscription" element={<UserSubscription />} />
+            <Route path="/wallet" element={<ChatrWallet />} />
             <Route path="/chatr-plus/service/:id" element={<ChatrPlusServiceDetail />} />
             <Route path="/chatr-plus/seller-registration" element={<ChatrPlusSellerRegistration />} />
             <Route path="/chatr-plus/seller/dashboard" element={<ChatrPlusSellerDashboard />} />
