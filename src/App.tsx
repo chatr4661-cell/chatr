@@ -30,6 +30,7 @@ import Marketplace from "./pages/Marketplace";
 import YouthEngagement from "./pages/YouthEngagement";
 import YouthFeed from "./pages/YouthFeed";
 import MiniAppsStore from "./pages/MiniAppsStore";
+import AppStatistics from "./pages/AppStatistics";
 import DeveloperPortal from "./pages/DeveloperPortal";
 import OfficialAccounts from "./pages/OfficialAccounts";
 import OfficialAccountsManager from "./pages/admin/OfficialAccountsManager";
@@ -213,6 +214,8 @@ const App = () => {
             <Route path="/youth-engagement" element={<YouthEngagement />} />
             <Route path="/youth-feed" element={<YouthFeed />} />
             <Route path="/mini-apps" element={<MiniAppsStore />} />
+            <Route path="/mini-apps-store" element={<MiniAppsStore />} />
+            <Route path="/app-statistics" element={<AppStatistics />} />
             <Route path="/developer-portal" element={<DeveloperPortal />} />
             <Route path="/official-accounts" element={<OfficialAccounts />} />
             <Route path="/chatr-studio" element={<ChatrStudio />} />

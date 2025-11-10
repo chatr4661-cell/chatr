@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2, X, Plus, Sparkles, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Search, Star, Download, TrendingUp, Clock, Filter, Loader2, X, Plus, Sparkles, ExternalLink, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useSSOToken } from '@/hooks/useSSOToken';
@@ -270,6 +270,24 @@ const MiniAppsStore = () => {
       
       const { data: { user } } = await supabase.auth.getUser();
       
+      // Start usage session tracking
+      let sessionId: string | null = null;
+      if (user) {
+        const { data: sessionData } = await supabase
+          .from('app_usage_sessions' as any)
+          .insert({
+            user_id: user.id,
+            app_id: app.id,
+            session_start: new Date().toISOString(),
+          })
+          .select()
+          .single() as any;
+        
+        sessionId = sessionData?.id || null;
+      }
+      
+      
+      
       if (user && installedApps.has(app.id)) {
         // Update last opened time
         await supabase
@@ -323,8 +341,19 @@ const MiniAppsStore = () => {
           toolbarColor: '#1a1a2e',
         });
 
-        // Listen for app close to sync session data back
+        // Listen for app close to sync session data and end tracking
         Browser.addListener('browserFinished', async () => {
+          // End usage session
+          if (sessionId && user) {
+            await supabase
+              .from('app_usage_sessions' as any)
+              .update({
+                session_end: new Date().toISOString(),
+              })
+              .eq('id', sessionId);
+          }
+
+          // Sync session data
           const updatedSession = localStorage.getItem(`app_session_${app.id}`);
           if (updatedSession && user) {
             try {
@@ -508,6 +537,15 @@ const MiniAppsStore = () => {
               </h1>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/app-statistics')}
+                className="h-8 gap-1.5"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Stats</span>
+              </Button>
               <Button
                 variant="default"
                 size="sm"
