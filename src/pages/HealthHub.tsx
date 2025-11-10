@@ -88,8 +88,7 @@ export default function HealthHub() {
 
       const { data, error } = await supabase.functions.invoke('ai-health-assistant', {
         body: {
-          prompt: 'Generate a brief personalized health insight for today in 2-3 sentences',
-          userId: user.id
+          message: 'Generate a brief personalized health insight for today in 2-3 sentences'
         }
       });
 
