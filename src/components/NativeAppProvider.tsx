@@ -5,6 +5,9 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAutoContactSync } from '@/hooks/useAutoContactSync';
 import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
+import { useBatteryOptimization } from '@/hooks/useBatteryOptimization';
+import { useContactSync } from '@/hooks/useContactSync';
+import { useOfflineUploadQueue } from '@/hooks/useOfflineUploadQueue';
 import { supabase } from '@/integrations/supabase/client';
 
 interface NativeAppContextType {
@@ -60,6 +63,15 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   
   // Push notifications
   usePushNotifications(userId);
+  
+  // Battery optimization (critical for background reliability)
+  useBatteryOptimization();
+  
+  // Scheduled contact sync (daily auto-refresh)
+  useContactSync(userId);
+  
+  // Offline upload queue
+  const uploadQueue = useOfflineUploadQueue();
   
   // Native haptics
   const haptics = useNativeHaptics();

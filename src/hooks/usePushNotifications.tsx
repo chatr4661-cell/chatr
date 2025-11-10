@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
+import { PushNotifications, Channel } from '@capacitor/push-notifications';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,6 +16,39 @@ export const usePushNotifications = (userId?: string) => {
 
     const setupPushNotifications = async () => {
       try {
+        // Create high-priority notification channels for Android
+        if (Capacitor.getPlatform() === 'android') {
+          await PushNotifications.createChannel({
+            id: 'calls',
+            name: 'Calls',
+            description: 'Incoming call notifications',
+            importance: 5, // IMPORTANCE_HIGH
+            sound: 'ringtone.mp3',
+            vibration: true,
+            visibility: 1, // VISIBILITY_PUBLIC - shows on lock screen
+          });
+
+          await PushNotifications.createChannel({
+            id: 'messages',
+            name: 'Messages',
+            description: 'Chat message notifications',
+            importance: 4, // IMPORTANCE_DEFAULT
+            sound: 'notification.mp3',
+            vibration: true,
+            visibility: 1,
+          });
+
+          await PushNotifications.createChannel({
+            id: 'urgent',
+            name: 'Urgent Notifications',
+            description: 'High priority alerts',
+            importance: 5,
+            sound: 'notification.mp3',
+            vibration: true,
+            visibility: 1,
+          });
+        }
+
         // Request permission
         const permission = await PushNotifications.requestPermissions();
         

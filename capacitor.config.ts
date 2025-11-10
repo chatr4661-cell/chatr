@@ -11,7 +11,10 @@ const config: CapacitorConfig = {
   },
   plugins: {
     PushNotifications: {
-      presentationOptions: ['badge', 'sound', 'alert']
+      presentationOptions: ['badge', 'sound', 'alert'],
+      // Android: High priority for critical notifications
+      iconColor: '#6200ee',
+      sound: 'notification.mp3'
     },
     SplashScreen: {
       launchShowDuration: 1500,

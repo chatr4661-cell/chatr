@@ -26,6 +26,9 @@ Chatr is now a **fully-featured native mobile app** with comprehensive Capacitor
 - ✅ Grouped notifications with badges and sounds
 - ✅ Background notification handling
 - ✅ Deep linking to specific chats/calls
+- ✅ High-priority notification channels for calls/urgent messages
+- ✅ Doze mode optimization for reliable delivery
+- ✅ Battery optimization whitelist request
 
 **Files:**
 - `src/hooks/useFirebaseMessaging.tsx` - FCM setup
@@ -56,7 +59,7 @@ Chatr is now a **fully-featured native mobile app** with comprehensive Capacitor
 - ✅ Capacitor Contacts API integration
 - ✅ Auto-sync device contacts on login
 - ✅ Match contacts with registered Chatr users
-- ✅ Real-time sync (background every 12 hours)
+- ✅ Scheduled contact sync (daily auto-refresh)
 - ✅ Contact permissions handling
 - ✅ Display contact status (online/offline)
 
@@ -102,6 +105,7 @@ Chatr is now a **fully-featured native mobile app** with comprehensive Capacitor
 - ✅ Offline message queue
 - ✅ Auto-sync when back online
 - ✅ Optimistic UI updates
+- ✅ Queue-based offline upload for files and media with auto-retry
 
 **Files:**
 - `src/hooks/useOptimisticMessages.tsx` - Optimistic updates
@@ -167,6 +171,8 @@ Chatr is now a **fully-featured native mobile app** with comprehensive Capacitor
 - ✅ Session management
 - ✅ Device session tracking
 - ✅ Secure token storage
+- ✅ Optional biometric authentication (fingerprint/face unlock)
+- ✅ WakeLock for critical events (calls, uploads)
 
 **Files:**
 - `src/utils/deviceFingerprint.ts` - Device fingerprinting
