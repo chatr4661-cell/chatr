@@ -49,6 +49,7 @@ import AIAssistant from "./pages/AIAssistant";
 import LocalJobs from "./pages/LocalJobs";
 import LocalHealthcare from "./pages/LocalHealthcare";
 import Geofences from "./pages/Geofences";
+import GeofenceHistory from "./pages/GeofenceHistory";
 import Account from "./pages/Account";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -233,7 +234,8 @@ const App = () => {
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/local-jobs" element={<LocalJobs />} />
           <Route path="/local-healthcare" element={<LocalHealthcare />} />
-          <Route path="/geofences" element={<Geofences />} />
+            <Route path="/geofences" element={<Geofences />} />
+            <Route path="/geofence-history" element={<GeofenceHistory />} />
             <Route path="/home" element={<AIBrowser />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
             <Route path="/ai-browser" element={<AIBrowserView />} />
