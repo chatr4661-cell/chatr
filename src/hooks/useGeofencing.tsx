@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { supabase } from '@/integrations/supabase/client';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { toast } from 'sonner';
@@ -68,7 +69,45 @@ export const useGeofencing = (userId?: string) => {
     return distance <= geofence.radius_meters;
   };
 
-  // Trigger notification
+  // Get notification patterns based on geofence type
+  const getNotificationPattern = (type: string, eventType: 'enter' | 'exit') => {
+    const patterns = {
+      hospital: {
+        haptic: ImpactStyle.Light,
+        notificationType: NotificationType.Success,
+        iconColor: '#EF4444',
+        priority: 'high' as const,
+      },
+      job: {
+        haptic: ImpactStyle.Heavy,
+        notificationType: NotificationType.Warning,
+        iconColor: '#3B82F6',
+        priority: 'max' as const,
+      },
+      event: {
+        haptic: ImpactStyle.Medium,
+        notificationType: NotificationType.Success,
+        iconColor: '#A855F7',
+        priority: 'default' as const,
+      },
+      community: {
+        haptic: ImpactStyle.Medium,
+        notificationType: NotificationType.Success,
+        iconColor: '#10B981',
+        priority: 'default' as const,
+      },
+      custom: {
+        haptic: ImpactStyle.Light,
+        notificationType: NotificationType.Success,
+        iconColor: '#6B7280',
+        priority: 'default' as const,
+      },
+    };
+
+    return patterns[type as keyof typeof patterns] || patterns.custom;
+  };
+
+  // Trigger notification with type-specific haptics
   const triggerNotification = async (
     geofence: Geofence,
     eventType: 'enter' | 'exit'
@@ -82,7 +121,36 @@ export const useGeofencing = (userId?: string) => {
       geofence.notification_body ||
       `You have ${eventType === 'enter' ? 'entered' : 'left'} the ${geofence.type} zone`;
 
+    const pattern = getNotificationPattern(geofence.type, eventType);
+
     try {
+      // Trigger haptic feedback on native platforms
+      if (Capacitor.isNativePlatform()) {
+        try {
+          // Primary haptic impact based on type
+          await Haptics.impact({ style: pattern.haptic });
+          
+          // Additional notification haptic for important types
+          if (geofence.type === 'job' || geofence.type === 'hospital') {
+            setTimeout(async () => {
+              await Haptics.notification({ type: pattern.notificationType });
+            }, 100);
+          }
+          
+          // Triple vibration for urgent job sites on enter
+          if (geofence.type === 'job' && eventType === 'enter') {
+            setTimeout(async () => {
+              await Haptics.impact({ style: ImpactStyle.Heavy });
+            }, 200);
+            setTimeout(async () => {
+              await Haptics.impact({ style: ImpactStyle.Heavy });
+            }, 400);
+          }
+        } catch (error) {
+          console.log('Haptics not available:', error);
+        }
+      }
+
       // Request notification permissions if needed
       const permission = await LocalNotifications.requestPermissions();
       
@@ -96,7 +164,12 @@ export const useGeofencing = (userId?: string) => {
               schedule: { at: new Date(Date.now() + 100) },
               sound: 'default',
               smallIcon: 'ic_stat_icon_config_sample',
-              iconColor: '#FF6B6B',
+              iconColor: pattern.iconColor,
+              extra: {
+                geofenceId: geofence.id,
+                geofenceType: geofence.type,
+                eventType,
+              },
             },
           ],
         });
@@ -107,7 +180,7 @@ export const useGeofencing = (userId?: string) => {
         toast.info(title, { description: body });
       }
 
-      console.log(`🔔 Geofence ${eventType}: ${geofence.name}`);
+      console.log(`🔔 Geofence ${eventType}: ${geofence.name} (${geofence.type})`);
     } catch (error) {
       console.error('Failed to trigger notification:', error);
     }
