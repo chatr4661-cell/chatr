@@ -167,21 +167,19 @@ const Index = () => {
   ];
 
   React.useEffect(() => {
-    let mounted = true;
+    let isCancelled = false;
     
     const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
+      if (isCancelled) return;
       
       if (!session) {
-        // User is not logged in, redirect to auth
         navigate('/auth', { replace: true });
         return;
       }
       
-      // Set the user state for authenticated users
       const { data: { user } } = await supabase.auth.getUser();
-      if (mounted && user) {
+      if (!isCancelled && user) {
         setUser(user);
         setMounted(true);
       }
@@ -189,16 +187,15 @@ const Index = () => {
     
     initAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
+      if (isCancelled) return;
       
       if (!session) {
         setUser(null);
         navigate('/auth', { replace: true });
       } else {
         supabase.auth.getUser().then(({ data: { user } }) => {
-          if (mounted && user) {
+          if (!isCancelled && user) {
             setUser(user);
             setMounted(true);
           }
@@ -207,7 +204,7 @@ const Index = () => {
     });
 
     return () => {
-      mounted = false;
+      isCancelled = true;
       subscription.unsubscribe();
     };
   }, [navigate]);
