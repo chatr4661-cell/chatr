@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import React from "react";
+import React, { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { NativeAppProvider } from "./components/NativeAppProvider";
 
@@ -156,6 +156,28 @@ const queryClient = new QueryClient({
   },
 });
 
+// Component to handle subdomain redirect
+const SubdomainRedirect = () => {
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    // Check if we're on the seller subdomain
+    if (hostname.startsWith('seller.')) {
+      // Redirect to seller portal if we're on the root
+      if (window.location.pathname === '/') {
+        window.location.href = '/seller/portal';
+      }
+    }
+  }, []);
+
+  // Check if we're on seller subdomain for immediate redirect
+  const hostname = window.location.hostname;
+  if (hostname.startsWith('seller.') && window.location.pathname === '/') {
+    return <Navigate to="/seller/portal" replace />;
+  }
+
+  return <Index />;
+};
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -164,7 +186,7 @@ const App = () => {
           <NativeAppProvider>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<SubdomainRedirect />} />
             
             <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />
