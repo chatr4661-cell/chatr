@@ -287,6 +287,60 @@ export default function SellerPortal() {
           </Card>
         </div>
 
+        {/* Quick Navigation Menu */}
+        <Card className="mb-6 p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2"
+              onClick={() => navigate('/seller/bookings')}
+            >
+              <Calendar className="h-5 w-5" />
+              <span className="text-xs">Bookings</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2"
+              onClick={() => navigate('/seller/services')}
+            >
+              <Package className="h-5 w-5" />
+              <span className="text-xs">Services</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2"
+              onClick={() => navigate('/seller/reviews')}
+            >
+              <Star className="h-5 w-5" />
+              <span className="text-xs">Reviews</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2"
+              onClick={() => navigate('/seller/payouts')}
+            >
+              <DollarSign className="h-5 w-5" />
+              <span className="text-xs">Payouts</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2"
+              onClick={() => navigate('/seller/subscription')}
+            >
+              <TrendingUp className="h-5 w-5" />
+              <span className="text-xs">Subscription</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2"
+              onClick={() => navigate('/seller/analytics')}
+            >
+              <BarChart3 className="h-5 w-5" />
+              <span className="text-xs">Analytics</span>
+            </Button>
+          </div>
+        </Card>
+
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
@@ -298,56 +352,79 @@ export default function SellerPortal() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Recent Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Subscription Status */}
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  Recent Activity
+                  Subscription Status
                 </h3>
                 <div className="space-y-3">
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No recent activity</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Current Plan</span>
+                    <Badge variant={seller.subscription_plan === 'premium' ? 'default' : 'secondary'}>
+                      {seller.subscription_plan}
+                    </Badge>
                   </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => navigate('/seller/subscription')}
+                  >
+                    View Subscription Details
+                  </Button>
                 </div>
               </Card>
 
-              {/* Quick Actions */}
+              {/* Recent Reviews */}
               <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-2 gap-3">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Star className="h-5 w-5" />
+                  Recent Reviews
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Average Rating</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-bold">{stats.averageRating.toFixed(1)}</span>
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">New This Month</span>
+                    <span className="font-bold">{stats.newReviews}</span>
+                  </div>
                   <Button 
                     variant="outline" 
-                    className="h-auto py-4 flex-col gap-2"
-                    onClick={() => navigate('/chatr-plus/seller/services')}
+                    className="w-full"
+                    onClick={() => navigate('/seller/reviews')}
                   >
-                    <Package className="h-6 w-6" />
-                    <span className="text-sm">Add Service</span>
+                    View All Reviews
                   </Button>
+                </div>
+              </Card>
+
+              {/* Earnings Summary */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Earnings Summary
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Total Earnings</span>
+                    <span className="font-bold">₹{stats.totalEarnings.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">This Month</span>
+                    <span className="font-bold text-green-600">₹{stats.monthlyRevenue.toLocaleString()}</span>
+                  </div>
                   <Button 
                     variant="outline" 
-                    className="h-auto py-4 flex-col gap-2"
-                    onClick={() => navigate('/chatr-plus/seller/bookings')}
+                    className="w-full"
+                    onClick={() => navigate('/seller/payouts')}
                   >
-                    <Calendar className="h-6 w-6" />
-                    <span className="text-sm">View Bookings</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex-col gap-2"
-                    onClick={() => navigate('/chatr-plus/seller/analytics')}
-                  >
-                    <BarChart3 className="h-6 w-6" />
-                    <span className="text-sm">Analytics</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex-col gap-2"
-                    onClick={() => navigate('/chatr-plus/seller/messages')}
-                  >
-                    <MessageSquare className="h-6 w-6" />
-                    <span className="text-sm">Messages</span>
+                    View Payouts
                   </Button>
                 </div>
               </Card>
