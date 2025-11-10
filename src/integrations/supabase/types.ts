@@ -2063,6 +2063,497 @@ export type Database = {
         }
         Relationships: []
       }
+      chatr_plus_bookings: {
+        Row: {
+          booking_date: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          created_at: string
+          customer_address: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          payment_method: string | null
+          payment_status: string
+          payment_transaction_id: string | null
+          platform_fee: number | null
+          seller_id: string
+          service_id: string
+          special_instructions: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_date: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_address?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          payment_method?: string | null
+          payment_status?: string
+          payment_transaction_id?: string | null
+          platform_fee?: number | null
+          seller_id: string
+          service_id: string
+          special_instructions?: string | null
+          status?: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_date?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_address?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          payment_method?: string | null
+          payment_status?: string
+          payment_transaction_id?: string | null
+          platform_fee?: number | null
+          seller_id?: string
+          service_id?: string
+          special_instructions?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_plus_bookings_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatr_plus_bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_plus_categories: {
+        Row: {
+          color_scheme: string | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          icon_name: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          parent_category_id: string | null
+          slug: string
+        }
+        Insert: {
+          color_scheme?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          parent_category_id?: string | null
+          slug: string
+        }
+        Update: {
+          color_scheme?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parent_category_id?: string | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_plus_categories_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_plus_reviews: {
+        Row: {
+          booking_id: string
+          created_at: string
+          helpful_count: number | null
+          id: string
+          images: string[] | null
+          is_verified: boolean | null
+          rating: number
+          review_text: string | null
+          seller_id: string
+          service_id: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          helpful_count?: number | null
+          id?: string
+          images?: string[] | null
+          is_verified?: boolean | null
+          rating: number
+          review_text?: string | null
+          seller_id: string
+          service_id: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          helpful_count?: number | null
+          id?: string
+          images?: string[] | null
+          is_verified?: boolean | null
+          rating?: number
+          review_text?: string | null
+          seller_id?: string
+          service_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_plus_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "chatr_plus_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatr_plus_reviews_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatr_plus_reviews_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_plus_sellers: {
+        Row: {
+          address: string | null
+          business_name: string
+          business_type: string
+          city: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          phone_number: string | null
+          pincode: string | null
+          rating_average: number | null
+          rating_count: number | null
+          state: string | null
+          subscription_amount: number
+          subscription_expires_at: string | null
+          subscription_plan: string
+          subscription_started_at: string | null
+          subscription_status: string
+          total_bookings: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          business_type: string
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          phone_number?: string | null
+          pincode?: string | null
+          rating_average?: number | null
+          rating_count?: number | null
+          state?: string | null
+          subscription_amount?: number
+          subscription_expires_at?: string | null
+          subscription_plan?: string
+          subscription_started_at?: string | null
+          subscription_status?: string
+          total_bookings?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          business_type?: string
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          phone_number?: string | null
+          pincode?: string | null
+          rating_average?: number | null
+          rating_count?: number | null
+          state?: string | null
+          subscription_amount?: number
+          subscription_expires_at?: string | null
+          subscription_plan?: string
+          subscription_started_at?: string | null
+          subscription_status?: string
+          total_bookings?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_plus_services: {
+        Row: {
+          availability: Json | null
+          booking_count: number | null
+          category_id: string
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          image_url: string | null
+          images: Json | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          metadata: Json | null
+          price: number | null
+          price_type: string
+          rating_average: number | null
+          rating_count: number | null
+          seller_id: string
+          service_area: string | null
+          service_name: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          availability?: Json | null
+          booking_count?: number | null
+          category_id: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          image_url?: string | null
+          images?: Json | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          metadata?: Json | null
+          price?: number | null
+          price_type?: string
+          rating_average?: number | null
+          rating_count?: number | null
+          seller_id: string
+          service_area?: string | null
+          service_name: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          availability?: Json | null
+          booking_count?: number | null
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          image_url?: string | null
+          images?: Json | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          metadata?: Json | null
+          price?: number | null
+          price_type?: string
+          rating_average?: number | null
+          rating_count?: number | null
+          seller_id?: string
+          service_area?: string | null
+          service_name?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_plus_services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatr_plus_services_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_plus_transactions: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          payment_gateway_ref: string | null
+          payment_method: string | null
+          status: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_gateway_ref?: string | null
+          payment_method?: string | null
+          status?: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_gateway_ref?: string | null
+          payment_method?: string | null
+          status?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_plus_transactions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_plus_user_subscriptions: {
+        Row: {
+          amount: number
+          auto_renew: boolean
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_type: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          auto_renew?: boolean
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_type?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          auto_renew?: boolean
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_type?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_plus_wallet: {
+        Row: {
+          balance: number
+          cashback_earned: number
+          created_at: string
+          id: string
+          total_spent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          cashback_earned?: number
+          created_at?: string
+          id?: string
+          total_spent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          cashback_earned?: number
+          created_at?: string
+          id?: string
+          total_spent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chatr_referral_codes: {
         Row: {
           code: string
@@ -8228,6 +8719,17 @@ export type Database = {
       is_conversation_participant: {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
+      }
+      process_chatr_plus_payment: {
+        Args: {
+          p_amount: number
+          p_booking_id?: string
+          p_description?: string
+          p_payment_method: string
+          p_transaction_type: string
+          p_user_id: string
+        }
+        Returns: string
       }
       process_coin_payment: {
         Args: {

@@ -130,6 +130,9 @@ import AIChat from "./pages/AIChat";
 import Capture from "./pages/Capture";
 import ChatrWorld from "./pages/ChatrWorld";
 import Community from "./pages/Community";
+import ChatrPlus from "./pages/ChatrPlus";
+import ChatrPlusSearch from "./pages/ChatrPlusSearch";
+import ChatrPlusSubscribe from "./pages/ChatrPlusSubscribe";
 
 
 const queryClient = new QueryClient({
@@ -278,6 +281,10 @@ const App = () => {
             <Route path="/expert-sessions" element={<ExpertSessions />} />
             <Route path="/community" element={<Community />} />
             
+            {/* Chatr+ Routes */}
+            <Route path="/chatr-plus" element={<ChatrPlus />} />
+            <Route path="/chatr-plus/search" element={<ChatrPlusSearch />} />
+            <Route path="/chatr-plus/subscribe" element={<ChatrPlusSubscribe />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />

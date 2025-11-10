@@ -38,11 +38,12 @@ const Launcher = () => {
 
   const [apps] = useState<AppShortcut[]>([
     { id: "chat", name: "Messages", icon: MessageSquare, route: "/chat", color: "from-blue-500 to-cyan-500", badge: 3 },
+    { id: "chatr-plus", name: "Chatr+", icon: Zap, route: "/chatr-plus", color: "from-amber-500 to-orange-500" },
     { id: "health", name: "Health Hub", icon: Heart, route: "/health-hub", color: "from-red-500 to-pink-500" },
     { id: "marketplace", name: "Marketplace", icon: ShoppingBag, route: "/marketplace", color: "from-purple-500 to-violet-500" },
     { id: "community", name: "Communities", icon: Users, route: "/communities", color: "from-green-500 to-emerald-500" },
     { id: "miniapps", name: "Mini Apps", icon: Grid3x3, route: "/mini-apps-store", color: "from-orange-500 to-amber-500" },
-    { id: "growth", name: "Growth", icon: Zap, route: "/chatr-growth", color: "from-yellow-500 to-orange-500" },
+    { id: "growth", name: "Growth", icon: Briefcase, route: "/chatr-growth", color: "from-yellow-500 to-orange-500" },
   ]);
 
   useEffect(() => {
