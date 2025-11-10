@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { 
   Bot, 
   Activity, 
@@ -110,7 +111,8 @@ export default function HealthHub() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
         <div className="max-w-6xl mx-auto px-3 py-3">
@@ -385,5 +387,6 @@ export default function HealthHub() {
         </Tabs>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
