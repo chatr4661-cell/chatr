@@ -8762,6 +8762,42 @@ export type Database = {
           },
         ]
       }
+      user_locations: {
+        Row: {
+          accuracy: number | null
+          altitude: number | null
+          created_at: string
+          heading: number | null
+          id: string
+          latitude: number
+          longitude: number
+          speed: number | null
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          altitude?: number | null
+          created_at?: string
+          heading?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          speed?: number | null
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          altitude?: number | null
+          created_at?: string
+          heading?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          speed?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_points: {
         Row: {
           balance: number

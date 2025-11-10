@@ -5,6 +5,7 @@ import React, { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { NativeAppProvider } from "./components/NativeAppProvider";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
+import { setupNativeCallUI } from "./utils/nativeCallUI";
 
 // Pages
 import Index from "./pages/Index";
@@ -208,6 +209,13 @@ const App = () => {
     };
     
     initServiceWorker();
+  }, []);
+
+  // Initialize native call UI (CallKit/ConnectionService)
+  useEffect(() => {
+    setupNativeCallUI().catch(err => {
+      console.log('Native call UI not available:', err);
+    });
   }, []);
 
   return (

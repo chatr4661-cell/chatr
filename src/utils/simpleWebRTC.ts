@@ -102,15 +102,16 @@ export class SimpleWebRTCCall {
       
       const isMobile = this.isMobileDevice();
       
+      // FaceTime-grade quality: 1080p @ 60fps (desktop) or 720p @ 30fps (mobile)
       const videoConstraints = this.isVideo ? (isMobile ? {
-        width: { ideal: 640, max: 1280 },
-        height: { ideal: 480, max: 720 },
-        frameRate: { ideal: 15, max: 30 },
+        width: { ideal: 1280, max: 1280 },
+        height: { ideal: 720, max: 720 },
+        frameRate: { ideal: 30, max: 30 },
         facingMode: 'user'
       } : {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 30 },
+        width: { ideal: 1920, max: 1920 },
+        height: { ideal: 1080, max: 1080 },
+        frameRate: { ideal: 60, max: 60 },
         facingMode: 'user'
       }) : false;
       

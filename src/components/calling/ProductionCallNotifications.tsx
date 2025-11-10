@@ -7,6 +7,7 @@ import ProductionVideoCall from './ProductionVideoCall';
 import { GroupVideoCall } from './GroupVideoCall';
 import { GroupVoiceCall } from './GroupVoiceCall';
 import { useNavigate } from 'react-router-dom';
+import { showNativeIncomingCall, endNativeCall } from '@/utils/nativeCallUI';
 
 interface ProductionCallNotificationsProps {
   userId: string;
@@ -42,6 +43,9 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
   const answerCall = async (call: any) => {
     console.log('✅ Answering call instantly:', call.id);
     
+    // End native call UI
+    await endNativeCall(call.id);
+    
     // CRITICAL: Stop ringtone FIRST by clearing incoming call
     setIncomingCall(null);
     
@@ -66,6 +70,9 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
   };
 
   const rejectCall = async (call: any) => {
+    // End native call UI
+    await endNativeCall(call.id);
+    
     setIncomingCall(null);
 
     await supabase
@@ -126,7 +133,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         schema: 'public',
         table: 'calls',
         filter: `receiver_id=eq.${userId}`
-      }, (payload) => {
+      }, async (payload) => {
         const call = payload.new as any;
         console.log('📱 [ProductionCallNotifications] INCOMING CALL:', { 
           id: call.id, 
@@ -137,6 +144,16 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         
         if (call.status === 'ringing' && !activeCall && !incomingCall) {
           console.log('✅ Showing incoming call screen');
+          
+          // Show native incoming call UI (iOS CallKit / Android ConnectionService)
+          await showNativeIncomingCall({
+            callId: call.id,
+            callerName: call.caller_name || 'Unknown',
+            callerPhone: call.caller_phone,
+            callerAvatar: call.caller_avatar,
+            isVideo: call.call_type === 'video',
+          });
+          
           setIncomingCall(call);
 
           toast({
