@@ -35,11 +35,13 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const isNative = Capacitor.isNativePlatform();
 
-  // Get current user
+  // Get current user - only once on mount
   useEffect(() => {
+    let mounted = true;
+    
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      if (mounted && user?.id) {
         setUserId(user.id);
       }
     };
@@ -48,10 +50,13 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUserId(session?.user?.id);
+      if (mounted) {
+        setUserId(session?.user?.id);
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -97,12 +102,12 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
     };
   }, []);
 
-  const value: NativeAppContextType = {
+  const value: NativeAppContextType = React.useMemo(() => ({
     isNative,
     isOnline,
     userId,
     haptics,
-  };
+  }), [isNative, isOnline, userId, haptics]);
 
   return (
     <NativeAppContext.Provider value={value}>

@@ -167,8 +167,12 @@ const Index = () => {
   ];
 
   React.useEffect(() => {
+    let mounted = true;
+    
     const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+      
       if (!session) {
         // User is not logged in, redirect to auth
         navigate('/auth', { replace: true });
@@ -177,56 +181,79 @@ const Index = () => {
       
       // Set the user state for authenticated users
       const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setMounted(true);
+      if (mounted && user) {
+        setUser(user);
+        setMounted(true);
+      }
     };
     
     initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      
       if (!session) {
-        navigate('/auth', { replace: true });
         setUser(null);
+        navigate('/auth', { replace: true });
       } else {
         supabase.auth.getUser().then(({ data: { user } }) => {
-          setUser(user);
-          setMounted(true);
+          if (mounted && user) {
+            setUser(user);
+            setMounted(true);
+          }
         });
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   // Defer all heavy operations to after page is visible
   React.useEffect(() => {
-    if (!user) return;
+    if (!user || !mounted) return;
+    
+    let cancelled = false;
     
     // CRITICAL: Use requestIdleCallback for non-critical operations
     // This prevents blocking the main thread during initial render
     if ('requestIdleCallback' in window) {
       requestIdleCallback(() => {
+        if (cancelled) return;
         loadPointsData();
         // Process daily login after points load
-        setTimeout(() => processDailyLogin(), 500);
+        setTimeout(() => {
+          if (!cancelled) processDailyLogin();
+        }, 500);
       });
       
       // Contact sync is non-critical - defer heavily
       requestIdleCallback(() => {
-        setTimeout(() => autoSyncContactsOnLoad(user.id), 60000); // 1 minute
+        setTimeout(() => {
+          if (!cancelled) autoSyncContactsOnLoad(user.id);
+        }, 60000); // 1 minute
       });
     } else {
       // Fallback for browsers without requestIdleCallback
       setTimeout(() => {
+        if (cancelled) return;
         loadPointsData();
-        setTimeout(() => processDailyLogin(), 500);
-        setTimeout(() => autoSyncContactsOnLoad(user.id), 60000);
+        setTimeout(() => {
+          if (!cancelled) processDailyLogin();
+        }, 500);
+        setTimeout(() => {
+          if (!cancelled) autoSyncContactsOnLoad(user.id);
+        }, 60000);
       }, 300);
     }
 
-    return () => {};
-  }, [user]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, mounted]);
 
   const autoSyncContactsOnLoad = async (userId: string) => {
     // Auto-sync contacts on first load (background)
