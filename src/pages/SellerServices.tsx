@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, 
@@ -24,9 +25,12 @@ import {
   EyeOff,
   Download,
   Copy,
-  CheckSquare
+  CheckSquare,
+  Calendar
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PricingTierForm, PricingTier } from '@/components/PricingTierForm';
+import { AvailabilityCalendar, TimeSlot, getDefaultAvailability } from '@/components/AvailabilityCalendar';
 import logo from '@/assets/chatr-logo.png';
 
 interface Service {
@@ -40,6 +44,8 @@ interface Service {
   duration_minutes: number;
   image_url: string | null;
   images: any;
+  pricing_tiers: PricingTier[];
+  availability: TimeSlot[];
   is_active: boolean;
   created_at: string;
 }
@@ -72,12 +78,14 @@ export default function SellerServices() {
     service_name: '',
     category_id: '',
     description: '',
-    price_type: 'fixed',
+    price_type: 'tiered',
     price: '',
     duration_minutes: '',
   });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+  const [availability, setAvailability] = useState<TimeSlot[]>(getDefaultAvailability());
   const [uploading, setUploading] = useState(false);
   
   // Bulk actions
@@ -113,11 +121,18 @@ export default function SellerServices() {
         .from('chatr_plus_services')
         .select('*')
         .eq('seller_id', sellerData.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false});
 
       if (error) throw error;
 
-      setServices(servicesData || []);
+      // Map database data to include typing_tiers and availability with defaults
+      const mappedServices: Service[] = (servicesData || []).map(service => ({
+        ...service,
+        pricing_tiers: (service as any).pricing_tiers || [],
+        availability: (service as any).availability || getDefaultAvailability(),
+      }));
+
+      setServices(mappedServices);
     } catch (error) {
       console.error('Error loading services:', error);
       toast({
@@ -201,18 +216,20 @@ export default function SellerServices() {
 
       const { error } = await supabase
         .from('chatr_plus_services')
-        .insert({
+        .insert([{
           seller_id: sellerId,
           service_name: formData.service_name,
           category_id: formData.category_id,
           description: formData.description,
           price_type: formData.price_type,
-          price: parseInt(formData.price),
+          base_price: formData.price_type === 'tiered' ? 0 : parseInt(formData.price),
           duration_minutes: parseInt(formData.duration_minutes),
           image_url: imageUrls[0] || null,
           images: imageUrls.length > 0 ? imageUrls : null,
+          pricing_tiers: formData.price_type === 'tiered' ? pricingTiers : null,
+          availability: availability,
           is_active: true,
-        });
+        }] as any);
 
       if (error) throw error;
 
@@ -252,11 +269,13 @@ export default function SellerServices() {
           category_id: formData.category_id,
           description: formData.description,
           price_type: formData.price_type,
-          price: parseInt(formData.price),
+          base_price: formData.price_type === 'tiered' ? 0 : parseInt(formData.price),
           duration_minutes: parseInt(formData.duration_minutes),
           image_url: allImages[0] || null,
           images: allImages.length > 0 ? allImages : null,
-        })
+          pricing_tiers: formData.price_type === 'tiered' ? pricingTiers : null,
+          availability: availability,
+        } as any)
         .eq('id', selectedService.id);
 
       if (error) throw error;
@@ -345,6 +364,8 @@ export default function SellerServices() {
       price: service.price.toString(),
       duration_minutes: service.duration_minutes.toString(),
     });
+    setPricingTiers(service.pricing_tiers || []);
+    setAvailability(service.availability || getDefaultAvailability());
     setEditOpen(true);
   };
 
@@ -353,12 +374,14 @@ export default function SellerServices() {
       service_name: '',
       category_id: '',
       description: '',
-      price_type: 'fixed',
+      price_type: 'tiered',
       price: '',
       duration_minutes: '',
     });
     setImageFiles([]);
     setImagePreviews([]);
+    setPricingTiers([]);
+    setAvailability(getDefaultAvailability());
     setSelectedService(null);
   };
 

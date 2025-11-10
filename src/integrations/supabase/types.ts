@@ -2364,6 +2364,7 @@ export type Database = {
           metadata: Json | null
           price: number | null
           price_type: string
+          pricing_tiers: Json | null
           rating_average: number | null
           rating_count: number | null
           seller_id: string
@@ -2387,6 +2388,7 @@ export type Database = {
           metadata?: Json | null
           price?: number | null
           price_type?: string
+          pricing_tiers?: Json | null
           rating_average?: number | null
           rating_count?: number | null
           seller_id: string
@@ -2410,6 +2412,7 @@ export type Database = {
           metadata?: Json | null
           price?: number | null
           price_type?: string
+          pricing_tiers?: Json | null
           rating_average?: number | null
           rating_count?: number | null
           seller_id?: string
