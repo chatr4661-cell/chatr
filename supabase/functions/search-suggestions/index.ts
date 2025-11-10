@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// Search suggestions edge function using Lovable AI
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
