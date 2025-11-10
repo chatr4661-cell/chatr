@@ -537,12 +537,8 @@ const Index = () => {
 
       <div className="max-w-2xl mx-auto px-4 space-y-6 mt-6">
 
-        {/* Universal Search Bar */}
+        {/* Search Bar */}
         <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <h3 className="font-bold text-lg">Universal AI Search</h3>
-          </div>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
