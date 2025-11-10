@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/chatr-logo.png';
+import { useSellerRealtimeNotifications } from '@/hooks/useSellerRealtimeNotifications';
+import { SellerNotificationBell } from '@/components/seller/SellerNotificationBell';
 
 interface SellerProfile {
   id: string;
@@ -53,6 +55,8 @@ export default function SellerPortal() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [seller, setSeller] = useState<SellerProfile | null>(null);
+  const { notificationCount, notifications, clearNotifications, markAsRead } = 
+    useSellerRealtimeNotifications(seller?.id);
   const [stats, setStats] = useState<DashboardStats>({
     totalBookings: 0,
     activeServices: 0,
@@ -210,9 +214,12 @@ export default function SellerPortal() {
               <Badge variant={seller.subscription_plan === 'premium' ? 'default' : 'outline'}>
                 {seller.subscription_plan}
               </Badge>
-              <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-              </Button>
+              <SellerNotificationBell
+                count={notificationCount}
+                notifications={notifications}
+                onClear={clearNotifications}
+                onMarkAsRead={markAsRead}
+              />
               <Button variant="ghost" size="icon" onClick={() => navigate('/chatr-plus/seller/settings')}>
                 <Settings className="h-5 w-5" />
               </Button>
