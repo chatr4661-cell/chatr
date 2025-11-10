@@ -144,6 +144,9 @@ import SellerServices from "./pages/SellerServices";
 import SellerAnalytics from "./pages/SellerAnalytics";
 import SellerMessages from "./pages/SellerMessages";
 import SellerSettings from "./pages/SellerSettings";
+import SellerReviews from "./pages/SellerReviews";
+import SellerPayouts from "./pages/SellerPayouts";
+import SellerSubscription from "./pages/SellerSubscription";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -329,6 +332,9 @@ const App = () => {
             <Route path="/seller/analytics" element={<SellerAnalytics />} />
             <Route path="/seller/messages" element={<SellerMessages />} />
             <Route path="/seller/settings" element={<SellerSettings />} />
+            <Route path="/seller/reviews" element={<SellerReviews />} />
+            <Route path="/seller/payouts" element={<SellerPayouts />} />
+            <Route path="/seller/subscription" element={<SellerSubscription />} />
             <Route path="/chatr-plus/seller/bookings" element={<SellerBookings />} />
             <Route path="/chatr-plus/seller/services" element={<SellerServices />} />
             <Route path="/chatr-plus/seller/analytics" element={<SellerAnalytics />} />
