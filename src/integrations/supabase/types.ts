@@ -7197,6 +7197,85 @@ export type Database = {
           },
         ]
       }
+      reported_reviews: {
+        Row: {
+          created_at: string | null
+          details: string | null
+          id: string
+          reason: string
+          reported_by: string
+          review_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          reason: string
+          reported_by: string
+          review_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          reason?: string
+          reported_by?: string
+          review_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reported_reviews_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "home_service_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_replies: {
+        Row: {
+          created_at: string | null
+          id: string
+          reply_text: string
+          review_id: string
+          seller_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reply_text: string
+          review_id: string
+          seller_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reply_text?: string
+          review_id?: string
+          seller_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_replies_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "home_service_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_participants: {
         Row: {
           id: string
@@ -7231,6 +7310,140 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seller_invoices: {
+        Row: {
+          amount: number
+          id: string
+          invoice_number: string
+          issued_at: string | null
+          pdf_url: string | null
+          period_end: string
+          period_start: string
+          seller_id: string
+          status: string | null
+          tax_amount: number | null
+          total_amount: number
+          withdrawal_request_id: string | null
+        }
+        Insert: {
+          amount: number
+          id?: string
+          invoice_number: string
+          issued_at?: string | null
+          pdf_url?: string | null
+          period_end: string
+          period_start: string
+          seller_id: string
+          status?: string | null
+          tax_amount?: number | null
+          total_amount: number
+          withdrawal_request_id?: string | null
+        }
+        Update: {
+          amount?: number
+          id?: string
+          invoice_number?: string
+          issued_at?: string | null
+          pdf_url?: string | null
+          period_end?: string
+          period_start?: string
+          seller_id?: string
+          status?: string | null
+          tax_amount?: number | null
+          total_amount?: number
+          withdrawal_request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_invoices_withdrawal_request_id_fkey"
+            columns: ["withdrawal_request_id"]
+            isOneToOne: false
+            referencedRelation: "seller_withdrawal_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_transactions: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          seller_id: string
+          service_id: string | null
+          status: string | null
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          seller_id: string
+          service_id?: string | null
+          status?: string | null
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          seller_id?: string
+          service_id?: string | null
+          status?: string | null
+          transaction_type?: string
+        }
+        Relationships: []
+      }
+      seller_withdrawal_requests: {
+        Row: {
+          amount: number
+          bank_account_last4: string | null
+          completed_at: string | null
+          id: string
+          notes: string | null
+          processed_at: string | null
+          rejection_reason: string | null
+          requested_at: string | null
+          seller_id: string
+          status: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account_last4?: string | null
+          completed_at?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          rejection_reason?: string | null
+          requested_at?: string | null
+          seller_id: string
+          status?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_last4?: string | null
+          completed_at?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          rejection_reason?: string | null
+          requested_at?: string | null
+          seller_id?: string
+          status?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: []
       }
       service_categories: {
         Row: {
