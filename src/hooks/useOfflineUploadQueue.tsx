@@ -20,55 +20,6 @@ export const useOfflineUploadQueue = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Monitor online status
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast.success('Back online - resuming uploads');
-      processQueue();
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast.error('Offline - uploads queued');
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Add item to upload queue
-  const queueUpload = useCallback((
-    file: File | Blob,
-    path: string,
-    bucket: string = 'media',
-    metadata?: Record<string, any>
-  ) => {
-    const item: UploadQueueItem = {
-      id: crypto.randomUUID(),
-      file,
-      path,
-      bucket,
-      metadata,
-      timestamp: Date.now(),
-      retries: 0,
-    };
-
-    setQueue(prev => [...prev, item]);
-
-    if (isOnline) {
-      processQueue();
-    } else {
-      toast.info('Upload queued - will send when online');
-    }
-
-    return item.id;
-  }, [isOnline]);
-
   // Process upload queue
   const processQueue = useCallback(async () => {
     if (isProcessing || !isOnline || queue.length === 0) return;
@@ -117,6 +68,56 @@ export const useOfflineUploadQueue = () => {
 
     setIsProcessing(false);
   }, [isProcessing, isOnline, queue]);
+
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success('Back online - resuming uploads');
+      processQueue();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error('Offline - uploads queued');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [processQueue]);
+
+  // Add item to upload queue
+  const queueUpload = useCallback((
+    file: File | Blob,
+    path: string,
+    bucket: string = 'media',
+    metadata?: Record<string, any>
+  ) => {
+    const item: UploadQueueItem = {
+      id: crypto.randomUUID(),
+      file,
+      path,
+      bucket,
+      metadata,
+      timestamp: Date.now(),
+      retries: 0,
+    };
+
+    setQueue(prev => [...prev, item]);
+
+    if (isOnline) {
+      processQueue();
+    } else {
+      toast.info('Upload queued - will send when online');
+    }
+
+    return item.id;
+  }, [isOnline, processQueue]);
+
 
   // Clear queue
   const clearQueue = useCallback(() => {
