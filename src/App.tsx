@@ -138,6 +138,7 @@ import ChatrPlusSellerRegistration from "./pages/ChatrPlusSellerRegistration";
 import ChatrPlusSellerDashboard from "./pages/ChatrPlusSellerDashboard";
 import ChatrPlusCategoryPage from "./pages/ChatrPlusCategoryPage";
 import ChatrPlusWallet from "./pages/ChatrPlusWallet";
+import SellerPortal from "./pages/SellerPortal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -294,6 +295,8 @@ const App = () => {
             <Route path="/chatr-plus/seller/dashboard" element={<ChatrPlusSellerDashboard />} />
             <Route path="/chatr-plus/category/:slug" element={<ChatrPlusCategoryPage />} />
             <Route path="/chatr-plus/wallet" element={<ChatrPlusWallet />} />
+            <Route path="/seller" element={<SellerPortal />} />
+            <Route path="/seller/portal" element={<SellerPortal />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
