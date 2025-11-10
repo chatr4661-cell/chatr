@@ -142,6 +142,8 @@ import SellerPortal from "./pages/SellerPortal";
 import SellerBookings from "./pages/SellerBookings";
 import SellerServices from "./pages/SellerServices";
 import SellerAnalytics from "./pages/SellerAnalytics";
+import SellerMessages from "./pages/SellerMessages";
+import SellerSettings from "./pages/SellerSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -325,6 +327,13 @@ const App = () => {
             <Route path="/seller/bookings" element={<SellerBookings />} />
             <Route path="/seller/services" element={<SellerServices />} />
             <Route path="/seller/analytics" element={<SellerAnalytics />} />
+            <Route path="/seller/messages" element={<SellerMessages />} />
+            <Route path="/seller/settings" element={<SellerSettings />} />
+            <Route path="/chatr-plus/seller/bookings" element={<SellerBookings />} />
+            <Route path="/chatr-plus/seller/services" element={<SellerServices />} />
+            <Route path="/chatr-plus/seller/analytics" element={<SellerAnalytics />} />
+            <Route path="/chatr-plus/seller/messages" element={<SellerMessages />} />
+            <Route path="/chatr-plus/seller/settings" element={<SellerSettings />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />

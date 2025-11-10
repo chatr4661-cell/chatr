@@ -21,8 +21,12 @@ import {
   IndianRupee,
   Clock,
   Eye,
-  EyeOff
+  EyeOff,
+  Download,
+  Copy,
+  CheckSquare
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import logo from '@/assets/chatr-logo.png';
 
 interface Service {
@@ -75,6 +79,10 @@ export default function SellerServices() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  
+  // Bulk actions
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkActionOpen, setBulkActionOpen] = useState(false);
 
   useEffect(() => {
     loadServices();
@@ -358,6 +366,121 @@ export default function SellerServices() {
     return CATEGORIES.find(c => c.id === categoryId)?.name || categoryId;
   };
 
+  const toggleSelectAll = () => {
+    if (selectedIds.length === services.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(services.map(s => s.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkActivate = async () => {
+    try {
+      const { error } = await supabase
+        .from('chatr_plus_services')
+        .update({ is_active: true })
+        .in('id', selectedIds);
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: `${selectedIds.length} services activated` });
+      setSelectedIds([]);
+      loadServices();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to activate services', variant: 'destructive' });
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    try {
+      const { error } = await supabase
+        .from('chatr_plus_services')
+        .update({ is_active: false })
+        .in('id', selectedIds);
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: `${selectedIds.length} services deactivated` });
+      setSelectedIds([]);
+      loadServices();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to deactivate services', variant: 'destructive' });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('chatr_plus_services')
+        .delete()
+        .in('id', selectedIds);
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: `${selectedIds.length} services deleted` });
+      setSelectedIds([]);
+      setBulkActionOpen(false);
+      loadServices();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete services', variant: 'destructive' });
+    }
+  };
+
+  const handleDuplicate = async (service: Service) => {
+    try {
+      const { error } = await supabase
+        .from('chatr_plus_services')
+        .insert({
+          seller_id: service.seller_id,
+          service_name: `${service.service_name} (Copy)`,
+          category_id: service.category_id,
+          description: service.description,
+          price_type: service.price_type,
+          price: service.price,
+          duration_minutes: service.duration_minutes,
+          image_url: service.image_url,
+          images: service.images,
+          is_active: false,
+        });
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: 'Service duplicated successfully' });
+      loadServices();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to duplicate service', variant: 'destructive' });
+    }
+  };
+
+  const exportToCSV = () => {
+    const selectedServices = services.filter(s => selectedIds.includes(s.id));
+    const csvData = selectedServices.map(s => ({
+      Name: s.service_name,
+      Category: getCategoryName(s.category_id),
+      Price: s.price,
+      PriceType: s.price_type,
+      Duration: s.duration_minutes,
+      Status: s.is_active ? 'Active' : 'Inactive',
+    }));
+
+    const headers = Object.keys(csvData[0]).join(',');
+    const rows = csvData.map(row => Object.values(row).join(',')).join('\n');
+    const csv = `${headers}\n${rows}`;
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `services_${Date.now()}.csv`;
+    a.click();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -382,14 +505,37 @@ export default function SellerServices() {
               <div>
                 <h1 className="text-2xl font-bold">Services Management</h1>
                 <p className="text-sm text-muted-foreground">
-                  {services.length} service{services.length !== 1 ? 's' : ''}
+                  {services.length} service{services.length !== 1 ? 's' : ''} 
+                  {selectedIds.length > 0 && ` • ${selectedIds.length} selected`}
                 </p>
               </div>
             </div>
-            <Button onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Service
-            </Button>
+            <div className="flex items-center gap-2">
+              {selectedIds.length > 0 && (
+                <>
+                  <Button variant="outline" size="sm" onClick={handleBulkActivate}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Activate
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleBulkDeactivate}>
+                    <EyeOff className="h-4 w-4 mr-1" />
+                    Deactivate
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={exportToCSV}>
+                    <Download className="h-4 w-4 mr-1" />
+                    Export
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => setBulkActionOpen(true)}>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </>
+              )}
+              <Button onClick={() => setAddOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Service
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -412,10 +558,28 @@ export default function SellerServices() {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service) => (
-              <Card key={service.id} className="overflow-hidden">
-                {/* Service Image */}
+          <>
+            {services.length > 0 && (
+              <div className="mb-4 flex items-center gap-2">
+                <Checkbox
+                  checked={selectedIds.length === services.length}
+                  onCheckedChange={toggleSelectAll}
+                />
+                <span className="text-sm text-muted-foreground">
+                  Select all services
+                </span>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {services.map((service) => (
+                <Card key={service.id} className="overflow-hidden relative">
+                  <div className="absolute top-2 left-2 z-10">
+                    <Checkbox
+                      checked={selectedIds.includes(service.id)}
+                      onCheckedChange={() => toggleSelect(service.id)}
+                    />
+                  </div>
+                  {/* Service Image */}
                 <div className="relative h-48 bg-muted">
                   {service.image_url ? (
                     <img
@@ -483,6 +647,14 @@ export default function SellerServices() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={() => handleDuplicate(service)}
+                      title="Duplicate"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleToggleActive(service.id, service.is_active)}
                     >
                       {service.is_active ? (
@@ -506,8 +678,29 @@ export default function SellerServices() {
               </Card>
             ))}
           </div>
+          </>
         )}
       </div>
+
+      {/* Bulk Delete Confirmation */}
+      <Dialog open={bulkActionOpen} onOpenChange={setBulkActionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Selected Services</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedIds.length} service{selectedIds.length > 1 ? 's' : ''}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkActionOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Service Dialog */}
       <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) resetForm(); }}>
