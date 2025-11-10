@@ -49,8 +49,123 @@ const Index = () => {
   const [showShareDialog, setShowShareDialog] = React.useState(false);
   const [referralCode, setReferralCode] = React.useState<string>('');
   const [qrCodeUrl, setQrCodeUrl] = React.useState<string>('');
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchSuggestions, setSearchSuggestions] = React.useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const [isListening, setIsListening] = React.useState(false);
+  const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
 
-  // Load user and check authentication
+  // Load recent searches from localStorage
+  React.useEffect(() => {
+    const saved = localStorage.getItem('recent_searches');
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error loading recent searches:', e);
+      }
+    }
+  }, []);
+
+  // Voice search using Web Speech API
+  const startVoiceSearch = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('Voice search not supported in this browser');
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    recognition.lang = 'en-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      toast.info('Listening... Speak now!');
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+      setIsListening(false);
+      
+      // Auto search after voice input
+      setTimeout(() => {
+        handleSearch(transcript);
+      }, 500);
+    };
+
+    recognition.onerror = (event: any) => {
+      setIsListening(false);
+      console.error('Speech recognition error:', event.error);
+      toast.error('Voice search failed. Please try again.');
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  // Fetch AI search suggestions
+  const fetchSuggestions = React.useCallback(async (query: string) => {
+    if (!query || query.length < 2) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('search-suggestions', {
+        body: { query, recentSearches }
+      });
+
+      if (error) throw error;
+      setSearchSuggestions(data.suggestions || []);
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    }
+  }, [recentSearches]);
+
+  // Debounce search suggestions
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        fetchSuggestions(searchQuery);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, fetchSuggestions]);
+
+  const handleSearch = (query?: string) => {
+    const searchText = query || searchQuery;
+    if (!searchText.trim()) return;
+
+    // Save to recent searches
+    const updated = [searchText, ...recentSearches.filter(s => s !== searchText)].slice(0, 10);
+    setRecentSearches(updated);
+    localStorage.setItem('recent_searches', JSON.stringify(updated));
+
+    // Navigate to search
+    navigate(`/search?q=${encodeURIComponent(searchText)}`);
+    setShowSuggestions(false);
+    setSearchQuery('');
+  };
+
+  const trendingSearches = [
+    { query: 'Plumber near me', icon: '🔧' },
+    { query: 'Biryani delivery', icon: '🍛' },
+    { query: 'Doctor consultation', icon: '👨‍⚕️' },
+    { query: 'Electrician services', icon: '⚡' },
+    { query: 'Salon near me', icon: '💇' },
+    { query: 'Home cleaning', icon: '🧹' },
+    { query: 'Pizza delivery', icon: '🍕' },
+    { query: 'AC repair', icon: '❄️' },
+  ];
+
   React.useEffect(() => {
     const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -538,27 +653,77 @@ const Index = () => {
       <div className="max-w-2xl mx-auto px-4 space-y-6 mt-6">
 
         {/* Search Bar */}
-        <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-5">
+        <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-5 relative">
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input 
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 placeholder="Find plumber, order biryani, dentist near me..."
-                className="pl-10 h-12 bg-background/80 backdrop-blur"
+                className="pl-10 pr-12 h-12 bg-background/80 backdrop-blur"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    const query = (e.target as HTMLInputElement).value;
-                    if (query) navigate(`/search?q=${encodeURIComponent(query)}`);
+                    handleSearch();
                   }
                 }}
               />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={startVoiceSearch}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 ${isListening ? 'text-red-500 animate-pulse' : ''}`}
+              >
+                <Mic className="w-4 h-4" />
+              </Button>
+
+              {/* Search Suggestions Dropdown */}
+              {showSuggestions && (searchSuggestions.length > 0 || recentSearches.length > 0) && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {recentSearches.length > 0 && (
+                    <div className="p-2 border-b border-border">
+                      <p className="text-xs font-semibold text-muted-foreground px-2 mb-2">Recent Searches</p>
+                      {recentSearches.slice(0, 3).map((search, idx) => (
+                        <button
+                          key={`recent-${idx}`}
+                          onClick={() => handleSearch(search)}
+                          className="w-full text-left px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2 text-sm"
+                        >
+                          <Search className="w-4 h-4 text-muted-foreground" />
+                          {search}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchSuggestions.length > 0 && (
+                    <div className="p-2">
+                      <p className="text-xs font-semibold text-muted-foreground px-2 mb-2">
+                        <Sparkles className="w-3 h-3 inline mr-1" />
+                        AI Suggestions
+                      </p>
+                      {searchSuggestions.map((suggestion, idx) => (
+                        <button
+                          key={`suggestion-${idx}`}
+                          onClick={() => handleSearch(suggestion)}
+                          className="w-full text-left px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2 text-sm"
+                        >
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <Button 
               size="lg"
-              onClick={() => {
-                const input = document.querySelector('input') as HTMLInputElement;
-                if (input?.value) navigate(`/search?q=${encodeURIComponent(input.value)}`);
-              }}
+              onClick={() => handleSearch()}
               className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 px-6"
             >
               <Search className="w-5 h-5" />
@@ -567,6 +732,26 @@ const Index = () => {
           <p className="text-xs text-muted-foreground mt-2">
             AI-powered search across services, jobs, healthcare, food & more
           </p>
+        </div>
+
+        {/* Trending Searches */}
+        <div>
+          <h3 className="text-sm font-semibold mb-3 px-1 flex items-center gap-2">
+            <Flame className="w-4 h-4 text-orange-500" />
+            Trending Searches
+          </h3>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {trendingSearches.map((item, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSearch(item.query)}
+                className="flex-shrink-0 px-4 py-2 bg-background/80 backdrop-blur border border-border/40 rounded-full hover:bg-accent transition-colors flex items-center gap-2 text-sm"
+              >
+                <span>{item.icon}</span>
+                <span>{item.query}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* iOS-style App Grid */}
