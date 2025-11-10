@@ -361,6 +361,11 @@ const MiniAppsStore = () => {
     entertainmentHubApps.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
   ).slice(0, 6);
 
+  const shoppingApps = ['Flipkart', 'Meesho', 'Myntra', 'Tata Cliq'];
+  const shoppingCollection = apps.filter(app =>
+    shoppingApps.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
+  ).slice(0, 4);
+
   const renderAppCard = (app: MiniApp) => (
     <motion.div
       key={app.id}
@@ -687,6 +692,24 @@ const MiniAppsStore = () => {
           </div>
         )}
 
+        {/* Shopping & E-commerce Collection */}
+        {shoppingCollection.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                  Shopping & E-commerce
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Fashion, electronics & everything you need
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {shoppingCollection.map(renderAppCard)}
+            </div>
+          </div>
+        )}
         {/* Finance Suite Collection */}
         {financeSuiteCollection.length > 0 && (
           <div className="space-y-4">
