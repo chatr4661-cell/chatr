@@ -1,0 +1,12 @@
+-- Insert new popular apps into mini_apps table
+INSERT INTO public.mini_apps (app_name, app_url, icon_url, category_id, description, is_active, rating_average, rating_count, install_count, is_verified) VALUES
+('X (Twitter)', 'https://x.com', 'https://abs.twimg.com/responsive-web/client-web/icon-ios.77d25eba.png', '6248ab2e-6e99-4267-b90f-76c2370b0da1', 'Social media platform for real-time updates', true, 4.5, 0, 0, true),
+('Instagram', 'https://www.instagram.com', 'https://static.cdninstagram.com/rsrc.php/v3/yt/r/30PrGfR3xhB.png', '6248ab2e-6e99-4267-b90f-76c2370b0da1', 'Photo and video sharing social network', true, 4.7, 0, 0, true),
+('Facebook', 'https://m.facebook.com', 'https://static.xx.fbcdn.net/rsrc.php/yD/r/d4ZIVX-5C-b.ico', '6248ab2e-6e99-4267-b90f-76c2370b0da1', 'Connect with friends and the world', true, 4.6, 0, 0, true),
+('WhatsApp Web', 'https://web.whatsapp.com', 'https://static.whatsapp.net/rsrc.php/v3/yz/r/ujTY9i_Jhs1.png', '6248ab2e-6e99-4267-b90f-76c2370b0da1', 'Messaging and calling platform', true, 4.8, 0, 0, true),
+('LinkedIn', 'https://www.linkedin.com/feed', 'https://static.licdn.com/sc/h/al2o9zrvru7aqj8e1x2rzsrca', 'a6c31595-795e-48d7-b015-782bc1b5cb00', 'Professional networking platform', true, 4.5, 0, 0, true),
+('Spotify', 'https://open.spotify.com', 'https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png', '7122b257-bdb1-4605-b6d1-1d41958a7f69', 'Music streaming service', true, 4.7, 0, 0, true),
+('Netflix', 'https://www.netflix.com/in', 'https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.ico', '7122b257-bdb1-4605-b6d1-1d41958a7f69', 'Streaming movies and TV shows', true, 4.8, 0, 0, true),
+('Paytm', 'https://paytm.com', 'https://paytm.com/pwa-icon-192x192.png', '6248ab2e-6e99-4267-b90f-76c2370b0da1', 'Digital payments and wallet', true, 4.4, 0, 0, true),
+('Swiggy', 'https://www.swiggy.com', 'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto/portal/m/app_icon', 'f8cc5721-1a4f-43fc-8197-cc960d6973c3', 'Food delivery service', true, 4.6, 0, 0, true),
+('Zomato', 'https://www.zomato.com', 'https://b.zmtcdn.com/images/logo/zomato_logo_2017.png', 'f8cc5721-1a4f-43fc-8197-cc960d6973c3', 'Food delivery and restaurant discovery', true, 4.5, 0, 0, true);
