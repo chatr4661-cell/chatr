@@ -168,10 +168,15 @@ const Index = () => {
 
   React.useEffect(() => {
     let isCancelled = false;
+    let authInitialized = false;
     
     const initAuth = async () => {
+      if (authInitialized) return;
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (isCancelled) return;
+      
+      authInitialized = true;
       
       if (!session) {
         navigate('/auth', { replace: true });
@@ -187,13 +192,18 @@ const Index = () => {
     
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (isCancelled) return;
+      
+      // Prevent reload on token refresh
+      if (event === 'TOKEN_REFRESHED') {
+        return;
+      }
       
       if (!session) {
         setUser(null);
         navigate('/auth', { replace: true });
-      } else {
+      } else if (event === 'SIGNED_IN') {
         supabase.auth.getUser().then(({ data: { user } }) => {
           if (!isCancelled && user) {
             setUser(user);

@@ -11,6 +11,13 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
+    // Check if already registered
+    const existing = await navigator.serviceWorker.getRegistration('/');
+    if (existing) {
+      console.log('✅ Service Worker already active');
+      return existing;
+    }
+
     // Register the Firebase messaging service worker
     const registration = await navigator.serviceWorker.register(
       '/firebase-messaging-sw.js',
@@ -23,7 +30,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     await navigator.serviceWorker.ready;
     console.log('✅ Service Worker ready');
 
-    // Check for updates periodically
+    // Check for updates periodically (only once)
     setInterval(() => {
       registration.update();
     }, 60000); // Check every minute

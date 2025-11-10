@@ -183,13 +183,31 @@ const SubdomainRedirect = () => {
 };
 
 const App = () => {
-  // Register service worker for push notifications
+  // Register service worker once on mount
   useEffect(() => {
-    registerServiceWorker().then((registration) => {
+    let registered = false;
+    
+    const initServiceWorker = async () => {
+      if (registered) return;
+      
+      // Check if already registered
+      if ('serviceWorker' in navigator) {
+        const existing = await navigator.serviceWorker.getRegistration();
+        if (existing) {
+          console.log('✅ Service Worker already registered');
+          registered = true;
+          return;
+        }
+      }
+      
+      const registration = await registerServiceWorker();
       if (registration) {
         console.log('✅ Service Worker initialized for push notifications');
+        registered = true;
       }
-    });
+    };
+    
+    initServiceWorker();
   }, []);
 
   return (
