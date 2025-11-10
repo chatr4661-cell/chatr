@@ -14,6 +14,7 @@ import { useSSOToken } from '@/hooks/useSSOToken';
 import { QuickAppSubmission } from '@/components/QuickAppSubmission';
 import { Browser } from '@capacitor/browser';
 import { useNativeStorage } from '@/hooks/useNativeStorage';
+import { useWebViewManager } from '@/hooks/useWebViewManager';
 
 interface MiniApp {
   id: string;
@@ -65,6 +66,9 @@ const MiniAppsStore = () => {
   const [minRating, setMinRating] = useState<number>(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [showSubmission, setShowSubmission] = useState(false);
+  
+  // WebView manager for enhanced app opening
+  const webViewManager = useWebViewManager();
   
   // Offline cache using native storage
   const { value: cachedApps, setValue: setCachedApps } = useNativeStorage<MiniApp[]>('cached_mini_apps', []);
@@ -270,24 +274,6 @@ const MiniAppsStore = () => {
       
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Start usage session tracking
-      let sessionId: string | null = null;
-      if (user) {
-        const { data: sessionData } = await supabase
-          .from('app_usage_sessions' as any)
-          .insert({
-            user_id: user.id,
-            app_id: app.id,
-            session_start: new Date().toISOString(),
-          })
-          .select()
-          .single() as any;
-        
-        sessionId = sessionData?.id || null;
-      }
-      
-      
-      
       if (user && installedApps.has(app.id)) {
         // Update last opened time
         await supabase
@@ -304,74 +290,18 @@ const MiniAppsStore = () => {
         });
       }
 
-      // Load session data if exists
-      let sessionData = null;
-      if (user) {
-        try {
-          const { data } = await supabase
-            .from('app_session_data' as any)
-            .select('session_data')
-            .eq('user_id', user.id)
-            .eq('app_id', app.id)
-            .maybeSingle() as any;
-          
-          sessionData = data?.session_data || null;
-        } catch (err) {
-          console.log('Session data not available:', err);
-        }
-      }
-
-      // Store session data in local storage for WebView access
-      if (sessionData) {
-        localStorage.setItem(`app_session_${app.id}`, JSON.stringify(sessionData));
-      }
-
       // Check if it's an internal route or external URL
       if (appUrl.startsWith('/')) {
         // Internal Chatr route - navigate within app
         navigate(appUrl);
         toast.success(`Opening ${app.app_name}...`);
       } else {
-        // Open in WebView with session support
-        toast.loading(`Opening ${app.app_name}...`, { id: `open-${app.id}` });
-        
-        await Browser.open({
+        // Use WebView manager for enhanced app opening
+        await webViewManager.openApp({
+          id: app.id,
+          app_name: app.app_name,
           url: appUrl,
-          presentationStyle: 'fullscreen',
-          toolbarColor: '#1a1a2e',
         });
-
-        // Listen for app close to sync session data and end tracking
-        Browser.addListener('browserFinished', async () => {
-          // End usage session
-          if (sessionId && user) {
-            await supabase
-              .from('app_usage_sessions' as any)
-              .update({
-                session_end: new Date().toISOString(),
-              })
-              .eq('id', sessionId);
-          }
-
-          // Sync session data
-          const updatedSession = localStorage.getItem(`app_session_${app.id}`);
-          if (updatedSession && user) {
-            try {
-              await supabase
-                .from('app_session_data' as any)
-                .upsert({
-                  user_id: user.id,
-                  app_id: app.id,
-                  session_data: JSON.parse(updatedSession),
-                  last_synced: new Date().toISOString(),
-                });
-            } catch (err) {
-              console.log('Failed to sync session data:', err);
-            }
-          }
-        });
-
-        toast.success(`${app.app_name} opened`, { id: `open-${app.id}` });
       }
       
       loadRecentlyUsed();
