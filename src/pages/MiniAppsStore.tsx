@@ -345,6 +345,22 @@ const MiniAppsStore = () => {
     featuredAppNames.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
   ).slice(0, 5);
 
+  // App Collections
+  const essentialIndianApps = ['Paytm', 'PhonePe', 'Zomato', 'Swiggy', 'Flipkart', 'IRCTC', 'OYO'];
+  const essentialAppsCollection = apps.filter(app =>
+    essentialIndianApps.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
+  ).slice(0, 8);
+
+  const financeSuiteApps = ['Paytm', 'PhonePe', 'Groww', 'Zerodha'];
+  const financeSuiteCollection = apps.filter(app =>
+    financeSuiteApps.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
+  ).slice(0, 6);
+
+  const entertainmentHubApps = ['JioSaavn', 'Gaana', 'Hotstar', 'Myntra'];
+  const entertainmentHubCollection = apps.filter(app =>
+    entertainmentHubApps.some(name => app.app_name.toLowerCase().includes(name.toLowerCase()))
+  ).slice(0, 6);
+
   const renderAppCard = (app: MiniApp) => (
     <motion.div
       key={app.id}
@@ -650,6 +666,61 @@ const MiniAppsStore = () => {
                   </motion.div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Essential Indian Apps Collection */}
+        {essentialAppsCollection.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold">Essential Indian Apps</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Must-have apps for everyday life in India
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {essentialAppsCollection.map(renderAppCard)}
+            </div>
+          </div>
+        )}
+
+        {/* Finance Suite Collection */}
+        {financeSuiteCollection.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  Finance Suite
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Manage payments, investments & trading
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+              {financeSuiteCollection.map(renderAppCard)}
+            </div>
+          </div>
+        )}
+
+        {/* Entertainment Hub Collection */}
+        {entertainmentHubCollection.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Entertainment Hub
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Music, streaming & fashion all in one place
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+              {entertainmentHubCollection.map(renderAppCard)}
             </div>
           </div>
         )}
