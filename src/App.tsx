@@ -3,8 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import React from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { useNativeOptimizations } from "./hooks/useNativeOptimizations";
-import { useNativePerformance } from "./hooks/useNativePerformance";
+import { NativeAppProvider } from "./components/NativeAppProvider";
 
 // Pages
 import Index from "./pages/Index";
@@ -145,14 +144,11 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  // Enable native optimizations
-  useNativeOptimizations();
-  useNativePerformance();
-  
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-        <BrowserRouter>
+      <NativeAppProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <BrowserRouter>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
@@ -311,6 +307,7 @@ const App = () => {
           </Routes>
         </BrowserRouter>
       </ThemeProvider>
+      </NativeAppProvider>
     </QueryClientProvider>
   );
 };
