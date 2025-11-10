@@ -400,11 +400,11 @@ const Index = () => {
 
   const mainHubs = [
     {
-      icon: Search,
-      title: 'Universal Search',
-      description: 'Find anything with AI',
-      iconColor: 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600',
-      route: '/search'
+      icon: MessageCircle,
+      title: 'Chat',
+      description: 'Messages, calls & video',
+      iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
+      route: '/chat'
     },
     {
       icon: Sparkles,
@@ -433,13 +433,6 @@ const Index = () => {
       description: 'Clinics & doctors nearby',
       iconColor: 'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600',
       route: '/local-healthcare'
-    },
-    {
-      icon: MessageCircle,
-      title: 'Chat',
-      description: 'Messages, calls & video',
-      iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
-      route: '/chat'
     },
     {
       icon: Search,
