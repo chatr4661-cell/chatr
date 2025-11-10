@@ -133,6 +133,7 @@ import Community from "./pages/Community";
 import ChatrPlus from "./pages/ChatrPlus";
 import ChatrPlusSearch from "./pages/ChatrPlusSearch";
 import ChatrPlusSubscribe from "./pages/ChatrPlusSubscribe";
+import ChatrPlusServiceDetail from "./pages/ChatrPlusServiceDetail";
 
 
 const queryClient = new QueryClient({
@@ -285,6 +286,7 @@ const App = () => {
             <Route path="/chatr-plus" element={<ChatrPlus />} />
             <Route path="/chatr-plus/search" element={<ChatrPlusSearch />} />
             <Route path="/chatr-plus/subscribe" element={<ChatrPlusSubscribe />} />
+            <Route path="/chatr-plus/service/:id" element={<ChatrPlusServiceDetail />} />
             
             {/* Provider Dashboard Routes */}
             <Route path="/provider/appointments" element={<ProviderAppointments />} />
