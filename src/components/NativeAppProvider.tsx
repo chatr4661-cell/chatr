@@ -8,6 +8,7 @@ import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
 import { useBatteryOptimization } from '@/hooks/useBatteryOptimization';
 import { useContactSync } from '@/hooks/useContactSync';
 import { useOfflineUploadQueue } from '@/hooks/useOfflineUploadQueue';
+import { useGeofencing } from '@/hooks/useGeofencing';
 import { supabase } from '@/integrations/supabase/client';
 
 interface NativeAppContextType {
@@ -78,6 +79,9 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   
   // Android back button
   useAndroidBackButton();
+  
+  // Geofencing for location-based notifications
+  useGeofencing(userId);
 
   // Monitor online status
   useEffect(() => {

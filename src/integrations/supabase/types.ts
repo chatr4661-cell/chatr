@@ -3611,6 +3611,101 @@ export type Database = {
           },
         ]
       }
+      geofence_events: {
+        Row: {
+          event_type: string
+          geofence_id: string
+          id: string
+          lat: number
+          lng: number
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          event_type: string
+          geofence_id: string
+          id?: string
+          lat: number
+          lng: number
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          event_type?: string
+          geofence_id?: string
+          id?: string
+          lat?: number
+          lng?: number
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geofence_events_geofence_id_fkey"
+            columns: ["geofence_id"]
+            isOneToOne: false
+            referencedRelation: "geofences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geofences: {
+        Row: {
+          active: boolean | null
+          center_lat: number
+          center_lng: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          notification_body: string | null
+          notification_title: string | null
+          radius_meters: number
+          trigger_on_enter: boolean | null
+          trigger_on_exit: boolean | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          center_lat: number
+          center_lng: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          notification_body?: string | null
+          notification_title?: string | null
+          radius_meters?: number
+          trigger_on_enter?: boolean | null
+          trigger_on_exit?: boolean | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          center_lat?: number
+          center_lng?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          notification_body?: string | null
+          notification_title?: string | null
+          radius_meters?: number
+          trigger_on_enter?: boolean | null
+          trigger_on_exit?: boolean | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       health_challenges: {
         Row: {
           challenge_type: string
