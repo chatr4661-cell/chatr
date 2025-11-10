@@ -96,7 +96,7 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
  * Show a test notification
  */
 export const showTestNotification = async (title: string, body: string): Promise<void> => {
-  if (!('serviceWorker' in navigator) || Notification.permission !== 'granted') {
+  if (!('serviceWorker' in navigator) || typeof Notification === 'undefined' || Notification.permission !== 'granted') {
     console.log('❌ Cannot show notification');
     return;
   }

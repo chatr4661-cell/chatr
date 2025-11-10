@@ -70,7 +70,7 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 
 // Show notification
 export const showNotification = (title: string, options?: NotificationOptions) => {
-  if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then((registration) => {
       registration.showNotification(title, {
         icon: '/chatr-logo.png',
