@@ -93,8 +93,8 @@ export default function ProductionVideoCall({
             remoteVideoRef.current.playsInline = true;
             remoteVideoRef.current.autoplay = true;
             
-            // CRITICAL: Ensure audio is unmuted and volume is max
-            remoteVideoRef.current.muted = false;
+            // CRITICAL: Start muted to allow autoplay, then unmute after playback starts
+            remoteVideoRef.current.muted = true;
             remoteVideoRef.current.volume = 1.0;
             
             // Safari/iOS specific: set webkit playsinline
@@ -104,38 +104,47 @@ export default function ProductionVideoCall({
             console.log('🔊 Remote video configured - muted=false, volume=1.0');
             
             // Universal play function with browser-specific handling
-            const forcePlay = async (requireGesture = false) => {
+            const forcePlay = async (attempt: number = 1) => {
               try {
                 if (remoteVideoRef.current) {
-                  // Re-verify settings before play
-                  remoteVideoRef.current.muted = false;
-                  remoteVideoRef.current.volume = 1.0;
-                  
-                  // iOS/Safari: Must wait for user gesture
-                  if ((isIOS() || isSafari()) && !userInteracted && !requireGesture) {
-                    console.log('⏳ iOS/Safari detected - waiting for user interaction');
-                    return;
+                  // Start with muted to allow autoplay
+                  if (attempt === 1) {
+                    remoteVideoRef.current.muted = true;
                   }
                   
                   await remoteVideoRef.current.play();
-                  console.log('✅ Remote video/audio playing');
-                  setUserInteracted(true);
+                  console.log(`✅ Remote video playing (attempt ${attempt})`);
+                  
+                  // Unmute after successful playback
+                  setTimeout(() => {
+                    if (remoteVideoRef.current) {
+                      remoteVideoRef.current.muted = false;
+                      remoteVideoRef.current.volume = 1.0;
+                      console.log('🔊 Remote audio unmuted');
+                      setUserInteracted(true);
+                    }
+                  }, 100);
                 }
               } catch (err) {
-                console.warn('⚠️ Play failed:', err);
+                console.warn(`⚠️ Play failed (attempt ${attempt}):`, err);
                 
-                if (!requireGesture && (err.name === 'NotAllowedError' || err.name === 'NotSupportedError')) {
+                if (attempt <= 2 && (err.name === 'NotAllowedError' || err.name === 'NotSupportedError')) {
                   console.log('🖱️ Requiring user gesture for playback');
                   
-                  const playOnInteraction = async (e: Event) => {
-                    e.preventDefault();
+                  const playOnInteraction = async () => {
                     try {
                       if (remoteVideoRef.current) {
-                        remoteVideoRef.current.muted = false;
-                        remoteVideoRef.current.volume = 1.0;
+                        remoteVideoRef.current.muted = true;
                         await remoteVideoRef.current.play();
-                        console.log('✅ Remote playing after user interaction');
-                        setUserInteracted(true);
+                        // Unmute after play succeeds
+                        setTimeout(() => {
+                          if (remoteVideoRef.current) {
+                            remoteVideoRef.current.muted = false;
+                            remoteVideoRef.current.volume = 1.0;
+                            console.log('✅ Remote playing + unmuted after user interaction');
+                            setUserInteracted(true);
+                          }
+                        }, 100);
                       }
                     } catch (e) {
                       console.error('Failed to play after interaction:', e);
@@ -148,28 +157,23 @@ export default function ProductionVideoCall({
                     document.addEventListener(eventType, playOnInteraction, { once: true, capture: true });
                   });
                   
-                  // Show persistent toast for iOS/Safari
-                  if (isIOS() || isSafari()) {
-                    toast.info('Tap anywhere to enable audio', {
-                      duration: 10000,
-                      action: {
-                        label: 'Enable Audio',
-                        onClick: () => {
-                          playOnInteraction(new Event('click'));
-                        }
-                      }
-                    });
-                  }
+                  // Show toast notification
+                  toast.info('Tap screen to enable audio', {
+                    duration: 8000,
+                    action: {
+                      label: 'Enable',
+                      onClick: playOnInteraction
+                    }
+                  });
                 }
               }
             };
             
             // Multi-stage retry with increasing delays
-            forcePlay();
-            setTimeout(() => forcePlay(), 100);
-            setTimeout(() => forcePlay(), 500);
-            setTimeout(() => forcePlay(), 1500);
-            setTimeout(() => forcePlay(true), 3000); // Final attempt with gesture requirement
+            forcePlay(1);
+            setTimeout(() => forcePlay(2), 100);
+            setTimeout(() => forcePlay(3), 500);
+            setTimeout(() => forcePlay(4), 1500);
           }
         });
 
@@ -336,32 +340,27 @@ export default function ProductionVideoCall({
         ref={mainVideoRef}
         autoPlay
         playsInline
-        webkit-playsinline="true"
         muted={videoLayout === 'local-main'}
         className="w-full h-full object-cover"
+        style={{ WebkitPlaysinline: 'true' } as any}
         onDoubleClick={handleToggleFullScreen}
         onLoadedMetadata={(e) => {
-          // Ensure audio is enabled when metadata loads
           const video = e.currentTarget;
           if (videoLayout === 'remote-main') {
-            video.muted = false;
-            video.volume = 1.0;
-            console.log('🔊 Remote video metadata loaded, audio enabled');
-            // Auto-play on metadata load for better compatibility
-            video.play().catch(err => console.log('Auto-play on metadata:', err));
-          }
-        }}
-        onCanPlay={(e) => {
-          // Additional play attempt when video is ready
-          const video = e.currentTarget;
-          if (videoLayout === 'remote-main' && video.paused) {
-            video.muted = false;
-            video.volume = 1.0;
-            video.play().catch(err => console.log('Auto-play on canplay:', err));
+            // Start muted for autoplay compatibility
+            video.muted = true;
+            video.play().then(() => {
+              // Unmute after successful play
+              setTimeout(() => {
+                video.muted = false;
+                video.volume = 1.0;
+                console.log('🔊 Remote video metadata loaded, played and unmuted');
+              }, 100);
+            }).catch(err => console.log('Auto-play on metadata:', err));
           }
         }}
         onClick={() => {
-          // Ensure audio plays on any click
+          // Ensure audio plays and unmutes on any click
           if (mainVideoRef.current && videoLayout === 'remote-main') {
             mainVideoRef.current.muted = false;
             mainVideoRef.current.volume = 1.0;
@@ -391,9 +390,9 @@ export default function ProductionVideoCall({
           ref={pipVideoRef}
           autoPlay
           playsInline
-          webkit-playsinline="true"
           muted={videoLayout === 'remote-main'}
           className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
+          style={{ WebkitPlaysinline: 'true' } as any}
         />
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
           <Repeat className="w-6 h-6 text-white" />

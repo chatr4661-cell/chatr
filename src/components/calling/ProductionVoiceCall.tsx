@@ -57,10 +57,10 @@ export default function ProductionVoiceCall({
           if (!remoteAudioRef.current) {
             remoteAudioRef.current = new Audio();
             remoteAudioRef.current.autoplay = true;
+            remoteAudioRef.current.volume = 1.0;
           }
           
           remoteAudioRef.current.srcObject = stream;
-          remoteAudioRef.current.volume = 1.0;
           
           // Multi-stage audio playback with browser compatibility
           const forcePlay = async (attempt = 1) => {
@@ -73,7 +73,7 @@ export default function ProductionVoiceCall({
             } catch (e) {
               console.warn(`⚠️ Audio play error (attempt ${attempt}):`, e);
               
-              if (e.name === 'NotAllowedError' || e.name === 'NotSupportedError') {
+              if (attempt <= 2 && (e.name === 'NotAllowedError' || e.name === 'NotSupportedError')) {
                 const playOnInteraction = async () => {
                   try {
                     if (remoteAudioRef.current) {
@@ -92,16 +92,14 @@ export default function ProductionVoiceCall({
                   document.addEventListener(eventType, playOnInteraction, { once: true, capture: true });
                 });
                 
-                // Show toast for iOS/Safari
-                if (isIOS() || isSafari()) {
-                  toast.info('Tap anywhere to enable audio', {
-                    duration: 10000,
-                    action: {
-                      label: 'Enable Audio',
-                      onClick: () => playOnInteraction()
-                    }
-                  });
-                }
+                // Show toast notification
+                toast.info('Tap screen to enable audio', {
+                  duration: 8000,
+                  action: {
+                    label: 'Enable',
+                    onClick: playOnInteraction
+                  }
+                });
               }
             }
           };
@@ -111,7 +109,6 @@ export default function ProductionVoiceCall({
           setTimeout(() => forcePlay(2), 100);
           setTimeout(() => forcePlay(3), 500);
           setTimeout(() => forcePlay(4), 1500);
-          setTimeout(() => forcePlay(5), 3000);
         });
 
         call.on('connected', () => {
