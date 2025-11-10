@@ -146,9 +146,9 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <NativeAppProvider>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <BrowserRouter>
+          <NativeAppProvider>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
@@ -305,9 +305,9 @@ const App = () => {
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </NativeAppProvider>
         </BrowserRouter>
       </ThemeProvider>
-      </NativeAppProvider>
     </QueryClientProvider>
   );
 };
