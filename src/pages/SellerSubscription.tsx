@@ -91,7 +91,7 @@ export default function SellerSubscription() {
 
       // Fetch current subscription
       const { data: subData, error: subError } = await supabase
-        .from("seller_subscriptions")
+        .from("seller_subscriptions" as any)
         .select("*")
         .eq("seller_id", providerId)
         .eq("status", "active")
@@ -137,34 +137,34 @@ export default function SellerSubscription() {
       if (currentSubscription) {
         // Update existing subscription
         const { error: updateError } = await supabase
-          .from("seller_subscriptions")
+          .from("seller_subscriptions" as any)
           .update({
             plan_id: selectedPlan.id,
             billing_cycle: billingCycle,
             current_period_start: currentDate.toISOString(),
             current_period_end: periodEnd.toISOString(),
-          } as any)
+          })
           .eq("id", currentSubscription.id);
 
         if (updateError) throw updateError;
 
         // Record history
         await supabase
-          .from("seller_subscription_history")
+          .from("seller_subscription_history" as any)
           .insert({
             subscription_id: currentSubscription.id,
             from_plan_id: currentSubscription.plan_id,
             to_plan_id: selectedPlan.id,
             change_type: getChangeType(currentSubscription.plan?.display_order || 0, selectedPlan.display_order),
             effective_date: currentDate.toISOString(),
-          } as any);
+          });
       } else {
         // Create new subscription with 14-day trial
         const trialEnd = new Date(currentDate);
         trialEnd.setDate(trialEnd.getDate() + 14);
 
         const { error: insertError } = await supabase
-          .from("seller_subscriptions")
+          .from("seller_subscriptions" as any)
           .insert({
             seller_id: providerId,
             plan_id: selectedPlan.id,
@@ -173,7 +173,7 @@ export default function SellerSubscription() {
             current_period_end: periodEnd.toISOString(),
             trial_ends_at: trialEnd.toISOString(),
             status: "active",
-          } as any);
+          });
 
         if (insertError) throw insertError;
       }
@@ -202,11 +202,11 @@ export default function SellerSubscription() {
 
     try {
       const { error } = await supabase
-        .from("seller_subscriptions")
+        .from("seller_subscriptions" as any)
         .update({
           cancel_at_period_end: true,
           cancelled_at: new Date().toISOString(),
-        } as any)
+        })
         .eq("id", currentSubscription.id);
 
       if (error) throw error;
