@@ -20,15 +20,20 @@ import {
   ArrowRight,
   Check,
   Star,
-  Sparkles
+  Sparkles,
+  MapPin
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { LiveLocationSharing } from '@/components/LiveLocationSharing';
+import { ContactInvitation } from '@/components/ContactInvitation';
 
 export default function ChatrGrowth() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [referralCode, setReferralCode] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [userId, setUserId] = useState('');
+  const [username, setUsername] = useState('');
   const [stats, setStats] = useState({
     totalReferrals: 0,
     totalCoinsEarned: 0,
@@ -53,6 +58,9 @@ export default function ChatrGrowth() {
         navigate('/auth');
         return;
       }
+
+      setUserId(user.id);
+      setUsername(user.user_metadata?.username || user.email?.split('@')[0] || '');
 
       // Load referral code
       const { data: codeData } = await supabase
@@ -189,183 +197,208 @@ export default function ChatrGrowth() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-medium text-muted-foreground">Direct Referrals</span>
+        {/* Compact Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-medium text-muted-foreground">Referrals</span>
             </div>
-            <div className="text-3xl font-bold text-blue-600">{stats.totalReferrals}</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.totalReferrals}</div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/10 border-amber-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Coins className="w-5 h-5 text-amber-600" />
-              <span className="text-sm font-medium text-muted-foreground">Coins Earned</span>
+          <Card className="p-3 bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+            <div className="flex items-center gap-2 mb-1">
+              <Coins className="w-4 h-4 text-amber-600" />
+              <span className="text-xs font-medium text-muted-foreground">Coins</span>
             </div>
-            <div className="text-3xl font-bold text-amber-600">{stats.totalCoinsEarned.toLocaleString()}</div>
-            <div className="text-xs text-amber-600 mt-1">≈ ₹{(stats.totalCoinsEarned / 10).toFixed(0)}</div>
+            <div className="text-2xl font-bold text-amber-600">{stats.totalCoinsEarned.toLocaleString()}</div>
+            <div className="text-[10px] text-amber-600">≈ ₹{(stats.totalCoinsEarned / 10).toFixed(0)}</div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-5 h-5 text-purple-600" />
-              <span className="text-sm font-medium text-muted-foreground">Network Size</span>
+          <Card className="p-3 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-purple-600" />
+              <span className="text-xs font-medium text-muted-foreground">Network</span>
             </div>
-            <div className="text-3xl font-bold text-purple-600">{stats.networkSize}</div>
+            <div className="text-2xl font-bold text-purple-600">{stats.networkSize}</div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-pink-500/10 to-pink-600/10 border-pink-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy className="w-5 h-5 text-pink-600" />
-              <span className="text-sm font-medium text-muted-foreground">Rank</span>
+          <Card className="p-3 bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
+            <div className="flex items-center gap-2 mb-1">
+              <Trophy className="w-4 h-4 text-pink-600" />
+              <span className="text-xs font-medium text-muted-foreground">Rank</span>
             </div>
-            <div className="text-3xl font-bold text-pink-600">
+            <div className="text-2xl font-bold text-pink-600">
               {stats.rank ? `#${stats.rank}` : '-'}
             </div>
           </Card>
         </div>
 
-        {/* Referral Card */}
-        <Card className="p-6 bg-gradient-to-br from-primary/5 to-pink-500/5 border-primary/20">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Gift className="w-6 h-6 text-primary" />
-            Your Referral Code
-          </h2>
-          
-          <div className="flex flex-col md:flex-row gap-4 items-center mb-6">
-            <div className="flex-1 w-full">
-              <div className="bg-background rounded-lg p-4 border-2 border-primary/30 mb-3">
-                <div className="text-sm text-muted-foreground mb-1">Your unique code</div>
-                <div className="text-3xl font-bold text-primary tracking-wider">{referralCode}</div>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={copyReferralLink} className="flex-1 gap-2">
-                  <Copy className="w-4 h-4" />
-                  Copy Link
-                </Button>
-                <Button onClick={shareReferralLink} className="flex-1 gap-2" variant="outline">
-                  <Share2 className="w-4 h-4" />
-                  Share
-                </Button>
-              </div>
+        {/* Live Location & Invite Friends Section */}
+        {userId && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-[#2E1065]">Quick Actions</h2>
+              <div className="h-px flex-1 bg-gradient-to-r from-purple-200 to-transparent ml-4"></div>
             </div>
-            
-            <div className="bg-white p-4 rounded-lg border-2 border-border">
-              <QRCodeSVG 
-                value={`https://chatr.chat?ref=${referralCode}`}
-                size={160}
-                level="H"
-              />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="transform scale-[0.85] origin-top">
+                <LiveLocationSharing userId={userId} />
+              </div>
+              <div className="transform scale-[0.85] origin-top">
+                <ContactInvitation userId={userId} username={username} />
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Zap className="w-5 h-5 text-green-600 mt-0.5" />
-              <div>
-                <div className="font-semibold text-green-700 mb-1">Earn up to ₹7,500 per referral!</div>
-                <div className="text-sm text-green-600 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4" />
-                    <span>Level 1 (Direct): 500 coins = ₹50</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4" />
-                    <span>Level 2: 150 coins = ₹15</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4" />
-                    <span>Level 3: 75 coins = ₹7.5</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4" />
-                    <span>Level 4: 25 coins = ₹2.5</span>
+        {/* Referral Code Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-[#2E1065]">Referral & Rewards</h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-purple-200 to-transparent ml-4"></div>
+          </div>
+          <Card className="p-5 bg-gradient-to-br from-primary/5 to-pink-500/5 border-primary/20">
+            <h3 className="text-base font-bold mb-3 flex items-center gap-2">
+              <Gift className="w-5 h-5 text-primary" />
+              Your Referral Code
+            </h3>
+            
+            <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
+              <div className="flex-1 w-full">
+                <div className="bg-background rounded-lg p-3 border-2 border-primary/30 mb-2">
+                  <div className="text-xs text-muted-foreground mb-1">Your unique code</div>
+                  <div className="text-2xl font-bold text-primary tracking-wider">{referralCode}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={copyReferralLink} className="flex-1 gap-2 h-10 text-sm">
+                    <Copy className="w-4 h-4" />
+                    Copy Link
+                  </Button>
+                  <Button onClick={shareReferralLink} className="flex-1 gap-2 h-10 text-sm" variant="outline">
+                    <Share2 className="w-4 h-4" />
+                    Share
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="bg-white p-3 rounded-lg border-2 border-border">
+                <QRCodeSVG 
+                  value={`https://chatr.chat?ref=${referralCode}`}
+                  size={120}
+                  level="H"
+                />
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Zap className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold text-green-700 text-sm mb-1">Earn up to ₹7,500 per referral!</div>
+                  <div className="text-xs text-green-600 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3 h-3" />
+                      <span>Level 1 (Direct): 500 coins = ₹50</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3 h-3" />
+                      <span>Level 2: 150 coins = ₹15</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3 h-3" />
+                      <span>Level 3: 75 coins = ₹7.5</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3 h-3" />
+                      <span>Level 4: 25 coins = ₹2.5</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        {/* Network Breakdown */}
-        <Card className="p-6">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Target className="w-6 h-6 text-primary" />
+        {/* Compact Network Breakdown */}
+        <Card className="p-5">
+          <h3 className="text-base font-bold mb-3 flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary" />
             Your Network
-          </h2>
+          </h3>
           
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[
               { level: 1, count: networkStats.level1, coins: 500, color: 'blue' },
               { level: 2, count: networkStats.level2, coins: 150, color: 'purple' },
               { level: 3, count: networkStats.level3, coins: 75, color: 'pink' },
               { level: 4, count: networkStats.level4, coins: 25, color: 'orange' },
-            ].map(({ level, count, coins, color }) => (
-              <div key={level} className={`flex items-center justify-between p-4 rounded-lg bg-${color}-500/10 border border-${color}-500/20`}>
+            ].map(({ level, count, coins }) => (
+              <div key={level} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100">
                 <div>
-                  <div className="font-semibold">Level {level}</div>
-                  <div className="text-sm text-muted-foreground">{coins} coins per signup</div>
+                  <div className="font-semibold text-sm">Level {level}</div>
+                  <div className="text-xs text-muted-foreground">{coins} coins per signup</div>
                 </div>
-                <div className={`text-2xl font-bold text-${color}-600`}>{count}</div>
+                <div className="text-xl font-bold text-[#9333EA]">{count}</div>
               </div>
             ))}
           </div>
 
-          <div className="mt-6 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-lg">
+          <div className="mt-4 p-3 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-amber-700">Potential Monthly Earnings</div>
-                <div className="text-sm text-amber-600">If each person refers 10 friends</div>
+                <div className="font-semibold text-amber-700 text-sm">Potential Monthly Earnings</div>
+                <div className="text-xs text-amber-600">If each person refers 10 friends</div>
               </div>
-              <div className="text-3xl font-bold text-amber-600">
+              <div className="text-2xl font-bold text-amber-600">
                 ₹{((networkStats.level1 * 10 * 500 + networkStats.level2 * 10 * 150) / 10).toLocaleString()}
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Action Cards */}
-        <div className="grid md:grid-cols-2 gap-4">
+        {/* Compact Action Cards */}
+        <div className="grid md:grid-cols-2 gap-3">
           <Card 
-            className="p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20"
+            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200"
             onClick={() => navigate('/leaderboard')}
           >
-            <Trophy className="w-12 h-12 text-blue-600 mb-3" />
-            <h3 className="text-lg font-bold mb-2">View Leaderboard</h3>
-            <p className="text-sm text-muted-foreground mb-4">See top performers and compete</p>
-            <Button variant="outline" className="w-full gap-2">
-              View Rankings <ArrowRight className="w-4 h-4" />
+            <Trophy className="w-10 h-10 text-blue-600 mb-2" />
+            <h3 className="text-base font-bold mb-1">View Leaderboard</h3>
+            <p className="text-xs text-muted-foreground mb-3">See top performers and compete</p>
+            <Button variant="outline" size="sm" className="w-full gap-1.5 h-9">
+              View Rankings <ArrowRight className="w-3 h-3" />
             </Button>
           </Card>
 
           <Card 
-            className="p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20"
+            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200"
             onClick={() => navigate('/referrals')}
           >
-            <Users className="w-12 h-12 text-purple-600 mb-3" />
-            <h3 className="text-lg font-bold mb-2">Network Tree</h3>
-            <p className="text-sm text-muted-foreground mb-4">Visualize your referral network</p>
-            <Button variant="outline" className="w-full gap-2">
-              View Network <ArrowRight className="w-4 h-4" />
+            <Users className="w-10 h-10 text-purple-600 mb-2" />
+            <h3 className="text-base font-bold mb-1">Network Tree</h3>
+            <p className="text-xs text-muted-foreground mb-3">Visualize your referral network</p>
+            <Button variant="outline" size="sm" className="w-full gap-1.5 h-9">
+              View Network <ArrowRight className="w-3 h-3" />
             </Button>
           </Card>
         </div>
 
-        {/* Ambassador Program CTA */}
-        <Card className="p-6 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white border-0">
-          <div className="flex items-start gap-4">
-            <Star className="w-12 h-12 flex-shrink-0" />
+        {/* Compact Ambassador Program CTA */}
+        <Card className="p-5 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white border-0">
+          <div className="flex items-start gap-3">
+            <Star className="w-10 h-10 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="text-2xl font-bold mb-2">Become a Chatr Partner</h3>
-              <p className="mb-4 text-purple-100">Earn 5,000 bonus coins + exclusive perks</p>
+              <h3 className="text-xl font-bold mb-1">Become a Chatr Partner</h3>
+              <p className="mb-3 text-purple-100 text-sm">Earn 5,000 bonus coins + exclusive perks</p>
               <Button 
                 variant="secondary" 
-                className="gap-2"
+                size="sm"
+                className="gap-1.5 h-9"
                 onClick={() => navigate('/ambassador-program')}
               >
-                Apply Now <ArrowRight className="w-4 h-4" />
+                Apply Now <ArrowRight className="w-3 h-3" />
               </Button>
             </div>
           </div>
