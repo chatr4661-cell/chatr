@@ -29,6 +29,7 @@ import androidx.navigation.NavController
 @Composable
 fun AuthScreen(
     navController: NavController,
+    onAuthSuccess: () -> Unit = {},
     // TODO Phase 3: Add viewModel: AuthViewModel = hiltViewModel()
 ) {
     var isLogin by remember { mutableStateOf(true) }
@@ -128,11 +129,8 @@ fun AuthScreen(
                 onClick = {
                     // TODO Phase 3: Connect to AuthViewModel
                     isLoading = true
-                    // Simulate auth
-                    // For now, just navigate to home
-                    navController.navigate("home") {
-                        popUpTo("auth") { inclusive = true }
-                    }
+                    // Simulate auth - call success callback
+                    onAuthSuccess()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
