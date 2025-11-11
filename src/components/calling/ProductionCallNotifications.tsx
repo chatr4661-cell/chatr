@@ -7,7 +7,7 @@ import ProductionVideoCall from './ProductionVideoCall';
 import { GroupVideoCall } from './GroupVideoCall';
 import { GroupVoiceCall } from './GroupVoiceCall';
 import { useNavigate } from 'react-router-dom';
-import { showNativeIncomingCall, endNativeCall } from '@/utils/nativeCallUI';
+import { showNativeIncomingCall, endNativeCall, registerNativeCallHandlers, setupNativeCallUI } from '@/utils/nativeCallUI';
 
 interface ProductionCallNotificationsProps {
   userId: string;
@@ -20,6 +20,11 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [activeCall, setActiveCall] = useState<any>(null);
   const [userCallRingtone, setUserCallRingtone] = useState('/ringtone.mp3');
+
+  // Setup native call UI on mount
+  useEffect(() => {
+    setupNativeCallUI();
+  }, []);
 
   // Get user's preferred call ringtone
   useEffect(() => {
@@ -39,6 +44,48 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
       getUserRingtone();
     }
   }, [userId]);
+
+  // Register native call handlers (CallKit/ConnectionService)
+  useEffect(() => {
+    const cleanup = registerNativeCallHandlers({
+      onAnswer: async (callId: string) => {
+        console.log('📞 Call answered from native UI:', callId);
+        
+        // Find the call and answer it
+        const { data: call } = await supabase
+          .from('calls')
+          .select('*')
+          .eq('id', callId)
+          .single();
+        
+        if (call) {
+          await answerCall(call);
+        }
+      },
+      onReject: async (callId: string) => {
+        console.log('📵 Call rejected from native UI:', callId);
+        
+        const { data: call } = await supabase
+          .from('calls')
+          .select('*')
+          .eq('id', callId)
+          .single();
+        
+        if (call) {
+          await rejectCall(call);
+        }
+      },
+      onEnd: async (callId: string) => {
+        console.log('☎️ Call ended from native UI:', callId);
+        
+        if (activeCall?.id === callId) {
+          await endActiveCall();
+        }
+      },
+    });
+
+    return cleanup;
+  }, [activeCall]);
 
   const answerCall = async (call: any) => {
     console.log('✅ Answering call instantly:', call.id);

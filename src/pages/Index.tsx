@@ -37,6 +37,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Share } from 'lucide-react';
 import { UnifiedPermissionsSetup } from '@/components/UnifiedPermissionsSetup';
+import { LiveLocationSharing } from '@/components/LiveLocationSharing';
+import { ContactInvitation } from '@/components/ContactInvitation';
 
 // Import ServiceCard directly (small component, no need for lazy loading)
 import ServiceCard from '@/components/ServiceCard';
@@ -666,7 +668,6 @@ const Index = () => {
             </Button>
             {user && (
               <>
-                <UnifiedPermissionsSetup userId={user.id} />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -682,6 +683,18 @@ const Index = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 space-y-6 mt-6">
+
+        {/* Permissions, Location & Invitation Cards */}
+        {user && (
+          <div className="space-y-4">
+            <UnifiedPermissionsSetup userId={user.id} />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <LiveLocationSharing userId={user.id} />
+              <ContactInvitation userId={user.id} username={user.user_metadata?.username} />
+            </div>
+          </div>
+        )}
 
         {/* Search Bar */}
         <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-5 relative">

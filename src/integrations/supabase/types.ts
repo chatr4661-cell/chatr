@@ -5733,6 +5733,36 @@ export type Database = {
           },
         ]
       }
+      location_shares: {
+        Row: {
+          created_at: string | null
+          duration: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          shared_with: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          shared_with: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          shared_with?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           attempt_type: string
@@ -8665,6 +8695,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_contacts: {
+        Row: {
+          contact_user_id: string
+          created_at: string | null
+          display_name: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          contact_user_id: string
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          contact_user_id?: string
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_fame_achievements: {
         Row: {
