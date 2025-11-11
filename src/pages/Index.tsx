@@ -36,6 +36,7 @@ import { QuickAccessMenu } from '@/components/QuickAccessMenu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Share } from 'lucide-react';
+import { UnifiedPermissionsSetup } from '@/components/UnifiedPermissionsSetup';
 
 // Import ServiceCard directly (small component, no need for lazy loading)
 import ServiceCard from '@/components/ServiceCard';
@@ -664,14 +665,17 @@ const Index = () => {
               <span>Share & Earn</span>
             </Button>
             {user && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSignOut}
-                className="rounded-full h-9 w-9 hover:bg-red-50 transition-colors"
-              >
-                <LogOut className="h-4 w-4 text-destructive" />
-              </Button>
+              <>
+                <UnifiedPermissionsSetup userId={user.id} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  className="rounded-full h-9 w-9 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="h-4 w-4 text-destructive" />
+                </Button>
+              </>
             )}
           </div>
         </div>

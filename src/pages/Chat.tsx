@@ -45,6 +45,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { OfflineChat } from '@/components/OfflineChat';
 import { UserInfoSidebar } from '@/components/UserInfoSidebar';
+import { UnifiedPermissionsSetup } from '@/components/UnifiedPermissionsSetup';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -876,6 +877,16 @@ const ChatEnhancedContent = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      {user && (
+                        <>
+                          <DropdownMenuItem asChild>
+                            <div className="w-full">
+                              <UnifiedPermissionsSetup userId={user.id} />
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
                       <DropdownMenuItem onClick={() => setSelectionMode(true)}>
                         Select Messages
                       </DropdownMenuItem>
