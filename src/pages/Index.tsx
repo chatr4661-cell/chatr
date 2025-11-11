@@ -853,7 +853,7 @@ const Index = () => {
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <div className={`h-full rounded-3xl ${service.iconColor} p-4 flex flex-col items-center justify-center cursor-pointer shadow-lg hover:shadow-xl transition-all`}>
-                  <service.icon className="w-9 h-9 text-white mb-2" />
+                  <service.icon className="w-6 h-6 text-white mb-2" />
                   <span className="text-xs text-white text-center font-semibold">{service.title}</span>
                 </div>
               </div>
@@ -875,7 +875,7 @@ const Index = () => {
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <div className={`h-full rounded-3xl ${service.iconColor} p-4 flex flex-col items-center justify-center cursor-pointer shadow-lg hover:shadow-xl transition-all`}>
-                  <service.icon className="w-9 h-9 text-white mb-2" />
+                  <service.icon className="w-6 h-6 text-white mb-2" />
                   <span className="text-xs text-white text-center font-semibold">{service.title}</span>
                 </div>
               </div>
@@ -883,6 +883,15 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Enable Features 3 Button - Bottom Right */}
+      <Button
+        onClick={() => navigate('/features')}
+        className="fixed bottom-6 right-6 z-50 shadow-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white font-semibold px-5 py-2.5 rounded-full flex items-center gap-2 animate-fade-in"
+      >
+        <Sparkles className="w-4 h-4" />
+        Enable Features 3
+      </Button>
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
