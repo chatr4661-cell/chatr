@@ -792,17 +792,17 @@ const Index = () => {
         </div>
 
         {/* iOS-style App Grid */}
-        <div className="grid grid-cols-4 gap-4 px-2">
+        <div className="grid grid-cols-4 gap-3 px-2">
           {mainHubs.map((hub, index) => (
             <div 
               key={hub.title} 
               onClick={() => navigate(hub.route)}
-              className="flex flex-col items-center gap-2 cursor-pointer group"
+              className="flex flex-col items-center gap-1.5 cursor-pointer group"
             >
-              <div className={`${hub.iconColor} w-16 h-16 rounded-[1.25rem] shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                <hub.icon className="w-8 h-8 text-white" strokeWidth={1.5} />
+              <div className={`${hub.iconColor} w-14 h-14 rounded-[1.1rem] shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                <hub.icon className="w-6 h-6 text-white" strokeWidth={1.5} />
               </div>
-              <span className="text-[11px] text-foreground text-center leading-tight w-full line-clamp-2">
+              <span className="text-[10px] text-foreground text-center leading-tight w-full line-clamp-2">
                 {hub.title}
               </span>
             </div>
