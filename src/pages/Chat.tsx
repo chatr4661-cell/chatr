@@ -736,7 +736,7 @@ const ChatEnhancedContent = () => {
         />
       )}
 
-      <div className="flex flex-col h-screen bg-background pb-20">
+      <div className="flex flex-col h-screen bg-background">
       <NetworkStatus />
       
       {activeConversationId ? (
@@ -1193,7 +1193,7 @@ const ChatEnhancedContent = () => {
           </Sheet>
 
           {/* Conversations */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto pb-20">
             <VirtualizedConversationList
               userId={user.id}
               onConversationSelect={handleConversationSelect}
