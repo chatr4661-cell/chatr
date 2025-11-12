@@ -49,6 +49,9 @@
     /* Corner radius - iOS-style */
     --radius: 0.875rem;
     
+    /* Chat-specific colors */
+    --chat-background: 200 25% 97%;
+    
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 13% 10%;

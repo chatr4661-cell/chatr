@@ -9,7 +9,7 @@ interface Message {
   content: string;
   created_at: string;
   sender_id: string;
-  message_type: string;
+  message_type?: string;
 }
 
 interface MessageSearchBarProps {

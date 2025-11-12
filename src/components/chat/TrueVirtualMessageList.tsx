@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useEffect } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { MessageBubble } from './MessageBubble';
 import { MessageListSkeleton } from './MessageListSkeleton';
+import { SwipeableMessage } from '../SwipeableMessage';
 
 interface Message {
   id: string;
@@ -108,7 +109,7 @@ export const TrueVirtualMessageList = React.memo(({
   }
 
   return (
-    <div className="flex-1 h-full bg-[hsl(200,25%,97%)]">
+    <div className="flex-1 h-full bg-chat-background">
       <Virtuoso
         ref={virtuosoRef}
         data={messages}
@@ -128,22 +129,28 @@ export const TrueVirtualMessageList = React.memo(({
 
           return (
             <div className="px-2 py-1">
-              <MessageBubble
-                message={message}
-                isOwn={isOwn}
-                showAvatar={showAvatar}
-                otherUser={otherUser}
-                onForward={onForward}
-                onStar={onStar}
-                onReply={onReply}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                onPin={onPin}
-                onReport={onReport}
-                selectionMode={selectionMode}
-                isSelected={selectedMessages.has(message.id)}
-                onSelect={onSelectMessage}
-              />
+              <SwipeableMessage
+                messageId={message.id}
+                onReply={() => onReply?.(message)}
+                onDelete={() => onDelete?.(message.id)}
+              >
+                <MessageBubble
+                  message={message}
+                  isOwn={isOwn}
+                  showAvatar={showAvatar}
+                  otherUser={otherUser}
+                  onForward={onForward}
+                  onStar={onStar}
+                  onReply={onReply}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  onPin={onPin}
+                  onReport={onReport}
+                  selectionMode={selectionMode}
+                  isSelected={selectedMessages.has(message.id)}
+                  onSelect={onSelectMessage}
+                />
+              </SwipeableMessage>
             </div>
           );
         }}

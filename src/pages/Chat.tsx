@@ -19,6 +19,7 @@ import { TrueVirtualMessageList } from '@/components/chat/TrueVirtualMessageList
 import { WhatsAppStyleInput } from '@/components/chat/WhatsAppStyleInput';
 import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
 import { MessageReportDialog } from '@/components/chat/MessageReportDialog';
+import { MessageSearchBar } from '@/components/MessageSearchBar';
 import { useVirtualizedMessages } from "@/hooks/useVirtualizedMessages";
 import { AddParticipantDialog } from '@/components/chat/AddParticipantDialog';
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
@@ -71,6 +72,8 @@ const ChatEnhancedContent = () => {
   const [messageToForward, setMessageToForward] = React.useState<any>(null);
   const [showForwardDialog, setShowForwardDialog] = React.useState(false);
   const [showContactInfo, setShowContactInfo] = React.useState(false);
+  const [showMessageSearch, setShowMessageSearch] = React.useState(false);
+  const [searchResultMessageId, setSearchResultMessageId] = React.useState<string | null>(null);
   
   // Selection Mode State
   const [selectionMode, setSelectionMode] = React.useState(false);
@@ -805,6 +808,15 @@ const ChatEnhancedContent = () => {
                 )}
 
                 <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMessageSearch(!showMessageSearch)}
+                className="h-8 w-8 rounded-full hover:bg-muted/50"
+                title="Search messages"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
               {conversationParticipants.length > 0 && conversationParticipants.length < 5 && (
                 <Button
                   variant="ghost"
@@ -902,6 +914,21 @@ const ChatEnhancedContent = () => {
               </>
             )}
           </div>
+
+          {/* Message Search Bar */}
+          {showMessageSearch && (
+            <div className="border-b bg-background px-2 py-2">
+              <MessageSearchBar
+                messages={displayMessages}
+                onResultSelect={(messageId) => {
+                  setSearchResultMessageId(messageId);
+                  setShowMessageSearch(false);
+                  toast.success('Message found - scrolling to message');
+                }}
+                onClose={() => setShowMessageSearch(false)}
+              />
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-hidden">

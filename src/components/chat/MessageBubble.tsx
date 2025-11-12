@@ -35,6 +35,12 @@ interface Message {
   is_starred?: boolean;
   is_edited?: boolean;
   reactions?: any[];
+  reply_to?: string;
+  replied_message?: {
+    id: string;
+    content: string;
+    sender_id: string;
+  };
 }
 
 interface MessageBubbleProps {
@@ -517,6 +523,22 @@ const MessageBubbleComponent = ({
             </a>
           );
         })()}
+        
+        {/* Reply Preview - Show quoted message */}
+        {message.replied_message && (
+          <div className={`mb-2 rounded-lg p-2 border-l-4 ${
+            isOwn 
+              ? 'bg-teal-700/20 border-teal-400' 
+              : 'bg-muted/60 border-primary'
+          }`}>
+            <p className="text-xs font-medium text-muted-foreground mb-0.5">
+              Replying to {message.replied_message.sender_id === message.sender_id ? 'yourself' : otherUser?.username}
+            </p>
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {message.replied_message.content}
+            </p>
+          </div>
+        )}
         
         {/* Regular text message - ONLY if not a special type */}
         {!message.media_url && 
