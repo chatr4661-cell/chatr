@@ -63,8 +63,9 @@ export const BottomNav = () => {
   if (shouldHide) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[999999] bg-red-500 h-20 border-t-4 border-black">
-      <div className="relative flex justify-around items-center h-full max-w-md mx-auto px-2 bg-white">
+    <nav className="fixed bottom-0 left-0 right-0 z-[999999] bg-background border-t-2 border-primary shadow-2xl safe-area-pb">
+      {/* Navigation content */}
+      <div className="relative flex justify-around items-center h-20 max-w-md mx-auto px-2 bg-background">
         {navItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;

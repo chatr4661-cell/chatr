@@ -623,7 +623,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5 pb-32">
       {/* Enhanced Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
