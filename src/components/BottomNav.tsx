@@ -58,15 +58,13 @@ export const BottomNav = () => {
   const hiddenPaths = ['/auth', '/onboarding', '/admin'];
   const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path));
 
+  console.log('BottomNav - pathname:', location.pathname, 'shouldHide:', shouldHide);
+
   if (shouldHide) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[999999] bg-background border-t-2 border-primary/20 shadow-2xl">
-      {/* Clean background like Telegram */}
-      <div className="absolute inset-0 bg-background backdrop-blur-md" />
-      
-      {/* Navigation content */}
-      <div className="relative flex justify-around items-center h-16 max-w-md mx-auto px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-[999999] bg-red-500 h-20 border-t-4 border-black">
+      <div className="relative flex justify-around items-center h-full max-w-md mx-auto px-2 bg-white">
         {navItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
