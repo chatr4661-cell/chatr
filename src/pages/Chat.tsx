@@ -736,7 +736,7 @@ const ChatEnhancedContent = () => {
         />
       )}
 
-      <div className="flex flex-col h-screen bg-background overflow-hidden">
+      <div className="flex flex-col h-screen bg-background pb-20">
       <NetworkStatus />
       
       {activeConversationId ? (
