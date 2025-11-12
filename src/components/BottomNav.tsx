@@ -1,16 +1,15 @@
 import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { MessageCircle, Phone, Users, Circle, User, Globe } from 'lucide-react';
+import { MessageCircle, Phone, Users, User, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 
 const navItems = [
-  { name: 'Browser', path: '/home', icon: Globe, highlight: true },
-  { name: 'Chats', path: '/chat', icon: MessageCircle, highlight: false },
+  { name: 'Contacts', path: '/contacts', icon: Users, highlight: false },
   { name: 'Calls', path: '/call-history', icon: Phone, highlight: false },
-  { name: 'People', path: '/contacts', icon: Users, highlight: false },
-  { name: 'Updates', path: '/stories', icon: Circle, highlight: false },
+  { name: 'Chats', path: '/chat', icon: MessageCircle, highlight: true },
+  { name: 'Settings', path: '/settings', icon: User, highlight: false },
 ];
 
 export const BottomNav = () => {
@@ -63,8 +62,8 @@ export const BottomNav = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 safe-bottom">
-      {/* Premium glass background */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-xl" />
+      {/* Clean background like Telegram */}
+      <div className="absolute inset-0 bg-background border-t border-border" />
       
       {/* Navigation content */}
       <div className="relative flex justify-around items-center h-16 max-w-md mx-auto px-2">
@@ -77,27 +76,19 @@ export const BottomNav = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-2xl transition-all duration-300",
-                "hover:bg-accent/50 active:scale-95 min-w-[56px]",
-                item.highlight && !isActive && "bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-red-500/10"
+                "relative flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-200",
+                "active:scale-95 min-w-0"
               )}
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              {/* Highlight pulse effect */}
-              {item.highlight && !isActive && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-full animate-pulse shadow-lg" />
-              )}
-              
               {/* Icon container */}
               <div className="relative">
                 <Icon 
                   className={cn(
-                    "h-6 w-6 transition-all duration-300",
-                    isActive && item.highlight && "text-white drop-shadow-lg scale-110",
-                    isActive && !item.highlight && "text-primary scale-110",
-                    !isActive && "text-muted-foreground"
+                    "h-[26px] w-[26px] transition-all duration-200",
+                    isActive ? "text-primary" : "text-muted-foreground"
                   )}
-                  strokeWidth={isActive ? 2.5 : 2}
+                  strokeWidth={isActive ? 2 : 1.5}
                 />
                 
                 {/* Notification badge */}
@@ -114,22 +105,12 @@ export const BottomNav = () => {
               {/* Label */}
               <span 
                 className={cn(
-                  "text-[10px] font-semibold transition-all duration-300 tracking-wide",
-                  isActive && item.highlight && "text-white drop-shadow-lg",
-                  isActive && !item.highlight && "text-primary",
-                  !isActive && "text-muted-foreground"
+                  "text-[11px] font-medium transition-all duration-200",
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 {item.name}
               </span>
-              
-              {/* Active indicator backgrounds */}
-              {isActive && item.highlight && (
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl -z-10 shadow-lg animate-in fade-in zoom-in-95 duration-300" />
-              )}
-              {isActive && !item.highlight && (
-                <div className="absolute inset-0 bg-primary/10 rounded-2xl -z-10 animate-in fade-in zoom-in-95 duration-300" />
-              )}
             </NavLink>
           );
         })}
