@@ -10,6 +10,7 @@ import { setupNativeCallUI } from "./utils/nativeCallUI";
 // Pages
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import StarredMessages from "./pages/StarredMessages";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import Contacts from "./pages/Contacts";
@@ -253,6 +254,7 @@ const App = () => {
             {/* Main App Routes */}
             <Route path="/chat" element={<Chat />} />
             <Route path="/chat/:conversationId" element={<Chat />} />
+            <Route path="/starred-messages" element={<StarredMessages />} />
             <Route path="/chat/:conversationId/media" 
               Component={React.lazy(() => import('@/components/chat/MediaViewer').then(m => ({ default: m.MediaViewer })))} 
             />

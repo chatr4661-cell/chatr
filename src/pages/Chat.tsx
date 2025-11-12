@@ -10,7 +10,7 @@ import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff, Bluetooth, Info, Trash } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, User, Users, Search, QrCode, UserX, Radio, Sparkles, Heart, Menu, Send, Share2, Bell, Globe, Zap, Megaphone, Smartphone, Settings, Wifi, WifiOff, Bluetooth, Info, Trash, Star } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,6 +20,8 @@ import { WhatsAppStyleInput } from '@/components/chat/WhatsAppStyleInput';
 import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
 import { MessageReportDialog } from '@/components/chat/MessageReportDialog';
 import { MessageSearchBar } from '@/components/MessageSearchBar';
+import { PinnedMessagesViewer } from '@/components/chat/PinnedMessagesViewer';
+import { MessageFilters } from '@/components/chat/MessageFilters';
 import { useVirtualizedMessages } from "@/hooks/useVirtualizedMessages";
 import { AddParticipantDialog } from '@/components/chat/AddParticipantDialog';
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
@@ -74,6 +76,7 @@ const ChatEnhancedContent = () => {
   const [showContactInfo, setShowContactInfo] = React.useState(false);
   const [showMessageSearch, setShowMessageSearch] = React.useState(false);
   const [searchResultMessageId, setSearchResultMessageId] = React.useState<string | null>(null);
+  const [messageFilter, setMessageFilter] = React.useState<'all' | 'media' | 'links' | 'documents' | 'location'>('all');
   
   // Selection Mode State
   const [selectionMode, setSelectionMode] = React.useState(false);
@@ -807,6 +810,16 @@ const ChatEnhancedContent = () => {
                   </button>
                 )}
 
+              <MessageFilters
+                activeFilter={messageFilter}
+                onFilterChange={setMessageFilter}
+                counts={{
+                  media: displayMessages.filter(m => m.message_type === 'image' || m.message_type === 'video').length,
+                  links: displayMessages.filter(m => m.content?.includes('http')).length,
+                  documents: displayMessages.filter(m => m.message_type === 'document').length,
+                  location: displayMessages.filter(m => m.message_type === 'location').length,
+                }}
+              />
                 <div className="flex items-center gap-0.5 shrink-0 ml-auto">
               <Button
                 variant="ghost"
@@ -915,11 +928,33 @@ const ChatEnhancedContent = () => {
             )}
           </div>
 
+          {/* Pinned Messages Viewer */}
+          {activeConversationId && user?.id && (
+            <PinnedMessagesViewer
+              conversationId={activeConversationId}
+              userId={user.id}
+              onMessageClick={(messageId) => {
+                setSearchResultMessageId(messageId);
+                toast.success('Scrolling to pinned message');
+              }}
+              onUnpin={async () => {
+                await loadMessages();
+              }}
+            />
+          )}
+
           {/* Message Search Bar */}
           {showMessageSearch && (
             <div className="border-b bg-background px-2 py-2">
               <MessageSearchBar
-                messages={displayMessages}
+                messages={displayMessages.filter(msg => {
+                  if (messageFilter === 'all') return true;
+                  if (messageFilter === 'media') return msg.message_type === 'image' || msg.message_type === 'video';
+                  if (messageFilter === 'links') return msg.content?.includes('http');
+                  if (messageFilter === 'documents') return msg.message_type === 'document';
+                  if (messageFilter === 'location') return msg.message_type === 'location';
+                  return true;
+                })}
                 onResultSelect={(messageId) => {
                   setSearchResultMessageId(messageId);
                   setShowMessageSearch(false);
@@ -1058,6 +1093,15 @@ const ChatEnhancedContent = () => {
                       {notificationCount > 99 ? '99+' : notificationCount}
                     </Badge>
                   )}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/starred-messages')}
+                  className="h-8 w-8 rounded-full hover:bg-accent/50"
+                  title="Starred Messages"
+                >
+                  <Star className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
