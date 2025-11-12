@@ -61,9 +61,9 @@ export const BottomNav = () => {
   if (shouldHide) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] border-t border-border/50">
       {/* Clean background like Telegram */}
-      <div className="absolute inset-0 bg-background border-t border-border" />
+      <div className="absolute inset-0 bg-background/95 backdrop-blur-sm border-t border-border" />
       
       {/* Navigation content */}
       <div className="relative flex justify-around items-center h-16 max-w-md mx-auto px-2">
