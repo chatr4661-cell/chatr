@@ -736,7 +736,7 @@ const ChatEnhancedContent = () => {
         />
       )}
 
-      <div className="flex flex-col min-h-screen bg-background pb-24">
+      <div className="flex flex-col h-screen bg-background overflow-hidden">
       <NetworkStatus />
       
       {activeConversationId ? (
@@ -966,7 +966,7 @@ const ChatEnhancedContent = () => {
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-hidden relative">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20">
             {user?.id ? (
               <TrueVirtualMessageList
                 messages={displayMessages}
