@@ -736,7 +736,7 @@ const ChatEnhancedContent = () => {
         />
       )}
 
-      <div className="flex flex-col h-screen bg-background">
+      <div className="flex flex-col h-screen bg-background pb-24">
       <NetworkStatus />
       
       {activeConversationId ? (
@@ -966,7 +966,7 @@ const ChatEnhancedContent = () => {
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
             {user?.id ? (
               <TrueVirtualMessageList
                 messages={displayMessages}
@@ -1193,7 +1193,7 @@ const ChatEnhancedContent = () => {
           </Sheet>
 
           {/* Conversations */}
-          <div className="flex-1 overflow-y-auto pb-28">
+          <div className="flex-1 overflow-y-auto">
             <VirtualizedConversationList
               userId={user.id}
               onConversationSelect={handleConversationSelect}
