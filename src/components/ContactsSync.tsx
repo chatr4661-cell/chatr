@@ -7,7 +7,11 @@ import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@capacitor-community/contacts';
 import { supabase } from '@/integrations/supabase/client';
 
-export function ContactsSync() {
+interface ContactsSyncProps {
+  onSyncComplete?: () => void;
+}
+
+export function ContactsSync({ onSyncComplete }: ContactsSyncProps = {}) {
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
   const isNative = Capacitor.isNativePlatform();
@@ -89,6 +93,12 @@ export function ContactsSync() {
           last_contact_sync: new Date().toISOString()
         })
         .eq('id', user.id);
+
+      // Call the callback if provided
+      if (onSyncComplete) {
+        onSyncComplete();
+      }
+
 
     } catch (error) {
       console.error('Contact sync error:', error);

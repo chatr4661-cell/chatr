@@ -116,75 +116,41 @@ export default function ContactsPage() {
 
       {/* Contact Sync */}
       <div className="p-4">
-        <ContactsSync />
+        <ContactsSync onSyncComplete={loadContacts} />
       </div>
 
-      {/* On Chatr Section */}
-      {onChatrContacts.length > 0 && (
-        <div className="p-4">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            ON CHATR ({onChatrContacts.length})
-          </h2>
-          <div className="space-y-2">
-            {onChatrContacts.map((contact) => (
-              <div
-                key={contact.id}
-                onClick={() => startChat(contact.id)}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
-              >
-                <Avatar>
-                  <AvatarImage src={contact.avatar_url} />
-                  <AvatarFallback>
-                    {contact.username?.[0]?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-semibold">{contact.username || 'Unknown'}</p>
+      {/* All Contacts */}
+      <div className="p-4">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+          <Users className="w-4 h-4" />
+          ALL CONTACTS ({filteredContacts.length})
+        </h2>
+        <div className="space-y-2">
+          {filteredContacts.map((contact) => (
+            <div
+              key={contact.id}
+              onClick={() => startChat(contact.id)}
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+            >
+              <Avatar>
+                <AvatarImage src={contact.avatar_url} />
+                <AvatarFallback>
+                  {contact.username?.[0]?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="font-semibold">{contact.username || 'Unknown'}</p>
+                {contact.phone && (
                   <p className="text-sm text-muted-foreground">{contact.phone}</p>
-                </div>
-                {contact.is_online && (
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
                 )}
               </div>
-            ))}
-          </div>
+              {contact.is_online && (
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+              )}
+            </div>
+          ))}
         </div>
-      )}
-
-      {/* Invite Section */}
-      {inviteContacts.length > 0 && (
-        <div className="p-4">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-            <UserPlus className="w-4 h-4" />
-            INVITE TO CHATR ({inviteContacts.length})
-          </h2>
-          <div className="space-y-2">
-            {inviteContacts.map((contact) => (
-              <div
-                key={contact.id}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
-              >
-                <Avatar>
-                  <AvatarFallback>
-                    {contact.username?.[0]?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-semibold">{contact.username || 'Unknown'}</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => toast.info('Invite feature coming soon')}
-                >
-                  Invite
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
 
       {loading && (
         <div className="p-8 text-center text-muted-foreground">
