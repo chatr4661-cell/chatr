@@ -63,9 +63,9 @@ export const BottomNav = () => {
   if (shouldHide) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[999999] bg-background border-t-2 border-primary shadow-2xl safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-[999999] bg-black/95 backdrop-blur-xl border-t border-white/10 safe-area-pb">
       {/* Navigation content */}
-      <div className="relative flex justify-around items-center h-20 max-w-md mx-auto px-2 bg-background">
+      <div className="relative flex justify-around items-center h-20 max-w-full mx-auto px-4">
         {navItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -74,27 +74,28 @@ export const BottomNav = () => {
             <NavLink
               key={item.path}
               to={item.path}
-              className={cn(
-                "relative flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-200",
-                "active:scale-95 min-w-0"
-              )}
-              style={{ animationDelay: `${index * 50}ms` }}
+              className="relative flex flex-col items-center justify-center gap-1.5 flex-1 py-2 transition-all duration-300 active:scale-95 min-w-0"
             >
+              {/* Background pill for active item */}
+              {isActive && index === 0 && (
+                <div className="absolute inset-0 bg-white/10 rounded-3xl -m-1" />
+              )}
+              
               {/* Icon container */}
-              <div className="relative">
+              <div className="relative z-10">
                 <Icon 
                   className={cn(
-                    "h-[26px] w-[26px] transition-all duration-200",
-                    isActive ? "text-primary" : "text-muted-foreground"
+                    "h-7 w-7 transition-all duration-300",
+                    isActive ? "text-white" : "text-white/60"
                   )}
-                  strokeWidth={isActive ? 2 : 1.5}
+                  strokeWidth={isActive ? 2.5 : 2}
                 />
                 
                 {/* Notification badge */}
-                {item.name === 'Notifications' && notificationCount > 0 && (
+                {item.name === 'Chats' && notificationCount > 0 && (
                   <Badge 
                     variant="destructive" 
-                    className="absolute -top-2 -right-2 h-5 min-w-5 px-1.5 text-[10px] flex items-center justify-center rounded-full font-bold shadow-md animate-in zoom-in-50"
+                    className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[9px] flex items-center justify-center rounded-full font-bold shadow-md"
                   >
                     {notificationCount > 99 ? '99+' : notificationCount}
                   </Badge>
@@ -104,8 +105,8 @@ export const BottomNav = () => {
               {/* Label */}
               <span 
                 className={cn(
-                  "text-[11px] font-medium transition-all duration-200",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  "text-[10px] font-medium transition-all duration-300 relative z-10",
+                  isActive ? "text-white" : "text-white/60"
                 )}
               >
                 {item.name}
