@@ -4443,6 +4443,50 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_results: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          reminder_date: string | null
+          reminder_sent: boolean | null
+          result_id: string | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reminder_date?: string | null
+          reminder_sent?: boolean | null
+          result_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reminder_date?: string | null
+          reminder_sent?: boolean | null
+          result_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_results_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "search_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       food_menu_items: {
         Row: {
           category: string | null
@@ -7931,6 +7975,45 @@ export type Database = {
           },
         ]
       }
+      saved_searches: {
+        Row: {
+          created_at: string
+          id: string
+          last_notification_sent: string | null
+          notification_enabled: boolean | null
+          notification_frequency: string | null
+          query: string
+          results_count: number | null
+          search_filters: Json | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_notification_sent?: string | null
+          notification_enabled?: boolean | null
+          notification_frequency?: string | null
+          query: string
+          results_count?: number | null
+          search_filters?: Json | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_notification_sent?: string | null
+          notification_enabled?: boolean | null
+          notification_frequency?: string | null
+          query?: string
+          results_count?: number | null
+          search_filters?: Json | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       scheduled_messages: {
         Row: {
           content: string
@@ -7974,6 +8057,50 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_alerts: {
+        Row: {
+          alert_data: Json | null
+          alert_type: string | null
+          created_at: string
+          id: string
+          is_read: boolean | null
+          new_results_count: number | null
+          saved_search_id: string | null
+          sent_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          alert_data?: Json | null
+          alert_type?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          new_results_count?: number | null
+          saved_search_id?: string | null
+          sent_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          alert_data?: Json | null
+          alert_type?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          new_results_count?: number | null
+          saved_search_id?: string | null
+          sent_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_alerts_saved_search_id_fkey"
+            columns: ["saved_search_id"]
+            isOneToOne: false
+            referencedRelation: "saved_searches"
             referencedColumns: ["id"]
           },
         ]
@@ -9583,6 +9710,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      visual_search_history: {
+        Row: {
+          created_at: string
+          id: string
+          image_analysis: Json | null
+          image_url: string
+          results_found: number | null
+          search_query_generated: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_analysis?: Json | null
+          image_url: string
+          results_found?: number | null
+          search_query_generated?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_analysis?: Json | null
+          image_url?: string
+          results_found?: number | null
+          search_query_generated?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       wallet_transactions: {
         Row: {

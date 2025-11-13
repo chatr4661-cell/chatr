@@ -19,11 +19,18 @@ import {
   Navigation,
   Heart,
   Wallet,
-  ExternalLink
+  ExternalLink,
+  Bookmark,
+  Globe,
+  Image as ImageIcon
 } from 'lucide-react';
 import { TrendingSearches } from '@/components/search/TrendingSearches';
 import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
+import { SavedSearches } from '@/components/search/SavedSearches';
+import { FavoriteResults } from '@/components/search/FavoriteResults';
+import { VisualSearchUpload } from '@/components/search/VisualSearchUpload';
 import { getCurrentLocation } from '@/utils/locationService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface SearchResult {
   id: string;
@@ -49,10 +56,15 @@ const UniversalSearch = () => {
   
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [webResults, setWebResults] = useState<any>(null);
+  const [visualResults, setVisualResults] = useState<any>(null);
   const [aiIntent, setAiIntent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [webSearchLoading, setWebSearchLoading] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [gpsEnabled, setGpsEnabled] = useState(false);
+  const [isFavorite, setIsFavorite] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
     if (initialQuery) {
@@ -89,22 +101,36 @@ const UniversalSearch = () => {
       if (location) {
         searchPayload.latitude = location.latitude;
         searchPayload.longitude = location.longitude;
-        searchPayload.maxDistance = 10; // 10km radius
+        searchPayload.maxDistance = 10;
       }
 
-      const { data, error } = await supabase.functions.invoke('universal-search-engine', {
-        body: searchPayload
-      });
+      // Parallel search: Internal + Web
+      const [internalData, webData] = await Promise.all([
+        supabase.functions.invoke('universal-search-engine', { body: searchPayload }),
+        supabase.functions.invoke('web-search-aggregator', { 
+          body: { query, sources: ['perplexity', 'openai', 'web'], maxResults: 10 } 
+        })
+      ]);
 
-      if (error) throw error;
+      if (internalData.data) {
+        setAiIntent(internalData.data.intent);
+        setResults(internalData.data.results || []);
+      }
 
-      if (data) {
-        setAiIntent(data.intent);
-        setResults(data.results || []);
-        
-        if (data.results?.length === 0) {
-          toast.info('No results found. Try different keywords or activate GPS.');
-        }
+      if (webData.data) {
+        setWebResults(webData.data);
+      }
+
+      // Save search if user is logged in
+      if (user && query) {
+        await supabase.from('saved_searches').upsert({
+          user_id: user.id,
+          query,
+          results_count: (internalData.data?.results?.length || 0) + (webData.data?.results?.length || 0)
+        }, {
+          onConflict: 'user_id,query',
+          ignoreDuplicates: false
+        });
       }
 
     } catch (error) {
@@ -130,6 +156,43 @@ const UniversalSearch = () => {
     }
   };
 
+  const toggleFavorite = async (result: SearchResult) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Please login to save favorites');
+      return;
+    }
+
+    try {
+      if (isFavorite[result.id]) {
+        // Remove from favorites
+        await supabase
+          .from('favorite_results')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('result_id', result.id);
+        
+        setIsFavorite(prev => ({ ...prev, [result.id]: false }));
+        toast.success('Removed from favorites');
+      } else {
+        // Add to favorites
+        await supabase
+          .from('favorite_results')
+          .insert({
+            user_id: user.id,
+            result_id: result.id
+          });
+        
+        setIsFavorite(prev => ({ ...prev, [result.id]: true }));
+        toast.success('Added to favorites');
+      }
+      
+      trackInteraction(result.id, isFavorite[result.id] ? 'unfavorited' : 'favorited');
+    } catch (error) {
+      toast.error('Failed to update favorites');
+    }
+  };
+
   const handleCall = (result: SearchResult) => {
     if (result.contact) {
       trackInteraction(result.id, 'called');
@@ -141,7 +204,6 @@ const UniversalSearch = () => {
 
   const handleChat = (result: SearchResult) => {
     trackInteraction(result.id, 'chat_clicked');
-    // Navigate to chat with seller
     toast.info('Opening chat...');
   };
 
@@ -150,11 +212,6 @@ const UniversalSearch = () => {
       trackInteraction(result.id, 'directions_clicked');
       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(result.address)}`, '_blank');
     }
-  };
-
-  const handleSave = async (result: SearchResult) => {
-    trackInteraction(result.id, 'saved');
-    toast.success('Saved to favorites');
   };
 
   const getTypeColor = (type: string) => {
@@ -253,15 +310,85 @@ const UniversalSearch = () => {
       <div className="max-w-5xl mx-auto px-4 py-6">
         {!searchQuery && !loading && results.length === 0 && (
           <>
-            <TrendingSearches onSearchClick={(query) => {
-              setSearchQuery(query);
-              performSearch(query);
-            }} />
-            <CategoryShortcuts onCategoryClick={(query) => {
-              setSearchQuery(query);
-              performSearch(query);
-            }} />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="saved">Saved</TabsTrigger>
+                <TabsTrigger value="visual">Visual Search</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="all" className="mt-6">
+                <TrendingSearches onSearchClick={(query) => {
+                  setSearchQuery(query);
+                  performSearch(query);
+                }} />
+                <CategoryShortcuts onCategoryClick={(query) => {
+                  setSearchQuery(query);
+                  performSearch(query);
+                }} />
+              </TabsContent>
+              
+              <TabsContent value="saved" className="mt-6">
+                <SavedSearches onSearchClick={(query) => {
+                  setSearchQuery(query);
+                  performSearch(query);
+                }} />
+                <FavoriteResults onResultClick={(result) => {
+                  setSearchQuery(result.title);
+                  performSearch(result.title);
+                }} />
+              </TabsContent>
+              
+              <TabsContent value="visual" className="mt-6">
+                <VisualSearchUpload onSearchComplete={(data) => {
+                  setVisualResults(data);
+                  if (data.search_query) {
+                    setSearchQuery(data.search_query);
+                    performSearch(data.search_query);
+                  }
+                }} />
+              </TabsContent>
+            </Tabs>
           </>
+        )}
+
+        {/* Visual Search Results */}
+        {visualResults && (
+          <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 to-transparent">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-primary" />
+              Visual Search Analysis
+            </h3>
+            <div className="space-y-3">
+              {visualResults.detected_objects && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Detected Objects:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {visualResults.detected_objects.map((obj: string, i: number) => (
+                      <Badge key={i} variant="secondary">{obj}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {visualResults.ai_recommendations && (
+                <div>
+                  <p className="text-sm font-medium mb-2">AI Recommendations:</p>
+                  <p className="text-sm text-muted-foreground">{visualResults.ai_recommendations}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {/* Web Search Results */}
+        {webResults && webResults.synthesis && (
+          <Card className="p-5 mb-6 bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-600" />
+              Web Search Summary
+            </h3>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{webResults.synthesis}</p>
+          </Card>
         )}
 
         {loading && results.length === 0 ? (
@@ -395,18 +522,18 @@ const UniversalSearch = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleSave(result)}
+                        onClick={() => toggleFavorite(result)}
                         className="gap-1"
                       >
-                        <Heart className="w-3.5 h-3.5" />
-                        Save
+                        <Heart className={`w-3.5 h-3.5 ${isFavorite[result.id] ? 'fill-red-500 text-red-500' : ''}`} />
+                        {isFavorite[result.id] ? 'Saved' : 'Save'}
                       </Button>
                       <Button 
                         size="sm"
                         className="gap-1"
                       >
                         <Wallet className="w-3.5 h-3.5" />
-                        Book Now
+                        Book
                       </Button>
                     </div>
                   </div>

@@ -3,6 +3,15 @@ project_id = "sbayuqgomlflmxgicplz"
 [functions.universal-search-engine]
 verify_jwt = false
 
+[functions.web-search-aggregator]
+verify_jwt = false
+
+[functions.visual-search]
+verify_jwt = false
+
+[functions.search-alerts-notifier]
+verify_jwt = false
+
 [functions.ai-browser-search]
 verify_jwt = true
 

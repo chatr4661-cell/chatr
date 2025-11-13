@@ -107,16 +107,16 @@ const Home = () => {
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-4 mt-6">
             <Card className="p-4 text-center bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-              <p className="text-2xl font-bold text-blue-600">10+</p>
-              <p className="text-xs text-muted-foreground">Categories</p>
+              <p className="text-2xl font-bold text-blue-600">∞</p>
+              <p className="text-xs text-muted-foreground">Web Sources</p>
             </Card>
             <Card className="p-4 text-center bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-              <p className="text-2xl font-bold text-green-600">1000+</p>
-              <p className="text-xs text-muted-foreground">Services</p>
+              <p className="text-2xl font-bold text-green-600">AI</p>
+              <p className="text-xs text-muted-foreground">Visual Search</p>
             </Card>
             <Card className="p-4 text-center bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-              <p className="text-2xl font-bold text-purple-600">AI</p>
-              <p className="text-xs text-muted-foreground">Powered</p>
+              <p className="text-2xl font-bold text-purple-600">Smart</p>
+              <p className="text-xs text-muted-foreground">Alerts</p>
             </Card>
           </div>
         </div>
@@ -124,50 +124,88 @@ const Home = () => {
 
       {/* Main Content */}
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-        {/* Trending Searches */}
-        <TrendingSearches onSearchClick={handleCategoryClick} />
-
-        {/* Category Shortcuts */}
-        <CategoryShortcuts onCategoryClick={handleCategoryClick} />
-
         {/* AI Browser */}
         <div>
-          <h3 className="font-semibold text-sm mb-3">More Features</h3>
+          <h3 className="font-semibold text-sm mb-3">AI-Powered Features</h3>
           <QuickAccessBrowser />
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-4 gap-4">
           <Card className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Sparkles className="w-6 h-6 text-primary" />
             </div>
             <h3 className="font-semibold mb-2">AI-Powered</h3>
             <p className="text-sm text-muted-foreground">
-              Smart intent understanding for accurate results every time
+              Smart intent understanding with multi-source results
             </p>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Navigation className="w-6 h-6 text-primary" />
+          <Card className="p-6 bg-gradient-to-br from-blue-500/5 to-transparent">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-4">
+              <Search className="w-6 h-6 text-blue-600" />
             </div>
-            <h3 className="font-semibold mb-2">Location-Based</h3>
+            <h3 className="font-semibold mb-2">Web Search</h3>
             <p className="text-sm text-muted-foreground">
-              Find services and people nearby with GPS integration
+              Integrates with Perplexity, OpenAI, and major search engines
             </p>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Search className="w-6 h-6 text-primary" />
+          <Card className="p-6 bg-gradient-to-br from-green-500/5 to-transparent">
+            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+              <Navigation className="w-6 h-6 text-green-600" />
             </div>
-            <h3 className="font-semibold mb-2">Multi-Source</h3>
+            <h3 className="font-semibold mb-2">GPS-Based</h3>
             <p className="text-sm text-muted-foreground">
-              Searches across services, jobs, healthcare, and more
+              Find services nearby with real-time location tracking
+            </p>
+          </Card>
+
+          <Card className="p-6 bg-gradient-to-br from-purple-500/5 to-transparent">
+            <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-4">
+              <Search className="w-6 h-6 text-purple-600" />
+            </div>
+            <h3 className="font-semibold mb-2">Visual Search</h3>
+            <p className="text-sm text-muted-foreground">
+              Upload photos to find similar services and products
             </p>
           </Card>
         </div>
+
+        {/* New Features Highlight */}
+        <Card className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
+          <h3 className="font-semibold text-lg mb-4">🚀 New Features</h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Saved Searches
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Save your searches and get notified when new results appear
+              </p>
+            </div>
+            <div>
+              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                <Search className="w-4 h-4 text-primary" />
+                Web Integration
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Search across Google, Perplexity, OpenAI, and more sources
+              </p>
+            </div>
+            <div>
+              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                <Navigation className="w-4 h-4 text-primary" />
+                Visual Search
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Upload images to find similar items, services, and products
+              </p>
+            </div>
+          </div>
+        </Card>
 
         {/* Example Searches */}
         <Card className="p-6 bg-gradient-to-br from-muted/50 to-transparent">
