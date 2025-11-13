@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import React, { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { NativeAppProvider } from "./components/NativeAppProvider";
+import { BottomNav } from "./components/BottomNav";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 import { setupNativeCallUI } from "./utils/nativeCallUI";
 
@@ -413,6 +414,7 @@ const App = () => {
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <BottomNav />
           </NativeAppProvider>
         </BrowserRouter>
       </ThemeProvider>
