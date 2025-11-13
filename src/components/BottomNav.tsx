@@ -1,16 +1,15 @@
 import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { MessageCircle, Phone, Users, User, Settings, Home } from 'lucide-react';
+import { MessageCircle, Phone, Users, User, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 
 const navItems = [
-  { name: 'Home', path: '/', icon: Home, highlight: false },
   { name: 'Contacts', path: '/contacts', icon: Users, highlight: false },
   { name: 'Calls', path: '/call-history', icon: Phone, highlight: false },
   { name: 'Chats', path: '/chat', icon: MessageCircle, highlight: true },
-  { name: 'Settings', path: '/settings', icon: Settings, highlight: false },
+  { name: 'Settings', path: '/settings', icon: User, highlight: false },
 ];
 
 export const BottomNav = () => {
@@ -64,7 +63,7 @@ export const BottomNav = () => {
   if (shouldHide) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[999999] bg-transparent backdrop-blur-xl border-t border-border/50 safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-[999999] bg-black/95 backdrop-blur-xl border-t border-white/10 safe-area-pb">
       {/* Navigation content */}
       <div className="relative flex justify-around items-center h-20 max-w-full mx-auto px-4">
         {navItems.map((item, index) => {

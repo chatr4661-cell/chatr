@@ -10,7 +10,6 @@ import { setupNativeCallUI } from "./utils/nativeCallUI";
 
 // Pages
 import Index from "./pages/Index";
-import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import StarredMessages from "./pages/StarredMessages";
 import Chat from "./pages/Chat";
@@ -228,8 +227,7 @@ const App = () => {
           <NativeAppProvider>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/index" element={<SubdomainRedirect />} />
+            <Route path="/" element={<SubdomainRedirect />} />
             
             <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />
