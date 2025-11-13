@@ -23,14 +23,29 @@ export default function ContactsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get all users except current user
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', user.id);
+      // Get synced contacts from user_contacts table
+      const { data: syncedContacts, error: syncError } = await supabase
+        .from('user_contacts')
+        .select(`
+          contact_user_id,
+          profiles:contact_user_id (
+            id,
+            username,
+            phone,
+            avatar_url,
+            is_online
+          )
+        `)
+        .eq('user_id', user.id);
 
-      if (error) throw error;
-      setContacts(data || []);
+      if (syncError) throw syncError;
+
+      // Extract profile data
+      const profileData = syncedContacts
+        ?.map(sc => sc.profiles)
+        .filter(Boolean) || [];
+
+      setContacts(profileData);
     } catch (error) {
       console.error('Error loading contacts:', error);
       toast.error('Failed to load contacts');
@@ -82,11 +97,11 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="p-4">
-          <h1 className="text-2xl font-bold mb-4">People</h1>
+          <h1 className="text-2xl font-bold mb-4">Contacts</h1>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input

@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { ProfileSettings } from "@/components/settings/ProfileSettings";
+import { PrivacySettings } from "@/components/settings/PrivacySettings";
+import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, User, Shield, Palette } from "lucide-react";
+import { Bell, User, Shield, Palette, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function Settings() {
   const [userId, setUserId] = useState<string | undefined>();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getUser = async () => {
@@ -16,57 +23,65 @@ export default function Settings() {
     getUser();
   }, []);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success('Logged out successfully');
+    navigate('/auth');
+  };
+
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="notifications" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="notifications">
-                <Bell className="w-4 h-4 mr-2" />
-                Notifications
-              </TabsTrigger>
-              <TabsTrigger value="profile">
-                <User className="w-4 h-4 mr-2" />
-                Profile
-              </TabsTrigger>
-              <TabsTrigger value="privacy">
-                <Shield className="w-4 h-4 mr-2" />
-                Privacy
-              </TabsTrigger>
-              <TabsTrigger value="appearance">
-                <Palette className="w-4 h-4 mr-2" />
-                Appearance
-              </TabsTrigger>
-            </TabsList>
+    <div className="min-h-screen bg-background pb-24">
+      <div className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="p-4">
+          <h1 className="text-2xl font-bold">Settings</h1>
+        </div>
+      </div>
 
-            <TabsContent value="notifications" className="mt-6">
-              <NotificationSettings userId={userId} />
-            </TabsContent>
+      <div className="p-4">
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile">
+              <User className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <Bell className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="privacy">
+              <Shield className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="appearance">
+              <Palette className="w-4 h-4" />
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="profile" className="mt-6">
-              <div className="text-center text-muted-foreground py-8">
-                Profile settings coming soon
-              </div>
-            </TabsContent>
+          <TabsContent value="profile" className="mt-6">
+            <ProfileSettings userId={userId} />
+          </TabsContent>
 
-            <TabsContent value="privacy" className="mt-6">
-              <div className="text-center text-muted-foreground py-8">
-                Privacy settings coming soon
-              </div>
-            </TabsContent>
+          <TabsContent value="notifications" className="mt-6">
+            <NotificationSettings userId={userId} />
+          </TabsContent>
 
-            <TabsContent value="appearance" className="mt-6">
-              <div className="text-center text-muted-foreground py-8">
-                Appearance settings coming soon
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+          <TabsContent value="privacy" className="mt-6">
+            <PrivacySettings userId={userId} />
+          </TabsContent>
+
+          <TabsContent value="appearance" className="mt-6">
+            <AppearanceSettings />
+          </TabsContent>
+        </Tabs>
+
+        <div className="mt-8">
+          <Button 
+            variant="destructive" 
+            className="w-full"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

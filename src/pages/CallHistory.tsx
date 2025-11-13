@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, ArrowLeft, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow } from 'date-fns';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, Trash2, Search, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Call {
   id: string;
@@ -19,23 +20,24 @@ interface Call {
   duration: number | null;
   caller_id: string;
   receiver_id: string;
-  caller_name: string;
-  receiver_name: string;
   caller?: { username: string; avatar_url: string } | null;
   receiver?: { username: string; avatar_url: string } | null;
 }
 
-const CallHistory = () => {
+export default function CallHistory() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'missed' | 'voice' | 'video'>('all');
-  const [userId, setUserId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'missed'>('all');
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showNewCall, setShowNewCall] = useState(false);
 
   useEffect(() => {
     loadCalls();
-    
+    loadContacts();
+
     const channel = supabase
       .channel('call-history')
       .on('postgres_changes', {
@@ -57,7 +59,7 @@ const CallHistory = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
-      setUserId(user.id);
+      setCurrentUserId(user.id);
 
       const { data, error } = await supabase
         .from('calls')
@@ -68,7 +70,6 @@ const CallHistory = () => {
 
       if (error) throw error;
       
-      // Fetch caller and receiver profiles separately
       const callsWithProfiles = await Promise.all((data || []).map(async (call) => {
         const [callerProfile, receiverProfile] = await Promise.all([
           supabase.from('profiles').select('username, avatar_url').eq('id', call.caller_id).single(),
@@ -85,13 +86,27 @@ const CallHistory = () => {
       setCalls(callsWithProfiles);
     } catch (error) {
       console.error('Error loading calls:', error);
-      toast({
-        title: 'Error loading call history',
-        description: 'Please try again',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load call history');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadContacts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', user.id)
+        .order('username');
+
+      if (error) throw error;
+      setContacts(data || []);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
     }
   };
 
@@ -104,17 +119,59 @@ const CallHistory = () => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Call deleted',
-        description: 'Call removed from history',
-      });
+      setCalls(calls.filter(call => call.id !== callId));
+      toast.success('Call deleted');
     } catch (error) {
       console.error('Error deleting call:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete call',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete call');
+    }
+  };
+
+  const startCall = async (contactId: string, callType: 'voice' | 'video') => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .contains('participant_ids', [user.id, contactId])
+        .single();
+
+      let conversationId = conversation?.id;
+
+      if (!conversationId) {
+        const { data: newConv, error: convError } = await supabase
+          .from('conversations')
+          .insert({
+            participant_ids: [user.id, contactId],
+            is_group: false
+          })
+          .select()
+          .single();
+
+        if (convError) throw convError;
+        conversationId = newConv.id;
+      }
+
+      const { error: callError } = await supabase
+        .from('calls')
+        .insert({
+          conversation_id: conversationId,
+          caller_id: user.id,
+          receiver_id: contactId,
+          call_type: callType,
+          status: 'ringing'
+        });
+
+      if (callError) throw callError;
+
+      toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
+      setShowNewCall(false);
+      loadCalls();
+    } catch (error) {
+      console.error('Error starting call:', error);
+      toast.error('Failed to start call');
     }
   };
 
@@ -132,63 +189,120 @@ const CallHistory = () => {
       return <PhoneMissed className="h-4 w-4 text-destructive" />;
     }
     
-    return call.caller_id === userId ? 
+    return call.caller_id === currentUserId ? 
       <PhoneOutgoing className="h-4 w-4 text-green-500" /> :
       <PhoneIncoming className="h-4 w-4 text-blue-500" />;
   };
 
   const getContactInfo = (call: Call) => {
-    const isOutgoing = call.caller_id === userId;
+    const isOutgoing = call.caller_id === currentUserId;
     return {
-      name: isOutgoing ? call.receiver?.username || call.receiver_name : call.caller?.username || call.caller_name,
+      name: isOutgoing ? call.receiver?.username : call.caller?.username,
       avatar: isOutgoing ? call.receiver?.avatar_url : call.caller?.avatar_url,
     };
   };
 
-  const filteredCalls = calls.filter(call => {
-    if (filter === 'all') return true;
-    if (filter === 'missed') return call.status === 'rejected' || call.status === 'missed';
-    if (filter === 'voice') return call.call_type === 'voice';
-    if (filter === 'video') return call.call_type === 'video';
-    return true;
-  });
+  const filteredCalls = activeFilter === 'all' 
+    ? calls 
+    : calls.filter(call => call.status === 'missed');
+
+  const filteredContacts = contacts.filter(contact =>
+    contact.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    contact.phone?.includes(searchQuery)
+  );
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <div className="flex items-center gap-4 p-4 border-b bg-card">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-xl font-semibold">Call History</h1>
+    <div className="flex flex-col h-screen bg-background pb-24">
+      <div className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-2xl font-bold">Calls</h1>
+          <Dialog open={showNewCall} onOpenChange={setShowNewCall}>
+            <DialogTrigger asChild>
+              <Button size="icon" variant="ghost">
+                <UserPlus className="h-5 w-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>New Call</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search contacts..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-2">
+                    {filteredContacts.map((contact) => (
+                      <div
+                        key={contact.id}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent"
+                      >
+                        <Avatar>
+                          <AvatarImage src={contact.avatar_url} />
+                          <AvatarFallback>
+                            {contact.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="font-semibold">{contact.username}</p>
+                          {contact.phone && (
+                            <p className="text-sm text-muted-foreground">{contact.phone}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => startCall(contact.id, 'voice')}
+                          >
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => startCall(contact.id, 'video')}
+                          >
+                            <Video className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as 'all' | 'missed')} className="w-full px-4">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="missed">Missed</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      {/* Filters */}
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 h-12">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="missed">Missed</TabsTrigger>
-          <TabsTrigger value="voice">Voice</TabsTrigger>
-          <TabsTrigger value="video">Video</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-2">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading calls...</div>
+          ) : filteredCalls.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No {activeFilter === 'missed' ? 'missed' : ''} calls found
+            </div>
+          ) : (
+            filteredCalls.map((call) => {
+              const contact = getContactInfo(call);
+              const isOutgoing = call.caller_id === currentUserId;
 
-      {/* Call List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {loading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading calls...</div>
-        ) : filteredCalls.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No {filter !== 'all' ? filter : ''} calls found
-          </div>
-        ) : (
-          filteredCalls.map((call) => {
-            const contact = getContactInfo(call);
-            const isOutgoing = call.caller_id === userId;
-
-            return (
-              <Card key={call.id} className="p-4 hover:bg-accent/50 transition-colors">
-                <div className="flex items-center gap-4">
+              return (
+                <div key={call.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-accent transition-colors">
                   <Avatar>
                     <AvatarImage src={contact.avatar} />
                     <AvatarFallback>{contact.name?.[0]?.toUpperCase()}</AvatarFallback>
@@ -207,48 +321,25 @@ const CallHistory = () => {
                           <span>{formatDuration(call.duration)}</span>
                         </>
                       )}
-                      {(call.status === 'rejected' || call.status === 'missed') && (
-                        <>
-                          <span>•</span>
-                          <Badge variant="destructive" className="text-xs">
-                            {call.status}
-                          </Badge>
-                        </>
-                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteCall(call.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        // Navigate to conversation
-                        const contactId = isOutgoing ? call.receiver_id : call.caller_id;
-                        navigate(`/chat?contact=${contactId}`);
-                      }}
-                    >
-                      {call.call_type === 'video' ? <Video className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteCall(call.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-              </Card>
-            );
-          })
-        )}
-      </div>
+              );
+            })
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
-};
-
-export default CallHistory;
+}
