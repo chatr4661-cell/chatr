@@ -793,6 +793,80 @@ export type Database = {
           },
         ]
       }
+      audio_room_participants: {
+        Row: {
+          id: string
+          is_muted: boolean | null
+          is_speaking: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_muted?: boolean | null
+          is_speaking?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_muted?: boolean | null
+          is_speaking?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_room_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "audio_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audio_rooms: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          ended_at: string | null
+          host_id: string
+          id: string
+          is_active: boolean | null
+          is_public: boolean | null
+          participant_count: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          ended_at?: string | null
+          host_id: string
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          participant_count?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          ended_at?: string | null
+          host_id?: string
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          participant_count?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       backup_history: {
         Row: {
           backup_key: string
@@ -3408,24 +3482,30 @@ export type Database = {
         Row: {
           conversation_id: string | null
           id: string
+          is_archived: boolean | null
           is_muted: boolean | null
           joined_at: string | null
+          last_read_at: string | null
           role: string | null
           user_id: string | null
         }
         Insert: {
           conversation_id?: string | null
           id?: string
+          is_archived?: boolean | null
           is_muted?: boolean | null
           joined_at?: string | null
+          last_read_at?: string | null
           role?: string | null
           user_id?: string | null
         }
         Update: {
           conversation_id?: string | null
           id?: string
+          is_archived?: boolean | null
           is_muted?: boolean | null
           joined_at?: string | null
+          last_read_at?: string | null
           role?: string | null
           user_id?: string | null
         }
@@ -5972,6 +6052,41 @@ export type Database = {
           },
         ]
       }
+      message_drafts: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_drafts_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_forwards: {
         Row: {
           created_at: string | null
@@ -6161,6 +6276,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "message_retry_log_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_tasks: {
+        Row: {
+          assignee_id: string | null
+          assigner_id: string
+          completed_at: string | null
+          conversation_id: string
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          message_id: string
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assignee_id?: string | null
+          assigner_id: string
+          completed_at?: string | null
+          conversation_id: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          message_id: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assignee_id?: string | null
+          assigner_id?: string
+          completed_at?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          message_id?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_tasks_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_tasks_message_id_fkey"
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "messages"
@@ -7756,6 +7931,190 @@ export type Database = {
           },
         ]
       }
+      scheduled_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          media_attachments: Json | null
+          message_type: string | null
+          scheduled_for: string
+          sender_id: string
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          media_attachments?: Json | null
+          message_type?: string | null
+          scheduled_for: string
+          sender_id: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          media_attachments?: Json | null
+          message_type?: string | null
+          scheduled_for?: string
+          sender_id?: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_cache: {
+        Row: {
+          created_at: string
+          hit_count: number | null
+          id: string
+          last_updated: string
+          query: string
+          response_data: Json
+        }
+        Insert: {
+          created_at?: string
+          hit_count?: number | null
+          id?: string
+          last_updated?: string
+          query: string
+          response_data: Json
+        }
+        Update: {
+          created_at?: string
+          hit_count?: number | null
+          id?: string
+          last_updated?: string
+          query?: string
+          response_data?: Json
+        }
+        Relationships: []
+      }
+      search_queries: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          intent: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_text: string | null
+          query_text: string
+          source: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_text?: string | null
+          query_text: string
+          source?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_text?: string | null
+          query_text?: string
+          source?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      search_results: {
+        Row: {
+          address: string | null
+          contact: string | null
+          created_at: string
+          description: string | null
+          distance: number | null
+          id: string
+          image_url: string | null
+          link: string | null
+          metadata: Json | null
+          price: string | null
+          query_id: string | null
+          rating: number | null
+          result_type: string | null
+          review_count: number | null
+          source: string
+          title: string
+          verified: boolean | null
+        }
+        Insert: {
+          address?: string | null
+          contact?: string | null
+          created_at?: string
+          description?: string | null
+          distance?: number | null
+          id?: string
+          image_url?: string | null
+          link?: string | null
+          metadata?: Json | null
+          price?: string | null
+          query_id?: string | null
+          rating?: number | null
+          result_type?: string | null
+          review_count?: number | null
+          source: string
+          title: string
+          verified?: boolean | null
+        }
+        Update: {
+          address?: string | null
+          contact?: string | null
+          created_at?: string
+          description?: string | null
+          distance?: number | null
+          id?: string
+          image_url?: string | null
+          link?: string | null
+          metadata?: Json | null
+          price?: string | null
+          query_id?: string | null
+          rating?: number | null
+          result_type?: string | null
+          review_count?: number | null
+          source?: string
+          title?: string
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_results_query_id_fkey"
+            columns: ["query_id"]
+            isOneToOne: false
+            referencedRelation: "search_queries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_invoices: {
         Row: {
           amount: number
@@ -8433,6 +8792,33 @@ export type Database = {
         }
         Relationships: []
       }
+      trending_searches: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          last_searched_at: string
+          query: string
+          search_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          last_searched_at?: string
+          query: string
+          search_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          last_searched_at?: string
+          query?: string
+          search_count?: number | null
+        }
+        Relationships: []
+      }
       tutor_bookings: {
         Row: {
           amount_paid: number | null
@@ -8987,6 +9373,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_search_interactions: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          result_id: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          result_id?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          result_id?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_search_interactions_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "search_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_settings: {
         Row: {
           call_notifications: boolean | null
@@ -9426,6 +9847,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_cache_hit: { Args: { cache_id: string }; Returns: undefined }
       increment_community_members: {
         Args: { community_id: string }
         Returns: undefined
@@ -9491,6 +9913,7 @@ export type Database = {
         }
         Returns: string
       }
+      update_cache_hit_count: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "consumer" | "doctor" | "nurse" | "pharmacy" | "admin"

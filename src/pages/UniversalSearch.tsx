@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
@@ -15,25 +15,31 @@ import {
   Sparkles,
   Loader2,
   Phone,
-  MessageCircle
+  MessageCircle,
+  Navigation,
+  Heart,
+  Wallet,
+  ExternalLink
 } from 'lucide-react';
+import { TrendingSearches } from '@/components/search/TrendingSearches';
+import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
+import { getCurrentLocation } from '@/utils/locationService';
 
 interface SearchResult {
   id: string;
-  type: 'service' | 'job' | 'healthcare' | 'food' | 'deal';
-  name: string;
-  category: string;
+  title: string;
   description: string;
-  price: string;
+  contact?: string;
+  address?: string;
+  distance?: number;
   rating: number;
-  reviewCount: number;
-  location: string;
-  distance?: string;
-  image?: string;
-  seller?: {
-    name: string;
-    verified: boolean;
-  };
+  review_count: number;
+  price?: string;
+  image_url?: string;
+  verified: boolean;
+  source: string;
+  result_type: string;
+  metadata?: any;
 }
 
 const UniversalSearch = () => {
@@ -45,7 +51,8 @@ const UniversalSearch = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [aiIntent, setAiIntent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [gpsEnabled, setGpsEnabled] = useState(false);
 
   useEffect(() => {
     if (initialQuery) {
@@ -53,69 +60,56 @@ const UniversalSearch = () => {
     }
   }, [initialQuery]);
 
+  const activateGPS = async () => {
+    try {
+      const coords = await getCurrentLocation();
+      if (coords) {
+        setLocation(coords);
+        setGpsEnabled(true);
+        toast.success('GPS activated for local results');
+      }
+    } catch (error) {
+      toast.error('Failed to get location');
+    }
+  };
+
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
     
     setLoading(true);
-    setAiLoading(true);
 
     try {
-      // AI Intent Understanding + Database Search
-      const aiResponse = await supabase.functions.invoke('universal-ai-search', {
-        body: { query }
-      });
+      const { data: { user } } = await supabase.auth.getUser();
 
-      // Search Services
-      const { data: servicesData } = await supabase
-        .from('chatr_plus_services')
-        .select('*, chatr_plus_sellers(*)')
-        .or(`name.ilike.%${query}%, description.ilike.%${query}%, category.ilike.%${query}%`)
-        .eq('is_active', true)
-        .limit(10);
+      const searchPayload: any = { 
+        query,
+        userId: user?.id
+      };
 
-      // Set AI Intent
-      if (aiResponse.data) {
-        setAiIntent(aiResponse.data);
-      }
-      setAiLoading(false);
-
-      // Combine all results
-      const combinedResults: SearchResult[] = [];
-
-      // Add services
-      if (servicesData) {
-        servicesData.forEach((service: any) => {
-          combinedResults.push({
-            id: service.id,
-            type: 'service',
-            name: service.name,
-            category: service.category || 'Service',
-            description: service.description || '',
-            price: `₹${service.price}`,
-            rating: service.average_rating || 4.5,
-            reviewCount: service.review_count || 0,
-            location: service.location || 'Nearby',
-            seller: {
-              name: service.chatr_plus_sellers?.business_name || 'Seller',
-              verified: service.chatr_plus_sellers?.is_verified || false
-            }
-          });
-        });
+      if (location) {
+        searchPayload.latitude = location.latitude;
+        searchPayload.longitude = location.longitude;
+        searchPayload.maxDistance = 10; // 10km radius
       }
 
-      setResults(combinedResults);
-
-      // Log search for analytics
-      await supabase.from('chatr_search_history').insert({
-        search_query: query,
-        search_intent: aiResponse.data?.intent || 'general',
-        category: aiResponse.data?.category || null,
-        results_count: combinedResults.length
+      const { data, error } = await supabase.functions.invoke('universal-search-engine', {
+        body: searchPayload
       });
+
+      if (error) throw error;
+
+      if (data) {
+        setAiIntent(data.intent);
+        setResults(data.results || []);
+        
+        if (data.results?.length === 0) {
+          toast.info('No results found. Try different keywords or activate GPS.');
+        }
+      }
 
     } catch (error) {
       console.error('Search error:', error);
-      toast.error('Failed to perform search');
+      toast.error('Search failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -125,14 +119,42 @@ const UniversalSearch = () => {
     performSearch(searchQuery);
   };
 
-  const handleBookNow = (result: SearchResult) => {
-    if (result.type === 'service') {
-      navigate(`/chatr-plus/service/${result.id}`);
-    } else if (result.type === 'job') {
-      navigate(`/local-jobs?id=${result.id}`);
-    } else if (result.type === 'healthcare') {
-      navigate(`/local-healthcare?id=${result.id}`);
+  const trackInteraction = async (resultId: string, action: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('user_search_interactions').insert({
+        user_id: user.id,
+        result_id: resultId,
+        action
+      });
     }
+  };
+
+  const handleCall = (result: SearchResult) => {
+    if (result.contact) {
+      trackInteraction(result.id, 'called');
+      window.location.href = `tel:${result.contact}`;
+    } else {
+      toast.error('Contact information not available');
+    }
+  };
+
+  const handleChat = (result: SearchResult) => {
+    trackInteraction(result.id, 'chat_clicked');
+    // Navigate to chat with seller
+    toast.info('Opening chat...');
+  };
+
+  const handleGetDirections = (result: SearchResult) => {
+    if (result.address) {
+      trackInteraction(result.id, 'directions_clicked');
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(result.address)}`, '_blank');
+    }
+  };
+
+  const handleSave = async (result: SearchResult) => {
+    trackInteraction(result.id, 'saved');
+    toast.success('Saved to favorites');
   };
 
   const getTypeColor = (type: string) => {
@@ -141,24 +163,33 @@ const UniversalSearch = () => {
       case 'job': return 'bg-green-500/10 text-green-600';
       case 'healthcare': return 'bg-red-500/10 text-red-600';
       case 'food': return 'bg-orange-500/10 text-orange-600';
-      case 'deal': return 'bg-purple-500/10 text-purple-600';
+      case 'seller': return 'bg-purple-500/10 text-purple-600';
       default: return 'bg-gray-500/10 text-gray-600';
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 py-3">
+        <div className="max-w-5xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3 mb-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-lg font-bold">Universal AI Search</h1>
-              <p className="text-xs text-muted-foreground">Intelligent search across everything</p>
+              <p className="text-xs text-muted-foreground">Ask Anything. Find Everything. Instantly.</p>
             </div>
+            <Button 
+              variant={gpsEnabled ? "default" : "outline"} 
+              size="sm"
+              onClick={activateGPS}
+              className="gap-2"
+            >
+              <Navigation className="w-4 h-4" />
+              {gpsEnabled ? 'GPS On' : 'GPS'}
+            </Button>
           </div>
 
           {/* Search Bar */}
@@ -169,16 +200,13 @@ const UniversalSearch = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Find plumber, order biryani, dentist near me..."
-                className="pl-10 pr-20"
+                placeholder="Find plumber, order food, doctor, jobs..."
+                className="pl-10 pr-12"
               />
-              {aiLoading && (
-                <Sparkles className="absolute right-14 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-pulse" />
-              )}
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
               >
                 <Mic className="w-4 h-4" />
               </Button>
@@ -190,14 +218,30 @@ const UniversalSearch = () => {
 
           {/* AI Intent Banner */}
           {aiIntent && (
-            <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">AI understands: {aiIntent.intent}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Category: {aiIntent.category} • {aiIntent.suggestions?.join(', ')}
+            <div className="mt-3 p-3 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-primary mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium mb-1">
+                    AI understands: {aiIntent.intent}
                   </p>
+                  {aiIntent.suggestions && (
+                    <div className="flex flex-wrap gap-1">
+                      {aiIntent.suggestions.slice(0, 3).map((suggestion: string, i: number) => (
+                        <Badge 
+                          key={i}
+                          variant="outline" 
+                          className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                          onClick={() => {
+                            setSearchQuery(suggestion);
+                            performSearch(suggestion);
+                          }}
+                        >
+                          {suggestion}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -205,94 +249,172 @@ const UniversalSearch = () => {
         </div>
       </div>
 
-      {/* Results */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      {/* Main Content */}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        {!searchQuery && !loading && results.length === 0 && (
+          <>
+            <TrendingSearches onSearchClick={(query) => {
+              setSearchQuery(query);
+              performSearch(query);
+            }} />
+            <CategoryShortcuts onCategoryClick={(query) => {
+              setSearchQuery(query);
+              performSearch(query);
+            }} />
+          </>
+        )}
+
         {loading && results.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Searching across all sources...</p>
           </div>
-        ) : results.length === 0 ? (
-          <div className="text-center py-12">
-            <Search className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground">
-              {searchQuery ? 'No results found. Try different keywords.' : 'Start searching...'}
-            </p>
+        ) : results.length === 0 && searchQuery ? (
+          <div className="text-center py-16">
+            <Search className="w-20 h-20 mx-auto text-muted-foreground/30 mb-4" />
+            <p className="text-lg font-medium mb-2">No results found</p>
+            <p className="text-muted-foreground mb-4">Try different keywords or activate GPS for local results</p>
+            <Button onClick={activateGPS} variant="outline" className="gap-2">
+              <Navigation className="w-4 h-4" />
+              Activate GPS
+            </Button>
           </div>
-        ) : (
+        ) : results.length > 0 ? (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Found {results.length} results for "{searchQuery}"
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Found <span className="font-semibold text-foreground">{results.length}</span> results
+              </p>
+              {gpsEnabled && (
+                <Badge variant="secondary" className="gap-1">
+                  <Navigation className="w-3 h-3" />
+                  Showing nearby
+                </Badge>
+              )}
+            </div>
+
             {results.map((result) => (
-              <Card key={result.id} className="p-4 hover:shadow-lg transition-shadow">
+              <Card key={result.id} className="p-5 hover:shadow-lg transition-all">
                 <div className="flex gap-4">
-                  {result.image && (
+                  {result.image_url && (
                     <img 
-                      src={result.image} 
-                      alt={result.name}
-                      className="w-24 h-24 object-cover rounded-lg"
+                      src={result.image_url} 
+                      alt={result.title}
+                      className="w-28 h-28 object-cover rounded-lg flex-shrink-0"
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">{result.name}</h3>
-                          {result.seller?.verified && (
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h3 className="font-semibold text-lg">{result.title}</h3>
+                          {result.verified && (
                             <Badge variant="secondary" className="text-xs">
                               ✓ Verified
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                          <Badge variant="outline" className={getTypeColor(result.type)}>
-                            {result.category}
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <Badge variant="outline" className={getTypeColor(result.result_type)}>
+                            {result.result_type}
                           </Badge>
-                          {result.seller && (
-                            <span>by {result.seller.name}</span>
+                          {result.metadata?.category && (
+                            <span className="text-xs text-muted-foreground">
+                              {result.metadata.category}
+                            </span>
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg text-primary">{result.price}</p>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium">{result.rating}</span>
-                          <span className="text-muted-foreground">({result.reviewCount})</span>
-                        </div>
+                      <div className="text-right flex-shrink-0">
+                        {result.price && (
+                          <p className="font-bold text-lg text-primary mb-1">{result.price}</p>
+                        )}
+                        {result.rating > 0 && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-medium">{result.rating.toFixed(1)}</span>
+                            <span className="text-muted-foreground">({result.review_count})</span>
+                          </div>
+                        )}
                       </div>
                     </div>
+
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                       {result.description}
                     </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
-                        <span>{result.location}</span>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                        {result.address && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span className="line-clamp-1">{result.address}</span>
+                          </div>
+                        )}
                         {result.distance && (
-                          <span className="text-primary">• {result.distance}</span>
+                          <Badge variant="outline" className="text-primary gap-1">
+                            <Navigation className="w-3 h-3" />
+                            {result.distance.toFixed(1)} km
+                          </Badge>
                         )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Phone className="w-4 h-4 mr-1" />
+                    </div>
+
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      {result.contact && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCall(result)}
+                          className="gap-1"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
                           Call
                         </Button>
-                        <Button variant="outline" size="sm">
-                          <MessageCircle className="w-4 h-4 mr-1" />
-                          Chat
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleChat(result)}
+                        className="gap-1"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        Chat
+                      </Button>
+                      {result.address && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleGetDirections(result)}
+                          className="gap-1"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Directions
                         </Button>
-                        <Button size="sm" onClick={() => handleBookNow(result)}>
-                          Book Now
-                        </Button>
-                      </div>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleSave(result)}
+                        className="gap-1"
+                      >
+                        <Heart className="w-3.5 h-3.5" />
+                        Save
+                      </Button>
+                      <Button 
+                        size="sm"
+                        className="gap-1"
+                      >
+                        <Wallet className="w-3.5 h-3.5" />
+                        Book Now
+                      </Button>
                     </div>
                   </div>
                 </div>
               </Card>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

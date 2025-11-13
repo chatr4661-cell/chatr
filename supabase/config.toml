@@ -1,5 +1,8 @@
 project_id = "sbayuqgomlflmxgicplz"
 
+[functions.universal-search-engine]
+verify_jwt = false
+
 [functions.ai-browser-search]
 verify_jwt = true
 
