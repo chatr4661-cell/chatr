@@ -1,0 +1,130 @@
+{
+  "info": {
+    "name": "CHATR Complete API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/messages/:conversationId?limit=50&offset=0",
+              "host": ["http://localhost:3000"],
+              "path": ["api", "messages", ":conversationId"],
+              "query": [
+                {"key": "limit", "value": "50"},
+                {"key": "offset", "value": "0"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"conv_123\",\n  \"senderId\": \"user_1\",\n  \"receiverId\": \"user_2\",\n  \"messageText\": \"Hello!\",\n  \"messageType\": \"text\"\n}"
+            },
+            "url": "http://localhost:3000/api/messages"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calls",
+      "item": [
+        {
+          "name": "Initiate Call",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"callId\": \"call_123\",\n  \"fromUserId\": \"user_1\",\n  \"toUserId\": \"user_2\",\n  \"isVideo\": true\n}"
+            },
+            "url": "http://localhost:3000/api/calls/initiate"
+          }
+        },
+        {
+          "name": "Send Offer",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"callId\": \"call_123\",\n  \"sdp\": \"v=0\\r\\no=- 123456...\",\n  \"from\": \"user_1\",\n  \"to\": \"user_2\"\n}"
+            },
+            "url": "http://localhost:3000/api/calls/offer"
+          }
+        },
+        {
+          "name": "Get Call History",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:3000/api/calls/history/:userId"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts",
+      "item": [
+        {
+          "name": "Sync Contacts",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_1\",\n  \"contacts\": [\n    {\n      \"nameHash\": \"abc123...\",\n      \"phoneHash\": \"def456...\"\n    }\n  ]\n}"
+            },
+            "url": "http://localhost:3000/api/contacts/sync"
+          }
+        },
+        {
+          "name": "Get Contact Matches",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:3000/api/contacts/matches/:userId"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Register Device Token",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceToken\": \"fcm_token_here\",\n  \"platform\": \"android\",\n  \"userId\": \"user_1\"\n}"
+            },
+            "url": "http://localhost:3000/api/notifications/register"
+          }
+        },
+        {
+          "name": "Register VoIP Token",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voipToken\": \"pushkit_token_here\",\n  \"platform\": \"ios\",\n  \"userId\": \"user_1\"\n}"
+            },
+            "url": "http://localhost:3000/api/notifications/register-voip"
+          }
+        }
+      ]
+    }
+  ]
+}

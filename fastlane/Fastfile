@@ -1,0 +1,87 @@
+# Fastlane configuration for CHATR
+
+default_platform(:android)
+
+# Android Lane
+platform :android do
+  desc "Build and deploy Android app"
+  lane :beta do
+    gradle(
+      task: "clean assembleRelease",
+      project_dir: "android-native/"
+    )
+    
+    # Upload to Firebase App Distribution or Play Store
+    firebase_app_distribution(
+      app: ENV["FIREBASE_APP_ID_ANDROID"],
+      release_notes: "New beta release",
+      groups: "internal-testers"
+    )
+  end
+  
+  desc "Deploy to Play Store"
+  lane :production do
+    gradle(
+      task: "clean bundleRelease",
+      project_dir: "android-native/"
+    )
+    
+    upload_to_play_store(
+      track: "production",
+      aab: "android-native/app/build/outputs/bundle/release/app-release.aab"
+    )
+  end
+  
+  desc "Take screenshots"
+  lane :screenshots do
+    gradle(
+      task: "clean assembleDebug assembleAndroidTest",
+      project_dir: "android-native/"
+    )
+    
+    screengrab
+  end
+end
+
+# iOS Lane
+platform :ios do
+  desc "Build and deploy iOS app"
+  lane :beta do
+    match(type: "adhoc")
+    
+    gym(
+      scheme: "CHATR",
+      export_method: "ad-hoc",
+      workspace: "ios-native/CHATR/CHATR.xcworkspace"
+    )
+    
+    # Upload to TestFlight or Firebase
+    firebase_app_distribution(
+      app: ENV["FIREBASE_APP_ID_IOS"],
+      release_notes: "New beta release",
+      groups: "internal-testers"
+    )
+  end
+  
+  desc "Deploy to App Store"
+  lane :production do
+    match(type: "appstore")
+    
+    gym(
+      scheme: "CHATR",
+      export_method: "app-store",
+      workspace: "ios-native/CHATR/CHATR.xcworkspace"
+    )
+    
+    upload_to_app_store(
+      force: true,
+      skip_metadata: false,
+      skip_screenshots: false
+    )
+  end
+  
+  desc "Take screenshots"
+  lane :screenshots do
+    snapshot
+  end
+end
