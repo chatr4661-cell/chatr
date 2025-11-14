@@ -32,20 +32,20 @@ class MainActivity : ComponentActivity() {
 fun ChatrApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: "home"
+    val currentRoute = navBackStackEntry?.destination?.route ?: "chats"
     
     val bottomNavRoutes = listOf("contacts", "calls", "chats", "settings")
-    val showBottomNav = currentRoute in bottomNavRoutes || currentRoute == "home"
+    val showBottomNav = currentRoute in bottomNavRoutes
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             if (showBottomNav) {
                 ChatrBottomNavigation(
-                    selectedRoute = if (currentRoute == "home") "chats" else currentRoute,
+                    selectedRoute = currentRoute,
                     onNavigate = { route ->
                         navController.navigate(route) {
-                            popUpTo("home") { saveState = true }
+                            popUpTo("chats") { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -56,15 +56,9 @@ fun ChatrApp() {
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = "home",
+            startDestination = "chats",
             modifier = Modifier.padding(padding)
         ) {
-            composable("home") {
-                HomeScreen(
-                    onNavigate = { route -> navController.navigate(route) }
-                )
-            }
-            
             composable("chats") {
                 ChatsScreen(
                     onNavigate = { route -> navController.navigate(route) }
