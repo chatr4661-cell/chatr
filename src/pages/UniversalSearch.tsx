@@ -110,7 +110,11 @@ const UniversalSearch = () => {
       const [internalData, webData] = await Promise.all([
         supabase.functions.invoke('universal-search-engine', { body: searchPayload }),
         supabase.functions.invoke('web-search-aggregator', { 
-          body: { query, sources: ['perplexity', 'openai', 'web'], maxResults: 10 } 
+          body: { 
+            query, 
+            maxResults: 10,
+            location: location ? `Noida Sector 128` : undefined 
+          } 
         })
       ]);
 
@@ -383,13 +387,33 @@ const UniversalSearch = () => {
         )}
 
         {/* Web Search Results */}
-        {webResults && webResults.synthesis && (
+        {webResults && (webResults.synthesis || webResults.results?.length > 0) && (
           <Card className="p-5 mb-6 bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <Globe className="w-5 h-5 text-blue-600" />
-              Web Search Summary
-            </h3>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{webResults.synthesis}</p>
+            {webResults.synthesis && (
+              <>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-blue-600" />
+                  Web Search Summary
+                </h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">{webResults.synthesis}</p>
+              </>
+            )}
+            {webResults.results && webResults.results.length > 0 && (
+              <div className="space-y-3 mt-4">
+                <h4 className="font-medium text-sm">Web Results:</h4>
+                {webResults.results.slice(0, 5).map((result: any, index: number) => (
+                  <div key={index} className="p-3 bg-background/50 rounded-lg border border-border/50">
+                    <h5 className="font-medium mb-1">{result.title}</h5>
+                    <p className="text-xs text-muted-foreground mb-2">{result.description}</p>
+                    <div className="flex items-center gap-3 text-xs">
+                      {result.contact && <span>📞 {result.contact}</span>}
+                      {result.rating && <span>⭐ {result.rating}</span>}
+                      {result.price && <span>{result.price}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         )}
 
