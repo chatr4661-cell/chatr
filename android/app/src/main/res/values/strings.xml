@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">chatr</string>
+    <string name="title_activity_main">chatr</string>
+    <string name="package_name">app.lovable.a6d6a8a571c024ddcbd7f2c0ec6dd878a</string>
+    <string name="custom_url_scheme">app.lovable.a6d6a8a571c024ddcbd7f2c0ec6dd878a</string>
+</resources>
