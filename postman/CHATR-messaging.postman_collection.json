@@ -1,0 +1,134 @@
+{
+  "info": {
+    "name": "CHATR Messaging API",
+    "description": "API collection for CHATR native mobile apps",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/messages/:conversationId?limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", ":conversationId"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "conversationId",
+                  "value": "conv-123"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Text Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"conv-123\",\n  \"senderId\": \"user-456\",\n  \"senderName\": \"John Doe\",\n  \"content\": \"Hello, how are you?\",\n  \"type\": \"TEXT\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Send Image Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"conv-123\",\n  \"senderId\": \"user-456\",\n  \"senderName\": \"John Doe\",\n  \"content\": \"\",\n  \"type\": \"IMAGE\",\n  \"mediaUrl\": \"https://example.com/image.jpg\",\n  \"thumbnailUrl\": \"https://example.com/thumb.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "WebSocket Events",
+      "item": [
+        {
+          "name": "Connect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "ws://{{base_url}}",
+              "protocol": "ws",
+              "host": ["{{base_url}}"]
+            },
+            "description": "WebSocket connection with auth params: {userId: string, token: string}"
+          }
+        },
+        {
+          "name": "Send Message Event",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "ws://{{base_url}}",
+              "protocol": "ws",
+              "host": ["{{base_url}}"]
+            },
+            "description": "Event: send_message\nPayload: {id, conversationId, senderId, senderName, content, type}"
+          }
+        },
+        {
+          "name": "Typing Event",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "ws://{{base_url}}",
+              "protocol": "ws",
+              "host": ["{{base_url}}"]
+            },
+            "description": "Event: typing_start / typing_stop\nPayload: {conversationId}"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "localhost:3000"
+    }
+  ]
+}
