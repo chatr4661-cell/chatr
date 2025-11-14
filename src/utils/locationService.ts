@@ -22,29 +22,57 @@ export interface IPLocationData {
 export async function getCurrentLocation(): Promise<{ latitude: number; longitude: number } | null> {
   try {
     // Check if running on native platform
-    if (!Capacitor.isNativePlatform()) {
-      console.log('Geolocation: Not on native platform, skipping GPS');
-      return null;
+    if (Capacitor.isNativePlatform()) {
+      console.log('Geolocation: Native platform detected');
+      
+      // Request permissions
+      const permission = await Geolocation.requestPermissions();
+      if (permission.location !== 'granted') {
+        console.log('Geolocation permission denied');
+        return null;
+      }
+
+      // Get current position with high accuracy
+      const position = await Geolocation.getCurrentPosition({ 
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+
+      const { latitude, longitude } = position.coords;
+      console.log('GPS Location obtained:', { latitude, longitude });
+      
+      return { latitude, longitude };
+    } else {
+      // Use browser geolocation API for web
+      console.log('Geolocation: Using browser API');
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          console.error('Geolocation not supported');
+          reject(new Error('Geolocation not supported'));
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log('Geolocation: Browser position obtained', position.coords);
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            });
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            reject(error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      });
     }
-
-    // Request permissions
-    const permission = await Geolocation.requestPermissions();
-    if (permission.location !== 'granted') {
-      console.log('Geolocation permission denied');
-      return null;
-    }
-
-    // Get current position with high accuracy
-    const position = await Geolocation.getCurrentPosition({ 
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    });
-
-    const { latitude, longitude } = position.coords;
-    console.log('GPS Location obtained:', { latitude, longitude });
-    
-    return { latitude, longitude };
   } catch (error) {
     console.error('Error getting GPS location:', error);
     return null;

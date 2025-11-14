@@ -106,6 +106,14 @@ const UniversalSearch = () => {
         searchPayload.maxDistance = 10;
       }
 
+      // Get location name for context
+      let locationName = 'Noida Sector 128';
+      if (location) {
+        // In a real app, you'd reverse geocode to get area name
+        // For now, use default Noida Sector 128
+        locationName = 'Noida Sector 128';
+      }
+
       // Parallel search: Internal + Web
       const [internalData, webData] = await Promise.all([
         supabase.functions.invoke('universal-search-engine', { body: searchPayload }),
@@ -113,14 +121,35 @@ const UniversalSearch = () => {
           body: { 
             query, 
             maxResults: 10,
-            location: location ? `Noida Sector 128` : undefined 
+            location: locationName
           } 
         })
       ]);
 
       if (internalData.data) {
         setAiIntent(internalData.data.intent);
-        setResults(internalData.data.results || []);
+        const internalResults = internalData.data.results || [];
+        
+        // Merge with web results if available
+        if (webData.data?.results && webData.data.results.length > 0) {
+          // Convert web results to match our SearchResult interface
+          const webResults = webData.data.results.map((r: any) => ({
+            id: `web-${Math.random().toString(36).substr(2, 9)}`,
+            title: r.title,
+            description: r.description,
+            contact: r.contact,
+            address: r.address,
+            rating: r.rating || 0,
+            review_count: 0,
+            price: r.price,
+            verified: false,
+            source: 'web',
+            result_type: r.category || 'service'
+          }));
+          setResults([...webResults, ...internalResults]);
+        } else {
+          setResults(internalResults);
+        }
       }
 
       if (webData.data) {
@@ -388,29 +417,30 @@ const UniversalSearch = () => {
 
         {/* Web Search Results */}
         {webResults && (webResults.synthesis || webResults.results?.length > 0) && (
-          <Card className="p-5 mb-6 bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
+          <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
             {webResults.synthesis && (
               <>
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-blue-600" />
-                  Web Search Summary
+                  <Globe className="w-5 h-5 text-primary" />
+                  AI Search Insights
                 </h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">{webResults.synthesis}</p>
+                <p className="text-sm text-foreground mb-4 leading-relaxed">{webResults.synthesis}</p>
               </>
             )}
-            {webResults.results && webResults.results.length > 0 && (
-              <div className="space-y-3 mt-4">
-                <h4 className="font-medium text-sm">Web Results:</h4>
-                {webResults.results.slice(0, 5).map((result: any, index: number) => (
-                  <div key={index} className="p-3 bg-background/50 rounded-lg border border-border/50">
-                    <h5 className="font-medium mb-1">{result.title}</h5>
-                    <p className="text-xs text-muted-foreground mb-2">{result.description}</p>
-                    <div className="flex items-center gap-3 text-xs">
-                      {result.contact && <span>📞 {result.contact}</span>}
-                      {result.rating && <span>⭐ {result.rating}</span>}
-                      {result.price && <span>{result.price}</span>}
-                    </div>
-                  </div>
+            {webResults.suggestions && webResults.suggestions.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {webResults.suggestions.map((suggestion: string, i: number) => (
+                  <Badge 
+                    key={i}
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground text-xs"
+                    onClick={() => {
+                      setSearchQuery(suggestion);
+                      performSearch(suggestion);
+                    }}
+                  >
+                    {suggestion}
+                  </Badge>
                 ))}
               </div>
             )}
