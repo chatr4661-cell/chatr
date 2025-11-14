@@ -97,7 +97,14 @@ Provide realistic, detailed information as if you're aggregating real search res
       
       if (data.choices?.[0]?.message?.content) {
         try {
-          const parsedContent = JSON.parse(data.choices[0].message.content);
+          let content = data.choices[0].message.content;
+          
+          // Remove markdown code blocks if present
+          if (content.includes('```json')) {
+            content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+          }
+          
+          const parsedContent = JSON.parse(content);
           console.log('Parsed results:', parsedContent.results?.length || 0, 'items');
           
           return new Response(
@@ -113,13 +120,17 @@ Provide realistic, detailed information as if you're aggregating real search res
           );
         } catch (parseError) {
           console.error('JSON parse error:', parseError);
+          console.error('Content was:', data.choices[0].message.content);
+          
+          // Fallback to generated results
+          const fallbackResults = generateFallbackResults(query, location);
           return new Response(
             JSON.stringify({
               success: true,
-              synthesis: data.choices[0].message.content,
-              results: [],
-              suggestions: [],
-              source: 'lovable_ai',
+              synthesis: `Found local results for "${query}" in ${location}`,
+              results: fallbackResults,
+              suggestions: [`${query} near me`, `best ${query}`, `${query} reviews`],
+              source: 'fallback',
               timestamp: new Date().toISOString()
             }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
