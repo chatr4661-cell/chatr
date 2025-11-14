@@ -1,0 +1,34 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+        
+    - name: Install dependencies
+      run: |
+        cd ios-native/CHATR
+        pod install || true
+        
+    - name: Build
+      run: |
+        cd ios-native/CHATR
+        xcodebuild -workspace CHATR.xcworkspace -scheme CHATR -configuration Release clean build CODE_SIGNING_ALLOWED=NO
+        
+    - name: Run tests
+      run: |
+        cd ios-native/CHATR
+        xcodebuild test -workspace CHATR.xcworkspace -scheme CHATR -destination 'platform=iOS Simulator,name=iPhone 14'
