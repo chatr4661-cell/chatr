@@ -389,63 +389,32 @@ const UniversalSearch = () => {
 
         {/* Visual Search Results */}
         {visualResults && (
-          <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 to-transparent">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-primary" />
+          <Card className="p-4 mb-4 bg-card">
+            <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
+              <ImageIcon className="w-4 h-4 text-primary" />
               Visual Search Analysis
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {visualResults.detected_objects && (
                 <div>
-                  <p className="text-sm font-medium mb-2">Detected Objects:</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-xs font-medium mb-1">Detected Objects:</p>
+                  <div className="flex flex-wrap gap-1">
                     {visualResults.detected_objects.map((obj: string, i: number) => (
-                      <Badge key={i} variant="secondary">{obj}</Badge>
+                      <Badge key={i} variant="secondary" className="text-xs">{obj}</Badge>
                     ))}
                   </div>
                 </div>
               )}
               {visualResults.ai_recommendations && (
                 <div>
-                  <p className="text-sm font-medium mb-2">AI Recommendations:</p>
-                  <p className="text-sm text-muted-foreground">{visualResults.ai_recommendations}</p>
+                  <p className="text-xs font-medium mb-1">AI Recommendations:</p>
+                  <p className="text-xs text-muted-foreground">{visualResults.ai_recommendations}</p>
                 </div>
               )}
             </div>
           </Card>
         )}
 
-        {/* Web Search Results */}
-        {webResults && (webResults.synthesis || webResults.results?.length > 0) && (
-          <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
-            {webResults.synthesis && (
-              <>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-primary" />
-                  AI Search Insights
-                </h3>
-                <p className="text-sm text-foreground mb-4 leading-relaxed">{webResults.synthesis}</p>
-              </>
-            )}
-            {webResults.suggestions && webResults.suggestions.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {webResults.suggestions.map((suggestion: string, i: number) => (
-                  <Badge 
-                    key={i}
-                    variant="outline" 
-                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground text-xs"
-                    onClick={() => {
-                      setSearchQuery(suggestion);
-                      performSearch(suggestion);
-                    }}
-                  >
-                    {suggestion}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </Card>
-        )}
 
         {loading && results.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
@@ -463,115 +432,94 @@ const UniversalSearch = () => {
             </Button>
           </div>
         ) : results.length > 0 ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Found <span className="font-semibold text-foreground">{results.length}</span> results
-              </p>
-              {gpsEnabled && (
-                <Badge variant="secondary" className="gap-1">
-                  <Navigation className="w-3 h-3" />
-                  Showing nearby
-                </Badge>
-              )}
-            </div>
+          <div className="space-y-3">
+            {/* Map placeholder */}
+            {gpsEnabled && location && (
+              <Card className="p-0 mb-4 overflow-hidden">
+                <div className="h-48 bg-gradient-to-br from-blue-100 to-green-100 relative flex items-center justify-center">
+                  <MapPin className="w-12 h-12 text-primary/40" />
+                  <p className="absolute bottom-3 left-3 text-xs bg-background/90 px-2 py-1 rounded">
+                    📍 Showing results near you
+                  </p>
+                </div>
+              </Card>
+            )}
+
+            <h2 className="text-lg font-semibold mb-3">Places</h2>
 
             {results.map((result) => (
-              <Card key={result.id} className="p-5 hover:shadow-lg transition-all">
-                <div className="flex gap-4">
+              <Card key={result.id} className="p-4 hover:shadow-md transition-all border border-border/50">
+                <div className="flex gap-3">
                   {result.image_url && (
                     <img 
                       src={result.image_url} 
                       alt={result.title}
-                      className="w-28 h-28 object-cover rounded-lg flex-shrink-0"
+                      className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold text-lg">{result.title}</h3>
-                          {result.verified && (
-                            <Badge variant="secondary" className="text-xs">
-                              ✓ Verified
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <Badge variant="outline" className={getTypeColor(result.result_type)}>
-                            {result.result_type}
-                          </Badge>
-                          {result.metadata?.category && (
-                            <span className="text-xs text-muted-foreground">
-                              {result.metadata.category}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        {result.price && (
-                          <p className="font-bold text-lg text-primary mb-1">{result.price}</p>
-                        )}
-                        {result.rating > 0 && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">{result.rating.toFixed(1)}</span>
+                    <h3 className="font-semibold text-base mb-1 text-foreground">{result.title}</h3>
+                    
+                    <div className="flex items-center gap-2 mb-2 flex-wrap text-sm">
+                      {result.rating > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">{result.rating.toFixed(1)}</span>
+                          <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                          {result.review_count > 0 && (
                             <span className="text-muted-foreground">({result.review_count})</span>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
+                      {result.price && (
+                        <>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-muted-foreground">{result.price}</span>
+                        </>
+                      )}
+                      {result.metadata?.category && (
+                        <>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-muted-foreground">{result.metadata.category}</span>
+                        </>
+                      )}
                     </div>
 
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                    {result.metadata?.status && (
+                      <p className={`text-xs mb-1 ${result.metadata.status === 'Open' ? 'text-green-600' : 'text-red-600'}`}>
+                        {result.metadata.status}
+                      </p>
+                    )}
+
+                    {result.address && (
+                      <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
+                        {result.address}
+                      </p>
+                    )}
+
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
                       {result.description}
                     </p>
 
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                        {result.address && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span className="line-clamp-1">{result.address}</span>
-                          </div>
-                        )}
-                        {result.distance && (
-                          <Badge variant="outline" className="text-primary gap-1">
-                            <Navigation className="w-3 h-3" />
-                            {result.distance.toFixed(1)} km
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 mt-3 flex-wrap">
+                    <div className="flex gap-2 flex-wrap">
                       {result.contact && (
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleCall(result)}
-                          className="gap-1"
+                          className="gap-1 text-xs h-7"
                         >
-                          <Phone className="w-3.5 h-3.5" />
+                          <Phone className="w-3 h-3" />
                           Call
                         </Button>
                       )}
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleChat(result)}
-                        className="gap-1"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        Chat
-                      </Button>
                       {result.address && (
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleGetDirections(result)}
-                          className="gap-1"
+                          className="gap-1 text-xs h-7"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <Navigation className="w-3 h-3" />
                           Directions
                         </Button>
                       )}
@@ -579,17 +527,10 @@ const UniversalSearch = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => toggleFavorite(result)}
-                        className="gap-1"
+                        className="gap-1 text-xs h-7"
                       >
-                        <Heart className={`w-3.5 h-3.5 ${isFavorite[result.id] ? 'fill-red-500 text-red-500' : ''}`} />
-                        {isFavorite[result.id] ? 'Saved' : 'Save'}
-                      </Button>
-                      <Button 
-                        size="sm"
-                        className="gap-1"
-                      >
-                        <Wallet className="w-3.5 h-3.5" />
-                        Book
+                        <Heart className={`w-3 h-3 ${isFavorite[result.id] ? 'fill-red-500 text-red-500' : ''}`} />
+                        Save
                       </Button>
                     </div>
                   </div>
