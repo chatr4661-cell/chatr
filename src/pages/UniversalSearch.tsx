@@ -70,6 +70,8 @@ const UniversalSearch = () => {
     if (initialQuery) {
       performSearch(initialQuery);
     }
+    // Auto-activate GPS on mount
+    activateGPS();
   }, [initialQuery]);
 
   const activateGPS = async () => {

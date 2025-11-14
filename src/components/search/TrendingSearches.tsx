@@ -10,7 +10,16 @@ interface TrendingSearch {
 }
 
 export const TrendingSearches = ({ onSearchClick }: { onSearchClick: (query: string) => void }) => {
-  const [trending, setTrending] = useState<TrendingSearch[]>([]);
+  const [trending, setTrending] = useState<TrendingSearch[]>([
+    { query: 'Plumber near me', search_count: 245, category: 'Services' },
+    { query: 'Biryani delivery', search_count: 189, category: 'Food' },
+    { query: 'Doctor available now', search_count: 167, category: 'Health' },
+    { query: 'AC repair service', search_count: 143, category: 'Services' },
+    { query: 'Job openings', search_count: 128, category: 'Jobs' },
+    { query: 'Best restaurants', search_count: 112, category: 'Food' },
+    { query: 'Tutor for math', search_count: 98, category: 'Learning' },
+    { query: 'Taxi booking', search_count: 87, category: 'Travel' },
+  ]);
 
   useEffect(() => {
     loadTrending();
@@ -23,10 +32,8 @@ export const TrendingSearches = ({ onSearchClick }: { onSearchClick: (query: str
       .order('search_count', { ascending: false })
       .limit(10);
 
-    if (data) setTrending(data);
+    if (data && data.length > 0) setTrending(data);
   };
-
-  if (trending.length === 0) return null;
 
   return (
     <div className="mb-6">
