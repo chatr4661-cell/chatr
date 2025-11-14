@@ -158,14 +158,18 @@ const UniversalSearch = () => {
 
       // Save search if user is logged in
       if (user && query) {
-        await supabase.from('saved_searches').upsert({
-          user_id: user.id,
-          query,
-          results_count: (internalData.data?.results?.length || 0) + (webData.data?.results?.length || 0)
-        }, {
-          onConflict: 'user_id,query',
-          ignoreDuplicates: false
-        });
+        try {
+          await supabase.from('saved_searches').upsert({
+            user_id: user.id,
+            query,
+            results_count: (internalData.data?.results?.length || 0) + (webData.data?.results?.length || 0)
+          }, {
+            onConflict: 'user_id,query',
+            ignoreDuplicates: false
+          });
+        } catch (err) {
+          console.error('Failed to save search:', err);
+        }
       }
 
     } catch (error) {
