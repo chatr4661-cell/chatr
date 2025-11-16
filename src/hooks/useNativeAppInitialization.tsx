@@ -8,6 +8,7 @@ import { Network } from '@capacitor/network';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceFingerprint, getDeviceName, getDeviceType } from '@/utils/deviceFingerprint';
+import { initDeepLinkListener } from '@/utils/deepLinkHandler';
 
 /**
  * Comprehensive native app initialization
@@ -19,7 +20,7 @@ export const useNativeAppInitialization = (userId?: string) => {
 
     let networkListener: any;
     let appStateListener: any;
-    let urlListener: any;
+    let deepLinkCleanup: (() => void) | undefined;
     let backButtonListener: any;
 
     const initializeNativeFeatures = async () => {
@@ -91,27 +92,9 @@ export const useNativeAppInitialization = (userId?: string) => {
           }
         });
 
-        // 7. Deep linking support
-        urlListener = await App.addListener('appUrlOpen', ({ url }) => {
-          console.log('Deep link received:', url);
-          
-          // Handle different URL schemes
-          // chatr://chat/user123
-          // chatr://call/conv456
-          // https://chatr.chat/u/username
-          
-          const path = url.replace(/^(chatr:\/\/|https?:\/\/chatr\.chat\/)/, '');
-          
-          if (path.startsWith('chat/')) {
-            const userId = path.replace('chat/', '');
-            window.location.href = `/chat?user=${userId}`;
-          } else if (path.startsWith('call/')) {
-            const convId = path.replace('call/', '');
-            window.location.href = `/chat/${convId}`;
-          } else if (path.startsWith('u/')) {
-            const username = path.replace('u/', '');
-            window.location.href = `/profile/${username}`;
-          }
+        // 7. Deep linking support (now uses centralized handler)
+        initDeepLinkListener().then(cleanup => {
+          deepLinkCleanup = cleanup;
         });
 
         // 8. Android back button handling
@@ -159,7 +142,7 @@ export const useNativeAppInitialization = (userId?: string) => {
     return () => {
       networkListener?.remove();
       appStateListener?.remove();
-      urlListener?.remove();
+      deepLinkCleanup?.();
       backButtonListener?.remove();
     };
   }, [userId]);

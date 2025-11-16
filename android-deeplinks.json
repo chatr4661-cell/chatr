@@ -1,0 +1,287 @@
+{
+  "deepLinks": {
+    "description": "Complete deep link configuration for Chatr+ Android app",
+    "schemes": ["chatr", "https"],
+    "hosts": ["chatr.chat", "www.chatr.chat"],
+    "routes": [
+      {
+        "path": "/",
+        "description": "Home/Landing page"
+      },
+      {
+        "path": "/auth",
+        "description": "Authentication"
+      },
+      {
+        "path": "/chat",
+        "description": "Chat list"
+      },
+      {
+        "path": "/chat/:conversationId",
+        "description": "Specific chat conversation",
+        "params": ["conversationId"]
+      },
+      {
+        "path": "/profile/:userId",
+        "description": "User profile",
+        "params": ["userId"]
+      },
+      {
+        "path": "/contacts",
+        "description": "Contacts list"
+      },
+      {
+        "path": "/global-contacts",
+        "description": "Global contacts directory"
+      },
+      {
+        "path": "/call-history",
+        "description": "Call history"
+      },
+      {
+        "path": "/smart-inbox",
+        "description": "Smart inbox"
+      },
+      {
+        "path": "/stories",
+        "description": "Stories feed"
+      },
+      {
+        "path": "/communities",
+        "description": "Communities list"
+      },
+      {
+        "path": "/create-community",
+        "description": "Create new community"
+      },
+      {
+        "path": "/health",
+        "description": "Health hub"
+      },
+      {
+        "path": "/wellness-tracking",
+        "description": "Wellness tracking"
+      },
+      {
+        "path": "/health-passport",
+        "description": "Health passport"
+      },
+      {
+        "path": "/lab-reports",
+        "description": "Lab reports"
+      },
+      {
+        "path": "/medicine-reminders",
+        "description": "Medicine reminders"
+      },
+      {
+        "path": "/care",
+        "description": "Care access"
+      },
+      {
+        "path": "/booking",
+        "description": "Healthcare booking"
+      },
+      {
+        "path": "/provider-portal",
+        "description": "Provider portal"
+      },
+      {
+        "path": "/provider-register",
+        "description": "Provider registration"
+      },
+      {
+        "path": "/allied-healthcare",
+        "description": "Allied healthcare services"
+      },
+      {
+        "path": "/local-healthcare",
+        "description": "Local healthcare services"
+      },
+      {
+        "path": "/marketplace",
+        "description": "Marketplace"
+      },
+      {
+        "path": "/home-services",
+        "description": "Home services"
+      },
+      {
+        "path": "/mini-apps",
+        "description": "Mini apps store"
+      },
+      {
+        "path": "/app-statistics",
+        "description": "App statistics"
+      },
+      {
+        "path": "/developer-portal",
+        "description": "Developer portal"
+      },
+      {
+        "path": "/local-jobs",
+        "description": "Local jobs"
+      },
+      {
+        "path": "/ai-agents",
+        "description": "AI agents marketplace"
+      },
+      {
+        "path": "/ai-agents/chat/:agentId",
+        "description": "AI agent chat",
+        "params": ["agentId"]
+      },
+      {
+        "path": "/ai-assistant",
+        "description": "AI assistant"
+      },
+      {
+        "path": "/ai-browser",
+        "description": "AI browser",
+        "queryParams": ["url"]
+      },
+      {
+        "path": "/official-accounts",
+        "description": "Official accounts"
+      },
+      {
+        "path": "/tutors",
+        "description": "Chatr tutors"
+      },
+      {
+        "path": "/points",
+        "description": "Chatr points"
+      },
+      {
+        "path": "/rewards",
+        "description": "Reward shop"
+      },
+      {
+        "path": "/growth",
+        "description": "Chatr growth"
+      },
+      {
+        "path": "/ambassador",
+        "description": "Ambassador program"
+      },
+      {
+        "path": "/youth",
+        "description": "Youth engagement"
+      },
+      {
+        "path": "/youth-feed",
+        "description": "Youth feed"
+      },
+      {
+        "path": "/settings",
+        "description": "Settings"
+      },
+      {
+        "path": "/account",
+        "description": "Account settings"
+      },
+      {
+        "path": "/privacy",
+        "description": "Privacy settings"
+      },
+      {
+        "path": "/notifications",
+        "description": "Notifications"
+      },
+      {
+        "path": "/notification-settings",
+        "description": "Notification settings"
+      },
+      {
+        "path": "/device-management",
+        "description": "Device management"
+      },
+      {
+        "path": "/geofences",
+        "description": "Geofences"
+      },
+      {
+        "path": "/geofence-history",
+        "description": "Geofence history"
+      },
+      {
+        "path": "/qr-payment",
+        "description": "QR payment"
+      },
+      {
+        "path": "/qr-login",
+        "description": "QR login"
+      },
+      {
+        "path": "/download",
+        "description": "App download"
+      },
+      {
+        "path": "/install",
+        "description": "App installation"
+      },
+      {
+        "path": "/onboarding",
+        "description": "User onboarding"
+      },
+      {
+        "path": "/emergency",
+        "description": "Emergency button"
+      },
+      {
+        "path": "/emergency-services",
+        "description": "Emergency services"
+      },
+      {
+        "path": "/wellness-circles",
+        "description": "Wellness circles"
+      },
+      {
+        "path": "/expert-sessions",
+        "description": "Expert sessions"
+      },
+      {
+        "path": "/admin",
+        "description": "Admin dashboard",
+        "protected": true
+      },
+      {
+        "path": "/about",
+        "description": "About"
+      },
+      {
+        "path": "/help",
+        "description": "Help center"
+      },
+      {
+        "path": "/contact",
+        "description": "Contact us"
+      },
+      {
+        "path": "/terms",
+        "description": "Terms of service"
+      },
+      {
+        "path": "/privacy-policy",
+        "description": "Privacy policy"
+      },
+      {
+        "path": "/refund",
+        "description": "Refund policy"
+      },
+      {
+        "path": "/disclaimer",
+        "description": "Disclaimer"
+      }
+    ]
+  },
+  "intentFilters": {
+    "android": {
+      "autoVerify": true,
+      "schemes": ["chatr", "https"],
+      "hosts": ["chatr.chat", "www.chatr.chat", "*.chatr.chat"],
+      "pathPrefixes": ["/"],
+      "categories": ["android.intent.category.DEFAULT", "android.intent.category.BROWSABLE"]
+    }
+  }
+}
