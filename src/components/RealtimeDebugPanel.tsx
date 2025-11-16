@@ -79,7 +79,7 @@ export const RealtimeDebugPanel = ({ userId, conversationId }: RealtimeDebugPane
   };
 
   return (
-    <Card className="fixed bottom-4 right-4 p-4 w-80 bg-card border shadow-lg z-50">
+    <Card className="fixed bottom-4 right-4 p-4 w-80 bg-card border shadow-lg z-[150]">
       <h3 className="font-bold mb-2">Realtime Debug Panel</h3>
       
       <div className="bg-yellow-500/10 border border-yellow-500/20 rounded p-2 mb-3 flex items-start gap-2">

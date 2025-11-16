@@ -35,7 +35,7 @@ export const NetworkStatus = () => {
   if (!showOfflineAlert && isOnline) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full px-4">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] max-w-md w-full px-4">
       <Alert 
         variant={isOnline ? "default" : "destructive"}
         className="backdrop-blur-xl bg-background/95 border-2 shadow-lg animate-in fade-in slide-in-from-top-2"
