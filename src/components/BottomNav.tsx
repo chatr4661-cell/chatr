@@ -54,9 +54,9 @@ export const BottomNav = () => {
     };
   }, []);
 
-  // Hide on auth and onboarding pages
+  // Hide on auth, onboarding, admin, and index/home pages
   const hiddenPaths = ['/auth', '/onboarding', '/admin'];
-  const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path));
+  const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path)) || location.pathname === '/';
 
   
 
