@@ -12,7 +12,6 @@ const config: CapacitorConfig = {
   plugins: {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
-      // Android: High priority for critical notifications
       iconColor: '#6200ee',
       sound: 'notification.mp3'
     },
@@ -34,22 +33,32 @@ const config: CapacitorConfig = {
       style: 'dark',
       resizeOnFullScreen: true
     },
-    App: {
-      // App state and lifecycle
+    BarcodeScanner: {
+      targetedFormats: ['QR_CODE', 'EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_39', 'CODE_128']
     },
-    Device: {
-      // Device ID will be used for fingerprinting
+    NativeBiometric: {
+      useFallback: true,
+      fallbackTitle: 'Use Passcode',
+      fallbackButtonLabel: 'Cancel',
+      biometryTitle: 'Chatr+ Login',
+      biometrySubTitle: 'Authenticate to access your account'
     },
-    Contacts: {
-      // Enable contacts permission
+    SpeechRecognition: {
+      language: 'en-US',
+      maxResults: 5,
+      popup: false,
+      partialResults: true
     },
-    BluetoothLe: {
-      displayStrings: {
-        scanning: "Scanning for nearby Chatr users...",
-        cancel: "Cancel",
-        availableDevices: "Available devices",
-        noDeviceFound: "No device found"
-      }
+    FirebaseAnalytics: {
+      enabled: true,
+      automaticDataCollectionEnabled: true
+    },
+    FirebaseCrashlytics: {
+      enabled: true,
+      automaticDataCollectionEnabled: true
+    },
+    BackgroundTask: {
+      enableLogs: true
     }
   },
   // iOS specific configuration
