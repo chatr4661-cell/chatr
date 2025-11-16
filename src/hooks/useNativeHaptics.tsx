@@ -1,64 +1,73 @@
-import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
 
 /**
- * Native haptic feedback (like Instagram, WhatsApp)
- * Makes the app feel tactile and responsive
+ * Native Haptic Feedback Hook
+ * Provides tactile feedback for user interactions - makes app feel native
  */
 export const useNativeHaptics = () => {
-  const isNative = Capacitor.isNativePlatform();
+  const isAvailable = Capacitor.isNativePlatform();
 
   const light = async () => {
-    if (!isNative) return;
+    if (!isAvailable) return;
     try {
       await Haptics.impact({ style: ImpactStyle.Light });
     } catch (e) {
-      console.warn('Haptics not available');
+      // Silently fail
     }
   };
 
   const medium = async () => {
-    if (!isNative) return;
+    if (!isAvailable) return;
     try {
       await Haptics.impact({ style: ImpactStyle.Medium });
     } catch (e) {
-      console.warn('Haptics not available');
+      // Silently fail
     }
   };
 
   const heavy = async () => {
-    if (!isNative) return;
+    if (!isAvailable) return;
     try {
       await Haptics.impact({ style: ImpactStyle.Heavy });
     } catch (e) {
-      console.warn('Haptics not available');
+      // Silently fail
     }
   };
 
   const success = async () => {
-    if (!isNative) return;
+    if (!isAvailable) return;
     try {
       await Haptics.notification({ type: NotificationType.Success });
     } catch (e) {
-      console.warn('Haptics not available');
+      // Silently fail
     }
   };
 
   const warning = async () => {
-    if (!isNative) return;
+    if (!isAvailable) return;
     try {
       await Haptics.notification({ type: NotificationType.Warning });
     } catch (e) {
-      console.warn('Haptics not available');
+      // Silently fail
     }
   };
 
   const error = async () => {
-    if (!isNative) return;
+    if (!isAvailable) return;
     try {
       await Haptics.notification({ type: NotificationType.Error });
     } catch (e) {
-      console.warn('Haptics not available');
+      // Silently fail
+    }
+  };
+
+  const selectionChanged = async () => {
+    if (!isAvailable) return;
+    try {
+      await Haptics.selectionStart();
+    } catch (e) {
+      // Silently fail
     }
   };
 
@@ -68,6 +77,8 @@ export const useNativeHaptics = () => {
     heavy,
     success,
     warning,
-    error
+    error,
+    selectionChanged,
+    isAvailable
   };
 };

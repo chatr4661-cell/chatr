@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { toast } from 'sonner';
 
@@ -15,6 +15,20 @@ export const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [partialTranscript, setPartialTranscript] = useState('');
+  const [isAvailable, setIsAvailable] = useState(false);
+
+  // Check availability on mount
+  useEffect(() => {
+    const checkAvailability = async () => {
+      try {
+        const { available } = await SpeechRecognition.available();
+        setIsAvailable(available);
+      } catch {
+        setIsAvailable(false);
+      }
+    };
+    checkAvailability();
+  }, []);
 
   /**
    * Request microphone permissions
@@ -174,6 +188,8 @@ export const useSpeechRecognition = () => {
     getSingleResult,
     checkAvailability,
     getSupportedLanguages,
-    requestPermissions
+    requestPermissions,
+    isAvailable,
+    clearTranscript: () => setTranscript('')
   };
 };

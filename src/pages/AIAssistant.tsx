@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Send, ArrowLeft, Sparkles } from 'lucide-react';
+import { Bot, Send, ArrowLeft, Sparkles, Mic, MicOff } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AIErrorFallback } from '@/components/AIErrorFallback';
+import { useSpeechRecognition } from '@/hooks/native/useSpeechRecognition';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -25,6 +26,22 @@ const AIAssistant = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isListening, transcript, startListening, stopListening, isAvailable } = useSpeechRecognition();
+
+  // Update input when transcript changes
+  useEffect(() => {
+    if (transcript) {
+      setInput(transcript);
+    }
+  }, [transcript]);
+
+  const handleVoiceInput = async () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      await startListening();
+    }
+  };
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
