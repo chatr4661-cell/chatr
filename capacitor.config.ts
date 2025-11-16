@@ -16,22 +16,28 @@ const config: CapacitorConfig = {
       sound: 'notification.mp3'
     },
     SplashScreen: {
-      launchShowDuration: 1500,
+      launchShowDuration: 1000,
       backgroundColor: '#6200ee',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
       androidSplashResourceName: 'splash',
       iosSplashResourceName: 'Splash',
-      launchAutoHide: true
+      launchAutoHide: true,
+      splashFullScreen: true,
+      splashImmersive: true
     },
     StatusBar: {
       style: 'light',
-      backgroundColor: '#6200ee'
+      backgroundColor: '#6200ee',
+      overlaysWebView: false
     },
     Keyboard: {
-      resize: 'body',
+      resize: 'native',
       style: 'dark',
       resizeOnFullScreen: true
+    },
+    Haptics: {
+      selectionStart: true
     },
     BarcodeScanner: {
       targetedFormats: ['QR_CODE', 'EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_39', 'CODE_128']
