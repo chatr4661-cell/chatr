@@ -36,7 +36,7 @@ import { QuickAccessMenu } from '@/components/QuickAccessMenu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Share } from 'lucide-react';
-import { UnifiedPermissionsSetup } from '@/components/UnifiedPermissionsSetup';
+
 
 // Import ServiceCard directly (small component, no need for lazy loading)
 import ServiceCard from '@/components/ServiceCard';
@@ -623,7 +623,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5 pb-32">
+    <div className="min-h-screen bg-background pb-0">{/* Removed pb-32 for full screen */}
       {/* Enhanced Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -680,20 +680,13 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 space-y-6 mt-6">
+      <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
 
-        {/* Permissions Setup */}
-        {user && (
-          <div className="space-y-4">
-            <UnifiedPermissionsSetup userId={user.id} />
-          </div>
-        )}
-
-        {/* Search Bar */}
-        <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-5 relative">
+        {/* Search Bar - Compact */}
+        <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-3 relative">
           <div className="flex gap-2">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 value={searchQuery}
                 onChange={(e) => {
@@ -703,162 +696,67 @@ const Index = () => {
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 placeholder="Find plumber, order biryani, dentist near me..."
-                className="pl-10 pr-12 h-12 bg-background/80 backdrop-blur"
+                className="pl-9 pr-10 h-11 bg-background/80 backdrop-blur text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleSearch();
                   }
                 }}
               />
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
                 onClick={startVoiceSearch}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 ${isListening ? 'text-red-500 animate-pulse' : ''}`}
+                disabled={isListening}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-muted/50 transition-colors disabled:opacity-50"
               >
-                <Mic className="w-4 h-4" />
-              </Button>
-
-              {/* Search Suggestions Dropdown */}
-              {showSuggestions && (searchSuggestions.length > 0 || recentSearches.length > 0) && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
-                  {recentSearches.length > 0 && (
-                    <div className="p-2 border-b border-border">
-                      <p className="text-xs font-semibold text-muted-foreground px-2 mb-2">Recent Searches</p>
-                      {recentSearches.slice(0, 3).map((search, idx) => (
-                        <button
-                          key={`recent-${idx}`}
-                          onClick={() => handleSearch(search)}
-                          className="w-full text-left px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2 text-sm"
-                        >
-                          <Search className="w-4 h-4 text-muted-foreground" />
-                          {search}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {searchSuggestions.length > 0 && (
-                    <div className="p-2">
-                      <p className="text-xs font-semibold text-muted-foreground px-2 mb-2">
-                        <Sparkles className="w-3 h-3 inline mr-1" />
-                        AI Suggestions
-                      </p>
-                      {searchSuggestions.map((suggestion, idx) => (
-                        <button
-                          key={`suggestion-${idx}`}
-                          onClick={() => handleSearch(suggestion)}
-                          className="w-full text-left px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2 text-sm"
-                        >
-                          <Sparkles className="w-4 h-4 text-primary" />
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                <Mic className={`w-4 h-4 ${isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`} />
+              </button>
             </div>
-            <Button 
-              size="lg"
-              onClick={() => handleSearch()}
-              className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 px-6"
-            >
-              <Search className="w-5 h-5" />
+            <Button onClick={() => handleSearch()} size="sm" className="h-11 px-4">
+              <Search className="w-4 h-4" />
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-[10px] text-muted-foreground mt-2">
             AI-powered search across services, jobs, healthcare, food & more
           </p>
         </div>
 
-        {/* Trending Searches */}
-        <div>
-          <h3 className="text-sm font-semibold mb-3 px-1 flex items-center gap-2">
-            <Flame className="w-4 h-4 text-orange-500" />
-            Trending Searches
-          </h3>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {trendingSearches.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSearch(item.query)}
-                className="flex-shrink-0 px-4 py-2 bg-background/80 backdrop-blur border border-border/40 rounded-full hover:bg-accent transition-colors flex items-center gap-2 text-sm"
-              >
-                <span>{item.icon}</span>
-                <span>{item.query}</span>
-              </button>
-            ))}
-          </div>
+        {/* Trending - Compact */}
+        <div className="flex items-center gap-1.5 mb-2">
+          <Flame className="w-3.5 h-3.5 text-orange-600" />
+          <h3 className="font-semibold text-xs">Trending Searches</h3>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {trendingSearches.map((search, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                setSearchQuery(search.query);
+                handleSearch(search.query);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted border border-border/50 transition-all"
+            >
+              <span className="text-sm">{search.icon}</span>
+              <span className="text-xs font-medium">{search.query}</span>
+            </button>
+          ))}
         </div>
 
-        {/* iOS-style App Grid */}
-        <div className="grid grid-cols-4 gap-3 px-2">
-          {mainHubs.map((hub, index) => (
-            <div 
-              key={hub.title} 
-              onClick={() => navigate(hub.route)}
-              className="flex flex-col items-center gap-1.5 cursor-pointer group"
+        {/* Category Grid - Smaller Icons */}
+        <div className="grid grid-cols-4 gap-2.5">
+          {quickAccessServices.map((category, index) => (
+            <button
+              key={index}
+              onClick={() => navigate(category.route)}
+              className="group flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
             >
-              <div className={`${hub.iconColor} w-14 h-14 rounded-[1.1rem] shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                <hub.icon className="w-6 h-6 text-white" strokeWidth={1.5} />
+              <div className={`w-12 h-12 rounded-xl ${category.iconColor} flex items-center justify-center shadow-md`}>
+                <category.icon className="w-6 h-6 text-white" strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] text-foreground text-center leading-tight w-full line-clamp-2">
-                {hub.title}
+              <span className="text-[10px] font-semibold text-center leading-tight">
+                {category.title}
               </span>
-            </div>
+            </button>
           ))}
-        </div>
-
-        {/* Growth & Opportunities */}
-        <div className="grid grid-cols-1 gap-3">
-          {growthPrograms.map((program, index) => (
-            <div 
-              key={program.title} 
-              onClick={() => navigate(program.route)}
-              className="group cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className="relative bg-gradient-to-br from-background to-muted/30 rounded-2xl border-2 border-border/40 p-4 shadow-lg hover:shadow-2xl hover:border-primary/40 transition-all">
-                <div className="flex items-center gap-4">
-                  <div className={`${program.iconColor} p-3 rounded-2xl shadow-lg group-hover:scale-110 transition-transform`}>
-                    <program.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-bold text-foreground">{program.title}</h3>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
-                        {program.badge}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{program.description}</p>
-                  </div>
-                  <div className="text-muted-foreground group-hover:text-primary transition-colors">→</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Ecosystem Services */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
-          </h2>
-          <div className="grid grid-cols-3 gap-3">
-            {ecosystemServices.map((service, index) => (
-              <div 
-                key={service.title} 
-                onClick={() => navigate(service.route)}
-                className="aspect-square transform hover:scale-105 transition-all duration-300"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className={`h-full rounded-3xl ${service.iconColor} p-4 flex flex-col items-center justify-center cursor-pointer shadow-lg hover:shadow-xl transition-all`}>
-                  <service.icon className="w-6 h-6 text-white mb-2" />
-                  <span className="text-xs text-white text-center font-semibold">{service.title}</span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Quick Access */}
