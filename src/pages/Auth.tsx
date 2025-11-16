@@ -13,6 +13,7 @@ import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { logAuthEvent, logAuthError } from '@/utils/authDebug';
+import { BiometricLogin } from '@/components/BiometricLogin';
 
 const Auth = () => {
   const { toast } = useToast();
@@ -308,6 +309,9 @@ const Auth = () => {
               {googleLoading ? 'Connecting...' : 'Continue with Google'}
             </span>
           </Button>
+
+          {/* Biometric Login (Native Only) */}
+          <BiometricLogin />
 
           {/* Divider */}
           <div className="relative">

@@ -48,7 +48,7 @@ export const QuickReplyNotification = ({
   };
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 p-4 shadow-lg border-2 border-primary z-50 animate-in slide-in-from-bottom">
+    <Card className="fixed bottom-4 right-4 w-96 p-4 shadow-lg border-2 border-primary z-[200] animate-in slide-in-from-bottom">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <p className="font-semibold">{senderName}</p>

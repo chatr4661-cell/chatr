@@ -7,6 +7,7 @@ import { NativeAppProvider } from "./components/NativeAppProvider";
 import { BottomNav } from "./components/BottomNav";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 import { setupNativeCallUI } from "./utils/nativeCallUI";
+import { CrashlyticsErrorBoundary } from "./utils/crashlyticsErrorBoundary";
 
 // Pages
 import Index from "./pages/Index";
@@ -221,6 +222,7 @@ const App = () => {
   }, []);
 
   return (
+    <CrashlyticsErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <BrowserRouter>
@@ -419,6 +421,7 @@ const App = () => {
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
+  </CrashlyticsErrorBoundary>
   );
 };
 

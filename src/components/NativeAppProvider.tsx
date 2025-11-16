@@ -10,6 +10,7 @@ import { useContactSync } from '@/hooks/useContactSync';
 import { useOfflineUploadQueue } from '@/hooks/useOfflineUploadQueue';
 import { useGeofencing } from '@/hooks/useGeofencing';
 import { supabase } from '@/integrations/supabase/client';
+import { AnalyticsProvider } from './AnalyticsProvider';
 
 interface NativeAppContextType {
   isNative: boolean;
@@ -111,7 +112,9 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
 
   return (
     <NativeAppContext.Provider value={value}>
-      {children}
+      <AnalyticsProvider userId={userId}>
+        {children}
+      </AnalyticsProvider>
     </NativeAppContext.Provider>
   );
 };
