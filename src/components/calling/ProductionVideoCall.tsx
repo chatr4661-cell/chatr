@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCallUI } from '@/hooks/useCallUI';
 import { NetworkQualityIndicator } from './NetworkQualityIndicator';
 import { Capacitor } from '@capacitor/core';
+import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
 
 // Browser detection utilities
 const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -46,8 +47,11 @@ export default function ProductionVideoCall({
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
+  
+  // CRITICAL: Keep call alive with heartbeat mechanism
+  useCallKeepAlive(callId, callState === 'connected');
 
-  const { controlsVisible, showControls } = useCallUI({ 
+  const { controlsVisible, showControls } = useCallUI({
     autoHideDelay: 10000, // Increased to 10 seconds for better UX
     enabled: true 
   });

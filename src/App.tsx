@@ -8,6 +8,7 @@ import { BottomNav } from "./components/BottomNav";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 import { setupNativeCallUI } from "./utils/nativeCallUI";
 import { CrashlyticsErrorBoundary } from "./utils/crashlyticsErrorBoundary";
+import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 
 // Pages
 import Index from "./pages/Index";

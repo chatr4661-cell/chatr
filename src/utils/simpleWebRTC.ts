@@ -168,21 +168,31 @@ export class SimpleWebRTCCall {
 
   private async createPeerConnection() {
     try {
-      // Get TURN servers with mobile-optimized fallback
-      let iceServers = [
+      // CRITICAL: Enhanced TURN/STUN for mobile stability
+      let iceServers: RTCIceServer[] = [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
       ];
 
       try {
         const { data: turnConfig } = await supabase.functions.invoke('get-turn-credentials');
         if (turnConfig?.iceServers) {
-          iceServers = turnConfig.iceServers;
+          iceServers = [...iceServers, ...turnConfig.iceServers];
         }
       } catch (err) {
-        console.warn('⚠️ [SimpleWebRTC] Using fallback STUN servers:', err);
+        console.warn('⚠️ [SimpleWebRTC] Using fallback servers:', err);
       }
 
       console.log('🔧 [SimpleWebRTC] Creating peer connection with ICE servers:', iceServers);
@@ -193,7 +203,7 @@ export class SimpleWebRTCCall {
         iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
         rtcpMuxPolicy: 'require',
-        iceCandidatePoolSize: isMobile ? 10 : 15
+        iceCandidatePoolSize: isMobile ? 15 : 20
       };
       
       this.pc = new RTCPeerConnection(configuration);
@@ -225,7 +235,7 @@ export class SimpleWebRTCCall {
         }
       };
 
-      // Monitor ICE connection state
+      // CRITICAL: Enhanced ICE connection state monitoring for mobile
       this.pc.oniceconnectionstatechange = () => {
         const state = this.pc!.iceConnectionState;
         console.log('❄️ [SimpleWebRTC] ICE connection state:', state);
@@ -237,14 +247,36 @@ export class SimpleWebRTCCall {
           this.setupAdaptiveBitrate();
           console.log('🎉 [SimpleWebRTC] Call connected successfully!');
         } else if (state === 'failed') {
-          // Only fail on 'failed' state, not 'disconnected'
-          // 'disconnected' is temporary and can recover
-          console.error('❌ [SimpleWebRTC] ICE connection failed');
-          this.callState = 'failed';
-          this.emit('failed', new Error('Connection failed'));
+          // CRITICAL: Attempt ICE restart before failing completely
+          console.error('❌ [SimpleWebRTC] ICE connection failed - attempting restart');
+          if (this.isInitiator && this.pc) {
+            console.log('🔄 [SimpleWebRTC] Restarting ICE...');
+            this.pc.restartIce();
+            
+            // Give restart 15 seconds to work
+            setTimeout(() => {
+              if (this.pc?.iceConnectionState === 'failed') {
+                console.error('❌ [SimpleWebRTC] ICE restart failed');
+                this.callState = 'failed';
+                this.emit('failed', new Error('Connection failed after restart'));
+              }
+            }, 15000);
+          } else {
+            this.callState = 'failed';
+            this.emit('failed', new Error('Connection failed'));
+          }
         } else if (state === 'disconnected') {
-          console.warn('⚠️ [SimpleWebRTC] ICE disconnected - connection may recover');
-          // Don't fail immediately, give it time to reconnect
+          // CRITICAL: Don't fail immediately on disconnect - mobile networks are unstable
+          console.warn('⚠️ [SimpleWebRTC] ICE disconnected - waiting for reconnection...');
+          
+          // Give it 10 seconds to reconnect before failing
+          setTimeout(() => {
+            if (this.pc?.iceConnectionState === 'disconnected') {
+              console.error('❌ [SimpleWebRTC] Still disconnected after 10s');
+              this.callState = 'failed';
+              this.emit('failed', new Error('Connection lost'));
+            }
+          }, 10000);
         }
       };
 
