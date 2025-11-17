@@ -741,6 +741,44 @@ const Index = () => {
           ))}
         </div>
 
+        {/* Main Category Grid */}
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          {mainHubs.map((category, index) => (
+            <button
+              key={category.title}
+              onClick={() => navigate(category.route)}
+              className="group flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
+            >
+              <div className={`w-12 h-12 rounded-xl ${category.iconColor} flex items-center justify-center shadow-md`}>
+                <category.icon className="w-6 h-6 text-white" strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold text-center leading-tight">
+                {category.title}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Chatr Champions Card */}
+        <ServiceCard
+          icon={Flame}
+          title="Chatr Champions"
+          description="Referral network & earnings dashboard"
+          iconColor="bg-gradient-to-br from-orange-400 to-red-500"
+          route="/chatr-growth"
+          badge="Earn ₹"
+        />
+
+        {/* Chatr Partner Card */}
+        <ServiceCard
+          icon={Users}
+          title="Chatr Partner"
+          description="Join our campus partner program"
+          iconColor="bg-gradient-to-br from-purple-400 to-pink-500"
+          route="/ambassador-program"
+          badge="Apply"
+        />
+
         {/* Doctor Portal Card */}
         <ServiceCard
           icon={Stethoscope}
