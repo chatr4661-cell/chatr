@@ -5,6 +5,7 @@ import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
 
 // Browser detection
 const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -34,6 +35,9 @@ export default function ProductionVoiceCall({
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
+  
+  // CRITICAL: Keep call alive with heartbeat mechanism
+  useCallKeepAlive(callId, callState === 'connected');
 
   useEffect(() => {
     const initCall = async () => {
