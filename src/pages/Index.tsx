@@ -741,43 +741,94 @@ const Index = () => {
           ))}
         </div>
 
-        {/* Category Grid - Smaller Icons */}
-        <div className="grid grid-cols-4 gap-2.5">
-          {quickAccessServices.map((category, index) => (
+        {/* Doctor Portal Card */}
+        <ServiceCard
+          icon={Stethoscope}
+          title="Doctor Portal"
+          description="Healthcare provider registration"
+          iconColor="bg-gradient-to-br from-cyan-400 to-blue-500"
+          route="/doctor-onboarding"
+          badge="Join"
+        />
+
+        {/* Ecosystem Section */}
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold mb-4">
+            <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
+          </h2>
+          <div className="grid grid-cols-3 gap-4">
             <button
-              key={index}
-              onClick={() => navigate(category.route)}
-              className="group flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
+              onClick={() => navigate('/food-ordering')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
             >
-              <div className={`w-12 h-12 rounded-xl ${category.iconColor} flex items-center justify-center shadow-md`}>
-                <category.icon className="w-6 h-6 text-white" strokeWidth={2.5} />
+              <div className="h-full rounded-3xl bg-gradient-to-br from-orange-400 to-red-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Utensils className="w-8 h-8 text-white mb-2" />
+                <span className="text-sm text-white text-center font-semibold">Food Ordering</span>
               </div>
-              <span className="text-[10px] font-semibold text-center leading-tight">
-                {category.title}
-              </span>
             </button>
-          ))}
+            <button
+              onClick={() => navigate('/local-deals')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="h-full rounded-3xl bg-gradient-to-br from-green-400 to-emerald-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Percent className="w-8 h-8 text-white mb-2" />
+                <span className="text-sm text-white text-center font-semibold">Local Deals</span>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/chatr-plus-subscribe')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="h-full rounded-3xl bg-gradient-to-br from-purple-400 to-pink-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Crown className="w-8 h-8 text-white mb-2" />
+                <span className="text-sm text-white text-center font-semibold">Chatr Premium</span>
+              </div>
+            </button>
+          </div>
         </div>
 
-        {/* Quick Access */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+        {/* Quick Access Section */}
+        <div className="mt-6 mb-8">
+          <h2 className="text-2xl font-bold mb-4">
             <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
           </h2>
-          <div className="grid grid-cols-3 gap-3">
-            {quickAccessServices.map((service, index) => (
-              <div 
-                key={service.title} 
-                onClick={() => navigate(service.route)}
-                className="aspect-square transform hover:scale-105 transition-all duration-300"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className={`h-full rounded-3xl ${service.iconColor} p-4 flex flex-col items-center justify-center cursor-pointer shadow-lg hover:shadow-xl transition-all`}>
-                  <service.icon className="w-6 h-6 text-white mb-2" />
-                  <span className="text-xs text-white text-center font-semibold">{service.title}</span>
-                </div>
+          <div className="grid grid-cols-3 gap-4">
+            <button
+              onClick={() => navigate('/chatr-wallet')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="h-full rounded-3xl bg-gradient-to-br from-green-400 to-teal-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Coins className="w-8 h-8 text-white mb-2" />
+                <span className="text-sm text-white text-center font-semibold">ChatrPay Wallet</span>
               </div>
-            ))}
+            </button>
+            <button
+              onClick={() => navigate('/chatr-studio')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="h-full rounded-3xl bg-gradient-to-br from-purple-400 to-pink-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <QrCode className="w-8 h-8 text-white mb-2" />
+                <span className="text-sm text-white text-center font-semibold">Chatr Studio</span>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/ai-assistant')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="h-full rounded-3xl bg-gradient-to-br from-teal-400 to-cyan-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Bot className="w-8 h-8 text-white mb-2" />
+                <span className="text-sm text-white text-center font-semibold">AI Assistant</span>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/emergency-services')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl col-span-1"
+            >
+              <div className="h-full rounded-3xl bg-gradient-to-br from-red-400 to-rose-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <AlertTriangle className="w-8 h-8 text-white mb-2" />
+                <span className="text-sm text-white text-center font-semibold">Emergency</span>
+              </div>
+            </button>
           </div>
         </div>
       </div>
