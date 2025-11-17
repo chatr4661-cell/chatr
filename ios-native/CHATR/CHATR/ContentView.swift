@@ -7,27 +7,32 @@ struct ContentView: View {
         ZStack {
             Color.chatrBackground.ignoresSafeArea()
             
-            // Main content
-            TabView(selection: $appState.selectedTab) {
-                ContactsView()
-                    .tag(ChatrBottomNav.Tab.contacts)
-                
-                CallsView()
-                    .tag(ChatrBottomNav.Tab.calls)
-                
-                Group {
-                    if appState.selectedTab == .chats {
-                        ChatsView()
-                    } else {
-                        HomeView(selectedTab: $appState.selectedTab)
+            VStack(spacing: 0) {
+                // Main content
+                TabView(selection: $appState.selectedTab) {
+                    ContactsView()
+                        .tag(ChatrBottomNav.Tab.contacts)
+                    
+                    CallsView()
+                        .tag(ChatrBottomNav.Tab.calls)
+                    
+                    Group {
+                        if appState.selectedTab == .chats {
+                            ChatsView()
+                        } else {
+                            HomeView(selectedTab: $appState.selectedTab)
+                        }
                     }
+                    .tag(ChatrBottomNav.Tab.chats)
+                    
+                    SettingsView()
+                        .tag(ChatrBottomNav.Tab.settings)
                 }
-                .tag(ChatrBottomNav.Tab.chats)
+                .tabViewStyle(.page(indexDisplayMode: .never))
                 
-                SettingsView()
-                    .tag(ChatrBottomNav.Tab.settings)
+                // Bottom navigation
+                ChatrBottomNav(selectedTab: $appState.selectedTab)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
         }
     }
 }

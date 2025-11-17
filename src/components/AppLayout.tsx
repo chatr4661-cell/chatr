@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { NetworkStatus } from './NetworkStatus';
 import { InstallPWAPrompt } from './InstallPWAPrompt';
+import { BottomNav } from './BottomNav';
 import { Toaster } from './ui/toaster';
 import { Toaster as Sonner } from './ui/sonner';
 import { useLocationStatus } from '@/hooks/useLocationStatus';
@@ -41,6 +42,8 @@ export const AppLayout = ({ children, user, profile }: AppLayoutProps) => {
       )}
       
       {children}
+      
+      <BottomNav />
       
       <Toaster />
       <Sonner />
