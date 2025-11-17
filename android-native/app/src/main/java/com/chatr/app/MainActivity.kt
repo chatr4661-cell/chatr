@@ -41,22 +41,11 @@ fun ChatrApp() {
             else -> "auth"
         }
         
-        // Show bottom navigation for main screens
-        val showBottomBar = currentRoute in listOf("chats", "calls", "contacts", "settings")
+        // Bottom navigation removed
         
-        Scaffold(
-            bottomBar = {
-                if (showBottomBar) {
-                    ChatrBottomNavigation(navController)
-                }
-            }
-        ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
-                ChatrNavHost(
-                    navController = navController,
-                    startDestination = startDestination
-                )
-            }
-        }
+        ChatrNavHost(
+            navController = navController,
+            startDestination = startDestination
+        )
     }
 }
