@@ -43,6 +43,39 @@ export type Database = {
           },
         ]
       }
+      admin_action_logs: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+        }
+        Relationships: []
+      }
       ai_agent_analytics: {
         Row: {
           agent_id: string
@@ -731,13 +764,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "appointments_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
@@ -928,6 +954,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      booking_status_updates: {
+        Row: {
+          booking_id: string
+          created_at: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          notes: string | null
+          status: string
+          updated_by: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          status: string
+          updated_by: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          status?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_status_updates_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "service_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brand_impressions: {
         Row: {
@@ -5191,13 +5258,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "home_service_providers_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "service_categories"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "home_service_providers_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -6328,13 +6388,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "medical_access_audit_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
         ]
       }
       medication_reminders: {
@@ -7356,13 +7409,6 @@ export type Database = {
             referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "payments_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
         ]
       }
       pinned_messages: {
@@ -7603,15 +7649,7 @@ export type Database = {
           settlement_status?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "point_settlements_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       point_transactions: {
         Row: {
@@ -7780,13 +7818,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "prescriptions_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "prescriptions_user_id_fkey"
             columns: ["user_id"]
@@ -7985,8 +8016,152 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      provider_availability: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          is_available: boolean | null
+          provider_id: string
+          time_slots: Json
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          is_available?: boolean | null
+          provider_id: string
+          time_slots?: Json
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          is_available?: boolean | null
+          provider_id?: string
+          time_slots?: Json
+        }
+        Relationships: [
           {
-            foreignKeyName: "provider_access_consents_provider_id_fkey"
+            foreignKeyName: "provider_availability_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_payouts: {
+        Row: {
+          commission_deducted: number
+          created_at: string | null
+          id: string
+          net_payout: number
+          payment_method: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          processed_at: string | null
+          provider_id: string
+          status: string | null
+          total_earnings: number
+        }
+        Insert: {
+          commission_deducted: number
+          created_at?: string | null
+          id?: string
+          net_payout: number
+          payment_method?: string | null
+          payment_reference?: string | null
+          period_end: string
+          period_start: string
+          processed_at?: string | null
+          provider_id: string
+          status?: string | null
+          total_earnings: number
+        }
+        Update: {
+          commission_deducted?: number
+          created_at?: string | null
+          id?: string
+          net_payout?: number
+          payment_method?: string | null
+          payment_reference?: string | null
+          period_end?: string
+          period_start?: string
+          processed_at?: string | null
+          provider_id?: string
+          status?: string | null
+          total_earnings?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_payouts_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_services: {
+        Row: {
+          base_price: number | null
+          category_id: string
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_active: boolean | null
+          pricing_model: string | null
+          pricing_tiers: Json | null
+          provider_id: string
+          service_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_price?: number | null
+          category_id: string
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          pricing_model?: string | null
+          pricing_tiers?: Json | null
+          provider_id: string
+          service_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number | null
+          category_id?: string
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          pricing_model?: string | null
+          pricing_tiers?: Json | null
+          provider_id?: string
+          service_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_services_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "service_providers"
@@ -8008,13 +8183,6 @@ export type Database = {
           specialization_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "provider_specializations_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "provider_specializations_specialization_id_fkey"
             columns: ["specialization_id"]
@@ -8715,77 +8883,508 @@ export type Database = {
         }
         Relationships: []
       }
+      service_bookings: {
+        Row: {
+          accepted_at: string | null
+          after_photos: Json | null
+          before_photos: Json | null
+          booking_number: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          category_id: string
+          commission_amount: number | null
+          completed_at: string | null
+          contact_phone: string | null
+          coupon_code: string | null
+          created_at: string | null
+          customer_id: string
+          discount_amount: number | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          payment_method: string | null
+          payment_status: string | null
+          payment_transaction_id: string | null
+          pricing_details: Json | null
+          provider_earnings: number | null
+          provider_id: string
+          reached_at: string | null
+          scheduled_date: string
+          scheduled_time: string
+          service_address: string
+          service_id: string
+          special_instructions: string | null
+          started_at: string | null
+          status: string | null
+          subtotal: number
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          after_photos?: Json | null
+          before_photos?: Json | null
+          booking_number?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          category_id: string
+          commission_amount?: number | null
+          completed_at?: string | null
+          contact_phone?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          customer_id: string
+          discount_amount?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          payment_method?: string | null
+          payment_status?: string | null
+          payment_transaction_id?: string | null
+          pricing_details?: Json | null
+          provider_earnings?: number | null
+          provider_id: string
+          reached_at?: string | null
+          scheduled_date: string
+          scheduled_time: string
+          service_address: string
+          service_id: string
+          special_instructions?: string | null
+          started_at?: string | null
+          status?: string | null
+          subtotal: number
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          after_photos?: Json | null
+          before_photos?: Json | null
+          booking_number?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          category_id?: string
+          commission_amount?: number | null
+          completed_at?: string | null
+          contact_phone?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          customer_id?: string
+          discount_amount?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          payment_method?: string | null
+          payment_status?: string | null
+          payment_transaction_id?: string | null
+          pricing_details?: Json | null
+          provider_earnings?: number | null
+          provider_id?: string
+          reached_at?: string | null
+          scheduled_date?: string
+          scheduled_time?: string
+          service_address?: string
+          service_id?: string
+          special_instructions?: string | null
+          started_at?: string | null
+          status?: string | null
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_bookings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_bookings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "provider_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_bundles: {
+        Row: {
+          bundle_price: number
+          bundle_type: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          included_services: Json
+          is_active: boolean | null
+          name: string
+          original_price: number | null
+          validity_days: number | null
+        }
+        Insert: {
+          bundle_price: number
+          bundle_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          included_services: Json
+          is_active?: boolean | null
+          name: string
+          original_price?: number | null
+          validity_days?: number | null
+        }
+        Update: {
+          bundle_price?: number
+          bundle_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          included_services?: Json
+          is_active?: boolean | null
+          name?: string
+          original_price?: number | null
+          validity_days?: number | null
+        }
+        Relationships: []
+      }
       service_categories: {
         Row: {
           created_at: string | null
           description: string | null
-          icon: string | null
+          display_order: number | null
+          icon_url: string | null
           id: string
+          is_active: boolean | null
           name: string
+          parent_id: string | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           description?: string | null
-          icon?: string | null
+          display_order?: number | null
+          icon_url?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          parent_id?: string | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           description?: string | null
-          icon?: string | null
+          display_order?: number | null
+          icon_url?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_parent_category"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_chat_messages: {
+        Row: {
+          attachment_url: string | null
+          booking_id: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message_text: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          booking_id: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_text?: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          booking_id?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_text?: string | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_chat_messages_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "service_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_coupons: {
+        Row: {
+          applicable_categories: string[] | null
+          code: string
+          created_at: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean | null
+          max_discount_amount: number | null
+          min_order_amount: number | null
+          usage_count: number | null
+          usage_limit: number | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applicable_categories?: string[] | null
+          code: string
+          created_at?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          id?: string
+          is_active?: boolean | null
+          max_discount_amount?: number | null
+          min_order_amount?: number | null
+          usage_count?: number | null
+          usage_limit?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applicable_categories?: string[] | null
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_discount_amount?: number | null
+          min_order_amount?: number | null
+          usage_count?: number | null
+          usage_limit?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      service_memberships: {
+        Row: {
+          auto_renew: boolean | null
+          benefits: Json
+          created_at: string | null
+          end_date: string
+          id: string
+          plan_name: string
+          plan_type: string | null
+          price: number
+          start_date: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          benefits: Json
+          created_at?: string | null
+          end_date: string
+          id?: string
+          plan_name: string
+          plan_type?: string | null
+          price: number
+          start_date: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_renew?: boolean | null
+          benefits?: Json
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          plan_name?: string
+          plan_type?: string | null
+          price?: number
+          start_date?: string
+          status?: string | null
+          user_id?: string
         }
         Relationships: []
       }
       service_providers: {
         Row: {
+          aadhaar_document_url: string | null
+          aadhaar_number: string | null
           address: string | null
           business_name: string
+          city: string | null
+          commission_percentage: number | null
           created_at: string | null
           description: string | null
-          document_urls: string[] | null
+          experience_years: number | null
           id: string
+          is_active: boolean | null
+          is_online: boolean | null
           is_verified: boolean | null
+          kyc_status: string | null
           latitude: number | null
           longitude: number | null
-          rating: number | null
-          total_reviews: number | null
+          other_documents: Json | null
+          pan_document_url: string | null
+          pan_number: string | null
+          pincode: string | null
+          profile_image_url: string | null
+          rating_average: number | null
+          rating_count: number | null
+          state: string | null
+          total_bookings: number | null
+          total_earnings: number | null
           updated_at: string | null
           user_id: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
+          aadhaar_document_url?: string | null
+          aadhaar_number?: string | null
           address?: string | null
           business_name: string
+          city?: string | null
+          commission_percentage?: number | null
           created_at?: string | null
           description?: string | null
-          document_urls?: string[] | null
+          experience_years?: number | null
           id?: string
+          is_active?: boolean | null
+          is_online?: boolean | null
           is_verified?: boolean | null
+          kyc_status?: string | null
           latitude?: number | null
           longitude?: number | null
-          rating?: number | null
-          total_reviews?: number | null
+          other_documents?: Json | null
+          pan_document_url?: string | null
+          pan_number?: string | null
+          pincode?: string | null
+          profile_image_url?: string | null
+          rating_average?: number | null
+          rating_count?: number | null
+          state?: string | null
+          total_bookings?: number | null
+          total_earnings?: number | null
           updated_at?: string | null
           user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
+          aadhaar_document_url?: string | null
+          aadhaar_number?: string | null
           address?: string | null
           business_name?: string
+          city?: string | null
+          commission_percentage?: number | null
           created_at?: string | null
           description?: string | null
-          document_urls?: string[] | null
+          experience_years?: number | null
           id?: string
+          is_active?: boolean | null
+          is_online?: boolean | null
           is_verified?: boolean | null
+          kyc_status?: string | null
           latitude?: number | null
           longitude?: number | null
-          rating?: number | null
-          total_reviews?: number | null
+          other_documents?: Json | null
+          pan_document_url?: string | null
+          pan_number?: string | null
+          pincode?: string | null
+          profile_image_url?: string | null
+          rating_average?: number | null
+          rating_count?: number | null
+          state?: string | null
+          total_bookings?: number | null
+          total_earnings?: number | null
           updated_at?: string | null
           user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: []
+      }
+      service_reviews: {
+        Row: {
+          booking_id: string
+          created_at: string | null
+          customer_id: string
+          id: string
+          photos: Json | null
+          provider_id: string
+          provider_response: string | null
+          provider_response_at: string | null
+          rating: number
+          review_text: string | null
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          photos?: Json | null
+          provider_id: string
+          provider_response?: string | null
+          provider_response_at?: string | null
+          rating: number
+          review_text?: string | null
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          photos?: Json | null
+          provider_id?: string
+          provider_response?: string | null
+          provider_response_at?: string | null
+          rating?: number
+          review_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "service_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       services: {
         Row: {
@@ -8824,15 +9423,7 @@ export type Database = {
           price_points?: number | null
           provider_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "services_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       session_participants: {
         Row: {
@@ -9217,13 +9808,6 @@ export type Database = {
             columns: ["appointment_id"]
             isOneToOne: false
             referencedRelation: "appointments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teleconsultation_slots_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
             referencedColumns: ["id"]
           },
         ]
