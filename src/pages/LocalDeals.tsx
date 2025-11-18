@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Percent, MapPin, Clock, QrCode as QrCodeIcon } from 'lucide-react';
+import { ArrowLeft, Search, Sparkles, Scissors, Wrench, Zap, Paintbrush, Wind, MapPin, Clock, Percent, QrCode as QrCodeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
+
+const serviceCategories = [
+  { name: "Women's Salon & Spa", icon: Sparkles, badge: 'Sale' },
+  { name: "Men's Salon & Massage", icon: Scissors },
+  { name: "Cleaning & Pest Control", icon: Sparkles },
+  { name: "Electrician, Plumber & Carpenter", icon: Wrench },
+  { name: "Painting & Waterproofing", icon: Paintbrush },
+  { name: "Native Water Purifier", icon: Zap },
+  { name: "AC & Appliance Repair", icon: Wind },
+  { name: "Wall makeover by Revamp", icon: Paintbrush },
+];
 
 export default function LocalDeals() {
   const navigate = useNavigate();
@@ -15,6 +27,7 @@ export default function LocalDeals() {
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [showQR, setShowQR] = useState(false);
   const [qrCode, setQrCode] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   React.useEffect(() => {
     loadDeals();
@@ -187,6 +200,66 @@ export default function LocalDeals() {
           ))
         )}
       </div>
+
+      {/* Deal Details Dialog */}
+      <Dialog open={selectedDeal && !showQR} onOpenChange={(open) => !open && setSelectedDeal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedDeal?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedDeal?.image_url && (
+              <img src={selectedDeal.image_url} alt={selectedDeal.title} className="w-full h-48 object-cover rounded-lg" />
+            )}
+            <p className="text-muted-foreground">{selectedDeal?.description}</p>
+            
+            <div className="flex items-center justify-between py-4 border-y">
+              <div>
+                <div className="text-sm text-muted-foreground line-through">₹{selectedDeal?.original_price}</div>
+                <div className="text-2xl font-bold text-primary">₹{selectedDeal?.discounted_price}</div>
+                <div className="text-xs text-muted-foreground">{selectedDeal?.discounted_price} Chatr Coins</div>
+              </div>
+              <Badge variant="secondary" className="text-2xl font-bold px-4 py-2">
+                {selectedDeal?.discount_percentage}% OFF
+              </Badge>
+            </div>
+
+            {selectedDeal?.location && (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{selectedDeal.location}</Badge>
+                {selectedDeal?.valid_until && (
+                  <Badge variant="outline">
+                    {getTimeRemaining(selectedDeal.valid_until)} left
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {selectedDeal?.max_redemptions && (
+              <div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                  <span>{selectedDeal.current_redemptions} redeemed</span>
+                  <span>{selectedDeal.max_redemptions} available</span>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
+                    style={{ width: `${(selectedDeal.current_redemptions / selectedDeal.max_redemptions) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={() => handleRedeem(selectedDeal)}
+            >
+              Redeem with {selectedDeal?.discounted_price} Coins
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* QR Code Dialog */}
       <Dialog open={showQR} onOpenChange={setShowQR}>
