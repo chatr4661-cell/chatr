@@ -17,8 +17,8 @@ interface ServiceProvider {
   id: string;
   business_name: string;
   description: string;
-  rating: number;
-  total_reviews: number;
+  rating_average: number;
+  rating_count: number;
 }
 
 const BusinessPortal = () => {
@@ -43,7 +43,7 @@ const BusinessPortal = () => {
     const { data, error } = await supabase
       .from('service_providers')
       .select('*')
-      .order('rating', { ascending: false })
+      .order('rating_average', { ascending: false })
       .limit(6);
 
     if (error) {
