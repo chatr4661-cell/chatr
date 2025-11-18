@@ -153,17 +153,40 @@ serve(async (req) => {
       return { ...job, distance: parseFloat(distance.toFixed(1)) };
     }).filter(job => job.distance <= radius);
 
-    // Insert jobs into database
+    // Insert jobs into master table for now (sample data)
+    // In production, these would be synced from the source tables
+    const masterJobs = jobsWithDistance.map(job => ({
+      source_table: 'sample',
+      source_id: crypto.randomUUID(),
+      job_title: job.job_title,
+      company_name: job.company_name,
+      job_type: job.job_type,
+      category: job.category,
+      description: job.description,
+      salary_range: job.salary_range,
+      location: `${job.city}, ${job.state}`,
+      city: job.city,
+      state: job.state,
+      pincode: job.pincode,
+      latitude: job.latitude,
+      longitude: job.longitude,
+      distance: job.distance,
+      is_remote: job.is_remote,
+      is_featured: job.is_featured,
+      view_count: 0,
+      application_count: 0
+    }));
+
     const { data, error } = await supabaseClient
-      .from('local_jobs_db')
-      .upsert(jobsWithDistance, { onConflict: 'job_title,company_name', ignoreDuplicates: true });
+      .from('jobs_clean_master')
+      .upsert(masterJobs, { onConflict: 'id', ignoreDuplicates: false });
 
     if (error) {
       console.error('Database error:', error);
       throw error;
     }
 
-    console.log('Inserted', jobsWithDistance.length, 'jobs within', radius, 'km');
+    console.log('Synced', jobsWithDistance.length, 'jobs to master table within', radius, 'km');
 
     return new Response(
       JSON.stringify({ 

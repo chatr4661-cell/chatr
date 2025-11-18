@@ -5290,6 +5290,345 @@ export type Database = {
           },
         ]
       }
+      jobs_clean_master: {
+        Row: {
+          application_count: number | null
+          category: string
+          city: string
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          description: string | null
+          distance: number | null
+          experience_required: string | null
+          id: string
+          is_featured: boolean | null
+          is_remote: boolean | null
+          is_verified: boolean | null
+          job_title: string
+          job_type: string
+          last_synced_at: string | null
+          latitude: number | null
+          location: string
+          longitude: number | null
+          pincode: string | null
+          posted_by: string | null
+          salary_range: string | null
+          skills_required: string[] | null
+          source_id: string
+          source_table: string
+          source_url: string | null
+          state: string | null
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          application_count?: number | null
+          category: string
+          city: string
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          distance?: number | null
+          experience_required?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_remote?: boolean | null
+          is_verified?: boolean | null
+          job_title: string
+          job_type: string
+          last_synced_at?: string | null
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          pincode?: string | null
+          posted_by?: string | null
+          salary_range?: string | null
+          skills_required?: string[] | null
+          source_id: string
+          source_table: string
+          source_url?: string | null
+          state?: string | null
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          application_count?: number | null
+          category?: string
+          city?: string
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          distance?: number | null
+          experience_required?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_remote?: boolean | null
+          is_verified?: boolean | null
+          job_title?: string
+          job_type?: string
+          last_synced_at?: string | null
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          pincode?: string | null
+          posted_by?: string | null
+          salary_range?: string | null
+          skills_required?: string[] | null
+          source_id?: string
+          source_table?: string
+          source_url?: string | null
+          state?: string | null
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      jobs_scraped_global: {
+        Row: {
+          category: string
+          city: string | null
+          company_name: string
+          company_website: string | null
+          created_at: string | null
+          description: string | null
+          experience_required: string | null
+          id: string
+          is_remote: boolean | null
+          job_title: string
+          job_type: string
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          pincode: string | null
+          salary_range: string | null
+          scraped_at: string | null
+          skills_required: string[] | null
+          source_type: string
+          source_url: string
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          city?: string | null
+          company_name: string
+          company_website?: string | null
+          created_at?: string | null
+          description?: string | null
+          experience_required?: string | null
+          id?: string
+          is_remote?: boolean | null
+          job_title: string
+          job_type: string
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          pincode?: string | null
+          salary_range?: string | null
+          scraped_at?: string | null
+          skills_required?: string[] | null
+          source_type: string
+          source_url: string
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          city?: string | null
+          company_name?: string
+          company_website?: string | null
+          created_at?: string | null
+          description?: string | null
+          experience_required?: string | null
+          id?: string
+          is_remote?: boolean | null
+          job_title?: string
+          job_type?: string
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          pincode?: string | null
+          salary_range?: string | null
+          scraped_at?: string | null
+          skills_required?: string[] | null
+          source_type?: string
+          source_url?: string
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      jobs_scraped_local: {
+        Row: {
+          category: string
+          city: string
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          description: string | null
+          experience_required: string | null
+          id: string
+          is_remote: boolean | null
+          job_title: string
+          job_type: string
+          latitude: number | null
+          location: string
+          longitude: number | null
+          pincode: string | null
+          salary_range: string | null
+          scraped_at: string | null
+          source_type: string
+          source_url: string
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          city: string
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          experience_required?: string | null
+          id?: string
+          is_remote?: boolean | null
+          job_title: string
+          job_type: string
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          pincode?: string | null
+          salary_range?: string | null
+          scraped_at?: string | null
+          source_type: string
+          source_url: string
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          city?: string
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          experience_required?: string | null
+          id?: string
+          is_remote?: boolean | null
+          job_title?: string
+          job_type?: string
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          pincode?: string | null
+          salary_range?: string | null
+          scraped_at?: string | null
+          source_type?: string
+          source_url?: string
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      jobs_user_generated: {
+        Row: {
+          category: string
+          city: string
+          company_name: string
+          company_type: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          description: string
+          experience_required: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          is_remote: boolean | null
+          is_verified: boolean | null
+          job_title: string
+          job_type: string
+          latitude: number | null
+          location: string
+          longitude: number | null
+          pincode: string
+          posted_by: string
+          salary_range: string | null
+          skills_required: string[] | null
+          state: string | null
+          updated_at: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          category: string
+          city: string
+          company_name: string
+          company_type?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description: string
+          experience_required?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_remote?: boolean | null
+          is_verified?: boolean | null
+          job_title: string
+          job_type: string
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          pincode: string
+          posted_by: string
+          salary_range?: string | null
+          skills_required?: string[] | null
+          state?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          category?: string
+          city?: string
+          company_name?: string
+          company_type?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string
+          experience_required?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_remote?: boolean | null
+          is_verified?: boolean | null
+          job_title?: string
+          job_type?: string
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          pincode?: string
+          posted_by?: string
+          salary_range?: string | null
+          skills_required?: string[] | null
+          state?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       lab_reports: {
         Row: {
           category: string | null
