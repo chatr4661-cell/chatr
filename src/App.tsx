@@ -298,10 +298,13 @@ const App = () => {
             <Route path="/food-ordering" element={<FoodOrdering />} />
             <Route path="/local-deals" element={<LocalDeals />} />
             
-            {/* Points & Payment Routes */}
-            <Route path="/chatr-points" element={<ChatrPoints />} />
+          {/* Points & Payment Routes */}
+          <Route path="/chatr-points" element={<ChatrPoints />} />
           <Route path="/reward-shop" element={<RewardShop />} />
           <Route path="/growth" element={<ChatrGrowth />} />
+          <Route path="/chatr-growth" element={<ChatrGrowth />} />
+          <Route path="/chatr-wallet" element={<ChatrWallet />} />
+          <Route path="/chatr-plus-subscribe" element={<ChatrPlusSubscribe />} />
           <Route path="/ambassador-program" element={<AmbassadorProgram />} />
           <Route path="/doctor-onboarding" element={<DoctorOnboarding />} />
           <Route path="/qr-payment" element={<QRPayment />} />
