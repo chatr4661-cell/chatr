@@ -114,11 +114,11 @@ export default function AdminDocuments() {
       // Update provider's document_urls
       const { data: provider } = await supabase
         .from("service_providers")
-        .select("document_urls")
+        .select("other_documents")
         .eq("id", selectedProvider)
         .single();
 
-      const currentUrls = provider?.document_urls || [];
+      const currentDocs = (provider?.other_documents as string[]) || [];
       const { data: { publicUrl } } = supabase.storage
         .from("provider-certificates")
         .getPublicUrl(fileName);
@@ -126,7 +126,7 @@ export default function AdminDocuments() {
       const { error: updateError } = await supabase
         .from("service_providers")
         .update({
-          document_urls: [...currentUrls, publicUrl]
+          other_documents: [...currentDocs, publicUrl]
         })
         .eq("id", selectedProvider);
 

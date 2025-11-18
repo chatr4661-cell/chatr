@@ -24,11 +24,9 @@ interface Provider {
   business_name: string;
   description: string | null;
   address: string | null;
-  rating: number;
-  total_reviews: number;
+  rating_average: number;
+  rating_count: number;
   is_verified: boolean;
-  specializations?: Array<{ name: string }>;
-  services?: Service[];
 }
 
 const BookingPage = () => {
@@ -70,28 +68,17 @@ const BookingPage = () => {
   const loadProviders = async () => {
     const { data, error } = await supabase
       .from('service_providers')
-      .select(`
-        *,
-        provider_specializations!inner (
-          specializations (
-            name
-          )
-        )
-      `)
+      .select('*')
       .eq('is_verified', true)
-      .order('rating', { ascending: false });
+      .eq('is_active', true)
+      .order('rating_average', { ascending: false });
 
     if (error) {
       console.error('Error loading providers:', error);
       return;
     }
 
-    const formattedData = data?.map(provider => ({
-      ...provider,
-      specializations: provider.provider_specializations.map((ps: any) => ps.specializations)
-    })) || [];
-
-    setProviders(formattedData);
+    setProviders(data || []);
   };
 
   const handleBooking = async () => {
@@ -120,8 +107,8 @@ const BookingPage = () => {
     try {
       const appointmentDateTime = new Date(`${bookingDate}T${bookingTime}`);
 
-      // Get first service price for points (1 point = 1 INR)
-      const servicePrice = selectedProvider.services?.[0]?.price || 300;
+      // Default service price for points (1 point = 1 INR)
+      const servicePrice = 300;
       const cashback = 25;
 
       const { data, error } = await supabase
@@ -273,8 +260,8 @@ const BookingPage = () => {
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <div className="flex items-center gap-0.5 text-[10px]">
                       <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
-                      <span className="font-medium">{provider.rating}</span>
-                      <span className="text-muted-foreground">({provider.total_reviews})</span>
+                      <span className="font-medium">{provider.rating_average}</span>
+                      <span className="text-muted-foreground">({provider.rating_count})</span>
                     </div>
                     {provider.address && (
                       <div className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
@@ -283,14 +270,6 @@ const BookingPage = () => {
                       </div>
                     )}
                   </div>
-
-                  {provider.services && provider.services.length > 0 && (
-                    <div className="flex items-center gap-1 mt-1.5 text-primary">
-                      <IndianRupee className="h-3 w-3" />
-                      <span className="text-[10px] font-semibold">{provider.services[0].price}</span>
-                      <span className="text-[9px] text-muted-foreground">• {provider.services[0].duration_minutes}min</span>
-                    </div>
-                  )}
 
                   <div className="flex gap-1.5 mt-2">
                     <Button size="sm" className="h-6 text-[9px] rounded-full px-2.5 shadow-sm flex-1">
@@ -341,31 +320,11 @@ const BookingPage = () => {
                     <p className="text-[9px] text-muted-foreground truncate">{selectedProvider.address}</p>
                     <div className="flex items-center gap-0.5 mt-0.5">
                       <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
-                      <span className="text-[9px] font-medium">{selectedProvider.rating}</span>
+                      <span className="text-[9px] font-medium">{selectedProvider.rating_average}</span>
                     </div>
                   </div>
                 </div>
               </Card>
-            )}
-
-            {selectedProvider?.services && selectedProvider.services.length > 0 && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-medium">Select Service</label>
-                <div className="space-y-1">
-                  {selectedProvider.services.map((service, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/30">
-                      <div className="flex-1">
-                        <p className="text-[10px] font-medium">{service.name}</p>
-                        <p className="text-[8px] text-muted-foreground">{service.duration_minutes} minutes</p>
-                      </div>
-                      <div className="flex items-center gap-0.5 text-primary">
-                        <IndianRupee className="h-3 w-3" />
-                        <span className="text-[10px] font-semibold">{service.price}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             )}
 
             <div className="grid grid-cols-2 gap-2">

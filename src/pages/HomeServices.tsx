@@ -16,8 +16,8 @@ import { motion } from "framer-motion";
 interface ServiceCategory {
   id: string;
   name: string;
-  icon: string;
-  description: string;
+  icon_url?: string;
+  description?: string;
 }
 
 interface ServiceProvider {
@@ -57,6 +57,7 @@ const HomeServices = () => {
     const { data, error } = await supabase
       .from("service_categories")
       .select("*")
+      .eq("is_active", true)
       .order("name");
 
     if (error) {
@@ -174,7 +175,7 @@ const HomeServices = () => {
             <TabsTrigger value="all">All Services</TabsTrigger>
             {categories.map((category) => (
               <TabsTrigger key={category.id} value={category.id}>
-                {category.icon} {category.name}
+                {category.name}
               </TabsTrigger>
             ))}
           </TabsList>

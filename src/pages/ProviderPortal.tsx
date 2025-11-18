@@ -20,9 +20,10 @@ import {
 interface Provider {
   id: string;
   business_name: string;
-  description: string;
-  address: string;
-  rating: number;
+  description?: string;
+  address?: string;
+  rating_average: number;
+  rating_count: number;
 }
 
 const ProviderPortal = () => {
