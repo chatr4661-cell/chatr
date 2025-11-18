@@ -12,3 +12,4 @@ export { useBackgroundTask } from './useBackgroundTask';
 export { useVideoPlayer } from './useVideoPlayer';
 export { useFirebaseAnalytics } from './useFirebaseAnalytics';
 export { useFirebaseCrashlytics } from './useFirebaseCrashlytics';
+export { useChatrUltra } from './useChatrUltra';
