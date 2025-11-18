@@ -9238,11 +9238,13 @@ export type Database = {
           aadhaar_document_url: string | null
           aadhaar_number: string | null
           address: string | null
+          base_price: number | null
           business_name: string
           city: string | null
           commission_percentage: number | null
           created_at: string | null
           description: string | null
+          email: string | null
           experience_years: number | null
           id: string
           is_active: boolean | null
@@ -9254,7 +9256,9 @@ export type Database = {
           other_documents: Json | null
           pan_document_url: string | null
           pan_number: string | null
+          phone_number: string | null
           pincode: string | null
+          pricing_type: string | null
           profile_image_url: string | null
           rating_average: number | null
           rating_count: number | null
@@ -9270,11 +9274,13 @@ export type Database = {
           aadhaar_document_url?: string | null
           aadhaar_number?: string | null
           address?: string | null
+          base_price?: number | null
           business_name: string
           city?: string | null
           commission_percentage?: number | null
           created_at?: string | null
           description?: string | null
+          email?: string | null
           experience_years?: number | null
           id?: string
           is_active?: boolean | null
@@ -9286,7 +9292,9 @@ export type Database = {
           other_documents?: Json | null
           pan_document_url?: string | null
           pan_number?: string | null
+          phone_number?: string | null
           pincode?: string | null
+          pricing_type?: string | null
           profile_image_url?: string | null
           rating_average?: number | null
           rating_count?: number | null
@@ -9302,11 +9310,13 @@ export type Database = {
           aadhaar_document_url?: string | null
           aadhaar_number?: string | null
           address?: string | null
+          base_price?: number | null
           business_name?: string
           city?: string | null
           commission_percentage?: number | null
           created_at?: string | null
           description?: string | null
+          email?: string | null
           experience_years?: number | null
           id?: string
           is_active?: boolean | null
@@ -9318,7 +9328,9 @@ export type Database = {
           other_documents?: Json | null
           pan_document_url?: string | null
           pan_number?: string | null
+          phone_number?: string | null
           pincode?: string | null
+          pricing_type?: string | null
           profile_image_url?: string | null
           rating_average?: number | null
           rating_count?: number | null

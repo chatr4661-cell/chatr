@@ -32,6 +32,10 @@ import ProviderPortal from "./pages/ProviderPortal";
 import ProviderRegister from "./pages/ProviderRegister";
 import AlliedHealthcare from "./pages/AlliedHealthcare";
 import Marketplace from "./pages/Marketplace";
+import ServiceListing from "./pages/ServiceListing";
+import ProviderDetails from "./pages/ProviderDetails";
+import BookingTracking from "./pages/BookingTracking";
+import ProviderDashboard from "./pages/ProviderDashboard";
 import YouthEngagement from "./pages/YouthEngagement";
 import YouthFeed from "./pages/YouthFeed";
 import MiniAppsStore from "./pages/MiniAppsStore";
@@ -286,7 +290,11 @@ const App = () => {
             <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
             
             {/* Marketplace & Engagement */}
-            <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/service/:categoryId" element={<ServiceListing />} />
+          <Route path="/provider/:providerId" element={<ProviderDetails />} />
+          <Route path="/booking/track/:bookingId" element={<BookingTracking />} />
+          <Route path="/provider/dashboard" element={<ProviderDashboard />} />
             <Route path="/youth-engagement" element={<YouthEngagement />} />
             <Route path="/youth-feed" element={<YouthFeed />} />
             <Route path="/mini-apps" element={<MiniAppsStore />} />

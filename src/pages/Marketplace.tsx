@@ -28,16 +28,21 @@ const Marketplace = () => {
         </div>
       </div>
 
-      {/* Coming Soon Content */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center space-y-6 max-w-md">
-          <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-glow">
-            <ShoppingBag className="w-12 h-12 text-white" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-foreground">Coming Soon</h2>
-            <p className="text-muted-foreground">
-              We're working hard to bring you a comprehensive marketplace for medicines and health products. Stay tuned!
+      {/* Service Categories Grid */}
+      <div className="flex-1 p-4">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-foreground mb-6">All Services</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {/* Redirect to HomeServices for now - can be customized later */}
+            <p className="col-span-full text-center text-muted-foreground">
+              Marketplace coming soon! Visit{' '}
+              <span 
+                className="text-primary cursor-pointer hover:underline"
+                onClick={() => navigate('/home-services')}
+              >
+                Local Services
+              </span>
+              {' '}for now.
             </p>
           </div>
         </div>
