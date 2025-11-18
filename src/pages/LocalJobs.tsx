@@ -75,9 +75,9 @@ export default function LocalJobs() {
 
       console.log('Edge function response:', edgeFunctionData);
 
-      // Load jobs from database
+      // Load jobs from master table
       const { data, error } = await supabase
-        .from('local_jobs_db')
+        .from('jobs_clean_master')
         .select('*')
         .order('distance', { ascending: true })
         .order('is_featured', { ascending: false });
@@ -91,8 +91,8 @@ export default function LocalJobs() {
       
       setJobs(jobsInRadius);
       toast({
-        title: 'Success',
-        description: `Found ${jobsInRadius.length} jobs within ${radiusKm}km`
+        title: 'Jobs Loaded',
+        description: `Found ${jobsInRadius.length} opportunities within ${radiusKm}km. Start applying now!`
       });
     } catch (error) {
       console.error('Error loading jobs:', error);
@@ -159,27 +159,38 @@ export default function LocalJobs() {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="flex items-center justify-between p-4">
+        <div className="p-4 space-y-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                Local Jobs
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Briefcase className="h-6 w-6" />
+                Discover Local Jobs Near You
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {filteredJobs.length} opportunities
+              <p className="text-sm text-muted-foreground mt-1">
+                Explore thousands of job opportunities in your area — from part-time gigs to full-time careers
               </p>
             </div>
+            {status.city && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Navigation className="h-4 w-4 text-primary" />
+                <span>{status.city}</span>
+              </div>
+            )}
           </div>
-          {status.city && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Navigation className="h-4 w-4 text-primary" />
-              <span>{status.city}</span>
-            </div>
-          )}
+
+          {/* Instructions */}
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+            <h3 className="font-semibold">How it works:</h3>
+            <ul className="space-y-1 text-muted-foreground">
+              <li>• Enter your location or pincode to see jobs in your neighbourhood</li>
+              <li>• Filter by job type, industry, experience level, and salary range</li>
+              <li>• Tap a job to view the full description and apply instantly via CHATR</li>
+              <li>• Enable job alerts to get notified when new nearby jobs match your profile</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -220,16 +231,26 @@ export default function LocalJobs() {
             <p className="text-muted-foreground">Finding jobs near you...</p>
           </div>
         ) : !status.latitude ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8 space-y-4">
             <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground mb-2">Enable location to find jobs near you</p>
-            <p className="text-xs text-muted-foreground">Grant location permission in your browser</p>
+            <div>
+              <p className="text-muted-foreground mb-2">Enable location to find jobs near you</p>
+              <p className="text-xs text-muted-foreground">Grant location permission in your browser</p>
+            </div>
+            <Button variant="default" className="mt-4">
+              Browse Local Jobs →
+            </Button>
           </div>
         ) : filteredJobs.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8 space-y-4">
             <Briefcase className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground mb-2">No jobs found within {radiusKm}km</p>
-            <p className="text-xs text-muted-foreground">Try increasing the radius</p>
+            <div>
+              <p className="text-muted-foreground mb-2">No jobs found within {radiusKm}km</p>
+              <p className="text-xs text-muted-foreground">Try increasing the radius or check back later</p>
+            </div>
+            <Button variant="default" className="mt-4">
+              Start Applying Now!
+            </Button>
           </div>
         ) : (
           <>
