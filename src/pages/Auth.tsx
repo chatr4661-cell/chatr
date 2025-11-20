@@ -31,7 +31,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://www.chatr.chat/',
+          redirectTo: `${window.location.origin}/`,
           skipBrowserRedirect: false,
         },
       });
@@ -113,9 +113,9 @@ const Auth = () => {
               });
               
               if (isAdmin) {
-                window.location.href = 'https://www.chatr.chat/';
+                navigate('/admin', { replace: true });
               } else {
-                window.location.href = 'https://www.chatr.chat/';
+                navigate('/', { replace: true });
               }
               return;
             } else {
@@ -151,7 +151,7 @@ const Auth = () => {
             .single();
           
           if (profile?.onboarding_completed) {
-            window.location.href = 'https://www.chatr.chat/';
+            navigate('/', { replace: true });
             return;
           }
         }
@@ -195,12 +195,12 @@ const Auth = () => {
         });
         
         if (profile?.onboarding_completed) {
-          console.log('[AUTH STATE] ✅ Onboarding complete → Redirecting to chatr.chat');
+          console.log('[AUTH STATE] ✅ Onboarding complete → Redirecting to /');
           toast({
             title: 'Welcome back! 👋',
             description: `Signed in as ${profile.username || profile.phone_number || profile.email}`,
           });
-          window.location.href = 'https://www.chatr.chat/';
+          navigate('/', { replace: true });
         } else {
           console.log('[AUTH STATE] 🆕 New user detected → Staying on /auth, onboarding will show');
           console.log('[AUTH STATE] userId is now:', session.user.id);
@@ -367,8 +367,8 @@ const Auth = () => {
             onComplete={async () => {
               console.log('[ONBOARDING] Completing onboarding...');
               await onboarding.completeOnboarding();
-              console.log('[ONBOARDING] Redirecting to chatr.chat');
-              window.location.href = 'https://www.chatr.chat/';
+              console.log('[ONBOARDING] Redirecting to /');
+              navigate('/', { replace: true });
             }}
             onSkip={async () => {
               console.log('[ONBOARDING] Cannot skip - redirecting to complete onboarding');
