@@ -10,14 +10,21 @@
 import { appLifecycleManager } from './kernel/AppLifecycleManager';
 import { interAppCommunication } from './kernel/InterAppCommunication';
 import { permissionManager } from './kernel/PermissionManager';
+import { deepLinkManager } from './kernel/DeepLinkManager';
 
 export { appLifecycleManager } from './kernel/AppLifecycleManager';
 export { interAppCommunication } from './kernel/InterAppCommunication';
 export { permissionManager } from './kernel/PermissionManager';
+export { deepLinkManager } from './kernel/DeepLinkManager';
 
 export * from './kernel/AppLifecycleManager';
 export * from './kernel/InterAppCommunication';
 export * from './kernel/PermissionManager';
+export * from './kernel/DeepLinkManager';
+
+// Export UI components
+export { AppSwitcher } from './ui/AppSwitcher';
+export { HomeScreen } from './ui/HomeScreen';
 
 /**
  * Initialize the CHATR OS
@@ -38,6 +45,7 @@ export async function initializeChatrOS() {
     await appLifecycleManager.initialize();
     await interAppCommunication.initialize();
     await permissionManager.initialize();
+    await deepLinkManager.initialize();
 
     console.log('');
     console.log('✅ CHATR OS successfully initialized');
@@ -60,6 +68,7 @@ export function shutdownChatrOS() {
   appLifecycleManager.destroy();
   interAppCommunication.destroy();
   permissionManager.destroy();
+  deepLinkManager.destroy();
   
   console.log('✅ CHATR OS shutdown complete');
 }
