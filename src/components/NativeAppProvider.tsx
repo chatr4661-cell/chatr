@@ -11,6 +11,7 @@ import { useOfflineUploadQueue } from '@/hooks/useOfflineUploadQueue';
 import { useGeofencing } from '@/hooks/useGeofencing';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsProvider } from './AnalyticsProvider';
+import { ChatrOSProvider } from './ChatrOSProvider';
 
 interface NativeAppContextType {
   isNative: boolean;
@@ -111,10 +112,12 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   }), [isNative, isOnline, userId, haptics]);
 
   return (
-    <NativeAppContext.Provider value={value}>
-      <AnalyticsProvider userId={userId}>
-        {children}
-      </AnalyticsProvider>
-    </NativeAppContext.Provider>
+    <ChatrOSProvider>
+      <NativeAppContext.Provider value={value}>
+        <AnalyticsProvider userId={userId}>
+          {children}
+        </AnalyticsProvider>
+      </NativeAppContext.Provider>
+    </ChatrOSProvider>
   );
 };
