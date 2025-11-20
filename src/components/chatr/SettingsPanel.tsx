@@ -1,14 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bell, Lock, Database, HelpCircle, Palette, User, LogOut, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface SettingsPanelProps {
   user: any;
 }
 
+interface Profile {
+  username: string;
+  avatar_url: string | null;
+  status: string | null;
+  phone_number: string | null;
+}
+
 export function SettingsPanel({ user }: SettingsPanelProps) {
   const navigate = useNavigate();
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadProfile();
+    }
+  }, [user]);
+
+  const loadProfile = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('username, avatar_url, status, phone_number')
+      .eq('id', user.id)
+      .single();
+
+    if (data) {
+      setProfile(data);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -44,16 +71,15 @@ export function SettingsPanel({ user }: SettingsPanelProps) {
       {/* Profile Section */}
       <div className="px-4 py-6 bg-gradient-to-b from-[hsl(263,70%,55%)] to-white">
         <div className="flex flex-col items-center">
-          <div className="w-24 h-24 rounded-full bg-white overflow-hidden mb-3">
-            <img
-              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop"
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">Ashley</h2>
-          <p className="text-sm text-gray-600">teash</p>
-          <p className="text-sm text-gray-600 mt-1">Hey there! I am using CHATR</p>
+          <Avatar className="w-24 h-24 mb-3">
+            <AvatarImage src={profile?.avatar_url || undefined} />
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white text-3xl">
+              {profile?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+            </AvatarFallback>
+          </Avatar>
+          <h2 className="text-2xl font-bold text-gray-900">{profile?.username || 'User'}</h2>
+          <p className="text-sm text-gray-600">{user?.email}</p>
+          <p className="text-sm text-gray-600 mt-1">{profile?.status || 'Hey there! I am using CHATR'}</p>
         </div>
       </div>
 
@@ -84,8 +110,8 @@ export function SettingsPanel({ user }: SettingsPanelProps) {
                     </div>
                     <div className="flex-1">
                       <span className="font-medium text-gray-900">{item.label}</span>
-                      {item.phone && (
-                        <p className="text-sm text-gray-500">{item.phone}</p>
+                      {item.label === 'Account' && profile?.phone_number && (
+                        <p className="text-sm text-gray-500">{profile.phone_number}</p>
                       )}
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400" />
