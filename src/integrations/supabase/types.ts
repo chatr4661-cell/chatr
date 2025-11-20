@@ -501,6 +501,56 @@ export type Database = {
         }
         Relationships: []
       }
+      app_permissions: {
+        Row: {
+          app_id: string
+          created_at: string
+          granted: boolean
+          granted_at: string | null
+          id: string
+          last_used_at: string | null
+          permission_name: string
+          revoked_at: string | null
+          updated_at: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          permission_name: string
+          revoked_at?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          permission_name?: string
+          revoked_at?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_permissions_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_os_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_reviews: {
         Row: {
           app_id: string
@@ -535,6 +585,68 @@ export type Database = {
             columns: ["app_id"]
             isOneToOne: false
             referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_sessions: {
+        Row: {
+          app_id: string
+          background_time_seconds: number | null
+          battery_drain: number | null
+          cpu_usage_avg: number | null
+          crash_count: number | null
+          created_at: string
+          data_received: number | null
+          data_sent: number | null
+          duration_seconds: number | null
+          id: string
+          memory_usage_peak: number | null
+          screen_time_seconds: number | null
+          session_end: string | null
+          session_start: string
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          background_time_seconds?: number | null
+          battery_drain?: number | null
+          cpu_usage_avg?: number | null
+          crash_count?: number | null
+          created_at?: string
+          data_received?: number | null
+          data_sent?: number | null
+          duration_seconds?: number | null
+          id?: string
+          memory_usage_peak?: number | null
+          screen_time_seconds?: number | null
+          session_end?: string | null
+          session_start?: string
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          background_time_seconds?: number | null
+          battery_drain?: number | null
+          cpu_usage_avg?: number | null
+          crash_count?: number | null
+          created_at?: string
+          data_received?: number | null
+          data_sent?: number | null
+          duration_seconds?: number | null
+          id?: string
+          memory_usage_peak?: number | null
+          screen_time_seconds?: number | null
+          session_end?: string | null
+          session_start?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_sessions_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_os_apps"
             referencedColumns: ["id"]
           },
         ]
@@ -2201,6 +2313,72 @@ export type Database = {
           total_logins?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      chatr_os_apps: {
+        Row: {
+          app_name: string
+          auto_update_enabled: boolean | null
+          battery_drain_rate: number | null
+          cpu_usage_avg: number | null
+          created_at: string
+          data_usage_total: number | null
+          id: string
+          install_size: number | null
+          is_system_app: boolean | null
+          last_opened_at: string | null
+          lifecycle_state: string
+          memory_usage_peak: number | null
+          package_name: string
+          runtime_permissions: Json | null
+          storage_quota: number | null
+          storage_used: number | null
+          updated_at: string
+          user_id: string
+          version: string
+        }
+        Insert: {
+          app_name: string
+          auto_update_enabled?: boolean | null
+          battery_drain_rate?: number | null
+          cpu_usage_avg?: number | null
+          created_at?: string
+          data_usage_total?: number | null
+          id?: string
+          install_size?: number | null
+          is_system_app?: boolean | null
+          last_opened_at?: string | null
+          lifecycle_state?: string
+          memory_usage_peak?: number | null
+          package_name: string
+          runtime_permissions?: Json | null
+          storage_quota?: number | null
+          storage_used?: number | null
+          updated_at?: string
+          user_id: string
+          version?: string
+        }
+        Update: {
+          app_name?: string
+          auto_update_enabled?: boolean | null
+          battery_drain_rate?: number | null
+          cpu_usage_avg?: number | null
+          created_at?: string
+          data_usage_total?: number | null
+          id?: string
+          install_size?: number | null
+          is_system_app?: boolean | null
+          last_opened_at?: string | null
+          lifecycle_state?: string
+          memory_usage_peak?: number | null
+          package_name?: string
+          runtime_permissions?: Json | null
+          storage_quota?: number | null
+          storage_used?: number | null
+          updated_at?: string
+          user_id?: string
+          version?: string
         }
         Relationships: []
       }
@@ -5314,6 +5492,75 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "home_service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inter_app_messages: {
+        Row: {
+          acknowledged_at: string | null
+          action: string
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          message_type: string
+          payload: Json | null
+          priority: number | null
+          sent_at: string
+          source_app_id: string
+          status: string
+          target_app_id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          action: string
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          message_type: string
+          payload?: Json | null
+          priority?: number | null
+          sent_at?: string
+          source_app_id: string
+          status?: string
+          target_app_id: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          action?: string
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          message_type?: string
+          payload?: Json | null
+          priority?: number | null
+          sent_at?: string
+          source_app_id?: string
+          status?: string
+          target_app_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inter_app_messages_source_app_id_fkey"
+            columns: ["source_app_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_os_apps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inter_app_messages_target_app_id_fkey"
+            columns: ["target_app_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_os_apps"
             referencedColumns: ["id"]
           },
         ]
@@ -10871,6 +11118,7 @@ export type Database = {
         Args: { user1_email: string; user2_email: string }
         Returns: undefined
       }
+      expire_old_inter_app_messages: { Args: never; Returns: undefined }
       find_emotion_matches: {
         Args: { p_emotion: string; p_user_id: string }
         Returns: {
