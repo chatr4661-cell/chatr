@@ -334,7 +334,7 @@ const App = () => {
             <Route path="/chat-ai" element={<AIChat />} />
             <Route path="/capture" element={<Capture />} />
           <Route path="/account" element={<Account />} />
-          <Route path="/chat" element={<ProtectedRoute><ChatrApp /></ProtectedRoute>} />
+          <Route path="/chat" element={<Navigate to="/chat/a2fc2820-9f46-41ad-8cd7-b8b2943a20d7" replace />} />
           <Route path="/prechu-ai" element={<ProtectedRoute><PrechuAI /></ProtectedRoute>} />
           <Route path="/job/:id" element={<ProtectedRoute><JobDetail /></ProtectedRoute>} />
             <Route path="/notifications" element={<Notifications />} />
