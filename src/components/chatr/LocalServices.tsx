@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Briefcase, Percent, Hammer } from 'lucide-react';
+import { Search, Briefcase, Percent, Hammer, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 export function LocalServices() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'jobs' | 'deals' | 'services'>('jobs');
+
+  const jobs = [
+    { id: '1', title: 'Senior Software Engineer', company: 'Tech Solutions Pvt Ltd', location: 'Karachi', salary: 'PKR 150k-200k/month', type: 'Full-time' },
+    { id: '2', title: 'Graphic Designer', company: 'Creative Studio', location: 'Lahore', salary: 'PKR 80k-120k/month', type: 'Full-time' },
+    { id: '3', title: 'Data Analyst', company: 'Analytics Inc', location: 'Islamabad', salary: 'PKR 100k-150k/month', type: 'Remote' },
+  ];
 
   const tabs = [
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
@@ -50,64 +56,37 @@ export function LocalServices() {
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         {activeTab === 'jobs' && (
           <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-2">Jobs</h3>
-              <div className="space-y-3">
-                {[
-                  { title: 'Firetverid', company: 'Tech Co', salary: '₹25k-50k/month' },
-                  { title: 'Graphic Designer', company: 'Design Studio', salary: '₹25k-50k/month' },
-                  { title: 'Data Analyst', company: 'Analytics Inc', salary: '₹8-10 LPA' },
-                ].map((job, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => navigate('/local-jobs')}
-                    className="p-4 bg-card rounded-2xl border cursor-pointer hover:border-primary transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Briefcase className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold">{job.title}</h4>
-                        <p className="text-sm text-muted-foreground">{job.company}</p>
-                        <p className="text-sm font-medium text-primary mt-1">{job.salary}</p>
-                      </div>
-                      <Button size="sm">Apply</Button>
-                    </div>
+            {jobs.map((job) => (
+              <div 
+                key={job.id} 
+                className="bg-white rounded-xl p-4 shadow-sm border border-border cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/job/${job.id}`)}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{job.title}</h3>
+                    <p className="text-sm text-primary font-medium">{job.company}</p>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {job.location}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Briefcase className="w-4 h-4" />
+                    {job.type}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-bold text-primary">{job.salary}</span>
+                  <Button size="sm" onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/job/${job.id}`);
+                  }}>View Details</Button>
+                </div>
               </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">Jobs ALL</h3>
-                <Button variant="link" size="sm" className="text-primary">
-                  Apply
-                </Button>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { title: 'Frontend Developer', company: 'Startup', time: '4 mo ago' },
-                  { title: 'Therapist', company: 'Healthcare', time: '3 d ago' },
-                ].map((job, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 bg-card rounded-2xl border"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Briefcase className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm">{job.title}</h4>
-                        <p className="text-xs text-muted-foreground">{job.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
