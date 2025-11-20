@@ -60,6 +60,8 @@ import LocalJobs from "./pages/LocalJobs";
 import LocalHealthcare from "./pages/LocalHealthcare";
 import Geofences from "./pages/Geofences";
 import GeofenceHistory from "./pages/GeofenceHistory";
+import ChatrApp from "./pages/ChatrApp";
+import PrechuAI from "./pages/PrechuAI";
 import Account from "./pages/Account";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -331,7 +333,9 @@ const App = () => {
             <Route path="/ai-browser" element={<AIBrowserView />} />
             <Route path="/chat-ai" element={<AIChat />} />
             <Route path="/capture" element={<Capture />} />
-            <Route path="/account" element={<Account />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/chatr" element={<ProtectedRoute><ChatrApp /></ProtectedRoute>} />
+          <Route path="/prechu-ai" element={<ProtectedRoute><PrechuAI /></ProtectedRoute>} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
             <Route path="/notifications/settings" element={<NotificationSettings />} />
