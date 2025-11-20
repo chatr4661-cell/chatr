@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
+import { StoryViewer } from './StoryViewer';
+import { AddStoryDialog } from './AddStoryDialog';
 
 interface ChatsListProps {
   userId: string;
@@ -31,6 +33,9 @@ export function ChatsList({ userId }: ChatsListProps) {
   const [stories, setStories] = useState<Story[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
+  const [showAddStory, setShowAddStory] = useState(false);
 
   useEffect(() => {
     loadStories();
@@ -143,14 +148,26 @@ export function ChatsList({ userId }: ChatsListProps) {
 
         {/* Stories Bar */}
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          <div className="flex flex-col items-center min-w-[60px]">
-            <div className="w-14 h-14 rounded-full bg-purple-500 flex items-center justify-center text-2xl mb-1 ring-2 ring-white">
-              💬
+          {/* Add Story Button */}
+          <button
+            onClick={() => setShowAddStory(true)}
+            className="flex flex-col items-center min-w-[60px]"
+          >
+            <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-1 ring-2 ring-white">
+              <Plus className="w-7 h-7 text-white" />
             </div>
-            <span className="text-white text-xs font-medium">Chats</span>
-          </div>
-          {stories.map((story) => (
-            <div key={story.id} className="flex flex-col items-center min-w-[60px]">
+            <span className="text-white text-xs font-medium">Add</span>
+          </button>
+          
+          {stories.map((story, idx) => (
+            <button
+              key={story.id}
+              onClick={() => {
+                setSelectedStoryIndex(idx);
+                setShowStoryViewer(true);
+              }}
+              className="flex flex-col items-center min-w-[60px]"
+            >
               <Avatar className="w-14 h-14 ring-2 ring-white mb-1">
                 <AvatarImage src={story.avatar_url || undefined} />
                 <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white">
@@ -158,10 +175,32 @@ export function ChatsList({ userId }: ChatsListProps) {
                 </AvatarFallback>
               </Avatar>
               <span className="text-white text-xs font-medium truncate w-full text-center">{story.username}</span>
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Story Viewer */}
+      <StoryViewer
+        open={showStoryViewer}
+        onOpenChange={setShowStoryViewer}
+        stories={stories.map(s => ({
+          ...s,
+          media_url: s.avatar_url || '',
+          media_type: 'image' as const,
+          created_at: new Date().toISOString(),
+          view_count: 0
+        }))}
+        initialIndex={selectedStoryIndex}
+      />
+
+      {/* Add Story Dialog */}
+      <AddStoryDialog
+        open={showAddStory}
+        onOpenChange={setShowAddStory}
+        userId={userId}
+        onStoryAdded={loadStories}
+      />
 
       {/* Recent Conversations */}
       <div className="px-4 pb-4">
