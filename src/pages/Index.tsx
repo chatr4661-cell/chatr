@@ -720,27 +720,6 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Trending - Compact */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <Flame className="w-3.5 h-3.5 text-orange-600" />
-          <h3 className="font-semibold text-xs">Trending Searches</h3>
-        </div>
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {trendingSearches.map((search, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                setSearchQuery(search.query);
-                handleSearch(search.query);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted border border-border/50 transition-all"
-            >
-              <span className="text-sm">{search.icon}</span>
-              <span className="text-xs font-medium">{search.query}</span>
-            </button>
-          ))}
-        </div>
-
         {/* Main Category Grid */}
         <div className="grid grid-cols-4 gap-3 mb-4">
           {mainHubs.map((category, index) => (
