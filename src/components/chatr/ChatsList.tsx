@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { StoryViewer } from './StoryViewer';
 import { AddStoryDialog } from './AddStoryDialog';
+import { NewChatSheet } from './NewChatSheet';
 
 interface ChatsListProps {
   userId: string;
@@ -36,12 +37,52 @@ export function ChatsList({ userId }: ChatsListProps) {
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
   const [showAddStory, setShowAddStory] = useState(false);
+  const [showNewChatSheet, setShowNewChatSheet] = useState(false);
 
   useEffect(() => {
     loadStories();
     loadConversations();
     loadCurrentUser();
   }, [userId]);
+
+  const handleStartNewChat = async (contactUserId: string) => {
+    // Find or create conversation
+    const { data: existingConv } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id')
+      .eq('user_id', userId);
+
+    if (existingConv) {
+      for (const conv of existingConv) {
+        const { data: otherParticipant } = await supabase
+          .from('conversation_participants')
+          .select('user_id')
+          .eq('conversation_id', conv.conversation_id)
+          .eq('user_id', contactUserId)
+          .single();
+
+        if (otherParticipant) {
+          navigate(`/chat/${conv.conversation_id}`);
+          return;
+        }
+      }
+    }
+
+    // Create new conversation
+    const { data: newConv } = await supabase
+      .from('conversations')
+      .insert({ created_by: userId })
+      .select()
+      .single();
+
+    if (newConv) {
+      await supabase.from('conversation_participants').insert([
+        { conversation_id: newConv.id, user_id: userId },
+        { conversation_id: newConv.id, user_id: contactUserId }
+      ]);
+      navigate(`/chat/${newConv.id}`);
+    }
+  };
 
   const loadCurrentUser = async () => {
     const { data } = await supabase
@@ -269,6 +310,23 @@ export function ChatsList({ userId }: ChatsListProps) {
           </div>
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      <button
+        onClick={() => setShowNewChatSheet(true)}
+        className="fixed bottom-20 right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+        style={{ zIndex: 40 }}
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* New Chat Sheet */}
+      <NewChatSheet
+        userId={userId}
+        open={showNewChatSheet}
+        onOpenChange={setShowNewChatSheet}
+        onSelectContact={handleStartNewChat}
+      />
     </div>
   );
 }
