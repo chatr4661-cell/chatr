@@ -2,15 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  User, 
-  Bell, 
-  Lock, 
-  Database, 
-  Palette, 
-  LogOut,
-  ChevronRight 
+  User, Bell, Lock, Database, Palette, LogOut, ChevronRight,
+  Users, Monitor, Eye, Check, Camera, Globe, HelpCircle, FileText, Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 interface SettingsPanelProps {
@@ -29,6 +25,10 @@ export function SettingsPanel({ user }: SettingsPanelProps) {
     }
   };
 
+  const [contactSyncEnabled, setContactSyncEnabled] = React.useState(true);
+  const [darkMode, setDarkMode] = React.useState(false);
+  const [readReceipts, setReadReceipts] = React.useState(true);
+
   const settings = [
     {
       title: 'Account',
@@ -38,19 +38,30 @@ export function SettingsPanel({ user }: SettingsPanelProps) {
       ],
     },
     {
-      title: 'App Settings',
+      title: 'Settings',
       items: [
         { icon: Bell, label: 'Notifications', action: () => navigate('/notifications') },
-        { icon: Lock, label: 'Privacy', action: () => navigate('/privacy') },
-        { icon: Database, label: 'Data and Storage' },
-        { icon: Palette, label: 'Appearance' },
+        { icon: Lock, label: 'Privacy' },
+        { icon: Users, label: 'Contact Sync', toggle: true, value: contactSyncEnabled, onChange: setContactSyncEnabled },
+        { icon: Monitor, label: 'Linked Devices' },
+        { icon: Palette, label: 'Dark Mode', toggle: true, value: darkMode, onChange: setDarkMode },
+        { icon: Globe, label: 'Language', value: 'English' },
+      ],
+    },
+    {
+      title: 'Privacy',
+      items: [
+        { icon: Eye, label: 'Last Seen', value: 'Everyone' },
+        { icon: Check, label: 'Read Receipts', toggle: true, value: readReceipts, onChange: setReadReceipts },
+        { icon: Camera, label: 'Profile Photo', value: 'Everyone' },
       ],
     },
     {
       title: 'Help',
       items: [
-        { icon: User, label: 'Help Center' },
-        { icon: User, label: 'Contact Us' },
+        { icon: HelpCircle, label: 'Help Center' },
+        { icon: FileText, label: 'Terms & Privacy' },
+        { icon: Info, label: 'About' },
       ],
     },
   ];
@@ -77,17 +88,19 @@ export function SettingsPanel({ user }: SettingsPanelProps) {
             {section.title}
           </h3>
           <div className="bg-card rounded-2xl overflow-hidden border">
-            {section.items.map((item, itemIdx) => {
+            {section.items.map((item: any, itemIdx) => {
               const Icon = item.icon;
               return (
                 <button
                   key={itemIdx}
-                  onClick={item.action}
+                  onClick={item.toggle ? undefined : item.action}
                   className="w-full flex items-center gap-3 p-4 hover:bg-accent/50 transition-colors border-b last:border-b-0"
                 >
                   <Icon className="w-5 h-5 text-primary" />
                   <span className="flex-1 text-left font-medium">{item.label}</span>
-                  {item.value ? (
+                  {item.toggle && item.onChange ? (
+                    <Switch checked={item.value} onCheckedChange={item.onChange} />
+                  ) : item.value ? (
                     <span className="text-sm text-muted-foreground">{item.value}</span>
                   ) : (
                     <ChevronRight className="w-5 h-5 text-muted-foreground" />

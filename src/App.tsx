@@ -143,6 +143,7 @@ import Capture from "./pages/Capture";
 import ChatrWorld from "./pages/ChatrWorld";
 import Community from "./pages/Community";
 import ChatrPlus from "./pages/ChatrPlus";
+import JobDetail from "./pages/JobDetail";
 import ChatrPlusSearch from "./pages/ChatrPlusSearch";
 import ChatrPlusSubscribe from "./pages/ChatrPlusSubscribe";
 import ChatrPlusServiceDetail from "./pages/ChatrPlusServiceDetail";
@@ -336,6 +337,7 @@ const App = () => {
           <Route path="/account" element={<Account />} />
           <Route path="/chat" element={<ProtectedRoute><ChatrApp /></ProtectedRoute>} />
           <Route path="/prechu-ai" element={<ProtectedRoute><PrechuAI /></ProtectedRoute>} />
+          <Route path="/job/:id" element={<ProtectedRoute><JobDetail /></ProtectedRoute>} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
             <Route path="/notifications/settings" element={<NotificationSettings />} />
