@@ -38,6 +38,9 @@ class DeepLinkManager {
     // Listen for URL changes in web
     if (typeof window !== 'undefined') {
       window.addEventListener('hashchange', this.handleHashChange.bind(this));
+      
+      // Native deep link integration (Capacitor)
+      this.initNativeDeepLinks();
     }
     
     this.initialized = true;
@@ -190,6 +193,35 @@ class DeepLinkManager {
     const hash = window.location.hash.substring(1);
     if (hash.startsWith('chatr://')) {
       this.navigate(hash);
+    }
+  }
+
+  /**
+   * Initialize native deep link handling (Capacitor)
+   */
+  private async initNativeDeepLinks() {
+    try {
+      // Use our Capacitor plugin
+      const DeepLinkHandler = (await import('@/plugins/DeepLinkHandler')).default;
+      
+      // Listen for deep links from native layer
+      await DeepLinkHandler.addListener('deepLinkReceived', (data: any) => {
+        if (data.url) {
+          console.log('📱 Native deep link received:', data.url);
+          this.navigate(data.url);
+        }
+      });
+
+      // Check for pending deep link on app launch
+      const result = await DeepLinkHandler.getPendingDeepLink();
+      if (result && result.url) {
+        console.log('📱 Pending deep link on launch:', result.url);
+        setTimeout(() => {
+          this.navigate(result.url!);
+        }, 1000); // Delay to ensure OS is initialized
+      }
+    } catch (error) {
+      console.log('Native deep linking not available (web mode or plugin not loaded)');
     }
   }
 
