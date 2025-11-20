@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageCircle, Phone, Users, User as UserIcon, MapPin } from 'lucide-react';
+import { MessageCircle, Phone, Users, User as UserIcon, MapPin, Globe } from 'lucide-react';
 import { ChatsList } from '@/components/chatr/ChatsList';
 import { ContactsList } from '@/components/chatr/ContactsList';
 import { CallsList } from '@/components/chatr/CallsList';
 import { SettingsPanel } from '@/components/chatr/SettingsPanel';
 import { LocalServices } from '@/components/chatr/LocalServices';
+import { CommunitiesTab } from '@/components/chatr/CommunitiesTab';
 
-type Tab = 'chats' | 'contacts' | 'calls' | 'local' | 'settings';
+type Tab = 'chats' | 'contacts' | 'calls' | 'communities' | 'local' | 'settings';
 
 export default function ChatrApp() {
   const navigate = useNavigate();
@@ -55,19 +56,25 @@ export default function ChatrApp() {
         {activeTab === 'chats' && <ChatsList userId={user.id} />}
         {activeTab === 'contacts' && <ContactsList userId={user.id} />}
         {activeTab === 'calls' && <CallsList userId={user.id} />}
+        {activeTab === 'communities' && <CommunitiesTab userId={user.id} />}
         {activeTab === 'local' && <LocalServices />}
         {activeTab === 'settings' && <SettingsPanel user={user} />}
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border/10 shadow-lg" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex items-center justify-around h-16 max-w-md mx-auto px-2">
+      {/* Bottom Navigation - Mobile Optimized */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-border/50 shadow-lg safe-area-inset-bottom"
+        style={{ 
+          paddingBottom: 'max(env(safe-area-inset-bottom), 12px)'
+        }}
+      >
+        <div className="flex items-center justify-around h-16 max-w-md mx-auto px-1">
           {[
             { id: 'chats', icon: MessageCircle, label: 'Chats' },
             { id: 'contacts', icon: Users, label: 'Contacts' },
+            { id: 'communities', icon: Globe, label: 'Groups' },
             { id: 'calls', icon: Phone, label: 'Calls' },
-            { id: 'local', icon: MapPin, label: 'Local' },
-            { id: 'settings', icon: UserIcon, label: 'Profile' },
+            { id: 'settings', icon: UserIcon, label: 'Me' },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -75,12 +82,14 @@ export default function ChatrApp() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as Tab)}
-                className={`flex flex-col items-center justify-center gap-0.5 transition-all py-2 px-3 rounded-lg ${
-                  isActive ? 'text-[hsl(263,70%,50%)]' : 'text-gray-500'
+                className={`flex flex-col items-center justify-center gap-0.5 transition-all py-2 px-2 rounded-xl min-w-[60px] ${
+                  isActive 
+                    ? 'text-[hsl(263,70%,50%)] scale-105' 
+                    : 'text-gray-500'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'scale-110' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="text-[10px] font-medium mt-0.5">{tab.label}</span>
+                <Icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-[9px] font-semibold mt-0.5">{tab.label}</span>
               </button>
             );
           })}
