@@ -15,6 +15,7 @@ import { QuickAppSubmission } from '@/components/QuickAppSubmission';
 import { Browser } from '@capacitor/browser';
 import { useNativeStorage } from '@/hooks/useNativeStorage';
 import { useWebViewManager } from '@/hooks/useWebViewManager';
+import { useChatrOS } from '@/components/ChatrOSProvider';
 
 interface MiniApp {
   id: string;
@@ -52,6 +53,7 @@ interface AppUsage {
 const MiniAppsStore = () => {
   const navigate = useNavigate();
   const { openAppWithSSO } = useSSOToken();
+  const { launchApp } = useChatrOS();
   const [apps, setApps] = useState<MiniApp[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -67,7 +69,7 @@ const MiniAppsStore = () => {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [showSubmission, setShowSubmission] = useState(false);
   
-  // WebView manager for enhanced app opening
+  // WebView manager for enhanced app opening (fallback)
   const webViewManager = useWebViewManager();
   
   // Offline cache using native storage
@@ -219,7 +221,26 @@ const MiniAppsStore = () => {
     const loadingToast = toast.loading('Installing app...');
 
     try {
-      // Install the app
+      const appUrl = app.url || app.app_url || '';
+      const packageName = app.app_name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+      // Install to CHATR OS (chatr_os_apps table)
+      const { error: osError } = await supabase
+        .from('chatr_os_apps')
+        .insert({
+          user_id: user.id,
+          app_name: app.app_name,
+          package_name: packageName,
+          version: '1.0.0',
+          app_url: appUrl,
+          is_system_app: false,
+        });
+
+      if (osError && !osError.message.includes('duplicate')) {
+        console.error('OS install error:', osError);
+      }
+
+      // Also install to legacy table for backward compatibility
       const { error } = await supabase
         .from('user_installed_apps')
         .insert({ user_id: user.id, app_id: app.id });
@@ -254,8 +275,14 @@ const MiniAppsStore = () => {
       setInstalledApps(prev => new Set([...prev, app.id]));
       toast.success('App installed! Opening...', { id: loadingToast });
 
-      // Auto-open the app
-      await openApp(app);
+      // Auto-launch via OS layer
+      try {
+        await launchApp(packageName);
+      } catch (launchError) {
+        console.error('OS launch error, using fallback:', launchError);
+        await openApp(app);
+      }
+      
       loadApps();
     } catch (error) {
       console.error('Error installing app:', error);
@@ -275,7 +302,21 @@ const MiniAppsStore = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user && installedApps.has(app.id)) {
-        // Update last opened time
+        // Generate package name
+        const packageName = app.app_name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        
+        // Try to launch via OS layer first
+        try {
+          await launchApp(packageName);
+          toast.success(`Opening ${app.app_name}...`);
+          loadRecentlyUsed();
+          return;
+        } catch (osError) {
+          console.warn('OS launch failed, using fallback:', osError);
+          // Continue to fallback method below
+        }
+
+        // Update last opened time (fallback)
         await supabase
           .from('user_installed_apps')
           .update({ last_opened_at: new Date().toISOString() } as any)
@@ -290,7 +331,7 @@ const MiniAppsStore = () => {
         });
       }
 
-      // Check if it's an internal route or external URL
+      // Fallback: Check if it's an internal route or external URL
       if (appUrl.startsWith('/')) {
         // Internal Chatr route - navigate within app
         navigate(appUrl);

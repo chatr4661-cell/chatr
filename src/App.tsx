@@ -148,6 +148,8 @@ import ChatrPlusSearch from "./pages/ChatrPlusSearch";
 import ChatrPlusSubscribe from "./pages/ChatrPlusSubscribe";
 import ChatrPlusServiceDetail from "./pages/ChatrPlusServiceDetail";
 import ChatrPlusSellerRegistration from "./pages/ChatrPlusSellerRegistration";
+import OSHome from "./pages/OSHome";
+import { supabase } from "@/integrations/supabase/client";
 import ChatrPlusSellerDashboard from "./pages/ChatrPlusSellerDashboard";
 import ChatrPlusCategoryPage from "./pages/ChatrPlusCategoryPage";
 import ChatrPlusWallet from "./pages/ChatrPlusWallet";
@@ -178,18 +180,45 @@ const queryClient = new QueryClient({
   },
 });
 
-// Component to handle subdomain redirect
+// Component to handle subdomain redirect and OS home
 const SubdomainRedirect = () => {
-  // Check once on mount using useMemo to prevent re-renders
-  const shouldRedirect = React.useMemo(() => {
+  const [user, setUser] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    // Check auth state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Check subdomain
+  const shouldRedirectToSeller = React.useMemo(() => {
     const hostname = window.location.hostname;
     return hostname.startsWith('seller.') && window.location.pathname === '/';
   }, []);
 
-  if (shouldRedirect) {
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (shouldRedirectToSeller) {
     return <Navigate to="/seller/portal" replace />;
   }
 
+  // Authenticated users go to OS Home
+  if (user) {
+    return <Navigate to="/os-home" replace />;
+  }
+
+  // Non-authenticated users see the landing page
   return <Index />;
 };
 
@@ -239,6 +268,7 @@ const App = () => {
             <Route path="/" element={<SubdomainRedirect />} />
             
             <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
+            <Route path="/os-home" element={<ProtectedRoute><OSHome /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/download" element={<Download />} />
             <Route path="/install" element={<Install />} />
