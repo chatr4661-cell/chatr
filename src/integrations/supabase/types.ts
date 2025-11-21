@@ -5726,7 +5726,7 @@ export type Database = {
           posted_by: string | null
           salary_range: string | null
           skills_required: string[] | null
-          source_id: string
+          source_id: string | null
           source_table: string
           source_url: string | null
           state: string | null
@@ -5759,7 +5759,7 @@ export type Database = {
           posted_by?: string | null
           salary_range?: string | null
           skills_required?: string[] | null
-          source_id: string
+          source_id?: string | null
           source_table: string
           source_url?: string | null
           state?: string | null
@@ -5792,7 +5792,7 @@ export type Database = {
           posted_by?: string | null
           salary_range?: string | null
           skills_required?: string[] | null
-          source_id?: string
+          source_id?: string | null
           source_table?: string
           source_url?: string | null
           state?: string | null
