@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Briefcase, MapPin, Navigation, Clock, TrendingUp, DollarSign, Filter, Building2, GraduationCap, Sparkles, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Briefcase, MapPin, Navigation, Clock, TrendingUp, DollarSign, Filter, Building2, GraduationCap, Sparkles, ExternalLink, Bookmark, Share2, Download, RefreshCw, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLocationStatus } from '@/hooks/useLocationStatus';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Job {
   id: string;
@@ -45,11 +48,33 @@ export default function LocalJobs() {
   const [filterJobType, setFilterJobType] = useState<string>('all');
   const [filterExperience, setFilterExperience] = useState<string>('all');
   const [expandedFilters, setExpandedFilters] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [savedJobs, setSavedJobs] = useState<string[]>([]);
+  const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeKeywords, setScrapeKeywords] = useState('');
+  const [selectedSources, setSelectedSources] = useState<string[]>(['all']);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
-    });
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        // Load saved and applied jobs
+        const { data: saved } = await supabase
+          .from('saved_jobs')
+          .select('job_id')
+          .eq('user_id', user.id);
+        if (saved) setSavedJobs(saved.map(s => s.job_id));
+
+        const { data: applied } = await supabase
+          .from('job_applications')
+          .select('job_id')
+          .eq('user_id', user.id);
+        if (applied) setAppliedJobs(applied.map(a => a.job_id));
+      }
+    };
+    init();
   }, []);
 
   useEffect(() => {
@@ -177,6 +202,127 @@ export default function LocalJobs() {
     setFilteredJobs(filtered);
   };
 
+  const handleSaveJob = async (jobId: string) => {
+    if (!userId) {
+      toast({ title: 'Please login to save jobs', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      if (savedJobs.includes(jobId)) {
+        await supabase.from('saved_jobs').delete().eq('job_id', jobId).eq('user_id', userId);
+        setSavedJobs(prev => prev.filter(id => id !== jobId));
+        toast({ title: '🗑️ Job removed from saved' });
+      } else {
+        await supabase.from('saved_jobs').insert({ user_id: userId, job_id: jobId });
+        setSavedJobs(prev => [...prev, jobId]);
+        toast({ title: '💾 Job saved successfully' });
+      }
+    } catch (error) {
+      console.error('Error saving job:', error);
+      toast({ title: 'Error saving job', variant: 'destructive' });
+    }
+  };
+
+  const handleApplyJob = async (jobId: string, applyUrl: string) => {
+    if (!userId) {
+      toast({ title: 'Please login to apply', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      if (!appliedJobs.includes(jobId)) {
+        await supabase.from('job_applications').insert({
+          user_id: userId,
+          job_id: jobId,
+          status: 'applied'
+        });
+        setAppliedJobs(prev => [...prev, jobId]);
+      }
+
+      // Open application URL
+      window.open(applyUrl, '_blank');
+      toast({ title: '✅ Application tracked' });
+    } catch (error) {
+      console.error('Error tracking application:', error);
+    }
+  };
+
+  const handleScrapeJobs = async () => {
+    if (!scrapeKeywords.trim()) {
+      toast({ title: 'Enter search keywords', variant: 'destructive' });
+      return;
+    }
+
+    setIsScraping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('scrape-jobs', {
+        body: {
+          keywords: scrapeKeywords,
+          location: status.city || 'India',
+          sources: selectedSources,
+          userId
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: '🎉 Jobs Scraped Successfully',
+        description: `Found ${data.jobs_found} new jobs from ${selectedSources.join(', ')}`
+      });
+
+      // Reload jobs
+      if (status.latitude && status.longitude) {
+        fetchAndLoadJobs(status.latitude, status.longitude);
+      }
+    } catch (error) {
+      console.error('Error scraping jobs:', error);
+      toast({ title: 'Scraping failed', variant: 'destructive' });
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
+  const exportJobs = () => {
+    const csv = [
+      ['Title', 'Company', 'Location', 'Type', 'Salary', 'Applied URL'].join(','),
+      ...filteredJobs.map(job => [
+        job.job_title,
+        job.company_name,
+        job.city,
+        job.job_type,
+        job.salary_range || 'N/A',
+        job.apply_url || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jobs-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: '📥 Jobs exported' });
+  };
+
+  const shareJob = async (job: Job) => {
+    const text = `${job.job_title} at ${job.company_name}\n${job.city}\n${job.apply_url || ''}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: job.job_title, text });
+        toast({ title: '✅ Shared successfully' });
+      } catch (error) {
+        console.error('Share error:', error);
+      }
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast({ title: '📋 Copied to clipboard' });
+    }
+  };
+
   const trackJobView = async (jobId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -236,6 +382,26 @@ export default function LocalJobs() {
                 <span>{status.city}</span>
               </div>
             )}
+          </div>
+
+        {/* Action Buttons */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Button variant="outline" size="sm" onClick={exportJobs} disabled={filteredJobs.length === 0}>
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setScrapeKeywords('search')}>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Scrape Jobs
+            </Button>
+            <Button variant="outline" size="sm">
+              <Bell className="h-4 w-4 mr-1" />
+              Job Alerts
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/saved-jobs')}>
+              <Bookmark className="h-4 w-4 mr-1" />
+              Saved ({savedJobs.length})
+            </Button>
           </div>
 
         {/* Info Banner */}
@@ -405,7 +571,16 @@ export default function LocalJobs() {
                   </Badge>
                 </div>
                 {filteredJobs.slice(0, 5).map(job => (
-                  <JobCard key={job.id} job={job} onView={trackJobView} priority />
+                  <JobCard 
+                    key={job.id} 
+                    job={job} 
+                    onView={(id) => { trackJobView(id); setSelectedJob(job); }}
+                    priority
+                    onSave={handleSaveJob}
+                    onApply={handleApplyJob}
+                    isSaved={savedJobs.includes(job.id)}
+                    isApplied={appliedJobs.includes(job.id)}
+                  />
                 ))}
               </div>
             )}
@@ -421,7 +596,15 @@ export default function LocalJobs() {
                   .filter(job => job.is_featured)
                   .slice(0, 10)
                   .map(job => (
-                    <JobCard key={job.id} job={job} onView={trackJobView} />
+                    <JobCard 
+                      key={job.id} 
+                      job={job} 
+                      onView={(id) => { trackJobView(id); setSelectedJob(job); }}
+                      onSave={handleSaveJob}
+                      onApply={handleApplyJob}
+                      isSaved={savedJobs.includes(job.id)}
+                      isApplied={appliedJobs.includes(job.id)}
+                    />
                   ))}
               </div>
             )}
@@ -437,7 +620,15 @@ export default function LocalJobs() {
                   .filter(job => !job.is_featured)
                   .slice(0, 15)
                   .map(job => (
-                    <JobCard key={job.id} job={job} onView={trackJobView} />
+                    <JobCard 
+                      key={job.id} 
+                      job={job} 
+                      onView={(id) => { trackJobView(id); setSelectedJob(job); }}
+                      onSave={handleSaveJob}
+                      onApply={handleApplyJob}
+                      isSaved={savedJobs.includes(job.id)}
+                      isApplied={appliedJobs.includes(job.id)}
+                    />
                   ))}
               </div>
             )}
@@ -458,18 +649,183 @@ export default function LocalJobs() {
                     job.experience_level?.toLowerCase().includes('fresher')
                   )
                   .map(job => (
-                    <JobCard key={job.id} job={job} onView={trackJobView} />
+                    <JobCard 
+                      key={job.id} 
+                      job={job} 
+                      onView={(id) => { trackJobView(id); setSelectedJob(job); }}
+                      onSave={handleSaveJob}
+                      onApply={handleApplyJob}
+                      isSaved={savedJobs.includes(job.id)}
+                      isApplied={appliedJobs.includes(job.id)}
+                    />
                   ))}
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* Job Detail Dialog */}
+      <Dialog open={selectedJob !== null && selectedJob !== undefined} onOpenChange={() => setSelectedJob(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{selectedJob?.job_title}</DialogTitle>
+            <DialogDescription>
+              {selectedJob?.company_name} • {selectedJob?.city}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            {selectedJob && (
+              <div className="space-y-4 pr-4">
+                <div className="flex flex-wrap gap-2">
+                  <Badge>{selectedJob.job_type}</Badge>
+                  {selectedJob.experience_level && <Badge variant="outline">{selectedJob.experience_level}</Badge>}
+                  {selectedJob.is_remote && <Badge variant="secondary">🏠 Remote</Badge>}
+                  {selectedJob.source && <Badge variant="secondary">{selectedJob.source}</Badge>}
+                </div>
+
+                {selectedJob.salary_range && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">💰 Salary Range</p>
+                    <p className="text-lg font-bold text-primary">{selectedJob.salary_range}</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm font-medium mb-1">📋 Description</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedJob.description}</p>
+                </div>
+
+                {selectedJob.skills_required && selectedJob.skills_required.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">🎯 Required Skills</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedJob.skills_required.map((skill, idx) => (
+                        <Badge key={idx} variant="secondary">{skill}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedJob.posted_date && (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    Posted: {new Date(selectedJob.posted_date).toLocaleDateString()}
+                  </div>
+                )}
+
+                {selectedJob.distance && (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    {selectedJob.distance.toFixed(1)} km away
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4">
+                  <Button 
+                    className="flex-1" 
+                    onClick={() => handleApplyJob(selectedJob.id, selectedJob.apply_url || '#')}
+                    disabled={appliedJobs.includes(selectedJob.id)}
+                  >
+                    {appliedJobs.includes(selectedJob.id) ? '✅ Applied' : 'Apply Now'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleSaveJob(selectedJob.id)}
+                  >
+                    <Bookmark className={`h-4 w-4 ${savedJobs.includes(selectedJob.id) ? 'fill-current' : ''}`} />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => shareJob(selectedJob)}
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Scrape Jobs Dialog */}
+      <Dialog open={scrapeKeywords === 'search'} onOpenChange={(open) => !open && setScrapeKeywords('')}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>🔍 Scrape Jobs from Multiple Sources</DialogTitle>
+            <DialogDescription>
+              Search for jobs across Indeed, LinkedIn, Naukri, and more
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Search Keywords</label>
+              <Input
+                placeholder="e.g. Software Engineer, Data Analyst, Sales..."
+                value={scrapeKeywords}
+                onChange={(e) => setScrapeKeywords(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Select Sources</label>
+              <div className="flex flex-wrap gap-2">
+                {['all', 'indeed', 'linkedin', 'naukri', 'google'].map(source => (
+                  <Button
+                    key={source}
+                    size="sm"
+                    variant={selectedSources.includes(source) ? 'default' : 'outline'}
+                    onClick={() => {
+                      if (source === 'all') {
+                        setSelectedSources(['all']);
+                      } else {
+                        setSelectedSources(prev => 
+                          prev.includes(source) 
+                            ? prev.filter(s => s !== source && s !== 'all')
+                            : [...prev.filter(s => s !== 'all'), source]
+                        );
+                      }
+                    }}
+                  >
+                    {source === 'all' ? '🌐 All Sources' : source}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Button 
+              className="w-full" 
+              onClick={handleScrapeJobs}
+              disabled={isScraping || !scrapeKeywords.trim()}
+            >
+              {isScraping ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Scraping...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Start Scraping
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function JobCard({ job, onView, priority = false }: { job: Job; onView: (id: string) => void; priority?: boolean }) {
+function JobCard({ job, onView, priority = false, onSave, onApply, isSaved, isApplied }: { 
+  job: Job; 
+  onView: (id: string) => void; 
+  priority?: boolean;
+  onSave?: (id: string) => void;
+  onApply?: (id: string, url: string) => void;
+  isSaved?: boolean;
+  isApplied?: boolean;
+}) {
   return (
     <Card
       className={`p-4 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all ${priority ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-transparent' : ''}`}
@@ -477,63 +833,34 @@ function JobCard({ job, onView, priority = false }: { job: Job; onView: (id: str
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-bold text-lg mb-1">{job.job_title}</h3>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Building2 className="h-3.5 w-3.5" />
+          <h3 className="font-bold text-lg mb-1 line-clamp-1">{job.job_title}</h3>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+            <Building2 className="h-4 w-4" />
             <span>{job.company_name}</span>
-            {job.distance !== undefined && (
-              <>
-                <span>•</span>
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                <span className="text-primary font-medium">{job.distance} km</span>
-              </>
-            )}
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
-          {job.is_featured && (
-            <Badge className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-700 border-yellow-500/30">
-              ⭐ Featured
-            </Badge>
-          )}
-          {priority && (
-            <Badge className="bg-primary/10 text-primary">
-              Nearest
-            </Badge>
-          )}
-        </div>
+        {isSaved && (
+          <Badge variant="secondary" className="ml-2">
+            <Bookmark className="h-3 w-3 fill-current" />
+          </Badge>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">
-        <Badge variant="secondary" className="flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {job.job_type}
+        <Badge variant="outline" className="flex items-center gap-1">
+          <MapPin className="h-3 w-3" />
+          {job.city}
+          {job.distance && ` • ${job.distance.toFixed(1)}km`}
         </Badge>
-        <Badge variant="outline">{job.category}</Badge>
-        {job.is_remote && (
-          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
-            🏠 Remote
-          </Badge>
-        )}
-        {job.experience_level && (
-          <Badge variant="outline" className="text-xs">
-            {job.experience_level}
-          </Badge>
-        )}
+        <Badge>{job.job_type}</Badge>
+        {job.is_remote && <Badge variant="secondary">🏠 Remote</Badge>}
+        {job.experience_level && <Badge variant="outline">{job.experience_level}</Badge>}
       </div>
 
-      {job.skills_required && job.skills_required.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {job.skills_required.slice(0, 4).map((skill, idx) => (
-            <span key={idx} className="text-xs bg-muted px-2 py-0.5 rounded">
-              {skill}
-            </span>
-          ))}
-          {job.skills_required.length > 4 && (
-            <span className="text-xs text-muted-foreground px-2">
-              +{job.skills_required.length - 4} more
-            </span>
-          )}
+      {job.salary_range && (
+        <div className="flex items-center gap-1 text-sm font-semibold text-primary mb-2">
+          <DollarSign className="h-4 w-4" />
+          {job.salary_range}
         </div>
       )}
 
@@ -541,35 +868,55 @@ function JobCard({ job, onView, priority = false }: { job: Job; onView: (id: str
         {job.description}
       </p>
 
-      <div className="flex items-center justify-between pt-3 border-t">
-        <div className="flex items-center gap-3">
-          {job.salary_range && (
-            <span className="flex items-center gap-1 text-primary font-semibold text-sm">
-              <DollarSign className="h-4 w-4" />
-              {job.salary_range}
-            </span>
-          )}
-          {job.source && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              {job.source}
-            </span>
+      {job.skills_required && job.skills_required.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {job.skills_required.slice(0, 3).map((skill, idx) => (
+            <Badge key={idx} variant="secondary" className="text-xs">{skill}</Badge>
+          ))}
+          {job.skills_required.length > 3 && (
+            <Badge variant="secondary" className="text-xs">+{job.skills_required.length - 3}</Badge>
           )}
         </div>
-        <Button 
-          size="sm" 
-          className="gap-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (job.apply_url) {
-              window.open(job.apply_url, '_blank');
-            }
-          }}
-        >
-          Apply Now
-          <ExternalLink className="h-3 w-3" />
-        </Button>
+      )}
+
+      <div className="flex items-center justify-between pt-3 border-t">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          {job.posted_date ? new Date(job.posted_date).toLocaleDateString() : 'Recently posted'}
+        </div>
+        <div className="flex gap-2">
+          {onSave && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSave(job.id);
+              }}
+            >
+              <Bookmark className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+            </Button>
+          )}
+          {onApply && (
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onApply(job.id, job.apply_url || '#');
+              }}
+              disabled={isApplied}
+            >
+              {isApplied ? '✅ Applied' : 'Apply'}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {job.source && (
+        <div className="mt-2 text-xs text-muted-foreground">
+          via {job.source}
+        </div>
+      )}
     </Card>
   );
 }
