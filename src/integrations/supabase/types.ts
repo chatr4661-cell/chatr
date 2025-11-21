@@ -5702,6 +5702,7 @@ export type Database = {
       jobs_clean_master: {
         Row: {
           application_count: number | null
+          apply_url: string | null
           category: string
           city: string
           company_name: string
@@ -5734,6 +5735,7 @@ export type Database = {
         }
         Insert: {
           application_count?: number | null
+          apply_url?: string | null
           category: string
           city: string
           company_name: string
@@ -5766,6 +5768,7 @@ export type Database = {
         }
         Update: {
           application_count?: number | null
+          apply_url?: string | null
           category?: string
           city?: string
           company_name?: string
