@@ -5597,6 +5597,108 @@ export type Database = {
           },
         ]
       }
+      job_alerts: {
+        Row: {
+          created_at: string
+          experience_level: string | null
+          id: string
+          is_active: boolean | null
+          job_type: string | null
+          keywords: string
+          last_notified_at: string | null
+          location: string | null
+          min_salary: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          experience_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_type?: string | null
+          keywords: string
+          last_notified_at?: string | null
+          location?: string | null
+          min_salary?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          experience_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_type?: string | null
+          keywords?: string
+          last_notified_at?: string | null
+          location?: string | null
+          min_salary?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      job_applications: {
+        Row: {
+          application_notes: string | null
+          applied_at: string
+          cover_letter: string | null
+          id: string
+          job_id: string
+          resume_url: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          application_notes?: string | null
+          applied_at?: string
+          cover_letter?: string | null
+          id?: string
+          job_id: string
+          resume_url?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          application_notes?: string | null
+          applied_at?: string
+          cover_letter?: string | null
+          id?: string
+          job_id?: string
+          resume_url?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      job_searches: {
+        Row: {
+          id: string
+          keywords: string
+          location: string | null
+          results_count: number | null
+          searched_at: string
+          sources_used: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          keywords: string
+          location?: string | null
+          results_count?: number | null
+          searched_at?: string
+          sources_used?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          keywords?: string
+          location?: string | null
+          results_count?: number | null
+          searched_at?: string
+          sources_used?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       jobs_clean_master: {
         Row: {
           application_count: number | null
@@ -8728,6 +8830,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_jobs: {
+        Row: {
+          id: string
+          job_id: string
+          notes: string | null
+          saved_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          job_id: string
+          notes?: string | null
+          saved_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          job_id?: string
+          notes?: string | null
+          saved_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       saved_searches: {
         Row: {
