@@ -1,5 +1,8 @@
 project_id = "sbayuqgomlflmxgicplz"
 
+[functions.scrape-jobs]
+verify_jwt = false
+
 [functions.ai-assistant]
 verify_jwt = false
 
