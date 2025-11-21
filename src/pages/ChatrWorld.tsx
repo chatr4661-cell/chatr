@@ -5,10 +5,12 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Send, Sparkles, Globe, Heart, Briefcase, Users, UtensilsCrossed, Tag, Loader2, ArrowLeft, MapPin } from 'lucide-react';
+import { Send, Sparkles, Globe, Heart, Briefcase, Users, UtensilsCrossed, Tag, Loader2, ArrowLeft, MapPin, Mic, Share2, Download, ExternalLink, Phone, MapPinned } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useLocationStatus } from '@/hooks/useLocationStatus';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Message {
   id: string;
@@ -51,6 +53,8 @@ export default function ChatrWorld() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +72,70 @@ export default function ChatrWorld() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const startVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window)) {
+      toast.error('Voice input not supported in this browser');
+      return;
+    }
+
+    const recognition = new (window as any).webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      toast.success('Listening...');
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      toast.success('Voice input captured');
+    };
+
+    recognition.onerror = () => {
+      toast.error('Voice input error');
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  const shareConversation = async () => {
+    const text = messages.map(m => `${m.type === 'user' ? 'You' : 'Chatr World'}: ${m.content}`).join('\n\n');
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Chatr World Conversation',
+          text: text,
+        });
+        toast.success('Shared successfully');
+      } catch (error) {
+        console.error('Share error:', error);
+      }
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast.success('Conversation copied to clipboard');
+    }
+  };
+
+  const exportConversation = () => {
+    const text = messages.map(m => `[${m.timestamp.toLocaleString()}] ${m.type === 'user' ? 'You' : 'Chatr World'}: ${m.content}`).join('\n\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chatr-world-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Conversation exported');
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -167,6 +235,26 @@ export default function ChatrWorld() {
                 </div>
               </div>
             </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={shareConversation}
+                className="h-9 w-9"
+                disabled={messages.length <= 1}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={exportConversation}
+                className="h-9 w-9"
+                disabled={messages.length <= 1}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -213,18 +301,70 @@ export default function ChatrWorld() {
                   
                   {message.data && Object.keys(message.data).length > 0 && (
                     <div className="mt-4 space-y-3">
-                      {Object.entries(message.data).map(([key, value]: [string, any]) => (
-                        <div key={key} className="border-t pt-3">
-                          <p className="text-xs font-medium text-muted-foreground mb-2 capitalize">
-                            {key} Results ({value.count || 0})
-                          </p>
-                          {value.count > 0 && (
-                            <div className="text-xs text-muted-foreground">
-                              Data available: {value.type}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                      {Object.entries(message.data).map(([key, value]: [string, any]) => {
+                        const items = value.providers || value.vendors || value.deals || [];
+                        return (
+                          <div key={key} className="border-t pt-3">
+                            <p className="text-xs font-medium text-muted-foreground mb-2 capitalize flex items-center justify-between">
+                              <span>{key} Results ({value.count || 0})</span>
+                              {value.location && (
+                                <span className="text-xs text-primary flex items-center gap-1">
+                                  <MapPinned className="h-3 w-3" />
+                                  {value.location}
+                                </span>
+                              )}
+                            </p>
+                            {items.length > 0 && (
+                              <div className="space-y-2 mt-2">
+                                {items.slice(0, 3).map((item: any, idx: number) => (
+                                  <Card
+                                    key={idx}
+                                    className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                                    onClick={() => setSelectedResult(item)}
+                                  >
+                                    <div className="flex justify-between items-start gap-2">
+                                      <div className="flex-1">
+                                        <p className="font-medium text-sm">{item.name || item.title || item.business_name}</p>
+                                        {item.description && (
+                                          <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{item.description}</p>
+                                        )}
+                                        {item.location && (
+                                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                            <MapPin className="h-3 w-3" />
+                                            {item.location}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {item.price && (
+                                        <Badge variant="secondary" className="shrink-0">
+                                          ₹{item.price}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-1 mt-2">
+                                      <Button size="sm" variant="outline" className="h-7 text-xs flex-1">
+                                        <ExternalLink className="h-3 w-3 mr-1" />
+                                        View
+                                      </Button>
+                                      {item.phone && (
+                                        <Button size="sm" variant="outline" className="h-7 text-xs flex-1">
+                                          <Phone className="h-3 w-3 mr-1" />
+                                          Call
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </Card>
+                                ))}
+                                {items.length > 3 && (
+                                  <p className="text-xs text-center text-muted-foreground">
+                                    +{items.length - 3} more results
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </Card>
@@ -277,6 +417,15 @@ export default function ChatrWorld() {
       <div className="sticky bottom-0 bg-background/80 backdrop-blur-xl border-t">
         <div className="container mx-auto max-w-4xl px-4 py-4">
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={startVoiceInput}
+              disabled={isLoading || isListening}
+              className={isListening ? 'animate-pulse border-primary' : ''}
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -299,6 +448,62 @@ export default function ChatrWorld() {
           </div>
         </div>
       </div>
+
+      {/* Result Detail Dialog */}
+      <Dialog open={!!selectedResult} onOpenChange={() => setSelectedResult(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedResult?.name || selectedResult?.title || selectedResult?.business_name}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-4">
+              {selectedResult?.description && (
+                <div>
+                  <p className="text-sm font-medium mb-1">Description</p>
+                  <p className="text-sm text-muted-foreground">{selectedResult.description}</p>
+                </div>
+              )}
+              {selectedResult?.location && (
+                <div>
+                  <p className="text-sm font-medium mb-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    Location
+                  </p>
+                  <p className="text-sm text-muted-foreground">{selectedResult.location}</p>
+                </div>
+              )}
+              {selectedResult?.price && (
+                <div>
+                  <p className="text-sm font-medium mb-1">Price</p>
+                  <p className="text-lg font-bold text-primary">₹{selectedResult.price}</p>
+                </div>
+              )}
+              {selectedResult?.phone && (
+                <div>
+                  <p className="text-sm font-medium mb-1 flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    Contact
+                  </p>
+                  <p className="text-sm text-muted-foreground">{selectedResult.phone}</p>
+                </div>
+              )}
+              <div className="flex gap-2 pt-4">
+                <Button className="flex-1" onClick={() => {
+                  if (selectedResult?.phone) {
+                    window.location.href = `tel:${selectedResult.phone}`;
+                  }
+                }}>
+                  <Phone className="h-4 w-4 mr-2" />
+                  Call Now
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setSelectedResult(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
