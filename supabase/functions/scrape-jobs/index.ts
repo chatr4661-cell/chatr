@@ -156,24 +156,29 @@ Format each job properly with all fields filled.`
     // Store jobs in database
     if (allJobs.length > 0) {
       const jobsToInsert = allJobs.map(job => ({
+        source_table: job.source,
         job_title: job.title,
         company_name: job.company,
-        city: job.location,
         job_type: job.job_type || 'Full-time',
+        category: keywords,
         description: job.description,
         salary_range: job.salary,
-        posted_date: job.posted_date,
-        experience_level: job.experience_level,
+        experience_required: job.experience_level || null,
         skills_required: job.skills,
-        apply_url: job.apply_url || '#',
-        source: job.source,
-        is_remote: job.is_remote || false,
-        is_featured: false,
-        category: keywords,
+        location: job.location,
+        city: job.location,
+        state: null,
+        pincode: null,
         latitude: null,
         longitude: null,
+        distance: null,
+        is_remote: job.is_remote || false,
+        is_verified: false,
+        is_featured: false,
         view_count: 0,
-        scraped_at: job.scraped_at
+        application_count: 0,
+        source_url: job.apply_url || '#',
+        last_synced_at: job.scraped_at
       }));
 
       const { data: insertedJobs, error: insertError } = await supabase
