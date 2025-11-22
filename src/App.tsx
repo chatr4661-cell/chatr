@@ -94,6 +94,7 @@ import CareAccess from "./pages/CareAccess";
 import CommunitySpace from "./pages/CommunitySpace";
 import AIBrowserHome from "./pages/AIBrowserHome";
 import AIBrowserView from "./pages/AIBrowserView";
+import ChatrBrowser from "./pages/ChatrBrowser";
 
 // New Feature Pages
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
@@ -328,7 +329,7 @@ const App = () => {
           <Route path="/local-healthcare" element={<LocalHealthcare />} />
             <Route path="/geofences" element={<Geofences />} />
             <Route path="/geofence-history" element={<GeofenceHistory />} />
-            <Route path="/home" element={<AIBrowser />} />
+            <Route path="/home" element={<ChatrBrowser />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
             <Route path="/ai-browser" element={<AIBrowserView />} />
             <Route path="/chat-ai" element={<AIChat />} />
