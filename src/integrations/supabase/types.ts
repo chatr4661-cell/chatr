@@ -6552,6 +6552,39 @@ export type Database = {
           },
         ]
       }
+      location_search_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_searched_at: string | null
+          latitude: number
+          location_name: string
+          longitude: number
+          search_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_searched_at?: string | null
+          latitude: number
+          location_name: string
+          longitude: number
+          search_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_searched_at?: string | null
+          latitude?: number
+          location_name?: string
+          longitude?: number
+          search_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       location_searches: {
         Row: {
           city: string | null
@@ -8862,6 +8895,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean | null
           last_notification_sent: string | null
           notification_enabled: boolean | null
           notification_frequency: string | null
@@ -8874,6 +8908,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean | null
           last_notification_sent?: string | null
           notification_enabled?: boolean | null
           notification_frequency?: string | null
@@ -8886,6 +8921,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean | null
           last_notification_sent?: string | null
           notification_enabled?: boolean | null
           notification_frequency?: string | null
@@ -8988,6 +9024,57 @@ export type Database = {
           },
         ]
       }
+      search_analytics: {
+        Row: {
+          clicked_position: number | null
+          clicked_result_id: string | null
+          has_location: boolean | null
+          id: string
+          intent: string | null
+          latitude: number | null
+          longitude: number | null
+          query_text: string
+          response_time_ms: number | null
+          result_count: number | null
+          search_type: string
+          source: string | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          clicked_position?: number | null
+          clicked_result_id?: string | null
+          has_location?: boolean | null
+          id?: string
+          intent?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          query_text: string
+          response_time_ms?: number | null
+          result_count?: number | null
+          search_type: string
+          source?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          clicked_position?: number | null
+          clicked_result_id?: string | null
+          has_location?: boolean | null
+          id?: string
+          intent?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          query_text?: string
+          response_time_ms?: number | null
+          result_count?: number | null
+          search_type?: string
+          source?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       search_cache: {
         Row: {
           created_at: string
@@ -9012,6 +9099,78 @@ export type Database = {
           last_updated?: string
           query?: string
           response_data?: Json
+        }
+        Relationships: []
+      }
+      search_filter_preferences: {
+        Row: {
+          created_at: string | null
+          default_max_distance: number | null
+          default_min_rating: number | null
+          default_price_range: Json | null
+          exclude_categories: string[] | null
+          id: string
+          preferred_categories: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          default_max_distance?: number | null
+          default_min_rating?: number | null
+          default_price_range?: Json | null
+          exclude_categories?: string[] | null
+          id?: string
+          preferred_categories?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          default_max_distance?: number | null
+          default_min_rating?: number | null
+          default_price_range?: Json | null
+          exclude_categories?: string[] | null
+          id?: string
+          preferred_categories?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      search_performance_metrics: {
+        Row: {
+          avg_response_time_ms: number | null
+          created_at: string | null
+          date: string
+          failed_requests: number | null
+          id: string
+          search_type: string
+          source: string
+          success_rate: number | null
+          total_requests: number | null
+        }
+        Insert: {
+          avg_response_time_ms?: number | null
+          created_at?: string | null
+          date: string
+          failed_requests?: number | null
+          id?: string
+          search_type: string
+          source: string
+          success_rate?: number | null
+          total_requests?: number | null
+        }
+        Update: {
+          avg_response_time_ms?: number | null
+          created_at?: string | null
+          date?: string
+          failed_requests?: number | null
+          id?: string
+          search_type?: string
+          source?: string
+          success_rate?: number | null
+          total_requests?: number | null
         }
         Relationships: []
       }
@@ -9054,6 +9213,48 @@ export type Database = {
           source?: string | null
           timestamp?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      search_result_rankings: {
+        Row: {
+          created_at: string | null
+          distance_score: number | null
+          freshness_score: number | null
+          id: string
+          popularity_score: number | null
+          query_text: string
+          ranking_score: number | null
+          rating_score: number | null
+          relevance_score: number | null
+          result_id: string
+          result_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          distance_score?: number | null
+          freshness_score?: number | null
+          id?: string
+          popularity_score?: number | null
+          query_text: string
+          ranking_score?: number | null
+          rating_score?: number | null
+          relevance_score?: number | null
+          result_id: string
+          result_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          distance_score?: number | null
+          freshness_score?: number | null
+          id?: string
+          popularity_score?: number | null
+          query_text?: string
+          ranking_score?: number | null
+          rating_score?: number | null
+          relevance_score?: number | null
+          result_id?: string
+          result_type?: string | null
         }
         Relationships: []
       }
@@ -9124,6 +9325,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      search_suggestions: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          is_trending: boolean | null
+          last_used_at: string | null
+          popularity_score: number | null
+          suggestion_text: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_trending?: boolean | null
+          last_used_at?: string | null
+          popularity_score?: number | null
+          suggestion_text: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_trending?: boolean | null
+          last_used_at?: string | null
+          popularity_score?: number | null
+          suggestion_text?: string
+        }
+        Relationships: []
       }
       seller_invoices: {
         Row: {
@@ -11022,6 +11253,33 @@ export type Database = {
           },
         ]
       }
+      visual_search_cache: {
+        Row: {
+          created_at: string | null
+          detected_objects: Json | null
+          expires_at: string | null
+          id: string
+          image_hash: string
+          search_results: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          detected_objects?: Json | null
+          expires_at?: string | null
+          id?: string
+          image_hash: string
+          search_results?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          detected_objects?: Json | null
+          expires_at?: string | null
+          id?: string
+          image_hash?: string
+          search_results?: Json | null
+        }
+        Relationships: []
+      }
       visual_search_history: {
         Row: {
           created_at: string
@@ -11238,6 +11496,7 @@ export type Database = {
       }
       backfill_phone_hashes: { Args: never; Returns: undefined }
       cleanup_disappearing_messages: { Args: never; Returns: undefined }
+      cleanup_expired_visual_search_cache: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       create_direct_conversation: {
         Args: { other_user_id: string }
