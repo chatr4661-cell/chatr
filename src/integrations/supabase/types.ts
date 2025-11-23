@@ -4974,6 +4974,44 @@ export type Database = {
         }
         Relationships: []
       }
+      health_challenge_participants: {
+        Row: {
+          challenge_id: string
+          completed_at: string | null
+          current_progress: number | null
+          id: string
+          joined_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string | null
+          current_progress?: number | null
+          id?: string
+          joined_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string | null
+          current_progress?: number | null
+          id?: string
+          joined_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "health_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_challenges: {
         Row: {
           challenge_type: string
@@ -5178,6 +5216,78 @@ export type Database = {
           },
         ]
       }
+      health_predictions: {
+        Row: {
+          category: string
+          confidence_score: number | null
+          created_at: string | null
+          expires_at: string | null
+          generated_at: string | null
+          id: string
+          is_viewed: boolean | null
+          prediction_data: Json
+          prediction_type: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          confidence_score?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          is_viewed?: boolean | null
+          prediction_data: Json
+          prediction_type: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          confidence_score?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          is_viewed?: boolean | null
+          prediction_data?: Json
+          prediction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      health_vitals: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          recorded_at: string
+          source: string | null
+          user_id: string
+          value: Json
+          vital_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          recorded_at?: string
+          source?: string | null
+          user_id: string
+          value: Json
+          vital_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          recorded_at?: string
+          source?: string | null
+          user_id?: string
+          value?: Json
+          vital_type?: string
+        }
+        Relationships: []
+      }
       health_wallet: {
         Row: {
           balance: number | null
@@ -5216,6 +5326,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      health_wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string | null
+          description: string
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          status: string | null
+          transaction_type: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string | null
+          description: string
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string | null
+          transaction_type: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string | null
+          description?: string
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string | null
+          transaction_type?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "health_wallet"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       healthcare_db: {
         Row: {
@@ -6775,6 +6935,84 @@ export type Database = {
           },
         ]
       }
+      medical_id: {
+        Row: {
+          allergies: string[] | null
+          blood_type: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          emergency_notes: string | null
+          height_cm: number | null
+          id: string
+          medical_conditions: string[] | null
+          medications: string[] | null
+          organ_donor: boolean | null
+          updated_at: string | null
+          user_id: string
+          weight_kg: number | null
+        }
+        Insert: {
+          allergies?: string[] | null
+          blood_type?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          emergency_notes?: string | null
+          height_cm?: number | null
+          id?: string
+          medical_conditions?: string[] | null
+          medications?: string[] | null
+          organ_donor?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          weight_kg?: number | null
+        }
+        Update: {
+          allergies?: string[] | null
+          blood_type?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          emergency_notes?: string | null
+          height_cm?: number | null
+          id?: string
+          medical_conditions?: string[] | null
+          medications?: string[] | null
+          organ_donor?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      medication_interactions: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          interaction_severity: string
+          medication_1: string
+          medication_2: string
+          recommendation: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          interaction_severity: string
+          medication_1: string
+          medication_2: string
+          recommendation?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          interaction_severity?: string
+          medication_1?: string
+          medication_2?: string
+          recommendation?: string | null
+        }
+        Relationships: []
+      }
       medication_reminders: {
         Row: {
           created_at: string | null
@@ -6827,6 +7065,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      medications: {
+        Row: {
+          created_at: string | null
+          dosage: string
+          end_date: string | null
+          frequency: string
+          id: string
+          instructions: string | null
+          is_active: boolean | null
+          medication_name: string
+          prescribed_by: string | null
+          purpose: string | null
+          refill_reminder_date: string | null
+          side_effects: string[] | null
+          start_date: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dosage: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          medication_name: string
+          prescribed_by?: string | null
+          purpose?: string | null
+          refill_reminder_date?: string | null
+          side_effects?: string[] | null
+          start_date?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dosage?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          medication_name?: string
+          prescribed_by?: string | null
+          purpose?: string | null
+          refill_reminder_date?: string | null
+          side_effects?: string[] | null
+          start_date?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       message_delivery_status: {
         Row: {
@@ -10382,6 +10674,63 @@ export type Database = {
           priority?: string | null
           status?: string | null
           title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      teleconsultation_bookings: {
+        Row: {
+          appointment_date: string
+          consultation_type: string | null
+          created_at: string | null
+          doctor_id: string | null
+          duration_minutes: number | null
+          id: string
+          meeting_link: string | null
+          notes: string | null
+          payment_amount: number | null
+          payment_status: string | null
+          prescription_id: string | null
+          reason: string
+          status: string | null
+          symptoms: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          consultation_type?: string | null
+          created_at?: string | null
+          doctor_id?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_link?: string | null
+          notes?: string | null
+          payment_amount?: number | null
+          payment_status?: string | null
+          prescription_id?: string | null
+          reason: string
+          status?: string | null
+          symptoms?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          consultation_type?: string | null
+          created_at?: string | null
+          doctor_id?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_link?: string | null
+          notes?: string | null
+          payment_amount?: number | null
+          payment_status?: string | null
+          prescription_id?: string | null
+          reason?: string
+          status?: string | null
+          symptoms?: string[] | null
           updated_at?: string | null
           user_id?: string
         }
