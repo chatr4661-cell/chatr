@@ -1,5 +1,8 @@
 project_id = "sbayuqgomlflmxgicplz"
 
+[functions.perplexity-search]
+verify_jwt = false
+
 [functions.scrape-jobs]
 verify_jwt = false
 

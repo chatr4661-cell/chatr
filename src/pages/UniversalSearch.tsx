@@ -91,69 +91,62 @@ const UniversalSearch = () => {
     if (!query.trim()) return;
     
     setLoading(true);
+    setWebSearchLoading(true);
+    setResults([]);
+    setWebResults(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const searchPayload: any = { 
-        query,
-        userId: user?.id
-      };
+      // Call new Perplexity-style search (DuckDuckGo + AI) - FAST!
+      console.log('Calling perplexity-search function...');
+      const { data: perplexityData, error: perplexityError } = await supabase.functions.invoke('perplexity-search', {
+        body: { query, maxResults: 10 }
+      });
 
-      if (location) {
-        searchPayload.latitude = location.latitude;
-        searchPayload.longitude = location.longitude;
-        searchPayload.maxDistance = 10;
-      }
+      setWebSearchLoading(false);
 
-      // Get location name for context
-      let locationName = 'Noida Sector 128';
-      if (location) {
-        // In a real app, you'd reverse geocode to get area name
-        // For now, use default Noida Sector 128
-        locationName = 'Noida Sector 128';
-      }
-
-      // Parallel search: Internal + Web
-      const [internalData, webData] = await Promise.all([
-        supabase.functions.invoke('universal-search-engine', { body: searchPayload }),
-        supabase.functions.invoke('web-search-aggregator', { 
-          body: { 
-            query, 
-            maxResults: 10,
-            location: locationName
-          } 
-        })
-      ]);
-
-      if (internalData.data) {
-        setAiIntent(internalData.data.intent);
-        const internalResults = internalData.data.results || [];
+      if (perplexityError) {
+        console.error('Perplexity search error:', perplexityError);
+        toast.error('Search error. Please try again.');
+      } else if (perplexityData && perplexityData.success) {
+        console.log('Perplexity results received:', perplexityData);
         
-        // Merge with web results if available
-        if (webData.data?.results && webData.data.results.length > 0) {
-          // Convert web results to match our SearchResult interface
-          const webResults = webData.data.results.map((r: any) => ({
-            id: `web-${Math.random().toString(36).substr(2, 9)}`,
-            title: r.title,
-            description: r.description,
-            contact: r.contact,
-            address: r.address,
-            rating: r.rating || 0,
-            review_count: 0,
-            price: r.price,
-            verified: false,
-            source: 'web',
-            result_type: r.category || 'service'
-          }));
-          setResults([...webResults, ...internalResults]);
-        } else {
-          setResults(internalResults);
-        }
-      }
+        // Set web results with AI summary
+        setWebResults({
+          synthesis: perplexityData.aiSummary,
+          results: perplexityData.results || [],
+          suggestions: [],
+          sources: perplexityData.sources || []
+        });
 
-      if (webData.data) {
-        setWebResults(webData.data);
+        // Convert to SearchResult format for display
+        const searchResults: SearchResult[] = (perplexityData.results || []).map((r: any, idx: number) => ({
+          id: `web-${idx}`,
+          title: r.title,
+          description: r.snippet || r.title,
+          contact: undefined,
+          address: r.url,
+          rating: 0,
+          review_count: 0,
+          price: undefined,
+          verified: false,
+          source: r.source || 'web',
+          result_type: 'web',
+          metadata: { url: r.url }
+        }));
+
+        setResults(searchResults);
+
+        // Simple AI intent
+        setAiIntent({
+          intent: `Searching the web for: "${query}"`,
+          suggestions: [
+            `${query} near me`,
+            `best ${query}`,
+            `${query} reviews`
+          ]
+        });
       }
 
       // Save search if user is logged in
@@ -162,7 +155,7 @@ const UniversalSearch = () => {
           await supabase.from('saved_searches').upsert({
             user_id: user.id,
             query,
-            results_count: (internalData.data?.results?.length || 0) + (webData.data?.results?.length || 0)
+            results_count: perplexityData?.results?.length || 0
           }, {
             onConflict: 'user_id,query',
             ignoreDuplicates: false
@@ -177,6 +170,7 @@ const UniversalSearch = () => {
       toast.error('Search failed. Please try again.');
     } finally {
       setLoading(false);
+      setWebSearchLoading(false);
     }
   };
 
@@ -420,10 +414,45 @@ const UniversalSearch = () => {
         )}
 
 
+        {/* Perplexity-Style AI Summary */}
+        {webResults && webResults.synthesis && (
+          <Card className="p-6 mb-6 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-lg text-primary">AI Summary</h3>
+            </div>
+            <div className="prose prose-sm max-w-none">
+              <p className="text-foreground leading-relaxed whitespace-pre-wrap mb-4">
+                {webResults.synthesis}
+              </p>
+            </div>
+            {webResults.sources && webResults.sources.length > 0 && (
+              <div className="pt-4 border-t border-border/50">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Sources:</p>
+                <div className="flex flex-wrap gap-2">
+                  {webResults.sources.slice(0, 5).map((source: any, idx: number) => (
+                    <a
+                      key={idx}
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      [{idx + 1}] {source.title?.substring(0, 40)}...
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
         {loading && results.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Searching across all sources...</p>
+            <p className="text-muted-foreground font-medium mb-1">Searching the web at lightning speed...</p>
+            <p className="text-xs text-muted-foreground">Powered by DuckDuckGo + AI</p>
           </div>
         ) : results.length === 0 && searchQuery ? (
           <div className="text-center py-16">
@@ -449,84 +478,52 @@ const UniversalSearch = () => {
               </Card>
             )}
 
-            <h2 className="text-lg font-semibold mb-3">Places</h2>
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-primary" />
+              Search Results
+            </h2>
 
             {results.map((result) => (
               <Card key={result.id} className="p-4 hover:shadow-md transition-all border border-border/50">
                 <div className="flex gap-3">
-                  {result.image_url && (
-                    <img 
-                      src={result.image_url} 
-                      alt={result.title}
-                      className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
-                    />
-                  )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base mb-1 text-foreground">{result.title}</h3>
-                    
-                    <div className="flex items-center gap-2 mb-2 flex-wrap text-sm">
-                      {result.rating > 0 && (
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium">{result.rating.toFixed(1)}</span>
-                          <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                          {result.review_count > 0 && (
-                            <span className="text-muted-foreground">({result.review_count})</span>
-                          )}
-                        </div>
-                      )}
-                      {result.price && (
-                        <>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="text-muted-foreground">{result.price}</span>
-                        </>
-                      )}
-                      {result.metadata?.category && (
-                        <>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="text-muted-foreground">{result.metadata.category}</span>
-                        </>
-                      )}
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-base text-primary hover:underline cursor-pointer flex items-center gap-1"
+                          onClick={() => window.open(result.metadata?.url, '_blank')}>
+                        {result.title}
+                        <ExternalLink className="w-3 h-3" />
+                      </h3>
+                      <Badge variant="secondary" className="text-xs ml-2 flex-shrink-0">
+                        {result.source}
+                      </Badge>
                     </div>
-
-                    {result.metadata?.status && (
-                      <p className={`text-xs mb-1 ${result.metadata.status === 'Open' ? 'text-green-600' : 'text-red-600'}`}>
-                        {result.metadata.status}
-                      </p>
+                    
+                    {result.metadata?.url && (
+                      <a 
+                        href={result.metadata.url}
+                        target="_blank"
+                        rel="noopener noreferrer" 
+                        className="text-xs text-muted-foreground hover:underline line-clamp-1 mb-2 flex items-center gap-1"
+                      >
+                        {new URL(result.metadata.url).hostname}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
                     )}
 
-                    {result.address && (
-                      <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
-                        {result.address}
-                      </p>
-                    )}
-
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                    <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
                       {result.description}
                     </p>
 
                     <div className="flex gap-2 flex-wrap">
-                      {result.contact && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleCall(result)}
-                          className="gap-1 text-xs h-7"
-                        >
-                          <Phone className="w-3 h-3" />
-                          Call
-                        </Button>
-                      )}
-                      {result.address && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleGetDirections(result)}
-                          className="gap-1 text-xs h-7"
-                        >
-                          <Navigation className="w-3 h-3" />
-                          Directions
-                        </Button>
-                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(result.metadata?.url, '_blank')}
+                        className="gap-1 text-xs h-7"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Visit Site
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
