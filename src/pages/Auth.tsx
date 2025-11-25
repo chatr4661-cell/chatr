@@ -28,10 +28,13 @@ const Auth = () => {
       setGoogleLoading(true);
       logAuthEvent('Google sign-in initiated');
       
+      // Check if there's a redirect path in sessionStorage
+      const redirectPath = sessionStorage.getItem('auth_redirect') || '/';
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}${redirectPath}`,
           skipBrowserRedirect: false,
         },
       });
@@ -107,6 +110,11 @@ const Auth = () => {
             // If onboarding is complete, redirect appropriately
             if (profile.onboarding_completed) {
               console.log('[AUTH] Onboarding already completed, redirecting...');
+              
+              // Check if there's a redirect path
+              const redirectPath = sessionStorage.getItem('auth_redirect');
+              sessionStorage.removeItem('auth_redirect');
+              
               toast({
                 title: 'Welcome back! 👋',
                 description: `Signed in as ${profile.username || profile.email}`,
@@ -115,7 +123,7 @@ const Auth = () => {
               if (isAdmin) {
                 navigate('/admin', { replace: true });
               } else {
-                navigate('/', { replace: true });
+                navigate(redirectPath || '/', { replace: true });
               }
               return;
             } else {
@@ -195,12 +203,17 @@ const Auth = () => {
         });
         
         if (profile?.onboarding_completed) {
-          console.log('[AUTH STATE] ✅ Onboarding complete → Redirecting to /');
+          console.log('[AUTH STATE] ✅ Onboarding complete → Redirecting');
+          
+          // Check if there's a redirect path
+          const redirectPath = sessionStorage.getItem('auth_redirect');
+          sessionStorage.removeItem('auth_redirect');
+          
           toast({
             title: 'Welcome back! 👋',
             description: `Signed in as ${profile.username || profile.phone_number || profile.email}`,
           });
-          navigate('/', { replace: true });
+          navigate(redirectPath || '/', { replace: true });
         } else {
           console.log('[AUTH STATE] 🆕 New user detected → Staying on /auth, onboarding will show');
           console.log('[AUTH STATE] userId is now:', session.user.id);
@@ -367,8 +380,13 @@ const Auth = () => {
             onComplete={async () => {
               console.log('[ONBOARDING] Completing onboarding...');
               await onboarding.completeOnboarding();
-              console.log('[ONBOARDING] Redirecting to /');
-              navigate('/', { replace: true });
+              
+              // Check if there's a redirect path
+              const redirectPath = sessionStorage.getItem('auth_redirect');
+              sessionStorage.removeItem('auth_redirect');
+              
+              console.log('[ONBOARDING] Redirecting to:', redirectPath || '/');
+              navigate(redirectPath || '/', { replace: true });
             }}
             onSkip={async () => {
               console.log('[ONBOARDING] Cannot skip - redirecting to complete onboarding');
