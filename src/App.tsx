@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import React, { useEffect } from "react";
+import { HelmetProvider } from 'react-helmet-async';
 import ProtectedRoute from "./components/ProtectedRoute";
 import { NativeAppProvider } from "./components/NativeAppProvider";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
@@ -12,6 +13,7 @@ import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 // Pages
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Home from "./pages/Home";
 import StarredMessages from "./pages/StarredMessages";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
@@ -230,6 +232,7 @@ const App = () => {
 
   return (
     <CrashlyticsErrorBoundary>
+    <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <BrowserRouter>
@@ -328,7 +331,8 @@ const App = () => {
           <Route path="/local-healthcare" element={<LocalHealthcare />} />
             <Route path="/geofences" element={<Geofences />} />
             <Route path="/geofence-history" element={<GeofenceHistory />} />
-            <Route path="/home" element={<AIBrowser />} />
+            {/* Public browser - no auth required */}
+            <Route path="/home" element={<Home />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
             <Route path="/ai-browser" element={<AIBrowserView />} />
             <Route path="/chat-ai" element={<AIChat />} />
@@ -436,7 +440,8 @@ const App = () => {
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
-  </CrashlyticsErrorBoundary>
+    </HelmetProvider>
+    </CrashlyticsErrorBoundary>
   );
 };
 

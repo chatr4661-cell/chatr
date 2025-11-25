@@ -9,11 +9,26 @@ import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
 import { Search, Mic, Sparkles, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentLocation } from '@/utils/locationService';
+import { useAnonymousSearchLimit } from '@/hooks/useAnonymousSearchLimit';
+import { LoginPromptModal } from '@/components/LoginPromptModal';
+import { SEOHead } from '@/components/SEOHead';
 
 const Home = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [gpsEnabled, setGpsEnabled] = useState(false);
+  
+  const {
+    canSearch,
+    searchCount,
+    remainingSearches,
+    isAuthenticated,
+    showLoginPrompt,
+    incrementSearch,
+    closeLoginPrompt,
+    loading,
+    maxSearches,
+  } = useAnonymousSearchLimit();
 
   const activateGPS = async () => {
     try {
@@ -28,17 +43,70 @@ const Home = () => {
   };
 
   const handleSearch = () => {
-    if (searchQuery.trim()) {
+    if (!searchQuery.trim()) return;
+
+    // Check if user can search
+    if (!canSearch) {
+      return; // Login prompt is already showing
+    }
+
+    // Increment search count (will show login prompt if limit reached)
+    const allowed = incrementSearch();
+    
+    if (allowed) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      
+      // Show remaining searches warning
+      if (!isAuthenticated && remainingSearches > 0 && remainingSearches <= 2) {
+        toast.info(`${remainingSearches} free search${remainingSearches === 1 ? '' : 'es'} remaining`);
+      }
     }
   };
 
   const handleCategoryClick = (query: string) => {
-    navigate(`/search?q=${encodeURIComponent(query)}`);
+    // Check if user can search
+    if (!canSearch) {
+      return; // Login prompt is already showing
+    }
+
+    const allowed = incrementSearch();
+    
+    if (allowed) {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
+      
+      if (!isAuthenticated && remainingSearches > 0 && remainingSearches <= 2) {
+        toast.info(`${remainingSearches} free search${remainingSearches === 1 ? '' : 'es'} remaining`);
+      }
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <>
+      <SEOHead
+        title="Chatr - Universal Search | AI-Powered Multi-Source Search"
+        description="Find anything instantly with Chatr's Universal Search. Search across web, local services, jobs, healthcare, and marketplace with AI-powered intelligence, GPS location, and visual search."
+        keywords="universal search, AI search engine, multi-source search, local search, GPS search, visual search, smart search, perplexity alternative, openai search"
+      />
+      
+      <LoginPromptModal
+        isOpen={showLoginPrompt}
+        onClose={closeLoginPrompt}
+        searchCount={searchCount}
+        maxSearches={maxSearches}
+      />
+      
+      <div className="min-h-screen bg-background pb-20">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
@@ -59,6 +127,33 @@ const Home = () => {
 
           {/* Main Search Bar */}
           <Card className="p-6 bg-card/50 backdrop-blur-xl border-2 shadow-xl">
+            {/* Anonymous Search Counter */}
+            {!isAuthenticated && (
+              <div className="mb-4 p-3 bg-primary/5 border border-primary/10 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">
+                    {remainingSearches === Infinity 
+                      ? 'Unlimited searches' 
+                      : `${remainingSearches} free search${remainingSearches === 1 ? '' : 'es'} remaining`}
+                  </span>
+                </div>
+                {remainingSearches !== Infinity && remainingSearches <= 1 && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      sessionStorage.setItem('auth_redirect', '/home');
+                      navigate('/auth');
+                    }}
+                    className="text-xs h-7"
+                  >
+                    Sign in
+                  </Button>
+                )}
+              </div>
+            )}
+            
             <div className="flex gap-3 mb-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -228,7 +323,7 @@ const Home = () => {
                 onClick={() => {
                   const query = example.replace(/"/g, '');
                   setSearchQuery(query);
-                  handleSearch();
+                  handleCategoryClick(query);
                 }}
               >
                 <Search className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -239,6 +334,7 @@ const Home = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };
 
