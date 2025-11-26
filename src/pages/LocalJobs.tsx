@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useLocationStatus } from '@/hooks/useLocationStatus';
+import { useLocation } from '@/contexts/LocationContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,7 +43,7 @@ export default function LocalJobs() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>();
   const [radiusKm, setRadiusKm] = useState(10);
-  const { status } = useLocationStatus(userId);
+  const { location, isLoading: locationLoading, error: locationError } = useLocation();
   const [sortBy, setSortBy] = useState<'latest' | 'distance' | 'salary'>('distance');
   const [filterJobType, setFilterJobType] = useState<string>('all');
   const [filterExperience, setFilterExperience] = useState<string>('all');
@@ -78,10 +78,10 @@ export default function LocalJobs() {
   }, []);
 
   useEffect(() => {
-    if (status.latitude && status.longitude) {
-      fetchAndLoadJobs(status.latitude, status.longitude);
+    if (location?.latitude && location?.longitude) {
+      fetchAndLoadJobs(location.latitude, location.longitude);
     }
-  }, [status.latitude, status.longitude, radiusKm]);
+  }, [location?.latitude, location?.longitude, radiusKm]);
 
   useEffect(() => {
     filterJobs();
@@ -98,9 +98,9 @@ export default function LocalJobs() {
           latitude, 
           longitude, 
           radius: radiusKm,
-          city: status.city,
-          state: status.country,
-          district: status.city,
+          city: location?.city || '',
+          state: location?.country || '',
+          district: location?.city || '',
           pincode: ''
         }
       });
@@ -259,7 +259,7 @@ export default function LocalJobs() {
       const { data, error } = await supabase.functions.invoke('scrape-jobs', {
         body: {
           keywords: scrapeKeywords,
-          location: status.city || 'India',
+          location: location?.city || 'India',
           sources: selectedSources,
           userId
         }
@@ -273,8 +273,8 @@ export default function LocalJobs() {
       });
 
       // Reload jobs
-      if (status.latitude && status.longitude) {
-        fetchAndLoadJobs(status.latitude, status.longitude);
+      if (location?.latitude && location?.longitude) {
+        fetchAndLoadJobs(location.latitude, location.longitude);
       }
     } catch (error) {
       console.error('Error scraping jobs:', error);
@@ -376,10 +376,10 @@ export default function LocalJobs() {
                 Explore thousands of job opportunities in your area — from part-time gigs to full-time careers
               </p>
             </div>
-            {status.city && (
+            {location?.city && (
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Navigation className="h-4 w-4 text-primary" />
-                <span>{status.city}</span>
+                <span>{location.city}</span>
               </div>
             )}
           </div>
@@ -526,17 +526,17 @@ export default function LocalJobs() {
         )}
 
         {/* Loading / Error States */}
-        {status.isLoading || loading ? (
+        {locationLoading || loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
             <p className="text-muted-foreground">Finding jobs near you...</p>
           </div>
-        ) : !status.latitude ? (
+        ) : !location ? (
           <div className="text-center py-8 space-y-4">
             <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
             <div>
               <p className="text-muted-foreground mb-2">Enable location to find jobs near you</p>
-              <p className="text-xs text-muted-foreground">Grant location permission in your browser</p>
+              <p className="text-xs text-muted-foreground">{locationError || 'Grant location permission in your browser'}</p>
             </div>
             <Button variant="default" className="mt-4">
               Browse Local Jobs →
@@ -590,7 +590,7 @@ export default function LocalJobs() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-orange-500" />
-                  <h2 className="font-bold text-lg">🔥 Trending Jobs in {status.city || 'Your City'}</h2>
+                  <h2 className="font-bold text-lg">🔥 Trending Jobs in {location?.city || 'Your City'}</h2>
                 </div>
                 {filteredJobs
                   .filter(job => job.is_featured)

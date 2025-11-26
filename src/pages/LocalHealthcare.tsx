@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useLocationStatus } from '@/hooks/useLocationStatus';
+import { useLocation } from '@/contexts/LocationContext';
 
 interface HealthcareListing {
   id: string;
@@ -37,21 +37,14 @@ export default function LocalHealthcare() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string>();
   const [radiusKm, setRadiusKm] = useState(10);
-  const { status } = useLocationStatus(userId);
+  const { location, isLoading: locationLoading, error: locationError } = useLocation();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (status.latitude && status.longitude) {
-      fetchAndLoadHealthcare(status.latitude, status.longitude);
+    if (location?.latitude && location?.longitude) {
+      fetchAndLoadHealthcare(location.latitude, location.longitude);
     }
-  }, [status.latitude, status.longitude, radiusKm]);
+  }, [location?.latitude, location?.longitude, radiusKm]);
 
   useEffect(() => {
     filterListings();
@@ -174,10 +167,10 @@ export default function LocalHealthcare() {
               </p>
             </div>
           </div>
-          {status.city && (
+          {location?.city && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Navigation className="h-4 w-4 text-primary" />
-              <span>{status.city}</span>
+              <span>{location.city}</span>
             </div>
           )}
         </div>
@@ -224,16 +217,16 @@ export default function LocalHealthcare() {
         </Tabs>
 
         {/* Loading / Error States */}
-        {status.isLoading || loading ? (
+        {locationLoading || loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
             <p className="text-muted-foreground">Finding healthcare providers near you...</p>
           </div>
-        ) : !status.latitude ? (
+        ) : !location ? (
           <div className="text-center py-8">
             <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
             <p className="text-muted-foreground mb-2">Enable location to find healthcare providers near you</p>
-            <p className="text-xs text-muted-foreground">Grant location permission in your browser</p>
+            <p className="text-xs text-muted-foreground">{locationError || 'Grant location permission in your browser'}</p>
           </div>
         ) : filteredListings.length === 0 ? (
           <div className="text-center py-8">

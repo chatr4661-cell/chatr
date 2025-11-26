@@ -5,12 +5,14 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, AlertTriangle, Phone, MapPin, Heart } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { useLocation } from '@/contexts/LocationContext';
 
 const EmergencyButton = () => {
   const [isActivating, setIsActivating] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { location } = useLocation();
 
   const activateEmergency = async () => {
     setIsActivating(true);
@@ -60,17 +62,20 @@ const EmergencyButton = () => {
       console.log('Haptics not available');
     }
 
+    const locationText = location 
+      ? `Location: ${location.city || 'Unknown'} (${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)})`
+      : 'Location unavailable';
+
     toast({
       title: '🚨 Emergency Alert Sent!',
-      description: 'Your emergency contacts and nearby healthcare providers have been notified.',
+      description: `Your emergency contacts and nearby healthcare providers have been notified. ${locationText}`,
       duration: 5000
     });
 
     // In production, this would:
-    // - Get user location
-    // - Send SMS to emergency contacts
-    // - Alert nearby healthcare providers
-    // - Call emergency services
+    // - Send SMS to emergency contacts with location
+    // - Alert nearby healthcare providers with coordinates
+    // - Call emergency services with location data
   };
 
   return (
@@ -160,10 +165,22 @@ const EmergencyButton = () => {
                 variant="ghost"
                 className="w-full justify-start gap-3 h-auto py-3"
                 onClick={() => {
-                  toast({
-                    title: 'Sharing Location',
-                    description: 'Sending your location to emergency contacts...'
-                  });
+                  const locationText = location 
+                    ? `My location: ${location.city || 'Unknown'}\nCoordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}\nGoogle Maps: https://www.google.com/maps?q=${location.latitude},${location.longitude}`
+                    : 'Location unavailable. Please enable location services.';
+                  
+                  if (navigator.share) {
+                    navigator.share({
+                      title: 'Emergency - My Location',
+                      text: locationText
+                    });
+                  } else {
+                    navigator.clipboard.writeText(locationText);
+                    toast({
+                      title: 'Location Copied',
+                      description: 'Location copied to clipboard'
+                    });
+                  }
                 }}
               >
                 <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
