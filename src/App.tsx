@@ -5,6 +5,7 @@ import React, { useEffect } from "react";
 import { HelmetProvider } from 'react-helmet-async';
 import ProtectedRoute from "./components/ProtectedRoute";
 import { NativeAppProvider } from "./components/NativeAppProvider";
+import { LocationProvider } from "./contexts/LocationContext";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 import { setupNativeCallUI } from "./utils/nativeCallUI";
 import { CrashlyticsErrorBoundary } from "./utils/crashlyticsErrorBoundary";
@@ -236,9 +237,10 @@ const App = () => {
     <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-        <BrowserRouter>
-          <NativeAppProvider>
-          <Routes>
+        <LocationProvider>
+          <BrowserRouter>
+            <NativeAppProvider>
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />
             
@@ -440,6 +442,7 @@ const App = () => {
           </Routes>
           </NativeAppProvider>
         </BrowserRouter>
+        </LocationProvider>
       </ThemeProvider>
     </QueryClientProvider>
     </HelmetProvider>
