@@ -30,17 +30,18 @@ serve(async (req) => {
 
   try {
     const startTime = Date.now();
-    const url = new URL(req.url);
     
-    const query = url.searchParams.get("query") || "";
-    const latitude = parseFloat(url.searchParams.get("lat") || "0");
-    const longitude = parseFloat(url.searchParams.get("lng") || "0");
-    const radius = parseFloat(url.searchParams.get("radius") || "5"); // km
-    const category = url.searchParams.get("category") || "general";
+    // Read from request body instead of URL params
+    const requestBody = await req.json();
+    const query = requestBody.query || "";
+    const latitude = parseFloat(requestBody.lat || "0");
+    const longitude = parseFloat(requestBody.lng || "0");
+    const radius = parseFloat(requestBody.radius || "5"); // km
+    const category = requestBody.category || "general";
 
     if (!latitude || !longitude) {
       return new Response(
-        JSON.stringify({ error: "Latitude and longitude required" }),
+        JSON.stringify({ error: "Latitude and longitude required", received: requestBody }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
