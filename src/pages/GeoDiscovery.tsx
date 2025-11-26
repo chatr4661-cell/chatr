@@ -82,6 +82,23 @@ export default function GeoDiscovery() {
             </Button>
           </div>
 
+          {/* Current Location Display */}
+          {location && (
+            <div className="mb-3 p-3 bg-muted/50 rounded-lg text-sm">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-primary" />
+                <div className="flex-1">
+                  <div className="font-medium">Current Location</div>
+                  <div className="text-muted-foreground">
+                    {location.city || 'Location detected'} • 
+                    Coordinates: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)} •
+                    Method: {location.method === 'gps' ? '📍 GPS' : location.method === 'ip' ? '🌐 IP' : '✏️ Manual'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <GeoSearchBar onSearch={handleSearch} isSearching={isSearching} />
         </div>
       </div>

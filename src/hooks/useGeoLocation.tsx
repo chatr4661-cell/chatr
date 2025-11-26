@@ -117,10 +117,18 @@ export function useGeoLocation(): UseGeoLocationReturn {
 
       const data = await response.json();
       
-      return {
+      console.log('IP geolocation result:', {
         latitude: data.latitude,
         longitude: data.longitude,
         city: data.city,
+        region: data.region,
+        country: data.country_name
+      });
+      
+      return {
+        latitude: data.latitude,
+        longitude: data.longitude,
+        city: `${data.city}, ${data.region}`,
         method: 'ip'
       };
     } catch (err) {
@@ -196,16 +204,18 @@ export function useGeoLocation(): UseGeoLocationReturn {
     const cached = localStorage.getItem('recent_locations');
     if (cached) {
       const locations = JSON.parse(cached);
-      if (locations.length > 0 && Date.now() - locations[0].timestamp < 3600000) {
-        // Use cached location if less than 1 hour old
+      if (locations.length > 0 && Date.now() - locations[0].timestamp < 300000) {
+        // Use cached location if less than 5 minutes old (reduced from 1 hour)
+        console.log('Using cached location:', locations[0]);
         setLocation(locations[0]);
         return;
       }
     }
 
     // Otherwise request fresh location
+    console.log('Requesting fresh location...');
     requestLocation();
-  }, []);
+  }, [requestLocation]);
 
   return {
     location,
