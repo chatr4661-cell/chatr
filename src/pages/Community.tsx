@@ -8,13 +8,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useLocationStatus } from '@/hooks/useLocationStatus';
+import { useLocation } from '@/contexts/LocationContext';
 
 export default function Community() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [userId, setUserId] = useState<string>();
-  const { status: locationStatus } = useLocationStatus(userId);
+  const { location, isLoading, error: locationError } = useLocation();
   const [activeTab, setActiveTab] = useState('communities');
 
   // States for different sections
@@ -34,9 +34,11 @@ export default function Community() {
   }, []);
 
   useEffect(() => {
-    loadCommunityData();
-    subscribeToUpdates();
-  }, [locationStatus.city]);
+    if (!isLoading) {
+      loadCommunityData();
+      subscribeToUpdates();
+    }
+  }, [location, isLoading]);
 
   const loadCommunityData = async () => {
     setLoading(true);
@@ -61,14 +63,20 @@ export default function Community() {
         .order('members_count', { ascending: false })
         .limit(6);
 
-      if (locationStatus.city) {
-        query = query.or(`city.eq.${locationStatus.city},city.is.null`);
+      // Filter by location if available
+      if (location?.city) {
+        query = query.or(`city.eq.${location.city},city.is.null`);
       }
 
       const { data } = await query;
       setCommunities(data || []);
     } catch (error) {
       console.error('Error loading communities:', error);
+      toast({ 
+        title: 'Failed to load communities',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive' 
+      });
     }
   };
 
@@ -101,14 +109,20 @@ export default function Community() {
         .order('event_date', { ascending: true })
         .limit(5);
 
-      if (locationStatus.city) {
-        query = query.or(`city.eq.${locationStatus.city},event_type.eq.online`);
+      // Filter by location if available, or include online events
+      if (location?.city) {
+        query = query.or(`city.eq.${location.city},event_type.eq.online`);
       }
 
       const { data } = await query;
       setPrograms(data || []);
     } catch (error) {
       console.error('Error loading programs:', error);
+      toast({ 
+        title: 'Failed to load programs',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive' 
+      });
     }
   };
 
@@ -270,10 +284,22 @@ export default function Community() {
           </Button>
           <div className="flex-1">
             <h1 className="text-xl font-bold">Wellness Community</h1>
-            {locationStatus.city && (
+            {isLoading && (
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3 animate-pulse" />
+                Detecting your location...
+              </p>
+            )}
+            {!isLoading && location?.city && (
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
-                Join your local wellness community in {locationStatus.city}
+                Join your local wellness community in {location.city}
+              </p>
+            )}
+            {!isLoading && locationError && (
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Showing all communities
               </p>
             )}
           </div>
