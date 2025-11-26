@@ -41,15 +41,16 @@ serve(async (req) => {
 
     console.log('Received geo-search request:', { query, latitude, longitude, radius, category });
 
-    // Validate coordinates are valid numbers
-    if (isNaN(latitude) || isNaN(longitude) || latitude === 0 && longitude === 0) {
-      console.error('Invalid coordinates:', { latitude, longitude, requestBody });
+    // Validate coordinates are valid numbers; if invalid, fail gracefully with empty results
+    if (isNaN(latitude) || isNaN(longitude)) {
+      console.error('Invalid coordinates, returning empty results:', { latitude, longitude, requestBody });
       return new Response(
-        JSON.stringify({ 
-          error: "Valid latitude and longitude required",
+        JSON.stringify({
+          results: [],
+          error: "Location coordinates missing or invalid",
           received: { lat: requestBody.lat, lng: requestBody.lng }
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
