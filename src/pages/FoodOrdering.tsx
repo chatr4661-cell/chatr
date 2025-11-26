@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Clock, Star, Search, Filter } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Clock, Star, Search, Filter, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useLocation } from '@/contexts/LocationContext';
 
 export default function FoodOrdering() {
   const navigate = useNavigate();
@@ -15,10 +16,13 @@ export default function FoodOrdering() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const { location, isLoading: locationLoading } = useLocation();
 
-  React.useEffect(() => {
-    loadVendors();
-  }, []);
+  useEffect(() => {
+    if (location) {
+      loadVendors();
+    }
+  }, [location]);
 
   const loadVendors = async () => {
     const { data } = await supabase
@@ -148,6 +152,12 @@ export default function FoodOrdering() {
             <h1 className="text-xl font-bold">Food Ordering</h1>
             <p className="text-xs text-muted-foreground">Order from local restaurants</p>
           </div>
+          {location?.city && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span>{location.city}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -165,7 +175,20 @@ export default function FoodOrdering() {
 
         {/* Vendors */}
         <div className="space-y-3">
-          {vendors.length === 0 ? (
+          {locationLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p className="text-muted-foreground">Loading restaurants near you...</p>
+            </div>
+          ) : !location ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground mb-2">Enable location to find restaurants near you</p>
+                <p className="text-xs text-muted-foreground">Grant location permission in your browser</p>
+              </CardContent>
+            </Card>
+          ) : vendors.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <div className="text-muted-foreground space-y-2">
