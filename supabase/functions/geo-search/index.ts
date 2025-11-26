@@ -34,14 +34,21 @@ serve(async (req) => {
     // Read from request body instead of URL params
     const requestBody = await req.json();
     const query = requestBody.query || "";
-    const latitude = parseFloat(requestBody.lat || "0");
-    const longitude = parseFloat(requestBody.lng || "0");
+    const latitude = parseFloat(requestBody.lat);
+    const longitude = parseFloat(requestBody.lng);
     const radius = parseFloat(requestBody.radius || "5"); // km
     const category = requestBody.category || "general";
 
-    if (!latitude || !longitude) {
+    console.log('Received geo-search request:', { query, latitude, longitude, radius, category });
+
+    // Validate coordinates are valid numbers
+    if (isNaN(latitude) || isNaN(longitude) || latitude === 0 && longitude === 0) {
+      console.error('Invalid coordinates:', { latitude, longitude, requestBody });
       return new Response(
-        JSON.stringify({ error: "Latitude and longitude required", received: requestBody }),
+        JSON.stringify({ 
+          error: "Valid latitude and longitude required",
+          received: { lat: requestBody.lat, lng: requestBody.lng }
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
