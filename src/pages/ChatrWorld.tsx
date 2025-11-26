@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { Send, Sparkles, Globe, Heart, Briefcase, Users, UtensilsCrossed, Tag, Loader2, ArrowLeft, MapPin, Mic, Share2, Download, ExternalLink, Phone, MapPinned } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { useLocationStatus } from '@/hooks/useLocationStatus';
+import { useLocation } from '@/contexts/LocationContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -42,12 +42,12 @@ const moduleColors: Record<string, string> = {
 export default function ChatrWorld() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string>('');
-  const { status: locationStatus } = useLocationStatus(userId);
+  const { location, isLoading: locationLoading, error: locationError } = useLocation();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'assistant',
-      content: '👋 Welcome to **Chatr World** - your conversational multiverse interface!\n\nAsk me anything and I\'ll search across Chat, Browser, Health, Business, Community, Food, and Deals to give you the perfect answer.\n\n📍 Location-based results enabled for personalized recommendations!',
+      content: '👋 Welcome to **Chatr World** - your conversational multiverse interface!\n\nAsk me anything and I\'ll search across Chat, Browser, Health, Business, Community, Food, and Deals to give you the perfect answer.\n\n' + (locationLoading ? '📍 Detecting your location...' : location ? `📍 Location: ${location.city || 'Detected'}` : '⚠️ Enable location for personalized nearby results'),
       timestamp: new Date()
     }
   ]);
@@ -158,16 +158,20 @@ export default function ChatrWorld() {
         body: { 
           query: input,
           userId: user?.id,
-          location: locationStatus.latitude && locationStatus.longitude ? {
-            latitude: locationStatus.latitude,
-            longitude: locationStatus.longitude,
-            city: locationStatus.city,
-            country: locationStatus.country
-          } : null
+          latitude: location?.latitude || null,
+          longitude: location?.longitude || null,
+          city: location?.city || null,
+          country: location?.country || null
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('LOCATION_REQUIRED')) {
+          toast.error('Location needed for nearby results. Please enable location services.');
+        } else {
+          throw error;
+        }
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -221,18 +225,18 @@ export default function ChatrWorld() {
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-lg font-bold">Chatr World</h1>
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs text-muted-foreground">Conversational Multiverse</p>
-                    {locationStatus.city && (
-                      <span className="flex items-center gap-0.5 text-xs text-primary">
-                        <MapPin className="h-3 w-3" />
-                        {locationStatus.city}
-                      </span>
-                    )}
+                  <div>
+                    <h1 className="text-lg font-bold">Chatr World</h1>
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs text-muted-foreground">Conversational Multiverse</p>
+                      {location?.city && (
+                        <span className="flex items-center gap-0.5 text-xs text-primary">
+                          <MapPin className="h-3 w-3" />
+                          {location.city}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
               </div>
             </div>
             <div className="flex items-center gap-1">

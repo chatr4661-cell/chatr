@@ -8,6 +8,8 @@ const corsHeaders = {
 interface SearchParams {
   query: string;
   maxResults?: number;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 Deno.serve(async (req) => {
@@ -16,12 +18,30 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { query, maxResults = 10 }: SearchParams = await req.json();
-    console.log('Perplexity-style search request:', { query, maxResults });
+    const { query, maxResults = 10, latitude, longitude }: SearchParams = await req.json();
+    console.log('Perplexity-style search request:', { query, maxResults, hasLocation: !!(latitude && longitude) });
 
     if (!query) {
       return new Response(
         JSON.stringify({ error: 'Query is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if this is a location-dependent query
+    const isLocationQuery = query.toLowerCase().includes('near') || 
+                            query.toLowerCase().includes('nearby') || 
+                            query.toLowerCase().includes('local') ||
+                            query.toLowerCase().includes('around me');
+    
+    if (isLocationQuery && (!latitude || !longitude)) {
+      console.error('Location-dependent query without coordinates:', query);
+      return new Response(
+        JSON.stringify({ 
+          error: 'LOCATION_REQUIRED',
+          message: 'This search requires your location. Please enable location services.',
+          success: false
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -51,6 +71,8 @@ Deno.serve(async (req) => {
         aiSummary,
         results: duckResults,
         sources: duckResults.map(r => ({ title: r.title, url: r.url })),
+        hasLocation: !!(latitude && longitude),
+        location: latitude && longitude ? { latitude, longitude } : null,
         timestamp: new Date().toISOString()
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

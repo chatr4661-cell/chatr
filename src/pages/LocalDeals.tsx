@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
+import { useLocation } from '@/contexts/LocationContext';
 
 const serviceCategories = [
   { name: "Women's Salon & Spa", icon: Sparkles, badge: 'Sale' },
@@ -23,6 +24,7 @@ const serviceCategories = [
 
 export default function LocalDeals() {
   const navigate = useNavigate();
+  const { location, isLoading: locationLoading, error: locationError } = useLocation();
   const [deals, setDeals] = useState<any[]>([]);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [showQR, setShowQR] = useState(false);
@@ -30,18 +32,35 @@ export default function LocalDeals() {
   const [searchQuery, setSearchQuery] = useState('');
 
   React.useEffect(() => {
-    loadDeals();
-  }, []);
+    if (location?.latitude && location?.longitude) {
+      loadDeals();
+    }
+  }, [location?.latitude, location?.longitude]);
 
   const loadDeals = async () => {
-    const { data } = await supabase
-      .from('local_deals')
-      .select('*')
-      .eq('is_active', true)
-      .gte('valid_until', new Date().toISOString())
-      .order('discount_percentage', { ascending: false });
+    if (!location?.latitude || !location?.longitude) {
+      console.warn('No location available for deals');
+      return;
+    }
 
-    setDeals(data || []);
+    try {
+      // TODO: Add distance calculation for nearby deals
+      const { data } = await supabase
+        .from('local_deals')
+        .select('*')
+        .eq('is_active', true)
+        .gte('valid_until', new Date().toISOString())
+        .order('discount_percentage', { ascending: false });
+
+      setDeals(data || []);
+      
+      if (data && data.length === 0) {
+        toast.info('No deals found in your area yet');
+      }
+    } catch (error) {
+      console.error('Error loading deals:', error);
+      toast.error('Failed to load deals');
+    }
   };
 
   const handleRedeem = async (deal: any) => {
@@ -117,14 +136,37 @@ export default function LocalDeals() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold">Chatr Services</h1>
             <p className="text-xs text-muted-foreground">Home services at your doorstep</p>
           </div>
+          {location?.city && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span>{location.city}</span>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Location Status */}
+        {locationLoading ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p className="text-muted-foreground">Detecting your location for nearby deals...</p>
+            </CardContent>
+          </Card>
+        ) : !location ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground mb-2">Enable location to find deals near you</p>
+              <p className="text-xs text-muted-foreground">{locationError || 'Grant location permission in your browser'}</p>
+            </CardContent>
+          </Card>
+        ) : null}
         {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />

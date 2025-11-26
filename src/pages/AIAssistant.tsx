@@ -10,6 +10,7 @@ import { Bot, Send, ArrowLeft, Sparkles, Mic, MicOff } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AIErrorFallback } from '@/components/AIErrorFallback';
 import { useSpeechRecognition } from '@/hooks/native/useSpeechRecognition';
+import { useLocation } from '@/contexts/LocationContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,6 +18,7 @@ interface Message {
 }
 
 const AIAssistant = () => {
+  const { location } = useLocation();
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Hi! How can I assist you today? I can help with health questions, symptoms, and guide you to the right care.' }
   ]);
@@ -59,7 +61,13 @@ const AIAssistant = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-health-assistant', {
-        body: { message: userMessage, history: messages }
+        body: { 
+          message: userMessage, 
+          history: messages,
+          latitude: location?.latitude || null,
+          longitude: location?.longitude || null,
+          city: location?.city || null
+        }
       });
 
       if (error) throw error;

@@ -12,9 +12,26 @@ serve(async (req) => {
   }
 
   try {
-    const { query, userId, location } = await req.json();
+    const { query, userId, latitude, longitude, city, country } = await req.json();
     
-    console.log('Received request:', { query, userId, location });
+    console.log('Received request:', { query, userId, latitude, longitude, city, country });
+    
+    // Validate location data when query requires it
+    const isLocationQuery = query.toLowerCase().includes('near') || 
+                            query.toLowerCase().includes('nearby') || 
+                            query.toLowerCase().includes('local') ||
+                            query.toLowerCase().includes('around me');
+    
+    if (isLocationQuery && (!latitude || !longitude)) {
+      console.error('Location required but missing coordinates');
+      return new Response(
+        JSON.stringify({ 
+          error: 'LOCATION_REQUIRED',
+          message: 'This search requires your location. Please enable location services.' 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -108,8 +125,8 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
             .select('*');
           
           // Filter by location if available
-          if (location?.city) {
-            query = query.ilike('location', `%${location.city}%`);
+          if (city) {
+            query = query.ilike('location', `%${city}%`);
           }
           
           const { data } = await query.limit(10);
@@ -118,7 +135,8 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
             type: 'service_providers',
             providers: data || [],
             count: data?.length || 0,
-            location: location?.city || 'all locations'
+            location: city || 'all locations',
+            hasLocation: !!(latitude && longitude)
           };
         })()
       );
@@ -171,8 +189,8 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
             .select('*');
           
           // Filter by location if available
-          if (location?.city) {
-            query = query.ilike('location', `%${location.city}%`);
+          if (city) {
+            query = query.ilike('location', `%${city}%`);
           }
           
           const { data } = await query.limit(10);
@@ -181,7 +199,8 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
             type: 'food_vendors',
             vendors: data || [],
             count: data?.length || 0,
-            location: location?.city || 'all locations'
+            location: city || 'all locations',
+            hasLocation: !!(latitude && longitude)
           };
         })()
       );
@@ -197,8 +216,8 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
             .eq('is_active', true);
           
           // Filter by location if available
-          if (location?.city) {
-            query = query.ilike('city', `%${location.city}%`);
+          if (city) {
+            query = query.ilike('city', `%${city}%`);
           }
           
           const { data } = await query.limit(10);
@@ -207,7 +226,7 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
             type: 'local_deals',
             deals: data || [],
             count: data?.length || 0,
-            location: location?.city || 'all locations'
+            location: city || 'all locations'
           };
         })()
       );
@@ -240,7 +259,7 @@ Format your response with markdown for better readability.`
           },
           {
             role: 'user',
-            content: `User location: ${location?.city || 'unknown'}, ${location?.country || 'unknown'}
+            content: `User location: ${city || 'unknown'}, ${country || 'unknown'}
             
 User asked: "${query}"
 
