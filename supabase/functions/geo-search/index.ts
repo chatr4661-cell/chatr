@@ -183,10 +183,26 @@ async function fetchFromOSM(
       atms: "atm",
       petrol: "fuel",
       transport: "bus_station,subway_station",
+      jobs: "employment agency,office",
     };
 
     const osmCategory = categoryMap[category] || query;
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(osmCategory)}&lat=${lat}&lon=${lng}&bounded=1&limit=20`;
+    
+    // Calculate bounding box from radius (in km)
+    // 1 degree latitude ≈ 111km
+    const latDelta = radius / 111;
+    // 1 degree longitude varies by latitude
+    const lngDelta = radius / (111 * Math.cos(lat * Math.PI / 180));
+    
+    const left = lng - lngDelta;
+    const right = lng + lngDelta;
+    const top = lat + latDelta;
+    const bottom = lat - latDelta;
+    
+    const viewbox = `${left},${top},${right},${bottom}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(osmCategory)}&viewbox=${viewbox}&bounded=1&limit=50`;
+
+    console.log('OSM query:', { category, osmCategory, lat, lng, radius, viewbox });
 
     const response = await fetch(url, {
       headers: {
@@ -194,20 +210,33 @@ async function fetchFromOSM(
       },
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.error('OSM API error:', response.status);
+      return [];
+    }
 
     const data = await response.json();
+    console.log(`OSM returned ${data.length} results for ${category}`);
 
-    return data.map((item: any) => ({
-      id: `osm-${item.place_id}`,
-      name: item.display_name.split(',')[0],
-      type: category,
-      address: item.display_name,
-      latitude: parseFloat(item.lat),
-      longitude: parseFloat(item.lon),
-      distance: 0,
-      source: 'osm' as const,
-    }));
+    const results = data.map((item: any) => {
+      const itemLat = parseFloat(item.lat);
+      const itemLng = parseFloat(item.lon);
+      const distance = calculateDistance(lat, lng, itemLat, itemLng);
+      
+      return {
+        id: `osm-${item.place_id}`,
+        name: item.display_name.split(',')[0],
+        type: category,
+        address: item.display_name,
+        latitude: itemLat,
+        longitude: itemLng,
+        distance: distance,
+        source: 'osm' as const,
+      };
+    });
+
+    // Filter by radius and return only results within range
+    return results.filter((r: GeoResult) => r.distance <= radius);
   } catch (error) {
     console.error("OSM fetch error:", error);
     return [];
