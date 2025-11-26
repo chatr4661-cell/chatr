@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { GeoSearchBar } from '@/components/geo/GeoSearchBar';
 import { GeoResultCard } from '@/components/geo/GeoResultCard';
-import { useGeoLocation } from '@/hooks/useGeoLocation';
+import { useLocation } from '@/contexts/LocationContext';
 import { Button } from '@/components/ui/button';
 import { MapPin, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,7 +22,7 @@ interface GeoResult {
 }
 
 export default function GeoDiscovery() {
-  const { location, isLoading: locationLoading, error: locationError, requestLocation } = useGeoLocation();
+  const { location, isLoading: locationLoading, error: locationError, refreshLocation } = useLocation();
   const [results, setResults] = useState<GeoResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -74,7 +74,7 @@ export default function GeoDiscovery() {
             <Button
               variant="outline"
               size="sm"
-              onClick={requestLocation}
+              onClick={refreshLocation}
               disabled={locationLoading}
             >
               <MapPin className="h-4 w-4 mr-2" />
