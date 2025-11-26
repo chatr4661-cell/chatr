@@ -14,6 +14,7 @@ import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
+import GeoDiscovery from "./pages/GeoDiscovery";
 import StarredMessages from "./pages/StarredMessages";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
@@ -333,6 +334,7 @@ const App = () => {
             <Route path="/geofence-history" element={<GeofenceHistory />} />
             {/* Public browser - no auth required */}
             <Route path="/home" element={<Home />} />
+            <Route path="/geo" element={<GeoDiscovery />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
             <Route path="/ai-browser" element={<AIBrowserView />} />
             <Route path="/chat-ai" element={<AIChat />} />

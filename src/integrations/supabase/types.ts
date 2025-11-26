@@ -4879,6 +4879,51 @@ export type Database = {
           },
         ]
       }
+      geo_cache: {
+        Row: {
+          category: string
+          created_at: string | null
+          expires_at: string | null
+          fetch_duration_ms: number | null
+          id: string
+          latitude: number
+          longitude: number
+          query: string
+          radius_km: number | null
+          result_count: number | null
+          results: Json
+          sources_used: string[] | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          expires_at?: string | null
+          fetch_duration_ms?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          query: string
+          radius_km?: number | null
+          result_count?: number | null
+          results?: Json
+          sources_used?: string[] | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          expires_at?: string | null
+          fetch_duration_ms?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          query?: string
+          radius_km?: number | null
+          result_count?: number | null
+          results?: Json
+          sources_used?: string[] | null
+        }
+        Relationships: []
+      }
       geofence_events: {
         Row: {
           event_type: string
@@ -11844,6 +11889,7 @@ export type Database = {
         Returns: undefined
       }
       backfill_phone_hashes: { Args: never; Returns: undefined }
+      clean_expired_geo_cache: { Args: never; Returns: undefined }
       cleanup_disappearing_messages: { Args: never; Returns: undefined }
       cleanup_expired_visual_search_cache: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
