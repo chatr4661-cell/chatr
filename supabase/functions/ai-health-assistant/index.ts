@@ -12,7 +12,10 @@ const inputSchema = z.object({
   history: z.array(z.object({
     role: z.enum(['user', 'assistant', 'system']),
     content: z.string().max(5000)
-  })).max(50).optional()
+  })).max(50).optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  city: z.string().nullable().optional()
 });
 
 serve(async (req) => {
@@ -32,7 +35,20 @@ serve(async (req) => {
       );
     }
     
-    const { message, history } = validationResult.data;
+    const { message, history, latitude, longitude, city } = validationResult.data;
+    
+    // Check if this is a location-dependent query
+    const isLocationQuery = message.toLowerCase().includes('near') || 
+                            message.toLowerCase().includes('nearby') || 
+                            message.toLowerCase().includes('local') ||
+                            message.toLowerCase().includes('around me') ||
+                            message.toLowerCase().includes('close to me');
+    
+    if (isLocationQuery && (!latitude || !longitude)) {
+      console.warn('Location-dependent health query without coordinates:', message);
+      // Don't block, but log and inform in response
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
@@ -43,6 +59,7 @@ serve(async (req) => {
       {
         role: 'system',
         content: `You are a helpful health assistant. Provide general health information and guidance in a clear, human tone.
+        ${city ? `\nUser is currently in: ${city}. When recommending healthcare providers or services, mention they can find nearby options using the Healthcare or Chatr World features.` : ''}
         
         Communication style:
         - Write like a knowledgeable person, not a robot

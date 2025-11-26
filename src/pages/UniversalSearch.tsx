@@ -29,7 +29,7 @@ import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
 import { SavedSearches } from '@/components/search/SavedSearches';
 import { FavoriteResults } from '@/components/search/FavoriteResults';
 import { VisualSearchUpload } from '@/components/search/VisualSearchUpload';
-import { getCurrentLocation } from '@/utils/locationService';
+import { useLocation } from '@/contexts/LocationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface SearchResult {
@@ -61,8 +61,7 @@ const UniversalSearch = () => {
   const [aiIntent, setAiIntent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [webSearchLoading, setWebSearchLoading] = useState(false);
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [gpsEnabled, setGpsEnabled] = useState(false);
+  const { location, isLoading: locationLoading, error: locationError } = useLocation();
   const [isFavorite, setIsFavorite] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('all');
 
@@ -70,22 +69,7 @@ const UniversalSearch = () => {
     if (initialQuery) {
       performSearch(initialQuery);
     }
-    // Auto-activate GPS on mount
-    activateGPS();
   }, [initialQuery]);
-
-  const activateGPS = async () => {
-    try {
-      const coords = await getCurrentLocation();
-      if (coords) {
-        setLocation(coords);
-        setGpsEnabled(true);
-        toast.success('GPS activated for local results');
-      }
-    } catch (error) {
-      toast.error('Failed to get location');
-    }
-  };
 
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
@@ -101,14 +85,23 @@ const UniversalSearch = () => {
       // Call new Perplexity-style search (DuckDuckGo + AI) - FAST!
       console.log('Calling perplexity-search function...');
       const { data: perplexityData, error: perplexityError } = await supabase.functions.invoke('perplexity-search', {
-        body: { query, maxResults: 10 }
+        body: { 
+          query, 
+          maxResults: 10,
+          latitude: location?.latitude || null,
+          longitude: location?.longitude || null
+        }
       });
 
       setWebSearchLoading(false);
 
       if (perplexityError) {
         console.error('Perplexity search error:', perplexityError);
-        toast.error('Search error. Please try again.');
+        if (perplexityError.message?.includes('LOCATION_REQUIRED')) {
+          toast.error('Location needed for nearby results. Please enable location services.');
+        } else {
+          toast.error('Search error. Please try again.');
+        }
       } else if (perplexityData && perplexityData.success) {
         console.log('Perplexity results received:', perplexityData);
         
@@ -272,13 +265,13 @@ const UniversalSearch = () => {
               <p className="text-xs text-muted-foreground">Ask Anything. Find Everything. Instantly.</p>
             </div>
             <Button 
-              variant={gpsEnabled ? "default" : "outline"} 
+              variant="outline"
               size="sm"
-              onClick={activateGPS}
+              disabled={locationLoading}
               className="gap-2"
             >
               <Navigation className="w-4 h-4" />
-              {gpsEnabled ? 'GPS On' : 'GPS'}
+              {locationLoading ? 'Loading...' : location ? 'Location On' : 'No Location'}
             </Button>
           </div>
 
@@ -458,21 +451,17 @@ const UniversalSearch = () => {
           <div className="text-center py-16">
             <Search className="w-20 h-20 mx-auto text-muted-foreground/30 mb-4" />
             <p className="text-lg font-medium mb-2">No results found</p>
-            <p className="text-muted-foreground mb-4">Try different keywords or activate GPS for local results</p>
-            <Button onClick={activateGPS} variant="outline" className="gap-2">
-              <Navigation className="w-4 h-4" />
-              Activate GPS
-            </Button>
+            <p className="text-muted-foreground mb-4">Try different keywords</p>
           </div>
         ) : results.length > 0 ? (
           <div className="space-y-3">
             {/* Map placeholder */}
-            {gpsEnabled && location && (
+            {location && (
               <Card className="p-0 mb-4 overflow-hidden">
                 <div className="h-48 bg-gradient-to-br from-blue-100 to-green-100 relative flex items-center justify-center">
                   <MapPin className="w-12 h-12 text-primary/40" />
                   <p className="absolute bottom-3 left-3 text-xs bg-background/90 px-2 py-1 rounded">
-                    📍 Showing results near you
+                    📍 Showing results near {location.city || 'you'}
                   </p>
                 </div>
               </Card>
