@@ -167,6 +167,7 @@ import SellerSubscription from "./pages/SellerSubscription";
 import UniversalSearch from "./pages/UniversalSearch";
 import UserSubscription from "./pages/UserSubscription";
 import ChatrWallet from "./pages/ChatrWallet";
+import MiniApps from "./pages/MiniApps";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -327,6 +328,7 @@ const App = () => {
             
             {/* AI & Settings Routes */}
             <Route path="/chatr-world" element={<ChatrWorld />} />
+            <Route path="/native-apps" element={<MiniApps />} />
           <Route path="/ai-agents" element={<AIAgents />} />
           <Route path="/ai-agents/chat/:agentId" element={<AIAgentChat />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
