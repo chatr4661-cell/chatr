@@ -107,8 +107,8 @@
         "description": "Home services"
       },
       {
-        "path": "/mini-apps",
-        "description": "Mini apps store"
+        "path": "/native-apps",
+        "description": "Native apps launcher"
       },
       {
         "path": "/app-statistics",
