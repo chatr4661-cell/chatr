@@ -167,7 +167,7 @@ import SellerSubscription from "./pages/SellerSubscription";
 import UniversalSearch from "./pages/UniversalSearch";
 import UserSubscription from "./pages/UserSubscription";
 import ChatrWallet from "./pages/ChatrWallet";
-import MiniApps from "./pages/MiniApps";
+import MiniApps from "./pages/MiniApps"; // Native app launcher
 
 const queryClient = new QueryClient({
   defaultOptions: {
