@@ -7845,6 +7845,39 @@ export type Database = {
           },
         ]
       }
+      native_apps: {
+        Row: {
+          category: string
+          created_at: string
+          icon_url: string
+          id: string
+          is_featured: boolean | null
+          name: string
+          package_name: string
+          web_url: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          icon_url: string
+          id?: string
+          is_featured?: boolean | null
+          name: string
+          package_name: string
+          web_url: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          icon_url?: string
+          id?: string
+          is_featured?: boolean | null
+          name?: string
+          package_name?: string
+          web_url?: string
+        }
+        Relationships: []
+      }
       network_diagnostics: {
         Row: {
           connection_type: string | null

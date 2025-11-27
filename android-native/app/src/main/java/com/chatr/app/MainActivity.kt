@@ -19,11 +19,28 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private lateinit var webView: android.webkit.WebView
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Setup WebView for bridge
+        setupWebView()
+        
         setContent {
             ChatrApp()
         }
+    }
+    
+    private fun setupWebView() {
+        webView = android.webkit.WebView(this)
+        webView.settings.javaScriptEnabled = true
+        webView.addJavascriptInterface(
+            WebAppInterface(this) { token -> 
+                android.util.Log.d("ChatrAuth", "Token: $token") 
+            }, 
+            "Android"
+        )
     }
 }
 
