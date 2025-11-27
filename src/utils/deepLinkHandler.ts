@@ -128,7 +128,7 @@ export const VALID_ROUTES = [
   '/local-healthcare',
   '/marketplace',
   '/home-services',
-  '/mini-apps',
+  '/native-apps',
   '/app-statistics',
   '/developer-portal',
   '/local-jobs',

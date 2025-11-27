@@ -42,7 +42,7 @@ const Launcher = () => {
     { id: "health", name: "Health Hub", icon: Heart, route: "/health-hub", color: "from-red-500 to-pink-500" },
     { id: "marketplace", name: "Marketplace", icon: ShoppingBag, route: "/marketplace", color: "from-purple-500 to-violet-500" },
     { id: "community", name: "Communities", icon: Users, route: "/communities", color: "from-green-500 to-emerald-500" },
-    { id: "miniapps", name: "Mini Apps", icon: Grid3x3, route: "/mini-apps-store", color: "from-orange-500 to-amber-500" },
+    { id: "miniapps", name: "Mini Apps", icon: Grid3x3, route: "/native-apps", color: "from-orange-500 to-amber-500" },
     { id: "growth", name: "Growth", icon: Briefcase, route: "/chatr-growth", color: "from-yellow-500 to-orange-500" },
   ]);
 
@@ -207,7 +207,7 @@ const Launcher = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate("/mini-apps-store")}
+                onClick={() => navigate("/native-apps")}
                 className="rounded-full hover:bg-white/10"
               >
                 <Grid3x3 className="h-5 w-5" />

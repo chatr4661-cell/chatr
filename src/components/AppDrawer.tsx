@@ -45,7 +45,7 @@ const apps: App[] = [
   { id: "official", name: "Official Accounts", icon: Award, route: "/official-accounts", category: "social", color: "from-blue-500 to-indigo-500", description: "Follow brands" },
   
   // Productivity
-  { id: "miniapps", name: "Mini Apps", icon: Grid3x3, route: "/mini-apps-store", category: "productivity", color: "from-orange-500 to-amber-500", description: "Discover apps" },
+  { id: "miniapps", name: "Mini Apps", icon: Grid3x3, route: "/native-apps", category: "productivity", color: "from-orange-500 to-amber-500", description: "Discover apps" },
   { id: "growth", name: "Growth", icon: Zap, route: "/chatr-growth", category: "productivity", color: "from-yellow-500 to-orange-500", description: "Earn & learn" },
   { id: "points", name: "Points", icon: TrendingUp, route: "/chatr-points", category: "productivity", color: "from-purple-500 to-pink-500", description: "Your points" },
   

@@ -3,40 +3,75 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <queries>
-        <!-- Shopping -->
-        <package android:name="com.flipkart.android" />
-        <package android:name="in.amazon.mShop.android.shopping" />
-        <package android:name="com.meesho.supply" />
-        <package android:name="com.myntra.android" />
-        <package android:name="com.fsn.nykaa" />
-        <package android:name="com.tatacliq" />
-        <package android:name="com.ajio.shop" />
+    <!-- Shopping -->
+    <package android:name="com.flipkart.android" />
+    <package android:name="in.amazon.mShop.android.shopping" />
+    <package android:name="com.meesho.supply" />
+    <package android:name="com.myntra.android" />
+    <package android:name="com.fsn.nykaa" />
+    <package android:name="com.tatacliq" />
+    <package android:name="com.ajio.shop" />
+    <package android:name="com.snapdeal.main" />
+    <package android:name="com.shopclues" />
 
-        <!-- Food & Grocery -->
-        <package android:name="com.application.zomato" />
-        <package android:name="in.swiggy.android" />
-        <package android:name="com.grofers.customerapp" />
-        <package android:name="com.zeptonow.consumer" />
-        <package android:name="com.bigbasket.mobileapp" />
-        <package android:name="com.dunzo.user" />
+    <!-- Food & Grocery -->
+    <package android:name="com.application.zomato" />
+    <package android:name="in.swiggy.android" />
+    <package android:name="com.grofers.customerapp" />
+    <package android:name="com.zeptonow.consumer" />
+    <package android:name="com.bigbasket.mobileapp" />
+    <package android:name="com.dunzo.user" />
+    <package android:name="com.jpl.jiomart" />
+    <package android:name="com.app.dominos" />
+    <package android:name="com.mcdonalds.mobileapp" />
+    <package android:name="com.yum.kfc" />
 
-        <!-- Finance -->
-        <package android:name="net.one97.paytm" />
-        <package android:name="com.phonepe.app" />
-        <package android:name="com.google.android.apps.nbu.paisa.user" />
-        <package android:name="com.zerodha.kite3" />
-        <package android:name="in.upstox.app" />
-        <package android:name="com.nextbillion.groww" />
+    <!-- Finance -->
+    <package android:name="net.one97.paytm" />
+    <package android:name="com.phonepe.app" />
+    <package android:name="com.google.android.apps.nbu.paisa.user" />
+    <package android:name="com.zerodha.kite3" />
+    <package android:name="in.upstox.app" />
+    <package android:name="com.nextbillion.groww" />
+    <package android:name="com.dreamplug.androidapp" />
+    <package android:name="in.org.npci.upiapp" />
+    <package android:name="com.mobikwik_new" />
 
-        <!-- Travel & Transport -->
-        <package android:name="com.olacabs.customer" />
-        <package android:name="com.ubercab" />
-        <package android:name="com.rapido.passenger" />
-        <package android:name="com.makemytrip" />
-        <package android:name="com.oyo.consumer" />
-        <package android:name="com.goibibo" />
-        <package android:name="cris.org.in.prs.ima" />
-        <package android:name="in.redbus.android" />
+    <!-- Travel & Transport -->
+    <package android:name="com.olacabs.customer" />
+    <package android:name="com.ubercab" />
+    <package android:name="com.rapido.passenger" />
+    <package android:name="com.makemytrip" />
+    <package android:name="com.oyo.consumer" />
+    <package android:name="com.goibibo" />
+    <package android:name="cris.org.in.prs.ima" />
+    <package android:name="in.redbus.android" />
+    <package android:name="com.yatra" />
+    <package android:name="com.easemytrip" />
+
+    <!-- Services & Entertainment -->
+    <package android:name="com.urbanclap.urbanclap" />
+    <package android:name="com.justdial.search" />
+    <package android:name="in.startv.hotstar" />
+    <package android:name="com.jio.media.jiobeats" />
+    <package android:name="com.bt.bms" />
+    <package android:name="com.netflix.mediaclient" />
+    <package android:name="com.amazon.avod.thirdpartyclient" />
+    <package android:name="com.spotify.music" />
+    <package android:name="com.gaana" />
+    <package android:name="com.google.android.youtube" />
+    <package android:name="com.linkedin.android" />
+    <package android:name="naukri.com.android" />
+    <package android:name="com.unacademyapp" />
+    <package android:name="com.byjus.thelearningapp" />
+    <package android:name="in.porter.android.customer" />
+
+    <!-- Health -->
+    <package android:name="com.aranoah.healthkart.plus" />
+    <package android:name="com.practo.fabric" />
+    <package android:name="com.phonegap.rxpal" />
+    <package android:name="com.apollo247.consumer" />
+    <package android:name="com.NetmedsMarketplace.Netmeds" />
 
         <!-- Services & Entertainment -->
         <package android:name="com.urbanclap.urbanclap" />
