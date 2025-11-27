@@ -306,8 +306,6 @@ const App = () => {
           <Route path="/provider/dashboard" element={<ProviderDashboard />} />
             <Route path="/youth-engagement" element={<YouthEngagement />} />
             <Route path="/youth-feed" element={<YouthFeed />} />
-            <Route path="/mini-apps" element={<MiniAppsStore />} />
-            <Route path="/mini-apps-store" element={<MiniAppsStore />} />
             <Route path="/app-statistics" element={<AppStatistics />} />
             <Route path="/developer-portal" element={<DeveloperPortal />} />
             <Route path="/official-accounts" element={<OfficialAccounts />} />
