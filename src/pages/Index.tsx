@@ -502,7 +502,7 @@ const Index = () => {
       title: 'Chatr App',
       description: 'Discover & install apps',
       iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
-      route: '/mini-apps'
+      route: '/native-apps'
     },
     {
       icon: CheckCircle,

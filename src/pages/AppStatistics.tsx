@@ -181,7 +181,7 @@ const AppStatistics = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/mini-apps-store')}
+              onClick={() => navigate('/native-apps')}
               className="rounded-full"
             >
               <ArrowLeft className="h-5 w-5" />
