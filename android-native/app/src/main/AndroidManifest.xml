@@ -113,6 +113,14 @@
     <package android:name="com.phonegap.rxpal" />
     <package android:name="com.apollo247.consumer" />
     <package android:name="com.NetmedsMarketplace.Netmeds" />
+    
+    <!-- Additional Popular Apps -->
+    <package android:name="com.licious.android" />
+    <package android:name="com.cricbuzz.android" />
+    <package android:name="com.instagram.android" />
+    <package android:name="in.amazon.mShop.android" />
+    <package android:name="com.ril.jio.policybazaar" />
+    <package android:name="org.telegram.messenger" />
     </queries>
 
     <!-- Internet permission for API calls -->
