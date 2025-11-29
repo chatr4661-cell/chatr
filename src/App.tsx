@@ -168,6 +168,8 @@ import UniversalSearch from "./pages/UniversalSearch";
 import UserSubscription from "./pages/UserSubscription";
 import ChatrWallet from "./pages/ChatrWallet";
 import MiniApps from "./pages/MiniApps"; // Native app launcher
+import ChatrOS from "./pages/ChatrOS"; // Chatr OS Desktop Interface
+import OSDetection from "./pages/OSDetection"; // OS Detection Page
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -327,6 +329,8 @@ const App = () => {
             {/* AI & Settings Routes */}
             <Route path="/chatr-world" element={<ChatrWorld />} />
             <Route path="/native-apps" element={<MiniApps />} />
+            <Route path="/chatr-os" element={<ChatrOS />} />
+            <Route path="/os-detection" element={<OSDetection />} />
           <Route path="/ai-agents" element={<AIAgents />} />
           <Route path="/ai-agents/chat/:agentId" element={<AIAgentChat />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
