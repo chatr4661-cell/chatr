@@ -168,8 +168,7 @@ import UniversalSearch from "./pages/UniversalSearch";
 import UserSubscription from "./pages/UserSubscription";
 import ChatrWallet from "./pages/ChatrWallet";
 import MiniApps from "./pages/MiniApps"; // Native app launcher
-import ChatrOS from "./pages/ChatrOS"; // Chatr OS Desktop Interface
-import OSDetection from "./pages/OSDetection"; // OS Detection Page
+import UnifiedChatrOS from "./pages/UnifiedChatrOS"; // Unified Chatr OS Interface
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -197,7 +196,8 @@ const SubdomainRedirect = () => {
     return <Navigate to="/seller/portal" replace />;
   }
 
-  return <Index />;
+  // For os.chatr.chat or main domain, show Chatr OS
+  return <UnifiedChatrOS />;
 };
 
 const App = () => {
@@ -246,6 +246,16 @@ const App = () => {
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />
+            
+            {/* Old OS routes redirect to root */}
+            <Route path="/chatr-os" element={<Navigate to="/" replace />} />
+            <Route path="/os-detection" element={<Navigate to="/" replace />} />
+            <Route path="/desktop" element={<Navigate to="/" replace />} />
+            <Route path="/start" element={<Navigate to="/" replace />} />
+            <Route path="/os" element={<Navigate to="/" replace />} />
+            
+            {/* Original home moved to /home */}
+            <Route path="/home-original" element={<Index />} />
             
             <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />
@@ -329,8 +339,6 @@ const App = () => {
             {/* AI & Settings Routes */}
             <Route path="/chatr-world" element={<ChatrWorld />} />
             <Route path="/native-apps" element={<MiniApps />} />
-            <Route path="/chatr-os" element={<ChatrOS />} />
-            <Route path="/os-detection" element={<OSDetection />} />
           <Route path="/ai-agents" element={<AIAgents />} />
           <Route path="/ai-agents/chat/:agentId" element={<AIAgentChat />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
