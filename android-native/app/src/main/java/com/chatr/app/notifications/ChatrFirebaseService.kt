@@ -104,7 +104,61 @@ class ChatrFirebaseService : FirebaseMessagingService() {
     }
     
     private fun handleCallNotification(data: Map<String, String>) {
-        // Handled by CallManager and ConnectionService
+        // Extract call data
+        val callerName = data["callerName"] ?: "Unknown Caller"
+        val callId = data["callId"] ?: ""
+        val isVideo = data["isVideo"]?.toBoolean() ?: false
+        
+        // Acquire WakeLock to ensure screen turns on
+        val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val wakeLock = powerManager.newWakeLock(
+            android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK or 
+            android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "Chatr:IncomingCall"
+        )
+        wakeLock.acquire(10000) // 10 seconds
+        
+        // Create full-screen intent for call activity
+        val callIntent = Intent(this, com.chatr.app.ui.activities.CallActivity::class.java).apply {
+            putExtra("callerName", callerName)
+            putExtra("callId", callId)
+            putExtra("isVideo", isVideo)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            this, 
+            callId.hashCode(),
+            callIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        // Create notification for incoming call
+        val notification = NotificationCompat.Builder(this, CHANNEL_CALLS)
+            .setContentTitle("Incoming ${if (isVideo) "video" else "voice"} call")
+            .setContentText(callerName)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .build()
+        
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(callId.hashCode(), notification)
+        
+        // Also directly launch the activity for immediate response
+        startActivity(callIntent)
+        
+        // Release WakeLock after a short delay
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (wakeLock.isHeld) {
+                wakeLock.release()
+            }
+        }, 5000)
     }
     
     private fun handleSystemNotification(data: Map<String, String>) {

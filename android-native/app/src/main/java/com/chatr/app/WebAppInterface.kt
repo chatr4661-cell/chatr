@@ -50,4 +50,17 @@ class WebAppInterface(
             context.startActivity(browserIntent)
         }
     }
+    
+    @JavascriptInterface
+    fun showIncomingCall(callerName: String, callId: String, isVideo: Boolean) {
+        val intent = Intent(context, com.chatr.app.ui.activities.CallActivity::class.java).apply {
+            putExtra("callerName", callerName)
+            putExtra("callId", callId)
+            putExtra("isVideo", isVideo)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        context.startActivity(intent)
+    }
 }

@@ -177,6 +177,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Call Activity for incoming calls -->
+        <activity
+            android:name=".ui.activities.CallActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CHATR"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true" />
+
+
         <!-- Firebase Messaging Service -->
         <service
             android:name=".notifications.ChatrFirebaseService"
