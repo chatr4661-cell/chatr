@@ -34,13 +34,50 @@ class MainActivity : ComponentActivity() {
     
     private fun setupWebView() {
         webView = android.webkit.WebView(this)
-        webView.settings.javaScriptEnabled = true
-        webView.addJavascriptInterface(
-            WebAppInterface(this) { token -> 
-                android.util.Log.d("ChatrAuth", "Token: $token") 
-            }, 
-            "Android"
-        )
+        with(webView.settings) {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+        }
+
+        val bridge = WebAppInterface(this) { token ->
+            android.util.Log.d("ChatrAuth", "Token: $token")
+
+            if (!token.isNullOrEmpty()) {
+                val serviceIntent = android.content.Intent(
+                    this@MainActivity,
+                    com.chatr.app.services.SocketBackgroundService::class.java
+                ).apply {
+                    putExtra("authToken", token)
+                }
+                startService(serviceIntent)
+            }
+        }
+
+        // Expose both Android and AndroidCall for maximum compatibility with the web app
+        webView.addJavascriptInterface(bridge, "Android")
+        webView.addJavascriptInterface(bridge, "AndroidCall")
+
+        webView.webViewClient = object : android.webkit.WebViewClient() {
+            override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                view?.evaluateJavascript(
+                    """
+                    (function() {
+                      if (!window.ReactNativeWebView) {
+                        window.ReactNativeWebView = { postMessage: function() {} };
+                      }
+                      if (!window.Capacitor) {
+                        window.Capacitor = { isNative: true, Plugins: {} };
+                      }
+                      if (window.Android && !window.AndroidCall) {
+                        window.AndroidCall = window.Android;
+                      }
+                    })();
+                    """.trimIndent(),
+                    null
+                )
+            }
+        }
     }
 }
 

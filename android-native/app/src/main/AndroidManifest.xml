@@ -197,6 +197,17 @@
             </intent-filter>
         </service>
 
+        <!-- Foreground service for ongoing calls -->
+        <service
+            android:name=".service.CallForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall" />
+
+        <!-- Background socket service for realtime signaling -->
+        <service
+            android:name=".services.SocketBackgroundService"
+            android:exported="false" />
+
         <!-- Connection Service for native call integration -->
         <service
             android:name=".call.ChatrConnectionService"
