@@ -17,6 +17,12 @@ sealed class SocketEvent {
     data class TypingStarted(val userId: String, val conversationId: String) : SocketEvent()
     data class TypingStopped(val userId: String, val conversationId: String) : SocketEvent()
     data class UserPresence(val userId: String, val isOnline: Boolean) : SocketEvent()
+    data class IncomingCall(
+        val callId: String,
+        val callerName: String,
+        val isVideo: Boolean,
+        val conversationId: String?
+    ) : SocketEvent()
     data class Error(val message: String) : SocketEvent()
 }
 
@@ -123,6 +129,80 @@ class SocketService {
                         val userId = it.getString("userId")
                         val isOnline = it.getBoolean("isOnline")
                         _events.tryEmit(SocketEvent.UserPresence(userId, isOnline))
+                    }
+                }
+                
+                on("incoming_call") { args ->
+                    val data = args.firstOrNull() as? JSONObject
+                    data?.let {
+                        val callId = when {
+                            it.has("callId") -> it.getString("callId")
+                            it.has("call_id") -> it.getString("call_id")
+                            else -> ""
+                        }
+                        val callerName = when {
+                            it.has("callerName") -> it.getString("callerName")
+                            it.has("caller_name") -> it.getString("caller_name")
+                            else -> "Unknown Caller"
+                        }
+                        val isVideo = when {
+                            it.has("isVideo") -> it.getBoolean("isVideo")
+                            it.has("is_video") -> it.getBoolean("is_video")
+                            else -> false
+                        }
+                        val conversationId = when {
+                            it.has("conversationId") -> it.getString("conversationId")
+                            it.has("conversation_id") -> it.getString("conversation_id")
+                            else -> null
+                        }
+
+                        if (callId.isNotEmpty()) {
+                            _events.tryEmit(
+                                SocketEvent.IncomingCall(
+                                    callId = callId,
+                                    callerName = callerName,
+                                    isVideo = isVideo,
+                                    conversationId = conversationId
+                                )
+                            )
+                        }
+                    }
+                }
+
+                on("call:invite") { args ->
+                    val data = args.firstOrNull() as? JSONObject
+                    data?.let {
+                        val callId = when {
+                            it.has("callId") -> it.getString("callId")
+                            it.has("call_id") -> it.getString("call_id")
+                            else -> ""
+                        }
+                        val callerName = when {
+                            it.has("callerName") -> it.getString("callerName")
+                            it.has("caller_name") -> it.getString("caller_name")
+                            else -> "Unknown Caller"
+                        }
+                        val isVideo = when {
+                            it.has("isVideo") -> it.getBoolean("isVideo")
+                            it.has("is_video") -> it.getBoolean("is_video")
+                            else -> false
+                        }
+                        val conversationId = when {
+                            it.has("conversationId") -> it.getString("conversationId")
+                            it.has("conversation_id") -> it.getString("conversation_id")
+                            else -> null
+                        }
+
+                        if (callId.isNotEmpty()) {
+                            _events.tryEmit(
+                                SocketEvent.IncomingCall(
+                                    callId = callId,
+                                    callerName = callerName,
+                                    isVideo = isVideo,
+                                    conversationId = conversationId
+                                )
+                            )
+                        }
                     }
                 }
                 

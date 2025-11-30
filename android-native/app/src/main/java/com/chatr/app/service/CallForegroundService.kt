@@ -15,6 +15,9 @@ class CallForegroundService : Service() {
         const val NOTIFICATION_ID = 1001
         const val ACTION_START_CALL = "START_CALL"
         const val ACTION_END_CALL = "END_CALL"
+        const val EXTRA_CALL_ID = "callId"
+        const val EXTRA_CALLER_NAME = "callerName"
+        const val EXTRA_IS_VIDEO = "isVideo"
     }
     
     override fun onCreate() {
@@ -24,15 +27,33 @@ class CallForegroundService : Service() {
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START_CALL -> startForegroundService()
+            ACTION_START_CALL -> {
+                val callId = intent.getStringExtra(EXTRA_CALL_ID) ?: ""
+                val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: "Unknown Caller"
+                val isVideo = intent.getBooleanExtra(EXTRA_IS_VIDEO, false)
+                startForegroundService(callId, callerName, isVideo)
+            }
             ACTION_END_CALL -> stopForegroundService()
         }
         return START_NOT_STICKY
     }
     
-    private fun startForegroundService() {
-        val notification = createNotification()
+    private fun startForegroundService(callId: String, callerName: String, isVideo: Boolean) {
+        val fullScreenIntent = Intent(this, com.chatr.app.ui.activities.CallActivity::class.java).apply {
+            putExtra("callerName", callerName)
+            putExtra("callId", callId)
+            putExtra("isVideo", isVideo)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        }
+
+        val notification = createNotification(callId, callerName, isVideo, fullScreenIntent)
         startForeground(NOTIFICATION_ID, notification)
+
+        // Force the call screen over any existing UI
+        startActivity(fullScreenIntent)
     }
     
     private fun stopForegroundService() {
@@ -45,22 +66,27 @@ class CallForegroundService : Service() {
         stopSelf()
     }
     
-    private fun createNotification(): Notification {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE
+    private fun createNotification(
+        callId: String,
+        callerName: String,
+        isVideo: Boolean,
+        fullScreenIntent: Intent
+    ): Notification {
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            this,
+            callId.hashCode(),
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Call in progress")
-            .setContentText("Tap to return to call")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentIntent(pendingIntent)
+            .setContentTitle("Incoming ${if (isVideo) "video" else "voice"} call")
+            .setContentText(callerName)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentIntent(fullScreenPendingIntent)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .build()
     }

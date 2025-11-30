@@ -65,11 +65,25 @@ class ChatrFirebaseService : FirebaseMessagingService() {
     }
     
     override fun onMessageReceived(message: RemoteMessage) {
-        message.data.let { data ->
+        val data = message.data
+
+        // Ensure CPU stays awake long enough to handle high-priority FCM
+        val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val wakeLock = powerManager.newWakeLock(
+            android.os.PowerManager.PARTIAL_WAKE_LOCK or android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "Chatr:FCM"
+        )
+
+        try {
+            wakeLock.acquire(10_000)
             when (data["type"]) {
                 "message" -> handleMessageNotification(data)
                 "call" -> handleCallNotification(data)
                 else -> handleSystemNotification(data)
+            }
+        } finally {
+            if (wakeLock.isHeld) {
+                wakeLock.release()
             }
         }
     }
@@ -104,61 +118,36 @@ class ChatrFirebaseService : FirebaseMessagingService() {
     }
     
     private fun handleCallNotification(data: Map<String, String>) {
-        // Extract call data
-        val callerName = data["callerName"] ?: "Unknown Caller"
-        val callId = data["callId"] ?: ""
-        val isVideo = data["isVideo"]?.toBoolean() ?: false
-        
-        // Acquire WakeLock to ensure screen turns on
-        val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-        val wakeLock = powerManager.newWakeLock(
-            android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK or 
-            android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
-            "Chatr:IncomingCall"
-        )
-        wakeLock.acquire(10000) // 10 seconds
-        
-        // Create full-screen intent for call activity
-        val callIntent = Intent(this, com.chatr.app.ui.activities.CallActivity::class.java).apply {
+        // Extract call data with support for both camelCase and snake_case keys
+        val callerName = data["callerName"]
+            ?: data["caller_name"]
+            ?: "Unknown Caller"
+
+        val callId = data["callId"]
+            ?: data["call_id"]
+            ?: ""
+
+        val isVideo = data["isVideo"]?.toBoolean()
+            ?: data["is_video"]?.toBoolean()
+            ?: false
+
+        if (callId.isEmpty()) {
+            return
+        }
+
+        // Start the foreground service responsible for showing the native call UI
+        val serviceIntent = Intent(this, com.chatr.app.service.CallForegroundService::class.java).apply {
+            action = com.chatr.app.service.CallForegroundService.ACTION_START_CALL
             putExtra("callerName", callerName)
             putExtra("callId", callId)
             putExtra("isVideo", isVideo)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
-        
-        val fullScreenPendingIntent = PendingIntent.getActivity(
-            this, 
-            callId.hashCode(),
-            callIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        
-        // Create notification for incoming call
-        val notification = NotificationCompat.Builder(this, CHANNEL_CALLS)
-            .setContentTitle("Incoming ${if (isVideo) "video" else "voice"} call")
-            .setContentText(callerName)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setFullScreenIntent(fullScreenPendingIntent, true)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .build()
-        
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(callId.hashCode(), notification)
-        
-        // Also directly launch the activity for immediate response
-        startActivity(callIntent)
-        
-        // Release WakeLock after a short delay
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            if (wakeLock.isHeld) {
-                wakeLock.release()
-            }
-        }, 5000)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
     }
     
     private fun handleSystemNotification(data: Map<String, String>) {
