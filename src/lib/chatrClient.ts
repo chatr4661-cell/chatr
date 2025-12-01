@@ -18,6 +18,14 @@ export interface ChatrResult {
   phone?: string;
   latitude?: number;
   longitude?: number;
+  description?: string;
+  price?: number;
+  image_url?: string;
+  timings?: string;
+  specialties?: string[];
+  services?: string[];
+  rating_count?: number;
+  verified?: boolean;
 }
 
 export async function chatrTest() {
@@ -34,6 +42,15 @@ export async function chatrSearch(query: string): Promise<ChatrResult[]> {
 }
 
 export async function chatrLocalSearch(query: string, lat: number, lon: number): Promise<ChatrResult[]> {
-  return fetch(`${BASE}/local/search?q=${encodeURIComponent(query)}&lat=${lat}&lon=${lon}`)
-    .then(r => r.json());
+  try {
+    const response = await fetch(`${BASE}/local/search?q=${encodeURIComponent(query)}&lat=${lat}&lon=${lon}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Chatr local search error:', error);
+    return [];
+  }
 }
