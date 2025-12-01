@@ -170,6 +170,8 @@ import ChatrWallet from "./pages/ChatrWallet";
 import MiniApps from "./pages/MiniApps"; // Native app launcher
 import ChatrOS from "./pages/ChatrOS"; // Chatr OS Desktop Interface
 import OSDetection from "./pages/OSDetection"; // OS Detection Page
+import ChatrHome from "./pages/ChatrHome"; // CHATR Search Home
+import ChatrResults from "./pages/ChatrResults"; // CHATR Search Results
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -341,6 +343,8 @@ const App = () => {
             {/* Public browser - no auth required */}
             <Route path="/home" element={<Home />} />
             <Route path="/geo" element={<GeoDiscovery />} />
+            <Route path="/chatr-home" element={<ChatrHome />} />
+            <Route path="/chatr-results" element={<ChatrResults />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
             <Route path="/ai-browser" element={<AIBrowserView />} />
             <Route path="/chat-ai" element={<AIChat />} />
