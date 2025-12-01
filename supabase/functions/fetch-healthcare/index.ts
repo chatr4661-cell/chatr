@@ -30,10 +30,12 @@ serve(async (req) => {
       throw new Error('Latitude and longitude are required');
     }
     
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    const supabaseClient = supabaseUrl && supabaseKey
+      ? createClient(supabaseUrl, supabaseKey)
+      : null;
 
     console.log('Fetching healthcare near:', latitude, longitude, 'within', radius, 'km');
 
@@ -150,14 +152,15 @@ serve(async (req) => {
       return { ...provider, distance: parseFloat(distance.toFixed(1)) };
     }).filter(provider => provider.distance <= radius);
 
-    // Insert healthcare providers into database
-    const { data, error } = await supabaseClient
-      .from('healthcare_db')
-      .upsert(providersWithDistance, { onConflict: 'name,city', ignoreDuplicates: true });
+    // Insert healthcare providers into database if Supabase is configured
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from('healthcare_db')
+        .upsert(providersWithDistance, { onConflict: 'name,city', ignoreDuplicates: true });
 
-    if (error) {
-      console.error('Database error:', error);
-      throw error;
+      if (error) {
+        console.error('Database error:', error);
+      }
     }
 
     console.log('Inserted', providersWithDistance.length, 'providers within', radius, 'km');

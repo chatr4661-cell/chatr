@@ -30,10 +30,12 @@ serve(async (req) => {
       throw new Error('Latitude and longitude are required');
     }
     
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    const supabaseClient = supabaseUrl && supabaseKey
+      ? createClient(supabaseUrl, supabaseKey)
+      : null;
 
     console.log('Fetching jobs near:', latitude, longitude, 'within', radius, 'km');
 
@@ -177,13 +179,15 @@ serve(async (req) => {
       application_count: 0
     }));
 
-    const { data, error } = await supabaseClient
-      .from('jobs_clean_master')
-      .upsert(masterJobs, { onConflict: 'id', ignoreDuplicates: false });
+    // Insert jobs into master table if Supabase is configured
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from('jobs_clean_master')
+        .upsert(masterJobs, { onConflict: 'id', ignoreDuplicates: false });
 
-    if (error) {
-      console.error('Database error:', error);
-      throw error;
+      if (error) {
+        console.error('Database error:', error);
+      }
     }
 
     console.log('Synced', jobsWithDistance.length, 'jobs to master table within', radius, 'km');
