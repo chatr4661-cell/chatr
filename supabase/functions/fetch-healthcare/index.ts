@@ -31,8 +31,8 @@ serve(async (req) => {
     }
     
     const supabaseClient = createClient(
-      Deno.env.get('VITE_SUPABASE_URL') ?? '',
-      Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
     console.log('Fetching healthcare near:', latitude, longitude, 'within', radius, 'km');
