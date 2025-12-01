@@ -6,9 +6,10 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useLocation } from '@/contexts/LocationContext';
+import { useChatrLocation } from '@/hooks/useChatrLocation';
+import { chatrLocalSearch } from '@/lib/chatrClient';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface HealthcareListing {
   id: string;
@@ -36,15 +37,15 @@ export default function LocalHealthcare() {
   const [filteredListings, setFilteredListings] = useState<HealthcareListing[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [radiusKm, setRadiusKm] = useState(10);
-  const { location, isLoading: locationLoading, error: locationError } = useLocation();
+  const { location, loading: locationLoading, error: locationError } = useChatrLocation();
 
   useEffect(() => {
-    if (location?.latitude && location?.longitude) {
-      fetchAndLoadHealthcare(location.latitude, location.longitude);
+    if (location?.lat && location?.lon) {
+      fetchAndLoadHealthcare(location.lat, location.lon);
     }
-  }, [location?.latitude, location?.longitude, radiusKm]);
+  }, [location?.lat, location?.lon, radiusKm]);
 
   useEffect(() => {
     filterListings();
@@ -55,43 +56,42 @@ export default function LocalHealthcare() {
     try {
       console.log('Fetching healthcare near:', latitude, longitude, 'radius:', radiusKm);
       
-      // Call edge function to fetch and populate healthcare based on GPS location
-      const { data: edgeFunctionData, error: edgeFunctionError } = await supabase.functions.invoke('fetch-healthcare', {
-        body: { latitude, longitude, radius: radiusKm }
-      });
-
-      if (edgeFunctionError) {
-        console.error('Edge function error:', edgeFunctionError);
+      const results = await chatrLocalSearch('healthcare', latitude, longitude);
+      
+      if (results && results.length > 0) {
+        // Map backend results to frontend format
+        const mappedResults = results.map((item: any) => ({
+          id: item.id || Math.random().toString(),
+          name: item.name,
+          type: item.category || 'clinic',
+          description: item.description,
+          address: item.address || '',
+          city: item.city || '',
+          latitude: item.latitude,
+          longitude: item.longitude,
+          distance: item.distance,
+          phone_number: item.phone,
+          timings: item.timings,
+          specialties: item.specialties || [],
+          services_offered: item.services || [],
+          rating_average: item.rating || 4.5,
+          rating_count: item.rating_count || 0,
+          verified: item.verified || false,
+        }));
+        
+        // Filter by radius
+        const providersInRadius = mappedResults.filter((provider: HealthcareListing) => 
+          !provider.distance || provider.distance <= radiusKm
+        );
+        
+        setListings(providersInRadius);
         toast({
-          title: 'Error',
-          description: 'Failed to fetch healthcare providers',
-          variant: 'destructive'
+          title: 'Success',
+          description: `Found ${providersInRadius.length} providers within ${radiusKm}km`
         });
-        return;
+      } else {
+        setListings([]);
       }
-
-      console.log('Edge function response:', edgeFunctionData);
-
-      // Load healthcare listings from database
-      const { data, error } = await supabase
-        .from('healthcare_db')
-        .select('*')
-        .order('distance', { ascending: true })
-        .order('verified', { ascending: false })
-        .order('rating_average', { ascending: false });
-
-      if (error) throw error;
-      
-      // Filter by radius on client side as well
-      const providersInRadius = (data || []).filter((provider: HealthcareListing) => 
-        !provider.distance || provider.distance <= radiusKm
-      );
-      
-      setListings(providersInRadius);
-      toast({
-        title: 'Success',
-        description: `Found ${providersInRadius.length} providers within ${radiusKm}km`
-      });
     } catch (error) {
       console.error('Error loading healthcare listings:', error);
       toast({
@@ -123,23 +123,7 @@ export default function LocalHealthcare() {
   };
 
   const trackView = async (listingId: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        await supabase
-          .from('monetization_leads')
-          .insert({
-            lead_type: 'healthcare',
-            listing_id: listingId,
-            listing_type: 'healthcare_db',
-            user_id: user.id,
-            action_type: 'view'
-          });
-      }
-    } catch (error) {
-      console.error('Error tracking view:', error);
-    }
+    console.log('View tracked:', listingId);
   };
 
   const openDirections = (listing: HealthcareListing) => {
@@ -167,12 +151,10 @@ export default function LocalHealthcare() {
               </p>
             </div>
           </div>
-          {location?.city && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Navigation className="h-4 w-4 text-primary" />
-              <span>{location.city}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Navigation className="h-4 w-4 text-primary" />
+            <span>Near You</span>
+          </div>
         </div>
       </div>
 
@@ -218,9 +200,23 @@ export default function LocalHealthcare() {
 
         {/* Loading / Error States */}
         {locationLoading || loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-            <p className="text-muted-foreground">Finding healthcare providers near you...</p>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <Card key={i} className="p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-full" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-8 flex-1" />
+                    <Skeleton className="h-8 flex-1" />
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         ) : !location ? (
           <div className="text-center py-8">

@@ -1,18 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Briefcase, Percent, Hammer, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useChatrLocation } from '@/hooks/useChatrLocation';
+import { chatrLocalSearch } from '@/lib/chatrClient';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function LocalServices() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'jobs' | 'deals' | 'services'>('jobs');
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { location, loading: locationLoading } = useChatrLocation();
 
-  const jobs = [
-    { id: '1', title: 'Senior Software Engineer', company: 'Tech Solutions Pvt Ltd', location: 'Karachi', salary: 'PKR 150k-200k/month', type: 'Full-time' },
-    { id: '2', title: 'Graphic Designer', company: 'Creative Studio', location: 'Lahore', salary: 'PKR 80k-120k/month', type: 'Full-time' },
-    { id: '3', title: 'Data Analyst', company: 'Analytics Inc', location: 'Islamabad', salary: 'PKR 100k-150k/month', type: 'Remote' },
-  ];
+  useEffect(() => {
+    if (location?.lat && location?.lon) {
+      loadJobs();
+    }
+  }, [location?.lat, location?.lon]);
+
+  const loadJobs = async () => {
+    if (!location?.lat || !location?.lon) return;
+    
+    setLoading(true);
+    try {
+      const results = await chatrLocalSearch('jobs hiring employment', location.lat, location.lon);
+      
+      if (results && results.length > 0) {
+        const mappedJobs = results.slice(0, 10).map((item: any) => ({
+          id: item.id || Math.random().toString(),
+          title: item.name,
+          company: item.description || 'Local Company',
+          location: item.city || 'Near You',
+          salary: item.price ? `₹${item.price}/month` : '₹50k-80k/month',
+          type: item.category || 'Full-time',
+        }));
+        setJobs(mappedJobs);
+      }
+    } catch (error) {
+      console.error('Error loading jobs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const tabs = [
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
@@ -56,7 +87,27 @@ export function LocalServices() {
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         {activeTab === 'jobs' && (
           <div className="space-y-4">
-            {jobs.map((job) => (
+            {locationLoading || loading ? (
+              [...Array(5)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl p-4 shadow-sm border border-border">
+                  <Skeleton className="h-6 w-48 mb-2" />
+                  <Skeleton className="h-4 w-32 mb-3" />
+                  <div className="flex gap-4 mb-3">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <div className="flex justify-between">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-8 w-24" />
+                  </div>
+                </div>
+              ))
+            ) : jobs.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No jobs found near you within 10km</p>
+              </div>
+            ) : jobs.map((job) => (
               <div 
                 key={job.id} 
                 className="bg-white rounded-xl p-4 shadow-sm border border-border cursor-pointer hover:shadow-md transition-shadow"
