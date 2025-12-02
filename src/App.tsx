@@ -343,6 +343,8 @@ const App = () => {
             {/* Public browser - no auth required */}
             <Route path="/home" element={<Home />} />
             <Route path="/geo" element={<GeoDiscovery />} />
+            <Route path="/search" element={<UniversalSearch />} />
+            <Route path="/universal-search" element={<UniversalSearch />} />
             <Route path="/chatr-home" element={<ChatrHome />} />
             <Route path="/chatr-results" element={<ChatrResults />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
