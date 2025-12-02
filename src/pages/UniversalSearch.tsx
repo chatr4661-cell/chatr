@@ -82,58 +82,69 @@ const UniversalSearch = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Call new Perplexity-style search (DuckDuckGo + AI) - FAST!
-      console.log('Calling perplexity-search function...');
-      const { data: perplexityData, error: perplexityError } = await supabase.functions.invoke('perplexity-search', {
+      // Generate or get session ID
+      let sessionId = localStorage.getItem('chatr_session_id');
+      if (!sessionId) {
+        sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('chatr_session_id', sessionId);
+      }
+
+      // Call CHATR Universal Search (Google Custom Search + AI)
+      console.log('Calling universal-search function...');
+      const { data: searchData, error: searchError } = await supabase.functions.invoke('universal-search', {
         body: { 
           query, 
-          maxResults: 10,
-          latitude: location?.latitude || null,
-          longitude: location?.longitude || null
+          sessionId,
+          userId: user?.id || null,
+          gpsLat: location?.latitude || null,
+          gpsLon: location?.longitude || null
         }
       });
 
       setWebSearchLoading(false);
 
-      if (perplexityError) {
-        console.error('Perplexity search error:', perplexityError);
-        if (perplexityError.message?.includes('LOCATION_REQUIRED')) {
-          toast.error('Location needed for nearby results. Please enable location services.');
-        } else {
-          toast.error('Search error. Please try again.');
-        }
-      } else if (perplexityData && perplexityData.success) {
-        console.log('Perplexity results received:', perplexityData);
+      if (searchError) {
+        console.error('Universal search error:', searchError);
+        toast.error('Search error. Please try again.');
+      } else if (searchData) {
+        console.log('Universal search results:', searchData);
         
-        // Set web results with AI summary
+        // Set web results with AI answer
         setWebResults({
-          synthesis: perplexityData.aiSummary,
-          results: perplexityData.results || [],
+          synthesis: searchData.aiAnswer?.text || null,
+          results: searchData.results || [],
           suggestions: [],
-          sources: perplexityData.sources || []
+          sources: searchData.aiAnswer?.sources || []
         });
 
         // Convert to SearchResult format for display
-        const searchResults: SearchResult[] = (perplexityData.results || []).map((r: any, idx: number) => ({
+        const searchResults: SearchResult[] = (searchData.results || []).map((r: any, idx: number) => ({
           id: `web-${idx}`,
           title: r.title,
-          description: r.snippet || r.title,
+          description: r.snippet,
           contact: undefined,
-          address: r.url,
+          address: r.displayUrl,
           rating: 0,
           review_count: 0,
           price: undefined,
           verified: false,
-          source: r.source || 'web',
-          result_type: 'web',
-          metadata: { url: r.url }
+          source: r.source || 'google',
+          result_type: r.detectedType || 'generic_web',
+          metadata: { 
+            url: r.url,
+            faviconUrl: r.faviconUrl,
+            score: r.score,
+            rank: r.rank,
+            searchId: searchData.searchId,
+            sessionId
+          }
         }));
 
         setResults(searchResults);
 
-        // Simple AI intent
+        // AI intent
         setAiIntent({
-          intent: `Searching the web for: "${query}"`,
+          intent: searchData.aiAnswer?.text ? 'AI Summary Available' : `Searching for: "${query}"`,
           suggestions: [
             `${query} near me`,
             `best ${query}`,
@@ -148,7 +159,7 @@ const UniversalSearch = () => {
           await supabase.from('saved_searches').upsert({
             user_id: user.id,
             query,
-            results_count: perplexityData?.results?.length || 0
+            results_count: searchData?.results?.length || 0
           }, {
             onConflict: 'user_id,query',
             ignoreDuplicates: false
@@ -169,6 +180,27 @@ const UniversalSearch = () => {
 
   const handleSearch = () => {
     performSearch(searchQuery);
+  };
+
+  const logClick = async (result: SearchResult, startTime: number) => {
+    try {
+      const sessionId = localStorage.getItem('chatr_session_id');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      await supabase.functions.invoke('click-log', {
+        body: {
+          searchId: result.metadata?.searchId,
+          sessionId: sessionId || '',
+          userId: user?.id || null,
+          resultUrl: result.metadata?.url,
+          resultRank: result.metadata?.rank || 0,
+          resultType: result.result_type || 'generic_web',
+          timeToClickMs: Date.now() - startTime
+        }
+      });
+    } catch (error) {
+      console.error('Failed to log click:', error);
+    }
   };
 
   const trackInteraction = async (resultId: string, action: string) => {
@@ -478,7 +510,10 @@ const UniversalSearch = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="font-semibold text-base text-primary hover:underline cursor-pointer flex items-center gap-1"
-                          onClick={() => window.open(result.metadata?.url, '_blank')}>
+                          onClick={() => {
+                            logClick(result, Date.now());
+                            window.open(result.metadata?.url, '_blank');
+                          }}>
                         {result.title}
                         <ExternalLink className="w-3 h-3" />
                       </h3>
