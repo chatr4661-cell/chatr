@@ -3419,6 +3419,50 @@ export type Database = {
           },
         ]
       }
+      click_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          result_rank: number
+          result_type: string | null
+          result_url: string
+          search_id: string | null
+          session_id: string
+          time_to_click_ms: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          result_rank: number
+          result_type?: string | null
+          result_url: string
+          search_id?: string | null
+          session_id: string
+          time_to_click_ms?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          result_rank?: number
+          result_type?: string | null
+          result_url?: string
+          search_id?: string | null
+          session_id?: string
+          time_to_click_ms?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "click_logs_search_id_fkey"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "search_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coin_payments: {
         Row: {
           amount: number
@@ -6298,6 +6342,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      last_locations: {
+        Row: {
+          accuracy_m: number | null
+          id: string
+          lat: number
+          lon: number
+          session_id: string | null
+          source: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          id?: string
+          lat: number
+          lon: number
+          session_id?: string | null
+          source: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          id?: string
+          lat?: number
+          lon?: number
+          session_id?: string | null
+          source?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       leaderboard_cache: {
         Row: {
@@ -9505,6 +9582,63 @@ export type Database = {
           preferred_categories?: string[] | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      search_logs: {
+        Row: {
+          created_at: string | null
+          engine: string | null
+          gps_lat: number | null
+          gps_lon: number | null
+          id: string
+          ip: string | null
+          ip_city: string | null
+          ip_country: string | null
+          ip_lat: number | null
+          ip_lon: number | null
+          last_known_lat: number | null
+          last_known_lon: number | null
+          query: string
+          session_id: string
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          engine?: string | null
+          gps_lat?: number | null
+          gps_lon?: number | null
+          id?: string
+          ip?: string | null
+          ip_city?: string | null
+          ip_country?: string | null
+          ip_lat?: number | null
+          ip_lon?: number | null
+          last_known_lat?: number | null
+          last_known_lon?: number | null
+          query: string
+          session_id: string
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          engine?: string | null
+          gps_lat?: number | null
+          gps_lon?: number | null
+          id?: string
+          ip?: string | null
+          ip_city?: string | null
+          ip_country?: string | null
+          ip_lat?: number | null
+          ip_lon?: number | null
+          last_known_lat?: number | null
+          last_known_lon?: number | null
+          query?: string
+          session_id?: string
+          source?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

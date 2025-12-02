@@ -65,3 +65,12 @@ verify_jwt = true
 
 [functions.symptom-checker]
 verify_jwt = true
+
+[functions.universal-search]
+verify_jwt = false
+
+[functions.click-log]
+verify_jwt = false
+
+[functions.ai-answer]
+verify_jwt = false
