@@ -172,6 +172,7 @@ import ChatrOS from "./pages/ChatrOS"; // Chatr OS Desktop Interface
 import OSDetection from "./pages/OSDetection"; // OS Detection Page
 import ChatrHome from "./pages/ChatrHome"; // CHATR Search Home
 import ChatrResults from "./pages/ChatrResults"; // CHATR Search Results
+import UnifiedSearchHome from "./pages/UnifiedSearchHome"; // Unified Search Homepage
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -199,7 +200,7 @@ const SubdomainRedirect = () => {
     return <Navigate to="/seller/portal" replace />;
   }
 
-  return <Index />;
+  return <UnifiedSearchHome />;
 };
 
 const App = () => {
@@ -314,8 +315,19 @@ const App = () => {
             <Route path="/developer-portal" element={<DeveloperPortal />} />
             <Route path="/official-accounts" element={<OfficialAccounts />} />
             <Route path="/chatr-studio" element={<ChatrStudio />} />
-            <Route path="/food-ordering" element={<FoodOrdering />} />
-            <Route path="/local-deals" element={<LocalDeals />} />
+            
+            {/* Simplified Routes */}
+            <Route path="/food" element={<FoodOrdering />} />
+            <Route path="/services" element={<LocalDeals />} />
+            <Route path="/healthcare" element={<LocalHealthcare />} />
+            <Route path="/deals" element={<LocalDeals />} />
+            <Route path="/jobs" element={<LocalJobs />} />
+            
+            {/* Legacy Routes (redirects) */}
+            <Route path="/food-ordering" element={<Navigate to="/food" replace />} />
+            <Route path="/local-deals" element={<Navigate to="/deals" replace />} />
+            <Route path="/local-healthcare" element={<Navigate to="/healthcare" replace />} />
+            <Route path="/local-jobs" element={<Navigate to="/jobs" replace />} />
             
           {/* Points & Payment Routes */}
           <Route path="/chatr-points" element={<ChatrPoints />} />
@@ -336,8 +348,6 @@ const App = () => {
           <Route path="/ai-agents" element={<AIAgents />} />
           <Route path="/ai-agents/chat/:agentId" element={<AIAgentChat />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
-          <Route path="/local-jobs" element={<LocalJobs />} />
-          <Route path="/local-healthcare" element={<LocalHealthcare />} />
             <Route path="/geofences" element={<Geofences />} />
             <Route path="/geofence-history" element={<GeofenceHistory />} />
             {/* Public browser - no auth required */}
