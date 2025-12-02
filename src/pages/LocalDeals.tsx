@@ -73,6 +73,27 @@ const serviceCategories = [
   }
 ];
 
+interface ServicePackage {
+  id: string;
+  name: string;
+  items: string[];
+  editable: boolean;
+}
+
+interface ServiceItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: string;
+  rating: number;
+  reviews: number;
+  image_url?: string;
+  category: string;
+  distance?: string;
+  badge?: string;
+}
+
 interface ServiceProvider {
   id: string;
   name: string;
@@ -88,6 +109,8 @@ interface ServiceProvider {
   address?: string;
   specialties?: string[];
   availability?: string;
+  packages?: ServicePackage[];
+  services?: ServiceItem[];
 }
 
 export default function LocalDeals() {
@@ -98,15 +121,19 @@ export default function LocalDeals() {
   
   const { location, loading: locationLoading, error: locationError } = useChatrLocation();
   const [providers, setProviders] = useState<ServiceProvider[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [showBooking, setShowBooking] = useState(false);
+  const [showServiceDetail, setShowServiceDetail] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [bookingData, setBookingData] = useState({
     date: '',
     time: '',
     address: '',
-    description: ''
+    description: '',
+    services: [] as string[]
   });
 
   const selectedCategory = serviceCategories.find(c => c.id === selectedCategoryId);
@@ -126,12 +153,13 @@ export default function LocalDeals() {
       const results = await chatrLocalSearch(searchTerm, location.lat, location.lon);
       
       if (results && results.length > 0) {
-        const mappedProviders: ServiceProvider[] = results.map((item: any) => ({
+        // Map providers with packages
+        const mappedProviders: ServiceProvider[] = results.slice(0, 5).map((item: any) => ({
           id: item.id || Math.random().toString(),
           name: item.name,
           category: selectedCategory?.name || 'Service',
           rating: item.rating || (4 + Math.random()),
-          reviews: item.rating_count || Math.floor(Math.random() * 500) + 50,
+          reviews: item.rating_count || Math.floor(Math.random() * 20000) + 1000,
           experience: `${Math.floor(Math.random() * 10) + 3} years`,
           price: item.price || Math.floor(Math.random() * 500) + 200,
           distance: item.distance ? `${item.distance.toFixed(1)}km` : `${(Math.random() * 5).toFixed(1)}km`,
@@ -140,11 +168,41 @@ export default function LocalDeals() {
           description: item.description || 'Professional service provider',
           address: item.address || item.city,
           specialties: item.specialties || item.services || [],
-          availability: 'Available Today'
+          availability: 'Available Today',
+          packages: [
+            {
+              id: '1',
+              name: `${selectedSubcategory || 'Service'} Essentials`,
+              items: item.services || [
+                selectedSubcategory || 'Service 1',
+                'Additional service',
+                'Premium treatment',
+                'Complimentary care'
+              ],
+              editable: true
+            }
+          ]
         }));
         setProviders(mappedProviders);
+
+        // Map individual services
+        const mappedServices: ServiceItem[] = results.map((item: any) => ({
+          id: item.id || Math.random().toString(),
+          name: item.name,
+          description: item.description || `Professional ${selectedSubcategory || 'service'} treatment`,
+          price: item.price || Math.floor(Math.random() * 5000) + 500,
+          duration: `${Math.floor(Math.random() * 90) + 30} mins`,
+          rating: item.rating || (4.5 + Math.random() * 0.5),
+          reviews: item.rating_count || Math.floor(Math.random() * 20000) + 1000,
+          image_url: item.image_url,
+          category: selectedCategory?.name || 'Service',
+          distance: item.distance ? `${item.distance.toFixed(1)}km away` : '',
+          badge: Math.random() > 0.7 ? "Bride's choice" : Math.random() > 0.5 ? 'Bestseller' : undefined
+        }));
+        setServices(mappedServices);
       } else {
         setProviders([]);
+        setServices([]);
       }
     } catch (error) {
       console.error('Error loading providers:', error);
@@ -170,7 +228,7 @@ export default function LocalDeals() {
     toast.success('Booking confirmed! Provider will contact you soon.');
     setShowBooking(false);
     setSelectedProvider(null);
-    setBookingData({ date: '', time: '', address: '', description: '' });
+    setBookingData({ date: '', time: '', address: '', description: '', services: [] });
   };
 
   // Home view - show categories
@@ -349,18 +407,13 @@ export default function LocalDeals() {
             </div>
 
             {loading || locationLoading ? (
-              <div className="space-y-3">
-                {[...Array(4)].map((_, i) => (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
                   <Card key={i}>
-                    <CardContent className="p-4">
-                      <div className="flex gap-4">
-                        <Skeleton className="w-20 h-20 rounded-lg" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-5 w-3/4" />
-                          <Skeleton className="h-4 w-1/2" />
-                          <Skeleton className="h-4 w-full" />
-                        </div>
-                      </div>
+                    <CardContent className="p-4 space-y-3">
+                      <Skeleton className="h-6 w-40" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-48 w-full rounded-lg" />
                     </CardContent>
                   </Card>
                 ))}
@@ -368,65 +421,144 @@ export default function LocalDeals() {
             ) : providers.length === 0 ? (
               <Card>
                 <CardContent className="p-12 text-center">
+                  <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                   <p className="text-muted-foreground mb-2">No service providers found nearby</p>
-                  <p className="text-sm text-muted-foreground">Try searching in a different area</p>
+                  <p className="text-sm text-muted-foreground">Try searching in a different area or check your location settings</p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-6">
+                {/* Providers with Packages */}
                 {providers.map((provider) => (
-                  <Card 
-                    key={provider.id} 
-                    className="cursor-pointer hover:shadow-lg transition-all"
-                    onClick={() => {
-                      setSelectedProvider(provider);
-                      setShowBooking(true);
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex gap-4">
-                        {provider.image_url && (
-                          <img 
-                            src={provider.image_url} 
-                            alt={provider.name}
-                            className="w-20 h-20 rounded-lg object-cover"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex-1">
-                              <h3 className="font-semibold line-clamp-1">{provider.name}</h3>
-                              <p className="text-xs text-muted-foreground">{provider.experience} experience</p>
-                            </div>
-                            <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-950">
-                              {provider.availability}
-                            </Badge>
-                          </div>
-
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm font-semibold">{provider.rating.toFixed(1)}</span>
-                              <span className="text-xs text-muted-foreground">({provider.reviews})</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <MapPin className="w-3 h-3" />
-                              <span>{provider.distance}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-lg font-bold">₹{provider.price}</span>
-                              <span className="text-xs text-muted-foreground">onwards</span>
-                            </div>
-                            <Button size="sm">Book Now</Button>
+                  <Card key={provider.id} className="overflow-hidden">
+                    <CardContent className="p-0">
+                      {/* Provider Header */}
+                      <div className="p-4 border-b">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-lg font-bold">{provider.name}</h3>
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-semibold">{provider.rating.toFixed(2)}</span>
+                            <span className="text-xs text-muted-foreground">({(provider.reviews / 1000).toFixed(0)}K)</span>
                           </div>
                         </div>
+                        {provider.address && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {provider.distance} • {provider.address}
+                          </p>
+                        )}
                       </div>
+
+                      {/* Service Packages */}
+                      {provider.packages?.map((pkg) => (
+                        <div key={pkg.id} className="p-4 border-b bg-muted/30">
+                          <h4 className="font-semibold mb-3">{pkg.name}</h4>
+                          <ul className="space-y-2 mb-3">
+                            {pkg.items.slice(0, 4).map((item, idx) => (
+                              <li key={idx} className="text-sm flex items-start gap-2">
+                                <span className="text-primary">•</span>
+                                <span className="text-muted-foreground">{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {pkg.editable && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedProvider(provider);
+                                setShowBooking(true);
+                              }}
+                            >
+                              Edit your package
+                            </Button>
+                          )}
+                        </div>
+                      ))}
                     </CardContent>
                   </Card>
                 ))}
+
+                {/* Recommended Services */}
+                {services.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-px bg-border flex-1" />
+                      <h3 className="text-sm font-semibold text-green-600 uppercase tracking-wide">Recommended</h3>
+                      <div className="h-px bg-border flex-1" />
+                    </div>
+
+                    {services.map((service) => (
+                      <Card key={service.id} className="overflow-hidden hover:shadow-lg transition-all">
+                        <CardContent className="p-0">
+                          {/* Service Image */}
+                          {service.image_url && (
+                            <div className="relative">
+                              {service.badge && (
+                                <Badge className="absolute top-3 left-3 bg-green-600 text-white">
+                                  {service.badge}
+                                </Badge>
+                              )}
+                              <img 
+                                src={service.image_url} 
+                                alt={service.name}
+                                className="w-full h-48 object-cover"
+                              />
+                            </div>
+                          )}
+
+                          <div className="p-4">
+                            {/* Service Details */}
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex-1">
+                                <h4 className="font-bold mb-1">{service.name}</h4>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="flex items-center gap-1">
+                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                    <span className="text-sm font-semibold">{service.rating.toFixed(2)}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      ({(service.reviews / 1000).toFixed(0)}K reviews)
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm mb-2">
+                                  <span className="font-bold">₹{service.price.toLocaleString()}</span>
+                                  <span className="text-muted-foreground">• {service.duration}</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{service.description}</p>
+                              </div>
+                              <Button 
+                                size="sm"
+                                onClick={() => {
+                                  setBookingData({ 
+                                    ...bookingData, 
+                                    services: [...bookingData.services, service.name] 
+                                  });
+                                  toast.success(`${service.name} added to cart`);
+                                }}
+                              >
+                                Add
+                              </Button>
+                            </div>
+
+                            <Button 
+                              variant="link" 
+                              size="sm" 
+                              className="p-0 h-auto text-primary"
+                              onClick={() => {
+                                setSelectedService(service);
+                                setShowServiceDetail(true);
+                              }}
+                            >
+                              View details →
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -435,7 +567,7 @@ export default function LocalDeals() {
 
       {/* Booking Dialog */}
       <Dialog open={showBooking} onOpenChange={setShowBooking}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Book {selectedProvider?.name}</DialogTitle>
           </DialogHeader>
@@ -444,20 +576,36 @@ export default function LocalDeals() {
               <div className="bg-muted p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-semibold">{selectedProvider.rating.toFixed(1)}</span>
-                  <span className="text-sm text-muted-foreground">({selectedProvider.reviews} reviews)</span>
+                  <span className="font-semibold">{selectedProvider.rating.toFixed(2)}</span>
+                  <span className="text-sm text-muted-foreground">({(selectedProvider.reviews / 1000).toFixed(0)}K reviews)</span>
                 </div>
                 <p className="text-sm font-semibold">₹{selectedProvider.price} onwards</p>
               </div>
 
+              {/* Selected Services */}
+              {bookingData.services.length > 0 && (
+                <div className="border rounded-lg p-3">
+                  <p className="text-sm font-semibold mb-2">Selected Services:</p>
+                  <ul className="space-y-1">
+                    {bookingData.services.map((service, idx) => (
+                      <li key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
+                        <span>✓</span>
+                        <span>{service}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div>
-                <Label htmlFor="date">Preferred Date</Label>
+                <Label htmlFor="date">Preferred Date *</Label>
                 <Input
                   id="date"
                   type="date"
                   value={bookingData.date}
                   onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })}
                   min={new Date().toISOString().split('T')[0]}
+                  required
                 />
               </div>
 
@@ -472,34 +620,101 @@ export default function LocalDeals() {
               </div>
 
               <div>
-                <Label htmlFor="address">Service Address</Label>
+                <Label htmlFor="address">Service Address *</Label>
                 <Textarea
                   id="address"
-                  placeholder="Enter complete address"
+                  placeholder="Enter complete address with landmark"
                   value={bookingData.address}
                   onChange={(e) => setBookingData({ ...bookingData, address: e.target.value })}
-                  rows={2}
+                  rows={3}
+                  required
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">Additional Details (Optional)</Label>
+                <Label htmlFor="description">Additional Details</Label>
                 <Textarea
                   id="description"
-                  placeholder="Any specific requirements..."
+                  placeholder="Any specific requirements or preferences..."
                   value={bookingData.description}
                   onChange={(e) => setBookingData({ ...bookingData, description: e.target.value })}
                   rows={2}
                 />
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                <Phone className="w-4 h-4" />
-                <span>Provider will contact you to confirm the booking</span>
+              <div className="flex items-start gap-2 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+                <Phone className="w-4 h-4 mt-0.5" />
+                <span>Professional will contact you to confirm booking details and finalize the service</span>
               </div>
 
               <Button className="w-full" size="lg" onClick={handleBookService}>
                 Confirm Booking
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Service Detail Dialog */}
+      <Dialog open={showServiceDetail} onOpenChange={setShowServiceDetail}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedService?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedService && (
+            <div className="space-y-4">
+              {selectedService.image_url && (
+                <img 
+                  src={selectedService.image_url} 
+                  alt={selectedService.name}
+                  className="w-full h-56 object-cover rounded-lg"
+                />
+              )}
+
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                <span className="text-lg font-bold">{selectedService.rating.toFixed(2)}</span>
+                <span className="text-muted-foreground">({(selectedService.reviews / 1000).toFixed(0)}K reviews)</span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-lg">
+                  <span className="font-bold">₹{selectedService.price.toLocaleString()}</span>
+                  <Badge variant="secondary">{selectedService.duration}</Badge>
+                </div>
+                {selectedService.distance && (
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {selectedService.distance}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">About this service</h4>
+                <p className="text-sm text-muted-foreground">{selectedService.description}</p>
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <h4 className="font-semibold">What's included</h4>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  <li className="flex items-center gap-2">✓ Professional service by verified experts</li>
+                  <li className="flex items-center gap-2">✓ Quality products and equipment</li>
+                  <li className="flex items-center gap-2">✓ Safety and hygiene assured</li>
+                  <li className="flex items-center gap-2">✓ Service guarantee</li>
+                </ul>
+              </div>
+
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={() => {
+                  setBookingData({ ...bookingData, services: [selectedService.name] });
+                  setShowServiceDetail(false);
+                  setShowBooking(true);
+                }}
+              >
+                Book This Service
               </Button>
             </div>
           )}
