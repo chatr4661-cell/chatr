@@ -145,12 +145,10 @@ export default function LocalDeals() {
   }, [selectedCategoryId, selectedSubcategory, location?.lat, location?.lon]);
 
   const loadProviders = async () => {
-    if (!location?.lat || !location?.lon) return;
-
     setLoading(true);
     try {
       const searchTerm = selectedSubcategory || selectedCategory?.name || 'services';
-      const results = await chatrLocalSearch(searchTerm, location.lat, location.lon);
+      const results = await chatrLocalSearch(searchTerm, location?.lat, location?.lon);
       
       if (results && results.length > 0) {
         // Map providers with packages
