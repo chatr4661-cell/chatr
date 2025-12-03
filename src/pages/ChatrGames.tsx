@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, Trophy, Coins, ChevronRight, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, Play, Trophy, Coins, ChevronRight, Sparkles, Users, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SEOHead } from '@/components/SEOHead';
@@ -25,8 +25,9 @@ import EchoChainGame from '@/components/games/EchoChainGame';
 import MirrorMatchGame from '@/components/games/MirrorMatchGame';
 import ThoughtDuelGame from '@/components/games/ThoughtDuelGame';
 import VibeLinkGame from '@/components/games/VibeLinkGame';
+import { AIAirRunnerGame } from '@/components/games/AIAirRunnerGame';
 
-type GameType = 'hub' | 'parallel_you' | 'map_hunt' | 'emotionsync' | 'energy_pulse' | 'mindmaze' | 'socialstorm' | 'avawars' | 'dreamforge' | 'frequencyclash' | 'shadowverse' | 'car_racing' | 'motorcycle_racing' | 'bubble_shooter' | 'candy_crush' | 'word_finder' | 'sync_mind' | 'echo_chain' | 'mirror_match' | 'thought_duel' | 'vibe_link';
+type GameType = 'hub' | 'air_runner' | 'parallel_you' | 'map_hunt' | 'emotionsync' | 'energy_pulse' | 'mindmaze' | 'socialstorm' | 'avawars' | 'dreamforge' | 'frequencyclash' | 'shadowverse' | 'car_racing' | 'motorcycle_racing' | 'bubble_shooter' | 'candy_crush' | 'word_finder' | 'sync_mind' | 'echo_chain' | 'mirror_match' | 'thought_duel' | 'vibe_link';
 
 interface Game {
   id: GameType;
@@ -37,12 +38,15 @@ interface Game {
   gradient: string;
   accentColor: string;
   levels: number;
-  category: 'ai' | 'arcade' | 'puzzle' | 'adventure' | 'multiplayer';
+  category: 'ai' | 'arcade' | 'puzzle' | 'adventure' | 'multiplayer' | 'featured';
   isMultiplayer?: boolean;
   isNew?: boolean;
+  isFeatured?: boolean;
 }
 
 const games: Game[] = [
+  // FEATURED MAIN GAME
+  { id: 'air_runner', title: 'CHATR AIR RUNNER', subtitle: 'Endless Sky Runner', description: 'AI-powered infinite plane runner with 7 dynamic worlds', icon: '✈️', gradient: 'from-cyan-500 via-blue-500 to-indigo-600', accentColor: 'cyan', levels: 100, category: 'featured', isFeatured: true, isNew: true },
   // NEW Multiplayer Games
   { id: 'sync_mind', title: 'SyncMind', subtitle: 'Think Alike', description: 'Match minds with strangers', icon: '🧠', gradient: 'from-violet-500 to-fuchsia-400', accentColor: 'violet', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
   { id: 'echo_chain', title: 'EchoChain', subtitle: 'Story Builder', description: 'Build stories together', icon: '🔗', gradient: 'from-emerald-500 to-cyan-400', accentColor: 'emerald', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
@@ -68,7 +72,8 @@ const games: Game[] = [
 ];
 
 const categories = [
-  { id: 'all', label: 'All Games', count: 20 },
+  { id: 'all', label: 'All Games', count: 21 },
+  { id: 'featured', label: '⭐ Featured', count: 1 },
   { id: 'multiplayer', label: 'Multiplayer', count: 5 },
   { id: 'ai', label: 'AI Powered', count: 7 },
   { id: 'arcade', label: 'Arcade', count: 4 },
@@ -97,6 +102,7 @@ export default function ChatrGames() {
 
   const renderGame = () => {
     switch (activeGame) {
+      case 'air_runner': return <AIAirRunnerGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
       case 'parallel_you': return <ParallelYouGame onBack={() => setActiveGame('hub')} />;
       case 'map_hunt': return <MapHuntGame onBack={() => setActiveGame('hub')} />;
       case 'emotionsync': return <EmotionSyncGame onBack={() => setActiveGame('hub')} />;
@@ -121,13 +127,15 @@ export default function ChatrGames() {
     }
   };
 
+  const featuredGame = games.find(g => g.isFeatured);
+
   if (activeGame !== 'hub') return renderGame();
 
   return (
     <>
       <SEOHead 
-        title="CHATR Games - 20 AI & Multiplayer Games"
-        description="20 revolutionary games with 1000 levels. AI-powered + real-time multiplayer gaming."
+        title="CHATR Games - 21 AI & Multiplayer Games"
+        description="21 revolutionary games with 1100 levels. AI-powered + real-time multiplayer gaming."
       />
       <div className="min-h-screen bg-black text-white">
         {/* Ambient Background */}
@@ -150,7 +158,7 @@ export default function ChatrGames() {
                 </button>
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight">Games</h1>
-                  <p className="text-xs text-white/40">1000 Levels • 20 Games</p>
+                  <p className="text-xs text-white/40">1100 Levels • 21 Games</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -168,10 +176,153 @@ export default function ChatrGames() {
         </header>
 
         <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+          {/* Featured Main Game - CHATR AIR RUNNER */}
+          {featuredGame && (
+            <motion.section 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-10"
+            >
+              <motion.div
+                onClick={() => setActiveGame('air_runner')}
+                className="group relative cursor-pointer overflow-hidden rounded-[2rem]"
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Main Featured Card */}
+                <div className="relative h-[320px] md:h-[400px] bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 p-[2px]">
+                  <div className="absolute inset-[2px] rounded-[2rem] bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 overflow-hidden">
+                    {/* Animated Background Elements */}
+                    <div className="absolute inset-0">
+                      {/* Flying particles */}
+                      {[...Array(30)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          className="absolute w-1 h-1 bg-white/30 rounded-full"
+                          style={{ left: `${Math.random() * 100}%` }}
+                          animate={{
+                            y: ['-10%', '110%'],
+                            opacity: [0, 1, 0],
+                          }}
+                          transition={{
+                            duration: 2 + Math.random() * 2,
+                            repeat: Infinity,
+                            delay: Math.random() * 2,
+                          }}
+                        />
+                      ))}
+                      {/* Speed lines */}
+                      {[...Array(8)].map((_, i) => (
+                        <motion.div
+                          key={`line-${i}`}
+                          className="absolute h-[2px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent"
+                          style={{
+                            left: `${10 + Math.random() * 80}%`,
+                            width: `${50 + Math.random() * 100}px`,
+                            top: `${10 + Math.random() * 80}%`,
+                          }}
+                          animate={{
+                            x: [0, -100],
+                            opacity: [0.5, 0],
+                          }}
+                          transition={{
+                            duration: 0.8,
+                            repeat: Infinity,
+                            delay: Math.random() * 0.8,
+                          }}
+                        />
+                      ))}
+                      {/* Glow orbs */}
+                      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px]" />
+                      <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-blue-500/20 rounded-full blur-[60px]" />
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="relative z-10 h-full p-8 flex flex-col md:flex-row items-center justify-between">
+                      {/* Left Side - Text */}
+                      <div className="flex-1 text-center md:text-left mb-6 md:mb-0">
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                        >
+                          <Badge className="bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-cyan-300 border-cyan-400/40 px-4 py-1.5 text-xs font-bold mb-4 inline-flex items-center gap-2">
+                            <Sparkles className="w-3 h-3" />
+                            MAIN GAME • NEW
+                          </Badge>
+                          <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-2 bg-gradient-to-b from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent">
+                            CHATR AIR RUNNER
+                          </h2>
+                          <p className="text-xl text-cyan-200/80 font-medium mb-1">Endless Sky Adventure</p>
+                          <p className="text-white/50 text-sm max-w-md mb-6">
+                            AI-powered infinite runner with 7 dynamic worlds, voice commands, plane evolution, and real-time obstacles. The future of mobile gaming.
+                          </p>
+                          <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-6">
+                            <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">7 Sky Worlds</span>
+                            <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">Voice Powers</span>
+                            <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">Plane Evolution</span>
+                            <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">100 Levels</span>
+                          </div>
+                          <Button 
+                            size="lg" 
+                            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-semibold px-8 py-6 text-lg rounded-full shadow-lg shadow-cyan-500/25 group-hover:shadow-cyan-500/40 transition-all"
+                          >
+                            <Play className="w-5 h-5 mr-2 fill-current" />
+                            PLAY NOW
+                          </Button>
+                        </motion.div>
+                      </div>
+                      
+                      {/* Right Side - Animated Plane */}
+                      <div className="flex-1 flex items-center justify-center">
+                        <motion.div
+                          className="relative"
+                          animate={{
+                            y: [0, -10, 0],
+                            rotate: [0, 2, -2, 0],
+                          }}
+                          transition={{
+                            duration: 4,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }}
+                        >
+                          {/* Plane with glow */}
+                          <div className="relative">
+                            <Plane 
+                              className="w-32 h-32 md:w-48 md:h-48 text-cyan-400 transform -rotate-45"
+                              style={{ filter: 'drop-shadow(0 0 40px rgba(34,211,238,0.6))' }}
+                            />
+                            {/* Engine trail */}
+                            <motion.div
+                              className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 rounded-full"
+                              style={{
+                                background: 'linear-gradient(to bottom, rgba(34,211,238,0.8), transparent)',
+                              }}
+                              animate={{
+                                height: [40, 60, 40],
+                                opacity: [0.8, 1, 0.8],
+                              }}
+                              transition={{
+                                duration: 0.3,
+                                repeat: Infinity,
+                              }}
+                            />
+                          </div>
+                        </motion.div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.section>
+          )}
+
           {/* Hero Section */}
           <motion.section 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
             className="mb-12"
           >
             <div className="text-center mb-8">
@@ -192,54 +343,6 @@ export default function ChatrGames() {
                 Games that learn, adapt, and challenge you like never before.
               </p>
             </div>
-
-            {/* Featured Games - Large Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {featuredGames.map((game, index) => (
-                <motion.div
-                  key={game.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
-                  onHoverStart={() => setHoveredGame(game.id)}
-                  onHoverEnd={() => setHoveredGame(null)}
-                  onClick={() => setActiveGame(game.id)}
-                  className="group relative cursor-pointer"
-                >
-                  <div className={`relative h-64 rounded-3xl overflow-hidden bg-gradient-to-br ${game.gradient} p-[1px]`}>
-                    <div className="absolute inset-[1px] rounded-3xl bg-black/80 backdrop-blur-xl" />
-                    <div className="relative h-full p-6 flex flex-col justify-between">
-                      {/* Glow Effect */}
-                      <div className={`absolute inset-0 bg-gradient-to-br ${game.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500 rounded-3xl`} />
-                      
-                      {/* Content */}
-                      <div className="relative z-10">
-                        <motion.span 
-                          className="text-5xl block mb-3"
-                          animate={hoveredGame === game.id ? { scale: 1.1, rotate: [0, -5, 5, 0] } : { scale: 1 }}
-                          transition={{ duration: 0.4 }}
-                        >
-                          {game.icon}
-                        </motion.span>
-                        <h3 className="text-2xl font-semibold tracking-tight">{game.title}</h3>
-                        <p className="text-white/50 text-sm">{game.subtitle}</p>
-                      </div>
-                      
-                      <div className="relative z-10 flex items-center justify-between">
-                        <span className="text-xs text-white/40">{game.levels} Levels</span>
-                        <motion.div
-                          animate={hoveredGame === game.id ? { x: 5 } : { x: 0 }}
-                          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors"
-                        >
-                          <Play className="w-4 h-4 text-white fill-white" />
-                        </motion.div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
 
           {/* Category Filter - Pill Style */}
           <motion.section
