@@ -124,7 +124,14 @@ const Home = () => {
           <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Navigation */}
             <nav className="flex items-center justify-between py-4">
-              <img src={chatrLogo} alt="Chatr" className="h-10 sm:h-12 object-contain" />
+              <img 
+                src={chatrLogo} 
+                alt="Chatr" 
+                className="h-10 sm:h-12 object-contain" 
+                width={48}
+                height={48}
+                loading="eager"
+              />
               <div className="flex items-center gap-2">
                 {!isAuthenticated && (
                   <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
@@ -360,7 +367,14 @@ const Home = () => {
         <footer className="py-8 border-t border-border/50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <img src={chatrLogo} alt="Chatr" className="h-8 object-contain" />
+              <img 
+                src={chatrLogo} 
+                alt="Chatr" 
+                className="h-8 object-contain"
+                width={32}
+                height={32}
+                loading="lazy"
+              />
               <p className="text-sm text-muted-foreground text-center">
                 Say It. Share It. Live It. • Multi-source AI Search
               </p>

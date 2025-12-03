@@ -610,7 +610,14 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
         <div className="bg-background/95 backdrop-blur-xl border-b border-border/40">
           <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-center gap-3">
-            <img src={chatrIconLogo} alt="Chatr" className="h-12 w-12" loading="eager" />
+            <img 
+              src={chatrIconLogo} 
+              alt="Chatr" 
+              className="h-12 w-12" 
+              width={48}
+              height={48}
+              loading="eager" 
+            />
             <div>
               <div className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
