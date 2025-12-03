@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Download, Wallet, TrendingUp, Gift, Filter } from 'lucide-react';
+import { ArrowLeft, Plus, Download, Wallet, TrendingUp, Gift, Filter, Zap, Shield, Percent, Clock, Star, Sparkles } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import logo from '@/assets/chatr-logo.png';
+import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
+import { Badge } from '@/components/ui/badge';
 
 interface Transaction {
   id: string;
@@ -46,9 +48,9 @@ export default function ChatrPlusWallet() {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [addMoneyOpen, setAddMoneyOpen] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card'>('upi');
-  const [upiId, setUpiId] = useState('');
+  const [showUPIModal, setShowUPIModal] = useState(false);
+  const [selectedTopup, setSelectedTopup] = useState(0);
+  const [customAmount, setCustomAmount] = useState('');
   const [totalSpent, setTotalSpent] = useState(0);
   const [cashbackEarned, setCashbackEarned] = useState(0);
 
@@ -57,6 +59,15 @@ export default function ChatrPlusWallet() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  // Topup amounts with bonuses
+  const TOPUP_OPTIONS = [
+    { amount: 100, bonus: 0, popular: false },
+    { amount: 500, bonus: 25, popular: true },
+    { amount: 1000, bonus: 75, popular: false },
+    { amount: 2000, bonus: 200, popular: false },
+    { amount: 5000, bonus: 750, popular: false },
+  ];
 
   useEffect(() => {
     loadWalletData();
@@ -140,72 +151,56 @@ export default function ChatrPlusWallet() {
     setFilteredTransactions(filtered);
   };
 
-  const handleAddMoney = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
+  const handleTopupSelect = (amount: number) => {
+    setSelectedTopup(amount);
+    setAddMoneyOpen(false);
+    setShowUPIModal(true);
+  };
+
+  const handleCustomTopup = () => {
+    const amt = parseInt(customAmount);
+    if (amt >= 50) {
+      setSelectedTopup(amt);
+      setAddMoneyOpen(false);
+      setShowUPIModal(true);
+    } else {
       toast({
-        title: 'Invalid Amount',
-        description: 'Please enter a valid amount',
+        title: 'Minimum ₹50',
+        description: 'Please enter at least ₹50',
         variant: 'destructive',
       });
-      return;
     }
+  };
 
-    if (paymentMethod === 'upi' && !upiId) {
-      toast({
-        title: 'UPI ID Required',
-        description: 'Please enter your UPI ID',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handlePaymentSubmitted = async (paymentId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Simulate payment processing
-      const amountNum = parseFloat(amount);
-      
-      // Add money to balance
-      const { error: balanceError } = await supabase
-        .from('user_points')
-        .update({
-          balance: balance + amountNum,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id);
+      const bonus = TOPUP_OPTIONS.find(o => o.amount === selectedTopup)?.bonus || 0;
 
-      if (balanceError) throw balanceError;
-
-      // Create transaction record
-      const { error: txError } = await supabase
+      // Create pending topup record
+      await supabase
         .from('point_transactions')
         .insert({
           user_id: user.id,
-          amount: amountNum,
+          amount: selectedTopup + bonus,
           transaction_type: 'earn',
-          description: `Added money via ${paymentMethod.toUpperCase()}`,
-          source: 'wallet_topup',
+          description: `Wallet top-up ₹${selectedTopup}${bonus > 0 ? ` + ₹${bonus} bonus` : ''} (Pending verification)`,
+          source: 'wallet_topup_pending',
+          metadata: { payment_id: paymentId, amount: selectedTopup, bonus }
         });
 
-      if (txError) throw txError;
-
       toast({
-        title: 'Success',
-        description: `₹${amountNum} added to your wallet`,
+        title: 'Payment Submitted! 🎉',
+        description: `₹${selectedTopup}${bonus > 0 ? ` + ₹${bonus} bonus` : ''} will be credited after verification.`,
       });
 
-      setAddMoneyOpen(false);
-      setAmount('');
-      setUpiId('');
-      loadWalletData();
+      setShowUPIModal(false);
+      setSelectedTopup(0);
+      setCustomAmount('');
     } catch (error) {
-      console.error('Error adding money:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add money',
-        variant: 'destructive',
-      });
+      console.error('Error recording topup:', error);
     }
   };
 
@@ -322,47 +317,72 @@ export default function ChatrPlusWallet() {
                   Add Money
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Add Money to Wallet</DialogTitle>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5" />
+                    Add Money to Wallet
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="amount">Amount</Label>
+                  {/* Quick Amount Options */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {TOPUP_OPTIONS.map((option) => (
+                      <Button
+                        key={option.amount}
+                        variant={option.popular ? "default" : "outline"}
+                        className={`flex-col h-auto py-3 relative ${option.popular ? 'ring-2 ring-primary' : ''}`}
+                        onClick={() => handleTopupSelect(option.amount)}
+                      >
+                        {option.popular && (
+                          <Badge className="absolute -top-2 -right-2 text-[10px] px-1.5">Popular</Badge>
+                        )}
+                        <span className="text-lg font-bold">₹{option.amount}</span>
+                        {option.bonus > 0 && (
+                          <span className="text-[10px] text-green-600">+₹{option.bonus} bonus</span>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Custom Amount */}
+                  <div className="flex gap-2">
                     <Input
-                      id="amount"
                       type="number"
-                      placeholder="Enter amount"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="Enter custom amount (min ₹50)"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
                     />
+                    <Button onClick={handleCustomTopup} disabled={!customAmount}>
+                      Add
+                    </Button>
                   </div>
-                  <div>
-                    <Label>Payment Method</Label>
-                    <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'upi' | 'card')}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="upi">UPI</SelectItem>
-                        <SelectItem value="card">Card</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {paymentMethod === 'upi' && (
-                    <div>
-                      <Label htmlFor="upi">UPI ID</Label>
-                      <Input
-                        id="upi"
-                        placeholder="yourname@upi"
-                        value={upiId}
-                        onChange={(e) => setUpiId(e.target.value)}
-                      />
+
+                  {/* Benefits */}
+                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-3 space-y-2">
+                    <p className="text-sm font-semibold flex items-center gap-1">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      Why add money?
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Percent className="h-3 w-3 text-green-600" />
+                        Up to 5% cashback
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Zap className="h-3 w-3 text-yellow-600" />
+                        Instant payments
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Shield className="h-3 w-3 text-blue-600" />
+                        Secure transactions
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Gift className="h-3 w-3 text-purple-600" />
+                        Bonus on top-ups
+                      </div>
                     </div>
-                  )}
-                  <Button onClick={handleAddMoney} className="w-full">
-                    Add ₹{amount || '0'}
-                  </Button>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
@@ -371,6 +391,44 @@ export default function ChatrPlusWallet() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Incentives Banner */}
+        <Card className="p-6 bg-gradient-to-r from-primary/10 via-primary/5 to-background border-primary/20">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">Why Use ChatrPay?</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 rounded-lg bg-background/50">
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
+                <Percent className="h-6 w-6 text-green-600" />
+              </div>
+              <p className="font-semibold">Up to 5% Cashback</p>
+              <p className="text-xs text-muted-foreground">On every transaction</p>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-background/50">
+              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-2">
+                <Zap className="h-6 w-6 text-yellow-600" />
+              </div>
+              <p className="font-semibold">Instant Payments</p>
+              <p className="text-xs text-muted-foreground">No waiting, pay instantly</p>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-background/50">
+              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-2">
+                <Gift className="h-6 w-6 text-purple-600" />
+              </div>
+              <p className="font-semibold">Top-up Bonuses</p>
+              <p className="text-xs text-muted-foreground">Extra ₹ on adding money</p>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-background/50">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                <Star className="h-6 w-6 text-blue-600" />
+              </div>
+              <p className="font-semibold">Exclusive Deals</p>
+              <p className="text-xs text-muted-foreground">Members-only offers</p>
+            </div>
+          </div>
+        </Card>
+
         {/* Cashback Rewards */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
@@ -552,6 +610,15 @@ export default function ChatrPlusWallet() {
           </div>
         </Card>
       </div>
+
+      {/* UPI Payment Modal */}
+      <UPIPaymentModal
+        open={showUPIModal}
+        onOpenChange={setShowUPIModal}
+        amount={selectedTopup}
+        orderType="service"
+        onPaymentSubmitted={handlePaymentSubmitted}
+      />
     </div>
   );
 }
