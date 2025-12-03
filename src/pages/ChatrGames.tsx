@@ -17,13 +17,23 @@ import { AvaWarsGame } from '@/components/games/AvaWarsGame';
 import { DreamForgeGame } from '@/components/games/DreamForgeGame';
 import { FrequencyClashGame } from '@/components/games/FrequencyClashGame';
 import { ShadowVerseGame } from '@/components/games/ShadowVerseGame';
+import AICarRacingGame from '@/components/games/AICarRacingGame';
+import AIMotorcycleRacingGame from '@/components/games/AIMotorcycleRacingGame';
+import AIBubbleShooterGame from '@/components/games/AIBubbleShooterGame';
+import AICandyCrushGame from '@/components/games/AICandyCrushGame';
+import AIWordFinderGame from '@/components/games/AIWordFinderGame';
 
-type GameType = 'hub' | 'parallel_you' | 'map_hunt' | 'emotionsync' | 'energy_pulse' | 'mindmaze' | 'socialstorm' | 'avawars' | 'dreamforge' | 'frequencyclash' | 'shadowverse';
+type GameType = 'hub' | 'parallel_you' | 'map_hunt' | 'emotionsync' | 'energy_pulse' | 'mindmaze' | 'socialstorm' | 'avawars' | 'dreamforge' | 'frequencyclash' | 'shadowverse' | 'car_racing' | 'motorcycle_racing' | 'bubble_shooter' | 'candy_crush' | 'word_finder';
 
 const games = [
   { id: 'parallel_you' as GameType, title: 'Parallel You', subtitle: 'AI Doppelganger', description: 'Battle your AI twin', icon: '🧬', gradient: 'from-violet-600 via-purple-600 to-indigo-700', glow: 'shadow-violet-500/40', levels: 50, featured: true },
-  { id: 'mindmaze' as GameType, title: 'MindMaze', subtitle: 'Thought Reader', description: 'Can AI guess your thoughts?', icon: '🧠', gradient: 'from-indigo-500 via-purple-600 to-violet-700', glow: 'shadow-indigo-500/40', levels: 50, featured: true },
-  { id: 'avawars' as GameType, title: 'AVA Wars', subtitle: 'AI Battle Arena', description: 'Your personality fights', icon: '⚔️', gradient: 'from-red-500 via-rose-600 to-pink-600', glow: 'shadow-rose-500/40', levels: 50, featured: true },
+  { id: 'car_racing' as GameType, title: 'AI Car Racing', subtitle: 'Speed Demon', description: 'AI predicts your moves', icon: '🏎️', gradient: 'from-cyan-500 via-blue-600 to-indigo-700', glow: 'shadow-cyan-500/40', levels: 50, featured: true },
+  { id: 'candy_crush' as GameType, title: 'AI Candy Crush', subtitle: 'Sweet Match', description: 'AI creates patterns', icon: '🍬', gradient: 'from-pink-500 via-fuchsia-500 to-purple-600', glow: 'shadow-pink-500/40', levels: 50, featured: true },
+  { id: 'mindmaze' as GameType, title: 'MindMaze', subtitle: 'Thought Reader', description: 'Can AI guess your thoughts?', icon: '🧠', gradient: 'from-indigo-500 via-purple-600 to-violet-700', glow: 'shadow-indigo-500/40', levels: 50, featured: false },
+  { id: 'avawars' as GameType, title: 'AVA Wars', subtitle: 'AI Battle Arena', description: 'Your personality fights', icon: '⚔️', gradient: 'from-red-500 via-rose-600 to-pink-600', glow: 'shadow-rose-500/40', levels: 50, featured: false },
+  { id: 'motorcycle_racing' as GameType, title: 'AI Moto Racing', subtitle: 'Nitro Rush', description: 'AI adapts to your style', icon: '🏍️', gradient: 'from-orange-500 via-red-600 to-rose-700', glow: 'shadow-orange-500/40', levels: 50, featured: false },
+  { id: 'bubble_shooter' as GameType, title: 'AI Bubble Pop', subtitle: 'Strategic Bubbles', description: 'AI creates challenges', icon: '🫧', gradient: 'from-purple-500 via-indigo-500 to-blue-600', glow: 'shadow-purple-500/40', levels: 50, featured: false },
+  { id: 'word_finder' as GameType, title: 'AI Word Hunt', subtitle: 'Brain Teaser', description: 'AI hides the words', icon: '📚', gradient: 'from-emerald-500 via-teal-500 to-cyan-600', glow: 'shadow-emerald-500/40', levels: 50, featured: false },
   { id: 'dreamforge' as GameType, title: 'DreamForge', subtitle: 'Dream Worlds', description: 'Play inside your dreams', icon: '🌙', gradient: 'from-purple-500 via-indigo-600 to-blue-700', glow: 'shadow-purple-500/40', levels: 50, featured: false },
   { id: 'socialstorm' as GameType, title: 'SocialStorm', subtitle: 'Viral Predictor', description: 'Predict what goes viral', icon: '🔥', gradient: 'from-orange-500 via-red-500 to-rose-600', glow: 'shadow-red-500/40', levels: 50, featured: false },
   { id: 'shadowverse' as GameType, title: 'ShadowVerse', subtitle: 'Dark Side', description: 'Explore your shadow self', icon: '👻', gradient: 'from-slate-600 via-violet-700 to-purple-900', glow: 'shadow-violet-500/40', levels: 50, featured: false },
@@ -39,6 +49,13 @@ export default function ChatrGames() {
   const [totalCoins] = useState(2500);
   const [totalXP] = useState(12500);
 
+  const [currentLevel, setCurrentLevel] = useState(1);
+
+  const handleGameComplete = (score: number) => {
+    setCurrentLevel(prev => Math.min(prev + 1, 50));
+    setActiveGame('hub');
+  };
+
   const renderGame = () => {
     switch (activeGame) {
       case 'parallel_you': return <ParallelYouGame onBack={() => setActiveGame('hub')} />;
@@ -51,6 +68,11 @@ export default function ChatrGames() {
       case 'dreamforge': return <DreamForgeGame onBack={() => setActiveGame('hub')} />;
       case 'frequencyclash': return <FrequencyClashGame onBack={() => setActiveGame('hub')} />;
       case 'shadowverse': return <ShadowVerseGame onBack={() => setActiveGame('hub')} />;
+      case 'car_racing': return <AICarRacingGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
+      case 'motorcycle_racing': return <AIMotorcycleRacingGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
+      case 'bubble_shooter': return <AIBubbleShooterGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
+      case 'candy_crush': return <AICandyCrushGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
+      case 'word_finder': return <AIWordFinderGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
       default: return null;
     }
   };
@@ -64,7 +86,7 @@ export default function ChatrGames() {
     <>
       <SEOHead 
         title="CHATR Games - World's Best AI Gaming Platform"
-        description="10 revolutionary AI-native games with 500 levels. Parallel You, MindMaze, AVA Wars, DreamForge & more."
+        description="15 revolutionary AI-native games with 750 levels. Car Racing, Candy Crush, Bubble Shooter, Word Finder & more."
       />
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/30 to-slate-950">
         {/* Animated Background */}
@@ -119,7 +141,7 @@ export default function ChatrGames() {
           {/* Hero Badge */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
             <Badge className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white border-0 px-4 py-1.5 text-sm">
-              <Sparkles className="w-3 h-3 mr-1" /> 10 World-First Games • 500 Levels • Infinite Fun
+              <Sparkles className="w-3 h-3 mr-1" /> 15 World-First Games • 750 Levels • Infinite Fun
             </Badge>
           </motion.div>
 
@@ -222,12 +244,12 @@ export default function ChatrGames() {
                     </motion.div>
                     <div>
                       <h3 className="text-lg font-bold text-white">Daily Challenge</h3>
-                      <p className="text-white/60 text-sm">Play all 10 games for 10x bonus!</p>
+                      <p className="text-white/60 text-sm">Play all 15 games for 15x bonus!</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-yellow-400">0/10</p>
+                      <p className="text-2xl font-bold text-yellow-400">0/15</p>
                       <p className="text-xs text-white/50">Completed</p>
                     </div>
                     <Progress value={0} className="w-24 h-2" />
