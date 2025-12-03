@@ -116,24 +116,30 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
       );
     }
 
-    // Business module - services/bookings
+    // Business/Jobs module
     if (analysis.modules.includes('business')) {
       fetchPromises.push(
         (async () => {
-          let query = supabase
-            .from('service_providers')
-            .select('*');
+          let jobQuery = supabase
+            .from('chatr_jobs')
+            .select('*')
+            .eq('is_active', true);
           
-          // Filter by location if available
           if (city) {
-            query = query.ilike('location', `%${city}%`);
+            jobQuery = jobQuery.ilike('location', `%${city}%`);
           }
           
-          const { data } = await query.limit(10);
+          const { data } = await jobQuery.limit(10);
           
           results.data.business = {
-            type: 'service_providers',
-            providers: data || [],
+            type: 'jobs',
+            providers: (data || []).map(j => ({
+              id: j.id,
+              name: j.title,
+              description: `${j.company_name} - ${j.salary_min ? `₹${j.salary_min.toLocaleString()}-${j.salary_max?.toLocaleString()}` : 'Competitive'}`,
+              location: j.location,
+              company: j.company_name
+            })),
             count: data?.length || 0,
             location: city || 'all locations',
             hasLocation: !!(latitude && longitude)
@@ -142,20 +148,35 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
       );
     }
 
-    // Health module
+    // Health module - using chatr_healthcare
     if (analysis.modules.includes('health')) {
       fetchPromises.push(
         (async () => {
-          const { data } = await supabase
-            .from('service_providers')
+          let healthQuery = supabase
+            .from('chatr_healthcare')
             .select('*')
-            .eq('category', 'healthcare')
-            .limit(5);
+            .eq('is_active', true);
+          
+          if (city) {
+            healthQuery = healthQuery.ilike('city', `%${city}%`);
+          }
+          
+          const { data } = await healthQuery.limit(10);
           
           results.data.health = {
             type: 'healthcare_providers',
-            providers: data || [],
-            count: data?.length || 0
+            providers: (data || []).map(h => ({
+              id: h.id,
+              name: h.name,
+              description: h.description,
+              specialty: h.specialty,
+              location: h.city,
+              fee: h.consultation_fee,
+              rating: h.rating_average,
+              phone: h.phone
+            })),
+            count: data?.length || 0,
+            location: city || 'all locations'
           };
         })()
       );
@@ -180,24 +201,34 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
       );
     }
 
-    // Food module
+    // Food module - using chatr_restaurants
     if (analysis.modules.includes('food')) {
       fetchPromises.push(
         (async () => {
-          let query = supabase
-            .from('food_vendors')
-            .select('*');
+          let foodQuery = supabase
+            .from('chatr_restaurants')
+            .select('*')
+            .eq('is_active', true);
           
-          // Filter by location if available
           if (city) {
-            query = query.ilike('location', `%${city}%`);
+            foodQuery = foodQuery.ilike('city', `%${city}%`);
           }
           
-          const { data } = await query.limit(10);
+          const { data } = await foodQuery.limit(10);
           
           results.data.food = {
-            type: 'food_vendors',
-            vendors: data || [],
+            type: 'restaurants',
+            vendors: (data || []).map(r => ({
+              id: r.id,
+              name: r.name,
+              description: r.description,
+              location: r.city,
+              address: r.address,
+              price: r.delivery_fee,
+              rating: r.rating_average,
+              phone: r.phone,
+              cuisine: r.cuisine_type
+            })),
             count: data?.length || 0,
             location: city || 'all locations',
             hasLocation: !!(latitude && longitude)
@@ -206,25 +237,32 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
       );
     }
 
-    // Deals module
+    // Deals module - using chatr_deals
     if (analysis.modules.includes('deals')) {
       fetchPromises.push(
         (async () => {
-          let query = supabase
-            .from('local_deals')
+          let dealsQuery = supabase
+            .from('chatr_deals')
             .select('*')
-            .eq('is_active', true);
+            .eq('is_active', true)
+            .gte('expires_at', new Date().toISOString());
           
-          // Filter by location if available
           if (city) {
-            query = query.ilike('city', `%${city}%`);
+            dealsQuery = dealsQuery.ilike('location', `%${city}%`);
           }
           
-          const { data } = await query.limit(10);
+          const { data } = await dealsQuery.limit(10);
           
           results.data.deals = {
-            type: 'local_deals',
-            deals: data || [],
+            type: 'deals',
+            deals: (data || []).map(d => ({
+              id: d.id,
+              name: d.title,
+              description: d.description,
+              discount: `${d.discount_percent}% OFF`,
+              code: d.coupon_code,
+              expires_at: d.expires_at
+            })),
             count: data?.length || 0,
             location: city || 'all locations'
           };
