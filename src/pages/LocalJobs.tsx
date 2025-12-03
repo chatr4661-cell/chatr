@@ -11,6 +11,7 @@ import { useLocation } from '@/contexts/LocationContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SEOHead } from '@/components/SEOHead';
 
 interface Job {
   id: string;
