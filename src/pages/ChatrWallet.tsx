@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 import walletIcon from '@/assets/chatrpay-wallet-icon.png';
 import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
+import { SEOHead } from '@/components/SEOHead';
 import { 
   Wallet, 
   ArrowLeft, 
@@ -141,7 +142,13 @@ const ChatrWallet = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-green-500/5">
+    <>
+      <SEOHead
+        title="ChatrPay Wallet - Digital Wallet | Chatr+"
+        description="Manage your ChatrPay wallet. Add money, track cashback, view transactions, and enjoy up to 15% top-up bonuses. Secure digital payments for all Chatr services."
+        ogImage={walletIcon}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-green-500/5">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border">
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -341,15 +348,16 @@ const ChatrWallet = () => {
         </div>
       </div>
 
-      {/* UPI Payment Modal */}
-      <UPIPaymentModal
-        open={showUPIModal}
-        onOpenChange={setShowUPIModal}
-        amount={selectedTopup}
-        orderType="service"
-        onPaymentSubmitted={handlePaymentSubmitted}
-      />
-    </div>
+        {/* UPI Payment Modal */}
+        <UPIPaymentModal
+          open={showUPIModal}
+          onOpenChange={setShowUPIModal}
+          amount={selectedTopup}
+          orderType="service"
+          onPaymentSubmitted={handlePaymentSubmitted}
+        />
+      </div>
+    </>
   );
 };
 
