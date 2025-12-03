@@ -12617,10 +12617,9 @@ export type Database = {
           call_type: string | null
           caller_avatar: string | null
           caller_id: string | null
-          caller_name: string | null
+          caller_username: string | null
           created_at: string | null
           id: string | null
-          missed: boolean | null
           receiver_id: string | null
         }
         Relationships: [
