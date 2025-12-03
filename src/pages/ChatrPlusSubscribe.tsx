@@ -15,13 +15,13 @@ import {
   TrendingUp,
   HeadphonesIcon
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
 
 export default function ChatrPlusSubscribe() {
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const [showPayment, setShowPayment] = useState(false);
 
   const plans = {
     monthly: {
@@ -70,56 +70,9 @@ export default function ChatrPlusSubscribe() {
     }
   ];
 
-  const handleSubscribe = async () => {
-    setIsProcessing(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error('Please login to subscribe');
-        navigate('/login');
-        return;
-      }
-
-      const plan = plans[selectedPlan];
-      const amount = plan.price;
-
-      // Create subscription
-      const { error: subError } = await supabase
-        .from('chatr_plus_user_subscriptions')
-        .upsert({
-          user_id: user.id,
-          plan_type: 'premium',
-          amount: amount,
-          status: 'active',
-          started_at: new Date().toISOString(),
-          expires_at: new Date(
-            Date.now() + (selectedPlan === 'monthly' ? 30 : 365) * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          auto_renew: true
-        });
-
-      if (subError) throw subError;
-
-      // Process payment
-      const { error: paymentError } = await supabase.rpc('process_chatr_plus_payment', {
-        p_user_id: user.id,
-        p_amount: amount,
-        p_transaction_type: 'subscription',
-        p_payment_method: 'wallet',
-        p_description: `Chatr+ Premium - ${selectedPlan} subscription`
-      });
-
-      if (paymentError) throw paymentError;
-
-      toast.success('🎉 Welcome to Chatr+ Premium!');
-      navigate('/chatr-plus');
-    } catch (error: any) {
-      console.error('Subscription error:', error);
-      toast.error(error.message || 'Subscription failed');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handlePaymentSubmitted = (paymentId: string) => {
+    toast.success('🎉 Payment submitted! Your Chatr+ Premium will activate once verified.');
+    setShowPayment(false);
   };
 
   return (
@@ -260,17 +213,10 @@ export default function ChatrPlusSubscribe() {
             <Button
               size="lg"
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-              onClick={handleSubscribe}
-              disabled={isProcessing}
+              onClick={() => setShowPayment(true)}
             >
-              {isProcessing ? (
-                'Processing...'
-              ) : (
-                <>
-                  <Crown className="w-5 h-5 mr-2" />
-                  Subscribe Now
-                </>
-              )}
+              <Crown className="w-5 h-5 mr-2" />
+              Pay with UPI
             </Button>
             <p className="text-xs text-muted-foreground">
               Cancel anytime. No questions asked.
@@ -278,6 +224,15 @@ export default function ChatrPlusSubscribe() {
           </div>
         </Card>
       </div>
+
+      {/* UPI Payment Modal */}
+      <UPIPaymentModal
+        open={showPayment}
+        onOpenChange={setShowPayment}
+        amount={plans[selectedPlan].price}
+        orderType="service"
+        onPaymentSubmitted={handlePaymentSubmitted}
+      />
     </div>
   );
 }

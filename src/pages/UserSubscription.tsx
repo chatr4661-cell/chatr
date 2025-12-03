@@ -6,11 +6,13 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Check, Crown, Sparkles, ArrowLeft, Zap } from 'lucide-react';
+import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
 
 const UserSubscription = () => {
   const navigate = useNavigate();
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     loadSubscription();
@@ -35,34 +37,9 @@ const UserSubscription = () => {
     }
   };
 
-  const handleUpgrade = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Please login first');
-        return;
-      }
-
-      // Create/update subscription
-      const { error } = await supabase
-        .from('chatr_user_subscriptions')
-        .upsert({
-          user_id: user.id,
-          plan_type: 'premium',
-          status: 'active',
-          price: 99.00,
-          start_date: new Date().toISOString(),
-          end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
-        });
-
-      if (error) throw error;
-
-      toast.success('Successfully upgraded to Premium!');
-      loadSubscription();
-    } catch (error) {
-      console.error('Upgrade error:', error);
-      toast.error('Failed to upgrade subscription');
-    }
+  const handlePaymentSubmitted = async (paymentId: string) => {
+    toast.success('Payment submitted! Your Premium will activate once verified.');
+    setShowPayment(false);
   };
 
   const premiumFeatures = [
@@ -143,7 +120,7 @@ const UserSubscription = () => {
 
             {!isPremium && (
               <Button 
-                onClick={handleUpgrade}
+                onClick={() => setShowPayment(true)}
                 className="w-full bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90"
                 size="lg"
               >
@@ -174,6 +151,15 @@ const UserSubscription = () => {
           </Card>
         </div>
       </div>
+
+      {/* UPI Payment Modal */}
+      <UPIPaymentModal
+        open={showPayment}
+        onOpenChange={setShowPayment}
+        amount={99}
+        orderType="service"
+        onPaymentSubmitted={handlePaymentSubmitted}
+      />
     </div>
   );
 };

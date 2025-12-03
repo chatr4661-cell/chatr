@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
 
 interface HealthcareProvider {
   id: string;
@@ -39,6 +40,7 @@ export default function LocalHealthcare() {
   const [loading, setLoading] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<HealthcareProvider | null>(null);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const [stats, setStats] = useState({ total: 0, doctors: 0, clinics: 0, avgRating: 0 });
 
   useEffect(() => {
@@ -111,15 +113,18 @@ export default function LocalHealthcare() {
     setBookingOpen(true);
   };
 
-  const confirmBooking = async () => {
+  const confirmBooking = async (paymentId?: string) => {
     if (!selectedProvider) return;
     
     toast({
       title: 'Appointment Requested!',
-      description: `Your appointment request with ${selectedProvider.name} has been sent.`,
+      description: paymentId 
+        ? `Payment submitted! Your appointment with ${selectedProvider.name} will be confirmed once verified.`
+        : `Your appointment request with ${selectedProvider.name} has been sent.`,
     });
     setBookingOpen(false);
     setSelectedProvider(null);
+    setShowPayment(false);
   };
 
   return (
@@ -304,14 +309,23 @@ export default function LocalHealthcare() {
                 </Button>
               </div>
 
-              <Button onClick={confirmBooking} className="w-full h-12 bg-green-600 hover:bg-green-700">
+              <Button onClick={() => setShowPayment(true)} className="w-full h-12 bg-green-600 hover:bg-green-700">
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Confirm Booking
+                Pay & Confirm Booking
               </Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* UPI Payment Modal */}
+      <UPIPaymentModal
+        open={showPayment}
+        onOpenChange={setShowPayment}
+        amount={selectedProvider?.consultation_fee || 500}
+        orderType="healthcare"
+        onPaymentSubmitted={(paymentId) => confirmBooking(paymentId)}
+      />
     </div>
   );
 }

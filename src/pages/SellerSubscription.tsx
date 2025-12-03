@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Check, Star, Zap, Crown, ArrowRight } from "lucide-react";
+import { UPIPaymentModal } from "@/components/payment/UPIPaymentModal";
 
 interface SubscriptionPlan {
   id: string;
@@ -47,6 +48,7 @@ export default function SellerSubscription() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [upgradeDialog, setUpgradeDialog] = useState(false);
   const [providerId, setProviderId] = useState<string | null>(null);
+  const [showUPIPayment, setShowUPIPayment] = useState(false);
 
   useEffect(() => {
     fetchProviderProfile();
@@ -516,16 +518,41 @@ export default function SellerSubscription() {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button variant="outline" onClick={() => setUpgradeDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpgrade}>
-              {currentSubscription ? "Confirm Change" : "Start Free Trial"}
+            {!currentSubscription && (
+              <Button variant="secondary" onClick={handleUpgrade}>
+                Start Free Trial
+              </Button>
+            )}
+            <Button onClick={() => {
+              setUpgradeDialog(false);
+              setShowUPIPayment(true);
+            }}>
+              Pay with UPI
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* UPI Payment Modal */}
+      <UPIPaymentModal
+        open={showUPIPayment}
+        onOpenChange={setShowUPIPayment}
+        amount={selectedPlan ? (yearlyBilling ? selectedPlan.price_yearly : selectedPlan.price_monthly) : 0}
+        orderType="service"
+        sellerId={providerId || undefined}
+        onPaymentSubmitted={(paymentId) => {
+          toast({
+            title: "Payment Submitted",
+            description: "Your subscription will activate once payment is verified",
+          });
+          setShowUPIPayment(false);
+          setSelectedPlan(null);
+        }}
+      />
     </div>
   );
 }
