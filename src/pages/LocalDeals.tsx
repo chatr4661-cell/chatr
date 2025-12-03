@@ -152,8 +152,8 @@ export default function LocalDeals() {
     return (
       <div className="min-h-screen bg-background">
         <Helmet>
-          <title>Home Services - Book Trusted Professionals | Chatr</title>
-          <meta name="description" content="Book trusted home services - AC repair, cleaning, salon, plumber, electrician and more at your doorstep." />
+          <title>Nexgenn Home Services - Book Trusted Professionals | Chatr</title>
+          <meta name="description" content="Nexgenn Home Services powered by Chatr+ - Book trusted home services like AC repair, cleaning, salon, plumber, electrician and more at your doorstep." />
         </Helmet>
 
         {/* Header */}
@@ -164,7 +164,8 @@ export default function LocalDeals() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex-1">
-                <h1 className="text-lg font-bold">Home Services</h1>
+                <h1 className="text-lg font-bold">Nexgenn Home Services</h1>
+                <p className="text-xs text-muted-foreground">powered by Chatr+</p>
               </div>
             </div>
             
