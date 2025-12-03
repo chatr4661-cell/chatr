@@ -142,6 +142,42 @@ object NetworkModule {
         return retrofit.create(NotificationsApi::class.java)
     }
     
+    @Provides
+    @Singleton
+    fun providePaymentsApi(retrofit: Retrofit): PaymentsApi {
+        return retrofit.create(PaymentsApi::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideStudioApi(retrofit: Retrofit): StudioApi {
+        return retrofit.create(StudioApi::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideGamesApi(retrofit: Retrofit): GamesApi {
+        return retrofit.create(GamesApi::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideStealthModeApi(retrofit: Retrofit): StealthModeApi {
+        return retrofit.create(StealthModeApi::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideChatrWorldApi(retrofit: Retrofit): ChatrWorldApi {
+        return retrofit.create(ChatrWorldApi::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideAIBrowserApi(retrofit: Retrofit): AIBrowserApi {
+        return retrofit.create(AIBrowserApi::class.java)
+    }
+    
     // Repositories
     @Provides
     @Singleton
@@ -201,5 +237,41 @@ object NetworkModule {
     @Singleton
     fun provideNotificationsRepository(api: NotificationsApi): NotificationsRepository {
         return NotificationsRepository(api)
+    }
+    
+    @Provides
+    @Singleton
+    fun providePaymentsRepository(api: PaymentsApi): PaymentsRepository {
+        return PaymentsRepository(api)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideStudioRepository(api: StudioApi): StudioRepository {
+        return StudioRepository(api)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideGamesRepository(api: GamesApi): GamesRepository {
+        return GamesRepository(api)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideStealthModeRepository(api: StealthModeApi): StealthModeRepository {
+        return StealthModeRepository(api)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideChatrWorldRepository(api: ChatrWorldApi): ChatrWorldRepository {
+        return ChatrWorldRepository(api)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideAIBrowserRepository(api: AIBrowserApi): AIBrowserRepository {
+        return AIBrowserRepository(api)
     }
 }
