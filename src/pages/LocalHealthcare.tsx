@@ -41,6 +41,7 @@ export default function LocalHealthcare() {
   const [selectedProvider, setSelectedProvider] = useState<HealthcareProvider | null>(null);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(0);
   const [stats, setStats] = useState({ total: 0, doctors: 0, clinics: 0, avgRating: 0 });
 
   useEffect(() => {
@@ -309,7 +310,12 @@ export default function LocalHealthcare() {
                 </Button>
               </div>
 
-              <Button onClick={() => setShowPayment(true)} className="w-full h-12 bg-green-600 hover:bg-green-700">
+              <Button onClick={() => {
+                const amount = selectedProvider?.consultation_fee || 500;
+                setPaymentAmount(amount);
+                setBookingOpen(false);
+                setTimeout(() => setShowPayment(true), 100);
+              }} className="w-full h-12 bg-green-600 hover:bg-green-700">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Pay & Confirm Booking
               </Button>
@@ -322,9 +328,12 @@ export default function LocalHealthcare() {
       <UPIPaymentModal
         open={showPayment}
         onOpenChange={setShowPayment}
-        amount={selectedProvider?.consultation_fee || 500}
+        amount={paymentAmount || 500}
         orderType="healthcare"
-        onPaymentSubmitted={(paymentId) => confirmBooking(paymentId)}
+        onPaymentSubmitted={(paymentId) => {
+          confirmBooking(paymentId);
+          setPaymentAmount(0);
+        }}
       />
     </div>
   );

@@ -50,6 +50,7 @@ const HomeServices = () => {
   const [loading, setLoading] = useState(false);
   const [bookingProvider, setBookingProvider] = useState<ServiceProvider | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(0);
   const [bookingData, setBookingData] = useState({
     scheduled_date: "",
     address: "",
@@ -222,72 +223,13 @@ const HomeServices = () => {
                       </div>
                     </div>
 
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          className="w-full" 
-                          onClick={() => setBookingProvider(provider)}
-                        >
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Book Now
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Book {provider.business_name}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="date">Date & Time</Label>
-                            <Input
-                              id="date"
-                              type="datetime-local"
-                              value={bookingData.scheduled_date}
-                              onChange={(e) => setBookingData({ ...bookingData, scheduled_date: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="duration">Duration (hours)</Label>
-                            <Input
-                              id="duration"
-                              type="number"
-                              min="1"
-                              value={bookingData.duration_hours}
-                              onChange={(e) => setBookingData({ ...bookingData, duration_hours: parseInt(e.target.value) })}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="address">Service Address</Label>
-                            <Input
-                              id="address"
-                              placeholder="Enter your address"
-                              value={bookingData.address}
-                              onChange={(e) => setBookingData({ ...bookingData, address: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="description">Service Details</Label>
-                            <Textarea
-                              id="description"
-                              placeholder="Describe what you need..."
-                              value={bookingData.description}
-                              onChange={(e) => setBookingData({ ...bookingData, description: e.target.value })}
-                            />
-                          </div>
-                          <div className="bg-muted p-4 rounded-lg">
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold">Total Cost:</span>
-                              <span className="text-2xl font-bold">
-                                ${(provider.hourly_rate * bookingData.duration_hours).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                          <Button className="w-full" onClick={() => setShowPayment(true)}>
-                            Pay & Confirm Booking
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => setBookingProvider(provider)}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Book Now
+                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -296,16 +238,80 @@ const HomeServices = () => {
         )}
       </div>
 
+      {/* Booking Dialog */}
+      <Dialog open={!!bookingProvider} onOpenChange={(open) => !open && setBookingProvider(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Book {bookingProvider?.business_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="date">Date & Time</Label>
+              <Input
+                id="date"
+                type="datetime-local"
+                value={bookingData.scheduled_date}
+                onChange={(e) => setBookingData({ ...bookingData, scheduled_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="duration">Duration (hours)</Label>
+              <Input
+                id="duration"
+                type="number"
+                min="1"
+                value={bookingData.duration_hours}
+                onChange={(e) => setBookingData({ ...bookingData, duration_hours: parseInt(e.target.value) })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="address">Service Address</Label>
+              <Input
+                id="address"
+                placeholder="Enter your address"
+                value={bookingData.address}
+                onChange={(e) => setBookingData({ ...bookingData, address: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Service Details</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe what you need..."
+                value={bookingData.description}
+                onChange={(e) => setBookingData({ ...bookingData, description: e.target.value })}
+              />
+            </div>
+            <div className="bg-muted p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Total Cost:</span>
+                <span className="text-2xl font-bold">
+                  ${(bookingProvider?.hourly_rate || 0) * bookingData.duration_hours}
+                </span>
+              </div>
+            </div>
+            <Button className="w-full" onClick={() => {
+              const amount = (bookingProvider?.hourly_rate || 0) * bookingData.duration_hours;
+              setPaymentAmount(amount);
+              setBookingProvider(null);
+              setTimeout(() => setShowPayment(true), 100);
+            }}>
+              Pay & Confirm Booking
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* UPI Payment Modal */}
       <UPIPaymentModal
         open={showPayment}
         onOpenChange={setShowPayment}
-        amount={bookingProvider ? bookingProvider.hourly_rate * bookingData.duration_hours : 0}
+        amount={paymentAmount || 100}
         orderType="service"
         onPaymentSubmitted={() => {
           toast({ title: "Payment Submitted", description: "Your booking will be confirmed once payment is verified." });
           setShowPayment(false);
-          setBookingProvider(null);
+          setPaymentAmount(0);
         }}
       />
     </div>
