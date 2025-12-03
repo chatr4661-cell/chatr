@@ -855,32 +855,32 @@ const Index = () => {
           <h2 className="text-2xl font-bold mb-4">
             <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
           </h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => navigate('/food-ordering')}
               className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
             >
-              <div className="h-full rounded-3xl bg-gradient-to-br from-orange-400 to-red-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Utensils className="w-8 h-8 text-white mb-2" />
-                <span className="text-sm text-white text-center font-semibold">Food Ordering</span>
+              <div className="h-full rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Utensils className="w-6 h-6 text-white mb-1.5" />
+                <span className="text-xs text-white text-center font-semibold">Food Ordering</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/local-deals')}
               className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
             >
-              <div className="h-full rounded-3xl bg-gradient-to-br from-green-400 to-emerald-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Percent className="w-8 h-8 text-white mb-2" />
-                <span className="text-sm text-white text-center font-semibold">Local Deals</span>
+              <div className="h-full rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Percent className="w-6 h-6 text-white mb-1.5" />
+                <span className="text-xs text-white text-center font-semibold">Local Deals</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/chatr-plus-subscribe')}
               className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
             >
-              <div className="h-full rounded-3xl bg-gradient-to-br from-purple-400 to-pink-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Crown className="w-8 h-8 text-white mb-2" />
-                <span className="text-sm text-white text-center font-semibold">Chatr Premium</span>
+              <div className="h-full rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Crown className="w-6 h-6 text-white mb-1.5" />
+                <span className="text-xs text-white text-center font-semibold">Chatr Premium</span>
               </div>
             </button>
           </div>
@@ -891,41 +891,41 @@ const Index = () => {
           <h2 className="text-2xl font-bold mb-4">
             <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
           </h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => navigate('/chatr-wallet')}
               className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
             >
-              <div className="h-full rounded-3xl bg-gradient-to-br from-green-400 to-teal-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Coins className="w-8 h-8 text-white mb-2" />
-                <span className="text-sm text-white text-center font-semibold">ChatrPay Wallet</span>
+              <div className="h-full rounded-2xl bg-gradient-to-br from-green-400 to-teal-500 p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Coins className="w-6 h-6 text-white mb-1.5" />
+                <span className="text-xs text-white text-center font-semibold">ChatrPay Wallet</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/chatr-studio')}
               className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
             >
-              <div className="h-full rounded-3xl bg-gradient-to-br from-purple-400 to-pink-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <QrCode className="w-8 h-8 text-white mb-2" />
-                <span className="text-sm text-white text-center font-semibold">Chatr Studio</span>
+              <div className="h-full rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <QrCode className="w-6 h-6 text-white mb-1.5" />
+                <span className="text-xs text-white text-center font-semibold">Chatr Studio</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/ai-assistant')}
               className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
             >
-              <div className="h-full rounded-3xl bg-gradient-to-br from-teal-400 to-cyan-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Bot className="w-8 h-8 text-white mb-2" />
-                <span className="text-sm text-white text-center font-semibold">AI Assistant</span>
+              <div className="h-full rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-500 p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <Bot className="w-6 h-6 text-white mb-1.5" />
+                <span className="text-xs text-white text-center font-semibold">AI Assistant</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/emergency-services')}
               className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl col-span-1"
             >
-              <div className="h-full rounded-3xl bg-gradient-to-br from-red-400 to-rose-500 p-6 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <AlertTriangle className="w-8 h-8 text-white mb-2" />
-                <span className="text-sm text-white text-center font-semibold">Emergency</span>
+              <div className="h-full rounded-2xl bg-gradient-to-br from-red-400 to-rose-500 p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg">
+                <AlertTriangle className="w-6 h-6 text-white mb-1.5" />
+                <span className="text-xs text-white text-center font-semibold">Emergency</span>
               </div>
             </button>
           </div>
