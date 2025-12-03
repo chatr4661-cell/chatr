@@ -74,3 +74,12 @@ verify_jwt = false
 
 [functions.ai-answer]
 verify_jwt = false
+
+[functions.chatr-world-search]
+verify_jwt = false
+
+[functions.chatr-world-ai]
+verify_jwt = false
+
+[functions.healthcare-booking]
+verify_jwt = true
