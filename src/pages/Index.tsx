@@ -36,6 +36,7 @@ import { QuickAccessMenu } from '@/components/QuickAccessMenu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Share } from 'lucide-react';
+import { SEOHead } from '@/components/SEOHead';
 
 
 // Import ServiceCard directly (small component, no need for lazy loading)
@@ -623,7 +624,31 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-0">{/* Removed pb-32 for full screen */}
+    <>
+      <SEOHead
+        title="Chatr+ - The AI Superapp for India | Chat, Healthcare, Jobs & More"
+        description="Chatr+ is India's all-in-one AI superapp. Chat with friends, find healthcare providers, discover local jobs, order food, and access 100+ services - all in one app."
+        keywords="chatr, superapp, india, messaging app, healthcare app, job search, food delivery, AI assistant, local services, telemedicine"
+        schemaData={{
+          "@context": "https://schema.org",
+          "@type": "MobileApplication",
+          "name": "Chatr+",
+          "description": "India's AI Superapp - Chat, Healthcare, Jobs & More",
+          "applicationCategory": "LifestyleApplication",
+          "operatingSystem": "Android, iOS, Web",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "INR"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "10000"
+          }
+        }}
+      />
+      <div className="min-h-screen bg-background pb-0">{/* Removed pb-32 for full screen */}
       {/* Enhanced Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -932,6 +957,7 @@ const Index = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 };
 

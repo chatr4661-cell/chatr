@@ -4,6 +4,7 @@ import { MessageCircle, Phone, Users, User, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
 
 const navItems = [
   { name: 'Contacts', path: '/contacts', icon: Users, highlight: false },
@@ -16,8 +17,13 @@ export const BottomNav = () => {
   const location = useLocation();
   const [notificationCount, setNotificationCount] = React.useState(0);
 
+  // Only show BottomNav on native apps (iOS/Android), not on web
+  const isNative = Capacitor.isNativePlatform();
+
   // Fetch real notification count
   React.useEffect(() => {
+    if (!isNative) return; // Skip if not native
+    
     const fetchNotificationCount = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -52,13 +58,13 @@ export const BottomNav = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isNative]);
 
-  // Hide on auth, onboarding, admin, and index/home pages
+  // Hide on web entirely, also hide on auth/onboarding/admin/index pages in native
+  if (!isNative) return null;
+  
   const hiddenPaths = ['/auth', '/onboarding', '/admin'];
   const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path)) || location.pathname === '/';
-
-  
 
   if (shouldHide) return null;
 
