@@ -9,6 +9,7 @@ import { LocationProvider } from "./contexts/LocationContext";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 import { setupNativeCallUI } from "./utils/nativeCallUI";
 import { CrashlyticsErrorBoundary } from "./utils/crashlyticsErrorBoundary";
+import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 
 // Pages
@@ -240,11 +241,12 @@ const App = () => {
 
   return (
     <CrashlyticsErrorBoundary>
+    <GlobalErrorBoundary>
     <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <LocationProvider>
-          <BrowserRouter>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <NativeAppProvider>
             <Routes>
             {/* Public Routes */}
@@ -457,6 +459,7 @@ const App = () => {
       </ThemeProvider>
     </QueryClientProvider>
     </HelmetProvider>
+    </GlobalErrorBoundary>
     </CrashlyticsErrorBoundary>
   );
 };
