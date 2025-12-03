@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import walletIcon from '@/assets/chatrpay-wallet-icon.png';
+import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
 import { 
   Wallet, 
   ArrowLeft, 
@@ -15,7 +17,11 @@ import {
   TrendingUp,
   Gift,
   Plus,
-  History
+  History,
+  Percent,
+  Zap,
+  Shield,
+  Star
 } from 'lucide-react';
 
 interface WalletData {
@@ -35,12 +41,23 @@ interface Transaction {
   status: string;
 }
 
+const TOPUP_OPTIONS = [
+  { amount: 100, bonus: 0, label: '₹100' },
+  { amount: 500, bonus: 25, label: '₹500', tag: '+₹25 Bonus' },
+  { amount: 1000, bonus: 75, label: '₹1,000', tag: '+₹75 Bonus' },
+  { amount: 2000, bonus: 200, label: '₹2,000', tag: '+₹200 Bonus' },
+  { amount: 5000, bonus: 750, label: '₹5,000', tag: '+₹750 Bonus', popular: true },
+];
+
 const ChatrWallet = () => {
   const navigate = useNavigate();
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [addAmount, setAddAmount] = useState('');
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showUPIModal, setShowUPIModal] = useState(false);
+  const [selectedTopup, setSelectedTopup] = useState<number>(0);
 
   useEffect(() => {
     loadWalletData();
@@ -86,34 +103,27 @@ const ChatrWallet = () => {
     }
   };
 
-  const handleAddMoney = async () => {
+  const handleTopupSelect = (amount: number) => {
+    setSelectedTopup(amount);
+    setShowAddDialog(false);
+    setTimeout(() => setShowUPIModal(true), 100);
+  };
+
+  const handleCustomTopup = () => {
     const amount = parseFloat(addAmount);
-    if (!amount || amount <= 0) {
-      toast.error('Please enter a valid amount');
+    if (!amount || amount < 10) {
+      toast.error('Minimum amount is ₹10');
       return;
     }
+    handleTopupSelect(amount);
+  };
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // In production, integrate with Razorpay/UPI here
-      const { data, error } = await supabase.rpc('process_wallet_transaction', {
-        p_user_id: user.id,
-        p_type: 'credit',
-        p_amount: amount,
-        p_description: 'Added money to wallet'
-      });
-
-      if (error) throw error;
-
-      toast.success(`₹${amount} added to wallet!`);
-      setAddAmount('');
-      loadWalletData();
-    } catch (error) {
-      console.error('Add money error:', error);
-      toast.error('Failed to add money');
-    }
+  const handlePaymentSubmitted = async (paymentId: string) => {
+    toast.success('Top-up submitted! Will be credited after verification.');
+    setShowUPIModal(false);
+    setSelectedTopup(0);
+    setAddAmount('');
+    loadWalletData();
   };
 
   const getTransactionIcon = (type: string) => {
@@ -168,20 +178,63 @@ const ChatrWallet = () => {
               </div>
             </div>
 
-            {/* Add Money Section */}
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                value={addAmount}
-                onChange={(e) => setAddAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="flex-1"
-              />
-              <Button onClick={handleAddMoney} className="bg-primary">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Money
-              </Button>
-            </div>
+            {/* Add Money Button */}
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-primary">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Money
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Add Money to Wallet</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {/* Quick Top-up Options */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {TOPUP_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.amount}
+                        onClick={() => handleTopupSelect(opt.amount)}
+                        className={`p-3 rounded-lg border text-left transition-all hover:border-primary ${opt.popular ? 'border-primary bg-primary/5' : 'border-border'}`}
+                      >
+                        <div className="font-bold">{opt.label}</div>
+                        {opt.tag && (
+                          <Badge className="bg-green-500 text-white text-xs mt-1">{opt.tag}</Badge>
+                        )}
+                        {opt.popular && (
+                          <Badge variant="outline" className="text-xs mt-1 border-primary text-primary">Popular</Badge>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* Custom Amount */}
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      value={addAmount}
+                      onChange={(e) => setAddAmount(e.target.value)}
+                      placeholder="Custom amount"
+                      className="flex-1"
+                    />
+                    <Button onClick={handleCustomTopup}>Add</Button>
+                  </div>
+                  
+                  {/* Incentives */}
+                  <div className="bg-gradient-to-r from-green-50 to-primary/5 dark:from-green-950/30 dark:to-primary/10 rounded-lg p-3 space-y-2">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-green-600" />
+                      Top-up Bonuses
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Add ₹500+ and get up to 15% bonus instantly!
+                    </p>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </Card>
 
@@ -202,6 +255,44 @@ const ChatrWallet = () => {
             <p className="text-2xl font-bold text-primary">₹{wallet?.total_spent.toFixed(2) || '0'}</p>
           </Card>
         </div>
+
+        {/* Why Use ChatrPay - Incentives */}
+        <Card className="p-4 mb-6 bg-gradient-to-r from-primary/10 via-purple-500/10 to-green-500/10 border-primary/20">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Star className="w-5 h-5 text-yellow-500" />
+            Why Use ChatrPay?
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-start gap-2">
+              <Percent className="w-4 h-4 text-green-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">5% Cashback</p>
+                <p className="text-xs text-muted-foreground">On all services</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Zap className="w-4 h-4 text-yellow-500 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Instant Pay</p>
+                <p className="text-xs text-muted-foreground">No delays</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Gift className="w-4 h-4 text-purple-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Top-up Bonus</p>
+                <p className="text-xs text-muted-foreground">Up to 15% extra</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Secure</p>
+                <p className="text-xs text-muted-foreground">100% safe</p>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* Transactions */}
         <div>
@@ -249,6 +340,15 @@ const ChatrWallet = () => {
           )}
         </div>
       </div>
+
+      {/* UPI Payment Modal */}
+      <UPIPaymentModal
+        open={showUPIModal}
+        onOpenChange={setShowUPIModal}
+        amount={selectedTopup}
+        orderType="service"
+        onPaymentSubmitted={handlePaymentSubmitted}
+      />
     </div>
   );
 };
