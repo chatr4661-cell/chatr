@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, FolderOpen, Sparkles } from 'lucide-react';
+import { ArrowLeft, Palette, FolderOpen, Sparkles, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { SEOHead } from '@/components/SEOHead';
 import { TemplateGallery } from '@/components/studio/TemplateGallery';
 import { DesignEditor } from '@/components/studio/DesignEditor';
+import { AdvancedDesignEditor } from '@/components/studio/AdvancedDesignEditor';
 import { MyDesigns } from '@/components/studio/MyDesigns';
 
 interface Template {
@@ -22,6 +25,7 @@ export default function ChatrStudio() {
   const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [activeTab, setActiveTab] = useState('templates');
+  const [advancedMode, setAdvancedMode] = useState(true);
 
   const handleSelectTemplate = (template: Template) => {
     setSelectedTemplate(template);
@@ -53,19 +57,39 @@ export default function ChatrStudio() {
                 <p className="text-xs text-muted-foreground">Create marketing materials</p>
               </div>
             </div>
-            <Badge variant="secondary" className="gap-1">
-              <Sparkles className="w-3 h-3" />
-              Free
-            </Badge>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Switch 
+                  id="advanced-mode" 
+                  checked={advancedMode} 
+                  onCheckedChange={setAdvancedMode}
+                />
+                <Label htmlFor="advanced-mode" className="text-xs flex items-center gap-1 cursor-pointer">
+                  <Wand2 className="h-3 w-3" />
+                  Advanced
+                </Label>
+              </div>
+              <Badge variant="secondary" className="gap-1">
+                <Sparkles className="w-3 h-3" />
+                Free
+              </Badge>
+            </div>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className={`${advancedMode ? 'max-w-6xl' : 'max-w-4xl'} mx-auto px-4 py-6`}>
           {selectedTemplate ? (
-            <DesignEditor 
-              template={selectedTemplate} 
-              onBack={handleBackToTemplates} 
-            />
+            advancedMode ? (
+              <AdvancedDesignEditor 
+                template={selectedTemplate} 
+                onBack={handleBackToTemplates} 
+              />
+            ) : (
+              <DesignEditor 
+                template={selectedTemplate} 
+                onBack={handleBackToTemplates} 
+              />
+            )
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2 mb-6">

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Briefcase, Utensils, Tag, Share2, FileText, Sparkles } from 'lucide-react';
+import { Package, Briefcase, Utensils, Tag, Share2, FileText, Sparkles, Quote, Megaphone, CreditCard } from 'lucide-react';
 
 interface Template {
   id: string;
@@ -27,6 +27,9 @@ const categories = [
   { id: 'offer', label: 'Offers', icon: Tag },
   { id: 'social', label: 'Social', icon: Share2 },
   { id: 'flyer', label: 'Flyers', icon: FileText },
+  { id: 'quote', label: 'Quotes', icon: Quote },
+  { id: 'announcement', label: 'Announce', icon: Megaphone },
+  { id: 'business_card', label: 'Cards', icon: CreditCard },
 ];
 
 export const TemplateGallery = ({ onSelect }: TemplateGalleryProps) => {
@@ -60,8 +63,26 @@ export const TemplateGallery = ({ onSelect }: TemplateGalleryProps) => {
       offer: 'from-red-500 to-rose-500',
       social: 'from-green-500 to-emerald-500',
       flyer: 'from-indigo-500 to-violet-500',
+      quote: 'from-pink-500 to-fuchsia-500',
+      announcement: 'from-yellow-500 to-amber-500',
+      business_card: 'from-slate-600 to-zinc-700',
     };
     return colors[category] || 'from-gray-500 to-slate-500';
+  };
+
+  const getCategoryEmoji = (category: string) => {
+    const emojis: Record<string, string> = {
+      product: '📦',
+      service: '💼',
+      menu: '🍽️',
+      offer: '🏷️',
+      social: '📱',
+      flyer: '📄',
+      quote: '💬',
+      announcement: '📢',
+      business_card: '💳',
+    };
+    return emojis[category] || '✨';
   };
 
   if (loading) {
@@ -100,12 +121,7 @@ export const TemplateGallery = ({ onSelect }: TemplateGalleryProps) => {
               >
                 <div className="text-white/80 text-center p-4">
                   <div className="text-4xl mb-2">
-                    {template.category === 'product' && '📦'}
-                    {template.category === 'service' && '💼'}
-                    {template.category === 'menu' && '🍽️'}
-                    {template.category === 'offer' && '🏷️'}
-                    {template.category === 'social' && '📱'}
-                    {template.category === 'flyer' && '📄'}
+                    {getCategoryEmoji(template.category)}
                   </div>
                   <p className="text-sm font-medium">{template.name}</p>
                 </div>
