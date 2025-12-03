@@ -106,6 +106,7 @@ import AIBrowserView from "./pages/AIBrowserView";
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
 import HealthWalletPage from "./pages/HealthWalletPage";
 import TeleconsultationPage from "./pages/TeleconsultationPage";
+import KYCVerificationPage from "./pages/KYCVerification";
 
 // Admin Pages
 import AdminUsers from "./pages/admin/Users";
@@ -336,6 +337,7 @@ const App = () => {
           <Route path="/ambassador-program" element={<AmbassadorProgram />} />
           <Route path="/doctor-onboarding" element={<DoctorOnboarding />} />
           <Route path="/qr-payment" element={<QRPayment />} />
+          <Route path="/kyc-verification" element={<ProtectedRoute><KYCVerificationPage /></ProtectedRoute>} />
             
             {/* AI & Settings Routes */}
             <Route path="/chatr-world" element={<ChatrWorld />} />
