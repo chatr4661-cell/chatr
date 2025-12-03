@@ -5089,6 +5089,39 @@ export type Database = {
         }
         Relationships: []
       }
+      encrypted_messages: {
+        Row: {
+          created_at: string | null
+          encrypted_content: string
+          id: string
+          iv: string
+          key_id: string | null
+          message_id: string
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          encrypted_content: string
+          id?: string
+          iv: string
+          key_id?: string | null
+          message_id: string
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string | null
+          encrypted_content?: string
+          id?: string
+          iv?: string
+          key_id?: string | null
+          message_id?: string
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       encryption_keys: {
         Row: {
           created_at: string | null
@@ -5539,6 +5572,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fcm_tokens: {
+        Row: {
+          created_at: string | null
+          device_id: string | null
+          device_type: string | null
+          id: string
+          is_active: boolean | null
+          token: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id?: string | null
+          device_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          token: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string | null
+          device_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          token?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       food_menu_items: {
         Row: {
@@ -7159,6 +7225,48 @@ export type Database = {
           updated_at?: string | null
           verified_at?: string | null
           verified_by?: string | null
+        }
+        Relationships: []
+      }
+      kyc_documents: {
+        Row: {
+          created_at: string | null
+          document_number: string | null
+          document_type: string
+          document_url: string
+          id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_number?: string | null
+          document_type: string
+          document_url: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          document_number?: string | null
+          document_type?: string
+          document_url?: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -9003,6 +9111,42 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           vibration_enabled?: boolean | null
+        }
+        Relationships: []
+      }
+      notification_queue: {
+        Row: {
+          body: string
+          created_at: string | null
+          data: Json | null
+          error: string | null
+          id: string
+          sent_at: string | null
+          status: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          data?: Json | null
+          error?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          data?: Json | null
+          error?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
