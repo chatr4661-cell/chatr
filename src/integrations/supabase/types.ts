@@ -2013,6 +2013,33 @@ export type Database = {
           },
         ]
       }
+      chatr_api_usage: {
+        Row: {
+          api_name: string
+          created_at: string | null
+          daily_limit: number | null
+          date: string | null
+          id: string
+          request_count: number | null
+        }
+        Insert: {
+          api_name: string
+          created_at?: string | null
+          daily_limit?: number | null
+          date?: string | null
+          id?: string
+          request_count?: number | null
+        }
+        Update: {
+          api_name?: string
+          created_at?: string | null
+          daily_limit?: number | null
+          date?: string | null
+          id?: string
+          request_count?: number | null
+        }
+        Relationships: []
+      }
       chatr_badges: {
         Row: {
           badge_type: string
@@ -2238,6 +2265,393 @@ export type Database = {
         }
         Relationships: []
       }
+      chatr_deals: {
+        Row: {
+          category: string
+          coupon_code: string | null
+          created_at: string | null
+          current_redemptions: number | null
+          deal_price: number | null
+          description: string | null
+          discount_percent: number | null
+          expires_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          max_redemptions: number | null
+          merchant_id: string | null
+          original_price: number | null
+          starts_at: string | null
+          terms_conditions: string | null
+          title: string
+        }
+        Insert: {
+          category: string
+          coupon_code?: string | null
+          created_at?: string | null
+          current_redemptions?: number | null
+          deal_price?: number | null
+          description?: string | null
+          discount_percent?: number | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          max_redemptions?: number | null
+          merchant_id?: string | null
+          original_price?: number | null
+          starts_at?: string | null
+          terms_conditions?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          coupon_code?: string | null
+          created_at?: string | null
+          current_redemptions?: number | null
+          deal_price?: number | null
+          description?: string | null
+          discount_percent?: number | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          max_redemptions?: number | null
+          merchant_id?: string | null
+          original_price?: number | null
+          starts_at?: string | null
+          terms_conditions?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      chatr_food_orders: {
+        Row: {
+          created_at: string | null
+          delivery_address: string | null
+          delivery_fee: number | null
+          delivery_instructions: string | null
+          id: string
+          items: Json
+          payment_method: string | null
+          payment_status: string | null
+          restaurant_id: string | null
+          status: string | null
+          subtotal: number
+          total: number
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_address?: string | null
+          delivery_fee?: number | null
+          delivery_instructions?: string | null
+          id?: string
+          items: Json
+          payment_method?: string | null
+          payment_status?: string | null
+          restaurant_id?: string | null
+          status?: string | null
+          subtotal: number
+          total: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_address?: string | null
+          delivery_fee?: number | null
+          delivery_instructions?: string | null
+          id?: string
+          items?: Json
+          payment_method?: string | null
+          payment_status?: string | null
+          restaurant_id?: string | null
+          status?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_food_orders_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_healthcare: {
+        Row: {
+          accepts_insurance: boolean | null
+          address: string | null
+          available_days: string[] | null
+          city: string | null
+          closing_time: string | null
+          consultation_fee: number | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          gallery_images: string[] | null
+          id: string
+          image_url: string | null
+          insurance_providers: string[] | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          opening_time: string | null
+          owner_id: string | null
+          phone: string | null
+          provider_type: string
+          rating_average: number | null
+          rating_count: number | null
+          specialty: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          accepts_insurance?: boolean | null
+          address?: string | null
+          available_days?: string[] | null
+          city?: string | null
+          closing_time?: string | null
+          consultation_fee?: number | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          gallery_images?: string[] | null
+          id?: string
+          image_url?: string | null
+          insurance_providers?: string[] | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          opening_time?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          provider_type: string
+          rating_average?: number | null
+          rating_count?: number | null
+          specialty?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          accepts_insurance?: boolean | null
+          address?: string | null
+          available_days?: string[] | null
+          city?: string | null
+          closing_time?: string | null
+          consultation_fee?: number | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          gallery_images?: string[] | null
+          id?: string
+          image_url?: string | null
+          insurance_providers?: string[] | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          opening_time?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          provider_type?: string
+          rating_average?: number | null
+          rating_count?: number | null
+          specialty?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      chatr_healthcare_appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          provider_id: string | null
+          reason: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          provider_id?: string | null
+          reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          provider_id?: string | null
+          reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_healthcare_appointments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_healthcare"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_job_applications: {
+        Row: {
+          cover_letter: string | null
+          created_at: string | null
+          id: string
+          job_id: string | null
+          resume_url: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cover_letter?: string | null
+          created_at?: string | null
+          id?: string
+          job_id?: string | null
+          resume_url?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cover_letter?: string | null
+          created_at?: string | null
+          id?: string
+          job_id?: string | null
+          resume_url?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatr_jobs: {
+        Row: {
+          applications_count: number | null
+          category: string | null
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          description: string | null
+          employer_id: string | null
+          experience_years: number | null
+          expires_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          job_type: string | null
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          salary_max: number | null
+          salary_min: number | null
+          salary_type: string | null
+          skills: string[] | null
+          title: string
+          updated_at: string | null
+          views_count: number | null
+        }
+        Insert: {
+          applications_count?: number | null
+          category?: string | null
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          employer_id?: string | null
+          experience_years?: number | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          job_type?: string | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          salary_max?: number | null
+          salary_min?: number | null
+          salary_type?: string | null
+          skills?: string[] | null
+          title: string
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Update: {
+          applications_count?: number | null
+          category?: string | null
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          employer_id?: string | null
+          experience_years?: number | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          job_type?: string | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          salary_max?: number | null
+          salary_min?: number | null
+          salary_type?: string | null
+          skills?: string[] | null
+          title?: string
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Relationships: []
+      }
       chatr_leaderboards: {
         Row: {
           city: string | null
@@ -2315,6 +2729,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      chatr_menu_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean | null
+          is_spicy: boolean | null
+          is_vegan: boolean | null
+          is_vegetarian: boolean | null
+          name: string
+          preparation_time: number | null
+          price: number
+          restaurant_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          is_spicy?: boolean | null
+          is_vegan?: boolean | null
+          is_vegetarian?: boolean | null
+          name: string
+          preparation_time?: number | null
+          price: number
+          restaurant_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          is_spicy?: boolean | null
+          is_vegan?: boolean | null
+          is_vegetarian?: boolean | null
+          name?: string
+          preparation_time?: number | null
+          price?: number
+          restaurant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatr_menu_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chatr_os_apps: {
         Row: {
@@ -3083,6 +3553,120 @@ export type Database = {
           referrer_id?: string
           rewarded_at?: string | null
           status?: string
+        }
+        Relationships: []
+      }
+      chatr_restaurants: {
+        Row: {
+          address: string | null
+          city: string | null
+          closing_time: string | null
+          created_at: string | null
+          cuisine_type: string[] | null
+          delivery_available: boolean | null
+          delivery_fee: number | null
+          description: string | null
+          gallery_images: string[] | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          latitude: number | null
+          longitude: number | null
+          min_order_amount: number | null
+          name: string
+          opening_time: string | null
+          owner_id: string | null
+          phone: string | null
+          price_range: string | null
+          rating_average: number | null
+          rating_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          closing_time?: string | null
+          created_at?: string | null
+          cuisine_type?: string[] | null
+          delivery_available?: boolean | null
+          delivery_fee?: number | null
+          description?: string | null
+          gallery_images?: string[] | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          min_order_amount?: number | null
+          name: string
+          opening_time?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          price_range?: string | null
+          rating_average?: number | null
+          rating_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          closing_time?: string | null
+          created_at?: string | null
+          cuisine_type?: string[] | null
+          delivery_available?: boolean | null
+          delivery_fee?: number | null
+          description?: string | null
+          gallery_images?: string[] | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          min_order_amount?: number | null
+          name?: string
+          opening_time?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          price_range?: string | null
+          rating_average?: number | null
+          rating_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      chatr_search_cache: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          hit_count: number | null
+          id: string
+          query: string
+          query_hash: string
+          results: Json | null
+          source: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          hit_count?: number | null
+          id?: string
+          query: string
+          query_hash: string
+          results?: Json | null
+          source?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          hit_count?: number | null
+          id?: string
+          query?: string
+          query_hash?: string
+          results?: Json | null
+          source?: string | null
         }
         Relationships: []
       }
@@ -12056,6 +12640,10 @@ export type Database = {
         Returns: undefined
       }
       backfill_phone_hashes: { Args: never; Returns: undefined }
+      check_api_limit: {
+        Args: { api: string; daily_max?: number }
+        Returns: Json
+      }
       clean_expired_geo_cache: { Args: never; Returns: undefined }
       cleanup_disappearing_messages: { Args: never; Returns: undefined }
       cleanup_expired_visual_search_cache: { Args: never; Returns: undefined }
@@ -12142,6 +12730,7 @@ export type Database = {
         Args: { community_id: string }
         Returns: undefined
       }
+      increment_job_views: { Args: { job_id: string }; Returns: undefined }
       is_business_owner: {
         Args: { _business_id: string; _user_id: string }
         Returns: boolean
