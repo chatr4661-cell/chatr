@@ -32,7 +32,10 @@ import {
   Building,
   Mail,
   Phone,
-  User
+  User,
+  Shield,
+  TrendingUp,
+  Gift
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -57,6 +60,15 @@ const bankDetailsSchema = z.object({
 });
 
 const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+const steps = [
+  { id: 1, title: 'Business Details', icon: Building, description: 'Tell us about your business' },
+  { id: 2, title: 'Brand Identity', icon: Upload, description: 'Upload your logo' },
+  { id: 3, title: 'Service Area', icon: MapPin, description: 'Define your coverage' },
+  { id: 4, title: 'Operating Hours', icon: Clock, description: 'Set your availability' },
+  { id: 5, title: 'Bank Details', icon: CreditCard, description: 'Payment setup' },
+  { id: 6, title: 'Choose Plan', icon: Crown, description: 'Select subscription' },
+];
 
 export default function ChatrPlusSellerRegistration() {
   const navigate = useNavigate();
@@ -109,10 +121,11 @@ export default function ChatrPlusSellerRegistration() {
   const subscriptionPlans = [
     {
       id: 'basic',
-      name: 'Basic',
+      name: 'Starter',
       price: 99,
       icon: Store,
-      color: 'from-blue-500 to-cyan-500',
+      gradient: 'from-blue-500 via-cyan-500 to-teal-500',
+      bgGradient: 'from-blue-500/10 via-cyan-500/5 to-teal-500/10',
       features: [
         'Basic listing on marketplace',
         'Up to 5 services',
@@ -123,10 +136,11 @@ export default function ChatrPlusSellerRegistration() {
     },
     {
       id: 'featured',
-      name: 'Featured',
+      name: 'Professional',
       price: 499,
       icon: Star,
-      color: 'from-purple-500 to-pink-500',
+      gradient: 'from-purple-500 via-violet-500 to-fuchsia-500',
+      bgGradient: 'from-purple-500/10 via-violet-500/5 to-fuchsia-500/10',
       popular: true,
       features: [
         'Featured listing',
@@ -140,10 +154,11 @@ export default function ChatrPlusSellerRegistration() {
     },
     {
       id: 'premium',
-      name: 'Premium',
+      name: 'Enterprise',
       price: 1999,
       icon: Crown,
-      color: 'from-amber-500 to-orange-500',
+      gradient: 'from-amber-500 via-orange-500 to-rose-500',
+      bgGradient: 'from-amber-500/10 via-orange-500/5 to-rose-500/10',
       features: [
         'Premium placement',
         'Unlimited services',
@@ -159,13 +174,13 @@ export default function ChatrPlusSellerRegistration() {
   ];
 
   const categories = [
-    { value: 'food', label: 'Food & Dining' },
-    { value: 'home-services', label: 'Home Services' },
-    { value: 'healthcare', label: 'Healthcare' },
-    { value: 'beauty-wellness', label: 'Beauty & Wellness' },
-    { value: 'jobs', label: 'Local Jobs' },
-    { value: 'education', label: 'Education' },
-    { value: 'business', label: 'Business Tools' }
+    { value: 'food', label: 'Food & Dining', icon: '🍕' },
+    { value: 'home-services', label: 'Home Services', icon: '🏠' },
+    { value: 'healthcare', label: 'Healthcare', icon: '🏥' },
+    { value: 'beauty-wellness', label: 'Beauty & Wellness', icon: '💅' },
+    { value: 'jobs', label: 'Local Jobs', icon: '💼' },
+    { value: 'education', label: 'Education', icon: '📚' },
+    { value: 'business', label: 'Business Tools', icon: '📊' }
   ];
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -313,55 +328,114 @@ export default function ChatrPlusSellerRegistration() {
   const progress = (currentStep / 6) * 100;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b px-4 py-4">
-        <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-20">
+      {/* Premium Header with Glass Effect */}
+      <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80 border-b border-border/50">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4 mb-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => currentStep === 1 ? navigate('/chatr-plus') : prevStep()}
+              className="rounded-full hover:bg-primary/10"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-xl font-bold">Become a Chatr+ Seller</h1>
-              <p className="text-sm text-muted-foreground">
-                Step {currentStep} of 6
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                  Chatr+
+                </span>
+                <Badge variant="secondary" className="bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-0">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  Seller
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Step {currentStep} of 6 • {steps[currentStep - 1].title}
               </p>
             </div>
           </div>
-          <Progress value={progress} className="h-2" />
+          
+          {/* Premium Progress Bar */}
+          <div className="relative">
+            <Progress value={progress} className="h-2 bg-muted/50" />
+            <div 
+              className="absolute top-0 left-0 h-2 rounded-full bg-gradient-to-r from-primary via-purple-500 to-pink-500 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          
+          {/* Step Indicators */}
+          <div className="flex justify-between mt-4 overflow-x-auto pb-2">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              const isCompleted = currentStep > step.id;
+              const isCurrent = currentStep === step.id;
+              return (
+                <div 
+                  key={step.id}
+                  className={`flex flex-col items-center min-w-[60px] transition-all duration-300 ${
+                    isCurrent ? 'scale-110' : ''
+                  }`}
+                >
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
+                    ${isCompleted 
+                      ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25' 
+                      : isCurrent 
+                        ? 'bg-gradient-to-br from-primary to-purple-500 text-white shadow-lg shadow-primary/25 animate-pulse'
+                        : 'bg-muted text-muted-foreground'
+                    }
+                  `}>
+                    {isCompleted ? (
+                      <CheckCircle2 className="w-5 h-5" />
+                    ) : (
+                      <Icon className="w-4 h-4" />
+                    )}
+                  </div>
+                  <span className={`text-xs mt-1 whitespace-nowrap ${
+                    isCurrent ? 'text-primary font-semibold' : 'text-muted-foreground'
+                  }`}>
+                    {step.title}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
           {/* Step 1: Business Details */}
           {currentStep === 1 && (
             <motion.div
               key="step1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <Building className="w-6 h-6 text-primary" />
+              <Card className="p-6 md:p-8 border-0 shadow-xl bg-gradient-to-br from-card via-card to-primary/5 backdrop-blur-sm">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="bg-gradient-to-br from-primary to-purple-500 p-4 rounded-2xl shadow-lg shadow-primary/25">
+                    <Building className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Business Details</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Tell us about your business
+                    <h2 className="text-2xl md:text-3xl font-bold">Business Details</h2>
+                    <p className="text-muted-foreground">
+                      Let's start with the basics
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="businessName">Business Name *</Label>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="businessName" className="text-sm font-semibold flex items-center gap-2">
+                      <Store className="w-4 h-4 text-primary" />
+                      Business Name
+                    </Label>
                     <Input
                       id="businessName"
                       placeholder="Enter your business name"
@@ -371,11 +445,15 @@ export default function ChatrPlusSellerRegistration() {
                         businessName: e.target.value
                       })}
                       maxLength={255}
+                      className="h-12 text-base border-2 focus:border-primary transition-colors"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="businessType">Business Type *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="businessType" className="text-sm font-semibold flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-primary" />
+                      Business Type
+                    </Label>
                     <Select
                       value={businessDetails.businessType}
                       onValueChange={(value) => setBusinessDetails({
@@ -383,24 +461,27 @@ export default function ChatrPlusSellerRegistration() {
                         businessType: value
                       })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-12 text-base border-2 focus:border-primary">
                         <SelectValue placeholder="Select business type" />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map((cat) => (
                           <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
+                            <span className="flex items-center gap-2">
+                              <span>{cat.icon}</span>
+                              {cat.label}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div>
-                    <Label htmlFor="description">Description *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
                     <Textarea
                       id="description"
-                      placeholder="Describe your business and services"
+                      placeholder="Describe your business and services in detail..."
                       value={businessDetails.description}
                       onChange={(e) => setBusinessDetails({
                         ...businessDetails,
@@ -408,30 +489,38 @@ export default function ChatrPlusSellerRegistration() {
                       })}
                       rows={4}
                       maxLength={500}
+                      className="text-base border-2 focus:border-primary transition-colors resize-none"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {businessDetails.description.length}/500 characters
+                    <p className="text-xs text-muted-foreground text-right">
+                      {businessDetails.description.length}/500
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="phoneNumber">Phone Number *</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber" className="text-sm font-semibold flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-primary" />
+                        Phone Number
+                      </Label>
                       <Input
                         id="phoneNumber"
                         type="tel"
-                        placeholder="10-digit number"
+                        placeholder="10-digit mobile number"
                         value={businessDetails.phoneNumber}
                         onChange={(e) => setBusinessDetails({
                           ...businessDetails,
                           phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10)
                         })}
                         maxLength={10}
+                        className="h-12 text-base border-2 focus:border-primary transition-colors"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="email">Email *</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-primary" />
+                        Email Address
+                      </Label>
                       <Input
                         id="email"
                         type="email"
@@ -442,15 +531,19 @@ export default function ChatrPlusSellerRegistration() {
                           email: e.target.value
                         })}
                         maxLength={255}
+                        className="h-12 text-base border-2 focus:border-primary transition-colors"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="address">Address *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="address" className="text-sm font-semibold flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      Business Address
+                    </Label>
                     <Textarea
                       id="address"
-                      placeholder="Complete business address"
+                      placeholder="Complete street address"
                       value={businessDetails.address}
                       onChange={(e) => setBusinessDetails({
                         ...businessDetails,
@@ -458,12 +551,13 @@ export default function ChatrPlusSellerRegistration() {
                       })}
                       rows={2}
                       maxLength={500}
+                      className="text-base border-2 focus:border-primary transition-colors resize-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="city">City *</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="city" className="text-sm font-semibold">City</Label>
                       <Input
                         id="city"
                         placeholder="City"
@@ -473,11 +567,12 @@ export default function ChatrPlusSellerRegistration() {
                           city: e.target.value
                         })}
                         maxLength={100}
+                        className="h-12 text-base border-2 focus:border-primary transition-colors"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="state">State *</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="state" className="text-sm font-semibold">State</Label>
                       <Input
                         id="state"
                         placeholder="State"
@@ -487,11 +582,12 @@ export default function ChatrPlusSellerRegistration() {
                           state: e.target.value
                         })}
                         maxLength={100}
+                        className="h-12 text-base border-2 focus:border-primary transition-colors"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="pincode">Pincode *</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="pincode" className="text-sm font-semibold">Pincode</Label>
                       <Input
                         id="pincode"
                         placeholder="6 digits"
@@ -501,6 +597,7 @@ export default function ChatrPlusSellerRegistration() {
                           pincode: e.target.value.replace(/\D/g, '').slice(0, 6)
                         })}
                         maxLength={6}
+                        className="h-12 text-base border-2 focus:border-primary transition-colors"
                       />
                     </div>
                   </div>
@@ -513,61 +610,91 @@ export default function ChatrPlusSellerRegistration() {
           {currentStep === 2 && (
             <motion.div
               key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <Upload className="w-6 h-6 text-primary" />
+              <Card className="p-6 md:p-8 border-0 shadow-xl bg-gradient-to-br from-card via-card to-purple-500/5 backdrop-blur-sm">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-4 rounded-2xl shadow-lg shadow-purple-500/25">
+                    <Upload className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Business Logo</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Upload your business logo
+                    <h2 className="text-2xl md:text-3xl font-bold">Brand Identity</h2>
+                    <p className="text-muted-foreground">
+                      Make your business stand out
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                <div className="space-y-6">
+                  <div className={`
+                    border-2 border-dashed rounded-2xl p-8 md:p-12 text-center transition-all duration-300
+                    ${logoPreview 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5'
+                    }
+                  `}>
                     {logoPreview ? (
-                      <div className="space-y-4">
-                        <img
-                          src={logoPreview}
-                          alt="Logo preview"
-                          className="w-32 h-32 mx-auto rounded-lg object-cover"
-                        />
+                      <motion.div 
+                        className="space-y-6"
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                      >
+                        <div className="relative w-40 h-40 mx-auto">
+                          <img
+                            src={logoPreview}
+                            alt="Logo preview"
+                            className="w-full h-full rounded-2xl object-cover shadow-xl ring-4 ring-primary/20"
+                          />
+                          <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-green-500 to-emerald-500 p-2 rounded-full shadow-lg">
+                            <CheckCircle2 className="w-5 h-5 text-white" />
+                          </div>
+                        </div>
                         <Button
                           variant="outline"
                           onClick={() => {
                             setLogoFile(null);
                             setLogoPreview('');
                           }}
+                          className="border-2"
                         >
                           Change Logo
                         </Button>
-                      </div>
+                      </motion.div>
                     ) : (
-                      <div>
-                        <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="font-semibold mb-2">Upload Logo</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          PNG, JPG or WEBP (Max 5MB)
-                        </p>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          className="max-w-xs mx-auto"
-                        />
+                      <div className="space-y-4">
+                        <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+                          <Upload className="w-10 h-10 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg mb-1">Upload Your Logo</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            PNG, JPG or WEBP • Max 5MB
+                          </p>
+                        </div>
+                        <label className="inline-block">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                          />
+                          <div className="px-6 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-xl cursor-pointer hover:opacity-90 transition-opacity font-semibold shadow-lg shadow-primary/25">
+                            Choose File
+                          </div>
+                        </label>
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Your logo will appear on your business profile and service listings
-                  </p>
+                  
+                  <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 p-4 rounded-xl">
+                    <p className="text-sm text-muted-foreground flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                      Your logo will appear on your business profile, service listings, and chat conversations with customers
+                    </p>
+                  </div>
                 </div>
               </Card>
             </motion.div>
@@ -577,51 +704,60 @@ export default function ChatrPlusSellerRegistration() {
           {currentStep === 3 && (
             <motion.div
               key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <MapPin className="w-6 h-6 text-primary" />
+              <Card className="p-6 md:p-8 border-0 shadow-xl bg-gradient-to-br from-card via-card to-teal-500/5 backdrop-blur-sm">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="bg-gradient-to-br from-teal-500 to-cyan-500 p-4 rounded-2xl shadow-lg shadow-teal-500/25">
+                    <MapPin className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Service Details</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Category and coverage area
+                    <h2 className="text-2xl md:text-3xl font-bold">Service Coverage</h2>
+                    <p className="text-muted-foreground">
+                      Define where you operate
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="category">Primary Category *</Label>
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your main category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Primary Category</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.value}
+                          type="button"
+                          onClick={() => setSelectedCategory(cat.value)}
+                          className={`
+                            p-4 rounded-xl border-2 text-center transition-all duration-200
+                            ${selectedCategory === cat.value
+                              ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10'
+                              : 'border-border hover:border-primary/50 hover:bg-primary/5'
+                            }
+                          `}
+                        >
+                          <span className="text-2xl block mb-1">{cat.icon}</span>
+                          <span className="text-xs font-medium">{cat.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="serviceArea">Service Area Coverage *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="serviceArea" className="text-sm font-semibold">Service Area Coverage</Label>
                     <Input
                       id="serviceArea"
                       placeholder="e.g., Delhi NCR, Mumbai, Bangalore"
                       value={serviceArea}
                       onChange={(e) => setServiceArea(e.target.value)}
                       maxLength={255}
+                      className="h-12 text-base border-2 focus:border-primary transition-colors"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Specify the cities or areas you serve
+                    <p className="text-xs text-muted-foreground">
+                      Specify the cities or areas where you provide services
                     </p>
                   </div>
                 </div>
@@ -633,27 +769,37 @@ export default function ChatrPlusSellerRegistration() {
           {currentStep === 4 && (
             <motion.div
               key="step4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <Clock className="w-6 h-6 text-primary" />
+              <Card className="p-6 md:p-8 border-0 shadow-xl bg-gradient-to-br from-card via-card to-orange-500/5 backdrop-blur-sm">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="bg-gradient-to-br from-orange-500 to-amber-500 p-4 rounded-2xl shadow-lg shadow-orange-500/25">
+                    <Clock className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Operating Hours</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Set your business hours
+                    <h2 className="text-2xl md:text-3xl font-bold">Operating Hours</h2>
+                    <p className="text-muted-foreground">
+                      When are you available?
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   {daysOfWeek.map((day) => (
-                    <div key={day} className="flex items-center gap-4 p-3 border rounded-lg">
-                      <div className="flex items-center gap-2 flex-1">
+                    <div 
+                      key={day} 
+                      className={`
+                        flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200
+                        ${operatingHours[day].isOpen 
+                          ? 'border-primary/30 bg-primary/5' 
+                          : 'border-border bg-muted/30'
+                        }
+                      `}
+                    >
+                      <label className="flex items-center gap-3 cursor-pointer flex-1">
                         <input
                           type="checkbox"
                           checked={operatingHours[day].isOpen}
@@ -661,11 +807,12 @@ export default function ChatrPlusSellerRegistration() {
                             ...operatingHours,
                             [day]: { ...operatingHours[day], isOpen: e.target.checked }
                           })}
-                          className="w-4 h-4"
+                          className="w-5 h-5 rounded-md accent-primary"
                         />
-                        <span className="font-medium capitalize w-24">{day}</span>
-                      </div>
-                      {operatingHours[day].isOpen && (
+                        <span className="font-semibold capitalize w-28">{day}</span>
+                      </label>
+                      
+                      {operatingHours[day].isOpen ? (
                         <div className="flex items-center gap-2">
                           <Input
                             type="time"
@@ -674,9 +821,9 @@ export default function ChatrPlusSellerRegistration() {
                               ...operatingHours,
                               [day]: { ...operatingHours[day], open: e.target.value }
                             })}
-                            className="w-32"
+                            className="w-28 h-10 border-2"
                           />
-                          <span>to</span>
+                          <span className="text-muted-foreground">to</span>
                           <Input
                             type="time"
                             value={operatingHours[day].close}
@@ -684,12 +831,13 @@ export default function ChatrPlusSellerRegistration() {
                               ...operatingHours,
                               [day]: { ...operatingHours[day], close: e.target.value }
                             })}
-                            className="w-32"
+                            className="w-28 h-10 border-2"
                           />
                         </div>
-                      )}
-                      {!operatingHours[day].isOpen && (
-                        <span className="text-sm text-muted-foreground">Closed</span>
+                      ) : (
+                        <Badge variant="secondary" className="bg-muted">
+                          Closed
+                        </Badge>
                       )}
                     </div>
                   ))}
@@ -702,26 +850,30 @@ export default function ChatrPlusSellerRegistration() {
           {currentStep === 5 && (
             <motion.div
               key="step5"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <CreditCard className="w-6 h-6 text-primary" />
+              <Card className="p-6 md:p-8 border-0 shadow-xl bg-gradient-to-br from-card via-card to-green-500/5 backdrop-blur-sm">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="bg-gradient-to-br from-green-500 to-emerald-500 p-4 rounded-2xl shadow-lg shadow-green-500/25">
+                    <CreditCard className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Bank Details</h2>
-                    <p className="text-sm text-muted-foreground">
-                      For receiving payments
+                    <h2 className="text-2xl md:text-3xl font-bold">Payment Setup</h2>
+                    <p className="text-muted-foreground">
+                      Where should we send your earnings?
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="accountHolderName">Account Holder Name *</Label>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="accountHolderName" className="text-sm font-semibold flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary" />
+                      Account Holder Name
+                    </Label>
                     <Input
                       id="accountHolderName"
                       placeholder="As per bank account"
@@ -731,11 +883,12 @@ export default function ChatrPlusSellerRegistration() {
                         accountHolderName: e.target.value
                       })}
                       maxLength={255}
+                      className="h-12 text-base border-2 focus:border-primary transition-colors"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="accountNumber">Account Number *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="accountNumber" className="text-sm font-semibold">Account Number</Label>
                     <Input
                       id="accountNumber"
                       type="text"
@@ -746,40 +899,46 @@ export default function ChatrPlusSellerRegistration() {
                         accountNumber: e.target.value.replace(/\D/g, '').slice(0, 18)
                       })}
                       maxLength={18}
+                      className="h-12 text-base border-2 focus:border-primary transition-colors"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="ifscCode">IFSC Code *</Label>
-                    <Input
-                      id="ifscCode"
-                      placeholder="e.g., SBIN0001234"
-                      value={bankDetails.ifscCode}
-                      onChange={(e) => setBankDetails({
-                        ...bankDetails,
-                        ifscCode: e.target.value.toUpperCase()
-                      })}
-                      maxLength={11}
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ifscCode" className="text-sm font-semibold">IFSC Code</Label>
+                      <Input
+                        id="ifscCode"
+                        placeholder="e.g., SBIN0001234"
+                        value={bankDetails.ifscCode}
+                        onChange={(e) => setBankDetails({
+                          ...bankDetails,
+                          ifscCode: e.target.value.toUpperCase()
+                        })}
+                        maxLength={11}
+                        className="h-12 text-base border-2 focus:border-primary transition-colors"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="bankName" className="text-sm font-semibold">Bank Name</Label>
+                      <Input
+                        id="bankName"
+                        placeholder="Name of your bank"
+                        value={bankDetails.bankName}
+                        onChange={(e) => setBankDetails({
+                          ...bankDetails,
+                          bankName: e.target.value
+                        })}
+                        maxLength={255}
+                        className="h-12 text-base border-2 focus:border-primary transition-colors"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="bankName">Bank Name *</Label>
-                    <Input
-                      id="bankName"
-                      placeholder="Name of your bank"
-                      value={bankDetails.bankName}
-                      onChange={(e) => setBankDetails({
-                        ...bankDetails,
-                        bankName: e.target.value
-                      })}
-                      maxLength={255}
-                    />
-                  </div>
-
-                  <div className="bg-muted p-4 rounded-lg">
+                  <div className="bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 p-4 rounded-xl flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-muted-foreground">
-                      🔒 Your bank details are securely encrypted and will only be used for payment settlements
+                      Your bank details are encrypted with bank-grade security and will only be used for payment settlements
                     </p>
                   </div>
                 </div>
@@ -791,74 +950,99 @@ export default function ChatrPlusSellerRegistration() {
           {currentStep === 6 && (
             <motion.div
               key="step6"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div className="text-center">
-                  <h2 className="text-3xl font-bold mb-2">Choose Your Plan</h2>
-                  <p className="text-muted-foreground">
-                    Select the plan that best fits your business needs
+                  <Badge className="mb-4 bg-gradient-to-r from-primary to-purple-500 border-0 px-4 py-1">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Final Step
+                  </Badge>
+                  <h2 className="text-3xl md:text-4xl font-bold mb-2">Choose Your Plan</h2>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Select the perfect plan to grow your business on Chatr+
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {subscriptionPlans.map((plan) => {
                     const Icon = plan.icon;
+                    const isSelected = selectedPlan === plan.id;
                     return (
-                      <Card
+                      <motion.div
                         key={plan.id}
-                        className={`p-6 cursor-pointer transition-all relative ${
-                          selectedPlan === plan.id
-                            ? 'ring-2 ring-primary shadow-lg scale-105'
-                            : 'hover:shadow-md'
-                        }`}
-                        onClick={() => setSelectedPlan(plan.id as any)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        {plan.popular && (
-                          <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-500 to-pink-500">
-                            Most Popular
-                          </Badge>
-                        )}
+                        <Card
+                          className={`
+                            p-6 cursor-pointer transition-all duration-300 relative overflow-hidden border-2
+                            ${isSelected
+                              ? 'border-primary shadow-2xl shadow-primary/20 scale-105'
+                              : 'border-border hover:border-primary/50 hover:shadow-xl'
+                            }
+                          `}
+                          onClick={() => setSelectedPlan(plan.id as any)}
+                        >
+                          {/* Background Gradient */}
+                          <div className={`absolute inset-0 bg-gradient-to-br ${plan.bgGradient} opacity-50`} />
+                          
+                          {plan.popular && (
+                            <Badge className="absolute -top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-pink-500 border-0 shadow-lg">
+                              <Star className="w-3 h-3 mr-1" />
+                              Most Popular
+                            </Badge>
+                          )}
 
-                        <div className={`bg-gradient-to-r ${plan.color} p-3 rounded-lg w-fit mx-auto mb-4`}>
-                          <Icon className="w-8 h-8 text-white" />
-                        </div>
-
-                        <h3 className="text-2xl font-bold text-center mb-2">{plan.name}</h3>
-                        <div className="text-center mb-4">
-                          <span className="text-4xl font-bold">₹{plan.price}</span>
-                          <span className="text-muted-foreground">/month</span>
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                          {plan.features.map((feature, index) => (
-                            <div key={index} className="flex items-start gap-2 text-sm">
-                              <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                              <span>{feature}</span>
+                          <div className="relative z-10">
+                            <div className={`bg-gradient-to-r ${plan.gradient} p-4 rounded-2xl w-fit mx-auto mb-4 shadow-lg`}>
+                              <Icon className="w-8 h-8 text-white" />
                             </div>
-                          ))}
-                        </div>
 
-                        {selectedPlan === plan.id && (
-                          <Badge className="w-full justify-center bg-primary">
-                            Selected
-                          </Badge>
-                        )}
-                      </Card>
+                            <h3 className="text-2xl font-bold text-center mb-1">{plan.name}</h3>
+                            <div className="text-center mb-6">
+                              <span className="text-4xl font-bold">₹{plan.price}</span>
+                              <span className="text-muted-foreground">/month</span>
+                            </div>
+
+                            <div className="space-y-3 mb-6">
+                              {plan.features.map((feature, index) => (
+                                <div key={index} className="flex items-start gap-2 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                  <span>{feature}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {isSelected && (
+                              <Badge className="w-full justify-center bg-gradient-to-r from-primary to-purple-500 border-0 py-2">
+                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                Selected
+                              </Badge>
+                            )}
+                          </div>
+                        </Card>
+                      </motion.div>
                     );
                   })}
                 </div>
 
-                <Card className="p-6 bg-muted">
-                  <h3 className="font-semibold mb-4">Payment Summary</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
+                <Card className="p-6 border-2 border-dashed bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-gradient-to-br from-primary to-purple-500 p-2 rounded-lg">
+                      <Gift className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="font-bold text-lg">Payment Summary</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">
                         {subscriptionPlans.find(p => p.id === selectedPlan)?.name} Plan
                       </span>
-                      <span className="font-medium">
+                      <span className="font-semibold">
                         ₹{subscriptionPlans.find(p => p.id === selectedPlan)?.price}
                       </span>
                     </div>
@@ -866,9 +1050,14 @@ export default function ChatrPlusSellerRegistration() {
                       <span className="text-muted-foreground">Billing Period</span>
                       <span>Monthly</span>
                     </div>
-                    <div className="flex justify-between pt-2 border-t font-bold text-lg">
-                      <span>Total</span>
-                      <span className="text-primary">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Payment Method</span>
+                      <span>Chatr Wallet</span>
+                    </div>
+                    <div className="h-px bg-border my-2" />
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-lg">Total</span>
+                      <span className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
                         ₹{subscriptionPlans.find(p => p.id === selectedPlan)?.price}
                       </span>
                     </div>
@@ -879,28 +1068,41 @@ export default function ChatrPlusSellerRegistration() {
           )}
         </AnimatePresence>
 
-        {/* Navigation Buttons */}
-        <div className="flex items-center justify-between mt-8">
-          {currentStep > 1 && (
-            <Button variant="outline" onClick={prevStep}>
+        {/* Premium Navigation Buttons */}
+        <div className="flex items-center justify-between mt-8 gap-4">
+          {currentStep > 1 ? (
+            <Button 
+              variant="outline" 
+              onClick={prevStep}
+              className="border-2 h-12 px-6"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Previous
             </Button>
+          ) : (
+            <div />
           )}
+          
           {currentStep < 6 ? (
-            <Button onClick={nextStep} className="ml-auto">
-              Next
+            <Button 
+              onClick={nextStep} 
+              className="h-12 px-8 bg-gradient-to-r from-primary to-purple-500 hover:opacity-90 shadow-lg shadow-primary/25"
+            >
+              Continue
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="ml-auto bg-gradient-to-r from-primary to-primary-glow"
+              className="h-12 px-8 bg-gradient-to-r from-primary via-purple-500 to-pink-500 hover:opacity-90 shadow-lg shadow-primary/25"
               size="lg"
             >
               {isSubmitting ? (
-                'Processing...'
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Processing...
+                </>
               ) : (
                 <>
                   <Sparkles className="w-5 h-5 mr-2" />
