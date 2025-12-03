@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, MessageCircle, Heart, Users, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { SEOHead } from '@/components/SEOHead';
 
 export default function Help() {
   const navigate = useNavigate();
@@ -127,7 +128,12 @@ export default function Help() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
+    <>
+      <SEOHead
+        title="Help Center | Chatr+ Support & FAQs"
+        description="Get help with Chatr+. Find answers to frequently asked questions about chat, health features, payments, privacy, and more. 24/7 support available."
+      />
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
       {/* Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
@@ -218,5 +224,6 @@ export default function Help() {
         </Card>
       </div>
     </div>
+    </>
   );
 }

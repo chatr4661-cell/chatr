@@ -11,6 +11,7 @@ import { setupNativeCallUI } from "./utils/nativeCallUI";
 import { CrashlyticsErrorBoundary } from "./utils/crashlyticsErrorBoundary";
 import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 import { initPerformanceOptimizations } from './utils/performanceOptimizations';
+import { OfflineIndicator } from "./components/OfflineIndicator";
 
 // Pages
 import Index from "./pages/Index";
@@ -248,6 +249,7 @@ const App = () => {
         <LocationProvider>
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <NativeAppProvider>
+            <OfflineIndicator />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />

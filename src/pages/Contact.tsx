@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, MapPin, Send, MessageSquare, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { SEOHead } from '@/components/SEOHead';
 
 export default function Contact() {
   const navigate = useNavigate();
@@ -86,7 +87,12 @@ export default function Contact() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
+    <>
+      <SEOHead
+        title="Contact Us | Chatr+ Support"
+        description="Contact Chatr+ support team. Get help with your account, report issues, or share feedback. Available 24/7 via email, phone, or contact form."
+      />
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
       {/* Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
@@ -215,5 +221,6 @@ export default function Contact() {
         </Card>
       </div>
     </div>
+    </>
   );
 }

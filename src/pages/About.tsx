@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Heart, Zap, Shield, Globe, Award } from 'lucide-react';
 import chatrLogo from '@/assets/chatr-brand-logo.png';
+import { SEOHead } from '@/components/SEOHead';
 
 export default function About() {
   const navigate = useNavigate();
@@ -48,7 +49,12 @@ export default function About() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
+    <>
+      <SEOHead
+        title="About Chatr+ | India's AI Superapp for Chat, Healthcare & Services"
+        description="Learn about Chatr+, India's next-generation superapp integrating communication, healthcare, business tools, and lifestyle services. Mission, vision, and company info."
+      />
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
       {/* Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
@@ -174,5 +180,6 @@ export default function About() {
         </Card>
       </div>
     </div>
+    </>
   );
 }
