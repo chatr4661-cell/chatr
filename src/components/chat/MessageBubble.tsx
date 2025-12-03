@@ -11,6 +11,7 @@ import { EventMessage } from './EventMessage';
 import { PaymentMessage } from './PaymentMessage';
 import { MediaLightbox } from './MediaLightbox';
 import { autoSaveReceivedMedia } from '@/utils/mediaGallery';
+import { highlightMentions } from './MentionInput';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -561,7 +562,7 @@ const MessageBubbleComponent = ({
             style={isOwn ? { backgroundColor: '#0d9488' } : undefined}
           >
             <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
-              {message.content}
+              {highlightMentions(message.content)}
             </p>
           </div>
         )}
