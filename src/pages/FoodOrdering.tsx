@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Clock, Star, Search, MapPin, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Clock, Star, Search, MapPin, ChevronRight, Navigation, Phone, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,29 +9,37 @@ import { toast } from 'sonner';
 import { useChatrLocation } from '@/hooks/useChatrLocation';
 import { chatrLocalSearch } from '@/lib/chatrClient';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function FoodOrdering() {
   const navigate = useNavigate();
   const [vendors, setVendors] = useState<any[]>([]);
-  const [selectedVendor, setSelectedVendor] = useState<any>(null);
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [cart, setCart] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [locationInput, setLocationInput] = useState('');
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [customLocation, setCustomLocation] = useState<{ lat: number; lon: number; name: string } | null>(null);
   const { location, loading: locationLoading } = useChatrLocation();
 
+  const activeLocation = customLocation || (location ? { lat: location.lat, lon: location.lon, name: location.city || 'Current Location' } : null);
+
   useEffect(() => {
-    if (location?.lat && location?.lon) {
+    if (activeLocation?.lat && activeLocation?.lon) {
       loadVendors();
     }
-  }, [location?.lat, location?.lon]);
+  }, [activeLocation?.lat, activeLocation?.lon]);
 
   const loadVendors = async () => {
-    if (!location?.lat || !location?.lon) return;
+    if (!activeLocation?.lat || !activeLocation?.lon) return;
     
     setLoading(true);
     try {
-      const results = await chatrLocalSearch('restaurant food', location.lat, location.lon);
+      const results = await chatrLocalSearch('restaurant food', activeLocation.lat, activeLocation.lon);
       
       if (results && results.length > 0) {
         const mappedVendors = results.map((item: any) => ({
@@ -48,6 +56,8 @@ export default function FoodOrdering() {
           price: item.price,
           services: item.services || [],
           url: item.url,
+          address: item.address || '',
+          phone: item.phone || '',
         }));
         setVendors(mappedVendors);
       }
@@ -59,114 +69,65 @@ export default function FoodOrdering() {
     }
   };
 
-  const loadMenu = async (vendorId: string) => {
-    setMenuItems([
-      { id: '1', name: 'Biryani', description: 'Delicious chicken biryani', price: 250, is_vegetarian: false },
-      { id: '2', name: 'Dal Makhani', description: 'Creamy black lentils', price: 180, is_vegetarian: true },
-      { id: '3', name: 'Butter Chicken', description: 'Rich tomato curry', price: 300, is_vegetarian: false },
-      { id: '4', name: 'Paneer Tikka', description: 'Grilled cottage cheese', price: 220, is_vegetarian: true },
-    ]);
-  };
-
-  const handleVendorSelect = (vendor: any) => {
-    setSelectedVendor(vendor);
-    loadMenu(vendor.id);
-  };
-
-  const addToCart = (item: any) => {
-    setCart([...cart, item]);
-    toast.success(`${item.name} added to cart`);
-  };
-
-  const getTotalAmount = () => {
-    return cart.reduce((sum, item) => sum + item.price, 0);
-  };
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) {
-      toast.error('Cart is empty');
+  const handleSetLocation = () => {
+    if (!locationInput.trim()) {
+      toast.error('Please enter a location');
       return;
     }
-    toast.success('Order placed! 🍔');
-    setCart([]);
-    setSelectedVendor(null);
+    // For now, use a default coordinate with the location name
+    // In production, this would geocode the address
+    setCustomLocation({
+      lat: location?.lat || 28.6139,
+      lon: location?.lon || 77.2090,
+      name: locationInput.trim()
+    });
+    setShowLocationPicker(false);
+    setLocationInput('');
+    toast.success(`Location set to ${locationInput.trim()}`);
+  };
+
+  const useCurrentLocation = () => {
+    setCustomLocation(null);
+    setShowLocationPicker(false);
+    toast.success('Using your current location');
   };
 
   const getRatingColor = (rating: number) => {
-    if (rating >= 4.5) return 'bg-emerald-500';
-    if (rating >= 4.0) return 'bg-green-500';
+    if (rating >= 4.0) return 'bg-green-600';
     if (rating >= 3.5) return 'bg-orange-500';
     return 'bg-red-500';
   };
 
-  const formatReviewCount = (count: number) => {
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
-  };
-
-  if (selectedVendor) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-card border-b sticky top-0 z-50">
-          <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setSelectedVendor(null)}>
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="font-bold">{selectedVendor.name}</h1>
-                <p className="text-xs text-muted-foreground">{selectedVendor.cuisine_type}</p>
-              </div>
-            </div>
-            <Button onClick={handleCheckout} disabled={cart.length === 0}>
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              {cart.length} items · ₹{getTotalAmount()}
-            </Button>
-          </div>
-        </div>
-
-        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-          {menuItems.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="p-4 flex gap-4">
-                {item.image_url && (
-                  <img src={item.image_url} alt={item.name} className="w-20 h-20 rounded-lg object-cover" />
-                )}
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold">{item.name}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
-                      {item.is_vegetarian && <Badge variant="outline" className="mt-1">🌱 Veg</Badge>}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-primary">₹{item.price}</p>
-                      <Button size="sm" className="mt-2" onClick={() => addToCart(item)}>
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const filteredVendors = vendors.filter(vendor => 
+    vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vendor.cuisine_type?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-50">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">Food & Restaurants</h1>
-            <p className="text-xs text-muted-foreground">Discover nearby dining options</p>
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-lg font-bold">Food Delivery</h1>
+            </div>
           </div>
+          
+          {/* Location Picker */}
+          <button 
+            onClick={() => setShowLocationPicker(true)}
+            className="flex items-center gap-2 mt-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+          >
+            <MapPin className="w-4 h-4 text-primary" />
+            <span className="flex-1 text-left text-sm font-medium truncate">
+              {activeLocation?.name || 'Select your location'}
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
       </div>
 
@@ -175,197 +136,213 @@ export default function FoodOrdering() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search..."
+            placeholder="Search for restaurants, cuisines..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-muted/50 border-0"
+            className="pl-10 bg-muted/50 border-0 h-11"
           />
         </div>
 
-        {/* Section Title */}
-        <div className="flex items-center gap-4">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-sm font-semibold text-primary uppercase tracking-wider">Recommended</span>
-          <div className="h-px flex-1 bg-border" />
+        {/* Quick Filters */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {['All', 'Fast Food', 'Indian', 'Chinese', 'Italian', 'Pizza', 'Biryani'].map((filter) => (
+            <Badge 
+              key={filter} 
+              variant={filter === 'All' ? 'default' : 'outline'}
+              className="shrink-0 cursor-pointer px-4 py-1.5"
+            >
+              {filter}
+            </Badge>
+          ))}
         </div>
 
-        {/* Results */}
-        <div className="space-y-4">
+        {/* Restaurant List */}
+        <div className="space-y-3">
           {locationLoading || loading ? (
-            <div className="space-y-4">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="overflow-hidden">
-                  <Skeleton className="h-48 w-full" />
-                  <CardContent className="p-4 space-y-3">
-                    <Skeleton className="h-6 w-3/4" />
+            [...Array(5)].map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <div className="flex gap-3 p-3">
+                  <Skeleton className="w-24 h-24 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
-                    <div className="flex gap-2">
-                      <Skeleton className="h-6 w-16 rounded-full" />
-                      <Skeleton className="h-6 w-16 rounded-full" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : !location ? (
-            <Card className="overflow-hidden">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-                  <MapPin className="h-8 w-8 text-muted-foreground" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
                 </div>
-                <p className="font-medium mb-1">Enable location</p>
-                <p className="text-sm text-muted-foreground">To find restaurants near you</p>
+              </Card>
+            ))
+          ) : !activeLocation ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                  <MapPin className="h-8 w-8 text-primary" />
+                </div>
+                <p className="font-semibold mb-1">Set your location</p>
+                <p className="text-sm text-muted-foreground mb-4">To discover restaurants near you</p>
+                <Button onClick={() => setShowLocationPicker(true)}>
+                  <Navigation className="w-4 h-4 mr-2" />
+                  Set Location
+                </Button>
               </CardContent>
             </Card>
-          ) : vendors.length === 0 ? (
-            <Card className="overflow-hidden">
+          ) : filteredVendors.length === 0 ? (
+            <Card>
               <CardContent className="p-8 text-center">
-                <p className="text-lg font-semibold text-muted-foreground">No restaurants found</p>
-                <p className="text-sm text-muted-foreground mt-1">Try searching for something else</p>
+                <p className="text-lg font-semibold">No restaurants found</p>
+                <p className="text-sm text-muted-foreground mt-1">Try a different location or search</p>
               </CardContent>
             </Card>
           ) : (
-            vendors.map((vendor) => (
+            filteredVendors.map((vendor) => (
               <Card 
                 key={vendor.id} 
-                className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all duration-300"
-                onClick={() => handleVendorSelect(vendor)}
+                className="overflow-hidden hover:shadow-md transition-shadow"
               >
-                {/* Image Section */}
-                <div className="relative h-48 bg-muted">
-                  {vendor.avatar_url ? (
-                    <img 
-                      src={vendor.avatar_url} 
-                      alt={vendor.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                      <span className="text-4xl">🍽️</span>
-                    </div>
-                  )}
-                  
-                  {/* Overlaid Badge */}
-                  {vendor.rating_average >= 4.0 && (
-                    <div className="absolute top-3 left-3">
-                      <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-medium px-3 py-1">
-                        Top Rated
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  {/* Rating Badge */}
-                  <div className={`absolute top-3 right-3 ${getRatingColor(vendor.rating_average)} text-white text-sm font-bold px-2 py-1 rounded-md flex items-center gap-1`}>
-                    <Star className="w-3 h-3 fill-current" />
-                    {vendor.rating_average.toFixed(1)}
-                  </div>
-                  
-                  {/* Price Badge */}
-                  {vendor.price && (
-                    <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm text-foreground text-xs font-medium px-2 py-1 rounded-md">
-                      ₹{vendor.price} per person
-                    </div>
-                  )}
-                </div>
-
-                {/* Content Section */}
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                        {vendor.name}
-                      </h3>
-                      
-                      {/* Rating & Reviews */}
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                          <span className="text-sm font-medium">{vendor.rating_average.toFixed(2)}</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          ({formatReviewCount(vendor.rating_count)} reviews)
-                        </span>
+                <div className="flex gap-3 p-3">
+                  {/* Restaurant Image */}
+                  <div className="relative w-24 h-24 shrink-0">
+                    {vendor.avatar_url ? (
+                      <img 
+                        src={vendor.avatar_url} 
+                        alt={vendor.name} 
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/20 dark:to-orange-800/10 rounded-xl flex items-center justify-center">
+                        <span className="text-3xl">🍽️</span>
                       </div>
+                    )}
+                    {/* Rating Badge */}
+                    <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 ${getRatingColor(vendor.rating_average)} text-white text-xs font-bold px-2 py-0.5 rounded flex items-center gap-0.5`}>
+                      <Star className="w-2.5 h-2.5 fill-current" />
+                      {vendor.rating_average.toFixed(1)}
+                    </div>
+                  </div>
 
-                      {/* Price & Time */}
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        {vendor.price && (
-                          <>
-                            <span className="font-medium text-foreground">₹{vendor.price}</span>
-                            <span>•</span>
-                          </>
-                        )}
+                  {/* Restaurant Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-base line-clamp-1">{vendor.name}</h3>
+                    
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      {vendor.cuisine_type}
+                    </p>
+
+                    {/* Meta Info */}
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {vendor.delivery_time_min}-{vendor.delivery_time_max} min
+                      </span>
+                      {vendor.distance && (
                         <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {vendor.delivery_time_min} mins
+                          <MapPin className="w-3 h-3" />
+                          {vendor.distance.toFixed(1)} km
                         </span>
-                        {vendor.distance && (
-                          <>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5" />
-                              {vendor.distance.toFixed(1)} km
-                            </span>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Description */}
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                        {vendor.description}
-                      </p>
-
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {vendor.cuisine_type && (
-                          <Badge variant="secondary" className="text-xs font-normal bg-primary/10 text-primary hover:bg-primary/20">
-                            {vendor.cuisine_type}
-                          </Badge>
-                        )}
-                        {vendor.services?.slice(0, 3).map((service: string, idx: number) => (
-                          <Badge key={idx} variant="outline" className="text-xs font-normal">
-                            {service}
-                          </Badge>
-                        ))}
-                      </div>
+                      )}
                     </div>
 
-                    {/* Add Button */}
-                    <Button 
-                      size="sm" 
-                      className="rounded-full px-5 shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleVendorSelect(vendor);
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </div>
+                    {/* Price */}
+                    {vendor.price && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        ₹{vendor.price} for one
+                      </p>
+                    )}
 
-                  {/* View Details Link */}
-                  <div className="mt-3 pt-3 border-t">
-                    <button 
-                      className="text-sm text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (vendor.url) {
-                          window.open(vendor.url, '_blank');
-                        } else {
-                          handleVendorSelect(vendor);
-                        }
-                      }}
-                    >
-                      View details
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-2">
+                      {vendor.phone && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-7 text-xs px-2"
+                          onClick={() => window.open(`tel:${vendor.phone}`, '_self')}
+                        >
+                          <Phone className="w-3 h-3 mr-1" />
+                          Call
+                        </Button>
+                      )}
+                      {vendor.url && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-7 text-xs px-2"
+                          onClick={() => window.open(vendor.url, '_blank')}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
+                      )}
+                      <Button 
+                        size="sm"
+                        className="h-7 text-xs px-3 ml-auto"
+                        onClick={() => {
+                          if (vendor.url) {
+                            window.open(vendor.url, '_blank');
+                          } else {
+                            toast.info('Opening directions...');
+                          }
+                        }}
+                      >
+                        <Navigation className="w-3 h-3 mr-1" />
+                        Directions
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
+                </div>
               </Card>
             ))
           )}
         </div>
       </div>
+
+      {/* Location Picker Dialog */}
+      <Dialog open={showLocationPicker} onOpenChange={setShowLocationPicker}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set your delivery location</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3 h-12"
+              onClick={useCurrentLocation}
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Navigation className="w-4 h-4 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-sm">Use current location</p>
+                <p className="text-xs text-muted-foreground">Using GPS</p>
+              </div>
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">or enter manually</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Input
+                placeholder="Enter area, street name, landmark..."
+                value={locationInput}
+                onChange={(e) => setLocationInput(e.target.value)}
+                className="h-11"
+              />
+              <Button 
+                className="w-full" 
+                onClick={handleSetLocation}
+                disabled={!locationInput.trim()}
+              >
+                Confirm Location
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
