@@ -85,6 +85,54 @@ serve(async (req) => {
         userPrompt = `Generate an emotion prompt for ${data.emotion}.`;
         break;
 
+      case 'mindmaze_guess':
+        systemPrompt = `You are playing a mind-reading game. Based on psychological patterns and user responses, guess what they're thinking of.
+        User answers to questions: ${JSON.stringify(data.answers)}
+        Typing speed indicator: ${data.typingSpeed}ms (faster = more confident)
+        Make an educated guess about an object, place, emotion, or concept.
+        Return JSON: { "guess": "your guess", "confidence": 0-100, "reasoning": "brief explanation" }`;
+        userPrompt = `Based on the answers, what might the user be thinking of?`;
+        break;
+
+      case 'dreamforge_world':
+        systemPrompt = `You are creating a dream world from a user's dream description.
+        Generate a mystical, surreal micro-world with elements from their dream.
+        Return JSON: { 
+          "sky": "description of the sky",
+          "ground": "description of the ground/landscape", 
+          "centralObject": "main symbolic object",
+          "mood": "overall atmosphere",
+          "puzzle": { "riddle": "symbolic puzzle", "answer": "solution" }
+        }`;
+        userPrompt = `Dream description: ${data.dreamText}`;
+        break;
+
+      case 'shadowverse_dilemma':
+        systemPrompt = `Generate a moral dilemma for the ShadowVerse game.
+        Difficulty: ${data.difficulty}
+        Create a scenario with a tempting dark choice and a virtuous light choice.
+        Return JSON: {
+          "scenario": "the moral situation",
+          "shadowVoice": "tempting dark whisper",
+          "choices": [
+            { "text": "light choice", "alignment": "light", "points": 10 },
+            { "text": "grey choice", "alignment": "grey", "points": 5 },
+            { "text": "dark choice", "alignment": "dark", "points": -5 }
+          ]
+        }`;
+        userPrompt = `Generate a level ${data.level} moral dilemma.`;
+        break;
+
+      case 'avawars_battle':
+        systemPrompt = `Simulate an AI personality battle for AVA Wars.
+        Player AVA traits: ${JSON.stringify(data.playerTraits || {})}
+        Opponent AVA traits: ${JSON.stringify(data.opponentTraits || {})}
+        Battle type: ${data.battleType}
+        Generate battle commentary and determine winner.
+        Return JSON: { "winner": "player" or "opponent", "commentary": ["round 1 result", "round 2 result", ...], "highlights": "epic moment" }`;
+        userPrompt = `Simulate a ${data.battleType} battle.`;
+        break;
+
       default:
         return new Response(
           JSON.stringify({ error: 'Unknown action' }),
