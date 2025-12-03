@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { QuickAccessBrowser } from '@/components/QuickAccessBrowser';
-import { TrendingSearches } from '@/components/search/TrendingSearches';
-import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
-import { Search, Mic, Sparkles, Navigation, Heart, Briefcase, UtensilsCrossed, Tag } from 'lucide-react';
+import { 
+  Search, Mic, Navigation, Heart, Briefcase, UtensilsCrossed, Tag, 
+  Sparkles, Globe, Bot, Shield, MapPin, TrendingUp, Camera, Bell
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentLocation } from '@/utils/locationService';
 import { useAnonymousSearchLimit } from '@/hooks/useAnonymousSearchLimit';
@@ -17,6 +17,7 @@ const Home = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [gpsEnabled, setGpsEnabled] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   
   const {
     canSearch,
@@ -31,62 +32,63 @@ const Home = () => {
   } = useAnonymousSearchLimit();
 
   const activateGPS = async () => {
+    setIsLocating(true);
     try {
       const coords = await getCurrentLocation();
       if (coords) {
         setGpsEnabled(true);
-        toast.success('GPS activated for local results');
+        toast.success('Location enabled');
       }
     } catch (error) {
       toast.error('Failed to get location');
+    } finally {
+      setIsLocating(false);
     }
   };
 
   const handleSearch = () => {
     if (!searchQuery.trim()) return;
-
-    // Check if user can search
-    if (!canSearch) {
-      return; // Login prompt is already showing
-    }
-
-    // Increment search count (will show login prompt if limit reached)
+    if (!canSearch) return;
     const allowed = incrementSearch();
-    
     if (allowed) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      
-      // Show remaining searches warning
       if (!isAuthenticated && remainingSearches > 0 && remainingSearches <= 2) {
         toast.info(`${remainingSearches} free search${remainingSearches === 1 ? '' : 'es'} remaining`);
       }
     }
   };
 
-  const handleCategoryClick = (query: string) => {
-    // Check if user can search
-    if (!canSearch) {
-      return; // Login prompt is already showing
-    }
-
+  const handleQuickSearch = (query: string) => {
+    if (!canSearch) return;
     const allowed = incrementSearch();
-    
     if (allowed) {
       navigate(`/search?q=${encodeURIComponent(query)}`);
-      
-      if (!isAuthenticated && remainingSearches > 0 && remainingSearches <= 2) {
-        toast.info(`${remainingSearches} free search${remainingSearches === 1 ? '' : 'es'} remaining`);
-      }
     }
   };
+
+  const quickAccessItems = [
+    { icon: Heart, title: 'Healthcare', desc: 'Find doctors', route: '/local-healthcare', gradient: 'from-rose-500 to-pink-600' },
+    { icon: Briefcase, title: 'Jobs', desc: 'Find work', route: '/chatr-world?tab=jobs', gradient: 'from-emerald-500 to-teal-600' },
+    { icon: UtensilsCrossed, title: 'Food', desc: 'Order now', route: '/chatr-world?tab=food', gradient: 'from-orange-500 to-amber-600' },
+    { icon: Tag, title: 'Deals', desc: 'Save money', route: '/chatr-world?tab=deals', gradient: 'from-violet-500 to-purple-600' },
+  ];
+
+  const features = [
+    { icon: Globe, title: 'AI Browser', desc: 'Smart web search', route: '/ai-browser-home' },
+    { icon: Bot, title: 'AI Assistant', desc: 'Get instant help', route: '/ai-assistant' },
+    { icon: Camera, title: 'Visual Search', desc: 'Search with images', route: '/search' },
+    { icon: Bell, title: 'Smart Alerts', desc: 'Stay updated', route: '/notifications' },
+  ];
+
+  const trendingSearches = [
+    'plumber near me', 'biryani delivery', 'doctor available now',
+    'AC repair', 'yoga classes', 'job openings'
+  ];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -95,8 +97,8 @@ const Home = () => {
     <>
       <SEOHead
         title="Chatr - Universal Search | AI-Powered Multi-Source Search"
-        description="Find anything instantly with Chatr's Universal Search. Search across web, local services, jobs, healthcare, and marketplace with AI-powered intelligence, GPS location, and visual search."
-        keywords="universal search, AI search engine, multi-source search, local search, GPS search, visual search, smart search, perplexity alternative, openai search"
+        description="Find anything instantly with Chatr's Universal Search. Search across web, local services, jobs, healthcare, and marketplace with AI-powered intelligence."
+        keywords="universal search, AI search engine, multi-source search, local search, GPS search"
       />
       
       <LoginPromptModal
@@ -106,270 +108,185 @@ const Home = () => {
         maxSearches={maxSearches}
       />
       
-      <div className="min-h-screen bg-background pb-20">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-        
-        <div className="relative max-w-5xl mx-auto px-4 py-12">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 mb-4">
-              <Sparkles className="w-8 h-8 text-primary" />
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                Universal Search
-              </h1>
+      <div className="min-h-screen bg-background pb-24">
+        {/* Hero Header */}
+        <div className="bg-primary px-4 pt-8 pb-16 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary-foreground/10 opacity-90" />
+          <div className="relative max-w-2xl mx-auto text-center">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Sparkles className="w-6 h-6 text-primary-foreground" />
+              <h1 className="text-2xl font-bold text-primary-foreground">Universal Search</h1>
             </div>
-            <p className="text-xl text-muted-foreground font-medium">
-              Ask Anything. Find Everything. Instantly.
+            <p className="text-primary-foreground/80 text-sm">
+              Ask anything. Find everything.
             </p>
           </div>
+        </div>
 
-          {/* Main Search Bar */}
-          <Card className="p-6 bg-card/50 backdrop-blur-xl border-2 shadow-xl">
+        {/* Search Card - Floating */}
+        <div className="max-w-2xl mx-auto px-4 -mt-8">
+          <Card className="glass-card p-4 shadow-elevated">
             {/* Anonymous Search Counter */}
-            {!isAuthenticated && (
-              <div className="mb-4 p-3 bg-primary/5 border border-primary/10 rounded-lg flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium">
-                    {remainingSearches === Infinity 
-                      ? 'Unlimited searches' 
-                      : `${remainingSearches} free search${remainingSearches === 1 ? '' : 'es'} remaining`}
-                  </span>
-                </div>
-                {remainingSearches !== Infinity && remainingSearches <= 1 && (
+            {!isAuthenticated && remainingSearches !== Infinity && (
+              <div className="mb-3 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {remainingSearches} free searches left
+                </span>
+                {remainingSearches <= 1 && (
                   <Button 
                     size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      sessionStorage.setItem('auth_redirect', '/home');
-                      navigate('/auth');
-                    }}
-                    className="text-xs h-7"
+                    variant="ghost"
+                    onClick={() => navigate('/auth')}
+                    className="h-6 text-xs text-primary"
                   >
-                    Sign in
+                    Sign in for unlimited
                   </Button>
                 )}
               </div>
             )}
             
-            <div className="flex gap-3 mb-4">
+            {/* Search Input */}
+            <div className="flex gap-2">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Find plumber, order food, doctor, hire driver..."
-                  className="pl-12 pr-14 h-14 text-lg border-2 focus-visible:ring-2"
+                  placeholder="Find plumber, food, doctor..."
+                  className="pl-10 pr-10 h-12 bg-secondary/50 border-0 rounded-xl"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                 >
-                  <Mic className="w-5 h-5" />
+                  <Mic className="w-4 h-4 text-muted-foreground" />
                 </Button>
               </div>
               <Button 
-                size="lg" 
                 onClick={handleSearch}
-                className="h-14 px-8 text-base font-semibold"
+                className="h-12 px-6 rounded-xl"
               >
                 Search
               </Button>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2">
-                <Button
-                  variant={gpsEnabled ? "default" : "outline"}
-                  size="sm"
-                  onClick={activateGPS}
-                  className="gap-2"
-                >
-                  <Navigation className="w-4 h-4" />
-                  {gpsEnabled ? 'GPS Active' : 'Activate GPS'}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Powered by AI • Multi-source results
-              </p>
-            </div>
-          </Card>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <Card className="p-4 text-center bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-              <p className="text-2xl font-bold text-blue-600">∞</p>
-              <p className="text-xs text-muted-foreground">Web Sources</p>
-            </Card>
-            <Card className="p-4 text-center bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-              <p className="text-2xl font-bold text-green-600">AI</p>
-              <p className="text-xs text-muted-foreground">Visual Search</p>
-            </Card>
-            <Card className="p-4 text-center bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-              <p className="text-2xl font-bold text-purple-600">Smart</p>
-              <p className="text-xs text-muted-foreground">Alerts</p>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-        {/* Quick Access to Live Services */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <Card 
-            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20"
-            onClick={() => navigate('/local-healthcare')}
-          >
-            <Heart className="w-6 h-6 text-blue-600 mb-2" />
-            <h4 className="font-semibold text-sm">Healthcare</h4>
-            <p className="text-xs text-muted-foreground">Find doctors & clinics</p>
-          </Card>
-          <Card 
-            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
-            onClick={() => navigate('/chatr-world?tab=jobs')}
-          >
-            <Briefcase className="w-6 h-6 text-green-600 mb-2" />
-            <h4 className="font-semibold text-sm">Jobs</h4>
-            <p className="text-xs text-muted-foreground">Find opportunities</p>
-          </Card>
-          <Card 
-            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20"
-            onClick={() => navigate('/chatr-world?tab=food')}
-          >
-            <UtensilsCrossed className="w-6 h-6 text-orange-600 mb-2" />
-            <h4 className="font-semibold text-sm">Food</h4>
-            <p className="text-xs text-muted-foreground">Order food nearby</p>
-          </Card>
-          <Card 
-            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20"
-            onClick={() => navigate('/chatr-world?tab=deals')}
-          >
-            <Tag className="w-6 h-6 text-purple-600 mb-2" />
-            <h4 className="font-semibold text-sm">Deals</h4>
-            <p className="text-xs text-muted-foreground">Cashback & offers</p>
-          </Card>
-        </div>
-
-        {/* AI Browser */}
-        <div>
-          <h3 className="font-semibold text-sm mb-3">AI-Powered Features</h3>
-          <QuickAccessBrowser />
-        </div>
-
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-4 gap-4">
-          <Card className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Sparkles className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="font-semibold mb-2">AI-Powered</h3>
-            <p className="text-sm text-muted-foreground">
-              Smart intent understanding with multi-source results
-            </p>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-blue-500/5 to-transparent">
-            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-4">
-              <Search className="w-6 h-6 text-blue-600" />
-            </div>
-            <h3 className="font-semibold mb-2">Web Search</h3>
-            <p className="text-sm text-muted-foreground">
-              Integrates with Perplexity, OpenAI, and major search engines
-            </p>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-green-500/5 to-transparent">
-            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
-              <Navigation className="w-6 h-6 text-green-600" />
-            </div>
-            <h3 className="font-semibold mb-2">GPS-Based</h3>
-            <p className="text-sm text-muted-foreground">
-              Find services nearby with real-time location tracking
-            </p>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-purple-500/5 to-transparent">
-            <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-4">
-              <Search className="w-6 h-6 text-purple-600" />
-            </div>
-            <h3 className="font-semibold mb-2">Visual Search</h3>
-            <p className="text-sm text-muted-foreground">
-              Upload photos to find similar services and products
-            </p>
-          </Card>
-        </div>
-
-        {/* New Features Highlight */}
-        <Card className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
-          <h3 className="font-semibold text-lg mb-4">🚀 New Features</h3>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Saved Searches
-              </h4>
-              <p className="text-sm text-muted-foreground">
-                Save your searches and get notified when new results appear
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                <Search className="w-4 h-4 text-primary" />
-                Web Integration
-              </h4>
-              <p className="text-sm text-muted-foreground">
-                Search across Google, Perplexity, OpenAI, and more sources
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                <Navigation className="w-4 h-4 text-primary" />
-                Visual Search
-              </h4>
-              <p className="text-sm text-muted-foreground">
-                Upload images to find similar items, services, and products
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Example Searches */}
-        <Card className="p-6 bg-gradient-to-br from-muted/50 to-transparent">
-          <h3 className="font-semibold mb-4">Try these searches:</h3>
-          <div className="grid md:grid-cols-2 gap-3">
-            {[
-              '"plumber near me"',
-              '"biryani delivery"',
-              '"doctor available now"',
-              '"hire a driver"',
-              '"AC repair service"',
-              '"yoga classes nearby"',
-              '"best restaurants"',
-              '"job openings"'
-            ].map((example) => (
+            {/* GPS Toggle */}
+            <div className="mt-3 flex items-center gap-2">
               <Button
-                key={example}
-                variant="outline"
-                className="justify-start text-left h-auto py-3"
-                onClick={() => {
-                  const query = example.replace(/"/g, '');
-                  setSearchQuery(query);
-                  handleCategoryClick(query);
-                }}
+                variant={gpsEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={activateGPS}
+                disabled={isLocating}
+                className="gap-1.5 h-8 text-xs rounded-full"
               >
-                <Search className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span className="truncate">{example}</span>
+                {isLocating ? (
+                  <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Navigation className="w-3 h-3" />
+                )}
+                {gpsEnabled ? 'GPS On' : 'Enable GPS'}
+              </Button>
+              {gpsEnabled && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <MapPin className="w-3 h-3" /> Location active
+                </span>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Quick Access Grid */}
+        <div className="max-w-2xl mx-auto px-4 mt-6">
+          <div className="grid grid-cols-4 gap-3">
+            {quickAccessItems.map((item) => (
+              <button
+                key={item.title}
+                onClick={() => navigate(item.route)}
+                className="flex flex-col items-center p-3 rounded-2xl bg-card border border-border/50 hover:shadow-md transition-all native-touch"
+              >
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-2 shadow-sm`}>
+                  <item.icon className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <span className="text-xs font-medium text-foreground">{item.title}</span>
+                <span className="text-[10px] text-muted-foreground">{item.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Features List */}
+        <div className="max-w-2xl mx-auto px-4 mt-6">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">AI-Powered Features</h2>
+          <div className="space-y-2">
+            {features.map((feature) => (
+              <Card
+                key={feature.title}
+                onClick={() => navigate(feature.route)}
+                className="p-3 flex items-center gap-3 cursor-pointer hover:bg-accent/50 transition-colors native-touch"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <feature.icon className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-sm text-foreground">{feature.title}</h3>
+                  <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Trending Searches */}
+        <div className="max-w-2xl mx-auto px-4 mt-6">
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold text-muted-foreground">Trending Searches</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {trendingSearches.map((query) => (
+              <Button
+                key={query}
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickSearch(query)}
+                className="h-8 text-xs rounded-full border-border/50 hover:bg-primary hover:text-primary-foreground transition-colors"
+              >
+                {query}
               </Button>
             ))}
           </div>
-        </Card>
+        </div>
+
+        {/* Stats Banner */}
+        <div className="max-w-2xl mx-auto px-4 mt-6">
+          <Card className="p-4 bg-gradient-to-r from-primary/5 to-accent/50 border-primary/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Secure & Private</p>
+                  <p className="text-xs text-muted-foreground">Your searches stay with you</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-primary">AI</p>
+                <p className="text-xs text-muted-foreground">Powered</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Footer */}
+        <div className="max-w-2xl mx-auto px-4 mt-8 text-center">
+          <p className="text-xs text-muted-foreground">
+            Powered by <span className="font-semibold text-primary">CHATR</span> • Multi-source AI Search
+          </p>
+        </div>
       </div>
-    </div>
     </>
   );
 };
