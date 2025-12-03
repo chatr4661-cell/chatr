@@ -9863,6 +9863,93 @@ export type Database = {
           },
         ]
       }
+      rewards_daily_challenges: {
+        Row: {
+          challenge_description: string | null
+          challenge_name: string
+          challenge_type: string
+          coin_reward: number
+          created_at: string
+          id: string
+          is_active: boolean | null
+          target_value: number
+        }
+        Insert: {
+          challenge_description?: string | null
+          challenge_name: string
+          challenge_type: string
+          coin_reward: number
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          target_value: number
+        }
+        Update: {
+          challenge_description?: string | null
+          challenge_name?: string
+          challenge_type?: string
+          coin_reward?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          target_value?: number
+        }
+        Relationships: []
+      }
+      rewards_mode_settings: {
+        Row: {
+          ad_rewards_enabled: boolean | null
+          coin_multiplier: number | null
+          created_at: string
+          current_streak: number | null
+          daily_challenges_enabled: boolean | null
+          id: string
+          last_activity_date: string | null
+          longest_streak: number | null
+          streak_bonus_enabled: boolean | null
+          survey_rewards_enabled: boolean | null
+          total_ads_watched: number | null
+          total_coins_earned: number | null
+          total_surveys_completed: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad_rewards_enabled?: boolean | null
+          coin_multiplier?: number | null
+          created_at?: string
+          current_streak?: number | null
+          daily_challenges_enabled?: boolean | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          streak_bonus_enabled?: boolean | null
+          survey_rewards_enabled?: boolean | null
+          total_ads_watched?: number | null
+          total_coins_earned?: number | null
+          total_surveys_completed?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad_rewards_enabled?: boolean | null
+          coin_multiplier?: number | null
+          created_at?: string
+          current_streak?: number | null
+          daily_challenges_enabled?: boolean | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          streak_bonus_enabled?: boolean | null
+          survey_rewards_enabled?: boolean | null
+          total_ads_watched?: number | null
+          total_coins_earned?: number | null
+          total_surveys_completed?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       room_participants: {
         Row: {
           id: string
@@ -10444,6 +10531,42 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_analytics: {
+        Row: {
+          avg_response_time_seconds: number | null
+          broadcasts_sent: number | null
+          customer_count: number | null
+          date: string
+          id: string
+          messages_received: number | null
+          messages_sent: number | null
+          products_shared: number | null
+          user_id: string
+        }
+        Insert: {
+          avg_response_time_seconds?: number | null
+          broadcasts_sent?: number | null
+          customer_count?: number | null
+          date?: string
+          id?: string
+          messages_received?: number | null
+          messages_sent?: number | null
+          products_shared?: number | null
+          user_id: string
+        }
+        Update: {
+          avg_response_time_seconds?: number | null
+          broadcasts_sent?: number | null
+          customer_count?: number | null
+          date?: string
+          id?: string
+          messages_received?: number | null
+          messages_sent?: number | null
+          products_shared?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       seller_invoices: {
         Row: {
           amount: number
@@ -10496,6 +10619,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seller_mode_settings: {
+        Row: {
+          analytics_enabled: boolean | null
+          auto_response_enabled: boolean | null
+          auto_response_message: string | null
+          away_message: string | null
+          broadcast_enabled: boolean | null
+          business_category: string | null
+          business_hours: Json | null
+          business_name: string | null
+          created_at: string
+          id: string
+          priority_support: boolean | null
+          quick_replies: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analytics_enabled?: boolean | null
+          auto_response_enabled?: boolean | null
+          auto_response_message?: string | null
+          away_message?: string | null
+          broadcast_enabled?: boolean | null
+          business_category?: string | null
+          business_hours?: Json | null
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          priority_support?: boolean | null
+          quick_replies?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analytics_enabled?: boolean | null
+          auto_response_enabled?: boolean | null
+          auto_response_message?: string | null
+          away_message?: string | null
+          broadcast_enabled?: boolean | null
+          business_category?: string | null
+          business_hours?: Json | null
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          priority_support?: boolean | null
+          quick_replies?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       seller_transactions: {
         Row: {
@@ -11298,6 +11472,51 @@ export type Database = {
           },
         ]
       }
+      stealth_mode_subscriptions: {
+        Row: {
+          amount_paid: number | null
+          created_at: string
+          currency: string | null
+          expires_at: string | null
+          id: string
+          payment_method: string | null
+          plan_type: string
+          started_at: string
+          status: string | null
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string
+          currency?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_method?: string | null
+          plan_type: string
+          started_at?: string
+          status?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string
+          currency?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_method?: string | null
+          plan_type?: string
+          started_at?: string
+          status?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           caption: string | null
@@ -11955,6 +12174,47 @@ export type Database = {
           },
         ]
       }
+      user_challenge_progress: {
+        Row: {
+          challenge_id: string
+          coins_awarded: number | null
+          completed: boolean | null
+          completed_at: string | null
+          current_progress: number | null
+          date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          coins_awarded?: number | null
+          completed?: boolean | null
+          completed_at?: string | null
+          current_progress?: number | null
+          date?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          coins_awarded?: number | null
+          completed?: boolean | null
+          completed_at?: string | null
+          current_progress?: number | null
+          date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "rewards_daily_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_contacts: {
         Row: {
           contact_user_id: string
@@ -12368,6 +12628,42 @@ export type Database = {
           media_url?: string | null
           user_id?: string
           views_count?: number | null
+        }
+        Relationships: []
+      }
+      user_stealth_modes: {
+        Row: {
+          created_at: string
+          current_mode: string
+          id: string
+          rewards_opted_in: boolean | null
+          rewards_opted_in_at: string | null
+          seller_verified: boolean | null
+          seller_verified_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_mode?: string
+          id?: string
+          rewards_opted_in?: boolean | null
+          rewards_opted_in_at?: string | null
+          seller_verified?: boolean | null
+          seller_verified_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_mode?: string
+          id?: string
+          rewards_opted_in?: boolean | null
+          rewards_opted_in_at?: string | null
+          seller_verified?: boolean | null
+          seller_verified_at?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

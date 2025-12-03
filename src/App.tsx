@@ -175,6 +175,7 @@ import ChatrOS from "./pages/ChatrOS"; // Chatr OS Desktop Interface
 import OSDetection from "./pages/OSDetection"; // OS Detection Page
 import ChatrHome from "./pages/ChatrHome"; // CHATR Search Home
 import ChatrResults from "./pages/ChatrResults"; // CHATR Search Results
+import StealthMode from "./pages/StealthMode"; // Stealth Mode Settings
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -324,6 +325,7 @@ const App = () => {
           {/* Points & Payment Routes */}
           <Route path="/chatr-points" element={<ChatrPoints />} />
           <Route path="/reward-shop" element={<RewardShop />} />
+          <Route path="/stealth-mode" element={<ProtectedRoute><StealthMode /></ProtectedRoute>} />
           <Route path="/growth" element={<ChatrGrowth />} />
           <Route path="/chatr-growth" element={<ChatrGrowth />} />
           <Route path="/chatr-wallet" element={<ChatrWallet />} />
