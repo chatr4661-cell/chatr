@@ -6,7 +6,8 @@ import { PrivacySettings } from "@/components/settings/PrivacySettings";
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, User, Shield, Palette, LogOut } from "lucide-react";
+import { Bell, User, Shield, Palette, LogOut, Ghost } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -71,7 +72,13 @@ export default function Settings() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-8">
+        <div className="mt-8 space-y-3">
+          <Link to="/stealth-mode">
+            <Button variant="outline" className="w-full justify-start gap-2">
+              <Ghost className="w-4 h-4" />
+              Stealth Mode Settings
+            </Button>
+          </Link>
           <Button 
             variant="destructive" 
             className="w-full"
