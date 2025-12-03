@@ -45,39 +45,74 @@ serve(async (req) => {
                      req.headers.get('x-real-ip') || 
                      'unknown';
 
-    // GeoIP lookup (stub - returns null for now)
+    // IP-based geolocation lookup
     let ipLat: number | null = null;
     let ipLon: number | null = null;
     let ipCountry: string | null = null;
     let ipCity: string | null = null;
 
-    // Get last known location
-    const { data: lastLoc } = await supabase
-      .from('last_locations')
-      .select('*')
-      .or(`user_id.eq.${userId || 'null'},session_id.eq.${sessionId}`)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
+    try {
+      // Use ip-api.com for free geolocation (works without API key)
+      const ipResponse = await fetch(`http://ip-api.com/json/${clientIP === 'unknown' ? '' : clientIP}?fields=status,country,countryCode,city,lat,lon`);
+      const ipData = await ipResponse.json();
+      
+      if (ipData.status === 'success') {
+        ipLat = ipData.lat;
+        ipLon = ipData.lon;
+        ipCountry = ipData.countryCode;
+        ipCity = ipData.city;
+        console.log(`IP location resolved: ${ipCity}, ${ipCountry} (${ipLat}, ${ipLon})`);
+      }
+    } catch (ipErr) {
+      console.error('IP geolocation error:', ipErr);
+    }
 
-    const lastLat = lastLoc?.lat || null;
-    const lastLon = lastLoc?.lon || null;
+    // Get last known location
+    let lastLat: number | null = null;
+    let lastLon: number | null = null;
+
+    try {
+      const { data: lastLoc } = await supabase
+        .from('last_locations')
+        .select('*')
+        .or(`user_id.eq.${userId || 'null'},session_id.eq.${sessionId}`)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      lastLat = lastLoc?.lat || null;
+      lastLon = lastLoc?.lon || null;
+    } catch (locErr) {
+      console.log('No last location found');
+    }
 
     // Update last known location if GPS provided
     if (gpsLat && gpsLon) {
-      await supabase
-        .from('last_locations')
-        .upsert({
-          user_id: userId || null,
-          session_id: sessionId,
-          lat: gpsLat,
-          lon: gpsLon,
-          source: 'gps',
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: userId ? 'user_id' : 'session_id'
-        });
+      try {
+        await supabase
+          .from('last_locations')
+          .upsert({
+            user_id: userId || null,
+            session_id: sessionId,
+            lat: gpsLat,
+            lon: gpsLon,
+            source: 'gps',
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: userId ? 'user_id' : 'session_id'
+          });
+      } catch (upsertErr) {
+        console.error('Failed to update last location:', upsertErr);
+      }
     }
+
+    // Determine best available location (GPS > IP > Last Known)
+    const effectiveLat = gpsLat || ipLat || lastLat;
+    const effectiveLon = gpsLon || ipLon || lastLon;
+    const effectiveCity = ipCity || 'India';
+    const effectiveCountry = ipCountry || 'IN';
+
+    console.log(`Effective location: ${effectiveCity}, ${effectiveCountry} (${effectiveLat}, ${effectiveLon})`);
 
     // Call Google Custom Search API
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_SEARCH_API_KEY');
@@ -95,9 +130,29 @@ serve(async (req) => {
       );
     }
 
-    const googleUrl = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX_ID}&num=10`;
+    // Build location-aware search query
+    // Add location context to query for local results
+    let searchQuery = query;
+    const localKeywords = ['near me', 'nearby', 'local', 'shop', 'store', 'restaurant', 'doctor', 'hospital', 'clinic', 'job', 'service'];
+    const isLocalQuery = localKeywords.some(kw => query.toLowerCase().includes(kw));
     
-    console.log('Calling Google Custom Search API...');
+    if (isLocalQuery && effectiveCity && !query.toLowerCase().includes(effectiveCity.toLowerCase())) {
+      searchQuery = `${query} in ${effectiveCity}`;
+    }
+
+    // Build Google URL with geo-restriction to India
+    const googleParams = new URLSearchParams({
+      q: searchQuery,
+      key: GOOGLE_API_KEY,
+      cx: GOOGLE_CX_ID,
+      num: '10',
+      gl: 'in',  // Geo-restrict to India
+      cr: 'countryIN',  // Results from India
+    });
+
+    const googleUrl = `https://www.googleapis.com/customsearch/v1?${googleParams.toString()}`;
+    
+    console.log(`Calling Google Custom Search: "${searchQuery}" (gl=in, cr=countryIN)`);
     const googleResponse = await fetch(googleUrl);
     const googleData = await googleResponse.json();
 
@@ -120,7 +175,7 @@ serve(async (req) => {
     // Classify and score results
     const results = rawResults.map((item: any, index: number) => {
       const detectedType = classifyResult(query, item);
-      const score = calculateScore(item, index, query, gpsLat, gpsLon, lastLat, lastLon);
+      const score = calculateScore(item, index, query, effectiveLat, effectiveLon);
       
       return {
         title: item.title,
@@ -140,28 +195,33 @@ serve(async (req) => {
     results.forEach((r: any, i: number) => r.rank = i + 1);
 
     // Log search to database
-    const { data: searchLog } = await supabase
-      .from('search_logs')
-      .insert({
-        user_id: userId || null,
-        session_id: sessionId,
-        query,
-        source: 'web',
-        engine: 'google_custom_search',
-        gps_lat: gpsLat || null,
-        gps_lon: gpsLon || null,
-        ip: clientIP,
-        ip_country: ipCountry,
-        ip_city: ipCity,
-        ip_lat: ipLat,
-        ip_lon: ipLon,
-        last_known_lat: lastLat,
-        last_known_lon: lastLon
-      })
-      .select()
-      .single();
+    let searchId: string | null = null;
+    try {
+      const { data: searchLog } = await supabase
+        .from('search_logs')
+        .insert({
+          user_id: userId || null,
+          session_id: sessionId,
+          query,
+          source: 'web',
+          engine: 'google_custom_search',
+          gps_lat: gpsLat || null,
+          gps_lon: gpsLon || null,
+          ip: clientIP,
+          ip_country: ipCountry,
+          ip_city: ipCity,
+          ip_lat: ipLat,
+          ip_lon: ipLon,
+          last_known_lat: lastLat,
+          last_known_lon: lastLon
+        })
+        .select()
+        .single();
 
-    const searchId = searchLog?.id;
+      searchId = searchLog?.id;
+    } catch (logErr) {
+      console.error('Failed to log search:', logErr);
+    }
 
     // Call AI answer function
     let aiAnswer: { text: string | null; sources: string[] } = { text: null, sources: [] };
@@ -175,7 +235,7 @@ serve(async (req) => {
             snippet: r.snippet,
             url: r.url
           })),
-          location: gpsLat && gpsLon ? { lat: gpsLat, lon: gpsLon } : null
+          location: effectiveLat && effectiveLon ? { lat: effectiveLat, lon: effectiveLon, city: effectiveCity } : null
         }
       });
 
@@ -199,8 +259,13 @@ serve(async (req) => {
           gpsLon,
           ipLat,
           ipLon,
+          ipCity,
+          ipCountry,
           lastLat,
-          lastLon
+          lastLon,
+          effectiveLat,
+          effectiveLon,
+          effectiveCity
         },
         results
       }),
@@ -311,10 +376,8 @@ function calculateScore(
   item: any,
   index: number,
   query: string,
-  gpsLat?: number,
-  gpsLon?: number,
-  lastLat?: number | null,
-  lastLon?: number | null
+  lat?: number | null,
+  lon?: number | null
 ): number {
   let score = 100 - index * 5; // Base Google rank
 
@@ -331,6 +394,11 @@ function calculateScore(
   // Local boost if location mentioned
   if (combined.includes('near') || combined.includes('nearby')) {
     score += 15;
+  }
+
+  // Indian domain boost
+  if (item.link.includes('.in') || item.link.includes('india')) {
+    score += 20;
   }
 
   // Quality signals
