@@ -11645,6 +11645,89 @@ export type Database = {
           },
         ]
       }
+      studio_design_templates: {
+        Row: {
+          category: string
+          created_at: string
+          dimensions: Json | null
+          id: string
+          is_premium: boolean | null
+          name: string
+          template_data: Json
+          thumbnail_url: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          dimensions?: Json | null
+          id?: string
+          is_premium?: boolean | null
+          name: string
+          template_data?: Json
+          thumbnail_url?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          dimensions?: Json | null
+          id?: string
+          is_premium?: boolean | null
+          name?: string
+          template_data?: Json
+          thumbnail_url?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
+      studio_user_designs: {
+        Row: {
+          created_at: string
+          design_data: Json
+          exported_url: string | null
+          id: string
+          is_published: boolean | null
+          name: string
+          template_id: string | null
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          design_data?: Json
+          exported_url?: string | null
+          id?: string
+          is_published?: boolean | null
+          name: string
+          template_id?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          design_data?: Json
+          exported_url?: string | null
+          id?: string
+          is_published?: boolean | null
+          name?: string
+          template_id?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_user_designs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "studio_design_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
