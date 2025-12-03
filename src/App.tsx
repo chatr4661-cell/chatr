@@ -167,6 +167,8 @@ import SellerSettings from "./pages/SellerSettings";
 import SellerReviews from "./pages/SellerReviews";
 import SellerPayouts from "./pages/SellerPayouts";
 import SellerSubscription from "./pages/SellerSubscription";
+import SellerSettlements from "./pages/seller/SellerSettlements";
+import PaymentVerification from "./pages/admin/PaymentVerification";
 import UniversalSearch from "./pages/UniversalSearch";
 import UserSubscription from "./pages/UserSubscription";
 import ChatrWallet from "./pages/ChatrWallet";
@@ -389,6 +391,7 @@ const App = () => {
               <Route path="brand-partnerships" element={<BrandPartnerships />} />
               <Route path="app-approvals" element={<AppApprovals />} />
               <Route path="chatr-world" element={<ChatrWorldAdmin />} />
+              <Route path="payment-verification" element={<PaymentVerification />} />
             </Route>
             <Route path="/chatr-tutors" element={<ChatrTutors />} />
             <Route path="/tutors" element={<ChatrTutors />} />
@@ -420,6 +423,7 @@ const App = () => {
             <Route path="/seller/reviews" element={<SellerReviews />} />
             <Route path="/seller/payouts" element={<SellerPayouts />} />
             <Route path="/seller/subscription" element={<SellerSubscription />} />
+            <Route path="/seller/settlements" element={<SellerSettlements />} />
             <Route path="/chatr-plus/seller/bookings" element={<SellerBookings />} />
             <Route path="/chatr-plus/seller/services" element={<SellerServices />} />
             <Route path="/chatr-plus/seller/analytics" element={<SellerAnalytics />} />

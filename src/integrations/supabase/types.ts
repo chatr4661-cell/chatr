@@ -11142,6 +11142,59 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_settlements: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          net_amount: number
+          payment_id: string | null
+          platform_fee: number | null
+          seller_id: string
+          seller_upi_id: string | null
+          settled_at: string | null
+          settlement_method: string | null
+          settlement_reference: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          net_amount: number
+          payment_id?: string | null
+          platform_fee?: number | null
+          seller_id: string
+          seller_upi_id?: string | null
+          settled_at?: string | null
+          settlement_method?: string | null
+          settlement_reference?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          net_amount?: number
+          payment_id?: string | null
+          platform_fee?: number | null
+          seller_id?: string
+          seller_upi_id?: string | null
+          settled_at?: string | null
+          settlement_method?: string | null
+          settlement_reference?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_settlements_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "upi_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_transactions: {
         Row: {
           amount: number
@@ -12692,6 +12745,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      upi_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          order_type: string
+          payment_screenshot_url: string | null
+          seller_id: string | null
+          settled_at: string | null
+          settlement_reference: string | null
+          status: string
+          updated_at: string
+          upi_reference: string | null
+          user_id: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          order_type: string
+          payment_screenshot_url?: string | null
+          seller_id?: string | null
+          settled_at?: string | null
+          settlement_reference?: string | null
+          status?: string
+          updated_at?: string
+          upi_reference?: string | null
+          user_id?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          order_type?: string
+          payment_screenshot_url?: string | null
+          seller_id?: string | null
+          settled_at?: string | null
+          settlement_reference?: string | null
+          status?: string
+          updated_at?: string
+          upi_reference?: string | null
+          user_id?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
       }
       user_activities: {
         Row: {
