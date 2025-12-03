@@ -282,9 +282,8 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/global-contacts" element={<GlobalContacts />} />
-          <Route path="/call-history" element={<CallHistory />} />
-          <Route path="/contacts" element={<ContactsPage />} />
-          <Route path="/smart-inbox" element={<SmartInbox />} />
+            <Route path="/call-history" element={<CallHistory />} />
+            <Route path="/smart-inbox" element={<SmartInbox />} />
             <Route path="/stories" element={<Stories />} />
             <Route path="/communities" element={<Communities />} />
             <Route path="/create-community" element={<CreateCommunity />} />
