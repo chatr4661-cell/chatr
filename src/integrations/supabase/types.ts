@@ -4999,6 +4999,96 @@ export type Database = {
         }
         Relationships: []
       }
+      emotionsync_challenges: {
+        Row: {
+          coins_earned: number | null
+          completed_at: string | null
+          confidence_score: number | null
+          created_at: string | null
+          detected_emotion: string | null
+          difficulty: string
+          id: string
+          input_type: string
+          level: number
+          success: boolean | null
+          target_emotion: string
+          time_taken_ms: number | null
+          user_id: string
+          user_input: string | null
+        }
+        Insert: {
+          coins_earned?: number | null
+          completed_at?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          detected_emotion?: string | null
+          difficulty: string
+          id?: string
+          input_type: string
+          level: number
+          success?: boolean | null
+          target_emotion: string
+          time_taken_ms?: number | null
+          user_id: string
+          user_input?: string | null
+        }
+        Update: {
+          coins_earned?: number | null
+          completed_at?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          detected_emotion?: string | null
+          difficulty?: string
+          id?: string
+          input_type?: string
+          level?: number
+          success?: boolean | null
+          target_emotion?: string
+          time_taken_ms?: number | null
+          user_id?: string
+          user_input?: string | null
+        }
+        Relationships: []
+      }
+      emotionsync_progress: {
+        Row: {
+          accuracy_rate: number | null
+          best_streak: number | null
+          created_at: string | null
+          current_level: number | null
+          id: string
+          total_challenges: number | null
+          unlocked_emotions: string[] | null
+          updated_at: string | null
+          user_id: string
+          xp: number | null
+        }
+        Insert: {
+          accuracy_rate?: number | null
+          best_streak?: number | null
+          created_at?: string | null
+          current_level?: number | null
+          id?: string
+          total_challenges?: number | null
+          unlocked_emotions?: string[] | null
+          updated_at?: string | null
+          user_id: string
+          xp?: number | null
+        }
+        Update: {
+          accuracy_rate?: number | null
+          best_streak?: number | null
+          created_at?: string | null
+          current_level?: number | null
+          id?: string
+          total_challenges?: number | null
+          unlocked_emotions?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+          xp?: number | null
+        }
+        Relationships: []
+      }
       encryption_keys: {
         Row: {
           created_at: string | null
@@ -5036,6 +5126,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      energy_pulse_progress: {
+        Row: {
+          created_at: string | null
+          current_level: number | null
+          high_score: number | null
+          id: string
+          perfect_hits: number | null
+          total_pulses: number | null
+          unlocked_themes: string[] | null
+          updated_at: string | null
+          user_id: string
+          xp: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_level?: number | null
+          high_score?: number | null
+          id?: string
+          perfect_hits?: number | null
+          total_pulses?: number | null
+          unlocked_themes?: string[] | null
+          updated_at?: string | null
+          user_id: string
+          xp?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          current_level?: number | null
+          high_score?: number | null
+          id?: string
+          perfect_hits?: number | null
+          total_pulses?: number | null
+          unlocked_themes?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+          xp?: number | null
+        }
+        Relationships: []
+      }
+      energy_pulse_sessions: {
+        Row: {
+          bpm: number
+          coins_earned: number | null
+          combo_max: number | null
+          completed: boolean | null
+          created_at: string | null
+          duration_seconds: number
+          good_hits: number | null
+          id: string
+          level: number
+          missed: number | null
+          perfect_hits: number | null
+          score: number | null
+          total_beats: number
+          user_id: string
+        }
+        Insert: {
+          bpm: number
+          coins_earned?: number | null
+          combo_max?: number | null
+          completed?: boolean | null
+          created_at?: string | null
+          duration_seconds: number
+          good_hits?: number | null
+          id?: string
+          level: number
+          missed?: number | null
+          perfect_hits?: number | null
+          score?: number | null
+          total_beats: number
+          user_id: string
+        }
+        Update: {
+          bpm?: number
+          coins_earned?: number | null
+          combo_max?: number | null
+          completed?: boolean | null
+          created_at?: string | null
+          duration_seconds?: number
+          good_hits?: number | null
+          id?: string
+          level?: number
+          missed?: number | null
+          perfect_hits?: number | null
+          score?: number | null
+          total_beats?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       error_logs: {
         Row: {
@@ -5506,6 +5686,114 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      game_leaderboards: {
+        Row: {
+          game_type: string
+          id: string
+          level: number
+          recorded_at: string | null
+          score: number
+          user_id: string
+        }
+        Insert: {
+          game_type: string
+          id?: string
+          level: number
+          recorded_at?: string | null
+          score: number
+          user_id: string
+        }
+        Update: {
+          game_type?: string
+          id?: string
+          level?: number
+          recorded_at?: string | null
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      game_levels: {
+        Row: {
+          coin_reward: number
+          created_at: string | null
+          description: string | null
+          difficulty: string
+          game_type: string
+          id: string
+          level_config: Json
+          level_number: number
+          title: string
+          unlock_requirement: Json | null
+          xp_reward: number
+        }
+        Insert: {
+          coin_reward: number
+          created_at?: string | null
+          description?: string | null
+          difficulty: string
+          game_type: string
+          id?: string
+          level_config: Json
+          level_number: number
+          title: string
+          unlock_requirement?: Json | null
+          xp_reward: number
+        }
+        Update: {
+          coin_reward?: number
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string
+          game_type?: string
+          id?: string
+          level_config?: Json
+          level_number?: number
+          title?: string
+          unlock_requirement?: Json | null
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      game_user_profiles: {
+        Row: {
+          achievements: Json | null
+          created_at: string | null
+          current_streak: number | null
+          games_played: number | null
+          id: string
+          longest_streak: number | null
+          total_coins: number | null
+          total_xp: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          achievements?: Json | null
+          created_at?: string | null
+          current_streak?: number | null
+          games_played?: number | null
+          id?: string
+          longest_streak?: number | null
+          total_coins?: number | null
+          total_xp?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          achievements?: Json | null
+          created_at?: string | null
+          current_streak?: number | null
+          games_played?: number | null
+          id?: string
+          longest_streak?: number | null
+          total_coins?: number | null
+          total_xp?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       geo_cache: {
         Row: {
@@ -7567,6 +7855,99 @@ export type Database = {
         }
         Relationships: []
       }
+      map_hunt_clues: {
+        Row: {
+          clue_text: string
+          clue_type: string
+          coins_earned: number | null
+          completed_at: string | null
+          created_at: string | null
+          hint_1: string | null
+          hint_2: string | null
+          hint_3: string | null
+          hints_used: number | null
+          id: string
+          level: number
+          photo_url: string | null
+          target_description: string | null
+          user_id: string
+          verification_score: number | null
+          verified: boolean | null
+        }
+        Insert: {
+          clue_text: string
+          clue_type: string
+          coins_earned?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          hint_1?: string | null
+          hint_2?: string | null
+          hint_3?: string | null
+          hints_used?: number | null
+          id?: string
+          level: number
+          photo_url?: string | null
+          target_description?: string | null
+          user_id: string
+          verification_score?: number | null
+          verified?: boolean | null
+        }
+        Update: {
+          clue_text?: string
+          clue_type?: string
+          coins_earned?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          hint_1?: string | null
+          hint_2?: string | null
+          hint_3?: string | null
+          hints_used?: number | null
+          id?: string
+          level?: number
+          photo_url?: string | null
+          target_description?: string | null
+          user_id?: string
+          verification_score?: number | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      map_hunt_progress: {
+        Row: {
+          created_at: string | null
+          current_hunt_id: string | null
+          current_level: number | null
+          id: string
+          total_keys_found: number | null
+          total_treasures: number | null
+          updated_at: string | null
+          user_id: string
+          xp: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_hunt_id?: string | null
+          current_level?: number | null
+          id?: string
+          total_keys_found?: number | null
+          total_treasures?: number | null
+          updated_at?: string | null
+          user_id: string
+          xp?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          current_hunt_id?: string | null
+          current_level?: number | null
+          id?: string
+          total_keys_found?: number | null
+          total_treasures?: number | null
+          updated_at?: string | null
+          user_id?: string
+          xp?: number | null
+        }
+        Relationships: []
+      }
       media_files: {
         Row: {
           created_at: string | null
@@ -8771,6 +9152,96 @@ export type Database = {
           otp_code?: string
           phone_number?: string
           verified?: boolean | null
+        }
+        Relationships: []
+      }
+      parallel_you_challenges: {
+        Row: {
+          ai_response: Json | null
+          challenge_data: Json
+          challenge_type: string
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          level: number
+          score: number | null
+          user_id: string
+          user_response: Json | null
+          winner: string | null
+        }
+        Insert: {
+          ai_response?: Json | null
+          challenge_data: Json
+          challenge_type: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          level: number
+          score?: number | null
+          user_id: string
+          user_response?: Json | null
+          winner?: string | null
+        }
+        Update: {
+          ai_response?: Json | null
+          challenge_data?: Json
+          challenge_type?: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          level?: number
+          score?: number | null
+          user_id?: string
+          user_response?: Json | null
+          winner?: string | null
+        }
+        Relationships: []
+      }
+      parallel_you_profiles: {
+        Row: {
+          ai_personality: Json | null
+          chat_patterns: Json | null
+          created_at: string | null
+          current_level: number | null
+          evolution_level: number | null
+          id: string
+          last_trained_at: string | null
+          losses: number | null
+          total_battles: number | null
+          updated_at: string | null
+          user_id: string
+          wins: number | null
+          xp: number | null
+        }
+        Insert: {
+          ai_personality?: Json | null
+          chat_patterns?: Json | null
+          created_at?: string | null
+          current_level?: number | null
+          evolution_level?: number | null
+          id?: string
+          last_trained_at?: string | null
+          losses?: number | null
+          total_battles?: number | null
+          updated_at?: string | null
+          user_id: string
+          wins?: number | null
+          xp?: number | null
+        }
+        Update: {
+          ai_personality?: Json | null
+          chat_patterns?: Json | null
+          created_at?: string | null
+          current_level?: number | null
+          evolution_level?: number | null
+          id?: string
+          last_trained_at?: string | null
+          losses?: number | null
+          total_battles?: number | null
+          updated_at?: string | null
+          user_id?: string
+          wins?: number | null
+          xp?: number | null
         }
         Relationships: []
       }
