@@ -7,10 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Coins, Gift, History, ShoppingCart, TrendingUp, Trophy, Zap, Users, Share2, Target, Star, Flame, Medal, Award, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ArrowLeft, Coins, Gift, History, ShoppingCart, TrendingUp, Trophy, Zap, Users, Share2, Target, Star, Flame, Medal, Award, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { SocialShareDialog } from "@/components/SocialShareDialog";
+import { UPIPaymentModal } from "@/components/payment/UPIPaymentModal";
 
 interface UserPoints {
   balance: number;
@@ -57,6 +58,15 @@ interface UserRedemption {
   redemption_code: string;
 }
 
+interface CoinPackage {
+  name: string;
+  coins: number;
+  bonus: number;
+  price: number;
+  popular: boolean;
+  badge?: string;
+}
+
 export default function ChatrPoints() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -84,6 +94,11 @@ export default function ChatrPoints() {
   const [leaderboards, setLeaderboards] = useState<any[]>([]);
   const [leaderboardTab, setLeaderboardTab] = useState('referrals');
   const [showShareDialog, setShowShareDialog] = useState(false);
+  
+  // Payment states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<CoinPackage | null>(null);
+  const [redeeming, setRedeeming] = useState<string | null>(null);
 
   useEffect(() => {
     loadPointsData();
@@ -402,6 +417,118 @@ export default function ChatrPoints() {
     return variants[status] || "default";
   };
 
+  // Handle coin reward redemption
+  const handleRedeemCoinReward = async (rewardName: string, coinsRequired: number) => {
+    try {
+      setRedeeming(rewardName);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Please login to redeem", variant: "destructive" });
+        return;
+      }
+
+      if (coinBalance < coinsRequired) {
+        toast({
+          title: "Insufficient Coins",
+          description: `You need ${coinsRequired - coinBalance} more coins`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create redemption code
+      const redemptionCode = `CHATR-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      // Deduct coins from balance
+      const { error: balanceError } = await supabase
+        .from('chatr_coin_balances')
+        .update({
+          total_coins: coinBalance - coinsRequired,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
+      if (balanceError) throw balanceError;
+
+      // Record transaction
+      await supabase
+        .from('chatr_coin_transactions')
+        .insert({
+          user_id: user.id,
+          transaction_type: 'spend',
+          amount: -coinsRequired,
+          source: 'reward_redemption',
+          description: `Redeemed: ${rewardName}`,
+          reference_id: redemptionCode
+        });
+
+      // Update local state
+      setCoinBalance(prev => prev - coinsRequired);
+      
+      toast({
+        title: "Reward Redeemed! 🎉",
+        description: `Code: ${redemptionCode} - Valid for 30 days`,
+      });
+
+      loadPointsData();
+      loadGrowthData();
+    } catch (error: any) {
+      toast({
+        title: "Redemption failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setRedeeming(null);
+    }
+  };
+
+  // Handle buying coins
+  const handleBuyCoins = (pkg: CoinPackage) => {
+    setSelectedPackage(pkg);
+    setShowPaymentModal(true);
+  };
+
+  // Handle payment submission
+  const handlePaymentSubmitted = async (paymentId: string) => {
+    if (!selectedPackage) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create pending coin purchase record
+      await supabase
+        .from('chatr_coin_transactions')
+        .insert({
+          user_id: user.id,
+          transaction_type: 'purchase_pending',
+          amount: selectedPackage.coins + selectedPackage.bonus,
+          source: 'coin_purchase',
+          description: `${selectedPackage.name} - ₹${selectedPackage.price} (Pending verification)`,
+          reference_id: paymentId,
+          metadata: {
+            package_name: selectedPackage.name,
+            price: selectedPackage.price,
+            coins: selectedPackage.coins,
+            bonus: selectedPackage.bonus
+          }
+        });
+
+      toast({
+        title: "Payment Submitted! 🎉",
+        description: `Your ${selectedPackage.name} purchase is pending verification. Coins will be credited once verified.`,
+      });
+
+      setShowPaymentModal(false);
+      setSelectedPackage(null);
+    } catch (error) {
+      console.error('Error recording purchase:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -634,17 +761,16 @@ export default function ChatrPoints() {
                           </div>
                         </div>
                         <Button
-                          onClick={() => {
-                            toast({
-                              title: "Coming Soon!",
-                              description: `Coin redemption will be available soon. You'll need ${reward.coins} coins for this reward.`,
-                            });
-                          }}
-                          disabled={(coinBalance || 0) < reward.coins}
+                          onClick={() => handleRedeemCoinReward(reward.name, reward.coins)}
+                          disabled={(coinBalance || 0) < reward.coins || redeeming === reward.name}
                           size="sm"
                           className="min-w-[80px]"
                         >
-                          Redeem
+                          {redeeming === reward.name ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Redeem'
+                          )}
                         </Button>
                       </div>
                     </CardContent>
@@ -734,9 +860,9 @@ export default function ChatrPoints() {
                            <Button 
                             className="mt-3 hover:scale-105 transition-transform" 
                             size="sm"
-                            onClick={() => navigate('/reward-shop')}
+                            onClick={() => handleBuyCoins(pkg)}
                           >
-                            Redeem
+                            Buy Now
                           </Button>
                         </div>
                       </div>
@@ -1239,6 +1365,15 @@ export default function ChatrPoints() {
         onOpenChange={setShowShareDialog}
         referralCode={referralCode}
         shareUrl={`https://chatr.chat/auth?ref=${referralCode}`}
+      />
+      
+      {/* UPI Payment Modal for buying coins */}
+      <UPIPaymentModal
+        open={showPaymentModal}
+        onOpenChange={setShowPaymentModal}
+        amount={selectedPackage?.price || 0}
+        orderType="service"
+        onPaymentSubmitted={handlePaymentSubmitted}
       />
     </div>
   );
