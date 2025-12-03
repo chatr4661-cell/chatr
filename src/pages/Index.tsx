@@ -29,7 +29,8 @@ import {
   Sparkles,
   Zap,
   Briefcase,
-  Crown
+  Crown,
+  Gamepad2
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -455,6 +456,13 @@ const Index = () => {
       description: 'AI Search + Location',
       iconColor: 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-600',
       route: '/chatr-world'
+    },
+    {
+      icon: Gamepad2,
+      title: 'CHATR Games',
+      description: 'AI-native games',
+      iconColor: 'bg-gradient-to-br from-violet-500 via-purple-500 to-pink-600',
+      route: '/chatr-games'
     },
     {
       icon: Briefcase,
