@@ -5,13 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { 
   Search, Mic, Navigation, Heart, Briefcase, UtensilsCrossed, Tag, 
-  Sparkles, Globe, Bot, Shield, MapPin, TrendingUp, Camera, Bell
+  Sparkles, Globe, Bot, Shield, MapPin, TrendingUp, Camera, Bell,
+  Users, MessageCircle, Wallet, ChevronRight, ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentLocation } from '@/utils/locationService';
 import { useAnonymousSearchLimit } from '@/hooks/useAnonymousSearchLimit';
 import { LoginPromptModal } from '@/components/LoginPromptModal';
 import { SEOHead } from '@/components/SEOHead';
+import chatrLogo from '@/assets/chatr-logo.png';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -68,16 +70,23 @@ const Home = () => {
 
   const quickAccessItems = [
     { icon: Heart, title: 'Healthcare', desc: 'Find doctors', route: '/local-healthcare', gradient: 'from-rose-500 to-pink-600' },
-    { icon: Briefcase, title: 'Jobs', desc: 'Find work', route: '/chatr-world?tab=jobs', gradient: 'from-emerald-500 to-teal-600' },
-    { icon: UtensilsCrossed, title: 'Food', desc: 'Order now', route: '/chatr-world?tab=food', gradient: 'from-orange-500 to-amber-600' },
-    { icon: Tag, title: 'Deals', desc: 'Save money', route: '/chatr-world?tab=deals', gradient: 'from-violet-500 to-purple-600' },
+    { icon: Briefcase, title: 'Jobs', desc: 'Find work', route: '/local-jobs', gradient: 'from-emerald-500 to-teal-600' },
+    { icon: UtensilsCrossed, title: 'Food', desc: 'Order now', route: '/food-ordering', gradient: 'from-orange-500 to-amber-600' },
+    { icon: Tag, title: 'Deals', desc: 'Save money', route: '/local-deals', gradient: 'from-violet-500 to-purple-600' },
   ];
 
   const features = [
-    { icon: Globe, title: 'AI Browser', desc: 'Smart web search', route: '/ai-browser-home' },
-    { icon: Bot, title: 'AI Assistant', desc: 'Get instant help', route: '/ai-assistant' },
-    { icon: Camera, title: 'Visual Search', desc: 'Search with images', route: '/search' },
-    { icon: Bell, title: 'Smart Alerts', desc: 'Stay updated', route: '/notifications' },
+    { icon: Globe, title: 'AI Browser', desc: 'Smart web search with AI summaries', route: '/ai-browser-home' },
+    { icon: Bot, title: 'AI Assistant', desc: 'Get instant help for anything', route: '/ai-assistant' },
+    { icon: Camera, title: 'Visual Search', desc: 'Search with images & photos', route: '/search' },
+    { icon: Bell, title: 'Smart Alerts', desc: 'Stay updated with notifications', route: '/notifications' },
+  ];
+
+  const moreServices = [
+    { icon: Users, title: 'Community', desc: 'Connect with people', route: '/community' },
+    { icon: MessageCircle, title: 'Messages', desc: 'Chat with friends', route: '/chat' },
+    { icon: Wallet, title: 'Wallet', desc: 'Manage payments', route: '/wallet' },
+    { icon: Shield, title: 'Care Access', desc: 'Health services', route: '/care' },
   ];
 
   const trendingSearches = [
@@ -108,184 +117,260 @@ const Home = () => {
         maxSearches={maxSearches}
       />
       
-      <div className="min-h-screen bg-background pb-24">
-        {/* Hero Header */}
-        <div className="bg-primary px-4 pt-8 pb-16 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary-foreground/10 opacity-90" />
-          <div className="relative max-w-2xl mx-auto text-center">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Sparkles className="w-6 h-6 text-primary-foreground" />
-              <h1 className="text-2xl font-bold text-primary-foreground">Universal Search</h1>
-            </div>
-            <p className="text-primary-foreground/80 text-sm">
-              Ask anything. Find everything.
-            </p>
-          </div>
-        </div>
-
-        {/* Search Card - Floating */}
-        <div className="max-w-2xl mx-auto px-4 -mt-8">
-          <Card className="glass-card p-4 shadow-elevated">
-            {/* Anonymous Search Counter */}
-            {!isAuthenticated && remainingSearches !== Infinity && (
-              <div className="mb-3 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">
-                  {remainingSearches} free searches left
-                </span>
-                {remainingSearches <= 1 && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={() => navigate('/auth')}
-                    className="h-6 text-xs text-primary"
-                  >
-                    Sign in for unlimited
+      <div className="min-h-screen bg-background">
+        {/* Hero Section with Logo */}
+        <header className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10" />
+          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Navigation */}
+            <nav className="flex items-center justify-between py-4">
+              <img src={chatrLogo} alt="Chatr" className="h-10 sm:h-12 object-contain" />
+              <div className="flex items-center gap-2">
+                {!isAuthenticated && (
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
+                    Sign In
                   </Button>
                 )}
-              </div>
-            )}
-            
-            {/* Search Input */}
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Find plumber, food, doctor..."
-                  className="pl-10 pr-10 h-12 bg-secondary/50 border-0 rounded-xl"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                >
-                  <Mic className="w-4 h-4 text-muted-foreground" />
+                <Button size="sm" onClick={() => navigate('/chatr-world')}>
+                  Explore
                 </Button>
               </div>
-              <Button 
-                onClick={handleSearch}
-                className="h-12 px-6 rounded-xl"
-              >
-                Search
-              </Button>
-            </div>
+            </nav>
 
-            {/* GPS Toggle */}
-            <div className="mt-3 flex items-center gap-2">
-              <Button
-                variant={gpsEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={activateGPS}
-                disabled={isLocating}
-                className="gap-1.5 h-8 text-xs rounded-full"
-              >
-                {isLocating ? (
-                  <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Navigation className="w-3 h-3" />
+            {/* Hero Content */}
+            <div className="py-12 sm:py-16 lg:py-20 text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+                <Sparkles className="w-4 h-4" />
+                AI-Powered Universal Search
+              </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
+                Find Anything.<br className="sm:hidden" /> Instantly.
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto mb-8">
+                Search jobs, healthcare, food, deals, and more — all powered by AI.
+              </p>
+
+              {/* Search Card */}
+              <Card className="max-w-2xl mx-auto p-4 sm:p-6 shadow-elevated border-border/50">
+                {!isAuthenticated && remainingSearches !== Infinity && (
+                  <div className="mb-4 flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {remainingSearches} free searches left
+                    </span>
+                    {remainingSearches <= 2 && (
+                      <Button 
+                        size="sm" 
+                        variant="link"
+                        onClick={() => navigate('/auth')}
+                        className="text-primary p-0 h-auto"
+                      >
+                        Sign in for unlimited <ArrowRight className="w-3 h-3 ml-1" />
+                      </Button>
+                    )}
+                  </div>
                 )}
-                {gpsEnabled ? 'GPS On' : 'Enable GPS'}
-              </Button>
-              {gpsEnabled && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> Location active
-                </span>
-              )}
-            </div>
-          </Card>
-        </div>
-
-        {/* Quick Access Grid */}
-        <div className="max-w-2xl mx-auto px-4 mt-6">
-          <div className="grid grid-cols-4 gap-3">
-            {quickAccessItems.map((item) => (
-              <button
-                key={item.title}
-                onClick={() => navigate(item.route)}
-                className="flex flex-col items-center p-3 rounded-2xl bg-card border border-border/50 hover:shadow-md transition-all native-touch"
-              >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-2 shadow-sm`}>
-                  <item.icon className="w-5 h-5 text-primary-foreground" />
+                
+                <div className="flex gap-2 sm:gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      placeholder="Search jobs, doctors, food, services..."
+                      className="pl-12 pr-12 h-12 sm:h-14 text-base bg-secondary/30 border-border/50 rounded-xl focus:ring-2 focus:ring-primary/20"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-primary/10"
+                    >
+                      <Mic className="w-5 h-5 text-muted-foreground" />
+                    </Button>
+                  </div>
+                  <Button 
+                    onClick={handleSearch}
+                    size="lg"
+                    className="h-12 sm:h-14 px-6 sm:px-8 rounded-xl font-semibold"
+                  >
+                    <Search className="w-4 h-4 sm:hidden" />
+                    <span className="hidden sm:inline">Search</span>
+                  </Button>
                 </div>
-                <span className="text-xs font-medium text-foreground">{item.title}</span>
-                <span className="text-[10px] text-muted-foreground">{item.desc}</span>
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Features List */}
-        <div className="max-w-2xl mx-auto px-4 mt-6">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">AI-Powered Features</h2>
-          <div className="space-y-2">
-            {features.map((feature) => (
-              <Card
-                key={feature.title}
-                onClick={() => navigate(feature.route)}
-                className="p-3 flex items-center gap-3 cursor-pointer hover:bg-accent/50 transition-colors native-touch"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <feature.icon className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium text-sm text-foreground">{feature.title}</h3>
-                  <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
+                  <Button
+                    variant={gpsEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={activateGPS}
+                    disabled={isLocating}
+                    className="gap-2 rounded-full"
+                  >
+                    {isLocating ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Navigation className="w-4 h-4" />
+                    )}
+                    {gpsEnabled ? 'Location Active' : 'Enable Location'}
+                  </Button>
+                  {gpsEnabled && (
+                    <span className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-4 h-4 text-primary" /> Finding nearby results
+                    </span>
+                  )}
                 </div>
               </Card>
-            ))}
+            </div>
           </div>
-        </div>
+        </header>
+
+        {/* Quick Access Section */}
+        <section className="py-12 bg-secondary/20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-xl font-bold text-foreground mb-6 text-center sm:text-left">
+              Quick Access
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {quickAccessItems.map((item) => (
+                <Card
+                  key={item.title}
+                  onClick={() => navigate(item.route)}
+                  className="p-6 cursor-pointer hover:shadow-lg transition-all group border-border/50 hover:border-primary/30"
+                >
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform`}>
+                    <item.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-lg">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground mt-3 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* AI Features Section */}
+        <section className="py-12">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-foreground">AI-Powered Features</h2>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/chatr-world')} className="text-primary">
+                View All <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {features.map((feature) => (
+                <Card
+                  key={feature.title}
+                  onClick={() => navigate(feature.route)}
+                  className="p-5 flex items-center gap-4 cursor-pointer hover:bg-accent/30 transition-colors group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                    <feature.icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground truncate">{feature.desc}</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary shrink-0" />
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* More Services */}
+        <section className="py-12 bg-secondary/20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-xl font-bold text-foreground mb-6">More Services</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {moreServices.map((service) => (
+                <Card
+                  key={service.title}
+                  onClick={() => navigate(service.route)}
+                  className="p-5 cursor-pointer hover:shadow-md transition-all text-center group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/20 transition-colors">
+                    <service.icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="font-medium text-foreground text-sm">{service.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{service.desc}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* Trending Searches */}
-        <div className="max-w-2xl mx-auto px-4 mt-6">
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-muted-foreground">Trending Searches</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {trendingSearches.map((query) => (
-              <Button
-                key={query}
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickSearch(query)}
-                className="h-8 text-xs rounded-full border-border/50 hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                {query}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats Banner */}
-        <div className="max-w-2xl mx-auto px-4 mt-6">
-          <Card className="p-4 bg-gradient-to-r from-primary/5 to-accent/50 border-primary/10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">Secure & Private</p>
-                  <p className="text-xs text-muted-foreground">Your searches stay with you</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-primary">AI</p>
-                <p className="text-xs text-muted-foreground">Powered</p>
-              </div>
+        <section className="py-12">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-bold text-foreground">Trending Searches</h2>
             </div>
-          </Card>
-        </div>
+            <div className="flex flex-wrap gap-3">
+              {trendingSearches.map((query) => (
+                <Button
+                  key={query}
+                  variant="outline"
+                  onClick={() => handleQuickSearch(query)}
+                  className="rounded-full hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                >
+                  {query}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Stats/Trust Section */}
+        <section className="py-12 bg-gradient-to-br from-primary/5 to-accent/10">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <Card className="p-6 sm:p-8 border-primary/10">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Shield className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Secure & Private</h3>
+                    <p className="text-muted-foreground">Your searches stay with you. Always.</p>
+                  </div>
+                </div>
+                <div className="flex gap-8 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-primary">AI</p>
+                    <p className="text-sm text-muted-foreground">Powered</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-primary">24/7</p>
+                    <p className="text-sm text-muted-foreground">Available</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-primary">100+</p>
+                    <p className="text-sm text-muted-foreground">Services</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </section>
 
         {/* Footer */}
-        <div className="max-w-2xl mx-auto px-4 mt-8 text-center">
-          <p className="text-xs text-muted-foreground">
-            Powered by <span className="font-semibold text-primary">CHATR</span> • Multi-source AI Search
-          </p>
-        </div>
+        <footer className="py-8 border-t border-border/50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <img src={chatrLogo} alt="Chatr" className="h-8 object-contain" />
+              <p className="text-sm text-muted-foreground text-center">
+                Say It. Share It. Live It. • Multi-source AI Search
+              </p>
+              <div className="flex gap-4">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/about')}>About</Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/contact')}>Contact</Button>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </>
   );
