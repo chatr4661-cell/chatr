@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, Trophy, Coins, ChevronRight, Sparkles } from 'lucide-react';
+import { ArrowLeft, Play, Trophy, Coins, ChevronRight, Sparkles, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SEOHead } from '@/components/SEOHead';
@@ -20,8 +20,13 @@ import AIMotorcycleRacingGame from '@/components/games/AIMotorcycleRacingGame';
 import AIBubbleShooterGame from '@/components/games/AIBubbleShooterGame';
 import AICandyCrushGame from '@/components/games/AICandyCrushGame';
 import AIWordFinderGame from '@/components/games/AIWordFinderGame';
+import SyncMindGame from '@/components/games/SyncMindGame';
+import EchoChainGame from '@/components/games/EchoChainGame';
+import MirrorMatchGame from '@/components/games/MirrorMatchGame';
+import ThoughtDuelGame from '@/components/games/ThoughtDuelGame';
+import VibeLinkGame from '@/components/games/VibeLinkGame';
 
-type GameType = 'hub' | 'parallel_you' | 'map_hunt' | 'emotionsync' | 'energy_pulse' | 'mindmaze' | 'socialstorm' | 'avawars' | 'dreamforge' | 'frequencyclash' | 'shadowverse' | 'car_racing' | 'motorcycle_racing' | 'bubble_shooter' | 'candy_crush' | 'word_finder';
+type GameType = 'hub' | 'parallel_you' | 'map_hunt' | 'emotionsync' | 'energy_pulse' | 'mindmaze' | 'socialstorm' | 'avawars' | 'dreamforge' | 'frequencyclash' | 'shadowverse' | 'car_racing' | 'motorcycle_racing' | 'bubble_shooter' | 'candy_crush' | 'word_finder' | 'sync_mind' | 'echo_chain' | 'mirror_match' | 'thought_duel' | 'vibe_link';
 
 interface Game {
   id: GameType;
@@ -32,10 +37,19 @@ interface Game {
   gradient: string;
   accentColor: string;
   levels: number;
-  category: 'ai' | 'arcade' | 'puzzle' | 'adventure';
+  category: 'ai' | 'arcade' | 'puzzle' | 'adventure' | 'multiplayer';
+  isMultiplayer?: boolean;
+  isNew?: boolean;
 }
 
 const games: Game[] = [
+  // NEW Multiplayer Games
+  { id: 'sync_mind', title: 'SyncMind', subtitle: 'Think Alike', description: 'Match minds with strangers', icon: '🧠', gradient: 'from-violet-500 to-fuchsia-400', accentColor: 'violet', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
+  { id: 'echo_chain', title: 'EchoChain', subtitle: 'Story Builder', description: 'Build stories together', icon: '🔗', gradient: 'from-emerald-500 to-cyan-400', accentColor: 'emerald', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
+  { id: 'mirror_match', title: 'MirrorMatch', subtitle: 'Real-time Sync', description: 'Mirror moves perfectly', icon: '🪞', gradient: 'from-pink-500 to-red-400', accentColor: 'pink', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
+  { id: 'thought_duel', title: 'ThoughtDuel', subtitle: 'Creative Battle', description: 'Battle of descriptions', icon: '⚔️', gradient: 'from-amber-500 to-orange-400', accentColor: 'amber', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
+  { id: 'vibe_link', title: 'VibeLink', subtitle: 'Emotional Sync', description: 'Feel the same emotion', icon: '💕', gradient: 'from-rose-500 to-purple-400', accentColor: 'rose', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
+  // Existing Games
   { id: 'car_racing', title: 'AI Racing', subtitle: 'Speed & Strategy', description: 'Outsmart the AI on every turn', icon: '🏎️', gradient: 'from-blue-500 to-cyan-400', accentColor: 'blue', levels: 50, category: 'arcade' },
   { id: 'candy_crush', title: 'Candy Match', subtitle: 'Sweet Puzzles', description: 'AI-crafted matching challenges', icon: '🍬', gradient: 'from-pink-500 to-rose-400', accentColor: 'pink', levels: 50, category: 'puzzle' },
   { id: 'parallel_you', title: 'Parallel You', subtitle: 'AI Twin Battle', description: 'Challenge your digital self', icon: '🧬', gradient: 'from-violet-500 to-purple-400', accentColor: 'violet', levels: 50, category: 'ai' },
@@ -54,9 +68,10 @@ const games: Game[] = [
 ];
 
 const categories = [
-  { id: 'all', label: 'All Games', count: 15 },
+  { id: 'all', label: 'All Games', count: 20 },
+  { id: 'multiplayer', label: 'Multiplayer', count: 5 },
   { id: 'ai', label: 'AI Powered', count: 7 },
-  { id: 'arcade', label: 'Arcade', count: 3 },
+  { id: 'arcade', label: 'Arcade', count: 4 },
   { id: 'puzzle', label: 'Puzzle', count: 3 },
   { id: 'adventure', label: 'Adventure', count: 3 },
 ];
@@ -97,6 +112,11 @@ export default function ChatrGames() {
       case 'bubble_shooter': return <AIBubbleShooterGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
       case 'candy_crush': return <AICandyCrushGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
       case 'word_finder': return <AIWordFinderGame level={currentLevel} onComplete={handleGameComplete} onExit={() => setActiveGame('hub')} />;
+      case 'sync_mind': return <SyncMindGame level={currentLevel} onComplete={handleGameComplete} onBack={() => setActiveGame('hub')} />;
+      case 'echo_chain': return <EchoChainGame level={currentLevel} onComplete={handleGameComplete} onBack={() => setActiveGame('hub')} />;
+      case 'mirror_match': return <MirrorMatchGame level={currentLevel} onComplete={handleGameComplete} onBack={() => setActiveGame('hub')} />;
+      case 'thought_duel': return <ThoughtDuelGame level={currentLevel} onComplete={handleGameComplete} onBack={() => setActiveGame('hub')} />;
+      case 'vibe_link': return <VibeLinkGame level={currentLevel} onComplete={handleGameComplete} onBack={() => setActiveGame('hub')} />;
       default: return null;
     }
   };
@@ -106,8 +126,8 @@ export default function ChatrGames() {
   return (
     <>
       <SEOHead 
-        title="CHATR Games - Premium AI Gaming"
-        description="15 revolutionary AI-native games with 750 levels. Experience gaming reimagined."
+        title="CHATR Games - 20 AI & Multiplayer Games"
+        description="20 revolutionary games with 1000 levels. AI-powered + real-time multiplayer gaming."
       />
       <div className="min-h-screen bg-black text-white">
         {/* Ambient Background */}
@@ -130,7 +150,7 @@ export default function ChatrGames() {
                 </button>
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight">Games</h1>
-                  <p className="text-xs text-white/40">750 Levels • 15 Games</p>
+                  <p className="text-xs text-white/40">1000 Levels • 20 Games</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -283,7 +303,11 @@ export default function ChatrGames() {
                             {game.icon}
                           </motion.span>
                         </div>
-                        <h4 className="font-semibold text-white/90 mb-0.5">{game.title}</h4>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h4 className="font-semibold text-white/90">{game.title}</h4>
+                          {game.isNew && <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px] px-1.5 py-0">NEW</Badge>}
+                          {game.isMultiplayer && <Users className="w-3 h-3 text-blue-400" />}
+                        </div>
                         <p className="text-xs text-white/40 mb-3">{game.subtitle}</p>
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] text-white/30 uppercase tracking-wider">{game.levels} Levels</span>
