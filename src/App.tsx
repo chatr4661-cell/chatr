@@ -381,6 +381,7 @@ const App = () => {
               <Route path="broadcast" element={<BroadcastManager />} />
               <Route path="brand-partnerships" element={<BrandPartnerships />} />
               <Route path="app-approvals" element={<AppApprovals />} />
+              <Route path="chatr-world" element={<ChatrWorldAdmin />} />
             </Route>
             <Route path="/chatr-tutors" element={<ChatrTutors />} />
             <Route path="/tutors" element={<ChatrTutors />} />
