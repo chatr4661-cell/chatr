@@ -45,9 +45,9 @@ const sellerToolCategories: ToolCategory[] = [
     title: 'Dashboard & Analytics',
     icon: LayoutDashboard,
     items: [
-      { title: 'Seller Dashboard', url: '/seller-portal', icon: LayoutDashboard, description: 'Overview of your business' },
-      { title: 'Business Dashboard', url: '/business/dashboard', icon: Briefcase, description: 'B2B business hub' },
-      { title: 'Seller Analytics', url: '/seller-analytics', icon: TrendingUp, description: 'Performance metrics' },
+      { title: 'Seller Dashboard', url: '/seller/portal', icon: LayoutDashboard, description: 'Overview of your business' },
+      { title: 'Business Dashboard', url: '/business', icon: Briefcase, description: 'B2B business hub' },
+      { title: 'Seller Analytics', url: '/seller/analytics', icon: TrendingUp, description: 'Performance metrics' },
       { title: 'Business Analytics', url: '/business/analytics', icon: PieChart, description: 'Business insights' },
     ]
   },
@@ -56,7 +56,7 @@ const sellerToolCategories: ToolCategory[] = [
     icon: MessageSquare,
     items: [
       { title: 'Business Inbox', url: '/business/inbox', icon: Inbox, description: 'Customer messages' },
-      { title: 'Seller Messages', url: '/seller-messages', icon: MessageSquare, description: 'Direct messages' },
+      { title: 'Seller Messages', url: '/seller/messages', icon: MessageSquare, description: 'Direct messages' },
       { title: 'Broadcasts', url: '/business/broadcasts', icon: Send, description: 'Mass messaging' },
     ]
   },
@@ -64,7 +64,7 @@ const sellerToolCategories: ToolCategory[] = [
     title: 'Services & Products',
     icon: Package,
     items: [
-      { title: 'My Services', url: '/seller-services', icon: Package, description: 'Manage your services' },
+      { title: 'My Services', url: '/seller/services', icon: Package, description: 'Manage your services' },
       { title: 'Product Catalog', url: '/business/catalog', icon: ShoppingBag, description: 'Products & inventory' },
     ]
   },
@@ -72,16 +72,16 @@ const sellerToolCategories: ToolCategory[] = [
     title: 'Bookings & Orders',
     icon: Calendar,
     items: [
-      { title: 'Bookings', url: '/seller-bookings', icon: Calendar, description: 'Manage appointments' },
-      { title: 'Reviews', url: '/seller-reviews', icon: Star, description: 'Customer feedback' },
+      { title: 'Bookings', url: '/seller/bookings', icon: Calendar, description: 'Manage appointments' },
+      { title: 'Reviews', url: '/seller/reviews', icon: Star, description: 'Customer feedback' },
     ]
   },
   {
     title: 'Finance & Payments',
     icon: Wallet,
     items: [
-      { title: 'Payouts', url: '/seller-payouts', icon: CreditCard, description: 'Earnings & withdrawals' },
-      { title: 'Subscription', url: '/seller-subscription', icon: Wallet, description: 'Plan & billing' },
+      { title: 'Payouts', url: '/seller/payouts', icon: CreditCard, description: 'Earnings & withdrawals' },
+      { title: 'Subscription', url: '/seller/subscription', icon: Wallet, description: 'Plan & billing' },
     ]
   },
   {
@@ -97,7 +97,7 @@ const sellerToolCategories: ToolCategory[] = [
     title: 'Settings',
     icon: Settings,
     items: [
-      { title: 'Seller Settings', url: '/seller-settings', icon: Settings, description: 'Account preferences' },
+      { title: 'Seller Settings', url: '/seller/settings', icon: Settings, description: 'Account preferences' },
       { title: 'Business Settings', url: '/business/settings', icon: Settings, description: 'Business config' },
     ]
   },
