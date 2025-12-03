@@ -91,6 +91,7 @@ import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/AdminLayout";
 import BrandPartnerships from "./pages/admin/BrandPartnerships";
 import AppApprovals from "./pages/admin/AppApprovals";
+import ChatrWorldAdmin from "./pages/ChatrWorldAdmin";
 
 // Consolidated Hub Pages
 import HealthHub from "./pages/HealthHub";
