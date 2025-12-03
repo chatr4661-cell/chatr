@@ -30,8 +30,13 @@ import {
   Zap,
   Briefcase,
   Crown,
-  Gamepad2
+  Gamepad2,
+  Ghost,
+  ChevronRight,
+  Store,
+  Gift
 } from 'lucide-react';
+import { useStealthMode, StealthModeType } from '@/hooks/useStealthMode';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -57,6 +62,25 @@ const Index = () => {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
   const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
+  
+  // Stealth Mode hook
+  const { mode } = useStealthMode();
+  
+  const getModeLabel = (modeType: StealthModeType): string => {
+    switch (modeType) {
+      case 'seller': return 'Seller Mode';
+      case 'rewards': return 'Rewards Mode';
+      default: return 'Default Mode';
+    }
+  };
+  
+  const getModeIcon = (modeType: StealthModeType) => {
+    switch (modeType) {
+      case 'seller': return Store;
+      case 'rewards': return Gift;
+      default: return Ghost;
+    }
+  };
 
   // Load recent searches from localStorage
   React.useEffect(() => {
@@ -667,13 +691,31 @@ const Index = () => {
       {/* Enhanced Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity group"
+            onClick={() => navigate('/stealth-mode')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/stealth-mode')}
+          >
             <img src={chatrIconLogo} alt="Chatr Logo" className="h-10 w-10" loading="eager" />
             <div>
               <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
               </div>
-              <div className="text-[10px] font-medium text-muted-foreground">The AI Superapp for India</div>
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground group-hover:text-primary transition-colors">
+                {mode && (() => {
+                  const ModeIcon = getModeIcon(mode.current_mode);
+                  return (
+                    <>
+                      <ModeIcon className="w-3 h-3" />
+                      <span>{getModeLabel(mode.current_mode)}</span>
+                      <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </>
+                  );
+                })()}
+                {!mode && <span>The AI Superapp for India</span>}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
