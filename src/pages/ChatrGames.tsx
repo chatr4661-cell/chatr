@@ -343,6 +343,7 @@ export default function ChatrGames() {
                 Games that learn, adapt, and challenge you like never before.
               </p>
             </div>
+          </motion.section>
 
           {/* Category Filter - Pill Style */}
           <motion.section
