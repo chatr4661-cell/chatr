@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { QuickAccessBrowser } from '@/components/QuickAccessBrowser';
 import { TrendingSearches } from '@/components/search/TrendingSearches';
 import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
-import { Search, Mic, Sparkles, Navigation } from 'lucide-react';
+import { Search, Mic, Sparkles, Navigation, Heart, Briefcase, UtensilsCrossed, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentLocation } from '@/utils/locationService';
 import { useAnonymousSearchLimit } from '@/hooks/useAnonymousSearchLimit';
@@ -219,6 +219,42 @@ const Home = () => {
 
       {/* Main Content */}
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+        {/* Quick Access to Live Services */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <Card 
+            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20"
+            onClick={() => navigate('/local-healthcare')}
+          >
+            <Heart className="w-6 h-6 text-blue-600 mb-2" />
+            <h4 className="font-semibold text-sm">Healthcare</h4>
+            <p className="text-xs text-muted-foreground">Find doctors & clinics</p>
+          </Card>
+          <Card 
+            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
+            onClick={() => navigate('/chatr-world?tab=jobs')}
+          >
+            <Briefcase className="w-6 h-6 text-green-600 mb-2" />
+            <h4 className="font-semibold text-sm">Jobs</h4>
+            <p className="text-xs text-muted-foreground">Find opportunities</p>
+          </Card>
+          <Card 
+            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20"
+            onClick={() => navigate('/chatr-world?tab=food')}
+          >
+            <UtensilsCrossed className="w-6 h-6 text-orange-600 mb-2" />
+            <h4 className="font-semibold text-sm">Food</h4>
+            <p className="text-xs text-muted-foreground">Order food nearby</p>
+          </Card>
+          <Card 
+            className="p-4 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20"
+            onClick={() => navigate('/chatr-world?tab=deals')}
+          >
+            <Tag className="w-6 h-6 text-purple-600 mb-2" />
+            <h4 className="font-semibold text-sm">Deals</h4>
+            <p className="text-xs text-muted-foreground">Cashback & offers</p>
+          </Card>
+        </div>
+
         {/* AI Browser */}
         <div>
           <h3 className="font-semibold text-sm mb-3">AI-Powered Features</h3>

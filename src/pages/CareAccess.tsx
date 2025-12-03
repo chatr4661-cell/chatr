@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,34 +14,112 @@ import {
   MapPin,
   Clock,
   DollarSign,
-  Pill
+  Pill,
+  Star,
+  Users,
+  CheckCircle,
+  ArrowRight
 } from 'lucide-react';
 import logo from '@/assets/chatr-logo.png';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface LiveStats {
+  totalProviders: number;
+  totalDoctors: number;
+  totalClinics: number;
+  avgRating: number;
+  totalConsultations: number;
+}
 
 export default function CareAccess() {
   const navigate = useNavigate();
+  const [stats, setStats] = useState<LiveStats | null>(null);
+  const [topProviders, setTopProviders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLiveStats();
+    fetchTopProviders();
+  }, []);
+
+  const fetchLiveStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chatr_healthcare')
+        .select('provider_type, rating_average, rating_count')
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      if (data) {
+        const doctors = data.filter(p => p.provider_type === 'doctor').length;
+        const clinics = data.filter(p => p.provider_type === 'clinic').length;
+        const avgRating = data.reduce((acc, p) => acc + (p.rating_average || 0), 0) / data.length;
+        const totalConsultations = data.reduce((acc, p) => acc + (p.rating_count || 0), 0);
+
+        setStats({
+          totalProviders: data.length,
+          totalDoctors: doctors,
+          totalClinics: clinics,
+          avgRating: parseFloat(avgRating.toFixed(1)),
+          totalConsultations
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTopProviders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chatr_healthcare')
+        .select('*')
+        .eq('is_active', true)
+        .order('rating_average', { ascending: false })
+        .limit(4);
+
+      if (error) throw error;
+      setTopProviders(data || []);
+    } catch (error) {
+      console.error('Error fetching top providers:', error);
+    }
+  };
 
   const careServices = [
     {
+      icon: MapPin,
+      title: 'Find Nearby',
+      description: 'Healthcare providers near you',
+      route: '/local-healthcare',
+      color: 'from-blue-500 to-blue-600',
+      badge: 'Live',
+      count: stats?.totalProviders
+    },
+    {
       icon: Stethoscope,
       title: 'Book Doctor',
-      description: 'Schedule appointments with healthcare providers',
-      route: '/booking',
-      color: 'from-blue-500 to-blue-600',
-      badge: null
+      description: 'Schedule appointments',
+      route: '/local-healthcare',
+      color: 'from-green-500 to-green-600',
+      badge: null,
+      count: stats?.totalDoctors
     },
     {
       icon: Video,
       title: 'Teleconsultation',
-      description: 'Instant video/audio consultation with doctors',
+      description: 'Video/audio consultation',
       route: '/teleconsultation',
       color: 'from-purple-500 to-purple-600',
       badge: 'New'
     },
     {
       icon: AlertTriangle,
-      title: 'Emergency Services',
-      description: 'Quick access to emergency care',
+      title: 'Emergency',
+      description: 'Quick emergency access',
       route: '/emergency-services',
       color: 'from-red-500 to-red-600',
       badge: null
@@ -49,42 +127,26 @@ export default function CareAccess() {
     {
       icon: Heart,
       title: 'Allied Healthcare',
-      description: 'Specialized health services & therapies',
+      description: 'Specialized services',
       route: '/allied-healthcare',
       color: 'from-indigo-500 to-indigo-600',
       badge: null
     },
     {
-      icon: ShoppingBag,
-      title: 'Marketplace',
-      description: 'Order medicines & health products',
-      route: '/marketplace',
-      color: 'from-purple-500 to-pink-600',
-      badge: null
-    },
-    {
       icon: Pill,
-      title: 'Pharmacy Delivery',
-      description: 'Get medications delivered to your door',
+      title: 'Pharmacy',
+      description: 'Order medicines',
       route: '/marketplace',
-      color: 'from-green-500 to-emerald-600',
-      badge: 'New'
-    },
-    {
-      icon: Briefcase,
-      title: 'Become a Provider',
-      description: 'Register as a healthcare professional',
-      route: '/provider-register',
-      color: 'from-teal-500 to-cyan-600',
+      color: 'from-teal-500 to-emerald-600',
       badge: null
     }
   ];
 
   const quickActions = [
-    { icon: Phone, label: 'Call Doctor', action: () => navigate('/booking') },
-    { icon: Video, label: 'Video Call', action: () => navigate('/booking') },
-    { icon: MapPin, label: 'Find Nearby', action: () => navigate('/booking') },
-    { icon: Clock, label: 'Appointments', action: () => navigate('/booking') }
+    { icon: Phone, label: 'Call Doctor', action: () => navigate('/local-healthcare') },
+    { icon: Video, label: 'Video Call', action: () => navigate('/teleconsultation') },
+    { icon: MapPin, label: 'Find Nearby', action: () => navigate('/local-healthcare') },
+    { icon: Clock, label: 'Appointments', action: () => navigate('/local-healthcare') }
   ];
 
   return (
@@ -99,28 +161,55 @@ export default function CareAccess() {
             </Button>
           </div>
           <h1 className="text-lg font-bold mb-1">Care Access</h1>
-          <p className="text-xs text-blue-100">Complete patient-to-provider ecosystem</p>
+          <p className="text-xs text-blue-100">Complete healthcare ecosystem</p>
         </div>
+
+        {/* Live Stats */}
+        {loading ? (
+          <div className="grid grid-cols-4 gap-2 px-3 pb-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-16 bg-white/20" />
+            ))}
+          </div>
+        ) : stats && (
+          <div className="grid grid-cols-4 gap-2 px-3 pb-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+              <p className="text-xl font-bold">{stats.totalProviders}</p>
+              <p className="text-[10px] text-blue-100">Providers</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+              <p className="text-xl font-bold">{stats.totalDoctors}</p>
+              <p className="text-[10px] text-blue-100">Doctors</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+              <p className="text-xl font-bold">{stats.avgRating}★</p>
+              <p className="text-[10px] text-blue-100">Avg Rating</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+              <p className="text-xl font-bold">{stats.totalConsultations.toLocaleString()}</p>
+              <p className="text-[10px] text-blue-100">Reviews</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Quick Actions */}
         <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Instant access to care</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               {quickActions.map((action) => (
                 <Button
                   key={action.label}
                   variant="outline"
-                  className="h-20 flex-col gap-2"
+                  className="h-16 flex-col gap-1 text-xs"
                   onClick={action.action}
                 >
-                  <action.icon className="w-6 h-6" />
-                  <span className="text-xs">{action.label}</span>
+                  <action.icon className="w-5 h-5" />
+                  <span>{action.label}</span>
                 </Button>
               ))}
             </div>
@@ -128,78 +217,119 @@ export default function CareAccess() {
         </Card>
 
         {/* Care Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {careServices.map((service) => (
             <Card 
               key={service.title}
-              className="cursor-pointer hover:shadow-lg transition-all"
+              className="cursor-pointer hover:shadow-lg transition-all group"
               onClick={() => navigate(service.route)}
             >
-              <CardHeader>
-                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${service.color} flex items-center justify-center mb-3`}>
-                  <service.icon className="w-6 h-6 text-white" />
+              <CardContent className="p-4">
+                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${service.color} flex items-center justify-center mb-3`}>
+                  <service.icon className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{service.title}</CardTitle>
+                  <div>
+                    <h3 className="font-semibold text-sm">{service.title}</h3>
+                    <p className="text-xs text-muted-foreground">{service.description}</p>
+                  </div>
                   {service.badge && (
-                    <Badge variant="secondary" className="text-xs">{service.badge}</Badge>
+                    <Badge className={service.badge === 'Live' ? 'bg-green-500' : 'bg-purple-500'} variant="secondary">
+                      {service.badge}
+                    </Badge>
                   )}
                 </div>
-                <CardDescription>{service.description}</CardDescription>
-              </CardHeader>
+                {service.count !== undefined && (
+                  <p className="text-xs text-primary mt-2 font-medium">{service.count} available</p>
+                )}
+              </CardContent>
             </Card>
           ))}
         </div>
 
+        {/* Top Rated Providers */}
+        {topProviders.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  Top Rated Providers
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/local-healthcare')}>
+                  View All <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {topProviders.map((provider) => (
+                <div 
+                  key={provider.id} 
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                  onClick={() => navigate('/local-healthcare')}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
+                      {provider.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-sm">{provider.name}</h4>
+                        {provider.is_verified && (
+                          <CheckCircle className="h-3 w-3 text-blue-500" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{provider.specialty}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <span className="font-bold text-sm">{provider.rating_average?.toFixed(1)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">₹{provider.consultation_fee}</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Provider Portal */}
-        <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-teal-600" />
+        <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950/30 dark:to-cyan-950/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Briefcase className="w-4 h-4 text-teal-600" />
               Healthcare Provider Portal
             </CardTitle>
-            <CardDescription>
-              Are you a healthcare professional? Join our network
+            <CardDescription className="text-xs">
+              Join our network of healthcare professionals
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-teal-600">500+</p>
-                <p className="text-sm text-muted-foreground">Active Providers</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-teal-600">10k+</p>
-                <p className="text-sm text-muted-foreground">Consultations</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-teal-600">4.8★</p>
-                <p className="text-sm text-muted-foreground">Avg Rating</p>
-              </div>
-            </div>
-            <Button className="w-full mt-4 bg-teal-600" onClick={() => navigate('/provider-register')}>
+            <Button className="w-full bg-teal-600 hover:bg-teal-700" onClick={() => navigate('/provider-register')}>
               Register as Provider
             </Button>
           </CardContent>
         </Card>
 
-        {/* Health Wallet - New Feature */}
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/health-wallet')}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-purple-600" />
+        {/* Health Wallet */}
+        <Card 
+          className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 cursor-pointer hover:shadow-lg transition-shadow" 
+          onClick={() => navigate('/health-wallet')}
+        >
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <DollarSign className="w-4 h-4 text-purple-600" />
               Health Wallet
-              <Badge className="ml-2 bg-green-600">Live Now</Badge>
+              <Badge className="ml-2 bg-green-600 text-[10px]">Live</Badge>
             </CardTitle>
-            <CardDescription>
-              Track expenses, insurance, and health rewards
+            <CardDescription className="text-xs">
+              Track expenses, insurance, and rewards
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">
-              Manage all your healthcare finances in one place. Link insurance, track spending, and earn rewards for healthy actions.
-            </p>
-            <Button className="bg-purple-600">
+            <Button className="w-full bg-purple-600 hover:bg-purple-700">
               Open Wallet
             </Button>
           </CardContent>
