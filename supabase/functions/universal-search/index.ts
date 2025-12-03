@@ -14,6 +14,18 @@ interface SearchRequest {
   gpsLon?: number;
 }
 
+interface SearchResult {
+  title: string;
+  snippet: string;
+  url: string;
+  displayUrl: string;
+  faviconUrl: string | null;
+  source: string;
+  detectedType: string;
+  score: number;
+  rank: number;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -52,7 +64,6 @@ serve(async (req) => {
     let ipCity: string | null = null;
 
     try {
-      // Use ip-api.com for free geolocation (works without API key)
       const ipResponse = await fetch(`http://ip-api.com/json/${clientIP === 'unknown' ? '' : clientIP}?fields=status,country,countryCode,city,lat,lon`);
       const ipData = await ipResponse.json();
       
@@ -114,24 +125,7 @@ serve(async (req) => {
 
     console.log(`Effective location: ${effectiveCity}, ${effectiveCountry} (${effectiveLat}, ${effectiveLon})`);
 
-    // Call Google Custom Search API
-    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_SEARCH_API_KEY');
-    const GOOGLE_CX_ID = Deno.env.get('GOOGLE_SEARCH_CX_ID');
-
-    if (!GOOGLE_API_KEY || !GOOGLE_CX_ID) {
-      console.error('Missing Google API credentials');
-      return new Response(
-        JSON.stringify({ 
-          error: 'Google API credentials not configured',
-          results: [],
-          aiAnswer: null
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Build location-aware search query
-    // Add location context to query for local results
     let searchQuery = query;
     const localKeywords = ['near me', 'nearby', 'local', 'shop', 'store', 'restaurant', 'doctor', 'hospital', 'clinic', 'job', 'service'];
     const isLocalQuery = localKeywords.some(kw => query.toLowerCase().includes(kw));
@@ -140,59 +134,71 @@ serve(async (req) => {
       searchQuery = `${query} in ${effectiveCity}`;
     }
 
-    // Build Google URL with geo-restriction to India
-    const googleParams = new URLSearchParams({
-      q: searchQuery,
-      key: GOOGLE_API_KEY,
-      cx: GOOGLE_CX_ID,
-      num: '10',
-      gl: 'in',  // Geo-restrict to India
-      cr: 'countryIN',  // Results from India
-    });
+    let results: SearchResult[] = [];
+    let searchEngine = 'google_custom_search';
 
-    const googleUrl = `https://www.googleapis.com/customsearch/v1?${googleParams.toString()}`;
-    
-    console.log(`Calling Google Custom Search: "${searchQuery}" (gl=in, cr=countryIN)`);
-    const googleResponse = await fetch(googleUrl);
-    const googleData = await googleResponse.json();
+    // Try Google Custom Search first
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_SEARCH_API_KEY');
+    const GOOGLE_CX_ID = Deno.env.get('GOOGLE_SEARCH_CX_ID');
 
-    if (!googleResponse.ok) {
-      console.error('Google API error:', googleData);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Google API error',
-          results: [],
-          aiAnswer: null
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (GOOGLE_API_KEY && GOOGLE_CX_ID) {
+      const googleParams = new URLSearchParams({
+        q: searchQuery,
+        key: GOOGLE_API_KEY,
+        cx: GOOGLE_CX_ID,
+        num: '10',
+        gl: 'in',
+        cr: 'countryIN',
+      });
+
+      const googleUrl = `https://www.googleapis.com/customsearch/v1?${googleParams.toString()}`;
+      
+      console.log(`Calling Google Custom Search: "${searchQuery}" (gl=in, cr=countryIN)`);
+      const googleResponse = await fetch(googleUrl);
+      const googleData = await googleResponse.json();
+
+      if (googleResponse.ok && googleData.items) {
+        // Google succeeded
+        const rawResults = googleData.items || [];
+        console.log(`Google returned ${rawResults.length} results`);
+
+        results = rawResults.map((item: any, index: number) => {
+          const detectedType = classifyResult(query, item);
+          const score = calculateScore(item, index, query, effectiveLat, effectiveLon);
+          
+          return {
+            title: item.title,
+            snippet: item.snippet,
+            url: item.link,
+            displayUrl: item.displayLink,
+            faviconUrl: item.pagemap?.cse_image?.[0]?.src || null,
+            source: 'google',
+            detectedType,
+            score,
+            rank: index + 1
+          };
+        });
+      } else if (googleData.error?.code === 429) {
+        // Quota exceeded - fallback to DuckDuckGo
+        console.log('Google quota exceeded, falling back to DuckDuckGo');
+        searchEngine = 'duckduckgo';
+        results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
+      } else {
+        console.error('Google API error:', googleData);
+        // Try DuckDuckGo as fallback
+        searchEngine = 'duckduckgo';
+        results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
+      }
+    } else {
+      // No Google credentials - use DuckDuckGo
+      console.log('No Google credentials, using DuckDuckGo');
+      searchEngine = 'duckduckgo';
+      results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
     }
 
-    // Normalize Google results
-    const rawResults = googleData.items || [];
-    console.log(`Google returned ${rawResults.length} results`);
-
-    // Classify and score results
-    const results = rawResults.map((item: any, index: number) => {
-      const detectedType = classifyResult(query, item);
-      const score = calculateScore(item, index, query, effectiveLat, effectiveLon);
-      
-      return {
-        title: item.title,
-        snippet: item.snippet,
-        url: item.link,
-        displayUrl: item.displayLink,
-        faviconUrl: item.pagemap?.cse_image?.[0]?.src || null,
-        source: 'google',
-        detectedType,
-        score,
-        rank: index + 1
-      };
-    });
-
     // Sort by score
-    results.sort((a: any, b: any) => b.score - a.score);
-    results.forEach((r: any, i: number) => r.rank = i + 1);
+    results.sort((a, b) => b.score - a.score);
+    results.forEach((r, i) => r.rank = i + 1);
 
     // Log search to database
     let searchId: string | null = null;
@@ -204,7 +210,7 @@ serve(async (req) => {
           session_id: sessionId,
           query,
           source: 'web',
-          engine: 'google_custom_search',
+          engine: searchEngine,
           gps_lat: gpsLat || null,
           gps_lon: gpsLon || null,
           ip: clientIP,
@@ -230,7 +236,7 @@ serve(async (req) => {
       const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-answer', {
         body: {
           query,
-          results: results.slice(0, 5).map((r: any) => ({
+          results: results.slice(0, 5).map((r) => ({
             title: r.title,
             snippet: r.snippet,
             url: r.url
@@ -254,6 +260,7 @@ serve(async (req) => {
         searchId,
         query,
         aiAnswer,
+        searchEngine,
         location: {
           gpsLat,
           gpsLon,
@@ -281,10 +288,97 @@ serve(async (req) => {
   }
 });
 
+// DuckDuckGo fallback search using HTML scraping
+async function searchDuckDuckGo(
+  searchQuery: string,
+  originalQuery: string,
+  lat?: number | null,
+  lon?: number | null
+): Promise<SearchResult[]> {
+  try {
+    console.log(`Searching DuckDuckGo for: "${searchQuery}"`);
+    
+    // Use DuckDuckGo HTML search (no API key needed)
+    const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
+    
+    const response = await fetch(ddgUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('DuckDuckGo request failed:', response.status);
+      return [];
+    }
+
+    const html = await response.text();
+    const results: SearchResult[] = [];
+
+    // Parse HTML results using regex (simple extraction)
+    const resultPattern = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi;
+    const snippetPattern = /<a[^>]*class="result__snippet"[^>]*>([^<]*)<\/a>/gi;
+    
+    const titleMatches = [...html.matchAll(resultPattern)];
+    const snippetMatches = [...html.matchAll(snippetPattern)];
+
+    for (let i = 0; i < Math.min(titleMatches.length, 10); i++) {
+      const titleMatch = titleMatches[i];
+      const snippetMatch = snippetMatches[i];
+      
+      if (titleMatch) {
+        let url = titleMatch[1];
+        const title = decodeHTMLEntities(titleMatch[2]);
+        const snippet = snippetMatch ? decodeHTMLEntities(snippetMatch[1]) : '';
+
+        // DuckDuckGo uses redirect URLs, extract actual URL
+        if (url.includes('uddg=')) {
+          const urlMatch = url.match(/uddg=([^&]*)/);
+          if (urlMatch) {
+            url = decodeURIComponent(urlMatch[1]);
+          }
+        }
+
+        const detectedType = classifyResult(originalQuery, { title, snippet, link: url });
+        const score = calculateScore({ title, snippet, link: url }, i, originalQuery, lat, lon);
+
+        results.push({
+          title,
+          snippet,
+          url,
+          displayUrl: new URL(url).hostname,
+          faviconUrl: null,
+          source: 'duckduckgo',
+          detectedType,
+          score,
+          rank: i + 1
+        });
+      }
+    }
+
+    console.log(`DuckDuckGo returned ${results.length} results`);
+    return results;
+  } catch (error) {
+    console.error('DuckDuckGo search error:', error);
+    return [];
+  }
+}
+
+function decodeHTMLEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
 function classifyResult(query: string, item: any): string {
-  const url = item.link.toLowerCase();
-  const title = item.title.toLowerCase();
-  const snippet = item.snippet.toLowerCase();
+  const url = (item.link || item.url || '').toLowerCase();
+  const title = (item.title || '').toLowerCase();
+  const snippet = (item.snippet || '').toLowerCase();
   const combined = `${query} ${title} ${snippet} ${url}`.toLowerCase();
 
   // Local business patterns
@@ -379,9 +473,12 @@ function calculateScore(
   lat?: number | null,
   lon?: number | null
 ): number {
-  let score = 100 - index * 5; // Base Google rank
+  let score = 100 - index * 5; // Base rank
 
-  const combined = `${item.title} ${item.snippet}`.toLowerCase();
+  const url = item.link || item.url || '';
+  const title = item.title || '';
+  const snippet = item.snippet || '';
+  const combined = `${title} ${snippet}`.toLowerCase();
   const queryWords = query.toLowerCase().split(' ');
 
   // Relevance boost
@@ -397,13 +494,13 @@ function calculateScore(
   }
 
   // Indian domain boost
-  if (item.link.includes('.in') || item.link.includes('india')) {
+  if (url.includes('.in') || url.includes('india')) {
     score += 20;
   }
 
   // Quality signals
   if (item.pagemap?.metatags?.[0]?.['og:description']) {
-    score += 5; // Has rich metadata
+    score += 5;
   }
 
   return score;
