@@ -120,6 +120,7 @@ import AdminDocuments from "./pages/admin/Documents";
 import AdminDoctorApplications from "./pages/admin/DoctorApplications";
 import FeatureBuilder from "./pages/admin/FeatureBuilder";
 import SchemaManager from "./pages/admin/SchemaManager";
+import KYCApprovals from "./pages/admin/KYCApprovals";
 
 // Provider Pages
 import ProviderAppointments from "./pages/provider/Appointments";
@@ -392,6 +393,7 @@ const App = () => {
               <Route path="broadcast" element={<BroadcastManager />} />
               <Route path="brand-partnerships" element={<BrandPartnerships />} />
               <Route path="app-approvals" element={<AppApprovals />} />
+              <Route path="kyc-approvals" element={<KYCApprovals />} />
               <Route path="chatr-world" element={<ChatrWorldAdmin />} />
               <Route path="payment-verification" element={<PaymentVerification />} />
             </Route>

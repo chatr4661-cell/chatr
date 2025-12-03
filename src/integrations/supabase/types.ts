@@ -9876,6 +9876,7 @@ export type Database = {
           id: string
           is_online: boolean | null
           is_phone_verified: boolean | null
+          is_verified: boolean | null
           last_backup_at: string | null
           last_contact_sync: string | null
           last_seen: string | null
@@ -9901,6 +9902,7 @@ export type Database = {
           preferred_country_code: string | null
           preferred_language: string | null
           profile_completed_at: string | null
+          public_key: string | null
           qr_code_token: string | null
           referral_code: string | null
           status: string | null
@@ -9926,6 +9928,7 @@ export type Database = {
           id: string
           is_online?: boolean | null
           is_phone_verified?: boolean | null
+          is_verified?: boolean | null
           last_backup_at?: string | null
           last_contact_sync?: string | null
           last_seen?: string | null
@@ -9951,6 +9954,7 @@ export type Database = {
           preferred_country_code?: string | null
           preferred_language?: string | null
           profile_completed_at?: string | null
+          public_key?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
           status?: string | null
@@ -9976,6 +9980,7 @@ export type Database = {
           id?: string
           is_online?: boolean | null
           is_phone_verified?: boolean | null
+          is_verified?: boolean | null
           last_backup_at?: string | null
           last_contact_sync?: string | null
           last_seen?: string | null
@@ -10001,6 +10006,7 @@ export type Database = {
           preferred_country_code?: string | null
           preferred_language?: string | null
           profile_completed_at?: string | null
+          public_key?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
           status?: string | null
