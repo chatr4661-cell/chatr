@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Briefcase, MapPin, Navigation, Clock, TrendingUp, DollarSign, Filter, Building2, GraduationCap, Sparkles, ExternalLink, Bookmark, Share2, Download, RefreshCw, Bell } from 'lucide-react';
+import { ArrowLeft, Briefcase, MapPin, Navigation, Clock, TrendingUp, DollarSign, Filter, Building2, GraduationCap, Sparkles, ExternalLink, Bookmark, Share2, Download, RefreshCw, Bell, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -355,65 +355,59 @@ export default function LocalJobs() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="p-4 space-y-3">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b">
+        <div className="max-w-2xl mx-auto px-4 py-3 space-y-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Briefcase className="h-6 w-6" />
-                Discover Local Jobs Near You
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Explore thousands of job opportunities in your area — from part-time gigs to full-time careers
-              </p>
+              <h1 className="text-lg font-bold">Jobs Near You</h1>
             </div>
-            {location?.city && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Navigation className="h-4 w-4 text-primary" />
-                <span>{location.city}</span>
-              </div>
-            )}
           </div>
 
-        {/* Action Buttons */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <Button variant="outline" size="sm" onClick={exportJobs} disabled={filteredJobs.length === 0}>
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setScrapeKeywords('search')}>
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Scrape Jobs
-            </Button>
-            <Button variant="outline" size="sm">
-              <Bell className="h-4 w-4 mr-1" />
-              Job Alerts
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/saved-jobs')}>
-              <Bookmark className="h-4 w-4 mr-1" />
-              Saved ({savedJobs.length})
-            </Button>
-          </div>
-
-        {/* Info Banner */}
-          <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 rounded-lg p-4 space-y-2 text-sm border border-primary/20">
-            <div className="flex items-start gap-2">
-              <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold">AI-Powered Job Discovery</h3>
-                <p className="text-muted-foreground mt-1">
-                  We aggregate jobs from Indeed, Naukri, LinkedIn, Glassdoor, company career pages, government portals, and more — all based on your exact location!
-                </p>
+          {/* Location Bar */}
+          {location?.city && (
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/50 border border-transparent">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <MapPin className="w-4 h-4 text-primary" />
               </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Your location</p>
+                <p className="text-sm font-medium">{location.city}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <Button variant="outline" size="sm" className="shrink-0 h-8" onClick={exportJobs} disabled={filteredJobs.length === 0}>
+              <Download className="h-3.5 w-3.5 mr-1.5" />Export
+            </Button>
+            <Button variant="outline" size="sm" className="shrink-0 h-8" onClick={() => setScrapeKeywords('search')}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh
+            </Button>
+            <Button variant="outline" size="sm" className="shrink-0 h-8">
+              <Bell className="h-3.5 w-3.5 mr-1.5" />Alerts
+            </Button>
+            <Button variant="outline" size="sm" className="shrink-0 h-8" onClick={() => navigate('/saved-jobs')}>
+              <Bookmark className="h-3.5 w-3.5 mr-1.5" />Saved ({savedJobs.length})
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+        {/* Hero Banner */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800')] opacity-20 bg-cover bg-center" />
+          <div className="relative p-5">
+            <Badge className="bg-white/20 text-white border-0 mb-2"><Sparkles className="w-3 h-3 mr-1" />AI-Powered</Badge>
+            <h2 className="text-lg font-bold text-white mb-1">{filteredJobs.length}+ Jobs Found</h2>
+            <p className="text-white/80 text-sm">Aggregated from Indeed, LinkedIn, Naukri & more</p>
+          </div>
+        </div>
         {/* Search */}
         <Input
           type="text"
@@ -869,33 +863,36 @@ function JobCard({ job, onView, priority = false, onSave, onApply, isSaved, isAp
 }) {
   return (
     <Card
-      className={`p-4 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all ${priority ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-transparent' : ''}`}
+      className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all ${priority ? 'border-primary/30 ring-1 ring-primary/20' : ''}`}
       onClick={() => onView(job.id)}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="font-bold text-lg mb-1 line-clamp-1">{job.job_title}</h3>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Building2 className="h-4 w-4" />
-            <span>{job.company_name}</span>
+      <div className="p-4">
+        <div className="flex gap-3">
+          {/* Company Logo Placeholder */}
+          <div className={`w-14 h-14 rounded-xl shrink-0 flex items-center justify-center ${priority ? 'bg-gradient-to-br from-primary/20 to-primary/5' : 'bg-muted'}`}>
+            <Building2 className={`w-6 h-6 ${priority ? 'text-primary' : 'text-muted-foreground'}`} />
           </div>
-        </div>
-        {isSaved && (
-          <Badge variant="secondary" className="ml-2">
-            <Bookmark className="h-3 w-3 fill-current" />
-          </Badge>
-        )}
-      </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-semibold line-clamp-1">{job.job_title}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-1">{job.company_name}</p>
+              </div>
+              {isSaved && (
+                <Bookmark className="h-4 w-4 text-primary fill-primary shrink-0" />
+              )}
+            </div>
 
-      <div className="flex flex-wrap gap-2 mb-3">
-        <Badge variant="outline" className="flex items-center gap-1">
-          <MapPin className="h-3 w-3" />
-          {job.city}
-          {job.distance && ` • ${job.distance.toFixed(1)}km`}
-        </Badge>
-        <Badge>{job.job_type}</Badge>
-        {job.is_remote && <Badge variant="secondary">🏠 Remote</Badge>}
-        {job.experience_level && <Badge variant="outline">{job.experience_level}</Badge>}
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" />{job.city}{job.distance && ` • ${job.distance.toFixed(1)}km`}
+              </span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{job.job_type}</Badge>
+              {job.is_remote && <Badge className="bg-green-500/10 text-green-600 border-0 text-[10px] px-1.5 py-0">Remote</Badge>}
+            </div>
+        </div>
+      </div>
       </div>
 
       {job.salary_range && (
