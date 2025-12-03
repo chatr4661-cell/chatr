@@ -176,6 +176,7 @@ import OSDetection from "./pages/OSDetection"; // OS Detection Page
 import ChatrHome from "./pages/ChatrHome"; // CHATR Search Home
 import ChatrResults from "./pages/ChatrResults"; // CHATR Search Results
 import StealthMode from "./pages/StealthMode"; // Stealth Mode Settings
+import ChatrGames from "./pages/ChatrGames"; // CHATR Games Hub
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -336,6 +337,7 @@ const App = () => {
             
             {/* AI & Settings Routes */}
             <Route path="/chatr-world" element={<ChatrWorld />} />
+            <Route path="/chatr-games" element={<ChatrGames />} />
             <Route path="/native-apps" element={<MiniApps />} />
             <Route path="/chatr-os" element={<ChatrOS />} />
             <Route path="/os-detection" element={<OSDetection />} />
