@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import { useChatrLocation } from "@/hooks/useChatrLocation";
 import { chatrLocalSearch } from "@/lib/chatrClient";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UPIPaymentModal } from "@/components/payment/UPIPaymentModal";
 
 interface ServiceCategory {
   id: string;
@@ -48,6 +49,7 @@ const HomeServices = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [bookingProvider, setBookingProvider] = useState<ServiceProvider | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
   const [bookingData, setBookingData] = useState({
     scheduled_date: "",
     address: "",
@@ -280,8 +282,8 @@ const HomeServices = () => {
                               </span>
                             </div>
                           </div>
-                          <Button className="w-full" onClick={handleBooking}>
-                            Confirm Booking
+                          <Button className="w-full" onClick={() => setShowPayment(true)}>
+                            Pay & Confirm Booking
                           </Button>
                         </div>
                       </DialogContent>
@@ -293,6 +295,19 @@ const HomeServices = () => {
           </div>
         )}
       </div>
+
+      {/* UPI Payment Modal */}
+      <UPIPaymentModal
+        open={showPayment}
+        onOpenChange={setShowPayment}
+        amount={bookingProvider ? bookingProvider.hourly_rate * bookingData.duration_hours : 0}
+        orderType="service"
+        onPaymentSubmitted={() => {
+          toast({ title: "Payment Submitted", description: "Your booking will be confirmed once payment is verified." });
+          setShowPayment(false);
+          setBookingProvider(null);
+        }}
+      />
     </div>
   );
 };

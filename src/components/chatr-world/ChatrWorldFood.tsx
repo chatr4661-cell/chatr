@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
 
 interface Restaurant {
   id: string;
@@ -67,6 +68,7 @@ export function ChatrWorldFood({ location }: ChatrWorldFoodProps) {
   const [selectedCategory, setSelectedCategory] = useState('Meals');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     fetchRestaurants();
@@ -176,7 +178,7 @@ export function ChatrWorldFood({ location }: ChatrWorldFoodProps) {
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = async (paymentId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -191,13 +193,15 @@ export function ChatrWorldFood({ location }: ChatrWorldFoodProps) {
         subtotal: cartTotal,
         delivery_fee: selectedRestaurant?.delivery_fee || 0,
         total: cartTotal + (selectedRestaurant?.delivery_fee || 0),
-        status: 'pending'
+        status: paymentId ? 'payment_pending' : 'pending',
+        payment_id: paymentId
       });
 
       if (error) throw error;
 
-      toast.success('Order placed successfully!');
+      toast.success(paymentId ? 'Order placed! Payment verification pending.' : 'Order placed successfully!');
       setCart([]);
+      setShowPayment(false);
     } catch (error) {
       console.error('Order error:', error);
       toast.error('Failed to place order');
@@ -404,8 +408,8 @@ export function ChatrWorldFood({ location }: ChatrWorldFoodProps) {
                         <span>₹{cartTotal + (selectedRestaurant.delivery_fee || 0)}</span>
                       </div>
                     </div>
-                    <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={handlePlaceOrder}>
-                      Place Order
+                    <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={() => setShowPayment(true)}>
+                      Pay with UPI
                     </Button>
                   </>
                 )}
@@ -559,6 +563,15 @@ export function ChatrWorldFood({ location }: ChatrWorldFoodProps) {
           ))}
         </div>
       )}
+
+      {/* UPI Payment Modal */}
+      <UPIPaymentModal
+        open={showPayment}
+        onOpenChange={setShowPayment}
+        amount={cartTotal + (selectedRestaurant?.delivery_fee || 0)}
+        orderType="food"
+        onPaymentSubmitted={(paymentId) => handlePlaceOrder(paymentId)}
+      />
     </div>
   );
 }
