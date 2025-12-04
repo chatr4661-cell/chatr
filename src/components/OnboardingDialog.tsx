@@ -44,28 +44,60 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
   const [referralCode, setReferralCode] = React.useState("");
   const [existingEmail, setExistingEmail] = React.useState("");
   const [existingPhone, setExistingPhone] = React.useState("");
+  const [referrerId, setReferrerId] = React.useState<string | null>(null);
   const { toast } = useToast();
 
-  // Load existing profile data
+  // Check for pending referral from invite link
+  React.useEffect(() => {
+    const pendingCode = localStorage.getItem('pending_invite_code');
+    const pendingReferrer = localStorage.getItem('pending_referrer_id');
+    
+    if (pendingCode) {
+      setReferralCode(pendingCode);
+    }
+    if (pendingReferrer) {
+      setReferrerId(pendingReferrer);
+    }
+  }, []);
+
+  // Load existing profile data AND Google user metadata
   React.useEffect(() => {
     const loadProfile = async () => {
+      // First get profile data
       const { data: profile } = await supabase
         .from('profiles')
-        .select('email, phone_number, full_name, avatar_url')
+        .select('email, phone_number, full_name, avatar_url, username')
         .eq('id', userId)
         .single();
       
-      if (profile) {
-        // Don't treat @chatr.local emails as "existing" - they're placeholder emails
-        const isRealEmail = profile.email && !profile.email.endsWith('@chatr.local');
-        const phoneWithoutCode = profile.phone_number?.replace(/^\+\d{1,3}/, '') || "";
+      // Also get auth user metadata (contains Google data)
+      const { data: { user } } = await supabase.auth.getUser();
+      const googleData = user?.user_metadata;
+      
+      if (profile || googleData) {
+        // Prioritize Google data for name and avatar, fall back to profile
+        const googleName = googleData?.full_name || googleData?.name || "";
+        const googleAvatar = googleData?.avatar_url || googleData?.picture || "";
+        const googleEmail = googleData?.email || "";
         
-        setExistingEmail(isRealEmail ? profile.email : "");
-        setExistingPhone(profile.phone_number || "");
-        setEmail(isRealEmail ? profile.email : "");
+        // Don't treat @chatr.local emails as "existing"
+        const profileEmail = profile?.email && !profile.email.endsWith('@chatr.local') ? profile.email : "";
+        const finalEmail = profileEmail || googleEmail;
+        
+        const phoneWithoutCode = profile?.phone_number?.replace(/^\+\d{1,3}/, '') || "";
+        
+        setExistingEmail(finalEmail);
+        setExistingPhone(profile?.phone_number || "");
+        setEmail(finalEmail);
         setPhoneNumber(phoneWithoutCode);
-        setFullName(profile.full_name || "");
-        setAvatarUrl(profile.avatar_url || "");
+        
+        // Auto-fill name from Google if profile doesn't have it
+        const finalName = profile?.full_name || googleName || profile?.username || "";
+        setFullName(finalName);
+        
+        // Auto-fill avatar from Google if profile doesn't have it
+        const finalAvatar = profile?.avatar_url || googleAvatar || "";
+        setAvatarUrl(finalAvatar);
       }
     };
     
@@ -378,24 +410,29 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
           <div className="space-y-6">
             <div className="text-center py-4">
               <Gift className="h-16 w-16 text-primary mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Got a Referral Code?</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {referralCode ? "Referral Code Applied! 🎉" : "Got a Referral Code?"}
+              </h3>
               <p className="text-sm text-muted-foreground">
-                Earn instant 500 bonus coins!
+                {referralCode ? "You'll earn 50 bonus coins!" : "Earn instant 50 bonus coins!"}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+              <Label htmlFor="referralCode">Referral Code {referralCode ? "(Auto-filled from invite)" : "(Optional)"}</Label>
               <Input
                 id="referralCode"
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                placeholder="Enter code (e.g., CHATR123)"
-                maxLength={10}
+                placeholder="Enter code (e.g., CHATR-ABC12345)"
+                maxLength={25}
+                className={referralCode ? "border-green-500 bg-green-50/10" : ""}
               />
-              <p className="text-xs text-muted-foreground">
-                Don't have one? Skip this step - you can add it later!
-              </p>
+              {!referralCode && (
+                <p className="text-xs text-muted-foreground">
+                  Don't have one? Skip this step - you can add it later!
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -404,14 +441,21 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
               </Button>
               <Button 
                 onClick={async () => {
-                  if (referralCode.trim()) {
-                    // Validate and process referral code
+                  if (referralCode.trim() || referrerId) {
+                    // Process referral with referrer ID for accurate tracking
                     const { error } = await supabase.functions.invoke('process-referral', {
-                      body: { referralCode: referralCode.trim(), newUserId: userId }
+                      body: { 
+                        referralCode: referralCode.trim(), 
+                        newUserId: userId,
+                        referrerId: referrerId // Include direct referrer ID if available
+                      }
                     });
                     
                     if (!error) {
-                      toast({ title: "Referral code applied! You earned 500 coins!" });
+                      toast({ title: "Referral code applied! You earned 50 coins!" });
+                      // Clear localStorage after successful processing
+                      localStorage.removeItem('pending_invite_code');
+                      localStorage.removeItem('pending_referrer_id');
                     }
                   }
                   handleStep2Next();

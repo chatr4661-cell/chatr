@@ -13,13 +13,17 @@ const JoinInvite = () => {
   const [loading, setLoading] = useState(true);
 
   const inviteCode = searchParams.get('invite');
+  const referrerId = searchParams.get('ref');
 
   useEffect(() => {
-    // Track invite click
+    // Track invite click and store referral info
     const trackClick = async () => {
       if (inviteCode) {
-        // Store invite code for after signup
+        // Store invite code and referrer ID for after signup
         localStorage.setItem('pending_invite_code', inviteCode);
+        if (referrerId) {
+          localStorage.setItem('pending_referrer_id', referrerId);
+        }
 
         // Update invite status to clicked
         await supabase
@@ -30,18 +34,25 @@ const JoinInvite = () => {
           })
           .eq('invite_code', inviteCode);
 
-        // Try to get inviter info
-        const { data } = await supabase
-          .from('contact_invites')
-          .select('inviter_id')
-          .eq('invite_code', inviteCode)
-          .single();
+        // Try to get inviter info - first from ref param, then from invite record
+        let inviterId = referrerId;
+        
+        if (!inviterId) {
+          const { data } = await supabase
+            .from('contact_invites')
+            .select('inviter_id')
+            .eq('invite_code', inviteCode)
+            .single();
+          inviterId = data?.inviter_id;
+        }
 
-        if (data?.inviter_id) {
+        if (inviterId) {
+          localStorage.setItem('pending_referrer_id', inviterId);
+          
           const { data: profile } = await supabase
             .from('profiles')
             .select('username')
-            .eq('id', data.inviter_id)
+            .eq('id', inviterId)
             .single();
           
           setInviterName(profile?.username || 'A friend');
@@ -51,7 +62,7 @@ const JoinInvite = () => {
     };
 
     trackClick();
-  }, [inviteCode]);
+  }, [inviteCode, referrerId]);
 
   const handleJoin = () => {
     navigate('/auth', { state: { inviteCode } });

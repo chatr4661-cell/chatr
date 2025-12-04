@@ -27,18 +27,26 @@ serve(async (req) => {
     );
     if (userError || !user) throw new Error("Unauthorized");
 
-    // Get inviter's profile
+    // Get inviter's profile with referral code
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username, avatar_url")
+      .select("username, avatar_url, referral_code")
       .eq("id", user.id)
       .single();
 
     const inviterName = profile?.username || "A friend";
 
-    // Generate unique invite code
-    const inviteCode = `CHATR-${user.id.slice(0, 8).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
-    const inviteLink = `https://chatr.chat/join?invite=${inviteCode}`;
+    // Use user's referral code if exists, otherwise generate one and save it
+    let inviteCode = profile?.referral_code;
+    if (!inviteCode) {
+      inviteCode = `CHATR-${user.id.slice(0, 8).toUpperCase()}`;
+      // Save the referral code to profile for future use
+      await supabase
+        .from("profiles")
+        .update({ referral_code: inviteCode })
+        .eq("id", user.id);
+    }
+    const inviteLink = `https://chatr.chat/join?invite=${inviteCode}&ref=${user.id}`;
 
     // Check if already invited
     const existingQuery = supabase.from("contact_invites").select("*").eq("inviter_id", user.id);
