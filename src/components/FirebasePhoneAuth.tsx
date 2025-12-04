@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Phone, ArrowLeft, ArrowRight, RefreshCw, CheckCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, RefreshCw, CheckCircle, Lock } from 'lucide-react';
 import { CountryCodeSelector } from './CountryCodeSelector';
 import { useFirebasePhoneAuth } from '@/hooks/useFirebasePhoneAuth';
 import { cn } from '@/lib/utils';
@@ -34,12 +34,10 @@ const OTPInput: React.FC<OTPInputProps> = ({
     const result = newValue.join('').slice(0, length);
     onChange(result);
 
-    // Auto-focus next input
     if (digit && index < length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Trigger onComplete when all digits entered
     if (result.length === length && onComplete) {
       onComplete(result);
     }
@@ -99,13 +97,12 @@ export const FirebasePhoneAuth: React.FC = () => {
     loading,
     error,
     countdown,
-    sendOTP,
+    checkPhoneAndProceed,
     verifyOTP,
-    verifyPIN,
+    verifyPINLogin,
     resendOTP,
     reset,
     phoneNumber: verifiedPhone,
-    isExistingUser,
   } = useFirebasePhoneAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -121,7 +118,7 @@ export const FirebasePhoneAuth: React.FC = () => {
     }
 
     const fullPhone = `${countryCode}${phoneNumber}`;
-    await sendOTP(fullPhone);
+    await checkPhoneAndProceed(fullPhone);
   };
 
   const handleOTPComplete = async (code: string) => {
@@ -129,7 +126,7 @@ export const FirebasePhoneAuth: React.FC = () => {
   };
 
   const handlePINComplete = async (code: string) => {
-    await verifyPIN(code);
+    await verifyPINLogin(code);
   };
 
   const handleResend = async () => {
@@ -155,15 +152,15 @@ export const FirebasePhoneAuth: React.FC = () => {
         <CardHeader className="space-y-2 pb-4">
           <CardTitle className="text-2xl font-bold text-foreground">
             {step === 'phone' && 'Welcome'}
-            {step === 'otp' && 'Enter OTP'}
-            {step === 'pin_required' && 'Enter PIN'}
-            {step === 'syncing' && 'Verifying...'}
+            {step === 'otp' && 'Verify Phone'}
+            {step === 'pin_login' && 'Enter PIN'}
+            {step === 'syncing' && 'Signing in...'}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
-            {step === 'phone' && 'Enter your phone number to receive OTP'}
-            {step === 'otp' && `Enter the 6-digit code sent to ${countryCode} ${phoneNumber}`}
-            {step === 'pin_required' && 'Enter your 4-digit PIN to continue'}
-            {step === 'syncing' && 'Setting up your account...'}
+            {step === 'phone' && 'Enter your phone number to continue'}
+            {step === 'otp' && `Enter the 6-digit OTP sent to ${countryCode} ${phoneNumber}`}
+            {step === 'pin_login' && 'Enter your 4-digit PIN to login'}
+            {step === 'syncing' && 'Please wait...'}
           </CardDescription>
         </CardHeader>
 
@@ -200,7 +197,7 @@ export const FirebasePhoneAuth: React.FC = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  We'll send you a verification code via SMS
+                  New users will receive an OTP. Returning users can login with PIN.
                 </p>
               </div>
               <Button 
@@ -211,11 +208,11 @@ export const FirebasePhoneAuth: React.FC = () => {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Sending OTP...
+                    Checking...
                   </>
                 ) : (
                   <>
-                    Send OTP
+                    Continue
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </>
                 )}
@@ -223,7 +220,7 @@ export const FirebasePhoneAuth: React.FC = () => {
             </form>
           )}
 
-          {/* OTP Verification */}
+          {/* OTP Verification (New Users Only) */}
           {step === 'otp' && (
             <div className="space-y-5">
               <Button
@@ -285,8 +282,8 @@ export const FirebasePhoneAuth: React.FC = () => {
             </div>
           )}
 
-          {/* PIN Entry for Existing Users */}
-          {step === 'pin_required' && (
+          {/* PIN Login (Returning Users - NO OTP) */}
+          {step === 'pin_login' && (
             <div className="space-y-5">
               <Button
                 variant="ghost"
@@ -295,8 +292,17 @@ export const FirebasePhoneAuth: React.FC = () => {
                 disabled={loading}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Start Over
+                Change Number
               </Button>
+
+              <div className="text-center mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-3">
+                  <Lock className="w-8 h-8 text-primary" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Welcome back! Enter your 4-digit PIN
+                </p>
+              </div>
 
               <div className="space-y-4">
                 <OTPInput
@@ -306,10 +312,6 @@ export const FirebasePhoneAuth: React.FC = () => {
                   onComplete={handlePINComplete}
                   disabled={loading}
                 />
-                
-                <p className="text-center text-sm text-muted-foreground">
-                  Enter the PIN you created during signup
-                </p>
               </div>
 
               <Button
@@ -320,11 +322,11 @@ export const FirebasePhoneAuth: React.FC = () => {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Verifying...
+                    Logging in...
                   </>
                 ) : (
                   <>
-                    Continue
+                    Login
                     <CheckCircle className="ml-2 h-5 w-5" />
                   </>
                 )}
@@ -340,7 +342,7 @@ export const FirebasePhoneAuth: React.FC = () => {
                 <Loader2 className="h-12 w-12 animate-spin text-primary relative" />
               </div>
               <div className="text-center">
-                <p className="font-medium">Setting up your account...</p>
+                <p className="font-medium">Signing you in...</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   This will only take a moment
                 </p>
