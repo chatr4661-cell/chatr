@@ -8790,6 +8790,7 @@ export type Database = {
           duration: number | null
           edited_at: string | null
           encryption_key_id: string | null
+          expires_at: string | null
           file_name: string | null
           file_size: number | null
           forwarded_from_id: string | null
@@ -8797,6 +8798,7 @@ export type Database = {
           is_deleted: boolean | null
           is_edited: boolean | null
           is_encrypted: boolean | null
+          is_expired: boolean | null
           is_starred: boolean | null
           location_latitude: number | null
           location_longitude: number | null
@@ -8825,6 +8827,7 @@ export type Database = {
           duration?: number | null
           edited_at?: string | null
           encryption_key_id?: string | null
+          expires_at?: string | null
           file_name?: string | null
           file_size?: number | null
           forwarded_from_id?: string | null
@@ -8832,6 +8835,7 @@ export type Database = {
           is_deleted?: boolean | null
           is_edited?: boolean | null
           is_encrypted?: boolean | null
+          is_expired?: boolean | null
           is_starred?: boolean | null
           location_latitude?: number | null
           location_longitude?: number | null
@@ -8860,6 +8864,7 @@ export type Database = {
           duration?: number | null
           edited_at?: string | null
           encryption_key_id?: string | null
+          expires_at?: string | null
           file_name?: string | null
           file_size?: number | null
           forwarded_from_id?: string | null
@@ -8867,6 +8872,7 @@ export type Database = {
           is_deleted?: boolean | null
           is_edited?: boolean | null
           is_encrypted?: boolean | null
+          is_expired?: boolean | null
           is_starred?: boolean | null
           location_latitude?: number | null
           location_longitude?: number | null
@@ -13915,6 +13921,7 @@ export type Database = {
       }
       clean_expired_geo_cache: { Args: never; Returns: undefined }
       cleanup_disappearing_messages: { Args: never; Returns: undefined }
+      cleanup_expired_messages: { Args: never; Returns: number }
       cleanup_expired_visual_search_cache: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       create_direct_conversation: {

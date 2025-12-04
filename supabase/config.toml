@@ -83,3 +83,12 @@ verify_jwt = false
 
 [functions.healthcare-booking]
 verify_jwt = true
+
+[functions.sync-google-contacts]
+verify_jwt = true
+
+[functions.send-invite]
+verify_jwt = true
+
+[functions.cleanup-expired-messages]
+verify_jwt = false
