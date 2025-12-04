@@ -14,6 +14,7 @@ import { useLiteMode } from '@/hooks/useLiteMode';
 import { useDataUsageTracking } from '@/hooks/useDataUsageTracking';
 import { useBandwidthEstimation } from '@/hooks/useBandwidthEstimation';
 import { LocationPrivacySettings } from '@/components/settings/LocationPrivacySettings';
+import { ConnectedAccounts } from '@/components/ConnectedAccounts';
 
 export default function Account() {
   const navigate = useNavigate();
@@ -192,6 +193,11 @@ export default function Account() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Connected Accounts */}
+        <div className="mt-6">
+          <ConnectedAccounts />
+        </div>
 
         {/* Data Saver Settings - 2G Optimization */}
         <Card className="mt-6 border-2 border-orange-200/50">
