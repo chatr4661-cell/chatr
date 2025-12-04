@@ -28,13 +28,6 @@ interface ProfileEditDialogProps {
   onProfileUpdated: () => void;
 }
 
-interface ProfileEditDialogProps {
-  profile: Profile;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onProfileUpdated: () => void;
-}
-
 export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdated }: ProfileEditDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
