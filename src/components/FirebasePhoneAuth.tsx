@@ -101,14 +101,17 @@ export const FirebasePhoneAuth: React.FC = () => {
     countdown,
     sendOTP,
     verifyOTP,
+    verifyPIN,
     resendOTP,
     reset,
     phoneNumber: verifiedPhone,
+    isExistingUser,
   } = useFirebasePhoneAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [otp, setOtp] = useState('');
+  const [pin, setPin] = useState('');
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +128,10 @@ export const FirebasePhoneAuth: React.FC = () => {
     await verifyOTP(code);
   };
 
+  const handlePINComplete = async (code: string) => {
+    await verifyPIN(code);
+  };
+
   const handleResend = async () => {
     setOtp('');
     await resendOTP();
@@ -132,6 +139,7 @@ export const FirebasePhoneAuth: React.FC = () => {
 
   const handleBack = () => {
     setOtp('');
+    setPin('');
     reset();
   };
 
@@ -148,11 +156,13 @@ export const FirebasePhoneAuth: React.FC = () => {
           <CardTitle className="text-2xl font-bold text-foreground">
             {step === 'phone' && 'Welcome'}
             {step === 'otp' && 'Enter OTP'}
+            {step === 'pin_required' && 'Enter PIN'}
             {step === 'syncing' && 'Verifying...'}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             {step === 'phone' && 'Enter your phone number to receive OTP'}
             {step === 'otp' && `Enter the 6-digit code sent to ${countryCode} ${phoneNumber}`}
+            {step === 'pin_required' && 'Enter your 4-digit PIN to continue'}
             {step === 'syncing' && 'Setting up your account...'}
           </CardDescription>
         </CardHeader>
@@ -268,6 +278,53 @@ export const FirebasePhoneAuth: React.FC = () => {
                 ) : (
                   <>
                     Verify OTP
+                    <CheckCircle className="ml-2 h-5 w-5" />
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* PIN Entry for Existing Users */}
+          {step === 'pin_required' && (
+            <div className="space-y-5">
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                className="mb-2 hover:bg-muted/50 rounded-lg"
+                disabled={loading}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Start Over
+              </Button>
+
+              <div className="space-y-4">
+                <OTPInput
+                  length={4}
+                  value={pin}
+                  onChange={setPin}
+                  onComplete={handlePINComplete}
+                  disabled={loading}
+                />
+                
+                <p className="text-center text-sm text-muted-foreground">
+                  Enter the PIN you created during signup
+                </p>
+              </div>
+
+              <Button
+                onClick={() => handlePINComplete(pin)}
+                disabled={loading || pin.length < 4}
+                className="w-full h-14 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold text-base rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    Continue
                     <CheckCircle className="ml-2 h-5 w-5" />
                   </>
                 )}
