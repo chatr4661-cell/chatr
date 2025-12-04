@@ -88,20 +88,44 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
     setLoading(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
       const updateData = {
         username: formData.username || 'User',
         status: formData.status || null,
-        phone_number: formData.phone_number || null,
+        phone_number: formData.phone_number || session?.user?.phone || 'unknown',
         age: formData.age ? parseInt(formData.age) : null,
         gender: formData.gender || null,
         updated_at: new Date().toISOString(),
       };
 
-      // Use upsert to create or update profile
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', userId);
+      let error;
+      
+      if (existingProfile) {
+        // Profile exists - update it
+        const result = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', userId);
+        error = result.error;
+      } else {
+        // Profile doesn't exist - insert new one
+        const result = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: session?.user?.email || 'unknown@email.com',
+            ...updateData,
+          });
+        error = result.error;
+      }
 
       if (error) throw error;
 
@@ -138,14 +162,37 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
         .from('social-media')
         .getPublicUrl(filePath);
 
-      // Update profile with avatar_url
-      const { error: updateError } = await supabase
+      // Check if profile exists for avatar update
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .update({ 
-          avatar_url: publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      let updateError;
+      
+      if (existingProfile) {
+        const result = await supabase
+          .from('profiles')
+          .update({ 
+            avatar_url: publicUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+        updateError = result.error;
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        const result = await supabase
+          .from('profiles')
+          .insert({ 
+            id: userId,
+            email: session?.user?.email || 'unknown@email.com',
+            phone_number: session?.user?.phone || 'unknown',
+            username: session?.user?.user_metadata?.full_name || 'User',
+            avatar_url: publicUrl,
+          });
+        updateError = result.error;
+      }
 
       if (updateError) throw updateError;
 
