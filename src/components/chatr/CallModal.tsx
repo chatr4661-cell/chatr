@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { PhoneOff, Mic, MicOff, Video, VideoOff, Volume2 } from 'lucide-react';
+import { PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, Settings, Circle } from 'lucide-react';
+import { CallRecordingControls } from '@/components/calls/CallRecordingControls';
+import { VirtualBackgroundPicker } from '@/components/calls/VirtualBackgroundPicker';
+import { AudioSettingsPanel } from '@/components/calls/AudioSettingsPanel';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface CallModalProps {
   open: boolean;
@@ -16,6 +20,21 @@ export function CallModal({ open, onClose, callType, contactName, contactAvatar 
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showVirtualBg, setShowVirtualBg] = useState(false);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+
+  // Get media stream when call connects
+  useEffect(() => {
+    if (callStatus === 'connected' && !mediaStream) {
+      navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' })
+        .then(setMediaStream)
+        .catch(console.error);
+    }
+    return () => {
+      mediaStream?.getTracks().forEach(track => track.stop());
+    };
+  }, [callStatus, callType]);
 
   useEffect(() => {
     if (open) {
@@ -100,6 +119,51 @@ export function CallModal({ open, onClose, callType, contactName, contactAvatar 
               <PhoneOff className="w-7 h-7" />
             </button>
           </div>
+
+          {/* Additional Controls Row */}
+          {callStatus === 'connected' && (
+            <div className="flex items-center gap-3 mt-6">
+              {/* Call Recording */}
+              <CallRecordingControls 
+                callId={`call-${Date.now()}`}
+                stream={mediaStream}
+                className="bg-white/10 rounded-lg p-2"
+              />
+
+              {/* Virtual Background (video only) */}
+              {callType === 'video' && (
+                <>
+                  <button 
+                    onClick={() => setShowVirtualBg(true)}
+                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                    title="Virtual Background"
+                  >
+                    <Video className="w-5 h-5" />
+                  </button>
+                  <VirtualBackgroundPicker 
+                    isOpen={showVirtualBg}
+                    onClose={() => setShowVirtualBg(false)}
+                    onApply={(config) => {
+                      console.log('Applied background:', config);
+                      setShowVirtualBg(false);
+                    }}
+                  />
+                </>
+              )}
+
+              {/* Audio Settings */}
+              <Sheet open={showSettings} onOpenChange={setShowSettings}>
+                <SheetTrigger asChild>
+                  <button className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <Settings className="w-5 h-5" />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="bg-background/95 backdrop-blur">
+                  <AudioSettingsPanel />
+                </SheetContent>
+              </Sheet>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

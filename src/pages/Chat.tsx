@@ -49,6 +49,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { OfflineChat } from '@/components/OfflineChat';
 import { UserInfoSidebar } from '@/components/UserInfoSidebar';
 import { UnifiedPermissionsSetup } from '@/components/UnifiedPermissionsSetup';
+import { QuickReplyPanel } from '@/components/chat/QuickReplyPanel';
+import { AIStickerPicker } from '@/components/chat/AIStickerPicker';
+import { DocumentPreviewModal } from '@/components/chat/DocumentPreviewModal';
+import { VoicemailList } from '@/components/calls/VoicemailList';
 
 const ChatEnhancedContent = () => {
   const { user, session } = useChatContext();
@@ -993,40 +997,60 @@ const ChatEnhancedContent = () => {
             )}
           </div>
 
+          {/* Quick Reply Templates */}
+          {activeConversationId && (
+            <div className="border-t border-border/30 bg-card/50 px-2 py-1">
+              <QuickReplyPanel 
+                onSelectTemplate={(text) => {
+                  handleSendMessage(text);
+                }}
+              />
+            </div>
+          )}
+
           {/* Input */}
-          <WhatsAppStyleInput
-            onSendMessage={handleSendMessage}
-            conversationId={activeConversationId}
-            userId={user.id}
-            disabled={messagesLoading}
-            replyToMessage={replyToMessage}
-            onCancelReply={cancelReply}
-            lastMessage={displayMessages.length > 0 && displayMessages[displayMessages.length - 1].sender_id !== user.id 
-              ? displayMessages[displayMessages.length - 1].content 
-              : undefined}
-            conversationContext={displayMessages.slice(-5).map(m => m.content)}
-            onAIAction={async (action) => {
-              if (action === 'smart_reply') {
-                if (displayMessages.length > 0) {
-                  const lastMsg = displayMessages[displayMessages.length - 1];
-                  if (lastMsg.sender_id !== user?.id) {
-                    await generateSmartReplies(lastMsg.content, displayMessages.slice(-5));
-                    setShowSmartReplies(true);
-                  } else {
-                    toast.info('Smart replies work on received messages');
+          <div className="flex items-end gap-1 px-2 py-1.5 border-t border-border/30 bg-card">
+            <AIStickerPicker 
+              onSelectSticker={(stickerUrl) => {
+                handleSendMessage(stickerUrl, 'image');
+              }}
+            />
+            <div className="flex-1">
+              <WhatsAppStyleInput
+                onSendMessage={handleSendMessage}
+                conversationId={activeConversationId}
+                userId={user.id}
+                disabled={messagesLoading}
+                replyToMessage={replyToMessage}
+                onCancelReply={cancelReply}
+                lastMessage={displayMessages.length > 0 && displayMessages[displayMessages.length - 1].sender_id !== user.id 
+                  ? displayMessages[displayMessages.length - 1].content 
+                  : undefined}
+                conversationContext={displayMessages.slice(-5).map(m => m.content)}
+                onAIAction={async (action) => {
+                  if (action === 'smart_reply') {
+                    if (displayMessages.length > 0) {
+                      const lastMsg = displayMessages[displayMessages.length - 1];
+                      if (lastMsg.sender_id !== user?.id) {
+                        await generateSmartReplies(lastMsg.content, displayMessages.slice(-5));
+                        setShowSmartReplies(true);
+                      } else {
+                        toast.info('Smart replies work on received messages');
+                      }
+                    }
+                  } else if (action === 'summarize') {
+                    await generateSummary(displayMessages, 'brief');
+                    setShowSummary(true);
+                  } else if (action === 'translate') {
+                    toast.info('Translation feature coming soon!');
+                  } else if (action === 'extract_action') {
+                    await analyzeMessages(displayMessages, 'topics');
+                    setShowInsights(true);
                   }
-                }
-              } else if (action === 'summarize') {
-                await generateSummary(displayMessages, 'brief');
-                setShowSummary(true);
-              } else if (action === 'translate') {
-                toast.info('Translation feature coming soon!');
-              } else if (action === 'extract_action') {
-                await analyzeMessages(displayMessages, 'topics');
-                setShowInsights(true);
-              }
-            }}
-          />
+                }}
+              />
+            </div>
+          </div>
         </>
       ) : (
         // Conversation List View
