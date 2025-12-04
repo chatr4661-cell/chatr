@@ -24,6 +24,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '@/assets/chatr-logo.png';
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav, RelatedContent } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 export default function HealthHub() {
   const navigate = useNavigate();
@@ -112,20 +115,34 @@ export default function HealthHub() {
 
   return (
     <ErrorBoundary>
+      <SEOHead
+        title="Health Hub - Complete Health Dashboard | Chatr"
+        description="Track your wellness, manage medications, store lab reports, and access AI health insights. Your complete digital health companion."
+        keywords="health tracking, wellness, medication reminders, lab reports, health passport, AI health assistant"
+        breadcrumbList={[
+          { name: 'Home', url: '/' },
+          { name: 'Health Hub', url: '/health' }
+        ]}
+      />
       <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
         <div className="max-w-6xl mx-auto px-3 py-3">
           <div className="flex items-center justify-between mb-2">
             <img src={logo} alt="Chatr" className="h-6 cursor-pointer" onClick={() => navigate('/')} />
-            <Button variant="ghost" size="sm" className="text-white h-8 text-xs" onClick={() => navigate('/')}>
-              Back
-            </Button>
+            <div className="flex items-center gap-2">
+              <ShareDeepLink path="/health" title="Chatr Health Hub" />
+              <Button variant="ghost" size="sm" className="text-white h-8 text-xs" onClick={() => navigate('/')}>
+                Back
+              </Button>
+            </div>
           </div>
           <h1 className="text-lg font-bold mb-1">Health Hub</h1>
           <p className="text-xs text-emerald-50">Your complete health dashboard</p>
         </div>
       </div>
+      
+      <Breadcrumbs />
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Health Score & AI Insight */}
@@ -385,6 +402,12 @@ export default function HealthHub() {
             </Card>
           </TabsContent>
         </Tabs>
+        
+        {/* Cross-Module Navigation */}
+        <CrossModuleNav variant="footer" />
+        
+        {/* Related Content */}
+        <RelatedContent />
       </div>
     </div>
     </ErrorBoundary>

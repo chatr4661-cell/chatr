@@ -11,6 +11,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs } from '@/components/navigation';
 
 export default function Settings() {
   const [userId, setUserId] = useState<string | undefined>();
@@ -31,12 +33,24 @@ export default function Settings() {
   };
 
   return (
+    <>
+      <SEOHead
+        title="Settings - Manage Your Account | Chatr"
+        description="Manage your Chatr account settings, privacy preferences, notifications, and appearance."
+        keywords="settings, account, privacy, notifications, appearance"
+        breadcrumbList={[
+          { name: 'Home', url: '/' },
+          { name: 'Settings', url: '/settings' }
+        ]}
+      />
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="p-4">
           <h1 className="text-2xl font-bold">Settings</h1>
         </div>
       </div>
+      
+      <Breadcrumbs />
 
       <div className="p-4">
         <Tabs defaultValue="profile" className="w-full">
@@ -90,5 +104,6 @@ export default function Settings() {
         </div>
       </div>
     </div>
+    </>
   );
 }

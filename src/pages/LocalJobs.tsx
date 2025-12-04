@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 interface Job {
   id: string;
@@ -353,6 +355,16 @@ export default function LocalJobs() {
   };
 
   return (
+    <>
+      <SEOHead
+        title="Local Jobs - Find Jobs Near You | Chatr"
+        description="Discover job opportunities near you. Browse local jobs, filter by distance and salary, and apply instantly."
+        keywords="local jobs, jobs near me, employment, careers, job search, hiring"
+        breadcrumbList={[
+          { name: 'Home', url: '/' },
+          { name: 'Local Jobs', url: '/local-jobs' }
+        ]}
+      />
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b">
@@ -364,6 +376,7 @@ export default function LocalJobs() {
             <div className="flex-1">
               <h1 className="text-lg font-bold">Jobs Near You</h1>
             </div>
+            <ShareDeepLink path="/local-jobs" title="Find Local Jobs" />
           </div>
 
           {/* Location Bar */}
@@ -802,6 +815,13 @@ export default function LocalJobs() {
         </DialogContent>
       </Dialog>
     </div>
+    <Breadcrumbs />
+    
+    {/* Cross-Module Navigation */}
+    <div className="max-w-2xl mx-auto px-4 pb-8">
+      <CrossModuleNav variant="footer" />
+    </div>
+    </>
   );
 }
 

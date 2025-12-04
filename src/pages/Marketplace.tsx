@@ -1,11 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 const Marketplace = () => {
   const navigate = useNavigate();
 
   return (
+    <>
+      <SEOHead
+        title="Marketplace - Medicines & Health Products | Chatr"
+        description="Shop for medicines, health products, and wellness items. Fast delivery and quality products."
+        keywords="marketplace, medicines, health products, online pharmacy, wellness"
+        breadcrumbList={[
+          { name: 'Home', url: '/' },
+          { name: 'Marketplace', url: '/marketplace' }
+        ]}
+      />
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-glass-border backdrop-blur-glass bg-gradient-glass">
@@ -25,8 +38,11 @@ const Marketplace = () => {
             <h1 className="text-xl font-bold text-foreground">Marketplace</h1>
             <p className="text-sm text-muted-foreground">Medicines and health products</p>
           </div>
+          <ShareDeepLink path="/marketplace" title="Chatr Marketplace" />
         </div>
       </div>
+      
+      <Breadcrumbs />
 
       {/* Service Categories Grid */}
       <div className="flex-1 p-4">
@@ -45,9 +61,13 @@ const Marketplace = () => {
               {' '}for now.
             </p>
           </div>
+          
+          {/* Cross-Module Navigation */}
+          <CrossModuleNav variant="footer" />
         </div>
       </div>
     </div>
+    </>
   );
 };
 

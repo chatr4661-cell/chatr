@@ -23,6 +23,9 @@ import {
 import logo from '@/assets/chatr-logo.png';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav, RelatedContent } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 interface LiveStats {
   totalProviders: number;
@@ -150,15 +153,28 @@ export default function CareAccess() {
   ];
 
   return (
+    <>
+      <SEOHead
+        title="Care Access - Healthcare Ecosystem | Chatr"
+        description="Find doctors, book appointments, access teleconsultation, and manage your healthcare journey. Complete healthcare ecosystem at your fingertips."
+        keywords="healthcare, doctors, teleconsultation, appointments, emergency services, pharmacy"
+        breadcrumbList={[
+          { name: 'Home', url: '/' },
+          { name: 'Care Access', url: '/care' }
+        ]}
+      />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
         <div className="max-w-6xl mx-auto px-3 py-3">
           <div className="flex items-center justify-between mb-2">
             <img src={logo} alt="Chatr" className="h-6 cursor-pointer" onClick={() => navigate('/')} />
-            <Button variant="ghost" size="sm" className="text-white h-8 text-xs" onClick={() => navigate('/')}>
-              Back
-            </Button>
+            <div className="flex items-center gap-2">
+              <ShareDeepLink path="/care" title="Chatr Care Access" />
+              <Button variant="ghost" size="sm" className="text-white h-8 text-xs" onClick={() => navigate('/')}>
+                Back
+              </Button>
+            </div>
           </div>
           <h1 className="text-lg font-bold mb-1">Care Access</h1>
           <p className="text-xs text-blue-100">Complete healthcare ecosystem</p>
@@ -334,7 +350,16 @@ export default function CareAccess() {
             </Button>
           </CardContent>
         </Card>
+        
+        {/* Cross-Module Navigation */}
+        <CrossModuleNav variant="footer" />
+        
+        {/* Related Content */}
+        <RelatedContent />
       </div>
+      
+      <Breadcrumbs />
     </div>
+    </>
   );
 }

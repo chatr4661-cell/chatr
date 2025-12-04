@@ -12,6 +12,9 @@ import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { SocialShareDialog } from "@/components/SocialShareDialog";
 import { UPIPaymentModal } from "@/components/payment/UPIPaymentModal";
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 interface UserPoints {
   balance: number;

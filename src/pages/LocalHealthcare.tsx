@@ -11,6 +11,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 interface HealthcareProvider {
   id: string;
@@ -129,6 +132,17 @@ export default function LocalHealthcare() {
   };
 
   return (
+    <>
+      <SEOHead
+        title="Local Healthcare - Find Doctors & Clinics | Chatr"
+        description="Find verified doctors, clinics, and healthcare providers near you. Book appointments instantly and get quality healthcare."
+        keywords="doctors near me, clinics, healthcare providers, book appointment, local healthcare"
+        breadcrumbList={[
+          { name: 'Home', url: '/' },
+          { name: 'Care Access', url: '/care' },
+          { name: 'Local Healthcare', url: '/local-healthcare' }
+        ]}
+      />
     <div className="min-h-screen bg-background pb-20">
       <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
         <div className="flex items-center justify-between p-4">
@@ -144,6 +158,7 @@ export default function LocalHealthcare() {
               <p className="text-sm text-blue-100">{stats.total} verified providers</p>
             </div>
           </div>
+          <ShareDeepLink path="/local-healthcare" title="Find Healthcare Providers" />
         </div>
 
         <div className="grid grid-cols-4 gap-2 px-4 pb-4">
@@ -166,6 +181,8 @@ export default function LocalHealthcare() {
         </div>
       </div>
 
+      <Breadcrumbs />
+      
       <div className="p-4 space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -335,6 +352,12 @@ export default function LocalHealthcare() {
           setPaymentAmount(0);
         }}
       />
+      
+      {/* Cross-Module Navigation */}
+      <div className="p-4">
+        <CrossModuleNav variant="footer" />
+      </div>
     </div>
+    </>
   );
 }

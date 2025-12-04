@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import walletIcon from '@/assets/chatrpay-wallet-icon.png';
 import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
 import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 import { 
   Wallet, 
   ArrowLeft, 
