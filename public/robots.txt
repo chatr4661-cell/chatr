@@ -1,3 +1,4 @@
+# CHATR Robots.txt
 User-agent: Googlebot
 Allow: /
 
@@ -12,3 +13,32 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Sitemap
+Sitemap: https://chatr.chat/sitemap.xml
+
+# Disallow admin and auth-protected routes
+Disallow: /admin
+Disallow: /provider-portal
+Disallow: /provider-register
+Disallow: /device-management
+Disallow: /qr-login
+Disallow: /onboarding
+Disallow: /account
+Disallow: /notification-settings
+Disallow: /geofence-history
+
+# Allow main content
+Allow: /health
+Allow: /care
+Allow: /local-jobs
+Allow: /ai-browser
+Allow: /communities
+Allow: /chatr-games
+Allow: /chatr-studio
+Allow: /marketplace
+Allow: /about
+Allow: /help
+Allow: /contact
+Allow: /chatr-wallet
+Allow: /chatr-world
