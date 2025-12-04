@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { VirtualizedConversationList } from '@/components/chat/VirtualizedConversationList';
+import { ContactsDrawer } from '@/components/chat/ContactsDrawer';
 import { TrueVirtualMessageList } from '@/components/chat/TrueVirtualMessageList';
 import { WhatsAppStyleInput } from '@/components/chat/WhatsAppStyleInput';
 import { MessageForwardDialog } from '@/components/chat/MessageForwardDialog';
@@ -1077,6 +1078,22 @@ const ChatEnhancedContent = () => {
               </div>
 
               <div className="flex items-center gap-0.5">
+                <ContactsDrawer
+                  userId={user?.id || ''}
+                  onStartChat={(conversationId, contactName, avatarUrl) => {
+                    setActiveConversationId(conversationId);
+                    setOtherUser({ id: conversationId, username: contactName, avatar_url: avatarUrl });
+                  }}
+                >
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent/50"
+                    title="Contacts"
+                  >
+                    <Users className="h-4 w-4" />
+                  </Button>
+                </ContactsDrawer>
                 <Button 
                   variant="ghost" 
                   size="icon"
@@ -1104,7 +1121,7 @@ const ChatEnhancedContent = () => {
                 >
                   <Search className="h-4 w-4" />
                 </Button>
-                <Button 
+                <Button
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/notifications')}
