@@ -181,6 +181,7 @@ import ChatrHome from "./pages/ChatrHome"; // CHATR Search Home
 import ChatrResults from "./pages/ChatrResults"; // CHATR Search Results
 import StealthMode from "./pages/StealthMode"; // Stealth Mode Settings
 import ChatrGames from "./pages/ChatrGames"; // CHATR Games Hub
+import JoinInvite from "./pages/JoinInvite"; // Invite Join Page
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -272,6 +273,7 @@ const App = () => {
             <Route path="/terms" element={<Terms />} />
             <Route path="/refund" element={<Refund />} />
             <Route path="/disclaimer" element={<Disclaimer />} />
+            <Route path="/join" element={<JoinInvite />} />
             
             {/* Consolidated Hub Routes */}
             <Route path="/health" element={<HealthHub />} />
