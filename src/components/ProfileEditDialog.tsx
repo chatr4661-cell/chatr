@@ -53,6 +53,13 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Don't save if profile ID is invalid
+    if (!profile?.id) {
+      toast.error('Profile not found. Please refresh the page.');
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -127,7 +134,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
@@ -136,7 +143,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
           {/* Avatar Upload */}
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={profile.avatar_url || ''} />
+              <AvatarImage src={profile?.avatar_url || ''} />
               <AvatarFallback className="text-xl">
                 {(formData.username || 'U').substring(0, 2).toUpperCase()}
               </AvatarFallback>
