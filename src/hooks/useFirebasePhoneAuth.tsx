@@ -44,8 +44,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   }, [countdown]);
 
   /**
-   * FAST CHECK: If user exists → instant login (no OTP)
-   * New user → Firebase OTP
+   * INSTANT CHECK: Single fast query to determine flow
    */
   const checkPhoneAndProceed = useCallback(async (phone: string): Promise<boolean> => {
     setLoading(true);
@@ -54,61 +53,33 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
 
     const normalizedPhone = phone.replace(/\s/g, '');
     const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
-    const password = normalizedPhone; // Standard password = phone number
 
     try {
-      // FAST PATH: Try direct login first (instant for existing users)
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // SINGLE INSTANT CHECK: Try login with 2-second timeout
+      const loginPromise = supabase.auth.signInWithPassword({
         email,
-        password,
+        password: normalizedPhone,
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('timeout')), 2000)
+      );
 
-      if (signInData?.session) {
-        console.log('[Phone Auth] Instant login success!');
+      const result = await Promise.race([loginPromise, timeoutPromise]) as any;
+      
+      if (result?.data?.session) {
         setIsExistingUser(true);
-        toast({
-          title: 'Welcome back! 👋',
-          description: 'Logged in instantly',
-        });
+        toast({ title: 'Welcome back! 👋' });
         setLoading(false);
         return true;
       }
-
-      // Not found with primary email, check if profile exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, onboarding_completed')
-        .eq('phone_number', normalizedPhone)
-        .maybeSingle();
-
-      if (existingProfile?.onboarding_completed) {
-        // Profile exists but login failed - try creating auth entry
-        const { data: newAuth } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { phone_number: normalizedPhone }
-          }
-        });
-        
-        if (newAuth?.session) {
-          setIsExistingUser(true);
-          toast({ title: 'Welcome back! 👋' });
-          setLoading(false);
-          return true;
-        }
-      }
-
-      // NEW USER → Firebase OTP flow
-      console.log('[Phone Auth] New user, sending OTP...');
-      setIsExistingUser(false);
-      return await sendOTP(phone);
-
-    } catch (err: any) {
-      console.error('[Phone Auth] Error:', err);
-      // Fallback to OTP
-      return await sendOTP(phone);
+    } catch {
+      // Timeout or failed - proceed to OTP immediately
     }
+
+    // Go straight to OTP - no more checks
+    setIsExistingUser(false);
+    return await sendOTP(phone);
   }, [toast]);
 
   const sendOTP = async (phone: string): Promise<boolean> => {
