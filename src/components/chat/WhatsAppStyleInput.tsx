@@ -1,7 +1,7 @@
 import React, { useState, KeyboardEvent, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Paperclip, Mic, WifiOff, X, Plus, Camera, Image as ImageIcon, FileText, Mic2, MapPin, User } from 'lucide-react';
+import { Send, Paperclip, Mic, WifiOff, X, Plus, Camera, Image as ImageIcon, FileText, Mic2, MapPin, User, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { useInputValidation } from '@/hooks/useInputValidation';
 import { useMessageQueue } from '@/hooks/useMessageQueue';
@@ -13,6 +13,8 @@ import { MediaPreviewDialog } from './MediaPreviewDialog';
 import { MultiMediaPreviewDialog } from './MultiMediaPreviewDialog';
 import { ContactPicker } from './ContactPicker';
 import { capturePhoto, pickImage, getCurrentLocation } from '@/utils/mediaUtils';
+import { SmartReplySuggestions } from './SmartReplySuggestions';
+import { useSmartReplies } from '@/hooks/useSmartReplies';
 import {
   Popover,
   PopoverContent,
@@ -56,6 +58,14 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
   const { validateMessage, sanitizeHtml } = useInputValidation();
   const { addToQueue, isOnline, queueLength } = useMessageQueue(userId);
   const { loading: aiLoading, generateSmartReplies } = useAISmartReplies();
+  const { suggestions, isLoading: suggestionsLoading, generateReplies } = useSmartReplies();
+
+  // Generate smart replies when last message changes
+  useEffect(() => {
+    if (lastMessage) {
+      generateReplies(lastMessage, conversationContext);
+    }
+  }, [lastMessage, conversationContext, generateReplies]);
 
   const handleSend = async () => {
     if (!message.trim() || sending || disabled) return;
@@ -433,6 +443,16 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
 
   return (
     <div className="border-t bg-white dark:bg-gray-900 p-3">
+      {/* Smart Reply Suggestions */}
+      {suggestions.length > 0 && !message && (
+        <SmartReplySuggestions
+          suggestions={suggestions}
+          onSelect={(text) => setMessage(text)}
+          isLoading={suggestionsLoading}
+          className="mb-2"
+        />
+      )}
+
       {!isOnline && (
         <div className="mb-2 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-lg">
           <WifiOff className="w-4 h-4" />
