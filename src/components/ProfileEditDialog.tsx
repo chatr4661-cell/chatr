@@ -31,7 +31,7 @@ interface ProfileEditDialogProps {
 export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdated }: ProfileEditDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    username: profile.username,
+    username: profile.username || '',
     status: profile.status || '',
     phone_number: profile.phone_number || '',
     age: profile.age?.toString() || '',
@@ -125,7 +125,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
             <Avatar className="h-20 w-20">
               <AvatarImage src={profile.avatar_url || ''} />
               <AvatarFallback className="text-xl">
-                {formData.username.substring(0, 2).toUpperCase()}
+                {(formData.username || 'U').substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             
