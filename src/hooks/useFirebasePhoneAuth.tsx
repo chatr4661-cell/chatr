@@ -112,11 +112,19 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       setFailedAttempts(prev => prev + 1);
       
       let msg = 'Failed to send OTP';
-      if (err.code === 'auth/invalid-phone-number') msg = 'Invalid phone number';
-      else if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try later.';
-      else if (err.message?.includes('Hostname')) msg = 'Domain not authorized';
+      let waitTime = 0;
+      
+      if (err.code === 'auth/invalid-phone-number') {
+        msg = 'Invalid phone number';
+      } else if (err.code === 'auth/too-many-requests') {
+        msg = 'Too many attempts. Please wait 5 minutes or use Google login.';
+        waitTime = 300; // 5 minute cooldown
+      } else if (err.message?.includes('Hostname')) {
+        msg = 'Domain not authorized';
+      }
       
       setError(msg);
+      if (waitTime > 0) setCountdown(waitTime);
       setStep('phone');
       setLoading(false);
       recaptchaVerifierRef.current = null;
