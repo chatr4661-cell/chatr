@@ -236,6 +236,68 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_stickers: {
+        Row: {
+          created_at: string | null
+          id: string
+          source_photo_url: string
+          sticker_url: string
+          style: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          source_photo_url: string
+          sticker_url: string
+          style?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          source_photo_url?: string
+          sticker_url?: string
+          style?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      album_photos: {
+        Row: {
+          album_id: string
+          caption: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          photo_url: string
+        }
+        Insert: {
+          album_id: string
+          caption?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          photo_url: string
+        }
+        Update: {
+          album_id?: string
+          caption?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_photos_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "photo_albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ambassador_applications: {
         Row: {
           city: string
@@ -1786,6 +1848,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      call_recordings: {
+        Row: {
+          call_id: string
+          duration_seconds: number | null
+          expires_at: string | null
+          file_size_bytes: number | null
+          id: string
+          recorded_at: string | null
+          recording_url: string
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          duration_seconds?: number | null
+          expires_at?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          recorded_at?: string | null
+          recording_url: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          duration_seconds?: number | null
+          expires_at?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          recorded_at?: string | null
+          recording_url?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       calls: {
         Row: {
@@ -7478,6 +7573,42 @@ export type Database = {
         }
         Relationships: []
       }
+      link_previews: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          favicon_url: string | null
+          id: string
+          image_url: string | null
+          site_name: string | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          favicon_url?: string | null
+          id?: string
+          image_url?: string | null
+          site_name?: string | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          favicon_url?: string | null
+          id?: string
+          image_url?: string | null
+          site_name?: string | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       live_rooms: {
         Row: {
           created_at: string | null
@@ -9102,6 +9233,30 @@ export type Database = {
           },
         ]
       }
+      mutual_friends: {
+        Row: {
+          mutual_count: number | null
+          mutual_friend_ids: string[]
+          updated_at: string | null
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          mutual_count?: number | null
+          mutual_friend_ids: string[]
+          updated_at?: string | null
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          mutual_count?: number | null
+          mutual_friend_ids?: string[]
+          updated_at?: string | null
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
       native_apps: {
         Row: {
           category: string
@@ -9175,6 +9330,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_bundles: {
+        Row: {
+          bundle_type: string
+          created_at: string | null
+          id: string
+          notification_ids: string[]
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          bundle_type: string
+          created_at?: string | null
+          id?: string
+          notification_ids: string[]
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          bundle_type?: string
+          created_at?: string | null
+          id?: string
+          notification_ids?: string[]
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       notification_preferences: {
         Row: {
@@ -9548,6 +9730,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      photo_albums: {
+        Row: {
+          cover_photo_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cover_photo_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cover_photo_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       pinned_messages: {
         Row: {
@@ -9965,6 +10180,39 @@ export type Database = {
           },
         ]
       }
+      profile_music: {
+        Row: {
+          album_art_url: string | null
+          artist_name: string | null
+          id: string
+          preview_url: string | null
+          spotify_uri: string | null
+          track_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          album_art_url?: string | null
+          artist_name?: string | null
+          id?: string
+          preview_url?: string | null
+          spotify_uri?: string | null
+          track_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          album_art_url?: string | null
+          artist_name?: string | null
+          id?: string
+          preview_url?: string | null
+          spotify_uri?: string | null
+          track_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -10381,6 +10629,33 @@ export type Database = {
           receiver_id?: string
           status?: string | null
           transaction_type?: string
+        }
+        Relationships: []
+      }
+      quick_reply_templates: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          template_text: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          template_text: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          template_text?: string
+          usage_count?: number | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -13101,6 +13376,33 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_type: string
+          id: string
+          user_id: string
+          verification_details: Json | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          badge_type: string
+          id?: string
+          user_id: string
+          verification_details?: Json | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          badge_type?: string
+          id?: string
+          user_id?: string
+          verification_details?: Json | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       user_challenge_progress: {
         Row: {
           challenge_id: string
@@ -13734,6 +14036,69 @@ export type Database = {
           results_found?: number | null
           search_query_generated?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      voice_transcriptions: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          language: string | null
+          message_id: string
+          transcription: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          language?: string | null
+          message_id: string
+          transcription: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          language?: string | null
+          message_id?: string
+          transcription?: string
+        }
+        Relationships: []
+      }
+      voicemails: {
+        Row: {
+          audio_url: string
+          caller_id: string
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          is_read: boolean | null
+          receiver_id: string
+          transcription: string | null
+        }
+        Insert: {
+          audio_url: string
+          caller_id: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_read?: boolean | null
+          receiver_id: string
+          transcription?: string | null
+        }
+        Update: {
+          audio_url?: string
+          caller_id?: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_read?: boolean | null
+          receiver_id?: string
+          transcription?: string | null
         }
         Relationships: []
       }
