@@ -39,6 +39,7 @@ import { AIMoments } from '@/components/AIMoments';
 import { useMoodTracking } from '@/hooks/useMoodTracking';
 import { useStreakTracking } from '@/hooks/useStreakTracking';
 import logo from '@/assets/chatr-logo.png';
+import contactsIcon from '@/assets/contacts-icon.png';
 import GlobalSearch from '@/components/GlobalSearch';
 import { Badge } from '@/components/ui/badge';
 import { AIChatToolbar } from '@/components/chat/AIChatToolbar';
@@ -1088,10 +1089,10 @@ const ChatEnhancedContent = () => {
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent/50"
+                    className="h-8 w-8 rounded-full hover:bg-accent/50 p-0"
                     title="Contacts"
                   >
-                    <Users className="h-4 w-4" />
+                    <img src={contactsIcon} alt="Contacts" className="w-6 h-6 rounded-full" />
                   </Button>
                 </ContactsDrawer>
                 <Button 
