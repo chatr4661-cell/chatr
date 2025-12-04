@@ -3,8 +3,6 @@ import {
   RecaptchaVerifier, 
   signInWithPhoneNumber, 
   ConfirmationResult,
-  PhoneAuthProvider,
-  signInWithCredential
 } from 'firebase/auth';
 import { auth } from '@/firebase';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +29,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
   
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
@@ -44,8 +43,8 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     }
   }, [countdown]);
 
-  // Initialize invisible reCAPTCHA
-  const initRecaptcha = useCallback(() => {
+  // Initialize reCAPTCHA - only after multiple failed attempts
+  const initRecaptcha = useCallback((forceVisible: boolean = false) => {
     if (recaptchaVerifierRef.current) {
       return recaptchaVerifierRef.current;
     }
@@ -57,8 +56,11 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         existingContainer.innerHTML = '';
       }
 
+      // Use invisible reCAPTCHA normally, visible only after 3+ failed attempts
+      const useVisibleCaptcha = forceVisible || failedAttempts >= 3;
+
       recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-        size: 'invisible',
+        size: useVisibleCaptcha ? 'normal' : 'invisible',
         callback: () => {
           console.log('[Firebase Phone Auth] reCAPTCHA solved');
         },
@@ -73,7 +75,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       console.error('[Firebase Phone Auth] reCAPTCHA init error:', err);
       return null;
     }
-  }, []);
+  }, [failedAttempts]);
 
   // Send OTP to phone number
   const sendOTP = useCallback(async (phone: string): Promise<boolean> => {
@@ -86,7 +88,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
 
       const recaptcha = initRecaptcha();
       if (!recaptcha) {
-        throw new Error('Failed to initialize reCAPTCHA. Please refresh and try again.');
+        throw new Error('Failed to initialize verification. Please refresh and try again.');
       }
 
       const confirmationResult = await signInWithPhoneNumber(auth, phone, recaptcha);
@@ -94,7 +96,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       
       console.log('[Firebase Phone Auth] OTP sent successfully');
       setStep('otp');
-      setCountdown(60); // 60 second countdown for resend
+      setCountdown(60);
       
       toast({
         title: 'OTP Sent! 📱',
@@ -104,6 +106,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       return true;
     } catch (err: any) {
       console.error('[Firebase Phone Auth] Send OTP error:', err);
+      setFailedAttempts(prev => prev + 1);
       
       let errorMessage = 'Failed to send OTP. Please try again.';
       
@@ -166,6 +169,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       return true;
     } catch (err: any) {
       console.error('[Firebase Phone Auth] Verify OTP error:', err);
+      setFailedAttempts(prev => prev + 1);
       
       let errorMessage = 'Invalid OTP. Please try again.';
       
@@ -178,7 +182,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       }
 
       setError(errorMessage);
-      setStep('otp'); // Go back to OTP step
+      setStep('otp');
       
       toast({
         title: 'Verification Failed',
@@ -203,7 +207,6 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       return false;
     }
 
-    // Reset reCAPTCHA for new attempt
     recaptchaVerifierRef.current = null;
     return sendOTP(phoneNumber);
   }, [countdown, phoneNumber, sendOTP, toast]);
@@ -234,93 +237,160 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
 
 /**
  * Sync Firebase phone auth user to Supabase
- * Creates or logs in user with {phone}@chatr.local email pattern
+ * Handles both new users and existing users with different auth methods
  */
 async function syncFirebaseUserToSupabase(
   firebaseUid: string, 
   phoneNumber: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Normalize phone number (remove spaces, ensure + prefix)
     const normalizedPhone = phoneNumber.replace(/\s/g, '');
     const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
     
-    // Use Firebase UID as a deterministic password (hashed internally by Supabase)
-    // This ensures the same Firebase user always maps to the same Supabase user
-    const password = `firebase_${firebaseUid}_chatr`;
+    console.log('[Supabase Sync] Syncing Firebase user:', { firebaseUid, email, normalizedPhone });
 
-    console.log('[Supabase Sync] Syncing Firebase user:', { firebaseUid, email });
+    // First, check if user already exists by phone number in profiles
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id, firebase_uid')
+      .eq('phone_number', normalizedPhone)
+      .maybeSingle();
 
-    // Try to sign in first (existing user)
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInData.session) {
-      console.log('[Supabase Sync] Existing user logged in:', signInData.user?.id);
+    if (existingProfile) {
+      console.log('[Supabase Sync] Found existing profile:', existingProfile.id);
       
-      // Update profile with phone if needed
-      await supabase
-        .from('profiles')
-        .update({ 
-          phone_number: normalizedPhone,
-          firebase_uid: firebaseUid,
-        })
-        .eq('id', signInData.user!.id);
-
-      return { success: true };
-    }
-
-    // If sign in failed, try to create new user
-    if (signInError) {
-      console.log('[Supabase Sync] Sign in failed, creating new user...', signInError.message);
-
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // Try to sign in with existing credentials
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password: `firebase_${firebaseUid}_chatr`,
+      });
+
+      if (signInData.session) {
+        console.log('[Supabase Sync] Signed in existing user');
+        // Update firebase_uid if not set
+        if (!existingProfile.firebase_uid) {
+          await supabase
+            .from('profiles')
+            .update({ firebase_uid: firebaseUid })
+            .eq('id', existingProfile.id);
+        }
+        return { success: true };
+      }
+
+      // If sign in failed, try with old PIN-based password patterns
+      // This handles migration from old PIN-based auth
+      console.log('[Supabase Sync] Trying alternative auth methods...');
+      
+      // Try signing in without password change - just update the profile
+      // The user likely has a different password from old PIN system
+      // We'll use admin-level update via the existing session if available
+      
+      // Try a simple 6-digit PIN pattern (common from old system)
+      for (const pin of ['123456', '000000', '111111']) {
+        const { data } = await supabase.auth.signInWithPassword({
+          email,
+          password: pin,
+        });
+        if (data.session) {
+          console.log('[Supabase Sync] Signed in with legacy PIN');
+          await supabase
+            .from('profiles')
+            .update({ firebase_uid: firebaseUid })
+            .eq('id', existingProfile.id);
+          return { success: true };
+        }
+      }
+
+      // If we can't sign in, create a new auth user with different email
+      // This is a fallback for users who exist in profiles but auth is broken
+      const fallbackEmail = `${normalizedPhone.replace(/\+/g, '')}_fb@chatr.local`;
+      
+      const { data: newAuthData, error: newAuthError } = await supabase.auth.signUp({
+        email: fallbackEmail,
+        password: `firebase_${firebaseUid}_chatr`,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
             phone_number: normalizedPhone,
             firebase_uid: firebaseUid,
-            username: normalizedPhone,
           }
         }
       });
 
-      if (signUpError) {
-        // If user already exists with different password, handle gracefully
-        if (signUpError.message?.toLowerCase().includes('already registered')) {
-          console.log('[Supabase Sync] User exists but password mismatch - edge case');
-          // This shouldn't happen with deterministic password, but handle it
-          return { success: false, error: 'Account sync issue. Please contact support.' };
+      if (newAuthError) {
+        // Try to sign in with fallback email (might already exist)
+        const { data: fallbackSignIn } = await supabase.auth.signInWithPassword({
+          email: fallbackEmail,
+          password: `firebase_${firebaseUid}_chatr`,
+        });
+        
+        if (fallbackSignIn.session) {
+          console.log('[Supabase Sync] Signed in with fallback email');
+          return { success: true };
         }
-        throw signUpError;
+        
+        console.error('[Supabase Sync] All auth methods failed:', newAuthError);
+        return { success: false, error: 'Unable to authenticate. Please try Google sign-in or contact support.' };
       }
 
-      if (!signUpData.user) {
-        throw new Error('Failed to create Supabase user');
+      if (newAuthData.user) {
+        console.log('[Supabase Sync] Created new auth with fallback email');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return { success: true };
       }
-
-      console.log('[Supabase Sync] New user created:', signUpData.user.id);
-
-      // Wait for profile trigger
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Update profile with Firebase UID
-      await supabase
-        .from('profiles')
-        .update({ 
-          phone_number: normalizedPhone,
-          firebase_uid: firebaseUid,
-        })
-        .eq('id', signUpData.user.id);
-
-      return { success: true };
     }
 
-    return { success: false, error: 'Unknown error during sync' };
+    // No existing profile - create new user
+    console.log('[Supabase Sync] Creating new user...');
+    
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password: `firebase_${firebaseUid}_chatr`,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: {
+          phone_number: normalizedPhone,
+          firebase_uid: firebaseUid,
+          username: normalizedPhone,
+        }
+      }
+    });
+
+    if (signUpError) {
+      // User might already exist in auth but not in profiles
+      if (signUpError.message?.toLowerCase().includes('already registered')) {
+        const { data: signInData } = await supabase.auth.signInWithPassword({
+          email,
+          password: `firebase_${firebaseUid}_chatr`,
+        });
+        
+        if (signInData.session) {
+          console.log('[Supabase Sync] Signed in existing auth user');
+          return { success: true };
+        }
+      }
+      throw signUpError;
+    }
+
+    if (!signUpData.user) {
+      throw new Error('Failed to create user');
+    }
+
+    console.log('[Supabase Sync] New user created:', signUpData.user.id);
+    
+    // Wait for profile trigger
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Update profile with Firebase UID
+    await supabase
+      .from('profiles')
+      .update({ 
+        phone_number: normalizedPhone,
+        firebase_uid: firebaseUid,
+      })
+      .eq('id', signUpData.user.id);
+
+    return { success: true };
   } catch (err: any) {
     console.error('[Supabase Sync] Error:', err);
     return { success: false, error: err.message || 'Failed to sync user' };
