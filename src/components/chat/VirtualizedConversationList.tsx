@@ -206,76 +206,73 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
   }, [userId, getCachedConversations, setCachedConversations]);
 
-  // Load contacts from phone and Gmail
+  // Load platform users and contacts (simplified for performance)
   const loadContacts = React.useCallback(async () => {
     if (!userId) return;
     
     try {
-      // Load phone contacts
+      // Load user's existing contacts
       const { data: phoneContacts } = await supabase
         .from('contacts')
         .select('id, contact_name, contact_phone, contact_user_id, is_registered')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .limit(50);
 
-      // Load Gmail contacts
-      const { data: gmailContacts } = await supabase
-        .from('gmail_imported_contacts')
-        .select('id, name, email, phone, is_chatr_user, chatr_user_id, photo_url')
-        .eq('user_id', userId);
+      // Also get other platform users (people user can chat with)
+      const { data: platformUsers } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, phone_number')
+        .neq('id', userId)
+        .not('username', 'is', null)
+        .limit(20);
 
-      // Get profile info for registered contacts
-      const registeredIds = [
-        ...(phoneContacts?.filter(c => c.contact_user_id).map(c => c.contact_user_id) || []),
-        ...(gmailContacts?.filter(c => c.chatr_user_id).map(c => c.chatr_user_id) || [])
-      ].filter(Boolean) as string[];
-
-      let profileMap = new Map();
-      if (registeredIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url')
-          .in('id', registeredIds);
-        
-        profiles?.forEach(p => profileMap.set(p.id, p));
-      }
-
-      // Combine and dedupe contacts
       const allContacts: Contact[] = [];
       const seenIds = new Set<string>();
 
-      // Add phone contacts
-      phoneContacts?.forEach(c => {
-        const profile = c.contact_user_id ? profileMap.get(c.contact_user_id) : null;
-        const key = c.contact_user_id || c.contact_phone || c.id;
-        if (!seenIds.has(key)) {
-          seenIds.add(key);
-          allContacts.push({
-            id: c.id,
-            contact_name: c.contact_name,
-            contact_phone: c.contact_phone,
-            contact_user_id: c.contact_user_id,
-            is_registered: c.is_registered,
-            avatar_url: profile?.avatar_url,
-            username: profile?.username
-          });
-        }
-      });
+      // Add phone contacts with profile info
+      if (phoneContacts?.length) {
+        const registeredIds = phoneContacts
+          .filter(c => c.contact_user_id)
+          .map(c => c.contact_user_id) as string[];
 
-      // Add Gmail contacts (not already added)
-      gmailContacts?.forEach(c => {
-        const profile = c.chatr_user_id ? profileMap.get(c.chatr_user_id) : null;
-        const key = c.chatr_user_id || c.email || c.id;
-        if (!seenIds.has(key)) {
-          seenIds.add(key);
+        let profileMap = new Map();
+        if (registeredIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .in('id', registeredIds);
+          profiles?.forEach(p => profileMap.set(p.id, p));
+        }
+
+        phoneContacts.forEach(c => {
+          const profile = c.contact_user_id ? profileMap.get(c.contact_user_id) : null;
+          if (c.contact_user_id && !seenIds.has(c.contact_user_id)) {
+            seenIds.add(c.contact_user_id);
+            allContacts.push({
+              id: c.id,
+              contact_name: c.contact_name,
+              contact_phone: c.contact_phone,
+              contact_user_id: c.contact_user_id,
+              is_registered: c.is_registered,
+              avatar_url: profile?.avatar_url,
+              username: profile?.username
+            });
+          }
+        });
+      }
+
+      // Add platform users (people on Chatr)
+      platformUsers?.forEach(u => {
+        if (!seenIds.has(u.id)) {
+          seenIds.add(u.id);
           allContacts.push({
-            id: c.id,
-            contact_name: c.name || 'Unknown',
-            contact_phone: c.phone,
-            contact_user_id: c.chatr_user_id,
-            is_registered: c.is_chatr_user,
-            avatar_url: profile?.avatar_url || c.photo_url,
-            username: profile?.username,
-            email: c.email
+            id: u.id,
+            contact_name: u.username || 'Chatr User',
+            contact_phone: u.phone_number,
+            contact_user_id: u.id,
+            is_registered: true,
+            avatar_url: u.avatar_url,
+            username: u.username
           });
         }
       });
@@ -394,9 +391,6 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     );
   }, [contacts, searchQuery]);
 
-  const onChatrContacts = filteredContacts.filter(c => c.is_registered);
-  const inviteContacts = filteredContacts.filter(c => !c.is_registered);
-
   if (loading) {
     return <ConversationListSkeleton />;
   }
@@ -418,90 +412,46 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
       {filteredConversations.length === 0 ? (
         <ScrollArea className="flex-1">
-          {contacts.length === 0 ? (
+          {filteredContacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8">
               <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-lg font-semibold">No conversations yet</p>
-              <p className="text-sm text-muted-foreground">Sync your contacts to start chatting!</p>
+              <p className="text-sm text-muted-foreground">Start chatting with people below!</p>
             </div>
           ) : (
             <div className="pb-4">
-              {/* On Chatr Section */}
-              {onChatrContacts.length > 0 && (
-                <div>
-                  <div className="px-4 py-2 bg-muted/30 border-b">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-semibold text-muted-foreground uppercase">
-                        On Chatr ({onChatrContacts.length})
-                      </span>
-                    </div>
-                  </div>
-                  {onChatrContacts.map(contact => (
-                    <div
-                      key={contact.id}
-                      onClick={() => handleStartChat(contact)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
-                    >
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={contact.avatar_url} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {(contact.username || contact.contact_name)?.[0]?.toUpperCase() || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{contact.username || contact.contact_name}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {contact.contact_phone || contact.email || 'Tap to chat'}
-                        </p>
-                      </div>
-                      {startingChat === contact.id ? (
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      ) : (
-                        <MessageCircle className="h-5 w-5 text-primary" />
-                      )}
-                    </div>
-                  ))}
+              {/* People on Chatr */}
+              <div className="px-4 py-2 bg-muted/30 border-b">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase">
+                    People on Chatr ({filteredContacts.length})
+                  </span>
                 </div>
-              )}
-
-              {/* Invite to Chatr Section */}
-              {inviteContacts.length > 0 && (
-                <div>
-                  <div className="px-4 py-2 bg-muted/30 border-b">
-                    <div className="flex items-center gap-2">
-                      <UserPlus className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-xs font-semibold text-muted-foreground uppercase">
-                        Invite to Chatr ({inviteContacts.length})
-                      </span>
-                    </div>
+              </div>
+              {filteredContacts.map(contact => (
+                <div
+                  key={contact.id}
+                  onClick={() => handleStartChat(contact)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
+                >
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={contact.avatar_url} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {(contact.username || contact.contact_name)?.[0]?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{contact.username || contact.contact_name}</p>
+                    <p className="text-sm text-muted-foreground truncate">Tap to chat</p>
                   </div>
-                  {inviteContacts.slice(0, 20).map(contact => (
-                    <div
-                      key={contact.id}
-                      onClick={() => handleStartChat(contact)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
-                    >
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={contact.avatar_url} />
-                        <AvatarFallback className="bg-muted text-muted-foreground">
-                          {contact.contact_name?.[0]?.toUpperCase() || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{contact.contact_name}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {contact.contact_phone || contact.email || 'Not on Chatr'}
-                        </p>
-                      </div>
-                      <Button size="sm" variant="outline" className="shrink-0">
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Invite
-                      </Button>
-                    </div>
-                  ))}
+                  {startingChat === contact.id ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  ) : (
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                  )}
                 </div>
-              )}
+              ))}
             </div>
           )}
         </ScrollArea>
