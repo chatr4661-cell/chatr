@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,12 +31,25 @@ interface ProfileEditDialogProps {
 export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdated }: ProfileEditDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    username: profile.username || '',
-    status: profile.status || '',
-    phone_number: profile.phone_number || '',
-    age: profile.age?.toString() || '',
-    gender: profile.gender || '',
+    username: profile?.username || '',
+    status: profile?.status || '',
+    phone_number: profile?.phone_number || '',
+    age: profile?.age?.toString() || '',
+    gender: profile?.gender || '',
   });
+
+  // Sync form data when profile changes or dialog opens
+  useEffect(() => {
+    if (open && profile) {
+      setFormData({
+        username: profile.username || '',
+        status: profile.status || '',
+        phone_number: profile.phone_number || '',
+        age: profile.age?.toString() || '',
+        gender: profile.gender || '',
+      });
+    }
+  }, [open, profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
