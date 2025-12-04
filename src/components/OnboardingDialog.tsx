@@ -56,17 +56,21 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
         .single();
       
       if (profile) {
-        setExistingEmail(profile.email || "");
+        // Don't treat @chatr.local emails as "existing" - they're placeholder emails
+        const isRealEmail = profile.email && !profile.email.endsWith('@chatr.local');
+        const phoneWithoutCode = profile.phone_number?.replace(/^\+\d{1,3}/, '') || "";
+        
+        setExistingEmail(isRealEmail ? profile.email : "");
         setExistingPhone(profile.phone_number || "");
-        setEmail(profile.email || "");
-        setPhoneNumber(profile.phone_number?.replace(countryCode, "") || "");
+        setEmail(isRealEmail ? profile.email : "");
+        setPhoneNumber(phoneWithoutCode);
         setFullName(profile.full_name || "");
         setAvatarUrl(profile.avatar_url || "");
       }
     };
     
     if (userId) loadProfile();
-  }, [userId, countryCode]);
+  }, [userId]);
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
@@ -113,14 +117,14 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
   };
 
   const handleStep1Next = async () => {
-    const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+    const fullPhoneNumber = existingPhone || `${countryCode}${phoneNumber}`;
     
     // Validate all required fields
     try {
       profileSchema.parse({
         fullName: fullName.trim(),
         email: email.trim(),
-        phoneNumber: fullPhoneNumber,
+        phoneNumber: fullPhoneNumber.replace(/^\+/, ''), // Remove + for length validation
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -133,34 +137,44 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
       return;
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        full_name: fullName.trim(),
-        email: email.trim(),
-        phone_number: fullPhoneNumber,
-        status_message: statusMessage,
-        avatar_url: avatarUrl || null,
-      })
-      .eq('id', userId);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName.trim(),
+          email: email.trim(),
+          phone_number: fullPhoneNumber,
+          status_message: statusMessage,
+          avatar_url: avatarUrl || null,
+        })
+        .eq('id', userId);
 
-    if (error) {
+      if (error) {
+        console.error('[Onboarding] Profile update error:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to save profile",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await supabase.from('onboarding_progress').insert({
+        user_id: userId,
+        step_name: 'basic_profile',
+        completed: true,
+        completed_at: new Date().toISOString(),
+      });
+
+      setStep(2);
+    } catch (err) {
+      console.error('[Onboarding] Unexpected error:', err);
       toast({
         title: "Error",
-        description: "Failed to save profile",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-      return;
     }
-
-    await supabase.from('onboarding_progress').insert({
-      user_id: userId,
-      step_name: 'basic_profile',
-      completed: true,
-      completed_at: new Date().toISOString(),
-    });
-
-    setStep(2);
   };
 
   const handleStep2Next = async () => {
