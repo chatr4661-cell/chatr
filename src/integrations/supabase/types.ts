@@ -4210,6 +4210,54 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_invites: {
+        Row: {
+          clicked_at: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          id: string
+          invite_code: string
+          invite_method: string
+          inviter_id: string
+          joined_at: string | null
+          joined_user_id: string | null
+          reward_given: boolean | null
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          id?: string
+          invite_code: string
+          invite_method: string
+          inviter_id: string
+          joined_at?: string | null
+          joined_user_id?: string | null
+          reward_given?: boolean | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          id?: string
+          invite_code?: string
+          invite_method?: string
+          inviter_id?: string
+          joined_at?: string | null
+          joined_user_id?: string | null
+          reward_given?: boolean | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -6000,6 +6048,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      gmail_imported_contacts: {
+        Row: {
+          chatr_user_id: string | null
+          email: string | null
+          google_contact_id: string | null
+          id: string
+          imported_at: string | null
+          is_chatr_user: boolean | null
+          name: string | null
+          phone: string | null
+          photo_url: string | null
+          user_id: string
+        }
+        Insert: {
+          chatr_user_id?: string | null
+          email?: string | null
+          google_contact_id?: string | null
+          id?: string
+          imported_at?: string | null
+          is_chatr_user?: boolean | null
+          name?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          user_id: string
+        }
+        Update: {
+          chatr_user_id?: string | null
+          email?: string | null
+          google_contact_id?: string | null
+          id?: string
+          imported_at?: string | null
+          is_chatr_user?: boolean | null
+          name?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gmail_imported_contacts_chatr_user_id_fkey"
+            columns: ["chatr_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       health_challenge_participants: {
         Row: {
