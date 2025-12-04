@@ -1,35 +1,32 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Music, Pause, Play } from 'lucide-react';
+import { useSpotifyStatus } from '@/hooks/useSpotifyStatus';
 
 interface SpotifyNowPlayingProps {
-  track: {
-    name: string;
-    artist: string;
-    albumArt: string;
-    isPlaying: boolean;
-    previewUrl?: string;
-  };
-  compact?: boolean;
+  userId?: string;
   className?: string;
 }
 
 export const SpotifyNowPlaying: React.FC<SpotifyNowPlayingProps> = ({
-  track,
-  compact = false,
+  userId,
   className,
 }) => {
-  const [isPlayingPreview, setIsPlayingPreview] = React.useState(false);
+  const { status, isLoading } = useSpotifyStatus(userId);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
+  const currentTrack = status.currentTrack;
+  const isPlaying = status.isPlaying;
+
   const togglePreview = () => {
-    if (!track.previewUrl) return;
+    if (!currentTrack?.previewUrl) return;
 
     if (isPlayingPreview) {
       audioRef.current?.pause();
     } else {
       if (!audioRef.current) {
-        audioRef.current = new Audio(track.previewUrl);
+        audioRef.current = new Audio(currentTrack.previewUrl);
         audioRef.current.onended = () => setIsPlayingPreview(false);
       }
       audioRef.current.play();
@@ -37,21 +34,20 @@ export const SpotifyNowPlaying: React.FC<SpotifyNowPlayingProps> = ({
     setIsPlayingPreview(!isPlayingPreview);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       audioRef.current?.pause();
     };
   }, []);
 
-  if (compact) {
+  if (isLoading) {
     return (
-      <div className={cn('flex items-center gap-2 text-xs', className)}>
-        <Music className="w-3 h-3 text-green-500" />
-        <span className="text-muted-foreground truncate">
-          {track.name} • {track.artist}
-        </span>
-      </div>
+      <div className={cn('animate-pulse bg-muted h-16 rounded-xl', className)} />
     );
+  }
+
+  if (!currentTrack) {
+    return null;
   }
 
   return (
@@ -66,11 +62,11 @@ export const SpotifyNowPlaying: React.FC<SpotifyNowPlayingProps> = ({
       {/* Album art */}
       <div className="relative w-12 h-12 shrink-0">
         <img
-          src={track.albumArt}
-          alt={track.name}
+          src={currentTrack.albumArt}
+          alt={currentTrack.name}
           className="w-full h-full rounded-lg object-cover"
         />
-        {track.previewUrl && (
+        {currentTrack.previewUrl && (
           <button
             onClick={togglePreview}
             className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-lg"
@@ -89,15 +85,15 @@ export const SpotifyNowPlaying: React.FC<SpotifyNowPlayingProps> = ({
         <div className="flex items-center gap-1.5">
           <Music className="w-3.5 h-3.5 text-green-500 shrink-0" />
           <span className="text-xs text-green-500 font-medium">
-            {track.isPlaying ? 'Now Playing' : 'Last Played'}
+            {isPlaying ? 'Now Playing' : 'Last Played'}
           </span>
         </div>
-        <p className="font-medium truncate">{track.name}</p>
-        <p className="text-sm text-muted-foreground truncate">{track.artist}</p>
+        <p className="font-medium truncate">{currentTrack.name}</p>
+        <p className="text-sm text-muted-foreground truncate">{currentTrack.artist}</p>
       </div>
 
       {/* Playing animation */}
-      {track.isPlaying && (
+      {isPlaying && (
         <div className="flex items-end gap-0.5 h-4">
           {[1, 2, 3].map((i) => (
             <div
