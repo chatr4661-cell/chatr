@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,53 +22,84 @@ interface HealthPassportEditProps {
 
 export const HealthPassportEdit = ({ open, onOpenChange, passportData, profileData, onSuccess }: HealthPassportEditProps) => {
   // Basic Personal Info
-  const [fullName, setFullName] = useState(passportData?.full_name || profileData?.username || '');
-  const [dateOfBirth, setDateOfBirth] = useState(passportData?.date_of_birth || '');
-  const [age, setAge] = useState(profileData?.age || '');
-  const [gender, setGender] = useState(profileData?.gender || '');
-  const [bloodType, setBloodType] = useState(passportData?.blood_type || '');
-  const [homeAddress, setHomeAddress] = useState(passportData?.home_address || '');
-  const [currentAddress, setCurrentAddress] = useState(passportData?.current_address || '');
+  const [fullName, setFullName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  const [bloodType, setBloodType] = useState('');
+  const [homeAddress, setHomeAddress] = useState('');
+  const [currentAddress, setCurrentAddress] = useState('');
 
   // Emergency Contacts
-  const [emergencyContacts, setEmergencyContacts] = useState<any[]>(passportData?.emergency_contacts || []);
+  const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
   const [newEmergencyContact, setNewEmergencyContact] = useState({ name: '', phone: '', relationship: '' });
 
   // Medical Info
-  const [allergies, setAllergies] = useState<string[]>(passportData?.allergies || []);
-  const [conditions, setConditions] = useState<string[]>(passportData?.chronic_conditions || []);
-  const [currentMedications, setCurrentMedications] = useState<any[]>(passportData?.current_medications || []);
+  const [allergies, setAllergies] = useState<string[]>([]);
+  const [conditions, setConditions] = useState<string[]>([]);
+  const [currentMedications, setCurrentMedications] = useState<any[]>([]);
   const [newAllergy, setNewAllergy] = useState('');
   const [newCondition, setNewCondition] = useState('');
   const [newMedication, setNewMedication] = useState({ name: '', dosage: '', frequency: '', purpose: '' });
 
   // Past Medical History
-  const [surgeries, setSurgeries] = useState<string[]>(passportData?.past_medical_history?.surgeries || []);
-  const [hospitalizations, setHospitalizations] = useState<string[]>(passportData?.past_medical_history?.hospitalizations || []);
-  const [majorIllnesses, setMajorIllnesses] = useState<string[]>(passportData?.past_medical_history?.major_illnesses || []);
+  const [surgeries, setSurgeries] = useState<string[]>([]);
+  const [hospitalizations, setHospitalizations] = useState<string[]>([]);
+  const [majorIllnesses, setMajorIllnesses] = useState<string[]>([]);
   const [newSurgery, setNewSurgery] = useState('');
   const [newHospitalization, setNewHospitalization] = useState('');
   const [newIllness, setNewIllness] = useState('');
 
   // Doctor & Care
-  const [primaryPhysicianName, setPrimaryPhysicianName] = useState(passportData?.primary_physician_name || '');
-  const [primaryPhysicianContact, setPrimaryPhysicianContact] = useState(passportData?.primary_physician_contact || '');
-  const [specialists, setSpecialists] = useState<any[]>(passportData?.specialists || []);
-  const [preferredHospital, setPreferredHospital] = useState(passportData?.preferred_hospital || '');
+  const [primaryPhysicianName, setPrimaryPhysicianName] = useState('');
+  const [primaryPhysicianContact, setPrimaryPhysicianContact] = useState('');
+  const [specialists, setSpecialists] = useState<any[]>([]);
+  const [preferredHospital, setPreferredHospital] = useState('');
   const [newSpecialist, setNewSpecialist] = useState({ name: '', specialty: '', contact: '' });
 
   // Insurance
-  const [insuranceProvider, setInsuranceProvider] = useState(passportData?.insurance_provider || '');
-  const [insuranceNumber, setInsuranceNumber] = useState(passportData?.insurance_number || '');
+  const [insuranceProvider, setInsuranceProvider] = useState('');
+  const [insuranceNumber, setInsuranceNumber] = useState('');
 
   // Critical Health Info
-  const [familyMedicalHistory, setFamilyMedicalHistory] = useState(passportData?.family_medical_history || '');
-  const [implantedDevices, setImplantedDevices] = useState(passportData?.implanted_devices || '');
-  const [dnrOrder, setDnrOrder] = useState(passportData?.dnr_order || false);
-  const [organDonor, setOrganDonor] = useState(passportData?.organ_donor || false);
-  const [specialMedicalNeeds, setSpecialMedicalNeeds] = useState(passportData?.special_medical_needs || '');
+  const [familyMedicalHistory, setFamilyMedicalHistory] = useState('');
+  const [implantedDevices, setImplantedDevices] = useState('');
+  const [dnrOrder, setDnrOrder] = useState(false);
+  const [organDonor, setOrganDonor] = useState(false);
+  const [specialMedicalNeeds, setSpecialMedicalNeeds] = useState('');
 
   const [saving, setSaving] = useState(false);
+
+  // Sync form data when dialog opens or data changes
+  useEffect(() => {
+    if (open) {
+      setFullName(passportData?.full_name || profileData?.username || '');
+      setDateOfBirth(passportData?.date_of_birth || '');
+      setAge(profileData?.age?.toString() || '');
+      setGender(profileData?.gender || '');
+      setBloodType(passportData?.blood_type || '');
+      setHomeAddress(passportData?.home_address || '');
+      setCurrentAddress(passportData?.current_address || '');
+      setEmergencyContacts(passportData?.emergency_contacts || []);
+      setAllergies(passportData?.allergies || []);
+      setConditions(passportData?.chronic_conditions || []);
+      setCurrentMedications(passportData?.current_medications || []);
+      setSurgeries(passportData?.past_medical_history?.surgeries || []);
+      setHospitalizations(passportData?.past_medical_history?.hospitalizations || []);
+      setMajorIllnesses(passportData?.past_medical_history?.major_illnesses || []);
+      setPrimaryPhysicianName(passportData?.primary_physician_name || '');
+      setPrimaryPhysicianContact(passportData?.primary_physician_contact || '');
+      setSpecialists(passportData?.specialists || []);
+      setPreferredHospital(passportData?.preferred_hospital || '');
+      setInsuranceProvider(passportData?.insurance_provider || '');
+      setInsuranceNumber(passportData?.insurance_number || '');
+      setFamilyMedicalHistory(passportData?.family_medical_history || '');
+      setImplantedDevices(passportData?.implanted_devices || '');
+      setDnrOrder(passportData?.dnr_order || false);
+      setOrganDonor(passportData?.organ_donor || false);
+      setSpecialMedicalNeeds(passportData?.special_medical_needs || '');
+    }
+  }, [open, passportData, profileData]);
 
   const handleSave = async () => {
     setSaving(true);
