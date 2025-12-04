@@ -63,36 +63,17 @@ const Profile = () => {
       setUser(session.user);
 
       // Try to fetch existing profile
-      let { data: profileData, error: fetchError } = await supabase
+      const { data: profileData, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      // If profile doesn't exist, create one
-      if (fetchError?.code === 'PGRST116' || !profileData) {
-        const newProfile = {
-          id: session.user.id,
-          username: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || null,
-          phone_number: session.user.phone || null,
-          avatar_url: session.user.user_metadata?.avatar_url || null,
-          onboarding_completed: true,
-        };
-
-        const { data: createdProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert(newProfile)
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating profile:', createError);
-        } else {
-          profileData = createdProfile;
-        }
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching profile:', fetchError);
       }
 
+      // Set profile even if null - dialog will handle creation
       setProfile(profileData);
 
       // Load user badges
