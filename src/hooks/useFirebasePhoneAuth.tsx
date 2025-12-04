@@ -8,7 +8,7 @@ import { auth } from '@/firebase';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export type PhoneAuthStep = 'phone' | 'otp' | 'syncing';
+export type PhoneAuthStep = 'phone' | 'otp' | 'syncing' | 'pin_required';
 
 interface UseFirebasePhoneAuthReturn {
   step: PhoneAuthStep;
@@ -17,9 +17,12 @@ interface UseFirebasePhoneAuthReturn {
   countdown: number;
   sendOTP: (phoneNumber: string) => Promise<boolean>;
   verifyOTP: (otp: string) => Promise<boolean>;
+  verifyPIN: (pin: string) => Promise<boolean>;
   resendOTP: () => Promise<boolean>;
   reset: () => void;
   phoneNumber: string;
+  isExistingUser: boolean;
+  existingUserId: string | null;
 }
 
 export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
@@ -30,6 +33,9 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   const [countdown, setCountdown] = useState(0);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isExistingUser, setIsExistingUser] = useState(false);
+  const [existingUserId, setExistingUserId] = useState<string | null>(null);
+  const [firebaseUid, setFirebaseUid] = useState<string | null>(null);
   
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
@@ -153,12 +159,42 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       const firebaseUser = result.user;
       
       console.log('[Firebase Phone Auth] OTP verified! Firebase UID:', firebaseUser.uid);
+      setFirebaseUid(firebaseUser.uid);
 
-      // Now sync with Supabase
-      const syncResult = await syncFirebaseUserToSupabase(firebaseUser.uid, phoneNumber);
-      
-      if (!syncResult.success) {
-        throw new Error(syncResult.error || 'Failed to sync user');
+      // Check if user exists in Supabase
+      const normalizedPhone = phoneNumber.replace(/\s/g, '');
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, pin_hash')
+        .eq('phone_number', normalizedPhone)
+        .maybeSingle();
+
+      if (existingProfile) {
+        console.log('[Firebase Phone Auth] Existing user found:', existingProfile.id);
+        setIsExistingUser(true);
+        setExistingUserId(existingProfile.id);
+        
+        // If user has PIN set, require PIN verification
+        if (existingProfile.pin_hash) {
+          setStep('pin_required');
+          toast({
+            title: 'Welcome back! 👋',
+            description: 'Enter your PIN to continue',
+          });
+          return true;
+        }
+        
+        // User exists but no PIN - sync and continue
+        const syncResult = await syncFirebaseUserToSupabase(firebaseUser.uid, phoneNumber, existingProfile.id);
+        if (!syncResult.success) {
+          throw new Error(syncResult.error || 'Failed to sync user');
+        }
+      } else {
+        // New user - create account
+        const syncResult = await syncFirebaseUserToSupabase(firebaseUser.uid, phoneNumber, null);
+        if (!syncResult.success) {
+          throw new Error(syncResult.error || 'Failed to create account');
+        }
       }
 
       toast({
@@ -211,6 +247,119 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     return sendOTP(phoneNumber);
   }, [countdown, phoneNumber, sendOTP, toast]);
 
+  // Verify PIN for existing users
+  const verifyPIN = useCallback(async (pin: string): Promise<boolean> => {
+    if (!existingUserId || !firebaseUid) {
+      setError('Session expired. Please start over.');
+      return false;
+    }
+
+    setLoading(true);
+    setError(null);
+    setStep('syncing');
+
+    try {
+      console.log('[Firebase Phone Auth] Verifying PIN for existing user...');
+      
+      // Get the user's PIN hash
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('pin_hash')
+        .eq('id', existingUserId)
+        .single();
+
+      if (!profile?.pin_hash) {
+        throw new Error('No PIN set for this account');
+      }
+
+      // Verify PIN using bcrypt
+      const { verifyPin } = await import('@/utils/pinSecurity');
+      const isValid = await verifyPin(pin, profile.pin_hash);
+
+      if (!isValid) {
+        setError('Incorrect PIN. Please try again.');
+        setStep('pin_required');
+        setLoading(false);
+        return false;
+      }
+
+      // PIN verified - now sign into Supabase
+      const normalizedPhone = phoneNumber.replace(/\s/g, '');
+      const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
+      
+      // Try signing in with the firebase-based password
+      let signedIn = false;
+      
+      // Try firebase password first
+      const { data: signInData } = await supabase.auth.signInWithPassword({
+        email,
+        password: `firebase_${firebaseUid}_chatr`,
+      });
+
+      if (signInData.session) {
+        signedIn = true;
+      } else {
+        // Try with PIN as password (legacy)
+        const { data: pinSignIn } = await supabase.auth.signInWithPassword({
+          email,
+          password: pin,
+        });
+        if (pinSignIn.session) {
+          signedIn = true;
+        }
+      }
+
+      if (!signedIn) {
+        // Update password and sign in
+        const fallbackEmail = `${normalizedPhone.replace(/\+/g, '')}_fb@chatr.local`;
+        
+        const { data: newAuth } = await supabase.auth.signUp({
+          email: fallbackEmail,
+          password: `firebase_${firebaseUid}_chatr`,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              phone_number: normalizedPhone,
+              firebase_uid: firebaseUid,
+            }
+          }
+        });
+
+        if (!newAuth.session) {
+          // Try to sign in with fallback email
+          const { data: fallbackSignIn } = await supabase.auth.signInWithPassword({
+            email: fallbackEmail,
+            password: `firebase_${firebaseUid}_chatr`,
+          });
+          
+          if (!fallbackSignIn.session) {
+            throw new Error('Unable to authenticate. Please contact support.');
+          }
+        }
+      }
+
+      // Update profile with firebase_uid
+      await supabase
+        .from('profiles')
+        .update({ firebase_uid: firebaseUid })
+        .eq('id', existingUserId);
+
+      toast({
+        title: 'Welcome back! ✅',
+        description: 'Signed in successfully',
+      });
+
+      return true;
+    } catch (err: any) {
+      console.error('[Firebase Phone Auth] PIN verification error:', err);
+      setError(err.message || 'PIN verification failed');
+      setStep('pin_required');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [existingUserId, firebaseUid, phoneNumber, toast]);
+
   // Reset state
   const reset = useCallback(() => {
     setStep('phone');
@@ -218,6 +367,9 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     setError(null);
     setCountdown(0);
     setPhoneNumber('');
+    setIsExistingUser(false);
+    setExistingUserId(null);
+    setFirebaseUid(null);
     confirmationResultRef.current = null;
     recaptchaVerifierRef.current = null;
   }, []);
@@ -229,80 +381,47 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     countdown,
     sendOTP,
     verifyOTP,
+    verifyPIN,
     resendOTP,
     reset,
     phoneNumber,
+    isExistingUser,
+    existingUserId,
   };
 };
 
 /**
  * Sync Firebase phone auth user to Supabase
- * Handles both new users and existing users with different auth methods
+ * For new users or existing users without PIN
  */
 async function syncFirebaseUserToSupabase(
   firebaseUid: string, 
-  phoneNumber: string
+  phoneNumber: string,
+  existingProfileId: string | null
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const normalizedPhone = phoneNumber.replace(/\s/g, '');
     const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
     
-    console.log('[Supabase Sync] Syncing Firebase user:', { firebaseUid, email, normalizedPhone });
+    console.log('[Supabase Sync] Syncing Firebase user:', { firebaseUid, email, normalizedPhone, existingProfileId });
 
-    // First, check if user already exists by phone number in profiles
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id, firebase_uid')
-      .eq('phone_number', normalizedPhone)
-      .maybeSingle();
-
-    if (existingProfile) {
-      console.log('[Supabase Sync] Found existing profile:', existingProfile.id);
-      
-      // Try to sign in with existing credentials
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    if (existingProfileId) {
+      // Existing user without PIN - try to sign in or create new auth
+      const { data: signInData } = await supabase.auth.signInWithPassword({
         email,
         password: `firebase_${firebaseUid}_chatr`,
       });
 
       if (signInData.session) {
         console.log('[Supabase Sync] Signed in existing user');
-        // Update firebase_uid if not set
-        if (!existingProfile.firebase_uid) {
-          await supabase
-            .from('profiles')
-            .update({ firebase_uid: firebaseUid })
-            .eq('id', existingProfile.id);
-        }
+        await supabase
+          .from('profiles')
+          .update({ firebase_uid: firebaseUid })
+          .eq('id', existingProfileId);
         return { success: true };
       }
 
-      // If sign in failed, try with old PIN-based password patterns
-      // This handles migration from old PIN-based auth
-      console.log('[Supabase Sync] Trying alternative auth methods...');
-      
-      // Try signing in without password change - just update the profile
-      // The user likely has a different password from old PIN system
-      // We'll use admin-level update via the existing session if available
-      
-      // Try a simple 6-digit PIN pattern (common from old system)
-      for (const pin of ['123456', '000000', '111111']) {
-        const { data } = await supabase.auth.signInWithPassword({
-          email,
-          password: pin,
-        });
-        if (data.session) {
-          console.log('[Supabase Sync] Signed in with legacy PIN');
-          await supabase
-            .from('profiles')
-            .update({ firebase_uid: firebaseUid })
-            .eq('id', existingProfile.id);
-          return { success: true };
-        }
-      }
-
-      // If we can't sign in, create a new auth user with different email
-      // This is a fallback for users who exist in profiles but auth is broken
+      // Create fallback auth entry
       const fallbackEmail = `${normalizedPhone.replace(/\+/g, '')}_fb@chatr.local`;
       
       const { data: newAuthData, error: newAuthError } = await supabase.auth.signUp({
@@ -318,29 +437,28 @@ async function syncFirebaseUserToSupabase(
       });
 
       if (newAuthError) {
-        // Try to sign in with fallback email (might already exist)
         const { data: fallbackSignIn } = await supabase.auth.signInWithPassword({
           email: fallbackEmail,
           password: `firebase_${firebaseUid}_chatr`,
         });
         
         if (fallbackSignIn.session) {
-          console.log('[Supabase Sync] Signed in with fallback email');
           return { success: true };
         }
         
-        console.error('[Supabase Sync] All auth methods failed:', newAuthError);
-        return { success: false, error: 'Unable to authenticate. Please try Google sign-in or contact support.' };
+        return { success: false, error: 'Authentication failed. Please try again.' };
       }
 
-      if (newAuthData.user) {
-        console.log('[Supabase Sync] Created new auth with fallback email');
-        await new Promise(resolve => setTimeout(resolve, 1500));
+      if (newAuthData.session) {
+        await supabase
+          .from('profiles')
+          .update({ firebase_uid: firebaseUid })
+          .eq('id', existingProfileId);
         return { success: true };
       }
     }
 
-    // No existing profile - create new user
+    // New user - create account
     console.log('[Supabase Sync] Creating new user...');
     
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -357,7 +475,6 @@ async function syncFirebaseUserToSupabase(
     });
 
     if (signUpError) {
-      // User might already exist in auth but not in profiles
       if (signUpError.message?.toLowerCase().includes('already registered')) {
         const { data: signInData } = await supabase.auth.signInWithPassword({
           email,
@@ -365,7 +482,6 @@ async function syncFirebaseUserToSupabase(
         });
         
         if (signInData.session) {
-          console.log('[Supabase Sync] Signed in existing auth user');
           return { success: true };
         }
       }
@@ -378,10 +494,8 @@ async function syncFirebaseUserToSupabase(
 
     console.log('[Supabase Sync] New user created:', signUpData.user.id);
     
-    // Wait for profile trigger
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Update profile with Firebase UID
     await supabase
       .from('profiles')
       .update({ 
