@@ -38,7 +38,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
     status: '',
     phone_number: '',
     age: '',
-    gender: '',
+    gender: '' as string | undefined,
   });
 
   // Get user session and sync form data when dialog opens
@@ -57,7 +57,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
             status: profile.status || '',
             phone_number: profile.phone_number || '',
             age: profile.age?.toString() || '',
-            gender: profile.gender || '',
+            gender: profile.gender || undefined, // Use undefined for empty to work with Select
           });
           setAvatarUrl(profile.avatar_url);
         } else {
@@ -67,7 +67,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
             status: '',
             phone_number: session.user.phone || '',
             age: '',
-            gender: '',
+            gender: undefined,
           });
           setAvatarUrl(session.user.user_metadata?.avatar_url || null);
         }
@@ -82,6 +82,12 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
     
     if (!userId) {
       toast.error('Not logged in. Please refresh the page.');
+      return;
+    }
+
+    // Validate phone number is required
+    if (!formData.phone_number || formData.phone_number.replace(/\D/g, '').length < 10) {
+      toast.error('Please enter a valid phone number');
       return;
     }
     
@@ -271,14 +277,16 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
 
           {/* Phone Number */}
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="phone">Phone Number *</Label>
             <Input
               id="phone"
               type="tel"
               value={formData.phone_number}
               onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
               placeholder="+91 98765 43210"
+              required
             />
+            <p className="text-xs text-muted-foreground">Required for account verification</p>
           </div>
 
           {/* Age */}
@@ -298,11 +306,14 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
           {/* Gender */}
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
-            <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+            <Select 
+              value={formData.gender || ''} 
+              onValueChange={(value) => setFormData({ ...formData, gender: value })}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[9999]">
                 <SelectItem value="male">Male</SelectItem>
                 <SelectItem value="female">Female</SelectItem>
                 <SelectItem value="other">Other</SelectItem>

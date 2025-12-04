@@ -150,13 +150,33 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
 
   const handleStep1Next = async () => {
     const fullPhoneNumber = existingPhone || `${countryCode}${phoneNumber}`;
+    const phoneDigits = fullPhoneNumber.replace(/\D/g, '');
+    
+    // Strict validation - phone number is MANDATORY
+    if (!phoneNumber && !existingPhone) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please enter your phone number to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (phoneDigits.length < 10) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number with at least 10 digits",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Validate all required fields
     try {
       profileSchema.parse({
         fullName: fullName.trim(),
         email: email.trim(),
-        phoneNumber: fullPhoneNumber.replace(/^\+/, ''), // Remove + for length validation
+        phoneNumber: phoneDigits,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {

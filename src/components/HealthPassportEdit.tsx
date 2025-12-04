@@ -76,20 +76,20 @@ export const HealthPassportEdit = ({ open, onOpenChange, passportData, profileDa
       setFullName(passportData?.full_name || profileData?.username || '');
       setDateOfBirth(passportData?.date_of_birth || '');
       setAge(profileData?.age?.toString() || '');
-      setGender(profileData?.gender || '');
+      setGender(profileData?.gender || ''); // Keep as empty string for proper Select handling
       setBloodType(passportData?.blood_type || '');
       setHomeAddress(passportData?.home_address || '');
       setCurrentAddress(passportData?.current_address || '');
       setEmergencyContacts(passportData?.emergency_contacts || []);
-      setAllergies(passportData?.allergies || []);
-      setConditions(passportData?.chronic_conditions || []);
-      setCurrentMedications(passportData?.current_medications || []);
+      setAllergies(Array.isArray(passportData?.allergies) ? passportData.allergies : []);
+      setConditions(Array.isArray(passportData?.chronic_conditions) ? passportData.chronic_conditions : []);
+      setCurrentMedications(Array.isArray(passportData?.current_medications) ? passportData.current_medications : []);
       setSurgeries(passportData?.past_medical_history?.surgeries || []);
       setHospitalizations(passportData?.past_medical_history?.hospitalizations || []);
       setMajorIllnesses(passportData?.past_medical_history?.major_illnesses || []);
       setPrimaryPhysicianName(passportData?.primary_physician_name || '');
       setPrimaryPhysicianContact(passportData?.primary_physician_contact || '');
-      setSpecialists(passportData?.specialists || []);
+      setSpecialists(Array.isArray(passportData?.specialists) ? passportData.specialists : []);
       setPreferredHospital(passportData?.preferred_hospital || '');
       setInsuranceProvider(passportData?.insurance_provider || '');
       setInsuranceNumber(passportData?.insurance_number || '');
@@ -247,24 +247,25 @@ export const HealthPassportEdit = ({ open, onOpenChange, passportData, profileDa
                 </div>
                 <div>
                   <Label htmlFor="gender">Gender</Label>
-                  <Select value={gender} onValueChange={setGender}>
+                  <Select value={gender || ''} onValueChange={setGender}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[9999]">
                       <SelectItem value="male">Male</SelectItem>
                       <SelectItem value="female">Female</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label htmlFor="bloodType">Blood Group</Label>
-                  <Select value={bloodType} onValueChange={setBloodType}>
+                  <Select value={bloodType || ''} onValueChange={setBloodType}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select blood type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[9999]">
                       {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(type => (
                         <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
