@@ -195,50 +195,47 @@ const Index = () => {
 
   React.useEffect(() => {
     let isCancelled = false;
-    let authInitialized = false;
     
+    // Set up auth listener FIRST (before checking session)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (isCancelled) return;
+      
+      console.log('[Index] Auth state:', event, session?.user?.id);
+      
+      if (event === 'TOKEN_REFRESHED') return;
+      
+      if (event === 'SIGNED_IN' && session) {
+        setUser(session.user);
+        setMounted(true);
+        toast.success('Welcome! 👋');
+      } else if (!session && event !== 'INITIAL_SESSION') {
+        setUser(null);
+        navigate('/auth', { replace: true });
+      }
+    });
+
+    // THEN check for existing session (this also parses OAuth hash)
     const initAuth = async () => {
-      if (authInitialized) return;
+      // Check if URL has OAuth hash params - give Supabase time to parse them
+      const hasOAuthHash = window.location.hash.includes('access_token');
+      if (hasOAuthHash) {
+        console.log('[Index] OAuth hash detected, waiting for session...');
+        // Supabase will parse hash and fire SIGNED_IN event
+        return;
+      }
       
       const { data: { session } } = await supabase.auth.getSession();
       if (isCancelled) return;
       
-      authInitialized = true;
-      
-      if (!session) {
-        navigate('/auth', { replace: true });
-        return;
-      }
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!isCancelled && user) {
-        setUser(user);
+      if (session) {
+        setUser(session.user);
         setMounted(true);
+      } else {
+        navigate('/auth', { replace: true });
       }
     };
     
     initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (isCancelled) return;
-      
-      // Prevent reload on token refresh
-      if (event === 'TOKEN_REFRESHED') {
-        return;
-      }
-      
-      if (!session) {
-        setUser(null);
-        navigate('/auth', { replace: true });
-      } else if (event === 'SIGNED_IN') {
-        supabase.auth.getUser().then(({ data: { user } }) => {
-          if (!isCancelled && user) {
-            setUser(user);
-            setMounted(true);
-          }
-        });
-      }
-    });
 
     return () => {
       isCancelled = true;
