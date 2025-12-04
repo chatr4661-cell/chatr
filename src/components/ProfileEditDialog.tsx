@@ -80,67 +80,93 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Form submit triggered, userId:', userId);
+    
     if (!userId) {
       toast.error('Not logged in. Please refresh the page.');
       return;
     }
 
     // Validate phone number is required
-    if (!formData.phone_number || formData.phone_number.replace(/\D/g, '').length < 10) {
-      toast.error('Please enter a valid phone number');
+    const phoneDigits = formData.phone_number?.replace(/\D/g, '') || '';
+    if (phoneDigits.length < 10) {
+      toast.error('Please enter a valid phone number (at least 10 digits)');
       return;
     }
     
     setLoading(true);
+    console.log('Starting profile save...');
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      if (!session?.user) {
+        toast.error('Session expired. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
       // Check if profile exists
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', userId)
         .maybeSingle();
 
+      if (checkError) {
+        console.error('Error checking profile:', checkError);
+      }
+
+      console.log('Existing profile:', existingProfile);
+
       const updateData = {
-        username: formData.username || 'User',
-        status: formData.status || null,
-        phone_number: formData.phone_number || session?.user?.phone || 'unknown',
+        username: formData.username?.trim() || 'User',
+        status: formData.status?.trim() || null,
+        phone_number: formData.phone_number?.trim() || session.user.phone || 'unknown',
         age: formData.age ? parseInt(formData.age) : null,
         gender: formData.gender || null,
         updated_at: new Date().toISOString(),
       };
 
-      let error;
-      
+      console.log('Update data:', updateData);
+
       if (existingProfile) {
         // Profile exists - update it
-        const result = await supabase
+        console.log('Updating existing profile...');
+        const { data, error } = await supabase
           .from('profiles')
           .update(updateData)
-          .eq('id', userId);
-        error = result.error;
+          .eq('id', userId)
+          .select()
+          .single();
+        
+        console.log('Update result:', { data, error });
+        
+        if (error) throw error;
       } else {
         // Profile doesn't exist - insert new one
-        const result = await supabase
+        console.log('Creating new profile...');
+        const { data, error } = await supabase
           .from('profiles')
           .insert({
             id: userId,
-            email: session?.user?.email || 'unknown@email.com',
+            email: session.user.email || 'unknown@email.com',
             ...updateData,
-          });
-        error = result.error;
+          })
+          .select()
+          .single();
+        
+        console.log('Insert result:', { data, error });
+        
+        if (error) throw error;
       }
-
-      if (error) throw error;
 
       toast.success('Profile updated successfully!');
       onProfileUpdated();
       onOpenChange(false);
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile: ' + error.message);
+      toast.error('Failed to update profile: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
