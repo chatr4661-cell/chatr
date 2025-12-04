@@ -1,7 +1,7 @@
 import React, { useState, memo, useCallback, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle, FileText, Timer } from 'lucide-react';
+import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle, FileText, Timer, Languages } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { MessageContextMenu } from './MessageContextMenu';
@@ -13,6 +13,9 @@ import { MediaLightbox } from './MediaLightbox';
 import { EncryptionIndicator } from './EncryptionIndicator';
 import { autoSaveReceivedMedia } from '@/utils/mediaGallery';
 import { highlightMentions } from './MentionInput';
+import { MessageTranslateButton } from './MessageTranslateButton';
+import { LinkPreviewCard } from './LinkPreviewCard';
+import { VoiceTranscript } from './VoiceTranscript';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -572,6 +575,23 @@ const MessageBubbleComponent = ({
           </div>
         )}
 
+        {/* Link Preview for URLs in message */}
+        {message.content?.match(/https?:\/\/[^\s]+/) && message.message_type !== 'location' && (
+          <LinkPreviewCard 
+            url={message.content.match(/https?:\/\/[^\s]+/)?.[0] || ''} 
+            className="mt-1"
+          />
+        )}
+
+        {/* Voice Transcript for voice messages */}
+        {message.message_type === 'voice' && message.media_url && (
+          <VoiceTranscript 
+            audioUrl={message.media_url} 
+            messageId={message.id}
+            className="mt-1"
+          />
+        )}
+
         <div className="flex items-center gap-1 px-1.5">
           {/* Encryption indicator */}
           {message.is_encrypted && (
@@ -587,6 +607,18 @@ const MessageBubbleComponent = ({
               <Timer className="w-3 h-3 text-muted-foreground/70" />
             </span>
           )}
+          
+          {/* Translate Button for received text messages */}
+          {!isOwn && message.content && message.message_type !== 'location' && message.message_type !== 'poll' && (
+            <MessageTranslateButton 
+              messageId={message.id} 
+              text={message.content}
+              onTranslated={(translated) => {
+                toast.success(`Translated: ${translated.substring(0, 50)}...`);
+              }}
+            />
+          )}
+          
           <span className="text-[11px] text-muted-foreground">
             {formatMessageTime(new Date(message.created_at))}
           </span>
