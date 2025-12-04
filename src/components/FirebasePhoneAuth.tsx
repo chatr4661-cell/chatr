@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, ArrowLeft, ArrowRight, RefreshCw, CheckCircle, Lock } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, RefreshCw, CheckCircle } from 'lucide-react';
 import { CountryCodeSelector } from './CountryCodeSelector';
 import { useFirebasePhoneAuth } from '@/hooks/useFirebasePhoneAuth';
 import { cn } from '@/lib/utils';
@@ -99,16 +99,15 @@ export const FirebasePhoneAuth: React.FC = () => {
     countdown,
     checkPhoneAndProceed,
     verifyOTP,
-    verifyPINLogin,
     resendOTP,
     reset,
     phoneNumber: verifiedPhone,
+    isExistingUser,
   } = useFirebasePhoneAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [otp, setOtp] = useState('');
-  const [pin, setPin] = useState('');
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,10 +124,6 @@ export const FirebasePhoneAuth: React.FC = () => {
     await verifyOTP(code);
   };
 
-  const handlePINComplete = async (code: string) => {
-    await verifyPINLogin(code);
-  };
-
   const handleResend = async () => {
     setOtp('');
     await resendOTP();
@@ -136,13 +131,12 @@ export const FirebasePhoneAuth: React.FC = () => {
 
   const handleBack = () => {
     setOtp('');
-    setPin('');
     reset();
   };
 
   return (
     <>
-      {/* Hidden reCAPTCHA container - badge hidden via CSS */}
+      {/* Hidden reCAPTCHA container */}
       <style>{`
         .grecaptcha-badge { visibility: hidden !important; }
       `}</style>
@@ -153,13 +147,11 @@ export const FirebasePhoneAuth: React.FC = () => {
           <CardTitle className="text-2xl font-bold text-foreground">
             {step === 'phone' && 'Welcome'}
             {step === 'otp' && 'Verify Phone'}
-            {step === 'pin_login' && 'Enter PIN'}
             {step === 'syncing' && 'Signing in...'}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             {step === 'phone' && 'Enter your phone number to continue'}
             {step === 'otp' && `Enter the 6-digit OTP sent to ${countryCode} ${phoneNumber}`}
-            {step === 'pin_login' && 'Enter your 4-digit PIN to login'}
             {step === 'syncing' && 'Please wait...'}
           </CardDescription>
         </CardHeader>
@@ -197,7 +189,7 @@ export const FirebasePhoneAuth: React.FC = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  New users will receive an OTP. Returning users can login with PIN.
+                  New users will receive a verification OTP. Existing users login instantly.
                 </p>
               </div>
               <Button 
@@ -208,7 +200,7 @@ export const FirebasePhoneAuth: React.FC = () => {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Checking...
+                    {isExistingUser ? 'Logging in...' : 'Checking...'}
                   </>
                 ) : (
                   <>
@@ -282,58 +274,6 @@ export const FirebasePhoneAuth: React.FC = () => {
             </div>
           )}
 
-          {/* PIN Login (Returning Users - NO OTP) */}
-          {step === 'pin_login' && (
-            <div className="space-y-5">
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                className="mb-2 hover:bg-muted/50 rounded-lg"
-                disabled={loading}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Change Number
-              </Button>
-
-              <div className="text-center mb-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-3">
-                  <Lock className="w-8 h-8 text-primary" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Welcome back! Enter your 4-digit PIN
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <OTPInput
-                  length={4}
-                  value={pin}
-                  onChange={setPin}
-                  onComplete={handlePINComplete}
-                  disabled={loading}
-                />
-              </div>
-
-              <Button
-                onClick={() => handlePINComplete(pin)}
-                disabled={loading || pin.length < 4}
-                className="w-full h-14 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold text-base rounded-xl shadow-lg hover:shadow-xl transition-all"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Logging in...
-                  </>
-                ) : (
-                  <>
-                    Login
-                    <CheckCircle className="ml-2 h-5 w-5" />
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
           {/* Syncing State */}
           {step === 'syncing' && (
             <div className="flex flex-col items-center justify-center gap-4 py-8">
@@ -342,7 +282,9 @@ export const FirebasePhoneAuth: React.FC = () => {
                 <Loader2 className="h-12 w-12 animate-spin text-primary relative" />
               </div>
               <div className="text-center">
-                <p className="font-medium">Signing you in...</p>
+                <p className="font-medium">
+                  {isExistingUser ? 'Welcome back!' : 'Setting up your account...'}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   This will only take a moment
                 </p>
