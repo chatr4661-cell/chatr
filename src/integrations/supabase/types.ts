@@ -8789,6 +8789,8 @@ export type Database = {
           deleted_at: string | null
           duration: number | null
           edited_at: string | null
+          encrypted_iv: string | null
+          encrypted_key: string | null
           encryption_key_id: string | null
           expires_at: string | null
           file_name: string | null
@@ -8826,6 +8828,8 @@ export type Database = {
           deleted_at?: string | null
           duration?: number | null
           edited_at?: string | null
+          encrypted_iv?: string | null
+          encrypted_key?: string | null
           encryption_key_id?: string | null
           expires_at?: string | null
           file_name?: string | null
@@ -8863,6 +8867,8 @@ export type Database = {
           deleted_at?: string | null
           duration?: number | null
           edited_at?: string | null
+          encrypted_iv?: string | null
+          encrypted_key?: string | null
           encryption_key_id?: string | null
           expires_at?: string | null
           file_name?: string | null

@@ -10,6 +10,7 @@ import { ContactMessage } from './ContactMessage';
 import { EventMessage } from './EventMessage';
 import { PaymentMessage } from './PaymentMessage';
 import { MediaLightbox } from './MediaLightbox';
+import { EncryptionIndicator } from './EncryptionIndicator';
 import { autoSaveReceivedMedia } from '@/utils/mediaGallery';
 import { highlightMentions } from './MentionInput';
 import {
@@ -35,6 +36,9 @@ interface Message {
   media_attachments?: any;
   is_starred?: boolean;
   is_edited?: boolean;
+  is_encrypted?: boolean;
+  decrypted?: boolean;
+  decryptionFailed?: boolean;
   reactions?: any[];
   reply_to?: string;
   expires_at?: string;
@@ -569,6 +573,15 @@ const MessageBubbleComponent = ({
         )}
 
         <div className="flex items-center gap-1 px-1.5">
+          {/* Encryption indicator */}
+          {message.is_encrypted && (
+            <EncryptionIndicator
+              isEncrypted={message.is_encrypted}
+              decrypted={message.decrypted}
+              decryptionFailed={message.decryptionFailed}
+              size="sm"
+            />
+          )}
           {message.expires_at && (
             <span title="This message will disappear">
               <Timer className="w-3 h-3 text-muted-foreground/70" />
