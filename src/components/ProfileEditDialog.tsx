@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, Check, Save } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -29,7 +28,8 @@ interface ProfileEditDialogProps {
 }
 
 export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdated }: ProfileEditDialogProps) => {
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -38,13 +38,19 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
     status: '',
     phone_number: '',
     age: '',
-    gender: '' as string | undefined,
+    gender: '',
   });
+  
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialLoadRef = useRef(true);
 
   // Get user session and sync form data when dialog opens
   useEffect(() => {
     const initializeDialog = async () => {
-      if (!open) return;
+      if (!open) {
+        initialLoadRef.current = true;
+        return;
+      }
       
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -57,7 +63,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
             status: profile.status || '',
             phone_number: profile.phone_number || '',
             age: profile.age?.toString() || '',
-            gender: profile.gender || undefined, // Use undefined for empty to work with Select
+            gender: profile.gender || '',
           });
           setAvatarUrl(profile.avatar_url);
         } else {
@@ -67,109 +73,98 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
             status: '',
             phone_number: session.user.phone || '',
             age: '',
-            gender: undefined,
+            gender: '',
           });
           setAvatarUrl(session.user.user_metadata?.avatar_url || null);
         }
+        
+        // Mark initial load complete after a short delay
+        setTimeout(() => {
+          initialLoadRef.current = false;
+        }, 500);
       }
     };
     
     initializeDialog();
   }, [open, profile]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Auto-save function
+  const saveProfile = useCallback(async (data: typeof formData) => {
+    if (!userId || initialLoadRef.current) return;
     
-    console.log('Form submit triggered, userId:', userId);
-    
-    if (!userId) {
-      toast.error('Not logged in. Please refresh the page.');
-      return;
-    }
-
-    // Validate phone number is required
-    const phoneDigits = formData.phone_number?.replace(/\D/g, '') || '';
+    // Validate phone number
+    const phoneDigits = data.phone_number?.replace(/\D/g, '') || '';
     if (phoneDigits.length < 10) {
-      toast.error('Please enter a valid phone number (at least 10 digits)');
-      return;
+      return; // Don't save if phone is invalid, but don't show error during typing
     }
     
-    setLoading(true);
-    console.log('Starting profile save...');
+    setSaving(true);
+    setSaved(false);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        toast.error('Session expired. Please login again.');
-        setLoading(false);
         return;
       }
       
-      // Check if profile exists
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking profile:', checkError);
-      }
-
-      console.log('Existing profile:', existingProfile);
-
       const updateData = {
-        username: formData.username?.trim() || 'User',
-        status: formData.status?.trim() || null,
-        phone_number: formData.phone_number?.trim() || session.user.phone || 'unknown',
-        age: formData.age ? parseInt(formData.age) : null,
-        gender: formData.gender || null,
+        username: data.username?.trim() || 'User',
+        status: data.status?.trim() || null,
+        phone_number: data.phone_number?.trim() || session.user.phone || 'unknown',
+        age: data.age ? parseInt(data.age) : null,
+        gender: data.gender || null,
         updated_at: new Date().toISOString(),
       };
 
-      console.log('Update data:', updateData);
+      // Use upsert for simplicity
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: session.user.email || 'unknown@email.com',
+          ...updateData,
+        }, { onConflict: 'id' });
 
-      if (existingProfile) {
-        // Profile exists - update it
-        console.log('Updating existing profile...');
-        const { data, error } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', userId)
-          .select()
-          .single();
-        
-        console.log('Update result:', { data, error });
-        
-        if (error) throw error;
+      if (error) {
+        console.error('Auto-save error:', error);
+        toast.error('Failed to save changes');
       } else {
-        // Profile doesn't exist - insert new one
-        console.log('Creating new profile...');
-        const { data, error } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            email: session.user.email || 'unknown@email.com',
-            ...updateData,
-          })
-          .select()
-          .single();
-        
-        console.log('Insert result:', { data, error });
-        
-        if (error) throw error;
+        setSaved(true);
+        onProfileUpdated();
+        // Reset saved indicator after 2 seconds
+        setTimeout(() => setSaved(false), 2000);
       }
-
-      toast.success('Profile updated successfully!');
-      onProfileUpdated();
-      onOpenChange(false);
     } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile: ' + (error.message || 'Unknown error'));
+      console.error('Error auto-saving profile:', error);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
+  }, [userId, onProfileUpdated]);
+
+  // Debounced auto-save on form change
+  useEffect(() => {
+    if (initialLoadRef.current || !userId) return;
+    
+    // Clear previous timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Set new timeout for auto-save (800ms debounce)
+    saveTimeoutRef.current = setTimeout(() => {
+      saveProfile(formData);
+    }, 800);
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [formData, userId, saveProfile]);
+
+  const handleFieldChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,46 +189,28 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
         .from('social-media')
         .getPublicUrl(filePath);
 
-      // Check if profile exists for avatar update
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      let updateError;
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (existingProfile) {
-        const result = await supabase
-          .from('profiles')
-          .update({ 
-            avatar_url: publicUrl,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId);
-        updateError = result.error;
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        const result = await supabase
-          .from('profiles')
-          .insert({ 
-            id: userId,
-            email: session?.user?.email || 'unknown@email.com',
-            phone_number: session?.user?.phone || 'unknown',
-            username: session?.user?.user_metadata?.full_name || 'User',
-            avatar_url: publicUrl,
-          });
-        updateError = result.error;
-      }
+      // Use upsert for avatar update
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: session?.user?.email || 'unknown@email.com',
+          phone_number: formData.phone_number || session?.user?.phone || 'unknown',
+          username: formData.username || session?.user?.user_metadata?.full_name || 'User',
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
 
       if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
-      toast.success('Avatar updated successfully!');
+      toast.success('Avatar updated!');
       onProfileUpdated();
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to upload avatar: ' + error.message);
+      toast.error('Failed to upload avatar');
     } finally {
       setUploading(false);
     }
@@ -243,10 +220,32 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Profile</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Edit Profile</DialogTitle>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {saving && (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              )}
+              {saved && !saving && (
+                <>
+                  <Check className="h-3 w-3 text-green-500" />
+                  <span className="text-green-500">Saved</span>
+                </>
+              )}
+              {!saving && !saved && (
+                <>
+                  <Save className="h-3 w-3" />
+                  <span>Auto-save</span>
+                </>
+              )}
+            </div>
+          </div>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           {/* Avatar Upload */}
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-20 w-20">
@@ -262,18 +261,16 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
                 accept="image/*"
                 className="hidden"
                 onChange={handleAvatarUpload}
-                disabled={uploading || loading}
+                disabled={uploading}
               />
-              <Button type="button" variant="outline" size="sm" disabled={uploading || loading} asChild>
-                <span>
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  {uploading ? 'Uploading...' : 'Change Avatar'}
-                </span>
-              </Button>
+              <div className="flex items-center gap-2 px-3 py-2 text-sm border rounded-md hover:bg-accent cursor-pointer">
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {uploading ? 'Uploading...' : 'Change Avatar'}
+              </div>
             </label>
           </div>
 
@@ -283,8 +280,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
             <Input
               id="username"
               value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              required
+              onChange={(e) => handleFieldChange('username', e.target.value)}
               placeholder="Enter your name"
             />
           </div>
@@ -295,7 +291,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
             <Textarea
               id="status"
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={(e) => handleFieldChange('status', e.target.value)}
               placeholder="Hey there! I am using Chatr"
               rows={2}
             />
@@ -308,11 +304,10 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
               id="phone"
               type="tel"
               value={formData.phone_number}
-              onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+              onChange={(e) => handleFieldChange('phone_number', e.target.value)}
               placeholder="+91 98765 43210"
-              required
             />
-            <p className="text-xs text-muted-foreground">Required for account verification</p>
+            <p className="text-xs text-muted-foreground">Required (min 10 digits)</p>
           </div>
 
           {/* Age */}
@@ -324,7 +319,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
               min="1"
               max="150"
               value={formData.age}
-              onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+              onChange={(e) => handleFieldChange('age', e.target.value)}
               placeholder="25"
             />
           </div>
@@ -333,8 +328,8 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
             <Select 
-              value={formData.gender || ''} 
-              onValueChange={(value) => setFormData({ ...formData, gender: value })}
+              value={formData.gender} 
+              onValueChange={(value) => handleFieldChange('gender', value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select gender" />
@@ -347,16 +342,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
               </SelectContent>
             </Select>
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
