@@ -133,9 +133,22 @@ export class E2EEncryption {
   }
 
   /**
-   * Store private key securely in IndexedDB
+   * Store private key securely in IndexedDB (with Capacitor fallback for mobile)
    */
   static async storePrivateKey(userId: string, privateKey: string): Promise<void> {
+    try {
+      // Try Capacitor Secure Storage first (for mobile)
+      if (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) {
+        const { SecureStoragePlugin } = await import('capacitor-secure-storage-plugin');
+        await SecureStoragePlugin.set({ key: `chatr_private_key_${userId}`, value: privateKey });
+        console.log('✅ Private key stored in native secure storage');
+        return;
+      }
+    } catch (e) {
+      console.warn('Capacitor secure storage not available, using IndexedDB');
+    }
+
+    // Fallback to IndexedDB
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('ChatrEncryption', 1);
 
@@ -162,16 +175,40 @@ export class E2EEncryption {
   }
 
   /**
-   * Retrieve private key from IndexedDB
+   * Retrieve private key from secure storage
    */
   static async getPrivateKey(userId: string): Promise<string | null> {
+    try {
+      // Try Capacitor Secure Storage first (for mobile)
+      if (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) {
+        const { SecureStoragePlugin } = await import('capacitor-secure-storage-plugin');
+        const result = await SecureStoragePlugin.get({ key: `chatr_private_key_${userId}` });
+        if (result.value) {
+          console.log('✅ Private key retrieved from native secure storage');
+          return result.value;
+        }
+      }
+    } catch (e) {
+      // Key not found or not on mobile
+    }
+
+    // Fallback to IndexedDB
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('ChatrEncryption', 1);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        console.warn('IndexedDB error, returning null');
+        resolve(null);
+      };
       
       request.onsuccess = () => {
         const db = request.result;
+        
+        if (!db.objectStoreNames.contains('keys')) {
+          resolve(null);
+          return;
+        }
+        
         const transaction = db.transaction(['keys'], 'readonly');
         const store = transaction.objectStore('keys');
         const getRequest = store.get(userId);
@@ -179,7 +216,17 @@ export class E2EEncryption {
         getRequest.onsuccess = () => {
           resolve(getRequest.result?.privateKey || null);
         };
-        getRequest.onerror = () => reject(getRequest.error);
+        getRequest.onerror = () => {
+          console.warn('Error getting key from IndexedDB');
+          resolve(null);
+        };
+      };
+
+      request.onupgradeneeded = (event: any) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('keys')) {
+          db.createObjectStore('keys', { keyPath: 'userId' });
+        }
       };
     });
   }
