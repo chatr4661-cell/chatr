@@ -480,14 +480,57 @@ async function syncFirebaseUserToSupabase(
 
     if (signUpError) {
       if (signUpError.message?.toLowerCase().includes('already registered')) {
-        const { data: signInData } = await supabase.auth.signInWithPassword({
-          email,
+        // User exists in auth - try different password patterns
+        const passwordPatterns = [
+          `firebase_${firebaseUid}_chatr`,
+          normalizedPhone, // Phone as password
+        ];
+        
+        for (const password of passwordPatterns) {
+          const { data: signInData } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          
+          if (signInData.session) {
+            // Update profile with firebase_uid
+            await supabase
+              .from('profiles')
+              .update({ firebase_uid: firebaseUid, phone_number: normalizedPhone })
+              .eq('id', signInData.user.id);
+            return { success: true };
+          }
+        }
+        
+        // If no password worked, try fallback email
+        const fallbackEmail = `${normalizedPhone.replace(/\+/g, '')}_fb@chatr.local`;
+        const { data: fallbackAuth, error: fallbackError } = await supabase.auth.signUp({
+          email: fallbackEmail,
           password: `firebase_${firebaseUid}_chatr`,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              phone_number: normalizedPhone,
+              firebase_uid: firebaseUid,
+            }
+          }
         });
         
-        if (signInData.session) {
+        if (fallbackAuth?.session) {
           return { success: true };
         }
+        
+        if (fallbackError?.message?.toLowerCase().includes('already registered')) {
+          const { data: fallbackSignIn } = await supabase.auth.signInWithPassword({
+            email: fallbackEmail,
+            password: `firebase_${firebaseUid}_chatr`,
+          });
+          if (fallbackSignIn.session) {
+            return { success: true };
+          }
+        }
+        
+        return { success: false, error: 'Unable to sign in. Please try Google login or contact support.' };
       }
       throw signUpError;
     }
