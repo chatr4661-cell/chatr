@@ -1,7 +1,7 @@
 import React, { useState, memo, useCallback, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle, FileText } from 'lucide-react';
+import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle, FileText, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { MessageContextMenu } from './MessageContextMenu';
@@ -37,6 +37,7 @@ interface Message {
   is_edited?: boolean;
   reactions?: any[];
   reply_to?: string;
+  expires_at?: string;
   replied_message?: {
     id: string;
     content: string;
@@ -568,6 +569,11 @@ const MessageBubbleComponent = ({
         )}
 
         <div className="flex items-center gap-1 px-1.5">
+          {message.expires_at && (
+            <span title="This message will disappear">
+              <Timer className="w-3 h-3 text-muted-foreground/70" />
+            </span>
+          )}
           <span className="text-[11px] text-muted-foreground">
             {formatMessageTime(new Date(message.created_at))}
           </span>

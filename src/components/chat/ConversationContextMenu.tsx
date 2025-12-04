@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -5,9 +6,10 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Archive, ArchiveRestore, Pin, PinOff, BellOff, Bell, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, Pin, PinOff, BellOff, Bell, Trash2, Timer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { DisappearingMessagesSheet } from './DisappearingMessagesSheet';
 
 interface ConversationContextMenuProps {
   children: React.ReactNode;
@@ -28,6 +30,8 @@ export const ConversationContextMenu = ({
   isPinned = false,
   onUpdate,
 }: ConversationContextMenuProps) => {
+  const [showDisappearingSheet, setShowDisappearingSheet] = useState(false);
+
   const handleArchive = async () => {
     try {
       const { error } = await supabase
@@ -107,31 +111,44 @@ export const ConversationContextMenu = ({
   };
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
-        <ContextMenuItem onClick={handlePin} className="gap-2">
-          {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-          {isPinned ? 'Unpin chat' : 'Pin chat'}
-        </ContextMenuItem>
-        
-        <ContextMenuItem onClick={handleMute} className="gap-2">
-          {isMuted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-          {isMuted ? 'Unmute notifications' : 'Mute notifications'}
-        </ContextMenuItem>
-        
-        <ContextMenuItem onClick={handleArchive} className="gap-2">
-          {isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-          {isArchived ? 'Unarchive chat' : 'Archive chat'}
-        </ContextMenuItem>
-        
-        <ContextMenuSeparator />
-        
-        <ContextMenuItem onClick={handleDelete} className="gap-2 text-destructive focus:text-destructive">
-          <Trash2 className="h-4 w-4" />
-          Delete chat
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          <ContextMenuItem onClick={handlePin} className="gap-2">
+            {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+            {isPinned ? 'Unpin chat' : 'Pin chat'}
+          </ContextMenuItem>
+          
+          <ContextMenuItem onClick={handleMute} className="gap-2">
+            {isMuted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+            {isMuted ? 'Unmute notifications' : 'Mute notifications'}
+          </ContextMenuItem>
+          
+          <ContextMenuItem onClick={handleArchive} className="gap-2">
+            {isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+            {isArchived ? 'Unarchive chat' : 'Archive chat'}
+          </ContextMenuItem>
+
+          <ContextMenuItem onClick={() => setShowDisappearingSheet(true)} className="gap-2">
+            <Timer className="h-4 w-4" />
+            Disappearing messages
+          </ContextMenuItem>
+          
+          <ContextMenuSeparator />
+          
+          <ContextMenuItem onClick={handleDelete} className="gap-2 text-destructive focus:text-destructive">
+            <Trash2 className="h-4 w-4" />
+            Delete chat
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+
+      <DisappearingMessagesSheet
+        open={showDisappearingSheet}
+        onOpenChange={setShowDisappearingSheet}
+        conversationId={conversationId}
+      />
+    </>
   );
 };
