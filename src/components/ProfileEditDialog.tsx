@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload } from 'lucide-react';
+import { Upload, Loader2 } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -30,49 +30,78 @@ interface ProfileEditDialogProps {
 
 export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdated }: ProfileEditDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    username: profile?.username || '',
-    status: profile?.status || '',
-    phone_number: profile?.phone_number || '',
-    age: profile?.age?.toString() || '',
-    gender: profile?.gender || '',
+    username: '',
+    status: '',
+    phone_number: '',
+    age: '',
+    gender: '',
   });
 
-  // Sync form data when profile changes or dialog opens
+  // Get user session and sync form data when dialog opens
   useEffect(() => {
-    if (open && profile) {
-      setFormData({
-        username: profile.username || '',
-        status: profile.status || '',
-        phone_number: profile.phone_number || '',
-        age: profile.age?.toString() || '',
-        gender: profile.gender || '',
-      });
-    }
+    const initializeDialog = async () => {
+      if (!open) return;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+        
+        // If profile exists, use its data
+        if (profile) {
+          setFormData({
+            username: profile.username || '',
+            status: profile.status || '',
+            phone_number: profile.phone_number || '',
+            age: profile.age?.toString() || '',
+            gender: profile.gender || '',
+          });
+          setAvatarUrl(profile.avatar_url);
+        } else {
+          // Use session metadata as defaults
+          setFormData({
+            username: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
+            status: '',
+            phone_number: session.user.phone || '',
+            age: '',
+            gender: '',
+          });
+          setAvatarUrl(session.user.user_metadata?.avatar_url || null);
+        }
+      }
+    };
+    
+    initializeDialog();
   }, [open, profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Don't save if profile ID is invalid
-    if (!profile?.id) {
-      toast.error('Profile not found. Please refresh the page.');
+    if (!userId) {
+      toast.error('Not logged in. Please refresh the page.');
       return;
     }
     
     setLoading(true);
 
     try {
+      const updateData = {
+        username: formData.username || 'User',
+        status: formData.status || null,
+        phone_number: formData.phone_number || null,
+        age: formData.age ? parseInt(formData.age) : null,
+        gender: formData.gender || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Use upsert to create or update profile
       const { error } = await supabase
         .from('profiles')
-        .update({
-          username: formData.username,
-          status: formData.status,
-          phone_number: formData.phone_number || null,
-          age: formData.age ? parseInt(formData.age) : null,
-          gender: formData.gender || null,
-        })
-        .eq('id', profile.id);
+        .update(updateData)
+        .eq('id', userId);
 
       if (error) throw error;
 
@@ -89,18 +118,18 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !userId) return;
 
     try {
-      setLoading(true);
+      setUploading(true);
       
       // Upload to Supabase storage
       const fileExt = file.name.split('.').pop();
-      const filePath = `${profile.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${userId}-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('social-media')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -116,42 +145,20 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
           avatar_url: publicUrl,
           updated_at: new Date().toISOString()
         })
-        .eq('id', profile.id);
+        .eq('id', userId);
 
       if (updateError) throw updateError;
 
+      setAvatarUrl(publicUrl);
       toast.success('Avatar updated successfully!');
-      
-      // Force a page reload to refresh all avatar instances
-      window.location.reload();
+      onProfileUpdated();
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to upload avatar: ' + error.message);
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   };
-
-  // Show loading state if profile is not yet loaded
-  if (!profile) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
-          </DialogHeader>
-          <div className="py-8 text-center text-muted-foreground">
-            Loading profile data...
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -164,8 +171,8 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
           {/* Avatar Upload */}
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={profile?.avatar_url || ''} />
-              <AvatarFallback className="text-xl">
+              <AvatarImage src={avatarUrl || ''} />
+              <AvatarFallback className="text-xl bg-primary text-primary-foreground">
                 {(formData.username || 'U').substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -176,12 +183,16 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
                 accept="image/*"
                 className="hidden"
                 onChange={handleAvatarUpload}
-                disabled={loading}
+                disabled={uploading || loading}
               />
-              <Button type="button" variant="outline" size="sm" disabled={loading} asChild>
+              <Button type="button" variant="outline" size="sm" disabled={uploading || loading} asChild>
                 <span>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Change Avatar
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  {uploading ? 'Uploading...' : 'Change Avatar'}
                 </span>
               </Button>
             </label>
@@ -189,12 +200,13 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
 
           {/* Username */}
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">Username *</Label>
             <Input
               id="username"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
+              placeholder="Enter your name"
             />
           </div>
 
@@ -205,7 +217,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
               id="status"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              placeholder="Hey there! I am using HealthMessenger"
+              placeholder="Hey there! I am using Chatr"
               rows={2}
             />
           </div>
@@ -218,7 +230,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
               type="tel"
               value={formData.phone_number}
               onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-              placeholder="+1234567890"
+              placeholder="+91 98765 43210"
             />
           </div>
 
