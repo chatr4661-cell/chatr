@@ -11,6 +11,9 @@ import ReactMarkdown from 'react-markdown';
 import { useLocation } from '@/contexts/LocationContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 interface Message {
   id: string;
@@ -207,6 +210,16 @@ export default function ChatrWorld() {
   ];
 
   return (
+    <>
+      <SEOHead
+        title="Chatr World - AI Search & Local Discovery | Chatr"
+        description="Your conversational multiverse interface. Search across chat, browser, health, business, community, food, and deals - all in one place."
+        keywords="AI search, local discovery, multiverse search, conversational AI, local services"
+        breadcrumbList={[
+          { name: 'Home', url: '/' },
+          { name: 'Chatr World', url: '/chatr-world' }
+        ]}
+      />
     <div className="flex flex-col h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b">
@@ -509,5 +522,6 @@ export default function ChatrWorld() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

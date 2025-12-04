@@ -26,6 +26,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 interface AIAgent {
   id: string;

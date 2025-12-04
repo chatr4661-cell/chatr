@@ -15,6 +15,9 @@ import { useChatrLocation } from "@/hooks/useChatrLocation";
 import { chatrLocalSearch } from "@/lib/chatrClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UPIPaymentModal } from "@/components/payment/UPIPaymentModal";
+import { SEOHead } from '@/components/SEOHead';
+import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
+import { ShareDeepLink } from '@/components/sharing';
 
 interface ServiceCategory {
   id: string;
@@ -112,6 +115,16 @@ const HomeServices = () => {
   );
 
   return (
+    <>
+      <SEOHead
+        title="Home Services - Professional Home Service Providers | Chatr"
+        description="Find professional home service providers - plumbers, electricians, cleaners, and more. Book instantly at affordable rates."
+        keywords="home services, plumber, electrician, cleaning, painting, repair services"
+        breadcrumbList={[
+          { name: 'Home', url: '/' },
+          { name: 'Home Services', url: '/home-services' }
+        ]}
+      />
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b">
@@ -126,9 +139,12 @@ const HomeServices = () => {
                 <p className="text-[10px] text-muted-foreground">Professional home services</p>
               </div>
             </div>
+            <ShareDeepLink path="/home-services" title="Book Home Services" />
           </div>
         </div>
       </header>
+      
+      <Breadcrumbs />
 
       <div className="container mx-auto px-4 py-8">
         {/* Search Bar */}
@@ -314,7 +330,13 @@ const HomeServices = () => {
           setPaymentAmount(0);
         }}
       />
+      
+      {/* Cross-Module Navigation */}
+      <div className="container mx-auto px-4 pb-8">
+        <CrossModuleNav variant="footer" />
+      </div>
     </div>
+    </>
   );
 };
 
