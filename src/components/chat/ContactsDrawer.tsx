@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Search, MessageCircle, UserPlus, Loader2, RefreshCw, Mail, Phone } from 'lucide-react';
+import { Search, MessageCircle, UserPlus, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import contactsIcon from '@/assets/contacts-icon.png';
 
 interface Contact {
   id: string;
@@ -32,25 +33,23 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
   const [searchQuery, setSearchQuery] = React.useState('');
   const [startingChat, setStartingChat] = React.useState<string | null>(null);
 
-  // Load contacts when drawer opens
+  // Load ALL contacts when drawer opens
   const loadContacts = React.useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     
     try {
-      // Load from contacts table (phone synced)
+      // Load ALL from contacts table (phone synced) - no limit
       const { data: phoneContacts } = await supabase
         .from('contacts')
         .select('id, contact_name, contact_phone, contact_user_id, is_registered')
-        .eq('user_id', userId)
-        .limit(100);
+        .eq('user_id', userId);
 
-      // Load from gmail_imported_contacts (Google synced)
+      // Load ALL from gmail_imported_contacts (Google synced) - no limit
       const { data: gmailContacts } = await supabase
         .from('gmail_imported_contacts')
         .select('id, name, email, phone, photo_url, is_chatr_user, chatr_user_id')
-        .eq('user_id', userId)
-        .limit(100);
+        .eq('user_id', userId);
 
       const allContacts: Contact[] = [];
       const seen = new Set<string>();
@@ -107,8 +106,19 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
     setSyncing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session?.provider_token) {
-        toast.error('Please re-login with Google to sync contacts');
+        // Token expired - need re-login
+        toast.error('Session expired. Please re-login with Google to sync contacts.', {
+          action: {
+            label: 'Re-login',
+            onClick: () => {
+              supabase.auth.signOut();
+              window.location.href = '/auth';
+            }
+          },
+          duration: 10000
+        });
         return;
       }
 
@@ -118,11 +128,12 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
 
       if (response.error) throw response.error;
 
-      toast.success(`Synced ${response.data.total_imported} contacts!`);
+      const result = response.data;
+      toast.success(`Synced ${result?.total_imported || 0} contacts! (${result?.on_chatr || 0} on Chatr)`);
       loadContacts();
     } catch (error: any) {
       console.error('Sync error:', error);
-      toast.error('Could not sync contacts. Try re-logging with Google.');
+      toast.error('Could not sync contacts. Try logging out and back in with Google.');
     } finally {
       setSyncing(false);
     }
@@ -187,7 +198,7 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
         <SheetHeader className="p-4 border-b">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+              <img src={contactsIcon} alt="Contacts" className="w-6 h-6 rounded-full" />
               Contacts
             </SheetTitle>
             <Button 
@@ -195,13 +206,14 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
               variant="outline" 
               onClick={syncGmailContacts}
               disabled={syncing}
+              className="gap-1.5"
             >
               {syncing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              <span className="ml-1.5">Sync</span>
+              Sync
             </Button>
           </div>
           <div className="relative mt-3">
@@ -222,23 +234,28 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
             </div>
           ) : contacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center">
-              <Users className="h-12 w-12 text-muted-foreground mb-4" />
+              <img src={contactsIcon} alt="No contacts" className="w-16 h-16 mb-4 opacity-50" />
               <p className="font-semibold">No contacts yet</p>
               <p className="text-sm text-muted-foreground mb-4">
                 Sync your Google contacts to find friends on Chatr
               </p>
-              <Button onClick={syncGmailContacts} disabled={syncing}>
+              <Button onClick={syncGmailContacts} disabled={syncing} className="bg-primary">
                 {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Sync Google Contacts
               </Button>
             </div>
           ) : (
             <div>
+              {/* Stats */}
+              <div className="px-4 py-2 bg-muted/20 text-xs text-muted-foreground">
+                {contacts.length} contacts • {onChatrContacts.length} on Chatr
+              </div>
+
               {/* On Chatr Section */}
               {onChatrContacts.length > 0 && (
                 <div>
-                  <div className="px-4 py-2 bg-muted/30 border-b sticky top-0">
-                    <span className="text-xs font-semibold text-muted-foreground uppercase">
+                  <div className="px-4 py-2 bg-primary/10 border-b sticky top-0 z-10">
+                    <span className="text-xs font-semibold text-primary uppercase">
                       On Chatr ({onChatrContacts.length})
                     </span>
                   </div>
@@ -273,7 +290,7 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
               {/* Invite Section */}
               {inviteContacts.length > 0 && (
                 <div>
-                  <div className="px-4 py-2 bg-muted/30 border-b sticky top-0">
+                  <div className="px-4 py-2 bg-muted/30 border-b sticky top-0 z-10">
                     <span className="text-xs font-semibold text-muted-foreground uppercase">
                       Invite to Chatr ({inviteContacts.length})
                     </span>
@@ -296,7 +313,7 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
                           {contact.phone || contact.email || 'Not on Chatr'}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" className="h-8">
                         <UserPlus className="h-4 w-4 mr-1" />
                         Invite
                       </Button>
