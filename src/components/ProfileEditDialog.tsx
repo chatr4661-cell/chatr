@@ -22,6 +22,13 @@ interface Profile {
 }
 
 interface ProfileEditDialogProps {
+  profile: Profile | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onProfileUpdated: () => void;
+}
+
+interface ProfileEditDialogProps {
   profile: Profile;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -131,6 +138,27 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
       setLoading(false);
     }
   };
+
+  // Show loading state if profile is not yet loaded
+  if (!profile) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+          </DialogHeader>
+          <div className="py-8 text-center text-muted-foreground">
+            Loading profile data...
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
