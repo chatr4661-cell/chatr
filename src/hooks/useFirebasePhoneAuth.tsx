@@ -122,6 +122,10 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         errorMessage = 'Too many attempts. Please try again later.';
       } else if (err.code === 'auth/quota-exceeded') {
         errorMessage = 'SMS quota exceeded. Please try again later.';
+      } else if (err.code === 'auth/captcha-check-failed') {
+        errorMessage = 'Verification failed. Please refresh the page and try again.';
+      } else if (err.message?.includes('Hostname match not found')) {
+        errorMessage = 'Domain not authorized. Please contact support.';
       } else if (err.message) {
         errorMessage = err.message;
       }
