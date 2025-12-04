@@ -4,9 +4,10 @@ import { NotificationSettings } from "@/components/NotificationSettings";
 import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { PrivacySettings } from "@/components/settings/PrivacySettings";
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
+import { ConnectedAccounts } from "@/components/ConnectedAccounts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, User, Shield, Palette, LogOut, Ghost } from "lucide-react";
+import { Bell, User, Shield, Palette, LogOut, Ghost, Link2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -69,8 +70,9 @@ export default function Settings() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profile" className="mt-6">
+          <TabsContent value="profile" className="mt-6 space-y-6">
             <ProfileSettings userId={userId} />
+            <ConnectedAccounts />
           </TabsContent>
 
           <TabsContent value="notifications" className="mt-6">
