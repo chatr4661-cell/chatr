@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { PhoneAuth } from '@/components/PhoneAuth';
+import { FirebasePhoneAuth } from '@/components/FirebasePhoneAuth';
 import { OnboardingDialog } from '@/components/OnboardingDialog';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { Footer } from '@/components/Footer';
@@ -336,8 +336,8 @@ const Auth = () => {
             </div>
           </div>
 
-          {/* Phone Auth */}
-          <PhoneAuth />
+          {/* Firebase Phone OTP Auth */}
+          <FirebasePhoneAuth />
         </div>
         
         {/* Footer Features */}

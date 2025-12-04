@@ -9869,6 +9869,7 @@ export type Database = {
           contacts_synced: boolean | null
           created_at: string | null
           email: string
+          firebase_uid: string | null
           full_name: string | null
           gender: string | null
           google_id: string | null
@@ -9921,6 +9922,7 @@ export type Database = {
           contacts_synced?: boolean | null
           created_at?: string | null
           email: string
+          firebase_uid?: string | null
           full_name?: string | null
           gender?: string | null
           google_id?: string | null
@@ -9973,6 +9975,7 @@ export type Database = {
           contacts_synced?: boolean | null
           created_at?: string | null
           email?: string
+          firebase_uid?: string | null
           full_name?: string | null
           gender?: string | null
           google_id?: string | null
