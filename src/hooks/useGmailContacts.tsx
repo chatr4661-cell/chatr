@@ -92,6 +92,20 @@ export const useGmailContacts = () => {
     }
   }, []);
 
+  // Get user's referral code
+  const getUserReferralCode = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('referral_code, username')
+      .eq('id', user.id)
+      .single();
+    
+    return profile;
+  }, []);
+
   // Send invite to a contact
   const sendInvite = useCallback(async (
     contact: GmailContact,
@@ -112,7 +126,7 @@ export const useGmailContacts = () => {
       const result = response.data;
 
       if (method === 'whatsapp' && result.invite_link) {
-        // Open WhatsApp share
+        // Open WhatsApp share with user's referral code auto-included
         const text = `Hey ${contact.name || 'friend'}! 🎉 I'm using Chatr - India's super app for messaging, jobs, healthcare & more. Join me and we both get 50 coins! ${result.invite_link}`;
         const whatsappUrl = `https://wa.me/${contact.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
         window.open(whatsappUrl, '_blank');
@@ -144,5 +158,6 @@ export const useGmailContacts = () => {
     syncGoogleContacts,
     sendInvite,
     bulkShareWhatsApp,
+    getUserReferralCode,
   };
 };
