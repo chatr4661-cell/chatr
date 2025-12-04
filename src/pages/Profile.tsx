@@ -275,15 +275,13 @@ const Profile = () => {
         </Tabs>
       </div>
 
-      {/* Edit Profile Dialog */}
-      {profile && (
-        <ProfileEditDialog
-          profile={profile}
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          onProfileUpdated={loadUserData}
-        />
-      )}
+      {/* Edit Profile Dialog - Always render so button click works */}
+      <ProfileEditDialog
+        profile={profile}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onProfileUpdated={loadUserData}
+      />
     </div>
   );
 };
