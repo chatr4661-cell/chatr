@@ -25,6 +25,25 @@ const OTPInput: React.FC<OTPInputProps> = ({
 }) => {
   const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 
+  // WebOTP API - Auto-read SMS on supported browsers (Chrome Android)
+  React.useEffect(() => {
+    if ('OTPCredential' in window) {
+      const ac = new AbortController();
+      navigator.credentials.get({
+        // @ts-ignore - WebOTP API
+        otp: { transport: ['sms'] },
+        signal: ac.signal
+      }).then((otp: any) => {
+        if (otp?.code) {
+          onChange(otp.code);
+          onComplete?.(otp.code);
+        }
+      }).catch(() => {});
+      
+      return () => ac.abort();
+    }
+  }, [onChange, onComplete]);
+
   const handleChange = (index: number, inputValue: string) => {
     if (disabled) return;
     
