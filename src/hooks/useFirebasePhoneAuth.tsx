@@ -167,28 +167,32 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     setStep('syncing');
 
     try {
+      // Verify OTP with Firebase
       const result = await confirmationResultRef.current.confirm(otp);
       const firebaseUser = result.user;
       
-      // Create/login Supabase account in parallel
       const normalizedPhone = phoneNumber.replace(/\s/g, '');
       const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
       const password = normalizedPhone;
 
-      // Try signup first, fallback to signin
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            phone_number: normalizedPhone,
-            firebase_uid: firebaseUser.uid,
-          }
-        }
+      // Try signin first (faster for existing users), then signup
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
       });
 
-      if (signUpError?.message?.includes('already registered')) {
-        await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        // New user - signup
+        await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              phone_number: normalizedPhone,
+              firebase_uid: firebaseUser.uid,
+            }
+          }
+        });
       }
 
       toast({ title: 'Verified! ✅' });
