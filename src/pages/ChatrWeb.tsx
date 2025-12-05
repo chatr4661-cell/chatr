@@ -9,12 +9,35 @@ import chatrLogo from '@/assets/chatr-icon-logo.png';
 
 type QRStatus = 'generating' | 'pending' | 'scanned' | 'authenticated' | 'expired' | 'error';
 
+// Check if on web subdomain
+const isWebSubdomain = () => {
+  const hostname = window.location.hostname;
+  return hostname === 'web.chatr.chat' || 
+         hostname.startsWith('web.') || 
+         new URLSearchParams(window.location.search).get('subdomain') === 'web';
+};
+
 const ChatrWeb = () => {
   const navigate = useNavigate();
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [status, setStatus] = useState<QRStatus>('generating');
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(120);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // User is authenticated, redirect to desktop interface
+        navigate('/desktop/chat', { replace: true });
+      } else {
+        setCheckingAuth(false);
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const generateQRCode = useCallback(async () => {
     setStatus('generating');
@@ -48,10 +71,12 @@ const ChatrWeb = () => {
     }
   }, []);
 
-  // Generate QR on mount
+  // Generate QR on mount (only if not authenticated)
   useEffect(() => {
-    generateQRCode();
-  }, [generateQRCode]);
+    if (!checkingAuth) {
+      generateQRCode();
+    }
+  }, [generateQRCode, checkingAuth]);
 
   // Countdown timer
   useEffect(() => {
@@ -102,9 +127,9 @@ const ChatrWeb = () => {
               // Use the magic link to sign in
               window.location.href = data.magicLink;
             } else {
-              // Fallback - redirect to home after brief delay
+              // Redirect to desktop chat after brief delay
               setTimeout(() => {
-                navigate('/');
+                navigate('/desktop/chat');
               }, 1500);
             }
           } else if (newStatus === 'scanned') {
@@ -138,7 +163,7 @@ const ChatrWeb = () => {
           if (data.magicLink) {
             window.location.href = data.magicLink;
           } else {
-            setTimeout(() => navigate('/'), 1500);
+            setTimeout(() => navigate('/desktop/chat'), 1500);
           }
         } else if (data?.status === 'expired') {
           setStatus('expired');
@@ -156,6 +181,18 @@ const ChatrWeb = () => {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Show loading while checking auth
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <img src={chatrLogo} alt="CHATR" className="h-16 w-16" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
