@@ -119,9 +119,9 @@ export const AIStickerPicker = ({
               <div className="space-y-2">
                 <Select value={selectedStyle} onValueChange={(v) => setSelectedStyle(v as StickerStyle)}>
                   <SelectTrigger className="w-28">
-                    <SelectValue />
+                    <SelectValue placeholder="Style" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]" position="popper" side="bottom">
                     {STYLES.map(s => (
                       <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                     ))}
