@@ -216,17 +216,20 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
     }
   };
 
+  const phoneDigits = formData.phone_number?.replace(/\D/g, '') || '';
+  const isPhoneValid = phoneDigits.length >= 10;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pr-8">
           <div className="flex items-center justify-between">
             <DialogTitle>Edit Profile</DialogTitle>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mr-4">
+            <div className="flex items-center gap-2 text-xs mr-4">
               {saving && (
                 <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Saving...</span>
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  <span className="text-muted-foreground">Saving...</span>
                 </>
               )}
               {saved && !saving && (
@@ -235,10 +238,13 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
                   <span className="text-green-500">Saved</span>
                 </>
               )}
-              {!saving && !saved && (
+              {!saving && !saved && !isPhoneValid && (
+                <span className="text-destructive">Fix phone to save</span>
+              )}
+              {!saving && !saved && isPhoneValid && (
                 <>
-                  <Save className="h-3 w-3" />
-                  <span>Auto-save</span>
+                  <Save className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">Auto-save</span>
                 </>
               )}
             </div>
