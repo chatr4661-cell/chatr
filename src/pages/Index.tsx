@@ -36,6 +36,7 @@ import {
   Store,
   Gift
 } from 'lucide-react';
+import { PersonalizedSection } from '@/components/home/PersonalizedSection';
 import { useStealthMode, StealthModeType } from '@/hooks/useStealthMode';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -798,6 +799,9 @@ const Index = () => {
             AI-powered search across services, jobs, healthcare, food & more
           </p>
         </div>
+
+        {/* Personalized Section */}
+        <PersonalizedSection />
 
         {/* Main Category Grid */}
         <div className="grid grid-cols-4 gap-3 mb-4">
