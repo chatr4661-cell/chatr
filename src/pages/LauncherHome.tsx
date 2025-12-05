@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import chatrIconLogo from '@/assets/chatr-icon-logo.png';
 import { Button } from '@/components/ui/button';
+import { PersonalizedSection } from '@/components/home/PersonalizedSection';
 
 interface LauncherHomeProps {
   pointsBalance: number;
@@ -119,6 +120,9 @@ export const LauncherHome: React.FC<LauncherHomeProps> = ({
 
   return (
     <div className="max-w-2xl mx-auto px-4 space-y-6">
+      {/* Personalized Section */}
+      <PersonalizedSection />
+
       {/* Quick Message Input */}
       <div 
         onClick={() => navigate('/chat')}
