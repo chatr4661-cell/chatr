@@ -27,7 +27,7 @@ serve(async (req) => {
 
     // Style prompts for different sticker styles
     const stylePrompts: Record<string, string> = {
-      cartoon: 'Transform this image into a cute cartoon sticker with bold outlines, vibrant colors, and a fun expression. Make it look like a sticker with clean edges.',
+      cartoon: 'Transform this image into a cute cartoon sticker with bold outlines, vibrant colors, and a fun expression. Make it look like a sticker with clean edges and transparent background.',
       emoji: 'Transform this image into an emoji-style sticker with simplified features, bright yellow tones, and exaggerated expressions. Round face with thick outlines.',
       anime: 'Transform this image into an anime-style sticker with big expressive eyes, smooth shading, and Japanese anime aesthetics. Clean lineart with soft colors.',
       chibi: 'Transform this image into a chibi-style sticker with an oversized head, small body, cute proportions, and adorable expressions. Very kawaii style.',
@@ -38,6 +38,28 @@ serve(async (req) => {
     const prompt = stylePrompts[style] || stylePrompts.cartoon;
 
     console.log(`Generating ${style} sticker from photo...`);
+
+    // Handle both base64 and URL formats
+    let imageContent: { type: string; image_url: { url: string } };
+    
+    if (photoUrl.startsWith('data:')) {
+      // Base64 image - use directly
+      imageContent = {
+        type: 'image_url',
+        image_url: { url: photoUrl }
+      };
+    } else if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+      // Regular URL - use directly
+      imageContent = {
+        type: 'image_url',
+        image_url: { url: photoUrl }
+      };
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Invalid image format. Please upload a valid image.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -51,16 +73,8 @@ serve(async (req) => {
           {
             role: 'user',
             content: [
-              {
-                type: 'text',
-                text: prompt
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: photoUrl
-                }
-              }
+              { type: 'text', text: prompt },
+              imageContent
             ]
           }
         ],
@@ -85,7 +99,7 @@ serve(async (req) => {
         );
       }
       
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error(`AI gateway error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
