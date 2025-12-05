@@ -7609,6 +7609,48 @@ export type Database = {
         }
         Relationships: []
       }
+      linked_devices: {
+        Row: {
+          browser: string | null
+          created_at: string | null
+          device_name: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          last_active_at: string | null
+          os: string | null
+          session_token: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_active_at?: string | null
+          os?: string | null
+          session_token?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_active_at?: string | null
+          os?: string | null
+          session_token?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       live_rooms: {
         Row: {
           created_at: string | null
@@ -10589,6 +10631,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      qr_login_sessions: {
+        Row: {
+          authenticated_at: string | null
+          created_at: string
+          device_info: Json | null
+          expires_at: string
+          id: string
+          ip_address: string | null
+          scanned_at: string | null
+          status: string
+          token: string
+          user_id: string | null
+        }
+        Insert: {
+          authenticated_at?: string | null
+          created_at?: string
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          scanned_at?: string | null
+          status?: string
+          token: string
+          user_id?: string | null
+        }
+        Update: {
+          authenticated_at?: string | null
+          created_at?: string
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          scanned_at?: string | null
+          status?: string
+          token?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       qr_payments: {
         Row: {
@@ -14293,6 +14374,7 @@ export type Database = {
       clean_expired_geo_cache: { Args: never; Returns: undefined }
       cleanup_disappearing_messages: { Args: never; Returns: undefined }
       cleanup_expired_messages: { Args: never; Returns: number }
+      cleanup_expired_qr_sessions: { Args: never; Returns: undefined }
       cleanup_expired_visual_search_cache: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       create_direct_conversation: {
