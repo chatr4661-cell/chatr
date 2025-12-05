@@ -174,73 +174,43 @@ const Auth = () => {
     checkSession();
 
     // Listen for auth state changes (Google OAuth callback and phone auth)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[AUTH STATE CHANGE]', event, 'User ID:', session?.user?.id);
-      logAuthEvent('Auth state changed', { event, userId: session?.user?.id });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[AUTH STATE CHANGE]', event);
       
       if (event === 'SIGNED_IN' && session) {
-        console.log('[AUTH STATE] ✅ User signed in');
         setUserId(session.user.id);
         setGoogleLoading(false);
         
-        // Store provider token for Gmail contacts sync (fire-and-forget)
+        // Store provider token for Gmail (non-blocking)
         if (session.provider_token) {
           localStorage.setItem('google_provider_token', session.provider_token);
-          // Background sync - don't await
           supabase.functions.invoke('sync-google-contacts', {
             body: { provider_token: session.provider_token }
           }).catch(() => {});
         }
         
-        // Quick profile check first (no wait for returning users)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_completed, username, email, phone_number')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        
-        console.log('[AUTH STATE] 📋 Profile check result:', { 
-          profileFound: !!profile,
-          onboardingCompleted: profile?.onboarding_completed,
-          username: profile?.username,
-          phone: profile?.phone_number
-        });
-        
-        if (profile?.onboarding_completed) {
-          console.log('[AUTH STATE] ✅ Onboarding complete → Redirecting');
+        // INSTANT redirect - defer profile check
+        setTimeout(async () => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('onboarding_completed, username, phone_number')
+            .eq('id', session.user.id)
+            .maybeSingle();
           
-          // Check if there's a redirect path
-          const redirectPath = sessionStorage.getItem('auth_redirect');
-          sessionStorage.removeItem('auth_redirect');
-          
-          toast({
-            title: 'Welcome back! 👋',
-            description: `Signed in as ${profile.username || profile.phone_number || profile.email}`,
-          });
-          navigate(redirectPath || '/', { replace: true });
-        } else {
-          console.log('[AUTH STATE] 🆕 New user detected → Staying on /auth, onboarding will show');
-          console.log('[AUTH STATE] userId is now:', session.user.id);
-          console.log('[AUTH STATE] Onboarding dialog should appear below');
-          
-          // Explicitly trigger a re-render to ensure onboarding dialog shows
-          setUserId(prevId => {
-            console.log('[AUTH STATE] Re-setting userId to trigger onboarding:', session.user.id);
-            return session.user.id;
-          });
-          
-          toast({
-            title: 'Welcome! 🎉',
-            description: 'Let\'s set up your profile',
-          });
-        }
+          if (profile?.onboarding_completed) {
+            const redirectPath = sessionStorage.getItem('auth_redirect');
+            sessionStorage.removeItem('auth_redirect');
+            toast({ title: 'Welcome back! 👋' });
+            navigate(redirectPath || '/', { replace: true });
+          } else {
+            toast({ title: 'Welcome! 🎉', description: 'Complete your profile' });
+          }
+        }, 0);
       }
       
       if (event === 'SIGNED_OUT') {
-        console.log('[AUTH STATE] 👋 User signed out');
         setUserId(undefined);
         setGoogleLoading(false);
-        logAuthEvent('User signed out');
       }
     });
 
