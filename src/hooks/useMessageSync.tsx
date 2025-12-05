@@ -313,7 +313,7 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
               }
               
               sonnerToast('New message', {
-                description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+                description: (data.content?.substring(0, 50) || '') + ((data.content?.length || 0) > 50 ? '...' : ''),
               });
             }
           }

@@ -278,10 +278,10 @@ const MessageBubbleComponent = ({
 
   // Debug logging
   console.log('[MessageBubble]', {
-    msgId: message.id.substring(0, 8),
+    msgId: message.id?.substring(0, 8),
     isOwn,
     senderId: message.sender_id,
-    content: message.content.substring(0, 15)
+    content: message.content?.substring(0, 15) || ''
   });
 
   return (
