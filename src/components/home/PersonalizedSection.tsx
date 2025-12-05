@@ -82,17 +82,17 @@ export const PersonalizedSection: React.FC = () => {
   if (!userName) return null;
 
   return (
-    <div className="text-center py-1">
-      <p className="text-sm font-medium">
+    <div className="text-center">
+      <h2 className="text-xl font-bold">
         <span className={`${gradient} bg-clip-text text-transparent`}>
           Hello {userName}
         </span>
-        <span className="ml-0.5">{emoji}</span>
-      </p>
-      <p className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
-        <MapPin className="h-3 w-3" />
+        <span className="ml-1">{emoji}</span>
+      </h2>
+      <div className="flex items-center justify-center gap-1.5 text-muted-foreground text-sm mt-1">
+        <MapPin className="h-3.5 w-3.5" />
         <span>Services near you in {cityName}</span>
-      </p>
+      </div>
     </div>
   );
 };
