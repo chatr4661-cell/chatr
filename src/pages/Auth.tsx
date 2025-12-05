@@ -36,7 +36,6 @@ const Auth = () => {
         options: {
           redirectTo: `${window.location.origin}${redirectPath}`,
           skipBrowserRedirect: false,
-          scopes: 'https://www.googleapis.com/auth/contacts.readonly',
         },
       });
 

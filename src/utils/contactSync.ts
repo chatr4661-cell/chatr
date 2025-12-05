@@ -1,74 +1,102 @@
 import { Contacts } from '@capacitor-community/contacts';
 import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
+
+export interface DeviceContact {
+  name: string;
+  phone: string;
+}
 
 /**
- * Sync device contacts with Chatr users
+ * Get device contacts (Telegram-style - native device contacts only)
+ * Works on Android via ContactsContract and iOS via CNContactStore
  */
-export const syncContacts = async (userId: string) => {
-  try {
-    // Request permission
-    const permission = await Contacts.requestPermissions();
-    if (permission.contacts !== 'granted') {
-      throw new Error('Contacts permission denied');
+export const getDeviceContacts = async (): Promise<DeviceContact[]> => {
+  if (!Capacitor.isNativePlatform()) {
+    throw new Error('Device contacts only available on mobile');
+  }
+
+  // Request permission (READ_CONTACTS on Android, CNContactStore on iOS)
+  const permission = await Contacts.requestPermissions();
+  
+  if (permission.contacts !== 'granted') {
+    throw new Error('Contacts permission denied');
+  }
+
+  // Fetch all device contacts
+  const result = await Contacts.getContacts({
+    projection: {
+      name: true,
+      phones: true,
     }
+  });
 
-    // Fetch all device contacts
-    const result = await Contacts.getContacts({
-      projection: {
-        name: true,
-        phones: true,
-        emails: true,
-      }
-    });
+  if (!result.contacts || result.contacts.length === 0) {
+    return [];
+  }
 
-    if (!result.contacts || result.contacts.length === 0) {
-      console.log('No contacts found');
-      return;
-    }
+  // Extract name and phone number
+  return result.contacts
+    .map(contact => ({
+      name: contact.name?.display || contact.name?.given || 'Unknown',
+      phone: contact.phones?.[0]?.number || '',
+    }))
+    .filter(c => c.phone); // Only contacts with phone numbers
+};
 
-    // Extract phone numbers and emails
-    const phoneNumbers = result.contacts
-      .flatMap(contact => contact.phones?.map(p => p.number) || [])
-      .filter(Boolean);
+/**
+ * Normalize phone number for consistent matching
+ */
+const normalizePhone = (phone: string): string => {
+  return phone.replace(/[\s\-\(\)\.]/g, '');
+};
 
-    const emails = result.contacts
-      .flatMap(contact => contact.emails?.map(e => e.address) || [])
-      .filter(Boolean);
+/**
+ * Sync device contacts with Supabase (Telegram-style)
+ * Reads native device contacts and syncs to contacts table
+ */
+export const syncContacts = async (userId: string): Promise<number> => {
+  // Get device contacts
+  const deviceContacts = await getDeviceContacts();
+  
+  if (deviceContacts.length === 0) {
+    console.log('No contacts found on device');
+    return 0;
+  }
 
-    // Query Supabase for matching users
-    const { data: matchingUsers, error } = await supabase
-      .from('profiles')
-      .select('id, phone_number, email, username, avatar_url')
-      .or(`phone_number.in.(${phoneNumbers.join(',')}),email.in.(${emails.join(',')})`);
+  // Prepare contacts for sync
+  const contactList = deviceContacts.map(c => ({
+    name: c.name,
+    phone: normalizePhone(c.phone),
+  }));
 
-    if (error) throw error;
+  // Call RPC function to sync contacts
+  const { error } = await supabase.rpc('sync_user_contacts', {
+    user_uuid: userId,
+    contact_list: contactList,
+  });
 
-    console.log(`✅ Found ${matchingUsers?.length || 0} Chatr users in contacts`);
-
-    // Store synced contacts in database (skip if table doesn't exist)
-    if (matchingUsers && matchingUsers.length > 0) {
-      try {
-        const contactRecords = matchingUsers.map(user => ({
-          user_id: userId,
-          contact_user_id: user.id,
-          synced_at: new Date().toISOString(),
-        }));
-
-        // Attempt to upsert (will fail silently if table doesn't exist)
-        await supabase
-          .from('user_contacts' as any)
-          .upsert(contactRecords, {
-            onConflict: 'user_id,contact_user_id'
-          });
-      } catch (err) {
-        // Silently fail if user_contacts table doesn't exist yet
-        console.log('user_contacts table not available');
-      }
-    }
-
-    return matchingUsers;
-  } catch (error) {
-    console.error('Contact sync failed:', error);
+  if (error) {
+    console.error('Contact sync RPC error:', error);
     throw error;
+  }
+
+  console.log(`✅ Synced ${contactList.length} device contacts`);
+  return contactList.length;
+};
+
+/**
+ * Check if contacts permission is granted
+ */
+export const checkContactsPermission = async (): Promise<boolean> => {
+  if (!Capacitor.isNativePlatform()) {
+    return false;
+  }
+  
+  try {
+    const permission = await Contacts.checkPermissions();
+    return permission.contacts === 'granted';
+  } catch {
+    return false;
   }
 };
