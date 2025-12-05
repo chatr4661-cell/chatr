@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, MessageCircle, UserPlus, Loader2, RefreshCw } from 'lucide-react';
+import { Search, MessageCircle, UserPlus, Loader2, RefreshCw, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { Capacitor } from '@capacitor/core';
 import contactsIcon from '@/assets/contacts-icon.png';
 
 interface Contact {
@@ -32,6 +33,7 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
   const [syncing, setSyncing] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [startingChat, setStartingChat] = React.useState<string | null>(null);
+  const isNative = Capacitor.isNativePlatform();
 
   // Load ALL contacts when drawer opens
   const loadContacts = React.useCallback(async () => {
@@ -39,16 +41,10 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
     setLoading(true);
     
     try {
-      // Load ALL from contacts table (phone synced) - no limit
+      // Load from contacts table (device synced)
       const { data: phoneContacts } = await supabase
         .from('contacts')
         .select('id, contact_name, contact_phone, contact_user_id, is_registered')
-        .eq('user_id', userId);
-
-      // Load ALL from gmail_imported_contacts (Google synced) - no limit
-      const { data: gmailContacts } = await supabase
-        .from('gmail_imported_contacts')
-        .select('id, name, email, phone, photo_url, is_chatr_user, chatr_user_id')
         .eq('user_id', userId);
 
       const allContacts: Contact[] = [];
@@ -69,23 +65,6 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
         }
       });
 
-      // Add Gmail contacts
-      gmailContacts?.forEach(c => {
-        const key = c.chatr_user_id || c.email || c.id;
-        if (!seen.has(key)) {
-          seen.add(key);
-          allContacts.push({
-            id: c.id,
-            name: c.name || 'Unknown',
-            email: c.email,
-            phone: c.phone,
-            avatar_url: c.photo_url,
-            is_on_chatr: c.is_chatr_user,
-            chatr_user_id: c.chatr_user_id
-          });
-        }
-      });
-
       // Sort: On Chatr first, then alphabetically
       allContacts.sort((a, b) => {
         if (a.is_on_chatr && !b.is_on_chatr) return -1;
@@ -101,41 +80,104 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
     }
   }, [userId]);
 
-  // Sync Gmail contacts
-  const syncGmailContacts = async () => {
+  // Sync device contacts (Telegram-style - native only)
+  const syncDeviceContacts = async () => {
+    if (!isNative) {
+      toast.info('Contact sync is only available on mobile devices');
+      return;
+    }
+
     setSyncing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { Contacts } = await import('@capacitor-community/contacts');
       
-      // Check session token first, then fallback to stored token
-      const providerToken = session?.provider_token || localStorage.getItem('google_provider_token');
+      // Request permission (READ_CONTACTS on Android, CNContactStore on iOS)
+      const permission = await Contacts.requestPermissions();
       
-      if (!providerToken) {
-        // Token expired - need re-login
-        toast.error('Please login with Google to sync contacts.', {
-          action: {
-            label: 'Login',
-            onClick: () => {
-              window.location.href = '/auth';
-            }
-          },
-          duration: 10000
-        });
+      if (permission.contacts !== 'granted') {
+        toast.error('Please allow contacts access in your device settings');
         return;
       }
 
-      const response = await supabase.functions.invoke('sync-google-contacts', {
-        body: { provider_token: providerToken }
+      toast.info('Reading contacts from your device...');
+
+      // Get all device contacts
+      const result = await Contacts.getContacts({
+        projection: { name: true, phones: true }
       });
 
-      if (response.error) throw response.error;
+      if (!result?.contacts?.length) {
+        toast.info('No contacts found on device');
+        return;
+      }
 
-      const result = response.data;
-      toast.success(`Synced ${result?.total_imported || 0} contacts! (${result?.on_chatr || 0} on Chatr)`);
+      // Hash phone numbers and check registered users
+      const phoneHashes = new Set<string>();
+      const contactsMap = new Map();
+
+      for (const contact of result.contacts) {
+        const phone = contact.phones?.[0]?.number;
+        if (phone) {
+          const normalized = phone.replace(/\D/g, '');
+          const fullPhone = normalized.length === 10 ? `+91${normalized}` : `+${normalized}`;
+          
+          // Create hash for matching
+          const msgBuffer = new TextEncoder().encode(normalized);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          
+          phoneHashes.add(hash);
+          contactsMap.set(hash, {
+            name: contact.name?.display || contact.name?.given || 'Unknown',
+            phone: fullPhone,
+            hash
+          });
+        }
+      }
+
+      // Find registered users by phone hash
+      const { data: registeredProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, phone_number, phone_hash, avatar_url')
+        .in('phone_hash', Array.from(phoneHashes))
+        .not('phone_hash', 'is', null);
+
+      // Upsert contacts to database
+      const contactsToUpsert = Array.from(contactsMap.values()).map(contact => {
+        const registered = registeredProfiles?.find(p => p.phone_hash === contact.hash);
+        return {
+          user_id: userId,
+          contact_name: contact.name,
+          contact_phone: contact.phone,
+          contact_phone_hash: contact.hash,
+          is_registered: !!registered,
+          contact_user_id: registered?.id || null
+        };
+      });
+
+      if (contactsToUpsert.length > 0) {
+        const { error } = await supabase.from('contacts').upsert(contactsToUpsert, {
+          onConflict: 'user_id,contact_phone',
+          ignoreDuplicates: false
+        });
+
+        if (error) throw error;
+      }
+
+      // Update profile sync status
+      await supabase.from('profiles').update({ 
+        contacts_synced: true,
+        last_contact_sync: new Date().toISOString()
+      }).eq('id', userId);
+
+      const onChatrCount = registeredProfiles?.length || 0;
+      toast.success(`Synced ${contactsToUpsert.length} contacts! (${onChatrCount} on Chatr)`);
+      
       loadContacts();
     } catch (error: any) {
       console.error('Sync error:', error);
-      toast.error('Could not sync contacts. Try logging out and back in with Google.');
+      toast.error(error.message || 'Could not sync contacts');
     } finally {
       setSyncing(false);
     }
@@ -144,12 +186,10 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
   // Start chat with a contact
   const handleStartChat = async (contact: Contact) => {
     if (!contact.is_on_chatr || !contact.chatr_user_id) {
-      // Invite contact
+      // Invite contact via WhatsApp
       const inviteText = `Hey! Join me on Chatr - India's super app for messaging, jobs, healthcare & more. Download now: https://chatr.chat/join`;
       if (contact.phone) {
         window.open(`https://wa.me/${contact.phone.replace(/\D/g, '')}?text=${encodeURIComponent(inviteText)}`, '_blank');
-      } else if (contact.email) {
-        window.open(`mailto:${contact.email}?subject=Join me on Chatr&body=${encodeURIComponent(inviteText)}`, '_blank');
       }
       return;
     }
@@ -183,7 +223,6 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
     const query = searchQuery.toLowerCase();
     return contacts.filter(c =>
       c.name?.toLowerCase().includes(query) ||
-      c.email?.toLowerCase().includes(query) ||
       c.phone?.includes(query)
     );
   }, [contacts, searchQuery]);
@@ -206,8 +245,8 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
             <Button 
               size="sm" 
               variant="outline" 
-              onClick={syncGmailContacts}
-              disabled={syncing}
+              onClick={syncDeviceContacts}
+              disabled={syncing || !isNative}
               className="gap-1.5"
             >
               {syncing ? (
@@ -236,15 +275,20 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
             </div>
           ) : contacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center">
-              <img src={contactsIcon} alt="No contacts" className="w-16 h-16 mb-4 opacity-50" />
-              <p className="font-semibold">No contacts yet</p>
+              <Smartphone className="w-16 h-16 mb-4 text-muted-foreground/50" />
+              <p className="font-semibold">No contacts synced</p>
               <p className="text-sm text-muted-foreground mb-4">
-                Sync your Google contacts to find friends on Chatr
+                {isNative 
+                  ? 'Sync your phone contacts to find friends on Chatr'
+                  : 'Open in mobile app to sync device contacts'
+                }
               </p>
-              <Button onClick={syncGmailContacts} disabled={syncing} className="bg-primary">
-                {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                Sync Google Contacts
-              </Button>
+              {isNative && (
+                <Button onClick={syncDeviceContacts} disabled={syncing} className="bg-primary">
+                  {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  Sync Phone Contacts
+                </Button>
+              )}
             </div>
           ) : (
             <div>
@@ -276,7 +320,7 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{contact.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {contact.phone || contact.email}
+                          {contact.phone}
                         </p>
                       </div>
                       {startingChat === contact.id ? (
@@ -312,7 +356,7 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{contact.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {contact.phone || contact.email || 'Not on Chatr'}
+                          {contact.phone || 'Not on Chatr'}
                         </p>
                       </div>
                       <Button size="sm" variant="outline" className="h-8">
