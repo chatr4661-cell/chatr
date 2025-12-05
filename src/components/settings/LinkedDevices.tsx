@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Monitor, Smartphone, Tablet, Trash2, Loader2, QrCode, Clock } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Trash2, Loader2, QrCode, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Capacitor } from '@capacitor/core';
+import QRLoginScanner from '@/components/qr/QRLoginScanner';
 
 interface LinkedDevice {
   id: string;
@@ -23,6 +25,9 @@ const LinkedDevices = () => {
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const isNative = Capacitor.isNativePlatform();
 
   useEffect(() => {
     const init = async () => {
@@ -75,6 +80,14 @@ const LinkedDevices = () => {
       toast.error('Failed to log out device');
     } finally {
       setRevoking(null);
+    }
+  };
+
+  const handleScannerClose = (open: boolean) => {
+    setScannerOpen(open);
+    if (!open && userId) {
+      // Refresh devices list after scanner closes
+      fetchDevices(userId);
     }
   };
 
@@ -157,6 +170,24 @@ const LinkedDevices = () => {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Link New Device Button */}
+        {isNative ? (
+          <>
+            <Button className="w-full" variant="outline" onClick={() => setScannerOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Link a New Device
+            </Button>
+            <QRLoginScanner open={scannerOpen} onOpenChange={handleScannerClose} />
+          </>
+        ) : (
+          <Button className="w-full" variant="outline" asChild>
+            <a href="/web" target="_blank" rel="noopener noreferrer">
+              <Plus className="h-4 w-4 mr-2" />
+              Open Web Login Page
+            </a>
+          </Button>
         )}
 
         <div className="pt-4 border-t border-border">
