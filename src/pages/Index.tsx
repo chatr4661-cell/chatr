@@ -853,80 +853,80 @@ const Index = () => {
 
         {/* Ecosystem Section */}
         <div className="mt-6">
-          <h2 className="text-2xl font-bold mb-4">
+          <h2 className="text-lg font-bold mb-3">
             <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
           </h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => navigate('/food-ordering')}
-              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
             >
-              <div className="h-full rounded-xl bg-gradient-to-br from-orange-400 to-red-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Utensils className="w-4 h-4 text-white mb-1" />
-                <span className="text-xs text-white text-center font-semibold">Food Ordering</span>
+              <div className="h-16 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
+                <img src="/icons/food.png" alt="Food" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <span className="text-[10px] text-white text-center font-semibold">Food Ordering</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/local-deals')}
-              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
             >
-              <div className="h-full rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Percent className="w-4 h-4 text-white mb-1" />
-                <span className="text-xs text-white text-center font-semibold">Local Deals</span>
+              <div className="h-16 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
+                <img src="/icons/deals.png" alt="Deals" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <span className="text-[10px] text-white text-center font-semibold">Local Deals</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/chatr-plus-subscribe')}
-              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
             >
-              <div className="h-full rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Crown className="w-4 h-4 text-white mb-1" />
-                <span className="text-xs text-white text-center font-semibold">Chatr Premium</span>
+              <div className="h-16 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
+                <img src="/icons/crown.png" alt="Premium" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <span className="text-[10px] text-white text-center font-semibold">Chatr Premium</span>
               </div>
             </button>
           </div>
         </div>
 
         {/* Quick Access Section */}
-        <div className="mt-6 mb-8">
-          <h2 className="text-2xl font-bold mb-4">
+        <div className="mt-4 mb-8">
+          <h2 className="text-lg font-bold mb-3">
             <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
           </h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-2">
             <button
               onClick={() => navigate('/chatr-wallet')}
-              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
             >
-              <div className="h-full rounded-xl bg-gradient-to-br from-green-400 to-teal-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Coins className="w-4 h-4 text-white mb-1" />
-                <span className="text-xs text-white text-center font-semibold">ChatrPay Wallet</span>
+              <div className="h-16 rounded-lg bg-gradient-to-br from-green-400 to-teal-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
+                <img src="/icons/wallet.png" alt="Wallet" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <span className="text-[10px] text-white text-center font-semibold leading-tight">ChatrPay</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/chatr-studio')}
-              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
             >
-              <div className="h-full rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <QrCode className="w-4 h-4 text-white mb-1" />
-                <span className="text-xs text-white text-center font-semibold">Chatr Studio</span>
+              <div className="h-16 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
+                <img src="/icons/studio.png" alt="Studio" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <span className="text-[10px] text-white text-center font-semibold leading-tight">Studio</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/ai-assistant')}
-              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
             >
-              <div className="h-full rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <Bot className="w-4 h-4 text-white mb-1" />
-                <span className="text-xs text-white text-center font-semibold">AI Assistant</span>
+              <div className="h-16 rounded-lg bg-gradient-to-br from-teal-400 to-cyan-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
+                <img src="/icons/ai.png" alt="AI" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <span className="text-[10px] text-white text-center font-semibold leading-tight">AI Assistant</span>
               </div>
             </button>
             <button
               onClick={() => navigate('/emergency-services')}
-              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl col-span-1"
+              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
             >
-              <div className="h-full rounded-xl bg-gradient-to-br from-red-400 to-rose-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg">
-                <AlertTriangle className="w-4 h-4 text-white mb-1" />
-                <span className="text-xs text-white text-center font-semibold">Emergency</span>
+              <div className="h-16 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
+                <img src="/icons/emergency.png" alt="Emergency" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <span className="text-[10px] text-white text-center font-semibold leading-tight">Emergency</span>
               </div>
             </button>
           </div>
