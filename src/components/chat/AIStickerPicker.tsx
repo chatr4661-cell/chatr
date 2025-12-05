@@ -59,12 +59,16 @@ export const AIStickerPicker = ({
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // In a real app, upload to storage first
-      const url = URL.createObjectURL(file);
-      setPhotoUrl(url);
+      // Convert to base64 for AI processing
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setPhotoUrl(base64);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
