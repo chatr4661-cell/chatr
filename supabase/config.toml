@@ -95,3 +95,9 @@ verify_jwt = false
 
 [functions.notify-referral-join]
 verify_jwt = false
+
+[functions.qr-login]
+verify_jwt = false
+
+[functions.generate-sticker]
+verify_jwt = true

@@ -182,6 +182,7 @@ import ChatrResults from "./pages/ChatrResults"; // CHATR Search Results
 import StealthMode from "./pages/StealthMode"; // Stealth Mode Settings
 import ChatrGames from "./pages/ChatrGames"; // CHATR Games Hub
 import JoinInvite from "./pages/JoinInvite"; // Invite Join Page
+import ChatrWeb from "./pages/ChatrWeb"; // QR Login Web Page
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -274,6 +275,7 @@ const App = () => {
             <Route path="/refund" element={<Refund />} />
             <Route path="/disclaimer" element={<Disclaimer />} />
             <Route path="/join" element={<JoinInvite />} />
+            <Route path="/web" element={<ChatrWeb />} />
             
             {/* Consolidated Hub Routes */}
             <Route path="/health" element={<HealthHub />} />

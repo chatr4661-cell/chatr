@@ -5,19 +5,24 @@ import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { PrivacySettings } from "@/components/settings/PrivacySettings";
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 import { ConnectedAccounts } from "@/components/ConnectedAccounts";
+import LinkedDevices from "@/components/settings/LinkedDevices";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, User, Shield, Palette, LogOut, Ghost, Link2 } from "lucide-react";
+import { Bell, User, Shield, Palette, LogOut, Ghost, QrCode } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { SEOHead } from '@/components/SEOHead';
 import { Breadcrumbs } from '@/components/navigation';
+import QRLoginScanner from "@/components/qr/QRLoginScanner";
+import { Capacitor } from "@capacitor/core";
 
 export default function Settings() {
   const [userId, setUserId] = useState<string | undefined>();
+  const [scannerOpen, setScannerOpen] = useState(false);
   const navigate = useNavigate();
+  const isNative = Capacitor.isNativePlatform();
 
   useEffect(() => {
     const getUser = async () => {
@@ -73,6 +78,17 @@ export default function Settings() {
           <TabsContent value="profile" className="mt-6 space-y-6">
             <ProfileSettings userId={userId} />
             <ConnectedAccounts />
+            <LinkedDevices />
+            {isNative && (
+              <Button 
+                variant="outline" 
+                className="w-full gap-2"
+                onClick={() => setScannerOpen(true)}
+              >
+                <QrCode className="h-4 w-4" />
+                Link a New Device
+              </Button>
+            )}
           </TabsContent>
 
           <TabsContent value="notifications" className="mt-6">
@@ -106,6 +122,7 @@ export default function Settings() {
         </div>
       </div>
     </div>
+    <QRLoginScanner open={scannerOpen} onOpenChange={setScannerOpen} />
     </>
   );
 }
