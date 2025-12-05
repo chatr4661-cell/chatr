@@ -473,6 +473,19 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
                     
                     if (!error) {
                       toast({ title: "Referral code applied! You earned 50 coins!" });
+                      
+                      // Notify the inviter that their friend joined
+                      const inviteCode = localStorage.getItem('pending_invite_code');
+                      const inviterRefId = localStorage.getItem('pending_referrer_id');
+                      
+                      supabase.functions.invoke('notify-referral-join', {
+                        body: { 
+                          newUserId: userId,
+                          inviteCode: inviteCode,
+                          referrerId: inviterRefId || referrerId
+                        }
+                      }).catch(err => console.log('Referral notification error:', err));
+                      
                       // Clear localStorage after successful processing
                       localStorage.removeItem('pending_invite_code');
                       localStorage.removeItem('pending_referrer_id');
