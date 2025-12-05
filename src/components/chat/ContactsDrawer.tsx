@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, MessageCircle, UserPlus, Loader2, RefreshCw, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
+import { ShareInviteSheet } from '@/components/ShareInviteSheet';
 import contactsIcon from '@/assets/contacts-icon.png';
 
 interface Contact {
@@ -344,8 +345,7 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
                   {inviteContacts.map(contact => (
                     <div
                       key={contact.id}
-                      onClick={() => handleStartChat(contact)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors border-b"
                     >
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={contact.avatar_url} />
@@ -359,10 +359,16 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
                           {contact.phone || 'Not on Chatr'}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline" className="h-8">
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Invite
-                      </Button>
+                      <ShareInviteSheet 
+                        userId={userId} 
+                        contactName={contact.name}
+                        contactPhone={contact.phone}
+                      >
+                        <Button size="sm" variant="outline" className="h-8">
+                          <UserPlus className="h-4 w-4 mr-1" />
+                          Invite
+                        </Button>
+                      </ShareInviteSheet>
                     </div>
                   ))}
                 </div>
