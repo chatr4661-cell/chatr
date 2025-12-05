@@ -219,10 +219,10 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="pr-8">
           <div className="flex items-center justify-between">
             <DialogTitle>Edit Profile</DialogTitle>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mr-4">
               {saving && (
                 <>
                   <Loader2 className="h-3 w-3 animate-spin" />
