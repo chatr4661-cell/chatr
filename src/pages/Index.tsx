@@ -821,35 +821,44 @@ const Index = () => {
           ))}
         </div>
 
-        {/* Chatr Champions Card */}
-        <ServiceCard
-          icon={Flame}
-          title="Chatr Champions"
-          description="Referral network & earnings dashboard"
-          iconColor="bg-gradient-to-br from-orange-400 to-red-500"
-          route="/chatr-growth"
-          badge="Earn ₹"
-        />
-
-        {/* Chatr Partner Card */}
-        <ServiceCard
-          icon={Users}
-          title="Chatr Partner"
-          description="Join our campus partner program"
-          iconColor="bg-gradient-to-br from-purple-400 to-pink-500"
-          route="/ambassador-program"
-          badge="Apply"
-        />
-
-        {/* Doctor Portal Card */}
-        <ServiceCard
-          icon={Stethoscope}
-          title="Doctor Portal"
-          description="Healthcare provider registration"
-          iconColor="bg-gradient-to-br from-cyan-400 to-blue-500"
-          route="/doctor-onboarding"
-          badge="Join"
-        />
+        {/* Growth Programs Section */}
+        <div className="mt-4">
+          <h2 className="text-lg font-bold mb-3">
+            <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">Growth Programs</span>
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => navigate('/chatr-growth')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="h-full rounded-xl bg-gradient-to-br from-orange-400 to-red-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg relative">
+                <span className="absolute top-1.5 right-1.5 text-[8px] bg-white/20 px-1.5 py-0.5 rounded-full text-white font-medium">Earn ₹</span>
+                <Flame className="w-4 h-4 text-white mb-1" />
+                <span className="text-[10px] text-white text-center font-semibold leading-tight">Chatr Champions</span>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/ambassador-program')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="h-full rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg relative">
+                <span className="absolute top-1.5 right-1.5 text-[8px] bg-white/20 px-1.5 py-0.5 rounded-full text-white font-medium">Apply</span>
+                <Users className="w-4 h-4 text-white mb-1" />
+                <span className="text-[10px] text-white text-center font-semibold leading-tight">Chatr Partner</span>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/doctor-onboarding')}
+              className="aspect-square transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="h-full rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-lg relative">
+                <span className="absolute top-1.5 right-1.5 text-[8px] bg-white/20 px-1.5 py-0.5 rounded-full text-white font-medium">Join</span>
+                <Stethoscope className="w-4 h-4 text-white mb-1" />
+                <span className="text-[10px] text-white text-center font-semibold leading-tight">Doctor Portal</span>
+              </div>
+            </button>
+          </div>
+        </div>
 
         {/* Ecosystem Section */}
         <div className="mt-6">
