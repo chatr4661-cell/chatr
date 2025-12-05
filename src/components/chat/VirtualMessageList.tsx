@@ -115,11 +115,11 @@ export const VirtualMessageList = React.memo(({
           // Debug first 3 messages
           if (index < 3) {
             console.log(`[MSG ${index}]`, {
-              msgId: message.id.substring(0, 8),
+              msgId: message.id?.substring(0, 8),
               senderId: message.sender_id,
               userId: userId,
               isOwn,
-              content: message.content.substring(0, 20)
+              content: message.content?.substring(0, 20) || ''
             });
           }
 

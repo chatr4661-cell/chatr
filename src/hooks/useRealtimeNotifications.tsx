@@ -75,7 +75,7 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
             // Show notification with sender name (clicking opens chat)
             toast({
               title: senderName,
-              description: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : ''),
+              description: (message.content?.substring(0, 50) || '') + ((message.content?.length || 0) > 50 ? '...' : ''),
               duration: 5000,
             });
 
@@ -91,7 +91,7 @@ export const useRealtimeNotifications = (userId: string | undefined) => {
             // Send browser notification only if window is not focused
             if ('Notification' in window && Notification.permission === 'granted' && !document.hasFocus()) {
               const notification = new Notification(`${sender?.username || 'New Message'}`, {
-                body: message.content.substring(0, 100),
+                body: message.content?.substring(0, 100) || 'New message',
                 icon: sender?.avatar_url || '/favicon.png',
                 badge: '/favicon.png',
                 tag: message.conversation_id, // Prevent duplicate notifications for same conversation
