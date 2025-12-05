@@ -164,10 +164,10 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
 
     setLoading(true);
     setError(null);
-    setStep('syncing');
+    // No 'syncing' step - stay on OTP screen with "Verifying..." button
 
     try {
-      // Verify OTP with Firebase
+      // Verify OTP with Firebase (main delay ~1-2s)
       const result = await confirmationResultRef.current.confirm(otp);
       const firebaseUser = result.user;
       
@@ -175,37 +175,33 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
       const password = normalizedPhone;
 
-      // Try signin first (faster for existing users), then signup
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password 
+      // INSTANT: Don't wait for Supabase - fire and forget, let auth state change handle it
+      supabase.auth.signInWithPassword({ email, password }).then(({ error: signInError }) => {
+        if (signInError) {
+          // New user - signup in background
+          supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                phone_number: normalizedPhone,
+                firebase_uid: firebaseUser.uid,
+              }
+            }
+          });
+        }
       });
 
-      if (signInError) {
-        // New user - signup
-        await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              phone_number: normalizedPhone,
-              firebase_uid: firebaseUser.uid,
-            }
-          }
-        });
-      }
-
-      toast({ title: 'Verified! ✅' });
+      // Return success immediately - auth state listener will handle redirect
+      setLoading(false);
       return true;
     } catch (err: any) {
       console.error('[OTP Verify] Error:', err);
       setError(err.code === 'auth/invalid-verification-code' ? 'Invalid code' : 'Verification failed');
-      setStep('otp');
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
-  }, [phoneNumber, toast]);
+  }, [phoneNumber]);
 
   const resendOTP = useCallback(async (): Promise<boolean> => {
     if (countdown > 0) return false;

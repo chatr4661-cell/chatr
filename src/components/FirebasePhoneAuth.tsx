@@ -121,7 +121,6 @@ export const FirebasePhoneAuth: React.FC = () => {
     resendOTP,
     reset,
     phoneNumber: verifiedPhone,
-    isExistingUser,
   } = useFirebasePhoneAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -164,14 +163,12 @@ export const FirebasePhoneAuth: React.FC = () => {
       <Card className="w-full bg-white/90 backdrop-blur-sm border-white/20 shadow-xl">
         <CardHeader className="space-y-2 pb-4">
           <CardTitle className="text-2xl font-bold text-foreground">
-            {step === 'phone' && 'Welcome'}
-            {step === 'otp' && 'Verify Phone'}
-            {step === 'syncing' && 'Signing in...'}
+            {step === 'phone' ? 'Welcome' : 'Verify Phone'}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
-            {step === 'phone' && 'Enter your phone number to continue'}
-            {step === 'otp' && `Enter the 6-digit OTP sent to ${countryCode} ${phoneNumber}`}
-            {step === 'syncing' && 'Please wait...'}
+            {step === 'phone' 
+              ? 'Enter your phone number to continue' 
+              : `Enter the 6-digit OTP sent to ${countryCode} ${phoneNumber}`}
           </CardDescription>
         </CardHeader>
 
@@ -219,7 +216,7 @@ export const FirebasePhoneAuth: React.FC = () => {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    {isExistingUser ? 'Logging in...' : 'Checking...'}
+                    Checking...
                   </>
                 ) : (
                   <>
@@ -293,23 +290,7 @@ export const FirebasePhoneAuth: React.FC = () => {
             </div>
           )}
 
-          {/* Syncing State */}
-          {step === 'syncing' && (
-            <div className="flex flex-col items-center justify-center gap-4 py-8">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-                <Loader2 className="h-12 w-12 animate-spin text-primary relative" />
-              </div>
-              <div className="text-center">
-                <p className="font-medium">
-                  {isExistingUser ? 'Welcome back!' : 'Setting up your account...'}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  This will only take a moment
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Removed syncing state - verification happens inline */}
         </CardContent>
       </Card>
     </>
