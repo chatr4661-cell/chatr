@@ -179,33 +179,21 @@ const Auth = () => {
       logAuthEvent('Auth state changed', { event, userId: session?.user?.id });
       
       if (event === 'SIGNED_IN' && session) {
-        console.log('[AUTH STATE] ✅ User signed in, setting userId and checking profile...');
+        console.log('[AUTH STATE] ✅ User signed in');
         setUserId(session.user.id);
         setGoogleLoading(false);
         
-        // Store provider token for Gmail contacts sync (only available immediately after OAuth)
+        // Store provider token for Gmail contacts sync (fire-and-forget)
         if (session.provider_token) {
-          console.log('[AUTH STATE] 🔑 Storing Google provider token for contacts sync');
           localStorage.setItem('google_provider_token', session.provider_token);
-          
-          // Auto-sync Gmail contacts in background
+          // Background sync - don't await
           supabase.functions.invoke('sync-google-contacts', {
             body: { provider_token: session.provider_token }
-          }).then(response => {
-            if (response.data?.total_imported) {
-              console.log(`[AUTH STATE] ✅ Auto-synced ${response.data.total_imported} Gmail contacts`);
-            }
-          }).catch(err => {
-            console.error('[AUTH STATE] Gmail sync error:', err);
-          });
+          }).catch(() => {});
         }
         
-        // Wait for the trigger to create profile
-        console.log('[AUTH STATE] ⏳ Waiting 2.5s for profile creation...');
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        
-        // Check if profile exists and onboarding status
-        const { data: profile, error: profileError } = await supabase
+        // Quick profile check first (no wait for returning users)
+        const { data: profile } = await supabase
           .from('profiles')
           .select('onboarding_completed, username, email, phone_number')
           .eq('id', session.user.id)
@@ -215,8 +203,7 @@ const Auth = () => {
           profileFound: !!profile,
           onboardingCompleted: profile?.onboarding_completed,
           username: profile?.username,
-          phone: profile?.phone_number,
-          error: profileError?.message
+          phone: profile?.phone_number
         });
         
         if (profile?.onboarding_completed) {
