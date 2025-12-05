@@ -183,6 +183,10 @@ import StealthMode from "./pages/StealthMode"; // Stealth Mode Settings
 import ChatrGames from "./pages/ChatrGames"; // CHATR Games Hub
 import JoinInvite from "./pages/JoinInvite"; // Invite Join Page
 import ChatrWeb from "./pages/ChatrWeb"; // QR Login Web Page
+import DesktopLayout from "./layouts/DesktopLayout"; // Desktop Layout for web.chatr.chat
+import DesktopChat from "./pages/desktop/DesktopChat";
+import DesktopContacts from "./pages/desktop/DesktopContacts";
+import DesktopCalls from "./pages/desktop/DesktopCalls";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -198,16 +202,30 @@ const queryClient = new QueryClient({
   },
 });
 
+// Check if on web subdomain (web.chatr.chat)
+const isWebSubdomain = () => {
+  const hostname = window.location.hostname;
+  return hostname === 'web.chatr.chat' || 
+         hostname.startsWith('web.') || 
+         new URLSearchParams(window.location.search).get('subdomain') === 'web';
+};
+
 // Component to handle subdomain redirect
 const SubdomainRedirect = () => {
   // Check once on mount using useMemo to prevent re-renders
-  const shouldRedirect = React.useMemo(() => {
+  const redirectInfo = React.useMemo(() => {
     const hostname = window.location.hostname;
-    return hostname.startsWith('seller.') && window.location.pathname === '/';
+    if (hostname.startsWith('seller.') && window.location.pathname === '/') {
+      return { to: '/seller/portal', type: 'seller' };
+    }
+    if (isWebSubdomain() && window.location.pathname === '/') {
+      return { to: '/web', type: 'web' };
+    }
+    return null;
   }, []);
 
-  if (shouldRedirect) {
-    return <Navigate to="/seller/portal" replace />;
+  if (redirectInfo) {
+    return <Navigate to={redirectInfo.to} replace />;
   }
 
   return <Index />;
@@ -276,6 +294,16 @@ const App = () => {
             <Route path="/disclaimer" element={<Disclaimer />} />
             <Route path="/join" element={<JoinInvite />} />
             <Route path="/web" element={<ChatrWeb />} />
+            
+            {/* Desktop Layout Routes (web.chatr.chat) */}
+            <Route path="/desktop" element={<DesktopLayout />}>
+              <Route index element={<Navigate to="/desktop/chat" replace />} />
+              <Route path="chat" element={<DesktopChat />} />
+              <Route path="contacts" element={<DesktopContacts />} />
+              <Route path="calls" element={<DesktopCalls />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
             
             {/* Consolidated Hub Routes */}
             <Route path="/health" element={<HealthHub />} />
