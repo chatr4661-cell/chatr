@@ -21,6 +21,7 @@ interface UseFirebasePhoneAuthReturn {
   reset: () => void;
   phoneNumber: string;
   isExistingUser: boolean;
+  recaptchaReady: boolean;
 }
 
 export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
@@ -32,9 +33,33 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const [recaptchaReady, setRecaptchaReady] = useState(false);
   
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+
+  // PRE-INITIALIZE reCAPTCHA on mount for instant OTP
+  useEffect(() => {
+    const initRecaptcha = async () => {
+      try {
+        const container = document.getElementById('recaptcha-container');
+        if (container && !recaptchaVerifierRef.current) {
+          container.innerHTML = '';
+          recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+          });
+          await recaptchaVerifierRef.current.render();
+          setRecaptchaReady(true);
+        }
+      } catch (err) {
+        console.warn('[reCAPTCHA] Pre-init failed, will retry on send');
+      }
+    };
+    
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(initRecaptcha, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -44,7 +69,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   }, [countdown]);
 
   /**
-   * INSTANT CHECK: Single fast query to determine flow
+   * INSTANT CHECK: 1-second timeout for existing user check
    */
   const checkPhoneAndProceed = useCallback(async (phone: string): Promise<boolean> => {
     setLoading(true);
@@ -55,36 +80,35 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
 
     try {
-      // SINGLE INSTANT CHECK: Try login with 2-second timeout
-      const loginPromise = supabase.auth.signInWithPassword({
+      // FAST CHECK: 1-second timeout for instant login
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000);
+      
+      const { data } = await supabase.auth.signInWithPassword({
         email,
         password: normalizedPhone,
       });
       
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('timeout')), 2000)
-      );
-
-      const result = await Promise.race([loginPromise, timeoutPromise]) as any;
+      clearTimeout(timeoutId);
       
-      if (result?.data?.session) {
+      if (data?.session) {
         setIsExistingUser(true);
         toast({ title: 'Welcome back! 👋' });
         setLoading(false);
         return true;
       }
     } catch {
-      // Timeout or failed - proceed to OTP immediately
+      // Continue to OTP
     }
 
-    // Go straight to OTP - no more checks
+    // New user - send OTP immediately
     setIsExistingUser(false);
     return await sendOTP(phone);
   }, [toast]);
 
   const sendOTP = async (phone: string): Promise<boolean> => {
     try {
-      // Initialize reCAPTCHA
+      // Use pre-initialized reCAPTCHA or create new one
       if (!recaptchaVerifierRef.current) {
         const container = document.getElementById('recaptcha-container');
         if (container) container.innerHTML = '';
@@ -98,12 +122,12 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       confirmationResultRef.current = confirmationResult;
       
       setStep('otp');
-      setCountdown(60);
+      setCountdown(30); // Reduced from 60s
       setLoading(false);
       
       toast({
         title: 'OTP Sent! 📱',
-        description: `Code sent to ${phone}`,
+        description: 'Enter the code from SMS',
       });
 
       return true;
@@ -117,8 +141,8 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       if (err.code === 'auth/invalid-phone-number') {
         msg = 'Invalid phone number';
       } else if (err.code === 'auth/too-many-requests') {
-        msg = 'Too many attempts. Please wait 5 minutes or use Google login.';
-        waitTime = 300; // 5 minute cooldown
+        msg = 'Too many attempts. Please wait or use Google login.';
+        waitTime = 180;
       } else if (err.message?.includes('Hostname')) {
         msg = 'Domain not authorized';
       }
@@ -146,16 +170,16 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       const result = await confirmationResultRef.current.confirm(otp);
       const firebaseUser = result.user;
       
-      // Create Supabase account
+      // Create/login Supabase account in parallel
       const normalizedPhone = phoneNumber.replace(/\s/g, '');
       const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
       const password = normalizedPhone;
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // Try signup first, fallback to signin
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
           data: {
             phone_number: normalizedPhone,
             firebase_uid: firebaseUser.uid,
@@ -167,11 +191,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         await supabase.auth.signInWithPassword({ email, password });
       }
 
-      toast({
-        title: 'Verified! ✅',
-        description: 'Account created successfully',
-      });
-
+      toast({ title: 'Verified! ✅' });
       return true;
     } catch (err: any) {
       console.error('[OTP Verify] Error:', err);
@@ -186,6 +206,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   const resendOTP = useCallback(async (): Promise<boolean> => {
     if (countdown > 0) return false;
     recaptchaVerifierRef.current = null;
+    setRecaptchaReady(false);
     return sendOTP(phoneNumber);
   }, [countdown, phoneNumber]);
 
@@ -198,7 +219,6 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     setIsExistingUser(false);
     setFailedAttempts(0);
     confirmationResultRef.current = null;
-    recaptchaVerifierRef.current = null;
   }, []);
 
   return {
@@ -212,5 +232,6 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     reset,
     phoneNumber,
     isExistingUser,
+    recaptchaReady,
   };
 };
