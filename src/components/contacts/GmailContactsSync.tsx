@@ -40,11 +40,12 @@ export const GmailContactsSync: React.FC<GmailContactsSyncProps> = ({
   useEffect(() => {
     loadContacts();
     
-    // Check for stored provider token
+    // Check for stored provider token (from session or localStorage)
     const checkToken = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.provider_token) {
-        setStoredToken(session.provider_token);
+      const token = session?.provider_token || localStorage.getItem('google_provider_token');
+      if (token) {
+        setStoredToken(token);
       }
     };
     checkToken();
@@ -52,14 +53,14 @@ export const GmailContactsSync: React.FC<GmailContactsSyncProps> = ({
 
   // Auto-sync when provider token is available
   useEffect(() => {
-    const token = providerToken || storedToken;
+    const token = providerToken || storedToken || localStorage.getItem('google_provider_token');
     if (token && contacts.length === 0 && !syncing) {
       syncGoogleContacts(token);
     }
   }, [providerToken, storedToken, contacts.length, syncing, syncGoogleContacts]);
 
   const handleSync = async () => {
-    const token = providerToken || storedToken;
+    const token = providerToken || storedToken || localStorage.getItem('google_provider_token');
     if (!token) {
       toast.error('Please login with Google to sync contacts');
       return;
