@@ -183,6 +183,23 @@ const Auth = () => {
         setUserId(session.user.id);
         setGoogleLoading(false);
         
+        // Store provider token for Gmail contacts sync (only available immediately after OAuth)
+        if (session.provider_token) {
+          console.log('[AUTH STATE] 🔑 Storing Google provider token for contacts sync');
+          localStorage.setItem('google_provider_token', session.provider_token);
+          
+          // Auto-sync Gmail contacts in background
+          supabase.functions.invoke('sync-google-contacts', {
+            body: { provider_token: session.provider_token }
+          }).then(response => {
+            if (response.data?.total_imported) {
+              console.log(`[AUTH STATE] ✅ Auto-synced ${response.data.total_imported} Gmail contacts`);
+            }
+          }).catch(err => {
+            console.error('[AUTH STATE] Gmail sync error:', err);
+          });
+        }
+        
         // Wait for the trigger to create profile
         console.log('[AUTH STATE] ⏳ Waiting 2.5s for profile creation...');
         await new Promise(resolve => setTimeout(resolve, 2500));

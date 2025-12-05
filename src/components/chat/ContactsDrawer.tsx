@@ -107,13 +107,15 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session?.provider_token) {
+      // Check session token first, then fallback to stored token
+      const providerToken = session?.provider_token || localStorage.getItem('google_provider_token');
+      
+      if (!providerToken) {
         // Token expired - need re-login
-        toast.error('Session expired. Please re-login with Google to sync contacts.', {
+        toast.error('Please login with Google to sync contacts.', {
           action: {
-            label: 'Re-login',
+            label: 'Login',
             onClick: () => {
-              supabase.auth.signOut();
               window.location.href = '/auth';
             }
           },
@@ -123,7 +125,7 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
       }
 
       const response = await supabase.functions.invoke('sync-google-contacts', {
-        body: { provider_token: session.provider_token }
+        body: { provider_token: providerToken }
       });
 
       if (response.error) throw response.error;
