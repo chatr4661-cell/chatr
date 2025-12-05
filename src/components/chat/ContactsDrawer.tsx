@@ -9,6 +9,7 @@ import { Search, MessageCircle, UserPlus, Loader2, RefreshCw, Smartphone } from 
 import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
 import { ShareInviteSheet } from '@/components/ShareInviteSheet';
+import { ReferralStats } from '@/components/ReferralStats';
 import contactsIcon from '@/assets/contacts-icon.png';
 
 interface Contact {
@@ -293,7 +294,12 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
             </div>
           ) : (
             <div>
-              {/* Stats */}
+              {/* Referral Stats */}
+              <div className="p-3 border-b">
+                <ReferralStats userId={userId} />
+              </div>
+
+              {/* Contact Stats */}
               <div className="px-4 py-2 bg-muted/20 text-xs text-muted-foreground">
                 {contacts.length} contacts • {onChatrContacts.length} on Chatr
               </div>
