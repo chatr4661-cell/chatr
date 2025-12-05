@@ -164,40 +164,52 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
 
     setLoading(true);
     setError(null);
-    // No 'syncing' step - stay on OTP screen with "Verifying..." button
 
     try {
-      // Verify OTP with Firebase (main delay ~1-2s)
+      // Step 1: Verify OTP with Firebase (~1-2s)
       const result = await confirmationResultRef.current.confirm(otp);
       const firebaseUser = result.user;
       
       const normalizedPhone = phoneNumber.replace(/\s/g, '');
-      const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
-      const password = normalizedPhone;
 
-      // INSTANT: Don't wait for Supabase - fire and forget, let auth state change handle it
-      supabase.auth.signInWithPassword({ email, password }).then(({ error: signInError }) => {
-        if (signInError) {
-          // New user - signup in background
-          supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                phone_number: normalizedPhone,
-                firebase_uid: firebaseUser.uid,
-              }
-            }
-          });
+      // Step 2: Use edge function to handle Supabase auth (handles password mismatch)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/firebase-phone-auth`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            phone_number: normalizedPhone,
+            firebase_uid: firebaseUser.uid,
+          }),
         }
-      });
+      );
 
-      // Return success immediately - auth state listener will handle redirect
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || 'Authentication failed');
+      }
+
+      // Set the session in Supabase client
+      if (data.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+
       setLoading(false);
       return true;
     } catch (err: any) {
       console.error('[OTP Verify] Error:', err);
-      setError(err.code === 'auth/invalid-verification-code' ? 'Invalid code' : 'Verification failed');
+      const msg = err.code === 'auth/invalid-verification-code' 
+        ? 'Invalid code. Please check and try again.' 
+        : err.message || 'Verification failed';
+      setError(msg);
       setLoading(false);
       return false;
     }
