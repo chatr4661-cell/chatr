@@ -2,48 +2,74 @@ import * as React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Copy, Check, Share2, MessageSquare, Smartphone } from 'lucide-react';
+import { MessageCircle, Copy, Check, Share2, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { generateInviteCode } from '@/utils/inviteLinkGenerator';
 
 interface ShareInviteSheetProps {
   userId: string;
   contactName?: string;
   contactPhone?: string;
+  contactEmail?: string;
   children: React.ReactNode;
 }
 
-export const ShareInviteSheet = ({ userId, contactName, contactPhone, children }: ShareInviteSheetProps) => {
+export const ShareInviteSheet = ({ userId, contactName, contactPhone, contactEmail, children }: ShareInviteSheetProps) => {
   const [open, setOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
-  const referralLink = `https://chatr.chat/join?ref=${userId}`;
+  const inviteCode = React.useMemo(() => generateInviteCode(), []);
+  const referralLink = `https://chatr.chat/join?invite=${inviteCode}&ref=${userId}`;
   const inviteMessage = `Hey${contactName ? ` ${contactName}` : ''}! Join me on Chatr - India's super app for messaging, jobs, healthcare & more. Download now: ${referralLink}`;
+
+  const trackInvite = async (method: string) => {
+    try {
+      await supabase.from('contact_invites').upsert({
+        inviter_id: userId,
+        contact_phone: contactPhone || null,
+        contact_email: contactEmail || null,
+        contact_name: contactName || null,
+        invite_method: method,
+        invite_code: inviteCode,
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+      }, {
+        onConflict: 'invite_code',
+      });
+    } catch (error) {
+      console.error('Failed to track invite:', error);
+    }
+  };
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);
       toast.success('Link copied to clipboard!');
+      await trackInvite('copy');
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Failed to copy link');
     }
   };
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     const phoneNumber = contactPhone?.replace(/\D/g, '') || '';
     const url = phoneNumber 
       ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(inviteMessage)}`
       : `https://wa.me/?text=${encodeURIComponent(inviteMessage)}`;
+    await trackInvite('whatsapp');
     window.open(url, '_blank');
     setOpen(false);
   };
 
-  const handleSMS = () => {
+  const handleSMS = async () => {
     const phoneNumber = contactPhone?.replace(/\D/g, '') || '';
     const url = phoneNumber
       ? `sms:${phoneNumber}?body=${encodeURIComponent(inviteMessage)}`
       : `sms:?body=${encodeURIComponent(inviteMessage)}`;
+    await trackInvite('sms');
     window.open(url, '_blank');
     setOpen(false);
   };
@@ -56,6 +82,7 @@ export const ShareInviteSheet = ({ userId, contactName, contactPhone, children }
           text: inviteMessage,
           url: referralLink,
         });
+        await trackInvite('native_share');
         setOpen(false);
       } catch (err) {
         // User cancelled or share failed
