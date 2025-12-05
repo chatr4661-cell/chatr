@@ -92,3 +92,6 @@ verify_jwt = true
 
 [functions.cleanup-expired-messages]
 verify_jwt = false
+
+[functions.notify-referral-join]
+verify_jwt = false
