@@ -386,34 +386,22 @@ const UniversalSearch = () => {
             </div>
           )}
 
-          {/* AI Intent Banner */}
-          {aiIntent && (
-            <div className="mt-3 p-3 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
-              <div className="flex items-start gap-2">
-                <Sparkles className="w-4 h-4 text-primary mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium mb-1">
-                    AI understands: {aiIntent.intent}
-                  </p>
-                  {aiIntent.suggestions && (
-                    <div className="flex flex-wrap gap-1">
-                      {aiIntent.suggestions.slice(0, 3).map((suggestion: string, i: number) => (
-                        <Badge 
-                          key={i}
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground"
-                          onClick={() => {
-                            setSearchQuery(suggestion);
-                            performSearch(suggestion);
-                          }}
-                        >
-                          {suggestion}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+          {/* AI Intent Banner - only show suggestions, not redundant text */}
+          {aiIntent && aiIntent.suggestions && !loading && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {aiIntent.suggestions.slice(0, 3).map((suggestion: string, i: number) => (
+                <Badge 
+                  key={i}
+                  variant="outline" 
+                  className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                  onClick={() => {
+                    setSearchQuery(suggestion);
+                    performSearch(suggestion);
+                  }}
+                >
+                  {suggestion}
+                </Badge>
+              ))}
             </div>
           )}
         </div>
