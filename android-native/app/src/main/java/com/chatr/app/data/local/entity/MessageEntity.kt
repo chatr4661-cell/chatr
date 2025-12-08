@@ -14,6 +14,7 @@ data class MessageEntity(
     val timestamp: Long,
     val type: String = "TEXT",
     val status: String = "SENT",
+    val syncStatus: SyncStatus = SyncStatus.SYNCED,
     val replyTo: String? = null,
     val mediaUrl: String? = null,
     val deliveredAt: Long? = null,

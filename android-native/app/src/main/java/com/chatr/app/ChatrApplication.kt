@@ -6,10 +6,11 @@ import android.app.NotificationManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import androidx.work.WorkManager
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 /**
  * Application class for Chatr+
@@ -18,10 +19,13 @@ import dagger.hilt.android.HiltAndroidApp
  * - Hilt dependency injection
  * - Firebase services
  * - Notification channels
- * - WorkManager for background tasks
+ * - WorkManager for background tasks with HiltWorkerFactory
  */
 @HiltAndroidApp
 class ChatrApplication : Application(), Configuration.Provider {
+    
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
     
     override fun onCreate() {
         super.onCreate()
@@ -31,13 +35,11 @@ class ChatrApplication : Application(), Configuration.Provider {
         
         // Create notification channels (Android 8.0+)
         createNotificationChannels()
-        
-        // Initialize WorkManager
-        WorkManager.initialize(this, workManagerConfiguration)
     }
     
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
             .setMinimumLoggingLevel(android.util.Log.INFO)
             .build()
     

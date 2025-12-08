@@ -38,6 +38,11 @@ android {
         buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "https://sbayuqgomlflmxgicplz.supabase.co")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiYXl1cWdvbWxmbG14Z2ljcGx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTc2MDAsImV4cCI6MjA3NDk5MzYwMH0.gVSObpMtsv5W2nuLBHKT8G1_hXIprWXdn5l7Bnnj7jw")}\"")
         buildConfigField("String", "WEB_BASE_URL", "\"https://chatr.chat\"")
+        
+        // KSP arguments for Room schema export
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
     }
 
     buildTypes {
@@ -105,12 +110,12 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Hilt DI - Using KSP (not kapt)
+    // Hilt DI - KSP ONLY (no kapt)
     implementation("com.google.dagger:hilt-android:2.51.1")
     ksp("com.google.dagger:hilt-compiler:2.51.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     
-    // Hilt WorkManager integration
+    // Hilt WorkManager integration - KSP ONLY
     implementation("androidx.hilt:hilt-work:1.2.0")
     ksp("androidx.hilt:hilt-compiler:1.2.0")
 
@@ -127,13 +132,13 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
 
-    // WebRTC - Official SDK from Maven Central (io.github.webrtc-sdk)
+    // WebRTC - Official SDK from Maven Central
     implementation("io.github.webrtc-sdk:android:125.6422.06.1")
 
     // WebView
     implementation("androidx.webkit:webkit:1.10.0")
 
-    // Room Database
+    // Room Database - KSP ONLY (no kapt)
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
@@ -166,6 +171,17 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
+    
+    // Gson for JSON serialization (used in TypeConverters)
+    implementation("com.google.code.gson:gson:2.10.1")
+    
+    // Retrofit for API calls
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    
+    // Security for encrypted preferences
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
