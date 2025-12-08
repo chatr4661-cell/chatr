@@ -376,44 +376,40 @@ async function searchDuckDuckGo(
     if (htmlResponse.ok) {
       const html = await htmlResponse.text();
       
-      // Find all result__a links with their titles and extract URLs
-      const resultPattern = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]*(?:<[^>]+>[^<]*)*)<\/a>/gi;
-      const snippetPattern = /<a[^>]*class="result__snippet"[^>]*>([^<]*(?:<[^>]+>[^<]*)*)<\/a>/gi;
+      // Split HTML by result blocks - each result is in a div with class "result results_links"
+      const resultBlocks = html.split('class="result results_links');
+      console.log(`Found ${resultBlocks.length - 1} result blocks`);
       
-      const urlMatches = [...html.matchAll(resultPattern)];
-      const snippetMatches = [...html.matchAll(snippetPattern)];
-      
-      console.log(`Found ${urlMatches.length} result__a matches`);
-      
-      for (let i = 0; i < urlMatches.length && results.length < 15; i++) {
-        const match = urlMatches[i];
-        let url = match[1];
+      for (let i = 1; i < resultBlocks.length && results.length < 15; i++) {
+        const block = resultBlocks[i];
         
-        // Handle uddg redirect if present, otherwise use direct URL
-        if (url.includes('uddg=')) {
-          const uddgMatch = url.match(/uddg=([^&]+)/);
-          if (uddgMatch) {
-            url = decodeURIComponent(uddgMatch[1]);
-          }
-        }
+        // Extract URL and title from result__a link
+        // Pattern: class="result__a" href="URL">Title</a>
+        const titleMatch = block.match(/class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]+)/i);
+        if (!titleMatch) continue;
         
-        // Skip invalid URLs
-        if (!url.startsWith('http') || url.includes('duckduckgo.com')) continue;
+        let url = titleMatch[1];
+        const title = decodeHTMLEntities(titleMatch[2].trim());
         
-        // Extract title from match
-        const title = decodeHTMLEntities(match[2].replace(/<[^>]+>/g, '').trim());
+        // Skip if no valid title
         if (!title || title.length < 3) continue;
         
-        // Get corresponding snippet
-        const snippet = snippetMatches[i] 
-          ? decodeHTMLEntities(snippetMatches[i][1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
-          : title;
+        // Skip duckduckgo internal URLs
+        if (url.includes('duckduckgo.com') && !url.startsWith('http')) continue;
+        if (!url.startsWith('http')) continue;
+        
+        // Extract snippet from result__snippet
+        const snippetMatch = block.match(/class="result__snippet"[^>]*>([^<]+(?:<b>[^<]*<\/b>[^<]*)*)/i);
+        let snippet = title;
+        if (snippetMatch) {
+          snippet = decodeHTMLEntities(snippetMatch[1].replace(/<[^>]+>/g, '').trim());
+        }
         
         try {
           const domain = new URL(url).hostname;
           results.push({
             title,
-            snippet,
+            snippet: snippet || title,
             url,
             displayUrl: domain,
             faviconUrl: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
