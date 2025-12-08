@@ -166,12 +166,19 @@ serve(async (req) => {
           const detectedType = classifyResult(query, item);
           const score = calculateScore(item, index, query, effectiveLat, effectiveLon);
           
+          // Extract best available image from pagemap
+          const image = item.pagemap?.cse_image?.[0]?.src || 
+                       item.pagemap?.cse_thumbnail?.[0]?.src ||
+                       item.pagemap?.metatags?.[0]?.['og:image'] ||
+                       null;
+          
           return {
             title: item.title,
             snippet: item.snippet,
             url: item.link,
             displayUrl: item.displayLink,
-            faviconUrl: item.pagemap?.cse_image?.[0]?.src || null,
+            faviconUrl: image,
+            image: image,
             source: 'google',
             detectedType,
             score,
@@ -229,17 +236,18 @@ serve(async (req) => {
       console.error('Failed to log search:', logErr);
     }
 
-    // Call AI answer function
-    let aiAnswer: { text: string | null; sources: string[] } = { text: null, sources: [] };
+    // Call AI answer function with images for richer response
+    let aiAnswer: { text: string | null; sources: any[]; images: any[] } = { text: null, sources: [], images: [] };
     
     try {
       const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-answer', {
         body: {
           query,
-          results: results.slice(0, 5).map((r) => ({
+          results: results.slice(0, 8).map((r: any) => ({
             title: r.title,
             snippet: r.snippet,
-            url: r.url
+            url: r.url,
+            image: r.image
           })),
           location: effectiveLat && effectiveLon ? { lat: effectiveLat, lon: effectiveLon, city: effectiveCity } : null
         }
@@ -248,7 +256,8 @@ serve(async (req) => {
       if (!aiError && aiData) {
         aiAnswer = {
           text: aiData.text || null,
-          sources: aiData.sources || []
+          sources: aiData.sources || [],
+          images: aiData.images || []
         };
       }
     } catch (aiErr) {

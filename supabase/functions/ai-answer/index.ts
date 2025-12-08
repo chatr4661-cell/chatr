@@ -11,10 +11,12 @@ interface AIAnswerRequest {
     title: string;
     snippet: string;
     url: string;
+    image?: string;
   }>;
   location?: {
     lat: number | null;
     lon: number | null;
+    city?: string;
   };
 }
 
@@ -28,7 +30,7 @@ serve(async (req) => {
 
     if (!query || !results || results.length === 0) {
       return new Response(
-        JSON.stringify({ text: null, sources: [] }),
+        JSON.stringify({ text: null, sources: [], images: [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -38,28 +40,45 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Build context from search results
+    // Build context from search results with source attribution
     const contextText = results
-      .slice(0, 5)
-      .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}\nURL: ${r.url}`)
+      .slice(0, 8)
+      .map((r, i) => `[Source ${i + 1}: ${new URL(r.url).hostname}]\nTitle: ${r.title}\nContent: ${r.snippet}`)
       .join('\n\n');
 
-    const locationContext = location?.lat && location?.lon
-      ? `\nUser Location: approximately ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`
+    const locationContext = location?.city 
+      ? `\nUser is searching from: ${location.city}`
       : '';
 
-    const systemPrompt = `You are CHATR Search AI assistant. Your job is to provide a concise, helpful answer to the user's search query based on the web search results provided.
+    // Extract images from results
+    const images = results
+      .filter(r => r.image)
+      .slice(0, 4)
+      .map(r => ({ url: r.image!, source: new URL(r.url).hostname }));
 
-Guidelines:
-- Synthesize information from multiple sources when relevant
-- Be direct and factual
-- If the query is location-specific and location data is available, prioritize local results
-- Keep answers under 150 words
-- Cite sources by mentioning the website name (not URLs) when making specific claims
-- If results are insufficient, acknowledge what's missing
+    // Perplexity-style system prompt for rich, informative content
+    const systemPrompt = `You are an expert AI search assistant that provides comprehensive, well-researched answers in the style of Perplexity AI.
 
-Search Results:
-${contextText}${locationContext}`;
+RESPONSE FORMAT:
+1. Start with a clear, engaging opening paragraph that directly answers the query (2-3 sentences)
+2. Add relevant sections with headers when appropriate (use ## for headers)
+3. Use inline citations like "according to Wikipedia" or "as noted on britannica.com" - NO bracketed numbers
+4. Write in flowing prose, not bullet points
+5. Include specific facts, dates, statistics when available
+6. End with a brief conclusion or key takeaway
+
+STYLE GUIDELINES:
+- Write naturally like a knowledgeable friend explaining something
+- Be comprehensive but concise (200-350 words)
+- Bold important terms or names using **term**
+- Use paragraph breaks for readability
+- Cite sources naturally within sentences, not at the end
+- If it's a location/place query, include geography, demographics, notable features
+
+Search Results Context:
+${contextText}${locationContext}
+
+Remember: Write like Perplexity - informative, flowing prose with natural source citations.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -71,34 +90,56 @@ ${contextText}${locationContext}`;
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: query },
+          { role: 'user', content: `Provide a comprehensive answer about: ${query}` },
         ],
-        temperature: 0.7,
-        max_tokens: 300,
+        temperature: 0.6,
+        max_tokens: 600,
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limited', text: null, sources: [], images: [] }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'Credits depleted', text: null, sources: [], images: [] }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       const errorText = await response.text();
       console.error('AI API error:', response.status, errorText);
       return new Response(
-        JSON.stringify({ text: null, sources: [] }),
+        JSON.stringify({ text: null, sources: [], images: [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const data = await response.json();
     const aiText = data.choices?.[0]?.message?.content || null;
-    const sources = results.slice(0, 3).map(r => r.url);
+    
+    // Extract source information
+    const sources = results.slice(0, 6).map(r => ({
+      title: r.title,
+      url: r.url,
+      domain: new URL(r.url).hostname.replace('www.', '')
+    }));
 
     return new Response(
-      JSON.stringify({ text: aiText, sources }),
+      JSON.stringify({ 
+        text: aiText, 
+        sources,
+        images 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('AI answer error:', error);
     return new Response(
-      JSON.stringify({ text: null, sources: [] }),
+      JSON.stringify({ text: null, sources: [], images: [] }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

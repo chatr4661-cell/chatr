@@ -5,178 +5,194 @@ import { cn } from '@/lib/utils';
 interface Source {
   title?: string;
   url?: string;
+  domain?: string;
   favicon?: string;
+}
+
+interface ImageSource {
+  url: string;
+  source: string;
 }
 
 interface AISummaryContentProps {
   content: string;
   sources?: Source[];
+  images?: ImageSource[];
   className?: string;
 }
 
-// Parse and clean AI-generated content for beautiful rendering
+// Parse Perplexity-style AI content with sections and formatting
 const parseAIContent = (text: string): React.ReactNode[] => {
   if (!text) return [];
   
   const elements: React.ReactNode[] = [];
   
-  // Split by double newlines to get paragraphs
-  const sections = text.split(/\n\n+/);
+  // Split by section headers (## Header)
+  const sectionRegex = /^##\s*(.+)$/gm;
+  const parts = text.split(sectionRegex);
   
-  sections.forEach((section, sectionIdx) => {
-    const trimmed = section.trim();
-    if (!trimmed) return;
+  let keyIdx = 0;
+  
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim();
+    if (!part) continue;
     
-    // Check if this is a list section (starts with * or - or numbered)
-    const lines = trimmed.split('\n');
-    const isList = lines.some(line => /^[\*\-•]\s|^\d+\.\s/.test(line.trim()));
+    // Check if this is a header (odd index after split)
+    const isAfterHeader = i > 0 && i % 2 === 1;
     
-    if (isList) {
-      const listItems: React.ReactNode[] = [];
-      let currentParagraph = '';
-      
-      lines.forEach((line, lineIdx) => {
-        const cleanLine = line.trim();
-        
-        // Check if it's a list item
-        const listMatch = cleanLine.match(/^[\*\-•]\s*(.+)|^(\d+)\.\s*(.+)/);
-        
-        if (listMatch) {
-          // Flush any pending paragraph
-          if (currentParagraph) {
-            elements.push(
-              <p key={`p-${sectionIdx}-pre`} className="text-foreground leading-relaxed mb-3">
-                {cleanMarkdown(currentParagraph)}
-              </p>
-            );
-            currentParagraph = '';
-          }
-          
-          // Extract the list item content
-          const itemContent = listMatch[1] || listMatch[3] || '';
-          listItems.push(
-            <li key={`li-${sectionIdx}-${lineIdx}`} className="text-foreground leading-relaxed">
-              {cleanMarkdown(itemContent)}
-            </li>
-          );
-        } else if (cleanLine) {
-          // It's a paragraph line
-          currentParagraph += (currentParagraph ? ' ' : '') + cleanLine;
-        }
-      });
-      
-      // Flush pending paragraph
-      if (currentParagraph) {
-        elements.push(
-          <p key={`p-${sectionIdx}-post`} className="text-foreground leading-relaxed mb-3">
-            {cleanMarkdown(currentParagraph)}
-          </p>
-        );
-      }
-      
-      // Add the list
-      if (listItems.length > 0) {
-        elements.push(
-          <ul key={`ul-${sectionIdx}`} className="space-y-2 mb-4 ml-1">
-            {listItems}
-          </ul>
-        );
-      }
-    } else {
-      // Check if it looks like a section header
-      const isHeader = /^[A-Z][^.!?]*:?$/.test(trimmed) && trimmed.length < 60;
-      
-      if (isHeader) {
-        elements.push(
-          <h4 key={`h-${sectionIdx}`} className="font-semibold text-foreground mt-4 mb-2">
-            {trimmed.replace(/:$/, '')}
-          </h4>
-        );
-      } else {
-        // Regular paragraph - clean up and join lines
-        const cleanText = lines.map(l => l.trim()).join(' ');
-        elements.push(
-          <p key={`p-${sectionIdx}`} className="text-foreground leading-relaxed mb-3">
-            {cleanMarkdown(cleanText)}
-          </p>
-        );
-      }
+    if (isAfterHeader && parts[i - 1] === '') {
+      // This is a section header
+      elements.push(
+        <h3 key={`h-${keyIdx++}`} className="font-semibold text-foreground text-base mt-5 mb-2">
+          {part}
+        </h3>
+      );
+      continue;
     }
-  });
+    
+    // Check for section header pattern
+    if (/^[A-Z][a-zA-Z\s]+$/.test(part) && part.length < 50) {
+      elements.push(
+        <h3 key={`h-${keyIdx++}`} className="font-semibold text-foreground text-base mt-5 mb-2">
+          {part}
+        </h3>
+      );
+      continue;
+    }
+    
+    // Split content by paragraphs
+    const paragraphs = part.split(/\n\n+/);
+    
+    paragraphs.forEach((para) => {
+      const trimmed = para.trim();
+      if (!trimmed) return;
+      
+      // Check if it's a section header on its own line
+      if (/^##\s*/.test(trimmed)) {
+        const headerText = trimmed.replace(/^##\s*/, '');
+        elements.push(
+          <h3 key={`h-${keyIdx++}`} className="font-semibold text-foreground text-base mt-5 mb-2">
+            {headerText}
+          </h3>
+        );
+        return;
+      }
+      
+      // Regular paragraph with inline formatting
+      elements.push(
+        <p key={`p-${keyIdx++}`} className="text-foreground leading-[1.7] mb-4">
+          {renderInlineFormatting(trimmed)}
+        </p>
+      );
+    });
+  }
   
   return elements;
 };
 
-// Clean markdown artifacts and render inline formatting
-const cleanMarkdown = (text: string): React.ReactNode => {
+// Render inline formatting (bold, italics, links)
+const renderInlineFormatting = (text: string): React.ReactNode => {
   if (!text) return null;
   
-  // Remove ** markers and convert to clean text with emphasis
-  // Pattern: **text** or *text*
   const parts: React.ReactNode[] = [];
   let remaining = text;
-  let keyIdx = 0;
+  let idx = 0;
   
-  // Handle bold: **text**
+  // Process bold text: **text**
   const boldRegex = /\*\*([^*]+)\*\*/g;
   let lastIndex = 0;
   let match;
   
-  // First, replace all markdown with clean formatting
-  let cleaned = text
-    // Remove double asterisks (bold)
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    // Remove single asterisks (italic)
-    .replace(/\*([^*]+)\*/g, '$1')
-    // Remove underscores for emphasis
-    .replace(/_([^_]+)_/g, '$1')
-    // Remove backticks
-    .replace(/`([^`]+)`/g, '$1')
-    // Clean up citation markers like [1] [2]
-    .replace(/\[(\d+)\]/g, ' ')
-    // Remove excess whitespace
-    .replace(/\s+/g, ' ')
-    .trim();
+  const processedText = text.replace(boldRegex, (_, content) => `<b>${content}</b>`);
   
-  return cleaned;
+  // Now split by bold markers and render
+  const segments = processedText.split(/(<b>.*?<\/b>)/g);
+  
+  return segments.map((segment, i) => {
+    if (segment.startsWith('<b>') && segment.endsWith('</b>')) {
+      const content = segment.slice(3, -4);
+      return <strong key={i} className="font-semibold">{content}</strong>;
+    }
+    // Clean remaining markdown
+    const cleaned = segment
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[(\d+)\]/g, '');
+    return cleaned;
+  });
 };
 
 export const AISummaryContent: React.FC<AISummaryContentProps> = ({
   content,
   sources = [],
+  images = [],
   className
 }) => {
   const parsedContent = parseAIContent(content);
   
   return (
     <div className={cn("space-y-1", className)}>
-      {/* Main content */}
-      <div className="text-[15px]">
+      {/* Images gallery - Perplexity style */}
+      {images && images.length > 0 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+          {images.slice(0, 2).map((img, idx) => (
+            <div 
+              key={idx} 
+              className="relative flex-shrink-0 rounded-lg overflow-hidden bg-muted"
+              style={{ width: idx === 0 ? '60%' : '38%', aspectRatio: '16/10' }}
+            >
+              <img 
+                src={img.url} 
+                alt=""
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Main content - Perplexity-style flowing prose */}
+      <div className="text-[15px] text-foreground">
         {parsedContent}
       </div>
       
-      {/* Inline source citations */}
+      {/* Inline source citations - compact like Perplexity */}
       {sources.length > 0 && (
-        <div className="pt-4 border-t border-border/30 mt-4">
-          <p className="text-xs text-muted-foreground mb-2">Sources:</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {sources.slice(0, 6).map((source, idx) => 
-              source.url ? (
+        <div className="pt-3 mt-4 border-t border-border/20">
+          <div className="flex flex-wrap items-center gap-2">
+            {sources.slice(0, 5).map((source, idx) => {
+              if (!source.url) return null;
+              
+              let domain = source.domain || 'source';
+              try {
+                if (!source.domain && source.url) {
+                  domain = new URL(source.url).hostname.replace('www.', '');
+                }
+              } catch {}
+              
+              // Get short domain name for display
+              const shortDomain = domain.split('.')[0];
+              
+              return (
                 <a
                   key={idx}
                   href={source.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-muted/50 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <span className="text-primary font-medium">[{idx + 1}]</span>
-                  <span className="truncate max-w-[150px]">
-                    {source.title?.split(' ').slice(0, 4).join(' ') || 'Source'}
-                  </span>
-                  <ExternalLink className="w-2.5 h-2.5 flex-shrink-0" />
+                  <span>{shortDomain}</span>
+                  {sources.length > 1 && idx < sources.length - 1 && (
+                    <span className="text-muted-foreground/50">+{sources.length - idx - 1}</span>
+                  )}
                 </a>
-              ) : null
-            )}
+              );
+            }).filter(Boolean).slice(0, 3)}
           </div>
         </div>
       )}
