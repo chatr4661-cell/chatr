@@ -3,6 +3,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        maven("https://jitpack.io")
     }
 }
 
@@ -11,13 +12,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
-        maven { url = uri("https://raw.githubusercontent.com/aspect-build/aspect-model-maven-repo/main") }
-        maven { 
-            url = uri("https://raw.githubusercontent.com/aspect-build/aspect-model-maven-repo/main")
-        }
+        maven("https://jitpack.io")
     }
 }
 
-rootProject.name = "CHATR"
+rootProject.name = "chatr"
 include(":app")
