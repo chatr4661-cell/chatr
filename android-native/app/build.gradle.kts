@@ -182,6 +182,12 @@ dependencies {
     
     // Security for encrypted preferences
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    
+    // Biometric authentication
+    implementation("androidx.biometric:biometric:1.1.0")
+    
+    // ExifInterface for image metadata
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

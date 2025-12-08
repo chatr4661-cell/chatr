@@ -104,6 +104,9 @@ interface ChatrApi {
     // ==================== DEVICE ====================
     @POST("device/register")
     suspend fun registerDevice(@Body request: DeviceRegistrationRequest): Response<Unit>
+    
+    @POST("device/unregister")
+    suspend fun unregisterDevice(@Body request: DeviceUnregisterRequest): Response<Unit>
 }
 
 // Request/Response models
@@ -165,7 +168,12 @@ data class EditMessageRequest(val content: String)
 data class ReactionRequest(val emoji: String)
 
 data class DeviceRegistrationRequest(
-    val userId: String,
+    val userId: String? = null,
     val fcmToken: String,
-    val platform: String = "android"
+    val platform: String = "android",
+    val deviceModel: String? = null
+)
+
+data class DeviceUnregisterRequest(
+    val fcmToken: String
 )

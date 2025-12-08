@@ -15,7 +15,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chatr.app.ui.theme.*
+import com.chatr.app.ui.theme.Primary
+import com.chatr.app.ui.theme.Foreground
+import com.chatr.app.ui.theme.Card as CardColor
 
 @Composable
 fun EcosystemCard(
@@ -31,7 +33,7 @@ fun EcosystemCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Card
+            containerColor = CardColor
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp
@@ -43,8 +45,8 @@ fun EcosystemCard(
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Card,
-                            Card.copy(alpha = 0.8f)
+                            CardColor,
+                            CardColor.copy(alpha = 0.8f)
                         )
                     )
                 )

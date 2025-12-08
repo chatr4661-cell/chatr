@@ -1,35 +1,33 @@
 package com.chatr.app.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import com.chatr.app.R
 import com.chatr.app.ui.theme.*
 
 data class BottomNavItem(
     val label: String,
-    val icon: Int,
     val route: String
 )
 
 @Composable
-fun ChatrBottomNavigation(
+fun ChatrBottomNav(
     selectedRoute: String,
     onNavigate: (String) -> Unit
 ) {
     val items = listOf(
-        BottomNavItem("Contacts", R.drawable.ic_contacts, "contacts"),
-        BottomNavItem("Calls", R.drawable.ic_calls, "calls"),
-        BottomNavItem("Chats", R.drawable.ic_chats, "chats"),
-        BottomNavItem("Settings", R.drawable.ic_settings, "settings")
+        BottomNavItem("Contacts", "contacts"),
+        BottomNavItem("Calls", "calls"),
+        BottomNavItem("Chats", "chats"),
+        BottomNavItem("Settings", "settings")
     )
 
     NavigationBar(
-        containerColor = BackgroundSecondary,
+        containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
         items.forEach { item ->
@@ -38,7 +36,13 @@ fun ChatrBottomNavigation(
                 onClick = { onNavigate(item.route) },
                 icon = {
                     Icon(
-                        imageVector = ImageVector.vectorResource(item.icon),
+                        imageVector = when (item.route) {
+                            "contacts" -> Icons.Default.Contacts
+                            "calls" -> Icons.Default.Phone
+                            "chats" -> Icons.Default.Chat
+                            "settings" -> Icons.Default.Settings
+                            else -> Icons.Default.Home
+                        },
                         contentDescription = item.label
                     )
                 },
@@ -49,11 +53,10 @@ fun ChatrBottomNavigation(
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Primary,
-                    selectedTextColor = Primary,
-                    unselectedIconColor = MutedForeground,
-                    unselectedTextColor = MutedForeground,
-                    indicatorColor = Muted
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
