@@ -2,16 +2,25 @@ package com.chatr.app.contacts
 
 import android.content.Context
 import android.provider.ContactsContract
+import androidx.hilt.work.HiltWorker
 import androidx.work.*
-import com.google.gson.Gson
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ContactsSyncManager(private val context: Context) {
-    
-    private val gson = Gson()
+@Singleton
+class ContactsSyncManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
     
     fun schedulePeriodicSync() {
         val constraints = Constraints.Builder()
@@ -66,9 +75,9 @@ class ContactsSyncManager(private val context: Context) {
             val idIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
             
             while (it.moveToNext()) {
-                val name = it.getString(nameIndex)
-                val number = it.getString(numberIndex)
-                val id = it.getString(idIndex)
+                val name = it.getString(nameIndex) ?: ""
+                val number = it.getString(numberIndex) ?: continue
+                val id = it.getString(idIndex) ?: continue
                 
                 contacts.add(RawContact(id, name, number))
             }
@@ -127,39 +136,41 @@ class ContactsSyncManager(private val context: Context) {
     
     private fun uploadContacts(contacts: List<HashedContact>) {
         // Upload to backend
-        val json = gson.toJson(contacts)
-        
+        val json = Json.encodeToString(contacts)
         // Make API call to backend
-        // Implementation would use OkHttp or similar
+        // Implementation would use Ktor client
     }
 }
 
-class ContactsSyncWorker(
-    context: Context,
-    params: WorkerParameters
-) : CoroutineWorker(context, params) {
+@HiltWorker
+class ContactsSyncWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val contactsSyncManager: ContactsSyncManager
+) : CoroutineWorker(context, workerParams) {
     
     override suspend fun doWork(): Result {
-        val syncManager = ContactsSyncManager(applicationContext)
-        
-        return when (val result = syncManager.syncContacts()) {
+        return when (val result = contactsSyncManager.syncContacts()) {
             is SyncResult.Success -> Result.success()
             is SyncResult.Error -> Result.retry()
         }
     }
 }
 
+@Serializable
 data class RawContact(
     val id: String,
     val name: String,
     val phone: String
 )
 
+@Serializable
 data class NormalizedContact(
     val name: String,
     val phoneNormalized: String
 )
 
+@Serializable
 data class HashedContact(
     val nameHash: String,
     val phoneHash: String
