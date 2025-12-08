@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useAIChatAssistant } from '@/hooks/useAIChatAssistant';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AISummaryContent } from '@/components/ai/AISummaryContent';
 import { 
   X,
   Phone, 
@@ -392,7 +393,7 @@ export const ContactInfoScreen: React.FC<ContactInfoScreenProps> = ({
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <p className="text-sm text-foreground leading-relaxed">{summaryText}</p>
+            <AISummaryContent content={summaryText} />
           )}
         </div>
       </DialogContent>

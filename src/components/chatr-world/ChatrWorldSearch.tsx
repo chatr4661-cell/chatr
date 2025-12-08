@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AISummaryContent } from '@/components/ai/AISummaryContent';
 
 interface SearchResult {
   title: string;
@@ -133,17 +134,13 @@ export function ChatrWorldSearch({ initialQuery = '', location }: ChatrWorldSear
 
       {/* AI Summary */}
       {aiSummary && (
-        <Card className="bg-gradient-to-r from-primary/5 to-purple-500/5 border-primary/20">
+        <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
           <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-full bg-primary/10">
-                <Sparkles className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">AI Summary</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{aiSummary}</p>
-              </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-primary">AI Summary</h3>
             </div>
+            <AISummaryContent content={aiSummary} />
           </CardContent>
         </Card>
       )}

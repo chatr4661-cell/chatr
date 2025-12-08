@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AISummaryContent } from '@/components/ai/AISummaryContent';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -128,7 +129,11 @@ export function ChatrWorldBrowser() {
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    {message.role === 'assistant' ? (
+                      <AISummaryContent content={message.content} className="text-sm" />
+                    ) : (
+                      <p className="text-sm">{message.content}</p>
+                    )}
                     
                     {/* Search Results */}
                     {message.results && message.results.length > 0 && (
