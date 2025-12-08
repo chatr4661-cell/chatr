@@ -119,15 +119,37 @@ const UniversalSearch = () => {
         localStorage.setItem('chatr_session_id', sessionId);
       }
 
+      // Try to get fresh GPS location if not available
+      let gpsLat = location?.latitude || null;
+      let gpsLon = location?.longitude || null;
+      
+      if (!gpsLat || !gpsLon) {
+        try {
+          // Attempt to get fresh GPS coordinates
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 60000
+            });
+          });
+          gpsLat = position.coords.latitude;
+          gpsLon = position.coords.longitude;
+          console.log('Got fresh GPS:', gpsLat, gpsLon);
+        } catch (geoErr) {
+          console.log('GPS not available, using IP location');
+        }
+      }
+
       // Call CHATR Universal Search (Google Custom Search + AI)
-      console.log('Calling universal-search function...');
+      console.log('Calling universal-search with coords:', gpsLat, gpsLon);
       const { data: searchData, error: searchError } = await supabase.functions.invoke('universal-search', {
         body: { 
           query, 
           sessionId,
           userId: user?.id || null,
-          gpsLat: location?.latitude || null,
-          gpsLon: location?.longitude || null
+          gpsLat,
+          gpsLon
         }
       });
 

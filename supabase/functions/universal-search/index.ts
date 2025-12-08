@@ -125,79 +125,143 @@ serve(async (req) => {
 
     console.log(`Effective location: ${effectiveCity}, ${effectiveCountry} (${effectiveLat}, ${effectiveLon})`);
 
-    // Build location-aware search query
+    // Build location-aware search queries for broader coverage
     let searchQuery = query;
-    const localKeywords = ['near me', 'nearby', 'local', 'shop', 'store', 'restaurant', 'doctor', 'hospital', 'clinic', 'job', 'service'];
+    const localKeywords = ['near me', 'nearby', 'local', 'shop', 'store', 'restaurant', 'doctor', 'hospital', 'clinic', 'job', 'service', 'best', 'top', 'places'];
     const isLocalQuery = localKeywords.some(kw => query.toLowerCase().includes(kw));
     
-    if (isLocalQuery && effectiveCity && !query.toLowerCase().includes(effectiveCity.toLowerCase())) {
-      searchQuery = `${query} in ${effectiveCity}`;
+    // Enhance query with location context for better results
+    if (effectiveCity && !query.toLowerCase().includes(effectiveCity.toLowerCase())) {
+      if (isLocalQuery) {
+        searchQuery = `${query} in ${effectiveCity}, India`;
+      }
     }
+
+    // Generate broader search variations for more dynamic results
+    const searchVariations = [
+      searchQuery,
+      `${query} ${effectiveCity || 'India'}`,
+      `best ${query}`,
+      `${query} 2024 2025`
+    ];
 
     let results: SearchResult[] = [];
     let searchEngine = 'google_custom_search';
 
-    // Try Google Custom Search first
+    // Try Google Custom Search first with expanded parameters
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_SEARCH_API_KEY');
     const GOOGLE_CX_ID = Deno.env.get('GOOGLE_SEARCH_CX_ID');
 
     if (GOOGLE_API_KEY && GOOGLE_CX_ID) {
+      // Primary search with location bias
       const googleParams = new URLSearchParams({
         q: searchQuery,
         key: GOOGLE_API_KEY,
         cx: GOOGLE_CX_ID,
         num: '10',
-        gl: 'in',
-        cr: 'countryIN',
+        gl: effectiveCountry?.toLowerCase() || 'in',
+        hl: 'en',
+        safe: 'active',
+        dateRestrict: 'y1', // Results from last year for freshness
       });
+
+      // Add geo-targeting if we have coordinates
+      if (effectiveLat && effectiveLon) {
+        googleParams.set('lr', 'lang_en');
+      }
 
       const googleUrl = `https://www.googleapis.com/customsearch/v1?${googleParams.toString()}`;
       
-      console.log(`Calling Google Custom Search: "${searchQuery}" (gl=in, cr=countryIN)`);
-      const googleResponse = await fetch(googleUrl);
-      const googleData = await googleResponse.json();
+      console.log(`Calling Google Custom Search: "${searchQuery}" (gl=${effectiveCountry?.toLowerCase() || 'in'}, coords: ${effectiveLat},${effectiveLon})`);
+      
+      try {
+        const googleResponse = await fetch(googleUrl);
+        const googleData = await googleResponse.json();
 
-      if (googleResponse.ok && googleData.items) {
-        // Google succeeded
-        const rawResults = googleData.items || [];
-        console.log(`Google returned ${rawResults.length} results`);
+        if (googleResponse.ok && googleData.items) {
+          const rawResults = googleData.items || [];
+          console.log(`Google returned ${rawResults.length} primary results`);
 
-        results = rawResults.map((item: any, index: number) => {
-          const detectedType = classifyResult(query, item);
-          const score = calculateScore(item, index, query, effectiveLat, effectiveLon);
-          
-          // Extract best available image from pagemap
-          const image = item.pagemap?.cse_image?.[0]?.src || 
-                       item.pagemap?.cse_thumbnail?.[0]?.src ||
-                       item.pagemap?.metatags?.[0]?.['og:image'] ||
-                       null;
-          
-          return {
-            title: item.title,
-            snippet: item.snippet,
-            url: item.link,
-            displayUrl: item.displayLink,
-            faviconUrl: image,
-            image: image,
-            source: 'google',
-            detectedType,
-            score,
-            rank: index + 1
-          };
-        });
-      } else if (googleData.error?.code === 429) {
-        // Quota exceeded - fallback to DuckDuckGo
-        console.log('Google quota exceeded, falling back to DuckDuckGo');
-        searchEngine = 'duckduckgo';
-        results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
-      } else {
-        console.error('Google API error:', googleData);
-        // Try DuckDuckGo as fallback
+          results = rawResults.map((item: any, index: number) => {
+            const detectedType = classifyResult(query, item);
+            const score = calculateScore(item, index, query, effectiveLat, effectiveLon);
+            
+            // Extract best available image from pagemap
+            const image = item.pagemap?.cse_image?.[0]?.src || 
+                         item.pagemap?.cse_thumbnail?.[0]?.src ||
+                         item.pagemap?.metatags?.[0]?.['og:image'] ||
+                         null;
+            
+            return {
+              title: item.title,
+              snippet: item.snippet,
+              url: item.link,
+              displayUrl: item.displayLink,
+              faviconUrl: image,
+              image: image,
+              source: 'google',
+              detectedType,
+              score,
+              rank: index + 1
+            };
+          });
+
+          // If we have fewer than 10 results, try a broader search
+          if (results.length < 8) {
+            console.log('Trying broader search for more results...');
+            const broaderParams = new URLSearchParams({
+              q: `${query} India`,
+              key: GOOGLE_API_KEY,
+              cx: GOOGLE_CX_ID,
+              num: '10',
+              gl: 'in',
+              hl: 'en',
+            });
+            
+            const broaderResponse = await fetch(`https://www.googleapis.com/customsearch/v1?${broaderParams.toString()}`);
+            const broaderData = await broaderResponse.json();
+            
+            if (broaderResponse.ok && broaderData.items) {
+              const additionalResults = broaderData.items
+                .filter((item: any) => !results.some((r: any) => r.url === item.link))
+                .map((item: any, index: number) => {
+                  const detectedType = classifyResult(query, item);
+                  const score = calculateScore(item, results.length + index, query, effectiveLat, effectiveLon);
+                  const image = item.pagemap?.cse_image?.[0]?.src || item.pagemap?.cse_thumbnail?.[0]?.src || null;
+                  
+                  return {
+                    title: item.title,
+                    snippet: item.snippet,
+                    url: item.link,
+                    displayUrl: item.displayLink,
+                    faviconUrl: image,
+                    image: image,
+                    source: 'google',
+                    detectedType,
+                    score: score - 10, // Slightly lower priority for broader results
+                    rank: results.length + index + 1
+                  };
+                });
+              
+              results = [...results, ...additionalResults];
+              console.log(`Added ${additionalResults.length} broader results, total: ${results.length}`);
+            }
+          }
+        } else if (googleData.error?.code === 429) {
+          console.log('Google quota exceeded, falling back to DuckDuckGo');
+          searchEngine = 'duckduckgo';
+          results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
+        } else {
+          console.error('Google API error:', googleData);
+          searchEngine = 'duckduckgo';
+          results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
+        }
+      } catch (googleErr) {
+        console.error('Google search error:', googleErr);
         searchEngine = 'duckduckgo';
         results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
       }
     } else {
-      // No Google credentials - use DuckDuckGo
       console.log('No Google credentials, using DuckDuckGo');
       searchEngine = 'duckduckgo';
       results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
