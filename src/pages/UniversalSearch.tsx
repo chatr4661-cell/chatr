@@ -386,24 +386,7 @@ const UniversalSearch = () => {
             </div>
           )}
 
-          {/* AI Intent Banner - only show suggestions, not redundant text */}
-          {aiIntent && aiIntent.suggestions && !loading && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {aiIntent.suggestions.slice(0, 3).map((suggestion: string, i: number) => (
-                <Badge 
-                  key={i}
-                  variant="outline" 
-                  className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground"
-                  onClick={() => {
-                    setSearchQuery(suggestion);
-                    performSearch(suggestion);
-                  }}
-                >
-                  {suggestion}
-                </Badge>
-              ))}
-            </div>
-          )}
+          {/* Removed AI Intent Banner - was redundant */}
         </div>
       </div>
 
