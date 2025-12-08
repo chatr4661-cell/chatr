@@ -16,6 +16,26 @@ class MessagesRepository @Inject constructor(
         emit(safeApiCall { api.getMessages(chatId, limit, offset) })
     }
     
+    /**
+     * Send message using domain model SendMessageRequest
+     */
+    suspend fun sendMessage(request: SendMessageRequest): Result<Message> {
+        return safeApiCall {
+            api.sendMessage(
+                com.chatr.app.data.api.SendMessageRequest(
+                    conversationId = request.conversationId,
+                    content = request.content,
+                    type = request.type.name,
+                    replyTo = request.replyTo,
+                    mediaUrl = request.mediaUrl
+                )
+            )
+        }
+    }
+    
+    /**
+     * Send message with individual parameters
+     */
     suspend fun sendMessage(
         conversationId: String,
         content: String,
@@ -24,7 +44,9 @@ class MessagesRepository @Inject constructor(
         mediaUrl: String? = null
     ): Result<Message> {
         return safeApiCall {
-            api.sendMessage(SendMessageRequest(conversationId, content, type, replyTo, mediaUrl))
+            api.sendMessage(
+                com.chatr.app.data.api.SendMessageRequest(conversationId, content, type, replyTo, mediaUrl)
+            )
         }
     }
     

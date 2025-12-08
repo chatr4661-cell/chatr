@@ -12,6 +12,13 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * WebRTC Signaling Client for call setup and negotiation
+ * 
+ * Supports two usage patterns:
+ * 1. DI-injected singleton (use connect/disconnect with callId, token)
+ * 2. Callback-based instance (for CallViewModel compatibility)
+ */
 @Singleton
 class WebRTCSignalingClient @Inject constructor() {
     
@@ -30,6 +37,19 @@ class WebRTCSignalingClient @Inject constructor() {
     val signalingEvents: SharedFlow<SignalingEvent> = _signalingEvents
     
     private var currentCallId: String? = null
+    private var currentUserId: String? = null
+    
+    // Callback for CallViewModel compatibility
+    private var eventCallback: ((SignalingEvent) -> Unit)? = null
+    
+    /**
+     * Secondary constructor for callback-based usage (CallViewModel)
+     */
+    constructor(callId: String, userId: String, onSignalingEvent: (SignalingEvent) -> Unit) : this() {
+        this.currentCallId = callId
+        this.currentUserId = userId
+        this.eventCallback = onSignalingEvent
+    }
     
     fun connect(callId: String, token: String) {
         currentCallId = callId
@@ -43,28 +63,45 @@ class WebRTCSignalingClient @Inject constructor() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Log.d(TAG, "WebSocket connected for call: $callId")
                 scope.launch {
-                    _signalingEvents.emit(SignalingEvent.Connected)
+                    val event = SignalingEvent.Connected
+                    _signalingEvents.emit(event)
+                    eventCallback?.invoke(event)
                 }
             }
             
             override fun onMessage(webSocket: WebSocket, text: String) {
                 Log.d(TAG, "Received message: $text")
                 try {
-                    val event = gson.fromJson(text, SignalingMessage::class.java)
+                    val message = gson.fromJson(text, SignalingMessage::class.java)
                     scope.launch {
-                        when (event.type) {
-                            "call-offer" -> _signalingEvents.emit(
-                                SignalingEvent.Offer(event.callId, event.from, event.sdp ?: "", event.isVideo ?: false)
+                        val event = when (message.type) {
+                            "call-offer" -> SignalingEvent.Offer(
+                                message.callId,
+                                message.from,
+                                message.sdp ?: "",
+                                message.isVideo ?: false
                             )
-                            "call-answer" -> _signalingEvents.emit(
-                                SignalingEvent.Answer(event.callId, event.from, event.sdp ?: "")
+                            "call-answer" -> SignalingEvent.Answer(
+                                message.callId,
+                                message.from,
+                                message.sdp ?: ""
                             )
-                            "call-candidate" -> _signalingEvents.emit(
-                                SignalingEvent.IceCandidate(event.callId, event.from, event.candidate ?: "")
+                            "call-candidate" -> SignalingEvent.IceCandidate(
+                                message.callId,
+                                message.from,
+                                message.candidate ?: ""
                             )
-                            "call-end" -> _signalingEvents.emit(
-                                SignalingEvent.CallEnded(event.callId, event.from, event.reason)
+                            "call-end" -> SignalingEvent.CallEnded(
+                                message.callId,
+                                message.from,
+                                message.reason
                             )
+                            else -> null
+                        }
+                        
+                        event?.let {
+                            _signalingEvents.emit(it)
+                            eventCallback?.invoke(it)
                         }
                     }
                 } catch (e: Exception) {
@@ -75,17 +112,27 @@ class WebRTCSignalingClient @Inject constructor() {
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "WebSocket error", t)
                 scope.launch {
-                    _signalingEvents.emit(SignalingEvent.Error(t.message ?: "Unknown error"))
+                    val event = SignalingEvent.Error(t.message ?: "Unknown error")
+                    _signalingEvents.emit(event)
+                    eventCallback?.invoke(event)
                 }
             }
             
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.d(TAG, "WebSocket closed: $reason")
                 scope.launch {
-                    _signalingEvents.emit(SignalingEvent.Disconnected)
+                    val event = SignalingEvent.Disconnected
+                    _signalingEvents.emit(event)
+                    eventCallback?.invoke(event)
                 }
             }
         })
+    }
+    
+    fun connect() {
+        // No-op for callback-based instances - already setup in constructor
+        // Actual connection happens when sendOffer/sendAnswer is called
+        Log.d(TAG, "WebRTC Signaling client ready for call: $currentCallId")
     }
     
     fun sendOffer(callId: String, sdp: String, isVideo: Boolean) {
@@ -93,7 +140,8 @@ class WebRTCSignalingClient @Inject constructor() {
             "type" to "call-offer",
             "callId" to callId,
             "sdp" to sdp,
-            "isVideo" to isVideo
+            "isVideo" to isVideo,
+            "from" to currentUserId
         )
         send(message)
     }
@@ -102,7 +150,8 @@ class WebRTCSignalingClient @Inject constructor() {
         val message = mapOf(
             "type" to "call-answer",
             "callId" to callId,
-            "sdp" to sdp
+            "sdp" to sdp,
+            "from" to currentUserId
         )
         send(message)
     }
@@ -111,7 +160,8 @@ class WebRTCSignalingClient @Inject constructor() {
         val message = mapOf(
             "type" to "call-candidate",
             "callId" to callId,
-            "candidate" to candidate
+            "candidate" to candidate,
+            "from" to currentUserId
         )
         send(message)
     }
@@ -120,7 +170,8 @@ class WebRTCSignalingClient @Inject constructor() {
         val message = mapOf(
             "type" to "call-end",
             "callId" to callId,
-            "reason" to reason
+            "reason" to reason,
+            "from" to currentUserId
         )
         send(message)
     }
@@ -133,6 +184,18 @@ class WebRTCSignalingClient @Inject constructor() {
         webSocket?.close(1000, "Client disconnecting")
         webSocket = null
         currentCallId = null
+        eventCallback = null
+    }
+    
+    // Sealed class for signaling events
+    sealed class SignalingEvent {
+        object Connected : SignalingEvent()
+        object Disconnected : SignalingEvent()
+        data class Offer(val callId: String, val from: String?, val sdp: String, val isVideo: Boolean) : SignalingEvent()
+        data class Answer(val callId: String, val from: String?, val sdp: String) : SignalingEvent()
+        data class IceCandidate(val callId: String, val from: String?, val candidate: String) : SignalingEvent()
+        data class CallEnded(val callId: String, val from: String?, val reason: String?) : SignalingEvent()
+        data class Error(val message: String) : SignalingEvent()
     }
 }
 
@@ -145,13 +208,3 @@ data class SignalingMessage(
     val isVideo: Boolean? = null,
     val reason: String? = null
 )
-
-sealed class SignalingEvent {
-    object Connected : SignalingEvent()
-    object Disconnected : SignalingEvent()
-    data class Offer(val callId: String, val from: String?, val sdp: String, val isVideo: Boolean) : SignalingEvent()
-    data class Answer(val callId: String, val from: String?, val sdp: String) : SignalingEvent()
-    data class IceCandidate(val callId: String, val from: String?, val candidate: String) : SignalingEvent()
-    data class CallEnded(val callId: String, val from: String?, val reason: String?) : SignalingEvent()
-    data class Error(val message: String) : SignalingEvent()
-}
