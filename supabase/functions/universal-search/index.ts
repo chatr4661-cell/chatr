@@ -424,148 +424,169 @@ async function searchDuckDuckGo(
 ): Promise<any[]> {
   let results: any[] = [];
   
-  // Try multiple search approaches for better reliability
-  
-  // Approach 1: DuckDuckGo Instant Answer API (best for quick facts)
+  // Approach 1: DuckDuckGo HTML Scraping (most reliable for general queries)
   try {
-    console.log(`Trying DuckDuckGo Instant Answer API for: "${searchQuery}"`);
-    const ddgApiUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_redirect=1&no_html=1`;
+    console.log(`Trying DuckDuckGo HTML scraping for: "${searchQuery}"`);
+    const ddgHtmlUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
     
-    const apiResponse = await fetch(ddgApiUrl, {
-      headers: { 'Accept': 'application/json' }
+    const htmlResponse = await fetch(ddgHtmlUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
+      },
+      signal: AbortSignal.timeout(8000)
     });
     
-    if (apiResponse.ok) {
-      const apiData = await apiResponse.json();
+    if (htmlResponse.ok) {
+      const html = await htmlResponse.text();
       
-      // Extract related topics
-      if (apiData.RelatedTopics && apiData.RelatedTopics.length > 0) {
-        for (const topic of apiData.RelatedTopics.slice(0, 8)) {
-          if (topic.FirstURL && topic.Text) {
-            const domain = new URL(topic.FirstURL).hostname;
-            results.push({
-              title: topic.Text.split(' - ')[0] || topic.Text.substring(0, 100),
-              snippet: topic.Text,
-              url: topic.FirstURL,
-              displayUrl: domain,
-              faviconUrl: topic.Icon?.URL || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-              image: topic.Icon?.URL || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-              source: 'duckduckgo',
-              detectedType: classifyResult(originalQuery, { title: topic.Text, snippet: topic.Text, link: topic.FirstURL }),
-              score: 50,
-              rank: results.length + 1
-            });
-          }
-          // Handle nested topics
-          if (topic.Topics) {
-            for (const subTopic of topic.Topics.slice(0, 3)) {
-              if (subTopic.FirstURL && subTopic.Text) {
-                const domain = new URL(subTopic.FirstURL).hostname;
-                results.push({
-                  title: subTopic.Text.split(' - ')[0] || subTopic.Text.substring(0, 100),
-                  snippet: subTopic.Text,
-                  url: subTopic.FirstURL,
-                  displayUrl: domain,
-                  faviconUrl: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-                  image: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-                  source: 'duckduckgo',
-                  detectedType: classifyResult(originalQuery, { title: subTopic.Text, snippet: subTopic.Text, link: subTopic.FirstURL }),
-                  score: 40,
-                  rank: results.length + 1
-                });
-              }
-            }
+      // Parse results from HTML - look for result links
+      const resultPattern = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
+      const snippetPattern = /<a[^>]*class="result__snippet"[^>]*>([^<]+(?:<[^>]+>[^<]*<\/[^>]+>)*[^<]*)<\/a>/gi;
+      
+      // Alternative patterns for different HTML structures
+      const urlMatches = html.matchAll(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([^<]*(?:<[^>]+>[^<]*)*)<\/a>/gi);
+      const snippetMatches = [...html.matchAll(/<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([^]*?)<\/a>/gi)];
+      
+      let idx = 0;
+      for (const match of urlMatches) {
+        if (results.length >= 15) break;
+        
+        let url = match[1];
+        // DuckDuckGo redirects through uddg parameter
+        if (url.includes('uddg=')) {
+          const uddgMatch = url.match(/uddg=([^&]+)/);
+          if (uddgMatch) {
+            url = decodeURIComponent(uddgMatch[1]);
           }
         }
-      }
-      
-      // Add main abstract result if available
-      if (apiData.AbstractURL && apiData.Abstract) {
-        const domain = new URL(apiData.AbstractURL).hostname;
-        results.unshift({
-          title: apiData.Heading || originalQuery,
-          snippet: apiData.Abstract,
-          url: apiData.AbstractURL,
-          displayUrl: domain,
-          faviconUrl: apiData.Image || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-          image: apiData.Image || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-          source: 'duckduckgo',
-          detectedType: classifyResult(originalQuery, { title: apiData.Heading, snippet: apiData.Abstract, link: apiData.AbstractURL }),
-          score: 80,
-          rank: 1
-        });
-      }
-      
-      console.log(`DuckDuckGo API returned ${results.length} results`);
-    }
-  } catch (apiErr) {
-    console.error('DuckDuckGo API error:', apiErr);
-  }
-  
-  // Approach 2: If we still have few results, try SearXNG public instances
-  if (results.length < 5) {
-    try {
-      console.log(`Trying SearXNG for more results...`);
-      const searxngInstances = [
-        'https://searx.be',
-        'https://search.sapti.me',
-        'https://searx.tiekoetter.com'
-      ];
-      
-      for (const instance of searxngInstances) {
-        if (results.length >= 10) break;
+        
+        // Skip DuckDuckGo internal links
+        if (url.includes('duckduckgo.com') && !url.includes('/c/')) continue;
+        
+        const title = match[2].replace(/<[^>]+>/g, '').trim();
+        if (!title || title.length < 3) continue;
+        
+        let snippet = '';
+        if (snippetMatches[idx]) {
+          snippet = snippetMatches[idx][1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
         
         try {
-          const searxUrl = `${instance}/search?q=${encodeURIComponent(searchQuery)}&format=json&categories=general`;
-          const searxResponse = await fetch(searxUrl, {
-            headers: { 
-              'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (compatible; ChatrBot/1.0)'
-            },
-            signal: AbortSignal.timeout(5000) // 5 second timeout
+          const domain = new URL(url).hostname;
+          results.push({
+            title,
+            snippet: snippet || title,
+            url,
+            displayUrl: domain,
+            faviconUrl: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+            image: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+            source: 'duckduckgo',
+            detectedType: classifyResult(originalQuery, { title, snippet, link: url }),
+            score: 60 - (idx * 2),
+            rank: results.length + 1
           });
-          
-          if (searxResponse.ok) {
-            const searxData = await searxResponse.json();
-            
-            if (searxData.results && searxData.results.length > 0) {
-              for (const item of searxData.results.slice(0, 10 - results.length)) {
-                if (!results.some(r => r.url === item.url)) {
-                  const domain = new URL(item.url).hostname;
-                  results.push({
-                    title: item.title || 'Untitled',
-                    snippet: item.content || item.title || '',
-                    url: item.url,
-                    displayUrl: domain,
-                    faviconUrl: item.img_src || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-                    image: item.img_src || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-                    source: 'searxng',
-                    detectedType: classifyResult(originalQuery, { title: item.title, snippet: item.content, link: item.url }),
-                    score: 45,
-                    rank: results.length + 1
-                  });
-                }
-              }
-              console.log(`SearXNG (${instance}) added results, total: ${results.length}`);
-              break; // Got results, stop trying other instances
+        } catch (urlErr) {
+          // Invalid URL, skip
+        }
+        idx++;
+      }
+      
+      console.log(`DuckDuckGo HTML scraping returned ${results.length} results`);
+    }
+  } catch (htmlErr) {
+    console.error('DuckDuckGo HTML scraping error:', htmlErr);
+  }
+  
+  // Approach 2: DuckDuckGo Instant Answer API (for known entities)
+  if (results.length < 5) {
+    try {
+      console.log(`Trying DuckDuckGo Instant Answer API for: "${searchQuery}"`);
+      const ddgApiUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_redirect=1&no_html=1`;
+      
+      const apiResponse = await fetch(ddgApiUrl, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (apiResponse.ok) {
+        const apiData = await apiResponse.json();
+        
+        // Extract related topics
+        if (apiData.RelatedTopics && apiData.RelatedTopics.length > 0) {
+          for (const topic of apiData.RelatedTopics.slice(0, 5)) {
+            if (topic.FirstURL && topic.Text && !results.some(r => r.url === topic.FirstURL)) {
+              const domain = new URL(topic.FirstURL).hostname;
+              results.push({
+                title: topic.Text.split(' - ')[0] || topic.Text.substring(0, 100),
+                snippet: topic.Text,
+                url: topic.FirstURL,
+                displayUrl: domain,
+                faviconUrl: topic.Icon?.URL || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+                image: topic.Icon?.URL || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+                source: 'duckduckgo',
+                detectedType: classifyResult(originalQuery, { title: topic.Text, snippet: topic.Text, link: topic.FirstURL }),
+                score: 50,
+                rank: results.length + 1
+              });
             }
           }
-        } catch (instanceErr) {
-          console.log(`SearXNG instance ${instance} failed, trying next...`);
         }
+        
+        // Add main abstract result if available
+        if (apiData.AbstractURL && apiData.Abstract && !results.some(r => r.url === apiData.AbstractURL)) {
+          const domain = new URL(apiData.AbstractURL).hostname;
+          results.unshift({
+            title: apiData.Heading || originalQuery,
+            snippet: apiData.Abstract,
+            url: apiData.AbstractURL,
+            displayUrl: domain,
+            faviconUrl: apiData.Image || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+            image: apiData.Image || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+            source: 'duckduckgo',
+            detectedType: classifyResult(originalQuery, { title: apiData.Heading, snippet: apiData.Abstract, link: apiData.AbstractURL }),
+            score: 80,
+            rank: 1
+          });
+        }
+        
+        console.log(`DuckDuckGo API added results, total: ${results.length}`);
       }
-    } catch (searxErr) {
-      console.error('SearXNG search error:', searxErr);
+    } catch (apiErr) {
+      console.error('DuckDuckGo API error:', apiErr);
     }
   }
   
-  // Approach 3: Wikipedia search as final fallback for encyclopedic queries
+  // Approach 3: Brave Search API (free tier available)
+  if (results.length < 5) {
+    try {
+      console.log(`Trying Brave Search for: "${searchQuery}"`);
+      const braveUrl = `https://search.brave.com/api/suggest?q=${encodeURIComponent(searchQuery)}`;
+      
+      // Try web search through suggest API which doesn't need auth
+      const braveResponse = await fetch(`https://search.brave.com/search?q=${encodeURIComponent(searchQuery)}&source=web`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      // We can't easily parse Brave's JS-rendered page, so skip if no results yet
+      console.log(`Brave search attempted`);
+    } catch (braveErr) {
+      console.log('Brave search fallback skipped');
+    }
+  }
+  
+  // Approach 4: Wikipedia search as final fallback
   if (results.length < 3) {
     try {
       console.log(`Trying Wikipedia search as fallback...`);
       const wikiUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(originalQuery)}&limit=5&format=json&origin=*`;
       
-      const wikiResponse = await fetch(wikiUrl);
+      const wikiResponse = await fetch(wikiUrl, { signal: AbortSignal.timeout(5000) });
       if (wikiResponse.ok) {
         const wikiData = await wikiResponse.json();
         const [, titles, descriptions, urls] = wikiData;
