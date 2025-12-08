@@ -23,8 +23,7 @@ import {
   Bookmark,
   Globe,
   Image as ImageIcon,
-  Zap,
-  Cpu
+  Zap
 } from 'lucide-react';
 import { TrendingSearches } from '@/components/search/TrendingSearches';
 import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
@@ -35,8 +34,6 @@ import { useLocation } from '@/contexts/LocationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AISummaryContent } from '@/components/ai/AISummaryContent';
 import { useLocalAI } from '@/hooks/useLocalAI';
-import { SiriIntegration } from '@/components/search/SiriIntegration';
-import { DeviceAIStatus } from '@/components/search/DeviceAIStatus';
 
 interface SearchResult {
   id: string;
@@ -72,14 +69,12 @@ const UniversalSearch = () => {
   const [activeTab, setActiveTab] = useState('all');
   
   // Local AI for instant responses
-  const { analyzeIntent, supportsWebGPU, isReady: localAIReady, modelCached, gpuInfo } = useLocalAI();
+  const { analyzeIntent, supportsWebGPU } = useLocalAI();
   const [instantAnswer, setInstantAnswer] = useState<string | null>(null);
   const [localSuggestions, setLocalSuggestions] = useState<string[]>([]);
-  const [processingTime, setProcessingTime] = useState<number | undefined>();
-  const [localIntent, setLocalIntent] = useState<string>('search');
   const searchStartTime = useRef(Date.now());
 
-  // Instant local analysis when typing (< 1ms with caching)
+  // Instant local analysis when typing
   const handleQueryChange = useCallback(async (value: string) => {
     setSearchQuery(value);
     
@@ -87,8 +82,6 @@ const UniversalSearch = () => {
     if (value.trim().length > 2) {
       const localResult = await analyzeIntent(value);
       setLocalSuggestions(localResult.suggestedQueries);
-      setProcessingTime(localResult.processingTimeMs);
-      setLocalIntent(localResult.intent);
       if (localResult.quickAnswer) {
         setInstantAnswer(localResult.quickAnswer);
       } else {
@@ -97,7 +90,6 @@ const UniversalSearch = () => {
     } else {
       setLocalSuggestions([]);
       setInstantAnswer(null);
-      setProcessingTime(undefined);
     }
   }, [analyzeIntent]);
 
@@ -370,43 +362,15 @@ const UniversalSearch = () => {
             </Button>
           </div>
 
-          {/* Device AI Status Bar */}
-          <div className="mt-2 flex items-center justify-between">
-            <DeviceAIStatus 
-              supportsWebGPU={supportsWebGPU}
-              modelCached={modelCached}
-              gpuInfo={gpuInfo}
-              processingTimeMs={processingTime}
-            />
-            <SiriIntegration query={searchQuery} />
-          </div>
-
           {/* Instant Local AI Suggestions (appears while typing) */}
           {localSuggestions.length > 0 && !loading && (
-            <div className="mt-2 p-3 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 rounded-lg border border-yellow-500/20">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-3.5 h-3.5 text-yellow-500" />
-                  <span className="text-xs font-medium">
-                    {localIntent === 'food' ? '🍽️ Food' : 
-                     localIntent === 'healthcare' ? '🏥 Healthcare' :
-                     localIntent === 'jobs' ? '💼 Jobs' :
-                     localIntent === 'shopping' ? '🛒 Shopping' :
-                     '🔍 Search'} suggestions
-                  </span>
-                </div>
-                {processingTime !== undefined && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {processingTime < 1 ? '<1ms' : `${Math.round(processingTime)}ms`}
-                  </span>
-                )}
-              </div>
+            <div className="mt-2 p-2 bg-muted/30 rounded-lg border border-border/50">
               <div className="flex flex-wrap gap-1.5">
                 {localSuggestions.map((suggestion, i) => (
                   <Badge 
                     key={i}
-                    variant="secondary" 
-                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all hover:scale-105"
+                    variant="outline" 
+                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                     onClick={() => {
                       setSearchQuery(suggestion);
                       performSearch(suggestion);
@@ -417,9 +381,7 @@ const UniversalSearch = () => {
                 ))}
               </div>
               {instantAnswer && (
-                <div className="mt-2 p-2 bg-background/50 rounded-md">
-                  <p className="text-sm font-medium">{instantAnswer}</p>
-                </div>
+                <p className="text-xs text-muted-foreground mt-2">{instantAnswer}</p>
               )}
             </div>
           )}
