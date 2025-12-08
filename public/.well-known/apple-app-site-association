@@ -1,0 +1,31 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a.chatr",
+        "paths": [
+          "/search/*",
+          "/chatr-world/*",
+          "/healthcare/*",
+          "/jobs/*",
+          "/food/*",
+          "/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a.chatr"
+    ]
+  },
+  "appclips": {
+    "apps": []
+  },
+  "activitycontinuation": {
+    "apps": [
+      "app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a.chatr"
+    ]
+  }
+}
