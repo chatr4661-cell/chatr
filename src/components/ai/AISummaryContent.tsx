@@ -160,21 +160,23 @@ export const AISummaryContent: React.FC<AISummaryContentProps> = ({
         <div className="pt-4 border-t border-border/30 mt-4">
           <p className="text-xs text-muted-foreground mb-2">Sources:</p>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {sources.slice(0, 6).map((source, idx) => (
-              <a
-                key={idx}
-                href={source.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-              >
-                <span className="text-primary font-medium">[{idx + 1}]</span>
-                <span className="truncate max-w-[150px]">
-                  {source.title?.split(' ').slice(0, 4).join(' ') || new URL(source.url || '').hostname}
-                </span>
-                <ExternalLink className="w-2.5 h-2.5 flex-shrink-0" />
-              </a>
-            ))}
+            {sources.slice(0, 6).map((source, idx) => 
+              source.url ? (
+                <a
+                  key={idx}
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <span className="text-primary font-medium">[{idx + 1}]</span>
+                  <span className="truncate max-w-[150px]">
+                    {source.title?.split(' ').slice(0, 4).join(' ') || 'Source'}
+                  </span>
+                  <ExternalLink className="w-2.5 h-2.5 flex-shrink-0" />
+                </a>
+              ) : null
+            )}
           </div>
         </div>
       )}
