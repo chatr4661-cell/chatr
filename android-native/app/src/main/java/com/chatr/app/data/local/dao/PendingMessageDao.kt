@@ -16,6 +16,9 @@ interface PendingMessageDao {
     suspend fun insert(message: PendingMessageEntity)
     
     @Query("DELETE FROM pending_messages WHERE id = :messageId")
+    suspend fun delete(messageId: String)
+    
+    @Query("DELETE FROM pending_messages WHERE id = :messageId")
     suspend fun deleteById(messageId: String)
     
     @Query("DELETE FROM pending_messages")
@@ -23,6 +26,9 @@ interface PendingMessageDao {
     
     @Query("UPDATE pending_messages SET failed = 1, retryCount = retryCount + 1 WHERE id = :messageId")
     suspend fun markFailed(messageId: String)
+    
+    @Query("UPDATE pending_messages SET retryCount = retryCount + 1 WHERE id = :messageId")
+    suspend fun incrementRetry(messageId: String)
     
     @Query("UPDATE pending_messages SET failed = 0 WHERE id = :messageId")
     suspend fun resetFailed(messageId: String)

@@ -1,9 +1,14 @@
 package com.chatr.app.data.local
 
 import androidx.room.TypeConverter
+import com.chatr.app.data.local.entity.SyncStatus
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
+/**
+ * Room TypeConverters for complex types
+ * Used by ChatrDatabase for all entities
+ */
 class Converters {
     
     private val gson = Gson()
@@ -31,6 +36,33 @@ class Converters {
         return value?.let {
             val type = object : TypeToken<Map<String, Any>>() {}.type
             gson.fromJson(it, type)
+        }
+    }
+    
+    @TypeConverter
+    fun fromLongList(value: List<Long>?): String? {
+        return value?.let { gson.toJson(it) }
+    }
+    
+    @TypeConverter
+    fun toLongList(value: String?): List<Long>? {
+        return value?.let {
+            val type = object : TypeToken<List<Long>>() {}.type
+            gson.fromJson(it, type)
+        }
+    }
+    
+    @TypeConverter
+    fun fromSyncStatus(value: SyncStatus): String {
+        return value.name
+    }
+    
+    @TypeConverter
+    fun toSyncStatus(value: String): SyncStatus {
+        return try {
+            SyncStatus.valueOf(value)
+        } catch (e: Exception) {
+            SyncStatus.PENDING
         }
     }
 }

@@ -36,7 +36,6 @@ class MessageSyncWorker @AssistedInject constructor(
         const val WORK_NAME_PERIODIC = "message_sync_periodic"
         
         private const val MAX_RETRY_COUNT = 5
-        private const val KEY_SYNC_TYPE = "sync_type"
         
         /**
          * Schedule one-time sync
