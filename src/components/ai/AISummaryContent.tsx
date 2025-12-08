@@ -11,7 +11,10 @@ interface Source {
 
 interface ImageSource {
   url: string;
+  fullUrl?: string;
   source: string;
+  title?: string;
+  thumbnail?: string;
 }
 
 interface AISummaryContentProps {
@@ -133,26 +136,36 @@ export const AISummaryContent: React.FC<AISummaryContentProps> = ({
   
   return (
     <div className={cn("space-y-1", className)}>
-      {/* Images gallery - Perplexity style */}
+      {/* Images gallery - Perplexity style horizontal scroll */}
       {images && images.length > 0 && (
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-          {images.slice(0, 2).map((img, idx) => (
-            <div 
-              key={idx} 
-              className="relative flex-shrink-0 rounded-lg overflow-hidden bg-muted"
-              style={{ width: idx === 0 ? '60%' : '38%', aspectRatio: '16/10' }}
-            >
-              <img 
-                src={img.url} 
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            </div>
-          ))}
+        <div className="mb-4">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+            {images.slice(0, 6).map((img, idx) => (
+              <a 
+                key={idx}
+                href={img.fullUrl || img.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative flex-shrink-0 rounded-lg overflow-hidden bg-muted hover:opacity-90 transition-opacity cursor-pointer"
+                style={{ width: '120px', height: '90px' }}
+              >
+                <img 
+                  src={img.thumbnail || img.url} 
+                  alt={img.title || ''}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                {img.source && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 py-0.5 truncate">
+                    {img.source}
+                  </div>
+                )}
+              </a>
+            ))}
+          </div>
         </div>
       )}
       

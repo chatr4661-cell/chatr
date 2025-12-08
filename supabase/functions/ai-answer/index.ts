@@ -13,6 +13,12 @@ interface AIAnswerRequest {
     url: string;
     image?: string;
   }>;
+  images?: Array<{
+    url: string;
+    thumbnail: string;
+    source: string;
+    title: string;
+  }>;
   location?: {
     lat: number | null;
     lon: number | null;
@@ -26,7 +32,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, results, location }: AIAnswerRequest = await req.json();
+    const { query, results, images: googleImages, location }: AIAnswerRequest = await req.json();
 
     if (!query || !results || results.length === 0) {
       return new Response(
@@ -50,11 +56,18 @@ serve(async (req) => {
       ? `\nUser is searching from: ${location.city}`
       : '';
 
-    // Extract images from results
-    const images = results
-      .filter(r => r.image)
-      .slice(0, 4)
-      .map(r => ({ url: r.image!, source: new URL(r.url).hostname }));
+    // Use Google Image Search results if available, otherwise fall back to webpage images
+    const images = googleImages && googleImages.length > 0
+      ? googleImages.slice(0, 6).map(img => ({ 
+          url: img.thumbnail || img.url, 
+          fullUrl: img.url,
+          source: img.source,
+          title: img.title
+        }))
+      : results
+          .filter(r => r.image && !r.image.includes('favicon'))
+          .slice(0, 4)
+          .map(r => ({ url: r.image!, source: new URL(r.url).hostname }));
 
     // Perplexity-style system prompt for rich, informative content
     const systemPrompt = `You are an expert AI search assistant that provides comprehensive, well-researched answers in the style of Perplexity AI.

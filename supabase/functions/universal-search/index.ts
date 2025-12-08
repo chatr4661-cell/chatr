@@ -236,6 +236,40 @@ serve(async (req) => {
       console.error('Failed to log search:', logErr);
     }
 
+    // Fetch Google Image Search results for real photos
+    let imageResults: Array<{ url: string; thumbnail: string; source: string; title: string }> = [];
+    
+    if (GOOGLE_API_KEY && GOOGLE_CX_ID) {
+      try {
+        const imageParams = new URLSearchParams({
+          q: query,
+          key: GOOGLE_API_KEY,
+          cx: GOOGLE_CX_ID,
+          searchType: 'image',
+          num: '6',
+          safe: 'active',
+        });
+        
+        const imageUrl = `https://www.googleapis.com/customsearch/v1?${imageParams.toString()}`;
+        console.log(`Fetching Google Images for: "${query}"`);
+        
+        const imageResponse = await fetch(imageUrl);
+        const imageData = await imageResponse.json();
+        
+        if (imageResponse.ok && imageData.items) {
+          imageResults = imageData.items.map((img: any) => ({
+            url: img.link,
+            thumbnail: img.image?.thumbnailLink || img.link,
+            source: img.displayLink,
+            title: img.title
+          }));
+          console.log(`Got ${imageResults.length} images from Google`);
+        }
+      } catch (imgErr) {
+        console.error('Google Image Search error:', imgErr);
+      }
+    }
+
     // Call AI answer function with images for richer response
     let aiAnswer: { text: string | null; sources: any[]; images: any[] } = { text: null, sources: [], images: [] };
     
@@ -249,6 +283,7 @@ serve(async (req) => {
             url: r.url,
             image: r.image
           })),
+          images: imageResults, // Pass actual image search results
           location: effectiveLat && effectiveLon ? { lat: effectiveLat, lon: effectiveLon, city: effectiveCity } : null
         }
       });
@@ -257,11 +292,15 @@ serve(async (req) => {
         aiAnswer = {
           text: aiData.text || null,
           sources: aiData.sources || [],
-          images: aiData.images || []
+          images: aiData.images || imageResults // Use Google Images if AI doesn't return images
         };
+      } else {
+        // If AI fails, still include image results
+        aiAnswer.images = imageResults;
       }
     } catch (aiErr) {
       console.error('AI answer error:', aiErr);
+      aiAnswer.images = imageResults;
     }
 
     return new Response(
