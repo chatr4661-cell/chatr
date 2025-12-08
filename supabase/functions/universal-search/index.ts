@@ -303,7 +303,7 @@ async function searchDuckDuckGo(
   originalQuery: string,
   lat?: number | null,
   lon?: number | null
-): Promise<SearchResult[]> {
+): Promise<any[]> {
   try {
     console.log(`Searching DuckDuckGo for: "${searchQuery}"`);
     
@@ -322,7 +322,7 @@ async function searchDuckDuckGo(
     }
 
     const html = await response.text();
-    const results: SearchResult[] = [];
+    const results: any[] = [];
 
     // Parse HTML results using regex (simple extraction)
     const resultPattern = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi;
@@ -350,13 +350,18 @@ async function searchDuckDuckGo(
 
         const detectedType = classifyResult(originalQuery, { title, snippet, link: url });
         const score = calculateScore({ title, snippet, link: url }, i, originalQuery, lat, lon);
-
+        
+        // Generate placeholder image from favicon or topic-based image
+        const domain = new URL(url).hostname;
+        const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+        
         results.push({
           title,
           snippet,
           url,
-          displayUrl: new URL(url).hostname,
-          faviconUrl: null,
+          displayUrl: domain,
+          faviconUrl: favicon,
+          image: favicon, // Use favicon as fallback image
           source: 'duckduckgo',
           detectedType,
           score,
