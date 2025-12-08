@@ -1,6 +1,7 @@
 package com.chatr.app.di
 
 import android.content.Context
+import com.chatr.app.config.SupabaseConfig
 import com.chatr.app.data.api.*
 import com.chatr.app.data.repository.*
 import com.chatr.app.security.SecureStore
@@ -20,12 +21,22 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
 
+/**
+ * Network Module for Dependency Injection
+ * 
+ * Uses SupabaseConfig for plug-and-play setup
+ * No hardcoded URLs - everything reads from config
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    private const val BASE_URL = "https://sbayuqgomlflmxgicplz.supabase.co/functions/v1/"
-    private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiYXl1cWdvbWxmbG14Z2ljcGx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTc2MDAsImV4cCI6MjA3NDk5MzYwMH0.gVSObpMtsv5W2nuLBHKT8G1_hXIprWXdn5l7Bnnj7jw"
+    // Read from SupabaseConfig - no hardcoded values
+    private val BASE_URL: String
+        get() = SupabaseConfig.FUNCTIONS_URL + "/"
+    
+    private val SUPABASE_ANON_KEY: String
+        get() = SupabaseConfig.SUPABASE_ANON_KEY
     
     @Provides
     @Singleton
