@@ -400,85 +400,188 @@ serve(async (req) => {
   }
 });
 
-// DuckDuckGo fallback search using HTML scraping
+// DuckDuckGo fallback search using multiple approaches
 async function searchDuckDuckGo(
   searchQuery: string,
   originalQuery: string,
   lat?: number | null,
   lon?: number | null
 ): Promise<any[]> {
+  let results: any[] = [];
+  
+  // Try multiple search approaches for better reliability
+  
+  // Approach 1: DuckDuckGo Instant Answer API (best for quick facts)
   try {
-    console.log(`Searching DuckDuckGo for: "${searchQuery}"`);
+    console.log(`Trying DuckDuckGo Instant Answer API for: "${searchQuery}"`);
+    const ddgApiUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_redirect=1&no_html=1`;
     
-    // Use DuckDuckGo HTML search (no API key needed)
-    const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
-    
-    const response = await fetch(ddgUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+    const apiResponse = await fetch(ddgApiUrl, {
+      headers: { 'Accept': 'application/json' }
     });
-
-    if (!response.ok) {
-      console.error('DuckDuckGo request failed:', response.status);
-      return [];
-    }
-
-    const html = await response.text();
-    const results: any[] = [];
-
-    // Parse HTML results using regex (simple extraction)
-    const resultPattern = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi;
-    const snippetPattern = /<a[^>]*class="result__snippet"[^>]*>([^<]*)<\/a>/gi;
     
-    const titleMatches = [...html.matchAll(resultPattern)];
-    const snippetMatches = [...html.matchAll(snippetPattern)];
-
-    for (let i = 0; i < Math.min(titleMatches.length, 10); i++) {
-      const titleMatch = titleMatches[i];
-      const snippetMatch = snippetMatches[i];
+    if (apiResponse.ok) {
+      const apiData = await apiResponse.json();
       
-      if (titleMatch) {
-        let url = titleMatch[1];
-        const title = decodeHTMLEntities(titleMatch[2]);
-        const snippet = snippetMatch ? decodeHTMLEntities(snippetMatch[1]) : '';
-
-        // DuckDuckGo uses redirect URLs, extract actual URL
-        if (url.includes('uddg=')) {
-          const urlMatch = url.match(/uddg=([^&]*)/);
-          if (urlMatch) {
-            url = decodeURIComponent(urlMatch[1]);
+      // Extract related topics
+      if (apiData.RelatedTopics && apiData.RelatedTopics.length > 0) {
+        for (const topic of apiData.RelatedTopics.slice(0, 8)) {
+          if (topic.FirstURL && topic.Text) {
+            const domain = new URL(topic.FirstURL).hostname;
+            results.push({
+              title: topic.Text.split(' - ')[0] || topic.Text.substring(0, 100),
+              snippet: topic.Text,
+              url: topic.FirstURL,
+              displayUrl: domain,
+              faviconUrl: topic.Icon?.URL || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+              image: topic.Icon?.URL || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+              source: 'duckduckgo',
+              detectedType: classifyResult(originalQuery, { title: topic.Text, snippet: topic.Text, link: topic.FirstURL }),
+              score: 50,
+              rank: results.length + 1
+            });
+          }
+          // Handle nested topics
+          if (topic.Topics) {
+            for (const subTopic of topic.Topics.slice(0, 3)) {
+              if (subTopic.FirstURL && subTopic.Text) {
+                const domain = new URL(subTopic.FirstURL).hostname;
+                results.push({
+                  title: subTopic.Text.split(' - ')[0] || subTopic.Text.substring(0, 100),
+                  snippet: subTopic.Text,
+                  url: subTopic.FirstURL,
+                  displayUrl: domain,
+                  faviconUrl: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+                  image: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+                  source: 'duckduckgo',
+                  detectedType: classifyResult(originalQuery, { title: subTopic.Text, snippet: subTopic.Text, link: subTopic.FirstURL }),
+                  score: 40,
+                  rank: results.length + 1
+                });
+              }
+            }
           }
         }
-
-        const detectedType = classifyResult(originalQuery, { title, snippet, link: url });
-        const score = calculateScore({ title, snippet, link: url }, i, originalQuery, lat, lon);
-        
-        // Generate placeholder image from favicon or topic-based image
-        const domain = new URL(url).hostname;
-        const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-        
-        results.push({
-          title,
-          snippet,
-          url,
+      }
+      
+      // Add main abstract result if available
+      if (apiData.AbstractURL && apiData.Abstract) {
+        const domain = new URL(apiData.AbstractURL).hostname;
+        results.unshift({
+          title: apiData.Heading || originalQuery,
+          snippet: apiData.Abstract,
+          url: apiData.AbstractURL,
           displayUrl: domain,
-          faviconUrl: favicon,
-          image: favicon, // Use favicon as fallback image
+          faviconUrl: apiData.Image || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+          image: apiData.Image || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
           source: 'duckduckgo',
-          detectedType,
-          score,
-          rank: i + 1
+          detectedType: classifyResult(originalQuery, { title: apiData.Heading, snippet: apiData.Abstract, link: apiData.AbstractURL }),
+          score: 80,
+          rank: 1
         });
       }
+      
+      console.log(`DuckDuckGo API returned ${results.length} results`);
     }
-
-    console.log(`DuckDuckGo returned ${results.length} results`);
-    return results;
-  } catch (error) {
-    console.error('DuckDuckGo search error:', error);
-    return [];
+  } catch (apiErr) {
+    console.error('DuckDuckGo API error:', apiErr);
   }
+  
+  // Approach 2: If we still have few results, try SearXNG public instances
+  if (results.length < 5) {
+    try {
+      console.log(`Trying SearXNG for more results...`);
+      const searxngInstances = [
+        'https://searx.be',
+        'https://search.sapti.me',
+        'https://searx.tiekoetter.com'
+      ];
+      
+      for (const instance of searxngInstances) {
+        if (results.length >= 10) break;
+        
+        try {
+          const searxUrl = `${instance}/search?q=${encodeURIComponent(searchQuery)}&format=json&categories=general`;
+          const searxResponse = await fetch(searxUrl, {
+            headers: { 
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (compatible; ChatrBot/1.0)'
+            },
+            signal: AbortSignal.timeout(5000) // 5 second timeout
+          });
+          
+          if (searxResponse.ok) {
+            const searxData = await searxResponse.json();
+            
+            if (searxData.results && searxData.results.length > 0) {
+              for (const item of searxData.results.slice(0, 10 - results.length)) {
+                if (!results.some(r => r.url === item.url)) {
+                  const domain = new URL(item.url).hostname;
+                  results.push({
+                    title: item.title || 'Untitled',
+                    snippet: item.content || item.title || '',
+                    url: item.url,
+                    displayUrl: domain,
+                    faviconUrl: item.img_src || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+                    image: item.img_src || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+                    source: 'searxng',
+                    detectedType: classifyResult(originalQuery, { title: item.title, snippet: item.content, link: item.url }),
+                    score: 45,
+                    rank: results.length + 1
+                  });
+                }
+              }
+              console.log(`SearXNG (${instance}) added results, total: ${results.length}`);
+              break; // Got results, stop trying other instances
+            }
+          }
+        } catch (instanceErr) {
+          console.log(`SearXNG instance ${instance} failed, trying next...`);
+        }
+      }
+    } catch (searxErr) {
+      console.error('SearXNG search error:', searxErr);
+    }
+  }
+  
+  // Approach 3: Wikipedia search as final fallback for encyclopedic queries
+  if (results.length < 3) {
+    try {
+      console.log(`Trying Wikipedia search as fallback...`);
+      const wikiUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(originalQuery)}&limit=5&format=json&origin=*`;
+      
+      const wikiResponse = await fetch(wikiUrl);
+      if (wikiResponse.ok) {
+        const wikiData = await wikiResponse.json();
+        const [, titles, descriptions, urls] = wikiData;
+        
+        if (titles && titles.length > 0) {
+          for (let i = 0; i < titles.length; i++) {
+            if (!results.some(r => r.url === urls[i])) {
+              results.push({
+                title: titles[i],
+                snippet: descriptions[i] || `Wikipedia article about ${titles[i]}`,
+                url: urls[i],
+                displayUrl: 'en.wikipedia.org',
+                faviconUrl: 'https://www.google.com/s2/favicons?domain=wikipedia.org&sz=128',
+                image: 'https://www.google.com/s2/favicons?domain=wikipedia.org&sz=128',
+                source: 'wikipedia',
+                detectedType: 'information',
+                score: 35,
+                rank: results.length + 1
+              });
+            }
+          }
+          console.log(`Wikipedia added results, total: ${results.length}`);
+        }
+      }
+    } catch (wikiErr) {
+      console.error('Wikipedia search error:', wikiErr);
+    }
+  }
+  
+  console.log(`Total fallback results: ${results.length}`);
+  return results;
 }
 
 function decodeHTMLEntities(text: string): string {
