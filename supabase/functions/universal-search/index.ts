@@ -178,6 +178,8 @@ serve(async (req) => {
         const googleResponse = await fetch(googleUrl);
         const googleData = await googleResponse.json();
 
+        console.log(`Google API response status: ${googleResponse.status}`);
+        
         if (googleResponse.ok && googleData.items) {
           const rawResults = googleData.items || [];
           console.log(`Google returned ${rawResults.length} primary results`);
@@ -247,12 +249,25 @@ serve(async (req) => {
               console.log(`Added ${additionalResults.length} broader results, total: ${results.length}`);
             }
           }
-        } else if (googleData.error?.code === 429) {
-          console.log('Google quota exceeded, falling back to DuckDuckGo');
-          searchEngine = 'duckduckgo';
-          results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
         } else {
-          console.error('Google API error:', googleData);
+          // Log detailed error info
+          const errorCode = googleData.error?.code || googleResponse.status;
+          const errorMessage = googleData.error?.message || 'Unknown error';
+          const errorReason = googleData.error?.errors?.[0]?.reason || 'unknown';
+          
+          console.error(`Google API error - Status: ${googleResponse.status}, Code: ${errorCode}, Reason: ${errorReason}, Message: ${errorMessage}`);
+          
+          // Check for quota-related errors (403, 429, or specific reasons)
+          const isQuotaError = errorCode === 429 || errorCode === 403 || 
+                              errorReason === 'quotaExceeded' || 
+                              errorReason === 'rateLimitExceeded' ||
+                              errorReason === 'dailyLimitExceeded' ||
+                              errorMessage.toLowerCase().includes('quota');
+          
+          if (isQuotaError) {
+            console.log('Google quota/rate limit issue detected, falling back to alternatives');
+          }
+          
           searchEngine = 'duckduckgo';
           results = await searchDuckDuckGo(searchQuery, query, effectiveLat, effectiveLon);
         }
