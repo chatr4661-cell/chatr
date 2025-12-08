@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,9 @@ import {
   ExternalLink,
   Bookmark,
   Globe,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Zap,
+  Cpu
 } from 'lucide-react';
 import { TrendingSearches } from '@/components/search/TrendingSearches';
 import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
@@ -32,6 +34,7 @@ import { VisualSearchUpload } from '@/components/search/VisualSearchUpload';
 import { useLocation } from '@/contexts/LocationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AISummaryContent } from '@/components/ai/AISummaryContent';
+import { useLocalAI } from '@/hooks/useLocalAI';
 
 interface SearchResult {
   id: string;
@@ -65,6 +68,29 @@ const UniversalSearch = () => {
   const { location, isLoading: locationLoading, error: locationError } = useLocation();
   const [isFavorite, setIsFavorite] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('all');
+  
+  // Local AI for instant responses
+  const { analyzeIntent, supportsWebGPU, isReady: localAIReady } = useLocalAI();
+  const [instantAnswer, setInstantAnswer] = useState<string | null>(null);
+  const [localSuggestions, setLocalSuggestions] = useState<string[]>([]);
+  const searchStartTime = useRef(Date.now());
+
+  // Instant local analysis when typing
+  const handleQueryChange = useCallback(async (value: string) => {
+    setSearchQuery(value);
+    
+    // Instant local AI analysis (no network delay)
+    if (value.trim().length > 2) {
+      const localResult = await analyzeIntent(value);
+      setLocalSuggestions(localResult.suggestedQueries);
+      if (localResult.quickAnswer) {
+        setInstantAnswer(localResult.quickAnswer);
+      }
+    } else {
+      setLocalSuggestions([]);
+      setInstantAnswer(null);
+    }
+  }, [analyzeIntent]);
 
   useEffect(() => {
     if (initialQuery) {
@@ -75,9 +101,11 @@ const UniversalSearch = () => {
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
     
+    searchStartTime.current = Date.now();
     setLoading(true);
     setWebSearchLoading(true);
     setResults([]);
+    setInstantAnswer(null);
     setWebResults(null);
 
     try {
@@ -314,7 +342,7 @@ const UniversalSearch = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleQueryChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="Find plumber, order food, doctor, jobs..."
                 className="pl-10 pr-12"
@@ -331,6 +359,39 @@ const UniversalSearch = () => {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
             </Button>
           </div>
+
+          {/* Instant Local AI Suggestions (appears while typing) */}
+          {localSuggestions.length > 0 && !loading && (
+            <div className="mt-2 p-2 bg-muted/50 rounded-lg border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-3 h-3 text-yellow-500" />
+                <span className="text-xs text-muted-foreground">
+                  Instant suggestions {supportsWebGPU && <span className="text-green-500">(GPU accelerated)</span>}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {localSuggestions.map((suggestion, i) => (
+                  <Badge 
+                    key={i}
+                    variant="secondary" 
+                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                    onClick={() => {
+                      setSearchQuery(suggestion);
+                      performSearch(suggestion);
+                    }}
+                  >
+                    {suggestion}
+                  </Badge>
+                ))}
+              </div>
+              {instantAnswer && (
+                <p className="text-xs text-muted-foreground mt-2 pl-5">
+                  <Cpu className="w-3 h-3 inline mr-1" />
+                  {instantAnswer}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* AI Intent Banner */}
           {aiIntent && (
