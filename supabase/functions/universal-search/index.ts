@@ -376,18 +376,20 @@ async function searchDuckDuckGo(
     if (htmlResponse.ok) {
       const html = await htmlResponse.text();
       
-      // Split by result__body to get individual result blocks
-      const resultBlocks = html.split('class="result__body"');
+      // Find all result__a links with their titles and extract URLs
+      const resultPattern = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]*(?:<[^>]+>[^<]*)*)<\/a>/gi;
+      const snippetPattern = /<a[^>]*class="result__snippet"[^>]*>([^<]*(?:<[^>]+>[^<]*)*)<\/a>/gi;
       
-      for (let i = 1; i < resultBlocks.length && results.length < 15; i++) {
-        const block = resultBlocks[i];
+      const urlMatches = [...html.matchAll(resultPattern)];
+      const snippetMatches = [...html.matchAll(snippetPattern)];
+      
+      console.log(`Found ${urlMatches.length} result__a matches`);
+      
+      for (let i = 0; i < urlMatches.length && results.length < 15; i++) {
+        const match = urlMatches[i];
+        let url = match[1];
         
-        // Extract URL from href
-        const hrefMatch = block.match(/href="([^"]+)"/);
-        if (!hrefMatch) continue;
-        
-        let url = hrefMatch[1];
-        // DuckDuckGo uses uddg redirect parameter
+        // Handle uddg redirect if present, otherwise use direct URL
         if (url.includes('uddg=')) {
           const uddgMatch = url.match(/uddg=([^&]+)/);
           if (uddgMatch) {
@@ -398,14 +400,14 @@ async function searchDuckDuckGo(
         // Skip invalid URLs
         if (!url.startsWith('http') || url.includes('duckduckgo.com')) continue;
         
-        // Extract title
-        const titleMatch = block.match(/class="result__a"[^>]*>([^<]+)/i);
-        const title = titleMatch ? decodeHTMLEntities(titleMatch[1].trim()) : '';
+        // Extract title from match
+        const title = decodeHTMLEntities(match[2].replace(/<[^>]+>/g, '').trim());
         if (!title || title.length < 3) continue;
         
-        // Extract snippet
-        const snippetMatch = block.match(/class="result__snippet"[^>]*>([^<]+)/i);
-        const snippet = snippetMatch ? decodeHTMLEntities(snippetMatch[1].trim()) : title;
+        // Get corresponding snippet
+        const snippet = snippetMatches[i] 
+          ? decodeHTMLEntities(snippetMatches[i][1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
+          : title;
         
         try {
           const domain = new URL(url).hostname;
