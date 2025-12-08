@@ -138,12 +138,13 @@ const UniversalSearch = () => {
       } else if (searchData) {
         console.log('Universal search results:', searchData);
         
-        // Set web results with AI answer
+        // Set web results with AI answer and images
         setWebResults({
           synthesis: searchData.aiAnswer?.text || null,
           results: searchData.results || [],
           suggestions: [],
-          sources: searchData.aiAnswer?.sources || []
+          sources: searchData.aiAnswer?.sources || [],
+          images: searchData.aiAnswer?.images || searchData.results?.filter((r: any) => r.image).slice(0, 4).map((r: any) => ({ url: r.image, source: r.displayUrl })) || []
         });
 
         // Convert to SearchResult format for display
@@ -501,16 +502,17 @@ const UniversalSearch = () => {
         )}
 
 
-        {/* Perplexity-Style AI Summary */}
+        {/* Perplexity-Style AI Summary with Images */}
         {webResults && webResults.synthesis && (
           <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-primary">AI Summary</h3>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-xs font-medium text-primary uppercase tracking-wide">AI Answer</span>
             </div>
             <AISummaryContent 
               content={webResults.synthesis}
               sources={webResults.sources}
+              images={webResults.images}
             />
           </Card>
         )}
