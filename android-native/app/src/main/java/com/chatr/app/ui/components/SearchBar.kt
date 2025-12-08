@@ -10,7 +10,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.chatr.app.ui.theme.*
+import com.chatr.app.ui.theme.Primary
+import com.chatr.app.ui.theme.Border
+import com.chatr.app.ui.theme.Foreground
+import com.chatr.app.ui.theme.MutedForeground
+import com.chatr.app.ui.theme.Card as CardColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,13 +42,15 @@ fun ChatrSearchBar(
         },
         modifier = modifier
             .fillMaxWidth()
-            .background(Card, RoundedCornerShape(12.dp)),
+            .background(CardColor, RoundedCornerShape(12.dp)),
         shape = RoundedCornerShape(12.dp),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            containerColor = Card,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = CardColor,
+            unfocusedContainerColor = CardColor,
             focusedBorderColor = Primary,
             unfocusedBorderColor = Border,
-            textColor = Foreground,
+            focusedTextColor = Foreground,
+            unfocusedTextColor = Foreground,
             cursorColor = Primary
         ),
         singleLine = true

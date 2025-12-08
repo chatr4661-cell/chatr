@@ -3,130 +3,157 @@ package com.chatr.app.os
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
-import com.getcapacitor.Plugin
-import com.getcapacitor.PluginCall
-import com.getcapacitor.PluginMethod
-import com.getcapacitor.annotation.CapacitorPlugin
 import org.json.JSONObject
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * CHATR OS - Native App Lifecycle Manager (Android)
  * 
  * Provides native lifecycle hooks and resource monitoring for mini-apps.
- * Week 1 - Core OS Infrastructure
+ * Simplified version without Capacitor dependency.
  */
-@CapacitorPlugin(name = "AppLifecycleManager")
-class AppLifecycleManager : Plugin() {
+@Singleton
+class AppLifecycleManager @Inject constructor(
+    private val context: Context
+) {
     
-    private lateinit var activityManager: ActivityManager
-    
-    override fun load() {
-        activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    private val activityManager: ActivityManager by lazy {
+        context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     }
+    
+    private val runningApps = mutableMapOf<String, AppState>()
+    
+    data class AppState(
+        val appId: String,
+        val status: String,
+        val startTime: Long,
+        val memoryUsage: Long = 0
+    )
     
     /**
      * Pause an app (move to background)
      */
-    @PluginMethod
-    fun pauseApp(call: PluginCall) {
-        val appId = call.getString("appId")
-        
-        if (appId == null) {
-            call.reject("appId is required")
-            return
+    fun pauseApp(appId: String): JSONObject {
+        return try {
+            runningApps[appId]?.let {
+                runningApps[appId] = it.copy(status = "PAUSED")
+            }
+            JSONObject().apply {
+                put("success", true)
+                put("appId", appId)
+                put("status", "PAUSED")
+            }
+        } catch (e: Exception) {
+            JSONObject().apply {
+                put("success", false)
+                put("error", e.message)
+            }
         }
-        
-        // In a real implementation, this would suspend the app's process
-        // For now, we'll just return success
-        val result = JSONObject()
-        result.put("success", true)
-        result.put("appId", appId)
-        result.put("state", "paused")
-        
-        call.resolve(result)
     }
     
     /**
-     * Resume an app (bring to foreground)
+     * Resume a paused app
      */
-    @PluginMethod
-    fun resumeApp(call: PluginCall) {
-        val appId = call.getString("appId")
-        
-        if (appId == null) {
-            call.reject("appId is required")
-            return
+    fun resumeApp(appId: String): JSONObject {
+        return try {
+            runningApps[appId]?.let {
+                runningApps[appId] = it.copy(status = "RUNNING")
+            }
+            JSONObject().apply {
+                put("success", true)
+                put("appId", appId)
+                put("status", "RUNNING")
+            }
+        } catch (e: Exception) {
+            JSONObject().apply {
+                put("success", false)
+                put("error", e.message)
+            }
         }
-        
-        val result = JSONObject()
-        result.put("success", true)
-        result.put("appId", appId)
-        result.put("state", "running")
-        
-        call.resolve(result)
     }
     
     /**
-     * Get resource usage for an app
+     * Terminate an app completely
      */
-    @PluginMethod
-    fun getResourceUsage(call: PluginCall) {
-        val appId = call.getString("appId")
-        
-        if (appId == null) {
-            call.reject("appId is required")
-            return
+    fun terminateApp(appId: String): JSONObject {
+        return try {
+            runningApps.remove(appId)
+            JSONObject().apply {
+                put("success", true)
+                put("appId", appId)
+                put("status", "TERMINATED")
+            }
+        } catch (e: Exception) {
+            JSONObject().apply {
+                put("success", false)
+                put("error", e.message)
+            }
         }
-        
-        // Get memory info
-        val memoryInfo = ActivityManager.MemoryInfo()
-        activityManager.getMemoryInfo(memoryInfo)
-        
-        val result = JSONObject()
-        result.put("appId", appId)
-        result.put("memoryUsedMB", (memoryInfo.totalMem - memoryInfo.availMem) / (1024 * 1024))
-        result.put("memoryAvailableMB", memoryInfo.availMem / (1024 * 1024))
-        result.put("memoryTotalMB", memoryInfo.totalMem / (1024 * 1024))
-        result.put("lowMemory", memoryInfo.lowMemory)
-        
-        // CPU usage would require more complex implementation
-        result.put("cpuUsagePercent", 0.0)
-        
-        call.resolve(result)
     }
     
     /**
-     * Get running apps
+     * Get memory usage for current process
      */
-    @PluginMethod
-    fun getRunningApps(call: PluginCall) {
-        val runningAppProcesses = activityManager.runningAppProcesses
-        val result = JSONObject()
-        result.put("count", runningAppProcesses?.size ?: 0)
-        result.put("apps", runningAppProcesses?.map { it.processName } ?: emptyList<String>())
-        
-        call.resolve(result)
+    fun getMemoryInfo(): JSONObject {
+        return try {
+            val memoryInfo = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memoryInfo)
+            
+            val runtime = Runtime.getRuntime()
+            val usedMemory = runtime.totalMemory() - runtime.freeMemory()
+            val maxHeap = runtime.maxMemory()
+            
+            JSONObject().apply {
+                put("usedMemory", usedMemory)
+                put("maxHeap", maxHeap)
+                put("availableSystemMemory", memoryInfo.availMem)
+                put("totalSystemMemory", memoryInfo.totalMem)
+                put("lowMemory", memoryInfo.lowMemory)
+            }
+        } catch (e: Exception) {
+            JSONObject().apply {
+                put("error", e.message)
+            }
+        }
     }
     
     /**
-     * Kill an app process
+     * Get running apps info
      */
-    @PluginMethod
-    fun terminateApp(call: PluginCall) {
-        val appId = call.getString("appId")
-        
-        if (appId == null) {
-            call.reject("appId is required")
-            return
+    fun getRunningApps(): JSONObject {
+        return JSONObject().apply {
+            put("apps", runningApps.values.map { app ->
+                JSONObject().apply {
+                    put("appId", app.appId)
+                    put("status", app.status)
+                    put("startTime", app.startTime)
+                    put("memoryUsage", app.memoryUsage)
+                }
+            })
         }
-        
-        // In a real implementation, this would kill the app's process
-        // This requires system-level permissions
-        val result = JSONObject()
-        result.put("success", true)
-        result.put("appId", appId)
-        result.put("state", "terminated")
-        
-        call.resolve(result)
+    }
+    
+    /**
+     * Launch/register an app
+     */
+    fun launchApp(appId: String): JSONObject {
+        return try {
+            runningApps[appId] = AppState(
+                appId = appId,
+                status = "RUNNING",
+                startTime = System.currentTimeMillis()
+            )
+            JSONObject().apply {
+                put("success", true)
+                put("appId", appId)
+                put("status", "RUNNING")
+            }
+        } catch (e: Exception) {
+            JSONObject().apply {
+                put("success", false)
+                put("error", e.message)
+            }
+        }
     }
 }

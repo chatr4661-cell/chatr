@@ -50,9 +50,9 @@ class ChatRepository @Inject constructor(
                         lastMessageTime = chat.lastMessage?.timestamp,
                         unreadCount = chat.unreadCount,
                         updatedAt = chat.updatedAt,
-                        isGroup = false,
-                        groupName = null,
-                        groupIcon = null
+                        isGroup = chat.isGroup,
+                        groupName = chat.groupName,
+                        groupIcon = chat.groupIconUrl
                     )
                 }
                 chatDao.insertAll(entities)
@@ -100,7 +100,7 @@ class ChatRepository @Inject constructor(
      */
     fun getMessages(chatId: String, limit: Int = 50, offset: Int = 0): Flow<Result<List<Message>>> = flow {
         // First emit cached messages
-        val cachedMessages = messageDao.getMessagesForChat(chatId).map { it.toMessage() }
+        val cachedMessages = messageDao.getMessagesForChat(chatId, limit, offset).map { it.toMessage() }
         if (cachedMessages.isNotEmpty()) {
             emit(Result.success(cachedMessages))
         }
@@ -115,15 +115,15 @@ class ChatRepository @Inject constructor(
                 val entities = messages.map { message ->
                     MessageEntity(
                         id = message.id,
-                        chatId = message.chatId,
+                        conversationId = message.conversationId.ifEmpty { chatId },
                         senderId = message.senderId,
+                        senderName = message.senderName,
                         content = message.content,
                         timestamp = message.timestamp,
                         type = message.type.name,
                         status = message.status.name,
-                        replyToId = null,
-                        mediaUrl = null,
-                        reactions = null
+                        replyTo = message.replyTo ?: message.replyToId,
+                        mediaUrl = message.mediaUrl
                     )
                 }
                 messageDao.insertAll(entities)
@@ -160,9 +160,9 @@ class ChatRepository @Inject constructor(
                 id = localId,
                 conversationId = conversationId,
                 content = content,
-                type = type.name,
+                messageType = type.name,
                 replyToId = replyTo,
-                mediaUrl = mediaUrl,
+                mediaUri = mediaUrl,
                 createdAt = timestamp,
                 failed = false,
                 retryCount = 0
@@ -185,15 +185,15 @@ class ChatRepository @Inject constructor(
                     // Save to local database
                     val entity = MessageEntity(
                         id = message.id,
-                        chatId = conversationId,
+                        conversationId = conversationId,
                         senderId = message.senderId,
+                        senderName = message.senderName,
                         content = message.content,
                         timestamp = message.timestamp,
                         type = message.type.name,
                         status = MessageStatus.SENT.name,
-                        replyToId = replyTo,
-                        mediaUrl = mediaUrl,
-                        reactions = null
+                        replyTo = replyTo,
+                        mediaUrl = mediaUrl
                     )
                     messageDao.insert(entity)
                     
@@ -234,9 +234,9 @@ class ChatRepository @Inject constructor(
                     val request = SendMessageRequest(
                         conversationId = pending.conversationId,
                         content = pending.content,
-                        type = pending.type,
+                        type = pending.messageType,
                         replyTo = pending.replyToId,
-                        mediaUrl = pending.mediaUrl
+                        mediaUrl = pending.mediaUri
                     )
                     
                     val response = api.sendMessage(request)
@@ -302,7 +302,7 @@ class ChatRepository @Inject constructor(
                 val response = api.deleteChat(chatId)
                 if (response.isSuccessful) {
                     chatDao.deleteById(chatId)
-                    messageDao.deleteMessagesForChat(chatId)
+                    messageDao.deleteAllForChat(chatId)
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Failed to delete chat"))
@@ -321,7 +321,7 @@ class ChatRepository @Inject constructor(
             try {
                 val response = api.markAsRead(messageId)
                 if (response.isSuccessful) {
-                    messageDao.updateStatus(messageId, MessageStatus.READ.name)
+                    messageDao.markAsRead(messageId, System.currentTimeMillis())
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Failed to mark as read"))
@@ -359,7 +359,10 @@ class ChatRepository @Inject constructor(
                 val response = api.editMessage(messageId, EditMessageRequest(content))
                 if (response.isSuccessful && response.body() != null) {
                     val message = response.body()!!
-                    messageDao.updateContent(messageId, content)
+                    // Update local DB
+                    messageDao.getMessageById(messageId)?.let { entity ->
+                        messageDao.insert(entity.copy(content = content))
+                    }
                     Result.success(message)
                 } else {
                     Result.failure(Exception("Failed to edit message"))
@@ -461,6 +464,7 @@ private fun ChatEntity.toChat(): Chat {
         lastMessage = lastMessage?.let { 
             Message(
                 id = "",
+                conversationId = id,
                 chatId = id,
                 senderId = "",
                 content = it,
@@ -470,18 +474,9 @@ private fun ChatEntity.toChat(): Chat {
             )
         },
         unreadCount = unreadCount,
-        updatedAt = updatedAt
-    )
-}
-
-private fun MessageEntity.toMessage(): Message {
-    return Message(
-        id = id,
-        chatId = chatId,
-        senderId = senderId,
-        content = content,
-        timestamp = timestamp,
-        type = try { MessageType.valueOf(type) } catch (e: Exception) { MessageType.TEXT },
-        status = try { MessageStatus.valueOf(status) } catch (e: Exception) { MessageStatus.SENT }
+        updatedAt = updatedAt,
+        isGroup = isGroup,
+        groupName = groupName,
+        groupIconUrl = groupIcon
     )
 }
