@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         applicationId = "com.chatr.app"
-        minSdk = 26
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
@@ -35,8 +35,8 @@ android {
         }
 
         // BuildConfig fields from local.properties - PLUG & PLAY
-        buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "")}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "https://sbayuqgomlflmxgicplz.supabase.co")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiYXl1cWdvbWxmbG14Z2ljcGx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTc2MDAsImV4cCI6MjA3NDk5MzYwMH0.gVSObpMtsv5W2nuLBHKT8G1_hXIprWXdn5l7Bnnj7jw")}\"")
         buildConfigField("String", "WEB_BASE_URL", "\"https://chatr.chat\"")
     }
 
@@ -93,7 +93,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.8.2")
 
     // Compose BOM 2024
-    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    implementation(platform("androidx.compose:compose-bom:2024.02.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -107,7 +107,7 @@ dependencies {
 
     // Hilt DI
     implementation("com.google.dagger:hilt-android:2.50")
-    kapt("com.google.dagger:hilt-compiler:2.50")
+    kapt("com.google.dagger:hilt-android-compiler:2.50")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
     // Supabase SDK
@@ -123,8 +123,8 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
 
-    // WebRTC - Shiguredo
-    implementation("com.github.niccokunzmann:webrtc-android:1.0.1")
+    // WebRTC - latest stable
+    implementation("io.github.webrtc-sdk:android:114.0.0")
 
     // WebView
     implementation("androidx.webkit:webkit:1.10.0")
@@ -162,7 +162,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }
 
