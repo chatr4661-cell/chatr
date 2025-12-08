@@ -12,6 +12,13 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Presence Client for real-time presence and typing indicators
+ * 
+ * Supports two usage patterns:
+ * 1. DI-injected singleton (use connect/disconnect)
+ * 2. Callback-based instance (for ChatViewModel compatibility)
+ */
 @Singleton
 class PresenceClient @Inject constructor() {
     
@@ -37,6 +44,17 @@ class PresenceClient @Inject constructor() {
     private var currentUserId: String? = null
     private var subscribedChannels = mutableSetOf<String>()
     
+    // Callback for ChatViewModel compatibility
+    private var eventCallback: ((PresenceEvent) -> Unit)? = null
+    
+    /**
+     * Secondary constructor for callback-based usage (ChatViewModel)
+     */
+    constructor(userId: String, token: String, callback: (PresenceEvent) -> Unit) : this() {
+        this.eventCallback = callback
+        connect(userId, token)
+    }
+    
     fun connect(userId: String, token: String) {
         currentUserId = userId
         
@@ -49,7 +67,6 @@ class PresenceClient @Inject constructor() {
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Log.d(TAG, "Realtime WebSocket connected")
-                // Send heartbeat
                 sendHeartbeat()
             }
             
@@ -60,13 +77,16 @@ class PresenceClient @Inject constructor() {
             
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "WebSocket error", t)
-                // Attempt reconnection
             }
             
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.d(TAG, "WebSocket closed: $reason")
             }
         })
+    }
+    
+    fun connect() {
+        // No-op for callback-based instances (already connected in constructor)
     }
     
     fun subscribeToConversation(conversationId: String) {
@@ -91,6 +111,14 @@ class PresenceClient @Inject constructor() {
         )
         send(leaveMessage)
         subscribedChannels.remove(conversationId)
+    }
+    
+    fun sendTyping(conversationId: String) {
+        sendTypingStart(conversationId)
+    }
+    
+    fun sendStopTyping(conversationId: String) {
+        sendTypingStop(conversationId)
     }
     
     fun sendTypingStart(conversationId: String) {
@@ -140,14 +168,17 @@ class PresenceClient @Inject constructor() {
             val message = gson.fromJson(text, Map::class.java)
             val event = message["event"] as? String
             val payload = message["payload"] as? Map<*, *>
+            val topic = message["topic"] as? String
             
             when (event) {
                 "presence_state", "presence_diff" -> {
-                    // Handle presence updates
                     payload?.let { handlePresencePayload(it) }
                 }
                 "typing" -> {
-                    payload?.let { handleTypingPayload(it) }
+                    payload?.let { handleTypingPayload(it, topic) }
+                }
+                "broadcast" -> {
+                    payload?.let { handleBroadcastPayload(it, topic) }
                 }
                 "phx_reply" -> {
                     // Handle acknowledgements
@@ -163,16 +194,39 @@ class PresenceClient @Inject constructor() {
             val userId = payload["user_id"] as? String ?: return@launch
             val status = payload["status"] as? String ?: "offline"
             val isOnline = status == "online"
-            _presenceEvents.emit(PresenceEvent(userId, isOnline, System.currentTimeMillis()))
+            val presenceEvent = PresenceEvent.UserOnlineStatus(userId, isOnline, System.currentTimeMillis())
+            _presenceEvents.emit(presenceEvent)
+            eventCallback?.invoke(presenceEvent)
         }
     }
     
-    private fun handleTypingPayload(payload: Map<*, *>) {
+    private fun handleTypingPayload(payload: Map<*, *>, topic: String?) {
         scope.launch {
             val userId = payload["user_id"] as? String ?: return@launch
             val isTyping = payload["is_typing"] as? Boolean ?: false
+            val conversationId = topic?.removePrefix("realtime:presence:") ?: ""
+            
             if (userId != currentUserId) {
                 _typingEvents.emit(TypingEvent(userId, isTyping))
+                
+                val presenceEvent = if (isTyping) {
+                    PresenceEvent.UserTyping(userId, conversationId)
+                } else {
+                    PresenceEvent.UserStoppedTyping(userId, conversationId)
+                }
+                eventCallback?.invoke(presenceEvent)
+            }
+        }
+    }
+    
+    private fun handleBroadcastPayload(payload: Map<*, *>, topic: String?) {
+        scope.launch {
+            val type = payload["type"] as? String
+            val conversationId = topic?.removePrefix("realtime:presence:") ?: ""
+            
+            if (type == "new_message") {
+                val presenceEvent = PresenceEvent.NewMessage(conversationId)
+                eventCallback?.invoke(presenceEvent)
             }
         }
     }
@@ -196,6 +250,15 @@ class PresenceClient @Inject constructor() {
         webSocket = null
         currentUserId = null
         subscribedChannels.clear()
+        eventCallback = null
+    }
+    
+    // Sealed class for presence events (compatible with ChatViewModel)
+    sealed class PresenceEvent {
+        data class UserOnlineStatus(val userId: String, val isOnline: Boolean, val timestamp: Long) : PresenceEvent()
+        data class UserTyping(val userId: String, val conversationId: String) : PresenceEvent()
+        data class UserStoppedTyping(val userId: String, val conversationId: String) : PresenceEvent()
+        data class NewMessage(val conversationId: String) : PresenceEvent()
     }
 }
 

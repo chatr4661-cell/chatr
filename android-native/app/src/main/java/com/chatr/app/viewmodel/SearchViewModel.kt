@@ -32,7 +32,7 @@ data class VisualSearchState(
 
 data class JobSearchState(
     val isLoading: Boolean = false,
-    val jobs: List<Job> = emptyList(),
+    val jobs: List<JobListing> = emptyList(),
     val totalResults: Int = 0,
     val error: String? = null
 )
