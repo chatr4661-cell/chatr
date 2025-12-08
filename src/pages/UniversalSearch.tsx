@@ -31,6 +31,7 @@ import { FavoriteResults } from '@/components/search/FavoriteResults';
 import { VisualSearchUpload } from '@/components/search/VisualSearchUpload';
 import { useLocation } from '@/contexts/LocationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AISummaryContent } from '@/components/ai/AISummaryContent';
 
 interface SearchResult {
   id: string;
@@ -441,35 +442,15 @@ const UniversalSearch = () => {
 
         {/* Perplexity-Style AI Summary */}
         {webResults && webResults.synthesis && (
-          <Card className="p-6 mb-6 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
+          <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-lg text-primary">AI Summary</h3>
+              <h3 className="font-semibold text-primary">AI Summary</h3>
             </div>
-            <div className="prose prose-sm max-w-none">
-              <p className="text-foreground leading-relaxed whitespace-pre-wrap mb-4">
-                {webResults.synthesis}
-              </p>
-            </div>
-            {webResults.sources && webResults.sources.length > 0 && (
-              <div className="pt-4 border-t border-border/50">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Sources:</p>
-                <div className="flex flex-wrap gap-2">
-                  {webResults.sources.slice(0, 5).map((source: any, idx: number) => (
-                    <a
-                      key={idx}
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline flex items-center gap-1"
-                    >
-                      [{idx + 1}] {source.title?.substring(0, 40)}...
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
+            <AISummaryContent 
+              content={webResults.synthesis}
+              sources={webResults.sources}
+            />
           </Card>
         )}
 

@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AISummaryContent } from '@/components/ai/AISummaryContent';
 
 interface BrowserTab {
   id: string;
@@ -182,11 +183,11 @@ const AIBrowserView = () => {
 
       {/* AI Assist Panel */}
       {showAiAssist && (
-        <Card className="m-2 p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <div className="flex items-center justify-between mb-2">
+        <Card className="m-2 p-4 bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              <span className="font-medium text-primary">AI Summary</span>
+              <span className="font-semibold text-primary">AI Summary</span>
             </div>
             <Button
               size="icon"
@@ -197,9 +198,11 @@ const AIBrowserView = () => {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-sm text-foreground/80">
-            {aiSummary || 'Generating summary...'}
-          </p>
+          {aiSummary ? (
+            <AISummaryContent content={aiSummary} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Generating summary...</p>
+          )}
         </Card>
       )}
 
