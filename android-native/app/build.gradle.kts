@@ -123,8 +123,8 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
 
-    // WebRTC - JitPack SDK (verified working version)
-    implementation("com.github.webrtc-sdk:android:114.0.5735.00")
+    // WebRTC - Official SDK from Maven Central (io.github.webrtc-sdk)
+    implementation("io.github.webrtc-sdk:android:125.6422.06.1")
 
     // WebView
     implementation("androidx.webkit:webkit:1.10.0")
