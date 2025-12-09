@@ -140,12 +140,17 @@ const UniversalSearch = () => {
         console.log('Universal search results:', searchData);
         
         // Set web results with AI answer and images
+        // Filter out favicons - only use real images (AI images or images from Google Image Search)
+        const aiImages = searchData.aiAnswer?.images || [];
+        // Only use result images if they're real images (not favicons)
+        const realImages = aiImages.length > 0 ? aiImages : [];
+        
         setWebResults({
           synthesis: searchData.aiAnswer?.text || null,
           results: searchData.results || [],
           suggestions: [],
           sources: searchData.aiAnswer?.sources || [],
-          images: searchData.aiAnswer?.images || searchData.results?.filter((r: any) => r.image).slice(0, 4).map((r: any) => ({ url: r.image, source: r.displayUrl })) || []
+          images: realImages
         });
 
         // Convert to SearchResult format for display
