@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.generate-sticker]
 verify_jwt = true
+
+[functions.chatr-brain]
+verify_jwt = false
