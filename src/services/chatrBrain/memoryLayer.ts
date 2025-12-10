@@ -71,7 +71,20 @@ class MemoryLayerService {
   private userPreferences: UserPreference[] = [];
   private taskMemory: TaskMemory[] = [];
   private conversationContext: ConversationContext | null = null;
-  private isInitialized = false;
+  public isInitialized = false;
+
+  getCurrentUserId(): string | null {
+    return this.userId;
+  }
+
+  getRecentQueries(): string[] {
+    return this.conversationContext?.turns.slice(-5).map(t => t.query) || [];
+  }
+
+  getLastAgent(): AgentType | undefined {
+    const turns = this.conversationContext?.turns;
+    return turns && turns.length > 0 ? turns[turns.length - 1].agent : undefined;
+  }
 
   /**
    * Initialize memory for a user
