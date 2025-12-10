@@ -393,6 +393,7 @@ const App = () => {
             <Route path="/chatr-home" element={<ChatrHome />} />
             <Route path="/chatr-results" element={<ChatrResults />} />
             <Route path="/ai-browser-home" element={<AIBrowserHome />} />
+            <Route path="/ai-search" element={<AIBrowserHome />} />
             <Route path="/ai-browser" element={<AIBrowserView />} />
             <Route path="/chat-ai" element={<AIChat />} />
             <Route path="/capture" element={<Capture />} />
