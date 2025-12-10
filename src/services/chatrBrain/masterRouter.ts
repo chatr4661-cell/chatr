@@ -105,7 +105,7 @@ const OVERRIDE_RULES: { condition: (ctx: RoutingContext) => boolean; agent: Agen
     reason: 'Mental health emergency detected',
   },
   {
-    condition: (ctx) => ctx.intent.actionRequired === 'book_appointment' && ctx.intent.entities.condition,
+    condition: (ctx) => ctx.intent.actionRequired === 'book_appointment' && !!ctx.intent.entities.condition,
     agent: 'health',
     reason: 'Medical appointment booking with condition',
   },
