@@ -5,7 +5,6 @@
 
 import { AgentType, ActionType, DetectedIntent } from '../types';
 import { memoryLayer } from '../memoryLayer';
-import { contractValidator } from '../agentContracts';
 
 export interface AgentResponse {
   message: string;
@@ -26,11 +25,18 @@ export interface AgentContext {
   globalContext: string;
 }
 
+export interface IAgent {
+  readonly type: AgentType;
+  readonly name: string;
+  process(context: AgentContext): Promise<AgentResponse>;
+  getCapabilities(): string[];
+}
+
 /**
  * Personal AI Agent
  * Learns user habits, tone, preferences; handles reminders and personal tasks
  */
-class PersonalAIAgent {
+class PersonalAIAgent implements IAgent {
   readonly type: AgentType = 'personal';
   readonly name = 'Personal AI';
 
@@ -41,11 +47,7 @@ class PersonalAIAgent {
     const { query, intent, userId } = context;
     
     // Get agent-specific memory
-    const agentMemory = memoryLayer.agentRecall(this.type, query, 3);
-    const preferences = memoryLayer.getAllPreferences();
-    
-    // Check contract permissions
-    const contract = contractValidator.getContract(this.type);
+    memoryLayer.agentRecall(this.type, query, 3);
     
     // Detect personal patterns
     const patterns = this.detectPatterns(query);
