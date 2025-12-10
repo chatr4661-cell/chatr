@@ -95,7 +95,7 @@ export function useChatrBrain(): UseChatrBrainReturn {
     } finally {
       setIsProcessing(false);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   /**
    * Quick intent detection without full processing
