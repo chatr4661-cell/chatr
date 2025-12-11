@@ -316,6 +316,7 @@ const App = () => {
             <Route path="/teleconsultation" element={<TeleconsultationPage />} />
             
             {/* Main App Routes */}
+            <Route path="/chat" element={<Chat />} />
             <Route path="/chat/:conversationId" element={<Chat />} />
             <Route path="/starred-messages" element={<StarredMessages />} />
             <Route path="/chat/:conversationId/media" 
