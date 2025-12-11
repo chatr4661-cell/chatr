@@ -34,7 +34,8 @@ import {
   Ghost,
   ChevronRight,
   Store,
-  Gift
+  Gift,
+  Globe
 } from 'lucide-react';
 import { PersonalizedSection } from '@/components/home/PersonalizedSection';
 import { useStealthMode, StealthModeType } from '@/hooks/useStealthMode';
@@ -473,6 +474,14 @@ const Index = () => {
       route: '/ai-agents'
     },
     {
+      icon: Globe,
+      title: 'chatr.chat',
+      description: 'Visit our main website',
+      iconColor: 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600',
+      route: 'https://chatr.chat/',
+      external: true
+    },
+    {
       icon: Zap,
       title: 'Chatr World',
       description: 'AI Search + Location',
@@ -808,7 +817,13 @@ const Index = () => {
           {mainHubs.map((category, index) => (
             <button
               key={category.title}
-              onClick={() => navigate(category.route)}
+              onClick={() => {
+                if ('external' in category && category.external) {
+                  window.open(category.route, '_blank', 'noopener,noreferrer');
+                } else {
+                  navigate(category.route);
+                }
+              }}
               className="group flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
             >
               <div className={`w-9 h-9 rounded-lg ${category.iconColor} flex items-center justify-center shadow-md`}>
