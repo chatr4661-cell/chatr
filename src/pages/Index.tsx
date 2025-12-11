@@ -474,14 +474,6 @@ const Index = () => {
       route: '/ai-agents'
     },
     {
-      icon: Globe,
-      title: 'chatr.chat',
-      description: 'Visit our main website',
-      iconColor: 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600',
-      route: 'https://chatr.chat/',
-      external: true
-    },
-    {
       icon: Zap,
       title: 'Chatr World',
       description: 'AI Search + Location',
