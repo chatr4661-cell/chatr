@@ -29,7 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { SEOHead } from '@/components/SEOHead';
 import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
 import { ShareDeepLink } from '@/components/sharing';
-import { BrainTestPanel } from '@/components/ai/BrainTestPanel';
+
 
 interface AIAgent {
   id: string;
@@ -458,10 +458,6 @@ export default function AIAgents() {
           </Card>
         </div>
 
-        {/* Brain Test Panel */}
-        <div className="mb-8">
-          <BrainTestPanel />
-        </div>
 
         {agents.length === 0 ? (
           <Card className="border-2 border-dashed">
