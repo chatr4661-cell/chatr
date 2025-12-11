@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Bot, User, Sparkles, Loader2, Zap } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { ArrowLeft, Send, Bot, User, Sparkles, Loader2, Zap, Brain, Search, Briefcase, MapPin, Heart, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useChatrBrain } from '@/hooks/useChatrBrain';
 import { BrainResponse, AgentType } from '@/services/chatrBrain/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface ChatMessage {
   id: string;
@@ -20,22 +21,13 @@ interface ChatMessage {
   sources?: string[];
 }
 
-const agentIcons: Record<AgentType, string> = {
-  personal: '👤',
-  work: '💼',
-  search: '🔍',
-  local: '📍',
-  jobs: '💼',
-  health: '🏥',
-};
-
-const agentColors: Record<AgentType, string> = {
-  personal: 'bg-purple-500/20 text-purple-400',
-  work: 'bg-blue-500/20 text-blue-400',
-  search: 'bg-green-500/20 text-green-400',
-  local: 'bg-orange-500/20 text-orange-400',
-  jobs: 'bg-indigo-500/20 text-indigo-400',
-  health: 'bg-red-500/20 text-red-400',
+const agentConfig: Record<AgentType, { icon: React.ReactNode; color: string; label: string }> = {
+  personal: { icon: <User className="h-3 w-3" />, color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', label: 'Personal' },
+  work: { icon: <Briefcase className="h-3 w-3" />, color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', label: 'Work' },
+  search: { icon: <Search className="h-3 w-3" />, color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', label: 'Search' },
+  local: { icon: <MapPin className="h-3 w-3" />, color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', label: 'Local' },
+  jobs: { icon: <Briefcase className="h-3 w-3" />, color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30', label: 'Jobs' },
+  health: { icon: <Heart className="h-3 w-3" />, color: 'bg-rose-500/20 text-rose-400 border-rose-500/30', label: 'Health' },
 };
 
 export default function AIChat() {
@@ -112,21 +104,36 @@ export default function AIChat() {
   const previewIntent = input.trim() ? quickDetect(input.trim()) : null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 flex flex-col">
       {/* Header */}
-      <header className="bg-card/80 backdrop-blur-lg border-b border-border/50 px-4 py-3 sticky top-0 z-10">
+      <header className="bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <Button size="icon" variant="ghost" onClick={() => navigate(-1)}>
+          <Button size="icon" variant="ghost" onClick={() => navigate(-1)} className="hover:bg-muted/50">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-primary/20">
+                <Brain className="h-5 w-5 text-white" />
+              </div>
+              {isReady && (
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background" />
+              )}
             </div>
             <div>
-              <h1 className="text-lg font-semibold">CHATR Brain</h1>
-              <p className="text-xs text-muted-foreground">
-                {isReady ? '6 AI Agents Ready' : 'Initializing...'}
+              <h1 className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">CHATR Intelligence</h1>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                {isReady ? (
+                  <>
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                    6 AI Agents Active
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Initializing...
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -136,35 +143,53 @@ export default function AIChat() {
       {/* Messages Area */}
       <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 overflow-y-auto">
         {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <Bot className="h-8 w-8 text-primary" />
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-16"
+          >
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary via-purple-600 to-pink-500 opacity-20 blur-xl" />
+              <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-primary via-purple-600 to-pink-500 flex items-center justify-center shadow-xl">
+                <Brain className="h-10 w-10 text-white" />
+              </div>
             </div>
-            <h2 className="text-xl font-semibold mb-2">Hi! I'm CHATR Brain</h2>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              I can help you find doctors, search jobs, book services, get health advice, and more. Just ask!
+            <h2 className="text-2xl font-bold mb-2">CHATR Intelligence</h2>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
+              Your unified AI assistant for healthcare, jobs, local services, and more. Ask anything!
             </p>
             
+            {/* Agent Pills */}
+            <div className="flex flex-wrap justify-center gap-2 mb-8">
+              {Object.entries(agentConfig).map(([key, config]) => (
+                <Badge key={key} variant="outline" className={cn("text-xs py-1 px-3", config.color)}>
+                  {config.icon}
+                  <span className="ml-1">{config.label}</span>
+                </Badge>
+              ))}
+            </div>
+            
             {/* Quick Start Suggestions */}
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-2 max-w-lg mx-auto">
               {[
-                'Find doctors near me',
-                'Jobs matching my skills',
-                'Order food nearby',
-                'Health tips for today',
+                { text: 'Find doctors near me', icon: <Heart className="h-3 w-3" /> },
+                { text: 'Jobs matching my skills', icon: <Briefcase className="h-3 w-3" /> },
+                { text: 'Order food nearby', icon: <MapPin className="h-3 w-3" /> },
+                { text: 'Health tips for today', icon: <Sparkles className="h-3 w-3" /> },
               ].map((suggestion) => (
                 <Button
-                  key={suggestion}
+                  key={suggestion.text}
                   variant="outline"
                   size="sm"
-                  className="rounded-full"
-                  onClick={() => setInput(suggestion)}
+                  className="rounded-full gap-1.5 hover:bg-primary/10 hover:border-primary/30 transition-colors"
+                  onClick={() => setInput(suggestion.text)}
                 >
-                  {suggestion}
+                  {suggestion.icon}
+                  {suggestion.text}
                 </Button>
               ))}
             </div>
-          </div>
+          </motion.div>
         ) : (
           <AnimatePresence>
             {messages.map((message) => (
@@ -196,10 +221,11 @@ export default function AIChat() {
                         {message.agents.map((agent) => (
                           <Badge 
                             key={agent} 
-                            variant="secondary"
-                            className={`text-xs ${agentColors[agent]}`}
+                            variant="outline"
+                            className={cn("text-xs gap-1", agentConfig[agent].color)}
                           >
-                            {agentIcons[agent]} {agent}
+                            {agentConfig[agent].icon}
+                            {agentConfig[agent].label}
                           </Badge>
                         ))}
                       </div>
@@ -279,21 +305,30 @@ export default function AIChat() {
       {/* Input Area */}
       <div className="bg-card/80 backdrop-blur-lg border-t border-border/50 px-4 py-3 sticky bottom-0">
         {/* Intent Preview */}
-        {previewIntent && input.trim() && (
-          <div className="max-w-4xl mx-auto mb-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Routing to:</span>
-              {previewIntent.agents.slice(0, 2).map((agent) => (
-                <Badge key={agent} variant="outline" className="text-xs">
-                  {agentIcons[agent]} {agent}
-                </Badge>
-              ))}
-              <span className="ml-auto">
-                {Math.round(previewIntent.confidence * 100)}% confident
-              </span>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {previewIntent && input.trim() && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="max-w-4xl mx-auto mb-2"
+            >
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-1.5">
+                <Brain className="h-3 w-3 text-primary" />
+                <span>Routing to</span>
+                {previewIntent.agents.slice(0, 2).map((agent) => (
+                  <Badge key={agent} variant="outline" className={cn("text-xs gap-1", agentConfig[agent].color)}>
+                    {agentConfig[agent].icon}
+                    {agentConfig[agent].label}
+                  </Badge>
+                ))}
+                <span className="ml-auto text-primary font-medium">
+                  {Math.round(previewIntent.confidence * 100)}%
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         <div className="max-w-4xl mx-auto flex items-center gap-3">
           <Input

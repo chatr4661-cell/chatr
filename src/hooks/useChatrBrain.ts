@@ -55,7 +55,7 @@ export function useChatrBrain(): UseChatrBrainReturn {
       try {
         await chatrBrain.initialize(user.id);
         setIsReady(true);
-        console.log('🧠 [useChatrBrain] Ready');
+        console.log('🧠 [CHATR Intelligence] Ready');
       } catch (err) {
         console.error('Brain initialization failed:', err);
         setError('Failed to initialize AI Brain');
