@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -22,15 +22,15 @@ type AuthStep = 'phone' | 'pin' | 'confirm-pin';
 export const PhoneAuth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [step, setStep] = React.useState<AuthStep>('phone');
-  const [phoneNumber, setPhoneNumber] = React.useState('');
-  const [countryCode, setCountryCode] = React.useState('+91');
-  const [loading, setLoading] = React.useState(false);
-  const [isNewUser, setIsNewUser] = React.useState(false);
-  const [firstPin, setFirstPin] = React.useState('');
+  const [step, setStep] = useState<AuthStep>('phone');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [countryCode, setCountryCode] = useState('+91');
+  const [loading, setLoading] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [firstPin, setFirstPin] = useState('');
 
   // Check for existing session on mount
-  React.useEffect(() => {
+  useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {

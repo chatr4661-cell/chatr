@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -29,16 +29,16 @@ interface ContactsDrawerProps {
 }
 
 export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawerProps) => {
-  const [open, setOpen] = React.useState(false);
-  const [contacts, setContacts] = React.useState<Contact[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [syncing, setSyncing] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [startingChat, setStartingChat] = React.useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [startingChat, setStartingChat] = useState<string | null>(null);
   const isNative = Capacitor.isNativePlatform();
 
   // Load ALL contacts when drawer opens
-  const loadContacts = React.useCallback(async () => {
+  const loadContacts = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     
@@ -214,13 +214,13 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       loadContacts();
     }
   }, [open, loadContacts]);
 
-  const filteredContacts = React.useMemo(() => {
+  const filteredContacts = useMemo(() => {
     if (!searchQuery.trim()) return contacts;
     const query = searchQuery.toLowerCase();
     return contacts.filter(c =>

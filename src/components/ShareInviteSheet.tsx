@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,10 +16,10 @@ interface ShareInviteSheetProps {
 }
 
 export const ShareInviteSheet = ({ userId, contactName, contactPhone, contactEmail, children }: ShareInviteSheetProps) => {
-  const [open, setOpen] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const inviteCode = React.useMemo(() => generateInviteCode(), []);
+  const inviteCode = useMemo(() => generateInviteCode(), []);
   const referralLink = `https://chatr.chat/join?invite=${inviteCode}&ref=${userId}`;
   const inviteMessage = `Hey${contactName ? ` ${contactName}` : ''}! Join me on Chatr - India's super app for messaging, jobs, healthcare & more. Download now: ${referralLink}`;
 

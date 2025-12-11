@@ -1,10 +1,10 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export const useStreakTracking = (streakType: string) => {
-  const [streak, setStreak] = React.useState(0);
-  const [loading, setLoading] = React.useState(false);
+  const [streak, setStreak] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadStreak = () => {
       try {
         const streaks = JSON.parse(localStorage.getItem('streaks') || '{}');

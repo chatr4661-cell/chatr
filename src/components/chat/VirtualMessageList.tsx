@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageBubble } from './MessageBubble';
 import { MessageListSkeleton } from './MessageListSkeleton';
@@ -53,12 +53,12 @@ export const VirtualMessageList = React.memo(({
   selectedMessages = new Set(),
   onSelectMessage
 }: VirtualMessageListProps) => {
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-  const lastMessageCountRef = React.useRef(messages.length);
-  const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessageCountRef = useRef(messages.length);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   // Optimized auto-scroll to bottom on new messages
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     if (scrollRef.current) {
       const shouldScroll = messages.length > lastMessageCountRef.current || 
                           (messages.length > 0 && lastMessageCountRef.current === 0);
@@ -75,7 +75,7 @@ export const VirtualMessageList = React.memo(({
     lastMessageCountRef.current = messages.length;
   }, [messages.length]);
 
-  const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     const isAtBottom = Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 100;
     setShouldAutoScroll(isAtBottom);

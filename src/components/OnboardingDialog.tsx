@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState, useEffect } from "react";
 import { Camera, Upload, CheckCircle2, Gift } from "lucide-react";
 import {
   Dialog,
@@ -32,23 +32,23 @@ const profileSchema = z.object({
 });
 
 export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: OnboardingDialogProps) => {
-  const [step, setStep] = React.useState(1);
-  const [fullName, setFullName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [phoneNumber, setPhoneNumber] = React.useState("");
-  const [countryCode, setCountryCode] = React.useState("+91");
-  const [statusMessage, setStatusMessage] = React.useState("Hey there! I'm using chatr.chat");
-  const [avatarUrl, setAvatarUrl] = React.useState("");
-  const [uploading, setUploading] = React.useState(false);
-  const [syncing, setSyncing] = React.useState(false);
-  const [referralCode, setReferralCode] = React.useState("");
-  const [existingEmail, setExistingEmail] = React.useState("");
-  const [existingPhone, setExistingPhone] = React.useState("");
-  const [referrerId, setReferrerId] = React.useState<string | null>(null);
+  const [step, setStep] = useState(1);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
+  const [statusMessage, setStatusMessage] = useState("Hey there! I'm using chatr.chat");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [existingEmail, setExistingEmail] = useState("");
+  const [existingPhone, setExistingPhone] = useState("");
+  const [referrerId, setReferrerId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Check for pending referral from invite link
-  React.useEffect(() => {
+  useEffect(() => {
     const pendingCode = localStorage.getItem('pending_invite_code');
     const pendingReferrer = localStorage.getItem('pending_referrer_id');
     
@@ -61,7 +61,7 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
   }, []);
 
   // Load existing profile data AND Google user metadata
-  React.useEffect(() => {
+  useEffect(() => {
     const loadProfile = async () => {
       // First get profile data
       const { data: profile } = await supabase
