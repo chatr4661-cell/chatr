@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -51,11 +51,11 @@ interface VirtualizedConversationListProps {
 }
 
 export const VirtualizedConversationList = ({ userId, onConversationSelect }: VirtualizedConversationListProps) => {
-  const [conversations, setConversations] = React.useState<Conversation[]>([]);
-  const [contacts, setContacts] = React.useState<Contact[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [startingChat, setStartingChat] = React.useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [startingChat, setStartingChat] = useState<string | null>(null);
   const { getCachedConversations, setCachedConversations } = useConversationCache();
 
   // Helper to format message content for display
@@ -94,7 +94,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     return name.split('@')[0].replace(/^\d+/, '').trim() || name;
   };
 
-  const loadConversations = React.useCallback(async () => {
+  const loadConversations = useCallback(async () => {
     if (!userId) return;
 
     try {
@@ -207,7 +207,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   }, [userId, getCachedConversations, setCachedConversations]);
 
   // Contacts are loaded separately via ContactsDrawer
-  const loadContacts = React.useCallback(async () => {
+  const loadContacts = useCallback(async () => {
     // Contacts loading moved to dedicated ContactsDrawer component
   }, [userId]);
 
@@ -245,7 +245,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!userId) return;
     loadConversations();
     loadContacts();
@@ -277,14 +277,14 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   }, [userId, loadConversations, loadContacts]);
 
   // Get pinned conversations from localStorage
-  const pinnedConversations = React.useMemo(() => {
+  const pinnedConversations = useMemo(() => {
     const pinnedKey = `chatr-pinned-${userId}`;
     return JSON.parse(localStorage.getItem(pinnedKey) || '[]') as string[];
   }, [userId]);
 
-  const [showArchived, setShowArchived] = React.useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
-  const filteredConversations = React.useMemo(() => {
+  const filteredConversations = useMemo(() => {
     let filtered = conversations.filter(conv => {
       // Filter by search query
       if (searchQuery.trim()) {
@@ -308,7 +308,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   }, [conversations, searchQuery, showArchived, pinnedConversations]);
 
   // Filter contacts by search query
-  const filteredContacts = React.useMemo(() => {
+  const filteredContacts = useMemo(() => {
     if (!searchQuery.trim()) return contacts;
     const query = searchQuery.toLowerCase();
     return contacts.filter(c => 

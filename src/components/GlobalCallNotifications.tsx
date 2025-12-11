@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -13,18 +13,18 @@ interface GlobalCallNotificationsProps {
 
 export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotificationsProps) => {
   const { toast } = useToast();
-  const [incomingCall, setIncomingCall] = React.useState<any>(null);
-  const [activeCall, setActiveCall] = React.useState<any>(null);
-  const [callType, setCallType] = React.useState<'voice' | 'video'>('voice');
-  const [isMuted, setIsMuted] = React.useState(false);
-  const [isVideoOff, setIsVideoOff] = React.useState(false);
-  const [facingMode, setFacingMode] = React.useState<'user' | 'environment'>('user');
+  const [incomingCall, setIncomingCall] = useState<any>(null);
+  const [activeCall, setActiveCall] = useState<any>(null);
+  const [callType, setCallType] = useState<'voice' | 'video'>('voice');
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
 
-  const localVideoRef = React.useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = React.useRef<HTMLVideoElement>(null);
-  const peerConnectionRef = React.useRef<RTCPeerConnection | null>(null);
-  const localStreamRef = React.useRef<MediaStream | null>(null);
-  const ringtoneRef = React.useRef<HTMLAudioElement | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
 
   // Start outgoing call (when we initiate)
   const startOutgoingCall = async (call: any) => {
@@ -475,7 +475,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
   };
 
   // Listen for incoming calls AND outgoing calls
-  React.useEffect(() => {
+  useEffect(() => {
     if (!userId) return;
     
     console.log('📞 Setting up global call listener for user:', userId);

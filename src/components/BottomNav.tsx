@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { MessageCircle, Phone, Users, User, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,13 +15,13 @@ const navItems = [
 
 export const BottomNav = () => {
   const location = useLocation();
-  const [notificationCount, setNotificationCount] = React.useState(0);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   // Only show BottomNav on native apps (iOS/Android), not on web
   const isNative = Capacitor.isNativePlatform();
 
   // Fetch real notification count
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isNative) return; // Skip if not native
     
     const fetchNotificationCount = async () => {

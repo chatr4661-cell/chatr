@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -17,10 +17,10 @@ export const PINInput = ({
   error = false,
   className 
 }: PINInputProps) => {
-  const [pin, setPin] = React.useState<string[]>(Array(length).fill(''));
-  const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+  const [pin, setPin] = useState<string[]>(Array(length).fill(''));
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Auto-focus first input on mount
     inputRefs.current[0]?.focus();
   }, []);
@@ -100,7 +100,7 @@ export const PINInput = ({
   };
 
   // Expose reset method
-  React.useEffect(() => {
+  useEffect(() => {
     (window as any).resetPIN = reset;
     return () => {
       delete (window as any).resetPIN;
