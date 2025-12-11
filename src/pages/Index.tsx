@@ -482,6 +482,7 @@ const Index = () => {
       route: '/chat-ai'
     },
     {
+      icon: Zap,
       title: 'Chatr World',
       description: 'AI Search + Location',
       iconColor: 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-600',
