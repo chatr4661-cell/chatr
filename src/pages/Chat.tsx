@@ -57,7 +57,7 @@ import { DocumentPreviewModal } from '@/components/chat/DocumentPreviewModal';
 import { VoicemailList } from '@/components/calls/VoicemailList';
 
 const ChatEnhancedContent = () => {
-  const { user, session } = useChatContext();
+  const { user, session, isAuthReady } = useChatContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
@@ -685,7 +685,7 @@ const ChatEnhancedContent = () => {
   };
 
   // Show loading only during initial check
-  if (loading) {
+  if (loading || !isAuthReady) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center space-y-2">
