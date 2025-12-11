@@ -35,7 +35,8 @@ import {
   ChevronRight,
   Store,
   Gift,
-  Globe
+  Globe,
+  Brain
 } from 'lucide-react';
 import { PersonalizedSection } from '@/components/home/PersonalizedSection';
 import { useStealthMode, StealthModeType } from '@/hooks/useStealthMode';
@@ -474,7 +475,13 @@ const Index = () => {
       route: '/ai-agents'
     },
     {
-      icon: Zap,
+      icon: Brain,
+      title: 'CHATR Intelligence',
+      description: 'Unified AI Brain',
+      iconColor: 'bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600',
+      route: '/chat-ai'
+    },
+    {
       title: 'Chatr World',
       description: 'AI Search + Location',
       iconColor: 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-600',
