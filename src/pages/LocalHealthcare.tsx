@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, Star, Phone, Clock, Calendar, CheckCircle, Search } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, Star, Phone, Clock, Calendar, CheckCircle, Search, Navigation, RefreshCw, Locate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
 import { SEOHead } from '@/components/SEOHead';
 import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
 import { ShareDeepLink } from '@/components/sharing';
+import { useLocation } from '@/contexts/LocationContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface HealthcareProvider {
   id: string;
@@ -31,11 +33,28 @@ interface HealthcareProvider {
   rating_count: number;
   is_verified: boolean;
   is_active: boolean;
+  latitude?: number;
+  longitude?: number;
+  distance?: number;
+}
+
+// Haversine formula to calculate distance between two GPS coordinates
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 export default function LocalHealthcare() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { location, isLoading: locationLoading, refreshLocation } = useLocation();
+  
   const [providers, setProviders] = useState<HealthcareProvider[]>([]);
   const [filteredProviders, setFilteredProviders] = useState<HealthcareProvider[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,14 +65,16 @@ export default function LocalHealthcare() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [stats, setStats] = useState({ total: 0, doctors: 0, clinics: 0, avgRating: 0 });
+  const [radiusFilter, setRadiusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'distance' | 'rating'>('distance');
 
   useEffect(() => {
     fetchProviders();
-  }, []);
+  }, [location]);
 
   useEffect(() => {
     filterProviders();
-  }, [providers, selectedType, searchQuery]);
+  }, [providers, selectedType, searchQuery, radiusFilter, sortBy]);
 
   const fetchProviders = async () => {
     setLoading(true);
@@ -61,13 +82,38 @@ export default function LocalHealthcare() {
       const { data, error } = await supabase
         .from('chatr_healthcare')
         .select('*')
-        .eq('is_active', true)
-        .order('rating_average', { ascending: false });
+        .eq('is_active', true);
 
       if (error) throw error;
 
       if (data && data.length > 0) {
-        setProviders(data);
+        // Calculate distance for each provider if user location is available
+        const providersWithDistance = data.map(provider => {
+          let distance: number | undefined;
+          if (location?.latitude && location?.longitude && provider.latitude && provider.longitude) {
+            distance = calculateDistance(
+              location.latitude,
+              location.longitude,
+              provider.latitude,
+              provider.longitude
+            );
+          }
+          return { ...provider, distance };
+        });
+
+        // Sort by distance if available, otherwise by rating
+        providersWithDistance.sort((a, b) => {
+          if (sortBy === 'distance') {
+            if (a.distance !== undefined && b.distance !== undefined) {
+              return a.distance - b.distance;
+            }
+            if (a.distance !== undefined) return -1;
+            if (b.distance !== undefined) return 1;
+          }
+          return (b.rating_average || 0) - (a.rating_average || 0);
+        });
+
+        setProviders(providersWithDistance);
         
         const doctors = data.filter(p => p.provider_type === 'doctor').length;
         const clinics = data.filter(p => p.provider_type === 'clinic').length;
@@ -95,10 +141,12 @@ export default function LocalHealthcare() {
   const filterProviders = () => {
     let filtered = [...providers];
 
+    // Filter by type
     if (selectedType !== 'all') {
       filtered = filtered.filter(p => p.provider_type === selectedType || p.specialty?.toLowerCase().includes(selectedType));
     }
 
+    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(p =>
@@ -108,6 +156,27 @@ export default function LocalHealthcare() {
         p.description?.toLowerCase().includes(query)
       );
     }
+
+    // Filter by radius
+    if (radiusFilter !== 'all' && location?.latitude && location?.longitude) {
+      const maxDistance = parseInt(radiusFilter);
+      filtered = filtered.filter(p => {
+        if (p.distance === undefined) return true; // Include providers without coordinates
+        return p.distance <= maxDistance;
+      });
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      if (sortBy === 'distance') {
+        if (a.distance !== undefined && b.distance !== undefined) {
+          return a.distance - b.distance;
+        }
+        if (a.distance !== undefined) return -1;
+        if (b.distance !== undefined) return 1;
+      }
+      return (b.rating_average || 0) - (a.rating_average || 0);
+    });
 
     setFilteredProviders(filtered);
   };
@@ -129,6 +198,20 @@ export default function LocalHealthcare() {
     setBookingOpen(false);
     setSelectedProvider(null);
     setShowPayment(false);
+  };
+
+  const formatDistance = (distance?: number): string => {
+    if (distance === undefined) return '';
+    if (distance < 1) return `${Math.round(distance * 1000)}m`;
+    return `${distance.toFixed(1)}km`;
+  };
+
+  const getLocationMethodIcon = () => {
+    if (!location) return null;
+    if (location.latitude && location.longitude) {
+      return <Navigation className="h-3 w-3 text-green-500" />;
+    }
+    return <Locate className="h-3 w-3 text-blue-500" />;
   };
 
   return (
@@ -159,6 +242,34 @@ export default function LocalHealthcare() {
             </div>
           </div>
           <ShareDeepLink path="/local-healthcare" title="Find Healthcare Providers" />
+        </div>
+
+        {/* Location Status Bar */}
+        <div className="px-4 pb-2">
+          <div className="bg-white/10 rounded-lg p-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {getLocationMethodIcon()}
+              {locationLoading ? (
+                <span className="text-xs">Detecting location...</span>
+              ) : location?.city ? (
+                <span className="text-xs">
+                  📍 {location.city}{location.country ? `, ${location.country}` : ''}
+                </span>
+              ) : (
+                <span className="text-xs text-yellow-200">Location not available</span>
+              )}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={refreshLocation}
+              disabled={locationLoading}
+              className="h-6 px-2 text-xs text-white hover:bg-white/20"
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${locationLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2 px-4 pb-4">
@@ -194,6 +305,33 @@ export default function LocalHealthcare() {
           />
         </div>
 
+        {/* Filters Row */}
+        <div className="flex gap-2">
+          <Select value={radiusFilter} onValueChange={setRadiusFilter}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Distance" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="5">Within 5km</SelectItem>
+              <SelectItem value="10">Within 10km</SelectItem>
+              <SelectItem value="25">Within 25km</SelectItem>
+              <SelectItem value="50">Within 50km</SelectItem>
+              <SelectItem value="100">Within 100km</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'distance' | 'rating')}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="distance">Nearest</SelectItem>
+              <SelectItem value="rating">Top Rated</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <Tabs value={selectedType} onValueChange={setSelectedType}>
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="all">All</TabsTrigger>
@@ -222,7 +360,9 @@ export default function LocalHealthcare() {
           <div className="text-center py-12">
             <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <p className="text-lg font-medium mb-2">No providers found</p>
-            <p className="text-sm text-muted-foreground">Try adjusting your search</p>
+            <p className="text-sm text-muted-foreground">
+              {radiusFilter !== 'all' ? 'Try increasing the distance radius or ' : ''}Try adjusting your search
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -250,6 +390,12 @@ export default function LocalHealthcare() {
                     {provider.consultation_fee && (
                       <Badge variant="outline" className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-bold">
                         ₹{provider.consultation_fee}
+                      </Badge>
+                    )}
+                    {provider.distance !== undefined && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Navigation className="h-3 w-3 mr-1" />
+                        {formatDistance(provider.distance)}
                       </Badge>
                     )}
                   </div>
@@ -313,6 +459,12 @@ export default function LocalHealthcare() {
                     <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
                     {selectedProvider.rating_average}
                   </Badge>
+                  {selectedProvider.distance !== undefined && (
+                    <Badge variant="secondary">
+                      <Navigation className="h-3 w-3 mr-1" />
+                      {formatDistance(selectedProvider.distance)}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
