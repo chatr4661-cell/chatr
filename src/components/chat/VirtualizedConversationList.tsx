@@ -324,7 +324,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="sticky top-0 z-10 bg-background border-b p-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -347,7 +347,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           </p>
         </div>
       ) : (
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           {filteredConversations.map(conv => {
             const rawDisplayName = conv.is_group ? conv.group_name : (conv.other_user?.username || 'User');
             const displayName = formatDisplayName(rawDisplayName);
