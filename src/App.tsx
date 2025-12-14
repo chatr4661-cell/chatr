@@ -228,7 +228,7 @@ const SubdomainRedirect = () => {
     return <Navigate to={redirectInfo.to} replace />;
   }
 
-  return <Home />;
+  return <Index />;
 };
 
 const App = () => {
@@ -387,7 +387,7 @@ const App = () => {
             <Route path="/geofences" element={<Geofences />} />
             <Route path="/geofence-history" element={<GeofenceHistory />} />
             {/* Public browser - no auth required */}
-            <Route path="/home" element={<Index />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/geo" element={<GeoDiscovery />} />
             <Route path="/search" element={<UniversalSearch />} />
             <Route path="/universal-search" element={<UniversalSearch />} />
