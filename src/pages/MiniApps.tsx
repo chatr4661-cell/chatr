@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { ArrowLeft, Search, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,52 @@ interface MiniApp {
   category: string;
   is_featured: boolean;
 }
+
+// Memoized app card to prevent re-renders and flickering
+const AppCard = memo(({ app, onClick }: { app: MiniApp; onClick: () => void }) => {
+  const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=random&size=64&bold=true`;
+
+  return (
+    <Card
+      className="p-4 cursor-pointer hover:bg-accent transition-colors"
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="relative">
+          <div className={`w-16 h-16 rounded-2xl overflow-hidden bg-muted ${!imgLoaded ? 'animate-pulse' : ''}`}>
+            <img
+              src={imgError ? fallbackUrl : app.icon_url}
+              alt={app.name}
+              className={`w-full h-full object-contain transition-opacity duration-200 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => {
+                if (!imgError) {
+                  setImgError(true);
+                  setImgLoaded(false);
+                }
+              }}
+              loading="lazy"
+            />
+          </div>
+          {app.is_featured && (
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center">
+              <Sparkles className="h-3 w-3" />
+            </Badge>
+          )}
+        </div>
+        <div className="w-full">
+          <p className="text-sm font-medium line-clamp-2">{app.name}</p>
+          <p className="text-xs text-muted-foreground">{app.category}</p>
+        </div>
+      </div>
+    </Card>
+  );
+});
+
+AppCard.displayName = 'AppCard';
 
 export default function MiniApps() {
   const navigate = useNavigate();
@@ -148,33 +194,7 @@ export default function MiniApps() {
         ) : (
           <div className="grid grid-cols-3 gap-4">
             {filteredApps.map((app) => (
-              <Card
-                key={app.id}
-                className="p-4 cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => handleAppClick(app)}
-              >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="relative">
-                    <img
-                      src={app.icon_url}
-                      alt={app.name}
-                      className="w-16 h-16 rounded-2xl object-contain"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/64?text=' + app.name[0];
-                      }}
-                    />
-                    {app.is_featured && (
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center">
-                        <Sparkles className="h-3 w-3" />
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="w-full">
-                    <p className="text-sm font-medium line-clamp-2">{app.name}</p>
-                    <p className="text-xs text-muted-foreground">{app.category}</p>
-                  </div>
-                </div>
-              </Card>
+              <AppCard key={app.id} app={app} onClick={() => handleAppClick(app)} />
             ))}
           </div>
         )}
