@@ -841,97 +841,97 @@ const Index = () => {
           ))}
         </div>
 
-        {/* Programs Section - 3 column grid */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* Programs Section - Apple-style pills */}
+        <div className="grid grid-cols-3 gap-3">
           <button
             onClick={() => navigate('/chatr-growth')}
-            className="h-14 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all relative"
+            className="h-16 rounded-[28px] bg-gradient-to-r from-orange-400 to-orange-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden"
           >
-            <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[7px] px-1.5 py-0.5 rounded font-bold shadow">Earn ₹</span>
-            <Flame className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-            <span className="text-[9px] text-white font-semibold">Champions</span>
+            <span className="absolute top-1 bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold">Earn ₹</span>
+            <Flame className="w-6 h-6 text-white/90 mt-1" strokeWidth={1.5} />
+            <span className="text-[11px] text-white font-medium mt-0.5">Champions</span>
           </button>
           <button
             onClick={() => navigate('/ambassador-program')}
-            className="h-14 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all relative"
+            className="h-16 rounded-[28px] bg-gradient-to-r from-fuchsia-500 to-purple-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden"
           >
-            <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-500 text-white text-[7px] px-1.5 py-0.5 rounded font-bold shadow">Apply</span>
-            <Users className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-            <span className="text-[9px] text-white font-semibold">Partner</span>
+            <span className="absolute top-1 bg-purple-700 text-white text-[8px] px-2 py-0.5 rounded-full font-bold">Apply</span>
+            <Users className="w-6 h-6 text-white/90 mt-1" strokeWidth={1.5} />
+            <span className="text-[11px] text-white font-medium mt-0.5">Partner</span>
           </button>
           <button
             onClick={() => navigate('/doctor-onboarding')}
-            className="h-14 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all relative"
+            className="h-16 rounded-[28px] bg-gradient-to-r from-blue-400 to-blue-600 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden"
           >
-            <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[7px] px-1.5 py-0.5 rounded font-bold shadow">Join</span>
-            <Stethoscope className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-            <span className="text-[9px] text-white font-semibold">Doctor Portal</span>
+            <span className="absolute top-1 bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold">Join</span>
+            <Stethoscope className="w-6 h-6 text-white/90 mt-1" strokeWidth={1.5} />
+            <span className="text-[11px] text-white font-medium mt-0.5">Doctor Portal</span>
           </button>
         </div>
 
-        {/* Ecosystem Section */}
+        {/* Ecosystem Section - Apple-style pills */}
         <div className="mt-5">
-          <h2 className="text-base font-bold mb-2">
+          <h2 className="text-base font-bold mb-3">
             <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
           </h2>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => navigate('/food-ordering')}
-              className="h-14 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-[24px] bg-gradient-to-r from-orange-400 to-orange-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <Utensils className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-              <span className="text-[10px] text-white font-semibold">Food Ordering</span>
+              <Utensils className="w-6 h-6 text-white/90" strokeWidth={1.5} />
+              <span className="text-[10px] text-white font-medium mt-0.5">Food Ordering</span>
             </button>
             <button
               onClick={() => navigate('/local-deals')}
-              className="h-14 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-[24px] bg-gradient-to-r from-green-400 to-green-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <Percent className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-              <span className="text-[10px] text-white font-semibold">Local Deals</span>
+              <Percent className="w-6 h-6 text-white/90" strokeWidth={1.5} />
+              <span className="text-[10px] text-white font-medium mt-0.5">Local Deals</span>
             </button>
             <button
               onClick={() => navigate('/chatr-plus-subscribe')}
-              className="h-14 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-[24px] bg-gradient-to-r from-fuchsia-500 to-purple-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <Crown className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-              <span className="text-[10px] text-white font-semibold">Chatr Premium</span>
+              <Crown className="w-6 h-6 text-white/90" strokeWidth={1.5} />
+              <span className="text-[10px] text-white font-medium mt-0.5">Chatr Premium</span>
             </button>
           </div>
         </div>
 
-        {/* Quick Access Section */}
-        <div className="mt-4 mb-8">
-          <h2 className="text-base font-bold mb-2">
+        {/* Quick Access Section - Apple-style pills */}
+        <div className="mt-5 mb-8">
+          <h2 className="text-base font-bold mb-3">
             <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
           </h2>
           <div className="grid grid-cols-4 gap-2">
             <button
               onClick={() => navigate('/chatr-wallet')}
-              className="h-14 rounded-xl bg-gradient-to-br from-green-400 to-teal-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-[22px] bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <Wallet className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-              <span className="text-[9px] text-white font-semibold">ChatrPay</span>
+              <Wallet className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+              <span className="text-[9px] text-white font-medium mt-0.5">ChatrPay</span>
             </button>
             <button
               onClick={() => navigate('/chatr-studio')}
-              className="h-14 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-[22px] bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <Palette className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-              <span className="text-[9px] text-white font-semibold">Studio</span>
+              <Palette className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+              <span className="text-[9px] text-white font-medium mt-0.5">Studio</span>
             </button>
             <button
               onClick={() => navigate('/ai-assistant')}
-              className="h-14 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-[22px] bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <Bot className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-              <span className="text-[9px] text-white font-semibold">AI Assistant</span>
+              <Bot className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+              <span className="text-[9px] text-white font-medium mt-0.5">AI Assistant</span>
             </button>
             <button
               onClick={() => navigate('/emergency-services')}
-              className="h-14 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-[22px] bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <Siren className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
-              <span className="text-[9px] text-white font-semibold">Emergency</span>
+              <Siren className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+              <span className="text-[9px] text-white font-medium mt-0.5">Emergency</span>
             </button>
           </div>
         </div>
