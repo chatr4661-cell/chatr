@@ -608,16 +608,6 @@ const MessageBubbleComponent = ({
             </span>
           )}
           
-          {/* Translate Button for received text messages */}
-          {!isOwn && message.content && message.message_type !== 'location' && message.message_type !== 'poll' && (
-            <MessageTranslateButton 
-              messageId={message.id} 
-              text={message.content}
-              onTranslated={(translated) => {
-                toast.success(`Translated: ${translated.substring(0, 50)}...`);
-              }}
-            />
-          )}
           
           <span className="text-[11px] text-muted-foreground">
             {formatMessageTime(new Date(message.created_at))}
