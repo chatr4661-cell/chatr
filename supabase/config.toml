@@ -104,3 +104,6 @@ verify_jwt = true
 
 [functions.chatr-brain]
 verify_jwt = false
+
+[functions.app-version]
+verify_jwt = false
