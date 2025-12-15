@@ -36,7 +36,12 @@ import {
   Store,
   Gift,
   Globe,
-  Brain
+  Brain,
+  Wallet,
+  Palette,
+  Siren,
+  IndianRupee,
+  GraduationCap
 } from 'lucide-react';
 import { PersonalizedSection } from '@/components/home/PersonalizedSection';
 import { useStealthMode, StealthModeType } from '@/hooks/useStealthMode';
@@ -867,82 +872,68 @@ const Index = () => {
         />
 
         {/* Ecosystem Section */}
-        <div className="mt-6">
-          <h2 className="text-lg font-bold mb-3">
+        <div className="mt-5">
+          <h2 className="text-base font-bold mb-2">
             <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
           </h2>
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => navigate('/food-ordering')}
-              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
+              className="h-14 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <div className="h-16 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
-                <img src="/icons/food.png" alt="Food" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                <span className="text-[10px] text-white text-center font-semibold">Food Ordering</span>
-              </div>
+              <Utensils className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
+              <span className="text-[10px] text-white font-semibold">Food Ordering</span>
             </button>
             <button
               onClick={() => navigate('/local-deals')}
-              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
+              className="h-14 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <div className="h-16 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
-                <img src="/icons/deals.png" alt="Deals" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                <span className="text-[10px] text-white text-center font-semibold">Local Deals</span>
-              </div>
+              <Percent className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
+              <span className="text-[10px] text-white font-semibold">Local Deals</span>
             </button>
             <button
               onClick={() => navigate('/chatr-plus-subscribe')}
-              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
+              className="h-14 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <div className="h-16 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
-                <img src="/icons/crown.png" alt="Premium" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                <span className="text-[10px] text-white text-center font-semibold">Chatr Premium</span>
-              </div>
+              <Crown className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
+              <span className="text-[10px] text-white font-semibold">Chatr Premium</span>
             </button>
           </div>
         </div>
 
         {/* Quick Access Section */}
         <div className="mt-4 mb-8">
-          <h2 className="text-lg font-bold mb-3">
+          <h2 className="text-base font-bold mb-2">
             <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
           </h2>
           <div className="grid grid-cols-4 gap-2">
             <button
               onClick={() => navigate('/chatr-wallet')}
-              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
+              className="h-14 rounded-xl bg-gradient-to-br from-green-400 to-teal-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <div className="h-16 rounded-lg bg-gradient-to-br from-green-400 to-teal-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
-                <img src="/icons/wallet.png" alt="Wallet" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                <span className="text-[10px] text-white text-center font-semibold leading-tight">ChatrPay</span>
-              </div>
+              <Wallet className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
+              <span className="text-[9px] text-white font-semibold">ChatrPay</span>
             </button>
             <button
               onClick={() => navigate('/chatr-studio')}
-              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
+              className="h-14 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <div className="h-16 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
-                <img src="/icons/studio.png" alt="Studio" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                <span className="text-[10px] text-white text-center font-semibold leading-tight">Studio</span>
-              </div>
+              <Palette className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
+              <span className="text-[9px] text-white font-semibold">Studio</span>
             </button>
             <button
               onClick={() => navigate('/ai-assistant')}
-              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
+              className="h-14 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <div className="h-16 rounded-lg bg-gradient-to-br from-teal-400 to-cyan-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
-                <img src="/icons/ai.png" alt="AI" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                <span className="text-[10px] text-white text-center font-semibold leading-tight">AI Assistant</span>
-              </div>
+              <Bot className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
+              <span className="text-[9px] text-white font-semibold">AI Assistant</span>
             </button>
             <button
               onClick={() => navigate('/emergency-services')}
-              className="transform hover:scale-105 transition-all duration-300 hover:shadow-lg"
+              className="h-14 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 p-2 flex flex-col items-center justify-center shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <div className="h-16 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 p-2 flex flex-col items-center justify-center cursor-pointer shadow-md">
-                <img src="/icons/emergency.png" alt="Emergency" className="w-5 h-5 mb-0.5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                <span className="text-[10px] text-white text-center font-semibold leading-tight">Emergency</span>
-              </div>
+              <Siren className="w-5 h-5 text-white mb-0.5" strokeWidth={2} />
+              <span className="text-[9px] text-white font-semibold">Emergency</span>
             </button>
           </div>
         </div>
