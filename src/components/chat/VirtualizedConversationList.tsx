@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, Search, Pin, BellOff, Archive, UserPlus, Users, Mail } from 'lucide-react';
+import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, Pin, BellOff, Archive, UserPlus, Users, Mail, Hash, AtSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConversationCache } from '@/hooks/useConversationCache';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -50,6 +50,26 @@ interface VirtualizedConversationListProps {
   onConversationSelect: (conversationId: string, otherUser?: any) => void;
 }
 
+// Highlight matching text component
+const HighlightText = ({ text, query }: { text: string; query: string }) => {
+  if (!query.trim() || !text) return <>{text}</>;
+  
+  const cleanQuery = query.replace(/^[@#]/, '').toLowerCase();
+  if (!cleanQuery) return <>{text}</>;
+  
+  const parts = text.split(new RegExp(`(${cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+  
+  return (
+    <>
+      {parts.map((part, i) => 
+        part.toLowerCase() === cleanQuery ? (
+          <span key={i} className="bg-primary/20 text-primary font-semibold rounded-sm px-0.5">{part}</span>
+        ) : part
+      )}
+    </>
+  );
+};
+
 export const VirtualizedConversationList = ({ userId, onConversationSelect }: VirtualizedConversationListProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -57,16 +77,22 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const [searchQuery, setSearchQuery] = useState('');
   const [startingChat, setStartingChat] = useState<string | null>(null);
   const { getCachedConversations, setCachedConversations } = useConversationCache();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Detect search mode from query prefix
+  const searchMode = useMemo(() => {
+    if (searchQuery.startsWith('@')) return 'people';
+    if (searchQuery.startsWith('#')) return 'groups';
+    if (/^\d+$/.test(searchQuery.trim())) return 'numbers';
+    return 'all';
+  }, [searchQuery]);
 
   // Helper to format message content for display
   const formatMessageContent = (content: string) => {
-    // Parse Contact messages
     if (content.startsWith('[Contact]')) {
       const match = content.match(/\[Contact\]\s*(.+?)\s*-/);
       return match ? `Contact: ${match[1]}` : 'Contact shared';
     }
-    
-    // Parse Poll messages
     if (content.startsWith('[Poll]')) {
       try {
         const jsonMatch = content.match(/\[Poll\]\s*({.+})/);
@@ -78,19 +104,15 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         return '📊 Poll';
       }
     }
-    
-    // Parse location messages
     if (content === '📍' || content.startsWith('📍')) {
       return '📍 Location';
     }
-    
     return content;
   };
 
-  // Helper to format display names (remove technical details)
+  // Helper to format display names
   const formatDisplayName = (name: string | undefined) => {
     if (!name) return 'Unknown';
-    // Remove @chatr.local and phone numbers
     return name.split('@')[0].replace(/^\d+/, '').trim() || name;
   };
 
@@ -98,19 +120,16 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     if (!userId) return;
 
     try {
-      // Try cache first
       const cached = await getCachedConversations();
       if (cached) {
         setConversations(cached);
         setLoading(false);
       }
 
-      // Try optimized database function first
       const { data: optimizedData, error: rpcError } = await supabase
         .rpc('get_user_conversations_optimized', { p_user_id: userId });
 
       if (!rpcError && optimizedData) {
-        // Transform to match expected format
         const conversationData = optimizedData.map((conv: any) => ({
           id: conv.id,
           is_group: conv.is_group,
@@ -122,7 +141,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           last_message: conv.lastmessage ? {
             content: conv.lastmessage,
             created_at: conv.lastmessagetime,
-            sender_id: '', // Not needed for display
+            sender_id: '',
             read_at: undefined
           } : undefined,
           other_user: conv.otheruser || undefined
@@ -134,7 +153,6 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         return;
       }
 
-      // Fallback to original method if RPC fails
       const { data: participations } = await supabase
         .from('conversation_participants')
         .select(`
@@ -152,14 +170,13 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
       const convIds = participations.map(p => (p.conversations as any).id);
 
-      // Optimized parallel fetches
       const [messagesResult, participantsResult] = await Promise.all([
         supabase
           .from('messages')
           .select('conversation_id, content, created_at')
           .in('conversation_id', convIds)
           .order('created_at', { ascending: false })
-          .limit(convIds.length), // Only get one per conversation
+          .limit(convIds.length),
         supabase
           .from('conversation_participants')
           .select('conversation_id, user_id, profiles!inner(id, username, avatar_url, is_online)')
@@ -167,7 +184,6 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           .neq('user_id', userId)
       ]);
 
-      // Build lookup maps efficiently
       const lastMessageMap = new Map();
       messagesResult.data?.forEach(msg => {
         if (!lastMessageMap.has(msg.conversation_id)) {
@@ -206,15 +222,44 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
   }, [userId, getCachedConversations, setCachedConversations]);
 
-  // Contacts are loaded separately via ContactsDrawer
+  // Load contacts for search
   const loadContacts = useCallback(async () => {
-    // Contacts loading moved to dedicated ContactsDrawer component
+    if (!userId) return;
+    try {
+      const { data } = await supabase
+        .from('contacts')
+        .select('id, contact_name, contact_phone, contact_user_id, is_registered')
+        .eq('user_id', userId)
+        .limit(200);
+      
+      if (data) {
+        // Enrich with profile data for registered contacts
+        const registeredIds = data.filter(c => c.contact_user_id).map(c => c.contact_user_id);
+        let profileMap = new Map();
+        
+        if (registeredIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .in('id', registeredIds);
+          profiles?.forEach(p => profileMap.set(p.id, p));
+        }
+        
+        const enrichedContacts = data.map(c => ({
+          ...c,
+          username: profileMap.get(c.contact_user_id)?.username,
+          avatar_url: profileMap.get(c.contact_user_id)?.avatar_url
+        }));
+        
+        setContacts(enrichedContacts);
+      }
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+    }
   }, [userId]);
 
-  // Start chat with a contact
   const handleStartChat = async (contact: Contact) => {
     if (!contact.contact_user_id || !contact.is_registered) {
-      // Open invite dialog or share link
       const inviteText = `Hey! Join me on Chatr - India's super app for messaging, jobs, healthcare & more. Download now: https://chatr.chat/join`;
       if (contact.contact_phone) {
         window.open(`https://wa.me/${contact.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(inviteText)}`, '_blank');
@@ -237,6 +282,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         username: contact.username || contact.contact_name,
         avatar_url: contact.avatar_url
       });
+      setSearchQuery(''); // Clear search after selection
     } catch (error) {
       console.error('Error starting chat:', error);
       toast.error('Failed to start conversation');
@@ -276,7 +322,6 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     };
   }, [userId, loadConversations, loadContacts]);
 
-  // Get pinned conversations from localStorage
   const pinnedConversations = useMemo(() => {
     const pinnedKey = `chatr-pinned-${userId}`;
     return JSON.parse(localStorage.getItem(pinnedKey) || '[]') as string[];
@@ -284,40 +329,96 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
   const [showArchived, setShowArchived] = useState(false);
 
-  const filteredConversations = useMemo(() => {
-    let filtered = conversations.filter(conv => {
-      // Filter by search query
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const name = conv.is_group ? conv.group_name : conv.other_user?.username;
-        if (!name?.toLowerCase().includes(query)) return false;
-      }
-      // Filter archived unless showing archived
-      if (conv.is_archived && !showArchived) return false;
-      return true;
-    });
+  // Smart search filtering
+  const searchResults = useMemo(() => {
+    const cleanQuery = searchQuery.replace(/^[@#]/, '').toLowerCase().trim();
     
-    // Sort: pinned first, then by last message time
-    return filtered.sort((a, b) => {
-      const aIsPinned = pinnedConversations.includes(a.id);
-      const bIsPinned = pinnedConversations.includes(b.id);
-      if (aIsPinned && !bIsPinned) return -1;
-      if (!aIsPinned && bIsPinned) return 1;
-      return 0; // Keep original order for same pin status
-    });
-  }, [conversations, searchQuery, showArchived, pinnedConversations]);
+    if (!cleanQuery) {
+      // No search - show all conversations
+      let filtered = conversations.filter(conv => {
+        if (conv.is_archived && !showArchived) return false;
+        return true;
+      });
+      
+      return {
+        conversations: filtered.sort((a, b) => {
+          const aIsPinned = pinnedConversations.includes(a.id);
+          const bIsPinned = pinnedConversations.includes(b.id);
+          if (aIsPinned && !bIsPinned) return -1;
+          if (!aIsPinned && bIsPinned) return 1;
+          return 0;
+        }),
+        contacts: [],
+        unknownNumbers: []
+      };
+    }
 
-  // Filter contacts by search query
-  const filteredContacts = useMemo(() => {
-    if (!searchQuery.trim()) return contacts;
-    const query = searchQuery.toLowerCase();
-    return contacts.filter(c => 
-      c.contact_name?.toLowerCase().includes(query) ||
-      c.username?.toLowerCase().includes(query) ||
-      c.email?.toLowerCase().includes(query) ||
-      c.contact_phone?.includes(query)
-    );
-  }, [contacts, searchQuery]);
+    // Filter conversations
+    let filteredConvs = conversations.filter(conv => {
+      // Mode filtering
+      if (searchMode === 'people' && conv.is_group) return false;
+      if (searchMode === 'groups' && !conv.is_group) return false;
+      
+      const name = conv.is_group ? conv.group_name : conv.other_user?.username;
+      const phone = conv.other_user?.phone_number || '';
+      const lastMsg = conv.last_message?.content || '';
+      
+      // Match name, phone, or message content
+      return (
+        name?.toLowerCase().includes(cleanQuery) ||
+        phone.includes(cleanQuery) ||
+        lastMsg.toLowerCase().includes(cleanQuery)
+      );
+    });
+
+    // Filter contacts (not already in conversations)
+    const convUserIds = new Set(conversations.map(c => c.other_user?.id).filter(Boolean));
+    let filteredContacts = contacts.filter(c => {
+      // Skip if already has conversation
+      if (c.contact_user_id && convUserIds.has(c.contact_user_id)) return false;
+      
+      // Mode filtering
+      if (searchMode === 'groups') return false;
+      
+      const name = (c.contact_name || c.username || '').toLowerCase();
+      const phone = (c.contact_phone || '').replace(/\D/g, '');
+      const email = (c.email || '').toLowerCase();
+      
+      // Prioritize phone number matches for number searches
+      if (searchMode === 'numbers') {
+        return phone.includes(cleanQuery);
+      }
+      
+      return (
+        name.includes(cleanQuery) ||
+        phone.includes(cleanQuery) ||
+        email.includes(cleanQuery)
+      );
+    });
+
+    // Find unknown numbers (raw number search that doesn't match any contact)
+    let unknownNumbers: string[] = [];
+    if (searchMode === 'numbers' && cleanQuery.length >= 3) {
+      const matchedPhones = new Set([
+        ...filteredContacts.map(c => c.contact_phone?.replace(/\D/g, '')),
+        ...filteredConvs.map(c => c.other_user?.phone_number?.replace(/\D/g, ''))
+      ]);
+      
+      // Show the searched number as potential new contact if not matched
+      if (!matchedPhones.has(cleanQuery) && cleanQuery.length >= 10) {
+        unknownNumbers.push(cleanQuery);
+      }
+    }
+
+    return {
+      conversations: filteredConvs,
+      contacts: filteredContacts.slice(0, 10), // Limit contact results
+      unknownNumbers
+    };
+  }, [conversations, contacts, searchQuery, searchMode, showArchived, pinnedConversations]);
+
+  const isSearching = searchQuery.trim().length > 0;
+  const hasResults = searchResults.conversations.length > 0 || searchResults.contacts.length > 0 || searchResults.unknownNumbers.length > 0;
 
   if (loading) {
     return <ConversationListSkeleton />;
@@ -325,20 +426,48 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="sticky top-0 z-10 bg-background border-b p-3">
+      {/* Clean pill search bar - no icon */}
+      <div className="sticky top-0 z-10 bg-background p-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
+            ref={inputRef}
             type="text"
-            placeholder="Search conversations..."
+            placeholder="Search chats, contacts, numbers"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-muted/30"
+            className="bg-muted/40 border-0 rounded-full h-10 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-primary/30"
           />
+          {/* Search mode indicator */}
+          {searchMode !== 'all' && searchQuery && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchMode === 'people' && <AtSign className="w-4 h-4 text-primary" />}
+              {searchMode === 'groups' && <Hash className="w-4 h-4 text-primary" />}
+              {searchMode === 'numbers' && <Phone className="w-4 h-4 text-primary" />}
+            </div>
+          )}
         </div>
+        {/* Search hints */}
+        {isSearching && (
+          <div className="flex items-center gap-2 mt-2 px-1">
+            <span className="text-[10px] text-muted-foreground">Quick filters:</span>
+            <button 
+              onClick={() => setSearchQuery('@' + searchQuery.replace(/^[@#]/, ''))}
+              className={`text-[10px] px-1.5 py-0.5 rounded-full ${searchMode === 'people' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+            >
+              @people
+            </button>
+            <button 
+              onClick={() => setSearchQuery('#' + searchQuery.replace(/^[@#]/, ''))}
+              className={`text-[10px] px-1.5 py-0.5 rounded-full ${searchMode === 'groups' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+            >
+              #groups
+            </button>
+          </div>
+        )}
       </div>
 
-      {filteredConversations.length === 0 ? (
+      {/* Empty state */}
+      {!isSearching && searchResults.conversations.length === 0 ? (
         <div className="flex flex-col items-center justify-center flex-1 p-8">
           <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-lg font-semibold">No conversations yet</p>
@@ -346,68 +475,145 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
             Tap the contacts icon above to find friends and start chatting!
           </p>
         </div>
+      ) : isSearching && !hasResults ? (
+        <div className="flex flex-col items-center justify-center flex-1 p-8">
+          <p className="text-muted-foreground text-sm">No chats or contacts found</p>
+        </div>
       ) : (
         <ScrollArea className="flex-1 min-h-0">
-          {filteredConversations.map(conv => {
-            const rawDisplayName = conv.is_group ? conv.group_name : (conv.other_user?.username || 'User');
-            const displayName = formatDisplayName(rawDisplayName);
-            const lastMessage = conv.last_message;
-            const isRead = lastMessage?.read_at != null;
-            const isSent = lastMessage?.sender_id === userId;
-            const messagePreview = lastMessage?.content ? formatMessageContent(lastMessage.content) : 'Start chatting';
-            const isOnline = conv.other_user?.is_online;
-            const isPinned = pinnedConversations.includes(conv.id);
-
-            return (
-              <ConversationContextMenu
-                key={conv.id}
-                conversationId={conv.id}
-                userId={userId}
-                isArchived={conv.is_archived}
-                isMuted={conv.is_muted}
-                isPinned={isPinned}
-                onUpdate={loadConversations}
-              >
+          {/* Contacts section (when searching) */}
+          {isSearching && searchResults.contacts.length > 0 && (
+            <div className="px-3 py-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">Contacts</p>
+              {searchResults.contacts.map(contact => (
                 <div
-                  onClick={() => onConversationSelect(conv.id, conv.other_user)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
+                  key={contact.id}
+                  onClick={() => handleStartChat(contact)}
+                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/40 cursor-pointer transition-colors rounded-xl"
                 >
-                  <div className="relative">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {displayName?.[0]?.toUpperCase() || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    {!conv.is_group && isOnline && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={contact.avatar_url} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                      {(contact.contact_name || contact.username)?.[0]?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      <HighlightText text={contact.contact_name || contact.username || 'Unknown'} query={searchQuery} />
+                    </p>
+                    {contact.contact_phone && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        <HighlightText text={contact.contact_phone} query={searchQuery} />
+                      </p>
                     )}
                   </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="font-semibold truncate">{displayName}</p>
-                        {isPinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
-                        {conv.is_muted && <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />}
-                      </div>
-                      <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                        {lastMessage?.created_at && formatDistanceToNow(new Date(lastMessage.created_at), { addSuffix: true }).replace('about ', '').replace(' ago', '')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {isSent && lastMessage && (
-                        isRead ? <CheckCheck className="h-3 w-3 text-primary shrink-0" /> : <Check className="h-3 w-3 text-muted-foreground shrink-0" />
-                      )}
-                      <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold' : 'text-muted-foreground'}`}>
-                        {messagePreview}
-                      </p>
-                    </div>
-                  </div>
+                  {!contact.is_registered && (
+                    <span className="text-[10px] px-2 py-0.5 bg-muted rounded-full text-muted-foreground">Invite</span>
+                  )}
+                  {startingChat === contact.id && <Loader2 className="w-4 h-4 animate-spin" />}
                 </div>
-              </ConversationContextMenu>
-            );
-          })}
+              ))}
+            </div>
+          )}
+
+          {/* Unknown numbers section */}
+          {isSearching && searchResults.unknownNumbers.length > 0 && (
+            <div className="px-3 py-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">Unknown Numbers</p>
+              {searchResults.unknownNumbers.map(number => (
+                <div
+                  key={number}
+                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/40 cursor-pointer transition-colors rounded-xl"
+                >
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">+{number}</p>
+                    <p className="text-xs text-muted-foreground">Not in contacts</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-8 text-xs">
+                    <UserPlus className="w-3 h-3 mr-1" /> Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Conversations section */}
+          {searchResults.conversations.length > 0 && (
+            <div className={isSearching && (searchResults.contacts.length > 0 || searchResults.unknownNumbers.length > 0) ? 'px-3 py-2' : ''}>
+              {isSearching && (searchResults.contacts.length > 0 || searchResults.unknownNumbers.length > 0) && (
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">Chats</p>
+              )}
+              {searchResults.conversations.map(conv => {
+                const rawDisplayName = conv.is_group ? conv.group_name : (conv.other_user?.username || 'User');
+                const displayName = formatDisplayName(rawDisplayName);
+                const lastMessage = conv.last_message;
+                const isRead = lastMessage?.read_at != null;
+                const isSent = lastMessage?.sender_id === userId;
+                const messagePreview = lastMessage?.content ? formatMessageContent(lastMessage.content) : 'Start chatting';
+                const isOnline = conv.other_user?.is_online;
+                const isPinned = pinnedConversations.includes(conv.id);
+
+                return (
+                  <ConversationContextMenu
+                    key={conv.id}
+                    conversationId={conv.id}
+                    userId={userId}
+                    isArchived={conv.is_archived}
+                    isMuted={conv.is_muted}
+                    isPinned={isPinned}
+                    onUpdate={loadConversations}
+                  >
+                    <div
+                      onClick={() => {
+                        onConversationSelect(conv.id, conv.other_user);
+                        setSearchQuery(''); // Clear search after selection
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
+                    >
+                      <div className="relative">
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src={conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {displayName?.[0]?.toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        {!conv.is_group && isOnline && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                        )}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline mb-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="font-semibold truncate">
+                              <HighlightText text={displayName} query={searchQuery} />
+                            </p>
+                            {isPinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
+                            {conv.is_muted && <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />}
+                            {conv.is_group && <Users className="h-3 w-3 text-muted-foreground shrink-0" />}
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                            {lastMessage?.created_at && formatDistanceToNow(new Date(lastMessage.created_at), { addSuffix: true }).replace('about ', '').replace(' ago', '')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {isSent && lastMessage && (
+                            isRead ? <CheckCheck className="h-3 w-3 text-primary shrink-0" /> : <Check className="h-3 w-3 text-muted-foreground shrink-0" />
+                          )}
+                          <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold' : 'text-muted-foreground'}`}>
+                            <HighlightText text={messagePreview} query={searchQuery} />
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </ConversationContextMenu>
+                );
+              })}
+            </div>
+          )}
         </ScrollArea>
       )}
     </div>
