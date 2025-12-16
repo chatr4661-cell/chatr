@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, Search, User } from 'lucide-react';
+import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Conversation {
@@ -237,16 +237,15 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Search Bar - Inside conversation list */}
+      {/* Clean pill search bar - no icon */}
       <div className="sticky top-0 z-10 bg-white p-4 pb-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search conversations..."
+            placeholder="Search chats, contacts, numbers"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-4 bg-[hsl(200,20%,96%)] border-0 rounded-lg h-10 text-[14px] focus-visible:ring-1 focus-visible:ring-primary/20"
+            className="px-4 bg-[hsl(200,20%,96%)] border-0 rounded-full h-10 text-[14px] focus-visible:ring-1 focus-visible:ring-primary/20"
           />
         </div>
       </div>
