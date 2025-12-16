@@ -1098,43 +1098,11 @@ const ChatEnhancedContent = () => {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => navigate('/profile')}
-                  className="h-8 w-8 rounded-full hover:bg-accent/50"
-                  title="Profile"
-                >
-                  <User className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
                   onClick={() => setShowGroupCreator(true)}
                   className="h-8 w-8 rounded-full hover:bg-accent/50"
                   title="Create Group"
                 >
                   <Users className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setShowGlobalSearch(true)}
-                  className="h-8 w-8 rounded-full hover:bg-accent/50"
-                  title="Search"
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate('/notifications')}
-                  className="h-8 w-8 rounded-full hover:bg-accent/50 relative"
-                  title="Notifications"
-                >
-                  <Bell className="h-4 w-4" />
-                  {notificationCount > 0 && (
-                    <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center p-0 text-[9px] bg-red-500 border border-white">
-                      {notificationCount > 99 ? '99+' : notificationCount}
-                    </Badge>
-                  )}
                 </Button>
                 <Button 
                   variant="ghost" 
