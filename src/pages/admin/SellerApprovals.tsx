@@ -11,26 +11,31 @@ import { ArrowLeft, Search, Check, X, Eye, Store, MapPin, Phone, Mail, FileText,
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface KycDocument {
+  type: string;
+  url: string;
+}
+
 interface SellerApplication {
   id: string;
   user_id: string;
   business_name: string;
   business_type: string;
-  description: string;
-  logo_url: string;
-  phone_number: string;
-  email: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  approval_status: string;
-  kyc_status: string;
-  pan_number: string;
-  aadhar_number: string;
-  gstin: string;
-  kyc_documents: { type: string; url: string }[];
-  created_at: string;
+  description: string | null;
+  logo_url: string | null;
+  phone_number: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  approval_status: string | null;
+  kyc_status: string | null;
+  pan_number: string | null;
+  aadhar_number: string | null;
+  gstin: string | null;
+  kyc_documents: KycDocument[] | null;
+  created_at: string | null;
 }
 
 export default function SellerApprovals() {
@@ -61,7 +66,7 @@ export default function SellerApprovals() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setSellers(data || []);
+      setSellers((data || []) as unknown as SellerApplication[]);
     } catch (error) {
       console.error('Error loading sellers:', error);
       toast.error('Failed to load seller applications');
