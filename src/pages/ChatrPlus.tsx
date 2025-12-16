@@ -44,7 +44,7 @@ export default function ChatrPlus() {
     }
   });
 
-  // Fetch featured services
+  // Fetch featured services (only from approved sellers)
   const { data: featuredServices } = useQuery({
     queryKey: ['chatr-plus-featured'],
     queryFn: async () => {
@@ -52,11 +52,12 @@ export default function ChatrPlus() {
         .from('chatr_plus_services')
         .select(`
           *,
-          seller:chatr_plus_sellers(business_name, logo_url, city, rating_average),
+          seller:chatr_plus_sellers!inner(business_name, logo_url, city, rating_average, approval_status, is_verified),
           category:chatr_plus_categories(name, slug)
         `)
         .eq('is_active', true)
         .eq('is_featured', true)
+        .eq('seller.approval_status', 'approved')
         .limit(6);
       
       if (error) throw error;
