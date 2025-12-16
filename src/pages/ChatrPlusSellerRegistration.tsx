@@ -65,7 +65,7 @@ const steps = [
   { id: 1, title: 'Business Details', icon: Building, description: 'Tell us about your business' },
   { id: 2, title: 'Brand Identity', icon: Upload, description: 'Upload your logo' },
   { id: 3, title: 'Service Area', icon: MapPin, description: 'Define your coverage' },
-  { id: 4, title: 'Operating Hours', icon: Clock, description: 'Set your availability' },
+  { id: 4, title: 'KYC Documents', icon: Shield, description: 'Verify your business' },
   { id: 5, title: 'Bank Details', icon: CreditCard, description: 'Payment setup' },
   { id: 6, title: 'Choose Plan', icon: Crown, description: 'Select subscription' },
 ];
@@ -96,16 +96,18 @@ export default function ChatrPlusSellerRegistration() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [serviceArea, setServiceArea] = useState('');
 
-  // Step 4: Operating Hours
-  const [operatingHours, setOperatingHours] = useState<Record<string, { open: string; close: string; isOpen: boolean }>>({
-    monday: { open: '09:00', close: '18:00', isOpen: true },
-    tuesday: { open: '09:00', close: '18:00', isOpen: true },
-    wednesday: { open: '09:00', close: '18:00', isOpen: true },
-    thursday: { open: '09:00', close: '18:00', isOpen: true },
-    friday: { open: '09:00', close: '18:00', isOpen: true },
-    saturday: { open: '09:00', close: '18:00', isOpen: true },
-    sunday: { open: '09:00', close: '18:00', isOpen: false }
+  // Step 4: KYC Documents
+  const [kycDetails, setKycDetails] = useState({
+    gstin: '',
+    panNumber: '',
+    aadharNumber: ''
   });
+  const [kycFiles, setKycFiles] = useState<{
+    pan?: File;
+    aadhar?: File;
+    gstin?: File;
+    business_registration?: File;
+  }>({});
 
   // Step 5: Bank Details
   const [bankDetails, setBankDetails] = useState({
@@ -225,6 +227,19 @@ export default function ChatrPlusSellerRegistration() {
           toast.error('Service area description too long');
           return false;
         }
+      } else if (step === 4) {
+        if (!kycDetails.panNumber || kycDetails.panNumber.length !== 10) {
+          toast.error('Please enter a valid PAN number');
+          return false;
+        }
+        if (!kycDetails.aadharNumber || kycDetails.aadharNumber.length !== 12) {
+          toast.error('Please enter a valid Aadhar number');
+          return false;
+        }
+        if (!kycFiles.pan || !kycFiles.aadhar) {
+          toast.error('Please upload both PAN and Aadhar documents');
+          return false;
+        }
       } else if (step === 5) {
         bankDetailsSchema.parse(bankDetails);
       }
@@ -265,7 +280,7 @@ export default function ChatrPlusSellerRegistration() {
       if (logoFile) {
         const fileExt = logoFile.name.split('.').pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('chat-media')
           .upload(`seller-logos/${fileName}`, logoFile);
 
@@ -278,8 +293,28 @@ export default function ChatrPlusSellerRegistration() {
         logoUrl = publicUrl;
       }
 
-      // Create seller profile
-      const { error: sellerError } = await supabase
+      // Upload KYC documents
+      const kycDocUrls: { type: string; url: string }[] = [];
+      for (const [docType, file] of Object.entries(kycFiles)) {
+        if (file) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${user.id}-${docType}-${Date.now()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from('kyc-documents')
+            .upload(`seller-kyc/${fileName}`, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('kyc-documents')
+            .getPublicUrl(`seller-kyc/${fileName}`);
+          
+          kycDocUrls.push({ type: docType, url: publicUrl });
+        }
+      }
+
+      // Create seller profile with pending approval
+      const { data: sellerData, error: sellerError } = await supabase
         .from('chatr_plus_sellers')
         .insert({
           user_id: user.id,
@@ -295,27 +330,38 @@ export default function ChatrPlusSellerRegistration() {
           pincode: businessDetails.pincode,
           subscription_plan: selectedPlan,
           subscription_amount: subscriptionPlans.find(p => p.id === selectedPlan)?.price || 99,
-          subscription_status: 'active',
+          subscription_status: 'pending',
           subscription_started_at: new Date().toISOString(),
           subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          is_active: true
-        });
+          is_active: false,
+          is_verified: false,
+          approval_status: 'pending',
+          kyc_status: 'submitted',
+          pan_number: kycDetails.panNumber,
+          aadhar_number: kycDetails.aadharNumber,
+          gstin: kycDetails.gstin || null,
+          kyc_documents: kycDocUrls
+        })
+        .select('id')
+        .single();
 
       if (sellerError) throw sellerError;
 
-      // Process payment
-      const planPrice = subscriptionPlans.find(p => p.id === selectedPlan)?.price || 99;
-      const { error: paymentError } = await supabase.rpc('process_chatr_plus_payment', {
-        p_user_id: user.id,
-        p_amount: planPrice,
-        p_transaction_type: 'subscription',
-        p_payment_method: 'wallet',
-        p_description: `Chatr+ Seller - ${selectedPlan} plan (Monthly)`
-      });
+      // Insert KYC documents records
+      if (sellerData?.id) {
+        for (const doc of kycDocUrls) {
+          await supabase
+            .from('seller_kyc_documents')
+            .insert({
+              seller_id: sellerData.id,
+              document_type: doc.type,
+              document_url: doc.url,
+              status: 'pending'
+            });
+        }
+      }
 
-      if (paymentError) throw paymentError;
-
-      toast.success('🎉 Registration successful! Welcome to Chatr+');
+      toast.success('🎉 Registration submitted! Your application is under review.');
       navigate('/chatr-plus/seller/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -765,7 +811,7 @@ export default function ChatrPlusSellerRegistration() {
             </motion.div>
           )}
 
-          {/* Step 4: Operating Hours */}
+          {/* Step 4: KYC Documents */}
           {currentStep === 4 && (
             <motion.div
               key="step4"
@@ -777,70 +823,133 @@ export default function ChatrPlusSellerRegistration() {
               <Card className="p-6 md:p-8 border-0 shadow-xl bg-gradient-to-br from-card via-card to-orange-500/5 backdrop-blur-sm">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="bg-gradient-to-br from-orange-500 to-amber-500 p-4 rounded-2xl shadow-lg shadow-orange-500/25">
-                    <Clock className="w-7 h-7 text-white" />
+                    <Shield className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-bold">Operating Hours</h2>
+                    <h2 className="text-2xl md:text-3xl font-bold">KYC Verification</h2>
                     <p className="text-muted-foreground">
-                      When are you available?
+                      Verify your business identity
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  {daysOfWeek.map((day) => (
-                    <div 
-                      key={day} 
-                      className={`
-                        flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200
-                        ${operatingHours[day].isOpen 
-                          ? 'border-primary/30 bg-primary/5' 
-                          : 'border-border bg-muted/30'
-                        }
-                      `}
-                    >
-                      <label className="flex items-center gap-3 cursor-pointer flex-1">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
+                      PAN Number
+                    </Label>
+                    <Input
+                      placeholder="ABCDE1234F"
+                      value={kycDetails.panNumber}
+                      onChange={(e) => setKycDetails({
+                        ...kycDetails,
+                        panNumber: e.target.value.toUpperCase()
+                      })}
+                      maxLength={10}
+                      className="h-12 text-base border-2 focus:border-primary uppercase"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
+                      Aadhar Number
+                    </Label>
+                    <Input
+                      placeholder="1234 5678 9012"
+                      value={kycDetails.aadharNumber}
+                      onChange={(e) => setKycDetails({
+                        ...kycDetails,
+                        aadharNumber: e.target.value.replace(/\D/g, '').slice(0, 12)
+                      })}
+                      maxLength={14}
+                      className="h-12 text-base border-2 focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <Store className="w-4 h-4 text-primary" />
+                      GSTIN (Optional)
+                    </Label>
+                    <Input
+                      placeholder="22ABCDE1234F1Z5"
+                      value={kycDetails.gstin}
+                      onChange={(e) => setKycDetails({
+                        ...kycDetails,
+                        gstin: e.target.value.toUpperCase()
+                      })}
+                      maxLength={15}
+                      className="h-12 text-base border-2 focus:border-primary uppercase"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">PAN Card Upload</Label>
+                      <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-primary/5 transition-colors">
                         <input
-                          type="checkbox"
-                          checked={operatingHours[day].isOpen}
-                          onChange={(e) => setOperatingHours({
-                            ...operatingHours,
-                            [day]: { ...operatingHours[day], isOpen: e.target.checked }
-                          })}
-                          className="w-5 h-5 rounded-md accent-primary"
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setKycFiles({ ...kycFiles, pan: file });
+                          }}
                         />
-                        <span className="font-semibold capitalize w-28">{day}</span>
+                        {kycFiles.pan ? (
+                          <div className="text-center">
+                            <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">{kycFiles.pan.name}</p>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">Upload PAN Card</p>
+                          </div>
+                        )}
                       </label>
-                      
-                      {operatingHours[day].isOpen ? (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="time"
-                            value={operatingHours[day].open}
-                            onChange={(e) => setOperatingHours({
-                              ...operatingHours,
-                              [day]: { ...operatingHours[day], open: e.target.value }
-                            })}
-                            className="w-28 h-10 border-2"
-                          />
-                          <span className="text-muted-foreground">to</span>
-                          <Input
-                            type="time"
-                            value={operatingHours[day].close}
-                            onChange={(e) => setOperatingHours({
-                              ...operatingHours,
-                              [day]: { ...operatingHours[day], close: e.target.value }
-                            })}
-                            className="w-28 h-10 border-2"
-                          />
-                        </div>
-                      ) : (
-                        <Badge variant="secondary" className="bg-muted">
-                          Closed
-                        </Badge>
-                      )}
                     </div>
-                  ))}
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">Aadhar Card Upload</Label>
+                      <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-primary/5 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setKycFiles({ ...kycFiles, aadhar: file });
+                          }}
+                        />
+                        {kycFiles.aadhar ? (
+                          <div className="text-center">
+                            <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">{kycFiles.aadhar.name}</p>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">Upload Aadhar Card</p>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mt-4">
+                    <div className="flex items-start gap-3">
+                      <Shield className="w-5 h-5 text-amber-500 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Verification Notice</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Your documents will be reviewed by our team. Once approved, your business will be visible to customers.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </Card>
             </motion.div>

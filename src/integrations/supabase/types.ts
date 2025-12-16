@@ -3249,23 +3249,33 @@ export type Database = {
       }
       chatr_plus_sellers: {
         Row: {
+          aadhar_number: string | null
           address: string | null
+          approval_notes: string | null
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           business_name: string
           business_type: string
           city: string | null
           created_at: string
           description: string | null
           email: string | null
+          gstin: string | null
           id: string
           is_active: boolean | null
           is_verified: boolean | null
+          kyc_documents: Json | null
+          kyc_status: string | null
           latitude: number | null
           logo_url: string | null
           longitude: number | null
+          pan_number: string | null
           phone_number: string | null
           pincode: string | null
           rating_average: number | null
           rating_count: number | null
+          rejection_reason: string | null
           state: string | null
           subscription_amount: number
           subscription_expires_at: string | null
@@ -3277,23 +3287,33 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          aadhar_number?: string | null
           address?: string | null
+          approval_notes?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           business_name: string
           business_type: string
           city?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
+          gstin?: string | null
           id?: string
           is_active?: boolean | null
           is_verified?: boolean | null
+          kyc_documents?: Json | null
+          kyc_status?: string | null
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          pan_number?: string | null
           phone_number?: string | null
           pincode?: string | null
           rating_average?: number | null
           rating_count?: number | null
+          rejection_reason?: string | null
           state?: string | null
           subscription_amount?: number
           subscription_expires_at?: string | null
@@ -3305,23 +3325,33 @@ export type Database = {
           user_id: string
         }
         Update: {
+          aadhar_number?: string | null
           address?: string | null
+          approval_notes?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           business_name?: string
           business_type?: string
           city?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
+          gstin?: string | null
           id?: string
           is_active?: boolean | null
           is_verified?: boolean | null
+          kyc_documents?: Json | null
+          kyc_status?: string | null
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          pan_number?: string | null
           phone_number?: string | null
           pincode?: string | null
           rating_average?: number | null
           rating_count?: number | null
+          rejection_reason?: string | null
           state?: string | null
           subscription_amount?: number
           subscription_expires_at?: string | null
@@ -11706,6 +11736,50 @@ export type Database = {
             columns: ["withdrawal_request_id"]
             isOneToOne: false
             referencedRelation: "seller_withdrawal_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_kyc_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          document_url: string
+          id: string
+          rejection_reason: string | null
+          seller_id: string
+          status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          document_url: string
+          id?: string
+          rejection_reason?: string | null
+          seller_id: string
+          status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          document_url?: string
+          id?: string
+          rejection_reason?: string | null
+          seller_id?: string
+          status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_kyc_documents_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "chatr_plus_sellers"
             referencedColumns: ["id"]
           },
         ]
