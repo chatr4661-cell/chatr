@@ -10,8 +10,6 @@ import logo from '@/assets/chatr-logo.png';
 import chatrBrandLogo from '@/assets/chatr-brand-logo.png';
 import aiPoweredChatr from '@/assets/ai-powered-chatr.jpeg';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { logAuthEvent, logAuthError } from '@/utils/authDebug';
 import { BiometricLogin } from '@/components/BiometricLogin';
 
@@ -20,42 +18,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(true);
   const [userId, setUserId] = React.useState<string | undefined>();
-  const [googleLoading, setGoogleLoading] = React.useState(false);
   const onboarding = useOnboarding(userId);
-
-  const handleGoogleSignIn = async () => {
-    try {
-      setGoogleLoading(true);
-      logAuthEvent('Google sign-in initiated');
-      
-      // Check if there's a redirect path in sessionStorage
-      const redirectPath = sessionStorage.getItem('auth_redirect') || '/';
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}${redirectPath}`,
-          skipBrowserRedirect: false,
-        },
-      });
-
-      if (error) {
-        logAuthError('Google OAuth', error);
-        throw error;
-      }
-      
-      logAuthEvent('Google OAuth redirect initiated');
-      // Don't set loading to false here - let the redirect happen
-    } catch (error: any) {
-      logAuthError('Google sign-in', error);
-      toast({
-        title: 'Sign in failed',
-        description: error.message || 'Failed to sign in with Google. Please try again.',
-        variant: 'destructive',
-      });
-      setGoogleLoading(false);
-    }
-  };
 
   React.useEffect(() => {
     const checkSession = async () => {
@@ -173,21 +136,12 @@ const Auth = () => {
 
     checkSession();
 
-    // Listen for auth state changes (Google OAuth callback and phone auth)
+    // Listen for auth state changes (phone auth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[AUTH STATE CHANGE]', event);
       
       if (event === 'SIGNED_IN' && session) {
         setUserId(session.user.id);
-        setGoogleLoading(false);
-        
-        // Store provider token for Gmail (non-blocking)
-        if (session.provider_token) {
-          localStorage.setItem('google_provider_token', session.provider_token);
-          supabase.functions.invoke('sync-google-contacts', {
-            body: { provider_token: session.provider_token }
-          }).catch(() => {});
-        }
         
         // INSTANT redirect - defer profile check
         setTimeout(async () => {
@@ -210,7 +164,6 @@ const Auth = () => {
       
       if (event === 'SIGNED_OUT') {
         setUserId(undefined);
-        setGoogleLoading(false);
       }
     });
 
@@ -267,51 +220,11 @@ const Auth = () => {
         
         {/* Auth Options */}
         <div className="space-y-4">
-          {/* Google Sign In */}
-          <Button
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading}
-            className="w-full h-12 bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 group"
-            variant="outline"
-          >
-            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            <span className="font-semibold">
-              {googleLoading ? 'Connecting...' : 'Continue with Google'}
-            </span>
-          </Button>
+          {/* Firebase Phone OTP Auth */}
+          <FirebasePhoneAuth />
 
           {/* Biometric Login (Native Only) */}
           <BiometricLogin />
-
-          {/* Divider */}
-          <div className="relative">
-            <Separator className="my-4" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-background px-4 text-sm text-muted-foreground">
-                or continue with phone
-              </span>
-            </div>
-          </div>
-
-          {/* Firebase Phone OTP Auth */}
-          <FirebasePhoneAuth />
         </div>
         
         {/* Footer Features */}
