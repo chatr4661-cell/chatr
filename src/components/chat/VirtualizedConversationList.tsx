@@ -427,6 +427,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           return 0;
         }),
         contacts: [],
+        platformUsers: [],
         unknownNumbers: []
       };
     }
