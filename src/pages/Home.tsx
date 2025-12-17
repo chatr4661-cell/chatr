@@ -138,7 +138,10 @@ const Home = () => {
                     Sign In
                   </Button>
                 )}
-                <Button size="sm" onClick={() => navigate('/chatr-world')}>
+                <Button variant="ghost" size="icon" onClick={() => navigate('/chat')} className="h-9 w-9">
+                  <MessageCircle className="w-5 h-5" />
+                </Button>
+                <Button size="sm" onClick={() => navigate('/')}>
                   Explore
                 </Button>
               </div>
