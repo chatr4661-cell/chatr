@@ -107,3 +107,12 @@ verify_jwt = false
 
 [functions.app-version]
 verify_jwt = false
+
+[functions.fcm-notify]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.send-chat-notification]
+verify_jwt = false
