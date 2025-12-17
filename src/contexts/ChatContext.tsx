@@ -1,6 +1,7 @@
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Session, User } from '@supabase/supabase-js';
+import { syncAuthToNative } from '@/utils/androidBridge';
 
 interface ChatContextType {
   activeConversationId: string | null;
@@ -61,6 +62,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(existingSession.user);
           setIsAuthReady(true);
           console.log('✅ Session restored:', existingSession.user.id);
+          
+          // Sync to native Android on session restore
+          syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
         } else if (mounted) {
           setIsAuthReady(true);
         }
@@ -80,10 +84,18 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setSession(newSession);
         setUser(newSession?.user ?? null);
+        
+        // Sync SIGNED_IN to native Android
+        if (newSession?.user) {
+          syncAuthToNative('SIGNED_IN', newSession.user.id, newSession.access_token);
+        }
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
         setUser(null);
         setActiveConversationId(null);
+        
+        // Sync SIGNED_OUT to native Android
+        syncAuthToNative('SIGNED_OUT', null, null);
       } else if (event === 'USER_UPDATED') {
         setSession(newSession);
         setUser(newSession?.user ?? null);
