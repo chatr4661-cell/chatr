@@ -228,7 +228,7 @@ const SubdomainRedirect = () => {
     return <Navigate to={redirectInfo.to} replace />;
   }
 
-  return <Navigate to="/home" replace />;
+  return <Index />;
 };
 
 const App = () => {
