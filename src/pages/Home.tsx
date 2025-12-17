@@ -127,9 +127,9 @@ const Home = () => {
               <img 
                 src={chatrLogo} 
                 alt="Chatr" 
-                className="h-10 sm:h-12 object-contain" 
-                width={48}
-                height={48}
+                className="h-14 sm:h-16 object-contain" 
+                width={64}
+                height={64}
                 loading="eager"
               />
               <div className="flex items-center gap-3">
@@ -138,18 +138,22 @@ const Home = () => {
                     Sign In
                   </Button>
                 )}
-                <Button 
-                  onClick={() => navigate('/chat')} 
-                  className="h-10 w-10 rounded-full bg-gradient-to-br from-primary via-purple-500 to-blue-500 hover:from-primary/90 hover:via-purple-500/90 hover:to-blue-500/90 shadow-lg hover:shadow-xl transition-all"
-                  size="icon"
-                >
-                  <MessageCircle className="w-5 h-5 text-white" />
-                </Button>
                 <Button size="sm" onClick={() => navigate('/')}>
                   Explore
                 </Button>
               </div>
             </nav>
+
+            {/* Large Chat Icon */}
+            <div 
+              onClick={() => navigate('/chat')}
+              className="flex flex-col items-center justify-center py-8 cursor-pointer group"
+            >
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform">
+                <MessageCircle className="w-16 h-16 sm:w-20 sm:h-20 text-white" strokeWidth={1.5} />
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mt-6">Chat</h2>
+            </div>
 
             {/* Hero Content */}
             <div className="py-12 sm:py-16 lg:py-20 text-center">
@@ -212,27 +216,13 @@ const Home = () => {
                   </Button>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
-                  <Button
-                    variant={gpsEnabled ? "default" : "outline"}
-                    size="sm"
-                    onClick={activateGPS}
-                    disabled={isLocating}
-                    className="gap-2 rounded-full"
-                  >
-                    {isLocating ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Navigation className="w-4 h-4" />
-                    )}
-                    {gpsEnabled ? 'Location Active' : 'Enable Location'}
-                  </Button>
-                  {gpsEnabled && (
+                {gpsEnabled && (
+                  <div className="mt-4 flex items-center justify-center gap-2">
                     <span className="text-sm text-muted-foreground flex items-center gap-1">
                       <MapPin className="w-4 h-4 text-primary" /> Finding nearby results
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
               </Card>
             </div>
           </div>
