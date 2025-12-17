@@ -132,14 +132,18 @@ const Home = () => {
                 height={48}
                 loading="eager"
               />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {!isAuthenticated && (
                   <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
                     Sign In
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" onClick={() => navigate('/chat')} className="h-9 w-9">
-                  <MessageCircle className="w-5 h-5" />
+                <Button 
+                  onClick={() => navigate('/chat')} 
+                  className="h-10 w-10 rounded-full bg-gradient-to-br from-primary via-purple-500 to-blue-500 hover:from-primary/90 hover:via-purple-500/90 hover:to-blue-500/90 shadow-lg hover:shadow-xl transition-all"
+                  size="icon"
+                >
+                  <MessageCircle className="w-5 h-5 text-white" />
                 </Button>
                 <Button size="sm" onClick={() => navigate('/')}>
                   Explore
