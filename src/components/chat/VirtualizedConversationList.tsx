@@ -70,12 +70,22 @@ const HighlightText = ({ text, query }: { text: string; query: string }) => {
   );
 };
 
+interface PlatformUser {
+  id: string;
+  username: string;
+  avatar_url?: string;
+  phone_number?: string;
+  is_online?: boolean;
+}
+
 export const VirtualizedConversationList = ({ userId, onConversationSelect }: VirtualizedConversationListProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [platformUsers, setPlatformUsers] = useState<PlatformUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [startingChat, setStartingChat] = useState<string | null>(null);
+  const [searchingPlatform, setSearchingPlatform] = useState(false);
   const { getCachedConversations, setCachedConversations } = useConversationCache();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -258,6 +268,49 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
   }, [userId]);
 
+  // Search platform users (all Chatr users)
+  const searchPlatformUsers = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setPlatformUsers([]);
+      return;
+    }
+    
+    setSearchingPlatform(true);
+    try {
+      const cleanQuery = query.replace(/^[@#]/, '').trim().toLowerCase();
+      
+      // Search by username or phone number
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, phone_number, is_online')
+        .neq('id', userId)
+        .or(`username.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%`)
+        .limit(15);
+      
+      if (error) throw error;
+      
+      setPlatformUsers(data || []);
+    } catch (error) {
+      console.error('Error searching platform users:', error);
+      setPlatformUsers([]);
+    } finally {
+      setSearchingPlatform(false);
+    }
+  }, [userId]);
+
+  // Debounced platform search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        searchPlatformUsers(searchQuery);
+      } else {
+        setPlatformUsers([]);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchPlatformUsers]);
+
   const handleStartChat = async (contact: Contact) => {
     if (!contact.contact_user_id || !contact.is_registered) {
       const inviteText = `Hey! Join me on Chatr - India's super app for messaging, jobs, healthcare & more. Download now: https://chatr.chat/join`;
@@ -283,6 +336,31 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         avatar_url: contact.avatar_url
       });
       setSearchQuery(''); // Clear search after selection
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      toast.error('Failed to start conversation');
+    } finally {
+      setStartingChat(null);
+    }
+  };
+
+  // Start chat with platform user
+  const handleStartChatWithUser = async (user: PlatformUser) => {
+    setStartingChat(user.id);
+    try {
+      const { data, error } = await supabase.rpc('create_direct_conversation', {
+        other_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      onConversationSelect(data, {
+        id: user.id,
+        username: user.username,
+        avatar_url: user.avatar_url,
+        is_online: user.is_online
+      });
+      setSearchQuery('');
     } catch (error) {
       console.error('Error starting chat:', error);
       toast.error('Failed to start conversation');
@@ -410,15 +488,25 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
       }
     }
 
+    // Filter platform users (not already in conversations or contacts)
+    const contactUserIds = new Set(contacts.map(c => c.contact_user_id).filter(Boolean));
+    const filteredPlatformUsers = platformUsers.filter(user => {
+      if (convUserIds.has(user.id)) return false;
+      if (contactUserIds.has(user.id)) return false;
+      if (searchMode === 'groups') return false;
+      return true;
+    });
+
     return {
       conversations: filteredConvs,
-      contacts: filteredContacts.slice(0, 10), // Limit contact results
+      contacts: filteredContacts.slice(0, 10),
+      platformUsers: filteredPlatformUsers,
       unknownNumbers
     };
-  }, [conversations, contacts, searchQuery, searchMode, showArchived, pinnedConversations]);
+  }, [conversations, contacts, platformUsers, searchQuery, searchMode, showArchived, pinnedConversations]);
 
   const isSearching = searchQuery.trim().length > 0;
-  const hasResults = searchResults.conversations.length > 0 || searchResults.contacts.length > 0 || searchResults.unknownNumbers.length > 0;
+  const hasResults = searchResults.conversations.length > 0 || searchResults.contacts.length > 0 || searchResults.platformUsers.length > 0 || searchResults.unknownNumbers.length > 0;
 
   if (loading) {
     return <ConversationListSkeleton />;
@@ -477,7 +565,12 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         </div>
       ) : isSearching && !hasResults ? (
         <div className="flex flex-col items-center justify-center flex-1 p-8">
-          <p className="text-muted-foreground text-sm">No chats or contacts found</p>
+          {searchingPlatform ? (
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mb-2" />
+          ) : null}
+          <p className="text-muted-foreground text-sm">
+            {searchingPlatform ? 'Searching...' : searchQuery.length < 2 ? 'Type at least 2 characters to search' : 'No users found'}
+          </p>
         </div>
       ) : (
         <ScrollArea className="flex-1 min-h-0">
@@ -511,6 +604,46 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                     <span className="text-[10px] px-2 py-0.5 bg-muted rounded-full text-muted-foreground">Invite</span>
                   )}
                   {startingChat === contact.id && <Loader2 className="w-4 h-4 animate-spin" />}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Platform users section (discover new people) */}
+          {isSearching && searchResults.platformUsers.length > 0 && (
+            <div className="px-3 py-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">
+                People on Chatr {searchingPlatform && <Loader2 className="w-3 h-3 animate-spin inline ml-1" />}
+              </p>
+              {searchResults.platformUsers.map(user => (
+                <div
+                  key={user.id}
+                  onClick={() => handleStartChatWithUser(user)}
+                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/40 cursor-pointer transition-colors rounded-xl"
+                >
+                  <div className="relative">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={user.avatar_url} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary text-sm">
+                        {user.username?.[0]?.toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    {user.is_online && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      <HighlightText text={user.username || 'User'} query={searchQuery} />
+                    </p>
+                    {user.phone_number && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        <HighlightText text={user.phone_number} query={searchQuery} />
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 bg-primary/10 rounded-full text-primary">Message</span>
+                  {startingChat === user.id && <Loader2 className="w-4 h-4 animate-spin" />}
                 </div>
               ))}
             </div>
