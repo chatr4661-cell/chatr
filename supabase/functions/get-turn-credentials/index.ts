@@ -11,38 +11,53 @@ serve(async (req) => {
   }
 
   try {
+    // Reliable STUN/TURN server configuration for video calls
     const iceServers = [
+      // Google STUN servers (highly reliable, globally distributed)
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:stun4.l.google.com:19302' },
+      
+      // Cloudflare STUN (fast, reliable)
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      
+      // Mozilla STUN
+      { urls: 'stun:stun.services.mozilla.com:3478' },
+      
+      // Metered.ca TURN servers (free tier - reliable)
       { 
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
+        urls: [
+          'turn:a.relay.metered.ca:80',
+          'turn:a.relay.metered.ca:80?transport=tcp',
+          'turn:a.relay.metered.ca:443',
+          'turn:a.relay.metered.ca:443?transport=tcp'
+        ],
+        username: 'e8dd65c92ae9a3b9bfcbeb6e',
+        credential: 'uWdWNmkhvyqTW1QP'
       },
+      
+      // Xirsys free TURN (backup)
       {
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
+        urls: [
+          'turn:fr-turn1.xirsys.com:80?transport=udp',
+          'turn:fr-turn1.xirsys.com:3478?transport=tcp',
+          'turn:fr-turn1.xirsys.com:443?transport=tcp'
+        ],
+        username: '6820e6b6-bcd2-11ef-8ba9-0242ac120004',
+        credential: '6820e852-bcd2-11ef-8ba9-0242ac120004'
       },
+      
+      // Additional TURN relay for strict NAT
       {
-        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      },
-      {
-        urls: 'turn:numb.viagenie.ca',
-        username: 'webrtc@live.com',
-        credential: 'muazkh'
-      },
-      {
-        urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
-        username: 'webrtc',
-        credential: 'webrtc'
+        urls: 'turn:relay.metered.ca:443?transport=tcp',
+        username: 'e8dd65c92ae9a3b9bfcbeb6e',
+        credential: 'uWdWNmkhvyqTW1QP'
       }
     ];
+
+    console.log('Returning', iceServers.length, 'ICE server configurations');
 
     return new Response(
       JSON.stringify({ iceServers }),
@@ -59,7 +74,9 @@ serve(async (req) => {
     // Return basic STUN servers as fallback
     const fallbackServers = [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' }
     ];
     
     return new Response(

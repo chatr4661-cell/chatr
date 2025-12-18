@@ -168,34 +168,55 @@ export class SimpleWebRTCCall {
 
   private async createPeerConnection() {
     try {
-      // CRITICAL: Enhanced TURN/STUN for mobile stability
+      // CRITICAL: Reliable STUN/TURN servers for stable video calls
       let iceServers: RTCIceServer[] = [
+        // Google STUN servers (highly reliable, globally distributed)
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        
+        // Cloudflare STUN (fast, reliable)
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        
+        // Metered.ca TURN servers (free tier, reliable)
         {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
+          urls: [
+            'turn:a.relay.metered.ca:80',
+            'turn:a.relay.metered.ca:80?transport=tcp',
+            'turn:a.relay.metered.ca:443',
+            'turn:a.relay.metered.ca:443?transport=tcp'
+          ],
+          username: 'e8dd65c92ae9a3b9bfcbeb6e',
+          credential: 'uWdWNmkhvyqTW1QP'
         },
+        
+        // Xirsys free TURN servers (backup)
         {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
+          urls: [
+            'turn:fr-turn1.xirsys.com:80?transport=udp',
+            'turn:fr-turn1.xirsys.com:3478?transport=tcp',
+            'turn:fr-turn1.xirsys.com:443?transport=tcp'
+          ],
+          username: '6820e6b6-bcd2-11ef-8ba9-0242ac120004',
+          credential: '6820e852-bcd2-11ef-8ba9-0242ac120004'
         }
       ];
 
+      // Try to get updated TURN credentials from edge function
       try {
         const { data: turnConfig } = await supabase.functions.invoke('get-turn-credentials');
-        if (turnConfig?.iceServers) {
-          iceServers = [...iceServers, ...turnConfig.iceServers];
+        if (turnConfig?.iceServers?.length > 0) {
+          // Prepend edge function servers (they're likely fresher)
+          iceServers = [...turnConfig.iceServers, ...iceServers];
+          console.log('✅ [SimpleWebRTC] Using edge function TURN servers');
         }
       } catch (err) {
-        console.warn('⚠️ [SimpleWebRTC] Using fallback servers:', err);
+        console.warn('⚠️ [SimpleWebRTC] Edge function unavailable, using built-in servers');
       }
 
-      console.log('🔧 [SimpleWebRTC] Creating peer connection with ICE servers:', iceServers);
+      console.log('🔧 [SimpleWebRTC] Creating peer connection with', iceServers.length, 'ICE server configs');
       
       const isMobile = this.isMobileDevice();
       const configuration: RTCConfiguration = {
@@ -203,7 +224,7 @@ export class SimpleWebRTCCall {
         iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
         rtcpMuxPolicy: 'require',
-        iceCandidatePoolSize: isMobile ? 15 : 20
+        iceCandidatePoolSize: isMobile ? 20 : 25 // Increased for faster connection
       };
       
       this.pc = new RTCPeerConnection(configuration);
@@ -532,9 +553,9 @@ export class SimpleWebRTCCall {
     if (!videoTrack) return;
     
     const constraints = {
-      low: { width: 320, height: 240, frameRate: 15 },
-      medium: { width: 640, height: 480, frameRate: 24 },
-      high: { width: 1280, height: 720, frameRate: 30 }
+      low: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } },
+      medium: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } },
+      high: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }
     };
     
     try {
@@ -542,7 +563,8 @@ export class SimpleWebRTCCall {
       this.currentQuality = quality;
       console.log(`📊 [SimpleWebRTC] Video quality adjusted to ${quality}`);
     } catch (error) {
-      console.error('Failed to adjust quality:', error);
+      // CRITICAL: Don't crash on constraint errors - just log and continue
+      console.warn('⚠️ [SimpleWebRTC] Failed to adjust quality (non-fatal):', error);
     }
   }
 
