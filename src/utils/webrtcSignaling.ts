@@ -20,35 +20,39 @@ export const getTurnConfig = async () => {
     console.log('ℹ️ Edge function unavailable, using public TURN');
   }
 
-  // Comprehensive public TURN/STUN servers for maximum compatibility
+  // Reliable STUN/TURN servers for maximum compatibility
   return [
-    // Google STUN servers (multiple for redundancy)
+    // Google STUN servers (highly reliable, globally distributed)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
     { urls: 'stun:stun4.l.google.com:19302' },
     
-    // OpenRelay TURN servers (free, multiple ports)
+    // Cloudflare STUN (fast, reliable)
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    
+    // Metered.ca TURN servers (free tier - reliable)
     { 
-      urls: 'turn:openrelay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
+      urls: [
+        'turn:a.relay.metered.ca:80',
+        'turn:a.relay.metered.ca:80?transport=tcp',
+        'turn:a.relay.metered.ca:443',
+        'turn:a.relay.metered.ca:443?transport=tcp'
+      ],
+      username: 'e8dd65c92ae9a3b9bfcbeb6e',
+      credential: 'uWdWNmkhvyqTW1QP'
     },
     
-    // Additional STUN servers for better NAT traversal
-    { urls: 'stun:global.stun.twilio.com:3478' },
-    { urls: 'stun:stun.stunprotocol.org:3478' }
+    // Xirsys free TURN (backup)
+    {
+      urls: [
+        'turn:fr-turn1.xirsys.com:80?transport=udp',
+        'turn:fr-turn1.xirsys.com:3478?transport=tcp'
+      ],
+      username: '6820e6b6-bcd2-11ef-8ba9-0242ac120004',
+      credential: '6820e852-bcd2-11ef-8ba9-0242ac120004'
+    }
   ];
 };
 
