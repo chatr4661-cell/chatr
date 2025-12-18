@@ -115,14 +115,33 @@ export class SimpleWebRTCCall {
         facingMode: 'user'
       }) : false;
       
+      // HD Audio Quality - Studio-grade audio to match 1080p video
+      const audioConstraints: MediaTrackConstraints = {
+        // Core audio processing
+        echoCancellation: { ideal: true },
+        noiseSuppression: { ideal: true },
+        autoGainControl: { ideal: true },
+        
+        // HD Audio settings - 48kHz stereo for crystal clear voice
+        sampleRate: { ideal: 48000, min: 44100 },
+        sampleSize: { ideal: 24, min: 16 }, // 24-bit audio depth
+        channelCount: { ideal: 2, min: 1 }, // Stereo for spatial audio
+        
+        // Advanced noise cancellation (Chrome/Edge specific)
+        // @ts-ignore - experimental constraints
+        googEchoCancellation: true,
+        googAutoGainControl: true,
+        googNoiseSuppression: true,
+        googHighpassFilter: true,
+        googTypingNoiseDetection: true,
+        googNoiseReduction: true,
+        
+        // Latency optimization for real-time calls
+        latency: { ideal: 0.01, max: 0.05 }, // 10-50ms latency
+      };
+
       const constraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: isMobile ? 16000 : 48000,
-          channelCount: 1
-        },
+        audio: audioConstraints,
         video: videoConstraints
       };
 
