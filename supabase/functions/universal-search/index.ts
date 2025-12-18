@@ -274,36 +274,46 @@ serve(async (req) => {
       return [];
     })() : Promise.resolve([]);
 
-    // AI answer with 5s timeout
+    // AI answer with direct HTTP call (edge-to-edge functions need direct fetch)
     const aiPromise = (async () => {
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
         
-        const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-answer', {
-          body: {
+        console.log('Calling ai-answer function...');
+        
+        const aiResponse = await fetch(`${supabaseUrl}/functions/v1/ai-answer`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             query,
-            results: results.slice(0, 6).map((r: any) => ({ // Reduced from 8 to 6
+            results: results.slice(0, 6).map((r: any) => ({
               title: r.title,
               snippet: r.snippet,
               url: r.url
             })),
             images: [],
             location: effectiveLat && effectiveLon ? { lat: effectiveLat, lon: effectiveLon, city: effectiveCity } : null
-          }
+          }),
+          signal: AbortSignal.timeout(8000) // 8s timeout for AI generation
         });
         
-        clearTimeout(timeout);
-        
-        if (!aiError && aiData) {
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          console.log('AI answer received:', aiData.text ? 'Yes' : 'No');
           return {
             text: aiData.text || null,
             sources: aiData.sources || [],
             images: aiData.images || []
           };
+        } else {
+          console.error('AI answer error:', aiResponse.status, await aiResponse.text());
         }
       } catch (e) {
-        console.log('AI answer timeout/error');
+        console.log('AI answer timeout/error:', e);
       }
       return { text: null, sources: [], images: [] };
     })();

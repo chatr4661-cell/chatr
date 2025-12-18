@@ -187,17 +187,35 @@ export class SimpleWebRTCCall {
 
   private async createPeerConnection() {
     try {
-      // CRITICAL: Reliable STUN/TURN servers for stable video calls
+      // INDUSTRY-STANDARD: FaceTime/WhatsApp-grade STUN/TURN configuration
       let iceServers: RTCIceServer[] = [
-        // Google STUN servers (highly reliable, globally distributed)
+        // Google STUN servers (highly reliable, globally distributed, sub-50ms latency)
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' },
         { urls: 'stun:stun4.l.google.com:19302' },
         
-        // Cloudflare STUN (fast, reliable)
+        // Cloudflare STUN (fast, enterprise-grade)
         { urls: 'stun:stun.cloudflare.com:3478' },
+        
+        // Twilio STUN (enterprise reliability)
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        
+        // Mozilla STUN (good EU coverage)
+        { urls: 'stun:stun.services.mozilla.com' },
+        
+        // OpenRelay TURN (free, reliable)
+        {
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp',
+            'turns:openrelay.metered.ca:443'
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
         
         // Metered.ca TURN servers (free tier, reliable)
         {
@@ -223,11 +241,10 @@ export class SimpleWebRTCCall {
         }
       ];
 
-      // Try to get updated TURN credentials from edge function
+      // Try to get fresh TURN credentials from edge function
       try {
         const { data: turnConfig } = await supabase.functions.invoke('get-turn-credentials');
         if (turnConfig?.iceServers?.length > 0) {
-          // Prepend edge function servers (they're likely fresher)
           iceServers = [...turnConfig.iceServers, ...iceServers];
           console.log('✅ [SimpleWebRTC] Using edge function TURN servers');
         }
@@ -238,12 +255,13 @@ export class SimpleWebRTCCall {
       console.log('🔧 [SimpleWebRTC] Creating peer connection with', iceServers.length, 'ICE server configs');
       
       const isMobile = this.isMobileDevice();
+      // INDUSTRY-STANDARD: Optimized WebRTC configuration for fast connection
       const configuration: RTCConfiguration = {
         iceServers,
         iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
         rtcpMuxPolicy: 'require',
-        iceCandidatePoolSize: isMobile ? 20 : 25 // Increased for faster connection
+        iceCandidatePoolSize: isMobile ? 25 : 30, // Increased for faster ICE gathering
       };
       
       this.pc = new RTCPeerConnection(configuration);
