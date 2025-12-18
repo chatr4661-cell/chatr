@@ -52,7 +52,9 @@ Query: "bir" → ["biryani delivery", "biryani near me", "chicken biryani", "veg
     });
 
     if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
+      // Handle rate limit (429) and credits depleted (402) gracefully
+      if (aiResponse.status === 429 || aiResponse.status === 402) {
+        console.log(`AI API ${aiResponse.status} - using fallback suggestions`);
         return new Response(
           JSON.stringify({ suggestions: getDefaultSuggestions(query) }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -80,9 +82,11 @@ Query: "bir" → ["biryani delivery", "biryani near me", "chicken biryani", "veg
 
   } catch (error) {
     console.error('Search suggestions error:', error);
+    // Return fallback suggestions instead of 500 error
+    const query = '';
     return new Response(
-      JSON.stringify({ suggestions: [] }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ suggestions: getDefaultSuggestions(query) }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
