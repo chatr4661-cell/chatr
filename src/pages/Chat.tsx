@@ -822,15 +822,6 @@ const ChatEnhancedContent = () => {
                 }}
               />
                 <div className="flex items-center gap-0.5 shrink-0 ml-auto">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowMessageSearch(!showMessageSearch)}
-                className="h-8 w-8 rounded-full hover:bg-muted/50"
-                title="Search messages"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
               {conversationParticipants.length > 0 && conversationParticipants.length < 5 && (
                 <Button
                   variant="ghost"
@@ -859,15 +850,6 @@ const ChatEnhancedContent = () => {
                 title="Video Call"
               >
                 <Video className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowOfflineMode(true)}
-                className="h-8 w-8 rounded-full hover:bg-muted/50"
-                title="Bluetooth Mode"
-              >
-                <Bluetooth className="h-5 w-5" />
               </Button>
               <AIChatToolbar
                 onSummarize={async (type) => {
