@@ -369,36 +369,49 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
   };
 
+  // Debounced reload for realtime updates - batch updates to prevent excessive re-renders
+  const pendingReloadRef = useRef<NodeJS.Timeout | null>(null);
+  const lastReloadRef = useRef<number>(0);
+  
+  const debouncedReload = useCallback(() => {
+    const now = Date.now();
+    // Minimum 500ms between reloads to prevent thrashing
+    if (now - lastReloadRef.current < 500) {
+      if (pendingReloadRef.current) clearTimeout(pendingReloadRef.current);
+      pendingReloadRef.current = setTimeout(() => {
+        lastReloadRef.current = Date.now();
+        loadConversations();
+      }, 500);
+      return;
+    }
+    
+    lastReloadRef.current = now;
+    loadConversations();
+  }, [loadConversations]);
+
   useEffect(() => {
     if (!userId) return;
     loadConversations();
-    loadContacts();
-
-    let timeout: NodeJS.Timeout;
-    const instantReload = () => {
-      clearTimeout(timeout);
-      timeout = setTimeout(loadConversations, 100);
-    };
+    // Defer contacts loading to not block initial render
+    const contactsTimer = setTimeout(loadContacts, 1000);
 
     const channel = supabase
       .channel('conv-updates-realtime', {
         config: { broadcast: { self: true } }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, instantReload)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, instantReload)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, instantReload)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, instantReload)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, instantReload)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, debouncedReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, debouncedReload)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, debouncedReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, debouncedReload)
       .subscribe();
 
-    const refreshInterval = setInterval(loadConversations, 5000);
-
+    // Remove aggressive 5s polling - rely on realtime only
     return () => {
-      clearInterval(refreshInterval);
-      clearTimeout(timeout);
+      clearTimeout(contactsTimer);
+      if (pendingReloadRef.current) clearTimeout(pendingReloadRef.current);
       supabase.removeChannel(channel);
     };
-  }, [userId, loadConversations, loadContacts]);
+  }, [userId, loadConversations, loadContacts, debouncedReload]);
 
   const pinnedConversations = useMemo(() => {
     const pinnedKey = `chatr-pinned-${userId}`;

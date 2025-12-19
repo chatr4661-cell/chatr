@@ -26,15 +26,16 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
   const [sending, setSending] = useState(false);
   const oldestMessageTimestamp = useRef<string | null>(null);
 
-  // Load initial messages (most recent 30)
+  // Load initial messages (most recent 30) - optimized for speed
   const loadMessages = useCallback(async () => {
     if (!conversationId) return;
     
     setIsLoading(true);
     try {
+      // Use only essential columns for faster query
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select('id, conversation_id, sender_id, content, message_type, media_url, media_attachments, created_at, read_at, status, reactions, is_starred')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
         .limit(MESSAGES_PER_PAGE);
@@ -56,7 +57,7 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
     }
   }, [conversationId]);
 
-  // Load older messages (pagination)
+  // Load older messages (pagination) - optimized
   const loadOlderMessages = useCallback(async () => {
     if (!conversationId || !oldestMessageTimestamp.current || !hasMore || isLoading) return;
     
@@ -64,7 +65,7 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select('id, conversation_id, sender_id, content, message_type, media_url, media_attachments, created_at, read_at, status, reactions, is_starred')
         .eq('conversation_id', conversationId)
         .lt('created_at', oldestMessageTimestamp.current)
         .order('created_at', { ascending: false })
@@ -76,7 +77,6 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
         const reversedMessages = data.reverse();
         setMessages(prev => {
           const combined = [...reversedMessages, ...prev];
-          // Keep only last 100 messages in memory (like WhatsApp)
           return combined.slice(-MAX_MESSAGES_IN_MEMORY);
         });
         
