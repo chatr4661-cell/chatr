@@ -142,11 +142,12 @@ const ChatEnhancedContent = () => {
   // Enable realtime notifications with sound
   useRealtimeNotifications(user?.id);
 
-  // Load user profile
+  // Load user profile - deferred slightly to prioritize chat list
   React.useEffect(() => {
     if (!user?.id) return;
     
-    const loadProfile = async () => {
+    // Defer profile load by 500ms
+    const timer = setTimeout(async () => {
       const { data } = await supabase
         .from('profiles')
         .select('username, avatar_url')
@@ -154,9 +155,9 @@ const ChatEnhancedContent = () => {
         .single();
       
       setProfile(data);
-    };
+    }, 500);
     
-    loadProfile();
+    return () => clearTimeout(timer);
   }, [user?.id]);
 
   // Monitor online status
@@ -173,7 +174,7 @@ const ChatEnhancedContent = () => {
     };
   }, []);
 
-  // Load notification count
+  // Load notification count - deferred to not block initial render
   React.useEffect(() => {
     if (!user?.id) return;
     
@@ -187,41 +188,49 @@ const ChatEnhancedContent = () => {
       setNotificationCount(count || 0);
     };
     
-    loadNotifications();
-    
-    // Subscribe to new notifications
-    const channel = supabase
-      .channel('notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`
-      }, () => {
-        loadNotifications();
-      })
-      .subscribe();
+    // Defer by 2 seconds
+    const timer = setTimeout(() => {
+      loadNotifications();
+      
+      // Subscribe to new notifications
+      const channel = supabase
+        .channel('notifications')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        }, loadNotifications)
+        .subscribe();
+      
+      // Store channel for cleanup
+      (window as any).__notifChannel = channel;
+    }, 2000);
     
     return () => {
-      supabase.removeChannel(channel);
+      clearTimeout(timer);
+      if ((window as any).__notifChannel) {
+        supabase.removeChannel((window as any).__notifChannel);
+      }
     };
   }, [user?.id]);
 
   // Clear active conversation on mount - removed to improve performance
   // Users will see conversation list immediately
 
-  // Auto-sync contacts on login and load registered contacts
+  // Auto-sync contacts on login - DEFERRED to not block initial render
   React.useEffect(() => {
     if (!user?.id) return;
-
-    const syncAndLoadContacts = async () => {
+    
+    // Defer contact sync by 3 seconds to prioritize UI rendering
+    const syncTimer = setTimeout(async () => {
       try {
         // Auto-sync contacts from phone (native only)
         const { Capacitor } = await import('@capacitor/core');
         const isNative = Capacitor.isNativePlatform();
         
         if (isNative) {
-          console.log('🔄 Auto-syncing contacts on login...');
+          console.log('🔄 Auto-syncing contacts...');
           const { Contacts } = await import('@capacitor-community/contacts');
           
           try {
@@ -233,7 +242,6 @@ const ChatEnhancedContent = () => {
               });
 
               if (result?.contacts?.length) {
-                // Hash phone numbers and sync
                 const phoneHashes = new Set<string>();
                 const contactsMap = new Map();
 
@@ -248,22 +256,16 @@ const ChatEnhancedContent = () => {
                     const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
                     
                     phoneHashes.add(hash);
-                    contactsMap.set(hash, {
-                      name: contact.name?.display || 'Unknown',
-                      phone: fullPhone,
-                      hash
-                    });
+                    contactsMap.set(hash, { name: contact.name?.display || 'Unknown', phone: fullPhone, hash });
                   }
                 }
 
-                // Find registered users
                 const { data: registeredProfiles } = await supabase
                   .from('profiles')
                   .select('id, username, phone_number, phone_hash')
                   .in('phone_hash', Array.from(phoneHashes))
                   .not('phone_hash', 'is', null);
 
-                // Upsert contacts
                 const contactsToUpsert = Array.from(contactsMap.values()).map(contact => {
                   const registered = registeredProfiles?.find(p => p.phone_hash === contact.hash);
                   return {
@@ -287,8 +289,6 @@ const ChatEnhancedContent = () => {
                   contacts_synced: true,
                   last_contact_sync: new Date().toISOString()
                 }).eq('id', user.id);
-
-                console.log(`✅ Synced ${contactsToUpsert.length} contacts (${registeredProfiles?.length || 0} on platform)`);
               }
             }
           } catch (err) {
@@ -316,32 +316,27 @@ const ChatEnhancedContent = () => {
           .select('id, username, avatar_url, phone_number')
           .in('id', userIds);
 
-        if (!profiles) {
-          setContacts([]);
-          return;
+        if (profiles) {
+          const profileMap = new Map(profiles.map(p => [p.id, p]));
+          const contactProfiles = data
+            .map(contact => {
+              const profile = profileMap.get(contact.contact_user_id!);
+              return profile ? {
+                id: profile.id,
+                username: profile.username || contact.contact_name,
+                avatar_url: profile.avatar_url,
+                phone_number: profile.phone_number || contact.contact_phone
+              } : null;
+            })
+            .filter(Boolean);
+          setContacts(contactProfiles);
         }
-
-        const profileMap = new Map(profiles.map(p => [p.id, p]));
-        const contactProfiles = data
-          .map(contact => {
-            const profile = profileMap.get(contact.contact_user_id!);
-            return profile ? {
-              id: profile.id,
-              username: profile.username || contact.contact_name,
-              avatar_url: profile.avatar_url,
-              phone_number: profile.phone_number || contact.contact_phone
-            } : null;
-          })
-          .filter(Boolean);
-
-        setContacts(contactProfiles);
       } catch (error) {
         console.error('Error syncing contacts:', error);
-        setContacts([]);
       }
-    };
+    }, 3000); // 3 second delay to prioritize chat loading
 
-    syncAndLoadContacts();
+    return () => clearTimeout(syncTimer);
   }, [user?.id]);
 
   // Fast auth check - non-blocking
