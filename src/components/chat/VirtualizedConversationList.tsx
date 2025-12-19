@@ -10,6 +10,7 @@ import { useConversationCache } from '@/hooks/useConversationCache';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ConversationListSkeleton } from './ConversationListSkeleton';
 import { ConversationContextMenu } from './ConversationContextMenu';
+import { UnreadBadge } from './UnreadBadge';
 
 interface Contact {
   id: string;
@@ -43,6 +44,7 @@ interface Conversation {
     sender_id: string;
     read_at?: string;
   };
+  unread_count?: number;
 }
 
 interface VirtualizedConversationListProps {
@@ -718,39 +720,41 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                         onConversationSelect(conv.id, conv.other_user);
                         setSearchQuery(''); // Clear search after selection
                       }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-all duration-200 border-b active:bg-accent/60"
                     >
                       <div className="relative">
-                        <Avatar className="w-12 h-12">
+                        <Avatar className="w-12 h-12 ring-2 ring-transparent hover:ring-primary/20 transition-all">
                           <AvatarImage src={conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url} />
-                          <AvatarFallback className="bg-primary/10 text-primary">
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-semibold">
                             {displayName?.[0]?.toUpperCase() || '?'}
                           </AvatarFallback>
                         </Avatar>
                         {!conv.is_group && isOnline && (
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background shadow-sm" />
                         )}
+                        {/* Unread Badge */}
+                        <UnreadBadge count={conv.unread_count || 0} />
                       </div>
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline mb-1">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <p className="font-semibold truncate">
+                            <p className={`font-semibold truncate ${!isRead && !isSent ? 'text-foreground' : ''}`}>
                               <HighlightText text={displayName} query={searchQuery} />
                             </p>
                             {isPinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
                             {conv.is_muted && <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />}
                             {conv.is_group && <Users className="h-3 w-3 text-muted-foreground shrink-0" />}
                           </div>
-                          <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                          <span className={`text-xs ml-2 shrink-0 ${!isRead && !isSent ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                             {lastMessage?.created_at && formatDistanceToNow(new Date(lastMessage.created_at), { addSuffix: true }).replace('about ', '').replace(' ago', '')}
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
                           {isSent && lastMessage && (
-                            isRead ? <CheckCheck className="h-3 w-3 text-primary shrink-0" /> : <Check className="h-3 w-3 text-muted-foreground shrink-0" />
+                            isRead ? <CheckCheck className="h-3 w-3 text-blue-500 shrink-0" /> : <Check className="h-3 w-3 text-muted-foreground shrink-0" />
                           )}
-                          <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold' : 'text-muted-foreground'}`}>
+                          <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
                             <HighlightText text={messagePreview} query={searchQuery} />
                           </p>
                         </div>

@@ -372,17 +372,20 @@ const MessageBubbleComponent = ({
                 />
                 {/* Caption if present */}
                 {message.content && !message.content.startsWith('image_') && !message.content.startsWith('photo_') && (
-                  <div className={`rounded-2xl px-4 py-2.5 mt-1 ${
-                    isOwn
-                      ? 'bg-teal-600 text-white'
-                      : 'bg-gray-200 text-gray-900'
-                  }`}
-                  style={isOwn ? { backgroundColor: '#0d9488' } : undefined}
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className={`rounded-2xl px-4 py-2.5 mt-1 shadow-sm ${
+                      isOwn
+                        ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-purple-600 text-white shadow-purple-500/20'
+                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
+                    }`}
                   >
                     <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
                       {message.content}
                     </p>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             );
@@ -516,10 +519,10 @@ const MessageBubbleComponent = ({
               href={fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center gap-3 p-3 rounded-2xl border transition-colors ${
+              className={`flex items-center gap-3 p-3 rounded-2xl border transition-colors shadow-sm ${
                 isOwn 
-                  ? 'bg-teal-600/10 border-teal-600/20 hover:bg-teal-600/20' 
-                  : 'bg-muted/50 border-border hover:bg-muted'
+                  ? 'bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-purple-500/20 hover:from-indigo-500/20 hover:to-purple-500/20' 
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
               } max-w-[280px]`}
             >
               <div className="p-2 rounded-lg bg-primary/10">
@@ -559,20 +562,22 @@ const MessageBubbleComponent = ({
          message.message_type !== 'image' &&
          message.message_type !== 'video' &&
          message.message_type !== 'document' && (
-          <div 
-            className={`rounded-[18px] px-4 py-2.5 transition-all ${
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className={`rounded-[20px] px-4 py-2.5 transition-all shadow-sm ${
               isLongPressing ? 'scale-95 opacity-70' : ''
             } ${
               isOwn
-                ? 'bg-teal-600 text-white'
-                : 'bg-gray-200 text-gray-900'
+                ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-purple-600 text-white shadow-purple-500/20'
+                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-gray-200/50 dark:shadow-gray-900/50'
             }`}
-            style={isOwn ? { backgroundColor: '#0d9488' } : undefined}
           >
             <p className="text-[15px] leading-[1.4] whitespace-pre-wrap break-words">
               {highlightMentions(message.content)}
             </p>
-          </div>
+          </motion.div>
         )}
 
         {/* Link Preview for URLs in message */}
@@ -592,7 +597,7 @@ const MessageBubbleComponent = ({
           />
         )}
 
-        <div className="flex items-center gap-1 px-1.5">
+        <div className="flex items-center gap-1 px-1.5 mt-1">
           {/* Encryption indicator */}
           {message.is_encrypted && (
             <EncryptionIndicator
@@ -608,8 +613,7 @@ const MessageBubbleComponent = ({
             </span>
           )}
           
-          
-          <span className="text-[11px] text-muted-foreground">
+          <span className={`text-[11px] ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>
             {formatMessageTime(new Date(message.created_at))}
           </span>
           {isOwn && (
@@ -617,12 +621,12 @@ const MessageBubbleComponent = ({
               {message.read_at ? (
                 <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
               ) : (
-                <Check className="w-3.5 h-3.5 text-muted-foreground/60" />
+                <Check className={`w-3.5 h-3.5 ${isOwn ? 'text-white/60' : 'text-muted-foreground/60'}`} />
               )}
             </span>
           )}
           {message.is_edited && (
-            <span className="text-[10px] text-muted-foreground/70">(edited)</span>
+            <span className={`text-[10px] ${isOwn ? 'text-white/60' : 'text-muted-foreground/70'}`}>(edited)</span>
           )}
         </div>
       </div>
