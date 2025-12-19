@@ -549,9 +549,10 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Message"
-                className="min-h-[44px] max-h-[120px] resize-none rounded-3xl pr-12 bg-gray-100 dark:bg-gray-800 border-0 focus-visible:ring-1 focus-visible:ring-primary/20 text-[15px] leading-relaxed"
+                className="min-h-[44px] max-h-[120px] resize-none rounded-3xl pr-12 bg-gray-100 dark:bg-gray-800 border-0 focus-visible:ring-1 focus-visible:ring-primary/20 text-[15px] leading-relaxed py-3"
                 disabled={disabled || sending}
                 rows={1}
+                style={{ height: '44px' }}
               />
             </div>
 
@@ -561,7 +562,7 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
                 onClick={handleSend}
                 disabled={!message.trim() || sending || disabled}
                 size="icon"
-                className="rounded-full shrink-0 h-11 w-11 bg-teal-600 hover:bg-teal-700 transition-all"
+                className="rounded-full shrink-0 h-11 w-11 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/25"
               >
                 <Send className="w-5 h-5 text-white" />
               </Button>

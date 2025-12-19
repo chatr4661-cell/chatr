@@ -421,14 +421,39 @@ export const EnhancedMessageInput = ({
         }}
       />
 
-      <div className="border-t bg-white/95 backdrop-blur-sm safe-bottom">
+      <div className="border-t bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm safe-bottom">
         <div className="p-3 pb-6">
-          <div className="flex items-center gap-2 bg-[hsl(200,25,95%)] rounded-[24px] px-4 py-2">
+          {/* Reply preview */}
+          <AnimatePresence>
+            {replyTo && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-2 px-3 py-2 bg-muted/50 rounded-xl border-l-4 border-primary flex items-center gap-2"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-primary">Replying to {replyTo.sender}</p>
+                  <p className="text-xs text-muted-foreground truncate">{replyTo.content}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  onClick={onCancelReply}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="flex items-end gap-2 bg-muted/50 dark:bg-gray-800 rounded-[24px] px-4 py-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setShowAttachments(true)}
-              className="h-8 w-8 rounded-full hover:bg-muted/50 shrink-0"
+              className="h-8 w-8 rounded-full hover:bg-muted shrink-0 mb-0.5"
               disabled={disabled}
             >
               <Plus className="w-5 h-5 text-muted-foreground" />
@@ -441,20 +466,21 @@ export const EnhancedMessageInput = ({
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Message"
-                className="min-h-[32px] max-h-[100px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1 text-[15px] placeholder:text-muted-foreground/50"
+                className="min-h-[44px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-2.5 text-[15px] placeholder:text-muted-foreground/50 overflow-y-auto"
                 disabled={disabled || sending}
                 rows={1}
+                style={{ height: '44px' }}
               />
             </div>
 
             <EmojiPicker onEmojiSelect={(emoji) => setMessage(prev => prev + emoji)} />
 
-            {message.trim() ? (
+            {message.trim() || selectedImages.length > 0 ? (
               <Button
                 onClick={handleSend}
-                disabled={!message.trim() || sending || disabled}
+                disabled={(!message.trim() && selectedImages.length === 0) || sending || disabled}
                 size="icon"
-                className="h-8 w-8 rounded-full bg-[hsl(185,75%,40%)] hover:bg-[hsl(185,75%,35%)] text-white shrink-0"
+                className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shrink-0 mb-0.5 shadow-lg shadow-purple-500/25"
               >
                 <Send className="w-4 h-4" />
               </Button>
@@ -463,7 +489,7 @@ export const EnhancedMessageInput = ({
                 variant="ghost"
                 size="icon"
                 onClick={handleVoiceRecord}
-                className={`h-8 w-8 rounded-full hover:bg-muted/50 shrink-0 ${isRecording ? 'bg-destructive text-destructive-foreground' : ''}`}
+                className={`h-8 w-8 rounded-full hover:bg-muted shrink-0 mb-0.5 ${isRecording ? 'bg-destructive text-destructive-foreground animate-pulse' : ''}`}
                 disabled={disabled}
               >
                 <Mic className="w-5 h-5 text-muted-foreground" />
