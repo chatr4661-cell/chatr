@@ -23,7 +23,6 @@ serve(async (req) => {
     // Accept multiple field name variants (camelCase and snake_case)
     const token = body.token || body.fcm_token || body.device_token || body.fcmToken || body.deviceToken;
     const platform = body.platform || 'android';
-    const deviceInfo = body.deviceInfo || body.device_info || {};
     const userId = body.userId || body.user_id;
 
     console.log('Received body:', JSON.stringify(body));
@@ -42,16 +41,15 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Registering device token for user ${userId}, platform: ${platform || 'unknown'}`);
+    console.log(`Registering device token for user ${userId}, platform: ${platform}`);
 
-    // Upsert the device token
+    // Upsert the device token (only using columns that exist in the table)
     const { data, error } = await supabase
       .from('device_tokens')
       .upsert({
         user_id: userId,
         device_token: token,
-        platform: platform || 'web',
-        device_info: deviceInfo || {},
+        platform: platform,
         last_used_at: new Date().toISOString()
       }, {
         onConflict: 'user_id,device_token'
