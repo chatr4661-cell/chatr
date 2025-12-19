@@ -18,18 +18,26 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { token, platform, deviceInfo, userId } = await req.json();
+    const body = await req.json();
+    
+    // Accept multiple field name variants (camelCase and snake_case)
+    const token = body.token || body.fcm_token || body.device_token || body.fcmToken || body.deviceToken;
+    const platform = body.platform || 'android';
+    const deviceInfo = body.deviceInfo || body.device_info || {};
+    const userId = body.userId || body.user_id;
+
+    console.log('Received body:', JSON.stringify(body));
 
     if (!token) {
       return new Response(
-        JSON.stringify({ error: 'Token is required' }),
+        JSON.stringify({ error: 'Token is required. Send as: token, fcm_token, or device_token' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!userId) {
       return new Response(
-        JSON.stringify({ error: 'User ID is required' }),
+        JSON.stringify({ error: 'User ID is required. Send as: userId or user_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
