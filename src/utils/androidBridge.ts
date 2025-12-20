@@ -10,6 +10,14 @@ declare global {
     ChatrNative?: {
       postMessage: (message: string) => void;
     };
+    NativeAuth?: {
+      setAuthToken: (token: string) => void;
+      setUserId: (userId: string) => void;
+      setRefreshToken: (token: string) => void;
+      clearAuth: () => void;
+      getAuthToken: () => string | null;
+      getUserId: () => string | null;
+    };
   }
 }
 
@@ -43,59 +51,89 @@ export const isAppInstalled = (packageName: string): boolean => {
 };
 
 /**
- * Sync auth state to native Android app
- * This enables background services, FCM, and native call UI
+ * Sync auth credentials to native Android app via NativeAuth bridge
+ * This enables native screens to access authenticated Supabase data
  */
 export const syncAuthToNative = (
   state: 'SIGNED_IN' | 'SIGNED_OUT',
   userId: string | null,
-  accessToken: string | null
-) => {
-  const data = JSON.stringify({
-    state,
-    userId,
-    accessToken
-  });
+  accessToken: string | null,
+  refreshToken: string | null = null
+): boolean => {
+  console.log(`[NativeAuth] Syncing auth state: ${state}, userId: ${userId?.substring(0, 8)}...`);
 
-  console.log(`[NativeBridge] Syncing auth state: ${state}, userId: ${userId?.substring(0, 8)}...`);
-
-  // Try NativeBridge.sendEvent first (newer interface)
-  if (typeof window !== "undefined" && window.NativeBridge?.sendEvent) {
+  // Try NativeAuth bridge first (WebAuthBridge interface)
+  if (typeof window !== "undefined" && window.NativeAuth) {
     try {
-      window.NativeBridge.sendEvent('auth_state_changed', data);
-      console.log('[NativeBridge] Auth state synced via NativeBridge.sendEvent');
-      return true;
+      if (state === 'SIGNED_IN' && accessToken && userId) {
+        window.NativeAuth.setAuthToken(accessToken);
+        window.NativeAuth.setUserId(userId);
+        if (refreshToken) {
+          window.NativeAuth.setRefreshToken(refreshToken);
+        }
+        console.log('[NativeAuth] Auth credentials synced to native SharedPreferences');
+        return true;
+      } else if (state === 'SIGNED_OUT') {
+        window.NativeAuth.clearAuth();
+        console.log('[NativeAuth] Auth cleared from native SharedPreferences');
+        return true;
+      }
     } catch (e) {
-      console.error('[NativeBridge] Failed to call NativeBridge.sendEvent:', e);
+      console.error('[NativeAuth] Failed to call NativeAuth bridge:', e);
     }
   }
 
-  // Try ChatrNative.postMessage (WebViewBridgeManager interface)
+  // Fallback: Try NativeBridge.sendEvent
+  if (typeof window !== "undefined" && window.NativeBridge?.sendEvent) {
+    try {
+      const data = JSON.stringify({
+        state,
+        userId,
+        accessToken,
+        refreshToken
+      });
+      window.NativeBridge.sendEvent('auth_state_changed', data);
+      console.log('[NativeAuth] Auth state synced via NativeBridge.sendEvent');
+      return true;
+    } catch (e) {
+      console.error('[NativeAuth] Failed to call NativeBridge.sendEvent:', e);
+    }
+  }
+
+  // Fallback: Try ChatrNative.postMessage
   if (typeof window !== "undefined" && window.ChatrNative?.postMessage) {
     try {
       const message = JSON.stringify({
         type: 'auth_state_changed',
-        data: { state, userId, accessToken }
+        data: { state, userId, accessToken, refreshToken }
       });
       window.ChatrNative.postMessage(message);
-      console.log('[NativeBridge] Auth state synced via ChatrNative.postMessage');
+      console.log('[NativeAuth] Auth state synced via ChatrNative.postMessage');
       return true;
     } catch (e) {
-      console.error('[NativeBridge] Failed to call ChatrNative.postMessage:', e);
+      console.error('[NativeAuth] Failed to call ChatrNative.postMessage:', e);
     }
   }
 
-  console.log('[NativeBridge] No native bridge available (running in browser)');
+  console.log('[NativeAuth] No native bridge available (running in browser)');
   return false;
 };
 
 /**
- * Check if running inside native Android WebView
+ * Check if running inside native Android WebView with NativeAuth bridge
  */
 export const isNativeApp = (): boolean => {
   return typeof window !== "undefined" && (
     !!window.Android || 
     !!window.NativeBridge || 
-    !!window.ChatrNative
+    !!window.ChatrNative ||
+    !!window.NativeAuth
   );
+};
+
+/**
+ * Check if NativeAuth bridge is specifically available
+ */
+export const hasNativeAuthBridge = (): boolean => {
+  return typeof window !== "undefined" && !!window.NativeAuth;
 };

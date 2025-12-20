@@ -9,6 +9,7 @@ import { useBatteryOptimization } from '@/hooks/useBatteryOptimization';
 import { useContactSync } from '@/hooks/useContactSync';
 import { useOfflineUploadQueue } from '@/hooks/useOfflineUploadQueue';
 import { useGeofencing } from '@/hooks/useGeofencing';
+import { useNativeAuthSync } from '@/hooks/useNativeAuthSync';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsProvider } from './AnalyticsProvider';
 import { ChatrOSProvider } from './ChatrOSProvider';
@@ -89,6 +90,9 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   
   // Geofencing for location-based notifications
   useGeofencing(userId);
+  
+  // Sync auth to native Android app (WebAuthBridge)
+  useNativeAuthSync();
 
   // Monitor online status
   useEffect(() => {
