@@ -16,6 +16,7 @@ import { highlightMentions } from './MentionInput';
 import { MessageTranslateButton } from './MessageTranslateButton';
 import { LinkPreviewCard } from './LinkPreviewCard';
 import { VoiceTranscript } from './VoiceTranscript';
+import { MessageReactions } from './MessageReactions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -594,6 +595,22 @@ const MessageBubbleComponent = ({
             audioUrl={message.media_url} 
             messageId={message.id}
             className="mt-1"
+          />
+        )}
+
+        {/* Message Reactions */}
+        {message.reactions && message.reactions.length > 0 && (
+          <MessageReactions
+            reactions={message.reactions}
+            userId={message.sender_id}
+            onReact={async (emoji) => {
+              await supabase.rpc('toggle_message_reaction', {
+                p_message_id: message.id,
+                p_user_id: message.sender_id,
+                p_emoji: emoji
+              });
+            }}
+            isOwn={isOwn}
           />
         )}
 
