@@ -10330,6 +10330,7 @@ export type Database = {
           preferred_auth_method: string | null
           preferred_country_code: string | null
           preferred_language: string | null
+          privacy_settings: Json | null
           profile_completed_at: string | null
           public_key: string | null
           qr_code_token: string | null
@@ -10384,6 +10385,7 @@ export type Database = {
           preferred_auth_method?: string | null
           preferred_country_code?: string | null
           preferred_language?: string | null
+          privacy_settings?: Json | null
           profile_completed_at?: string | null
           public_key?: string | null
           qr_code_token?: string | null
@@ -10438,6 +10440,7 @@ export type Database = {
           preferred_auth_method?: string | null
           preferred_country_code?: string | null
           preferred_language?: string | null
+          privacy_settings?: Json | null
           profile_completed_at?: string | null
           public_key?: string | null
           qr_code_token?: string | null
@@ -14582,6 +14585,10 @@ export type Database = {
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }
         Returns: undefined
+      }
+      toggle_message_reaction: {
+        Args: { p_emoji: string; p_message_id: string; p_user_id: string }
+        Returns: Json
       }
       track_app_usage: { Args: { p_app_id: string }; Returns: undefined }
       track_brand_impression: {
