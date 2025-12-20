@@ -1,7 +1,8 @@
 # CHATR Complete API & Route Documentation
 
 > Auto-generated comprehensive documentation for chatr.chat domain
-> Last Updated: 2025-12-03
+> Last Updated: 2025-12-20
+> Version: 2.0.0
 
 ---
 
@@ -54,7 +55,11 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 | PUT | `/messages/{id}` | Edit message | Yes | `{ content }` |
 | DELETE | `/messages/{id}` | Delete message | Yes | - |
 | POST | `/messages/{id}/read` | Mark as read | Yes | - |
-| POST | `/messages/{id}/reaction` | Add reaction | Yes | `{ emoji }` |
+| POST | `/messages/{id}/reaction` | Toggle reaction | Yes | `{ emoji }` - Uses `toggle_message_reaction` RPC |
+| POST | `/messages/{id}/pin` | Pin message | Yes | - |
+| POST | `/messages/{id}/star` | Star message | Yes | - |
+| POST | `/messages/{id}/forward` | Forward message | Yes | `{ conversation_ids: string[] }` |
+| GET | `/messages/search` | Search messages | Yes | Query: `?q=term&conversation_id=xxx` |
 
 ### 1.4 Chats/Conversations Service
 
@@ -81,10 +86,18 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 
 | Method | Endpoint | Description | Auth | Request/Response |
 |--------|----------|-------------|------|------------------|
-| POST | `/contacts/sync` | Sync contacts | Yes | `{ contacts: ContactInfo[] }` |
+| POST | `/contacts/sync` | Sync contacts | Yes | `{ contacts: ContactInfo[] }` - Uses `sync_user_contacts` RPC |
 | GET | `/contacts` | Get contacts | Yes | Response: `List<Contact>` |
-| POST | `/contacts/block` | Block contact | Yes | `{ user_id }` |
+| POST | `/contacts/block` | Block contact | Yes | `{ user_id, reason? }` |
 | DELETE | `/contacts/block/{userId}` | Unblock contact | Yes | - |
+| GET | `/contacts/blocked` | Get blocked users | Yes | Response: `List<BlockedContact>` |
+
+### 1.6.1 Privacy Settings
+
+| Method | Endpoint | Description | Auth | Request/Response |
+|--------|----------|-------------|------|------------------|
+| GET | `/users/{userId}/privacy` | Get privacy settings | Yes | Response: `PrivacySettings` |
+| PUT | `/users/{userId}/privacy` | Update privacy settings | Yes | `{ last_seen, profile_photo, about, read_receipts, groups_add }` |
 
 ### 1.7 Social/Stories Service
 
@@ -211,9 +224,30 @@ Channels:
   - presence: User online/offline status
   - conversations: Chat list updates
   - notifications: Push notification delivery
+  - typing: Typing indicators per conversation
 ```
 
-### 2.3 Socket.IO (Native)
+### 2.3 Typing Indicators (Realtime Broadcast)
+```typescript
+// Send typing status
+supabase
+  .channel(`typing:${conversationId}`)
+  .send({
+    type: 'broadcast',
+    event: 'typing',
+    payload: { userId, isTyping: boolean, username }
+  })
+
+// Listen for typing
+supabase
+  .channel(`typing:${conversationId}`)
+  .on('broadcast', { event: 'typing' }, (payload) => {
+    // Show/hide typing indicator
+  })
+  .subscribe()
+```
+
+### 2.4 Socket.IO (Native)
 ```
 URL: wss://api.chatr.app/socket.io
 Events:
@@ -226,6 +260,7 @@ Events:
   - typing_stop: { conversationId }
   - user_presence: { userId, status }
   - incoming_call: { callId, callerName, isVideo }
+  - reaction_added: { messageId, emoji, userId }
 ```
 
 ---
@@ -876,10 +911,21 @@ data class Message(
     val type: MessageType = MessageType.TEXT,
     val status: MessageStatus = MessageStatus.SENT,
     val replyTo: String? = null,
-    val mediaUrl: String? = null
+    val mediaUrl: String? = null,
+    val reactions: List<MessageReaction> = emptyList(),
+    val isEdited: Boolean = false,
+    val isPinned: Boolean = false,
+    val isStarred: Boolean = false,
+    val isDeleted: Boolean = false
 )
 
-enum class MessageType { TEXT, IMAGE, VIDEO, AUDIO, FILE, LOCATION }
+data class MessageReaction(
+    val emoji: String,
+    val userId: String,
+    val createdAt: Long
+)
+
+enum class MessageType { TEXT, IMAGE, VIDEO, AUDIO, FILE, LOCATION, CONTACT, STICKER }
 enum class MessageStatus { SENDING, SENT, DELIVERED, READ, FAILED }
 
 data class SendMessageRequest(
@@ -887,12 +933,13 @@ data class SendMessageRequest(
     val content: String,
     val type: MessageType = MessageType.TEXT,
     val replyTo: String? = null,
-    val mediaUrl: String? = null
+    val mediaUrl: String? = null,
+    val forwardedFrom: String? = null
 )
 
 data class EditMessageRequest(val content: String)
 
-data class ReactionRequest(val emoji: String)
+data class ReactionRequest(val emoji: String) // Supported: ❤️, 👍, 😂, 😮, 😢, 🙏
 
 // ==================== CHAT MODELS ====================
 data class Chat(
@@ -952,9 +999,37 @@ data class ContactInfo(
     val email: String?
 )
 
-data class BlockContactRequest(val userId: String)
+data class BlockContactRequest(
+    val userId: String,
+    val reason: String? = null
+)
 
-// ==================== DEVICE MODELS ====================
+// ==================== PRIVACY MODELS ====================
+data class PrivacySettings(
+    val lastSeen: VisibilityOption = VisibilityOption.EVERYONE,
+    val profilePhoto: VisibilityOption = VisibilityOption.EVERYONE,
+    val about: VisibilityOption = VisibilityOption.EVERYONE,
+    val readReceipts: Boolean = true,
+    val groupsAdd: VisibilityOption = VisibilityOption.EVERYONE
+)
+
+enum class VisibilityOption { EVERYONE, CONTACTS, NOBODY }
+
+data class UpdatePrivacyRequest(
+    val lastSeen: VisibilityOption?,
+    val profilePhoto: VisibilityOption?,
+    val about: VisibilityOption?,
+    val readReceipts: Boolean?,
+    val groupsAdd: VisibilityOption?
+)
+
+data class BlockedContact(
+    val id: String,
+    val blockedUserId: String,
+    val blockedUser: User?,
+    val reason: String?,
+    val blockedAt: Long
+)
 data class DeviceRegistrationRequest(
     val userId: String,
     val fcmToken: String,
@@ -1742,18 +1817,46 @@ object NetworkModule {
 
 | Category | Count |
 |----------|-------|
-| REST API Endpoints | 65+ |
-| WebSocket Channels | 4 |
+| REST API Endpoints | 70+ |
+| WebSocket Channels | 5 |
 | Search Endpoints | 8 |
-| Frontend Routes | 120+ |
+| Frontend Routes | 125+ |
 | Deep Link Routes | 50+ |
 | Edge Functions | 60+ |
-| Data Models | 50+ |
+| Data Models | 55+ |
 | Retrofit Interfaces | 3 |
 | Repositories | 5 |
+| Database Functions | 45+ |
 
 ---
 
-**Document Version**: 1.0.0  
-**Generated**: 2025-12-03  
+## Changelog
+
+### v2.0.0 (December 20, 2025)
+- Added message reactions with `toggle_message_reaction` RPC function
+- Added privacy settings to profiles (last_seen, profile_photo, about, read_receipts, groups_add)
+- Added block/unblock user functionality with blocked_contacts table
+- Added typing indicators via Supabase Realtime broadcast
+- Added message pinning and starring
+- Added message forwarding endpoint
+- Added message search endpoint
+- Updated Message model with reactions, isEdited, isPinned, isStarred, isDeleted fields
+- Added PrivacySettings and BlockedContact models
+- Added VisibilityOption enum (EVERYONE, CONTACTS, NOBODY)
+- Updated supported reaction emojis: ❤️, 👍, 😂, 😮, 😢, 🙏
+
+### v1.0.0 (December 3, 2025)
+- Initial documentation release
+- Core API endpoints for auth, users, messages, chats, calls, contacts
+- WebSocket and Socket.IO documentation
+- Search engine routes (universal, visual, AI browser, geo)
+- Frontend pages documentation (120+ routes)
+- Android Retrofit interfaces and data models
+- Deep link configuration and route mapping
+- Integration checklist
+
+---
+
+**Document Version**: 2.0.0  
+**Generated**: 2025-12-20  
 **Domain**: chatr.chat
