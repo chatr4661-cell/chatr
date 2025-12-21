@@ -18,66 +18,60 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.chatr.app.data.model.Message
-import com.chatr.app.data.model.MessageStatus
-import com.chatr.app.data.model.MessageType
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.chatr.app.data.repository.MessageItem
 import com.chatr.app.ui.theme.*
+import com.chatr.app.viewmodel.ChatDetailViewModel
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 
+/**
+ * ChatDetailScreen - Shows messages for a conversation
+ * Uses SupabaseRpcRepository.getMessages() which calls get_conversation_messages() RPC
+ * This provides the same data as the web app
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDetailScreen(
     conversationId: String,
-    contactName: String,
-    currentUserId: String,
-    onNavigate: (String) -> Unit,
-    onBack: () -> Unit
+    onNavigateBack: () -> Unit = {},
+    onNavigateToCall: (String, Boolean) -> Unit = { _, _ -> },
+    // Legacy params - for backwards compatibility
+    contactName: String = "",
+    currentUserId: String = "",
+    onNavigate: ((String) -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
+    viewModel: ChatDetailViewModel = hiltViewModel()
 ) {
+    val state by viewModel.state.collectAsState()
     var messageText by remember { mutableStateOf("") }
-    var isTyping by remember { mutableStateOf(false) }
-    var showReactionMenu by remember { mutableStateOf<String?>(null) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     
-    // Mock messages - in real app, these come from ViewModel
-    val messages = remember {
-        mutableStateListOf(
-            Message(
-                id = "1",
-                conversationId = conversationId,
-                senderId = "other",
-                senderName = contactName,
-                content = "Hey! How are you doing?",
-                type = MessageType.TEXT,
-                timestamp = System.currentTimeMillis() - 3600000,
-                status = MessageStatus.READ
-            ),
-            Message(
-                id = "2",
-                conversationId = conversationId,
-                senderId = currentUserId,
-                senderName = "You",
-                content = "I'm doing great! Thanks for asking 😊",
-                type = MessageType.TEXT,
-                timestamp = System.currentTimeMillis() - 3500000,
-                status = MessageStatus.READ
-            ),
-            Message(
-                id = "3",
-                conversationId = conversationId,
-                senderId = "other",
-                senderName = contactName,
-                content = "Want to catch up later?",
-                type = MessageType.TEXT,
-                timestamp = System.currentTimeMillis() - 60000,
-                status = MessageStatus.DELIVERED
-            )
-        )
+    val listState = rememberLazyListState()
+    
+    // Get contact name from first message sender that isn't current user, or use provided name
+    val displayName = remember(state.messages, contactName) {
+        if (contactName.isNotEmpty()) {
+            contactName
+        } else {
+            state.messages.find { it.sender_id != state.currentUserId }?.sender_name ?: "Chat"
+        }
     }
     
-    val listState = rememberLazyListState()
+    val displayAvatar = remember(state.messages) {
+        state.messages.find { it.sender_id != state.currentUserId }?.sender_avatar
+    }
+    
+    // Mark conversation as read when opened
+    LaunchedEffect(conversationId) {
+        viewModel.markAsRead()
+    }
     
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -91,47 +85,56 @@ fun ChatDetailScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Primary.copy(alpha = 0.3f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = contactName.first().toString(),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Primary,
-                                fontWeight = FontWeight.Bold
+                        // Avatar
+                        if (!displayAvatar.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = displayAvatar,
+                                contentDescription = "Avatar",
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = displayName.firstOrNull()?.uppercase() ?: "?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = PrimaryForeground,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                         
                         Spacer(modifier = Modifier.width(12.dp))
                         
                         Column {
                             Text(
-                                text = contactName,
+                                text = displayName,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
-                            if (isTyping) {
-                                Text(
-                                    text = "typing...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Primary
-                                )
-                            } else {
-                                Text(
-                                    text = "Online",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MutedForeground
-                                )
-                            }
+                            Text(
+                                text = "Online",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Success
+                            )
                         }
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { 
+                        onNavigateBack()
+                        onBack?.invoke()
+                    }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
@@ -139,14 +142,20 @@ fun ChatDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onNavigate("voice-call/$conversationId") }) {
+                    IconButton(onClick = { 
+                        onNavigateToCall(conversationId, false)
+                        onNavigate?.invoke("voice-call/$conversationId") 
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Phone,
                             contentDescription = "Voice Call",
                             tint = Primary
                         )
                     }
-                    IconButton(onClick = { onNavigate("video-call/$conversationId") }) {
+                    IconButton(onClick = { 
+                        onNavigateToCall(conversationId, true)
+                        onNavigate?.invoke("video-call/$conversationId") 
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Videocam,
                             contentDescription = "Video Call",
@@ -165,23 +174,13 @@ fun ChatDetailScreen(
                 onMessageTextChange = { messageText = it },
                 onSendMessage = {
                     if (messageText.isNotBlank()) {
-                        messages.add(
-                            Message(
-                                id = UUID.randomUUID().toString(),
-                                conversationId = conversationId,
-                                senderId = currentUserId,
-                                senderName = "You",
-                                content = messageText,
-                                type = MessageType.TEXT,
-                                timestamp = System.currentTimeMillis(),
-                                status = MessageStatus.PENDING
-                            )
-                        )
+                        viewModel.sendMessage(messageText)
                         messageText = ""
                     }
                 },
                 onAttachmentClick = { imagePicker.launch("image/*") },
-                onVoiceNoteClick = { /* Handle voice note */ }
+                onVoiceNoteClick = { /* Handle voice note */ },
+                isSending = state.isSending
             )
         }
     ) { padding ->
@@ -191,54 +190,92 @@ fun ChatDetailScreen(
                 .background(Background)
                 .padding(padding)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                reverseLayout = false
-            ) {
-                items(messages) { message ->
-                    MessageBubble(
-                        message = message,
-                        isCurrentUser = message.senderId == currentUserId,
-                        onLongPress = { showReactionMenu = message.id },
-                        onReactionClick = { emoji ->
-                            // Handle reaction
-                            showReactionMenu = null
+            // Error message
+            state.error?.let { error ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .align(Alignment.TopCenter),
+                    colors = CardDefaults.cardColors(containerColor = Destructive.copy(alpha = 0.1f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = error,
+                            color = Destructive,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { viewModel.loadMessages() }) {
+                            Text("Retry", color = Primary)
                         }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
             
-            if (showReactionMenu != null) {
-                ReactionMenu(
-                    onDismiss = { showReactionMenu = null },
-                    onReactionSelect = { emoji ->
-                        // Add reaction
-                        showReactionMenu = null
-                    }
+            // Loading indicator
+            if (state.isLoading && state.messages.isEmpty()) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Primary
                 )
+            } else if (state.messages.isEmpty() && !state.isLoading) {
+                // Empty state
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No messages yet",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MutedForeground
+                    )
+                    Text(
+                        text = "Send a message to start the conversation",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MutedForeground
+                    )
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    reverseLayout = false
+                ) {
+                    items(
+                        items = state.messages,
+                        key = { it.message_id }
+                    ) { message ->
+                        MessageBubbleRpc(
+                            message = message,
+                            isCurrentUser = viewModel.isOwnMessage(message.sender_id)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
             }
         }
     }
 }
 
+/**
+ * Message bubble for RPC-based messages
+ */
 @Composable
-fun MessageBubble(
-    message: Message,
-    isCurrentUser: Boolean,
-    onLongPress: () -> Unit,
-    onReactionClick: (String) -> Unit
+private fun MessageBubbleRpc(
+    message: MessageItem,
+    isCurrentUser: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
     ) {
         Card(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .clickable(onClick = onLongPress),
+            modifier = Modifier.widthIn(max = 280.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isCurrentUser) Primary else Card
             ),
@@ -250,7 +287,25 @@ fun MessageBubble(
             )
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                if (message.type == MessageType.TEXT) {
+                // Show sender name for group chats (when not current user)
+                if (!isCurrentUser && !message.sender_name.isNullOrEmpty()) {
+                    Text(
+                        text = message.sender_name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                
+                if (message.is_deleted) {
+                    Text(
+                        text = "🗑 This message was deleted",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isCurrentUser) PrimaryForeground.copy(alpha = 0.7f) else MutedForeground,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                } else {
                     Text(
                         text = message.content,
                         style = MaterialTheme.typography.bodyMedium,
@@ -265,7 +320,7 @@ fun MessageBubble(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = formatTime(message.timestamp),
+                        text = formatMessageTime(message.created_at),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isCurrentUser) 
                             PrimaryForeground.copy(alpha = 0.7f) 
@@ -276,14 +331,13 @@ fun MessageBubble(
                     if (isCurrentUser) {
                         Icon(
                             imageVector = when (message.status) {
-                                MessageStatus.PENDING -> Icons.Default.Schedule
-                                MessageStatus.SENT -> Icons.Default.Done
-                                MessageStatus.DELIVERED -> Icons.Default.DoneAll
-                                MessageStatus.READ -> Icons.Default.DoneAll
-                                MessageStatus.FAILED -> Icons.Default.Error
+                                "read" -> Icons.Default.DoneAll
+                                "delivered" -> Icons.Default.DoneAll
+                                "sent" -> Icons.Default.Done
+                                else -> Icons.Default.Schedule
                             },
-                            contentDescription = message.status.name,
-                            tint = if (message.status == MessageStatus.READ) 
+                            contentDescription = message.status,
+                            tint = if (message.status == "read") 
                                 Success 
                             else 
                                 PrimaryForeground.copy(alpha = 0.7f),
@@ -291,7 +345,7 @@ fun MessageBubble(
                         )
                     }
                     
-                    if (message.isEdited) {
+                    if (message.is_edited) {
                         Text(
                             text = "edited",
                             style = MaterialTheme.typography.bodySmall,
@@ -304,24 +358,6 @@ fun MessageBubble(
                 }
             }
         }
-        
-        // Reactions
-        if (message.reactions.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .background(Muted, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                message.reactions.groupBy { it.emoji }.forEach { (emoji, reactions) ->
-                    Text(
-                        text = "$emoji ${reactions.size}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -331,7 +367,8 @@ fun MessageInputBar(
     onMessageTextChange: (String) -> Unit,
     onSendMessage: () -> Unit,
     onAttachmentClick: () -> Unit,
-    onVoiceNoteClick: () -> Unit
+    onVoiceNoteClick: () -> Unit,
+    isSending: Boolean = false
 ) {
     Surface(
         color = BackgroundSecondary,
@@ -343,7 +380,7 @@ fun MessageInputBar(
                 .padding(8.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            IconButton(onClick = onAttachmentClick) {
+            IconButton(onClick = onAttachmentClick, enabled = !isSending) {
                 Icon(
                     imageVector = Icons.Default.AttachFile,
                     contentDescription = "Attach",
@@ -363,11 +400,12 @@ fun MessageInputBar(
                     focusedIndicatorColor = Primary,
                     unfocusedIndicatorColor = Border
                 ),
-                maxLines = 4
+                maxLines = 4,
+                enabled = !isSending
             )
             
             if (messageText.isBlank()) {
-                IconButton(onClick = onVoiceNoteClick) {
+                IconButton(onClick = onVoiceNoteClick, enabled = !isSending) {
                     Icon(
                         imageVector = Icons.Default.Mic,
                         contentDescription = "Voice Note",
@@ -375,12 +413,20 @@ fun MessageInputBar(
                     )
                 }
             } else {
-                IconButton(onClick = onSendMessage) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Send",
-                        tint = Primary
-                    )
+                IconButton(onClick = onSendMessage, enabled = !isSending) {
+                    if (isSending) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Primary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send",
+                            tint = Primary
+                        )
+                    }
                 }
             }
         }
@@ -419,7 +465,13 @@ fun ReactionMenu(
     )
 }
 
-private fun formatTime(timestamp: Long): String {
-    val format = SimpleDateFormat("HH:mm", Locale.getDefault())
-    return format.format(Date(timestamp))
+private fun formatMessageTime(isoTimestamp: String?): String {
+    if (isoTimestamp == null) return ""
+    return try {
+        val instant = Instant.parse(isoTimestamp)
+        val date = Date.from(instant)
+        SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+    } catch (e: Exception) {
+        ""
+    }
 }
