@@ -14510,6 +14510,46 @@ export type Database = {
           video_enabled: boolean
         }[]
       }
+      get_conversation_messages: {
+        Args: { p_before?: string; p_conversation_id: string; p_limit?: number }
+        Returns: {
+          content: string
+          created_at: string
+          is_deleted: boolean
+          is_edited: boolean
+          is_starred: boolean
+          media_attachments: Json
+          media_url: string
+          message_id: string
+          message_type: string
+          reactions: Json
+          reply_to_id: string
+          sender_avatar: string
+          sender_id: string
+          sender_name: string
+          status: string
+        }[]
+      }
+      get_user_conversations: {
+        Args: never
+        Returns: {
+          conversation_id: string
+          group_icon_url: string
+          group_name: string
+          is_archived: boolean
+          is_group: boolean
+          is_muted: boolean
+          last_message: string
+          last_message_at: string
+          last_message_sender_id: string
+          last_message_type: string
+          other_user_avatar: string
+          other_user_id: string
+          other_user_name: string
+          other_user_online: boolean
+          unread_count: number
+        }[]
+      }
       get_user_conversations_optimized: {
         Args: { p_user_id: string }
         Returns: {
