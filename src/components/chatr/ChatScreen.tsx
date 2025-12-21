@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Phone, Video, MoreVertical, Send, Paperclip, Mic, Search, Pin } from 'lucide-react';
+import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Search, Pin, Image, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageReactionPicker } from '../chat/MessageReactionPicker';
 import { MessageReactions } from '../MessageReactions';
 import { ForwardMessageDialog } from './ForwardMessageDialog';
+import { useReliableMessages, Message } from '@/hooks/useReliableMessages';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ChatScreenProps {
   chatId: string;
@@ -17,119 +20,143 @@ interface ChatScreenProps {
 
 export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<any[]>([]);
+  const { 
+    messages, 
+    isLoading, 
+    sending, 
+    sendMessage, 
+    editMessage, 
+    deleteMessage,
+    reactToMessage,
+    setTyping 
+  } = useReliableMessages(chatId, userId);
+  
   const [inputText, setInputText] = useState('');
-  const [replyingTo, setReplyingTo] = useState<any>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [forwardMessage, setForwardMessage] = useState<any>(null);
+  const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
+  const [otherUser, setOtherUser] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Load other participant info
   useEffect(() => {
-    loadMessages();
-  }, [chatId]);
+    const loadOtherUser = async () => {
+      const { data } = await supabase
+        .from('conversation_participants')
+        .select('profiles!inner(id, username, avatar_url, is_online, last_seen)')
+        .eq('conversation_id', chatId)
+        .neq('user_id', userId)
+        .limit(1)
+        .single();
+      
+      if (data) {
+        setOtherUser(data.profiles);
+      }
+    };
+    loadOtherUser();
+  }, [chatId, userId]);
 
-  const loadMessages = async () => {
-    // Mock messages for demo
-    const mockMessages = [
-      {
-        id: '1',
-        content: 'Hey! How are you?',
-        sender_id: 'other',
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-        reactions: { '❤️': [userId], '👍': ['other'] },
-        is_pinned: true,
-      },
-      {
-        id: '2',
-        content: 'I\'m doing great! Just finished that project.',
-        sender_id: userId,
-        created_at: new Date(Date.now() - 3000000).toISOString(),
-        reactions: {},
-      },
-      {
-        id: '3',
-        content: 'That\'s awesome! Want to celebrate?',
-        sender_id: 'other',
-        created_at: new Date(Date.now() - 1800000).toISOString(),
-        reactions: { '🔥': [userId, 'other'] },
-      },
-    ];
-    setMessages(mockMessages);
+  // Auto-scroll on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Handle typing indicator
+  const handleInputChange = (value: string) => {
+    setInputText(value);
+    setTyping(true);
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      setTyping(false);
+    }, 2000);
   };
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
+  const handleSend = async () => {
+    if (!inputText.trim() || sending) return;
     
-    const newMessage = {
-      id: Date.now().toString(),
-      content: inputText,
-      sender_id: userId,
-      created_at: new Date().toISOString(),
-      reactions: {},
-      reply_to: replyingTo?.id,
-    };
-    
-    setMessages([...messages, newMessage]);
+    const content = inputText.trim();
     setInputText('');
     setReplyingTo(null);
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTyping(false);
+    
+    try {
+      await sendMessage(content, 'text');
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
 
-  const handleReaction = (messageId: string, emoji: string) => {
-    setMessages(messages.map(msg => {
-      if (msg.id === messageId) {
-        const reactions = { ...msg.reactions };
-        if (reactions[emoji]?.includes(userId)) {
-          reactions[emoji] = reactions[emoji].filter((id: string) => id !== userId);
-          if (reactions[emoji].length === 0) delete reactions[emoji];
-        } else {
-          reactions[emoji] = [...(reactions[emoji] || []), userId];
-        }
-        return { ...msg, reactions };
-      }
-      return msg;
-    }));
+  const handleReaction = async (messageId: string, emoji: string) => {
+    await reactToMessage(messageId, emoji);
   };
 
-  const handlePin = (messageId: string) => {
-    setMessages(messages.map(msg => 
-      msg.id === messageId ? { ...msg, is_pinned: !msg.is_pinned } : msg
-    ));
-  };
-
-  const pinnedMessages = messages.filter(m => m.is_pinned);
+  const pinnedMessages = messages.filter(m => (m as any).is_pinned);
   const filteredMessages = searchQuery 
     ? messages.filter(m => m.content.toLowerCase().includes(searchQuery.toLowerCase()))
     : messages;
 
+  const getReactionsArray = (reactions: any) => {
+    if (!reactions || typeof reactions !== 'object') return [];
+    return Object.entries(reactions).map(([emoji, users]: [string, any]) => ({
+      emoji,
+      count: Array.isArray(users) ? users.length : 0,
+      userReacted: Array.isArray(users) && users.includes(userId),
+    })).filter(r => r.count > 0);
+  };
+
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background safe-area-inset">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary via-primary-glow to-primary text-white p-4 shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-primary via-primary to-primary-glow text-primary-foreground pt-safe shadow-lg">
+        <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/chat')} className="p-1">
+            <button onClick={() => navigate('/chat')} className="p-1 hover:bg-white/10 rounded-full transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl">
-                👤
+              <div className="relative">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={otherUser?.avatar_url} />
+                  <AvatarFallback className="bg-white/20 text-primary-foreground">
+                    {(otherUser?.username || chatName)?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {otherUser?.is_online && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-primary" />
+                )}
               </div>
               <div>
-                <h2 className="font-semibold">{chatName}</h2>
-                <p className="text-xs opacity-90">Online</p>
+                <h2 className="font-semibold">{otherUser?.username || chatName}</h2>
+                <p className="text-xs opacity-90">
+                  {otherUser?.is_online ? 'Online' : otherUser?.last_seen 
+                    ? `Last seen ${formatDistanceToNow(new Date(otherUser.last_seen), { addSuffix: true })}`
+                    : 'Offline'}
+                </p>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="p-2 rounded-full hover:bg-white/10">
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => navigate(`/call/video/${chatId}`)}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            >
               <Video className="w-5 h-5" />
             </button>
-            <button className="p-2 rounded-full hover:bg-white/10">
+            <button 
+              onClick={() => navigate(`/call/audio/${chatId}`)}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            >
               <Phone className="w-5 h-5" />
             </button>
-            <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 rounded-full hover:bg-white/10">
+            <button 
+              onClick={() => setSearchOpen(!searchOpen)} 
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            >
               <Search className="w-5 h-5" />
             </button>
           </div>
@@ -137,12 +164,13 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
 
         {/* Search Bar */}
         {searchOpen && (
-          <div className="mt-3">
+          <div className="px-4 pb-3">
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search in conversation..."
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
+              className="bg-white/10 border-white/20 text-primary-foreground placeholder:text-white/60"
+              autoFocus
             />
           </div>
         )}
@@ -159,84 +187,131 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {filteredMessages.map((message) => (
-          <div key={message.id} className={`flex ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[75%] ${message.sender_id === userId ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'} rounded-2xl px-4 py-2 shadow-sm`}>
-              {message.reply_to && (
-                <div className="text-xs opacity-70 mb-1 pb-1 border-b border-current/20">
-                  Replying to message
-                </div>
-              )}
-              <p className="text-sm">{message.content}</p>
-              <div className="flex items-center justify-between mt-1 gap-2">
-                <span className="text-xs opacity-70">
-                  {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                </span>
-                <div className="flex items-center gap-1">
-                  {message.is_pinned && <Pin className="w-3 h-3" />}
-                  <MessageReactionPicker 
-                    onReact={(emoji) => handleReaction(message.id, emoji)}
-                    existingReactions={message.reactions}
-                    userId={userId}
-                  />
-                </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-background to-muted/20">
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                <Skeleton className="h-16 w-48 rounded-2xl" />
               </div>
-              {Object.keys(message.reactions).length > 0 && (
-                <div className="mt-2">
-                  <MessageReactions
-                    reactions={Object.entries(message.reactions).map(([emoji, users]: [string, any]) => ({
-                      emoji,
-                      count: users.length,
-                      userReacted: users.includes(userId),
-                    }))}
-                    onReact={(emoji) => handleReaction(message.id, emoji)}
-                  />
-                </div>
-              )}
-              <div className="flex gap-2 mt-2 text-xs">
-                <button onClick={() => setReplyingTo(message)} className="opacity-70 hover:opacity-100">Reply</button>
-                <button onClick={() => setForwardMessage(message)} className="opacity-70 hover:opacity-100">Forward</button>
-                <button onClick={() => handlePin(message.id)} className="opacity-70 hover:opacity-100">
-                  {message.is_pinned ? 'Unpin' : 'Pin'}
-                </button>
+            ))}
+          </div>
+        ) : filteredMessages.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center h-full">
+            <div className="text-center text-muted-foreground">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                <Smile className="w-8 h-8 text-primary" />
               </div>
+              <p className="font-medium">No messages yet</p>
+              <p className="text-sm">Say hello to start the conversation!</p>
             </div>
           </div>
-        ))}
+        ) : (
+          filteredMessages.map((message) => {
+            const isOwn = message.sender_id === userId;
+            const reactions = getReactionsArray(message.reactions);
+            
+            return (
+              <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[75%] ${isOwn 
+                  ? 'bg-primary text-primary-foreground rounded-t-2xl rounded-bl-2xl rounded-br-sm' 
+                  : 'bg-card text-card-foreground rounded-t-2xl rounded-br-2xl rounded-bl-sm shadow-sm'
+                } px-4 py-2`}>
+                  
+                  <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                  
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <span className={`text-xs ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
+                      {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                    </span>
+                    <MessageReactionPicker 
+                      onReact={(emoji) => handleReaction(message.id, emoji)}
+                      existingReactions={message.reactions || {}}
+                      userId={userId}
+                    />
+                  </div>
+                  
+                  {reactions.length > 0 && (
+                    <div className="mt-2">
+                      <MessageReactions
+                        reactions={reactions}
+                        onReact={(emoji) => handleReaction(message.id, emoji)}
+                      />
+                    </div>
+                  )}
+                  
+                  <div className={`flex gap-3 mt-2 text-xs ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
+                    <button 
+                      onClick={() => setReplyingTo(message)} 
+                      className="hover:opacity-100 transition-opacity"
+                    >
+                      Reply
+                    </button>
+                    <button 
+                      onClick={() => setForwardMessage(message)} 
+                      className="hover:opacity-100 transition-opacity"
+                    >
+                      Forward
+                    </button>
+                    {isOwn && (
+                      <button 
+                        onClick={() => deleteMessage(message.id)} 
+                        className="hover:opacity-100 transition-opacity text-destructive"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Reply Preview */}
       {replyingTo && (
         <div className="bg-secondary/50 px-4 py-2 border-t border-border flex items-center justify-between">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground">Replying to</p>
             <p className="text-sm truncate">{replyingTo.content}</p>
           </div>
-          <button onClick={() => setReplyingTo(null)} className="text-muted-foreground">×</button>
+          <button 
+            onClick={() => setReplyingTo(null)} 
+            className="text-muted-foreground hover:text-foreground p-1"
+          >
+            ×
+          </button>
         </div>
       )}
 
       {/* Input */}
-      <div className="border-t border-border p-4 bg-white">
+      <div className="border-t border-border p-4 pb-safe bg-card">
         <div className="flex items-center gap-2">
-          <button className="p-2 text-primary">
+          <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
             <Paperclip className="w-5 h-5" />
+          </button>
+          <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
+            <Image className="w-5 h-5" />
           </button>
           <Input
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
             placeholder="Type a message..."
-            className="flex-1"
+            className="flex-1 bg-muted/50 border-0 focus-visible:ring-1"
           />
           {inputText.trim() ? (
-            <button onClick={handleSend} className="p-2 bg-primary text-primary-foreground rounded-full">
+            <button 
+              onClick={handleSend} 
+              disabled={sending}
+              className="p-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
               <Send className="w-5 h-5" />
             </button>
           ) : (
-            <button className="p-2 text-primary">
+            <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
               <Mic className="w-5 h-5" />
             </button>
           )}
