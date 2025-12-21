@@ -524,8 +524,9 @@ export class SimpleWebRTCCall {
   }
 
   private setConnectionTimeout() {
-    // Optimized timeout: 15s for mobile, 10s for desktop (FaceTime-grade speed)
-    const timeout = this.isMobileDevice() ? 15000 : 10000;
+    // OPTIMIZED: Faster timeouts - 20s for mobile, 12s for desktop
+    // This allows more time for TURN negotiation while still being responsive
+    const timeout = this.isMobileDevice() ? 20000 : 12000;
     this.iceConnectionTimeout = setTimeout(() => {
       if (this.callState === 'connecting') {
         console.error('⏰ [SimpleWebRTC] Connection timeout after', timeout/1000, 'seconds');

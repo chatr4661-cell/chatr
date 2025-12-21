@@ -13,10 +13,16 @@ export function GlobalCallListener() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get current user
-    supabase.auth.getUser().then(({ data }) => {
+    // Get current user and keep session active
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getUser();
       setCurrentUserId(data.user?.id || null);
-    });
+      
+      // Refresh session to prevent logout during call waiting
+      await supabase.auth.refreshSession();
+    };
+    
+    initAuth();
 
     // Subscribe to incoming calls
     const channel = supabase
