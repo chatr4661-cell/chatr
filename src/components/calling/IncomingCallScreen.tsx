@@ -135,8 +135,9 @@ export function IncomingCallScreen({
         </h1>
         <p className="text-white/80 text-xl mt-2 flex items-center justify-center gap-2">
           <Phone className="w-5 h-5" />
-          <span>{callType === 'video' ? 'FaceTime Video' : 'mobile'}</span>
+          <span>{callType === 'video' ? 'Chatr Plus Video' : 'Chatr Plus Voice'}</span>
         </p>
+        <p className="text-white/60 text-sm mt-1">HD 1080p • Noise Cancellation</p>
         
         {/* Location Display */}
         {(callerCity || callerCountry) && (
