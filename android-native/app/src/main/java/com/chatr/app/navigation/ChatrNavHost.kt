@@ -110,11 +110,41 @@ fun ChatrNavHost() {
             startDestination = BottomNavItem.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(BottomNavItem.Home.route) { HomeScreen() }
-            composable(BottomNavItem.Chat.route) { ChatScreen() }
-            composable(BottomNavItem.Contacts.route) { ContactsScreen() }
-            composable(BottomNavItem.Calls.route) { CallsScreen() }
-            composable(BottomNavItem.Settings.route) { SettingsScreen() }
+            composable(BottomNavItem.Home.route) {
+                HomeScreen(onNavigate = { route -> navController.navigate(route) })
+            }
+
+            // Native chat list (RPC-backed)
+            composable(BottomNavItem.Chat.route) {
+                ChatsScreen(
+                    onNavigateToChat = { conversationId ->
+                        navController.navigate("chat/$conversationId")
+                    },
+                    onNavigateToContacts = {
+                        navController.navigate(BottomNavItem.Contacts.route)
+                    }
+                )
+            }
+
+            // Native chat detail (RPC-backed)
+            composable("chat/{conversationId}") { backStackEntry ->
+                val conversationId = backStackEntry.arguments?.getString("conversationId")
+                    ?: return@composable
+                ChatDetailScreen(
+                    conversationId = conversationId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(BottomNavItem.Contacts.route) {
+                ContactsScreen(onNavigate = { route -> navController.navigate(route) })
+            }
+            composable(BottomNavItem.Calls.route) {
+                CallsScreen(onNavigate = { route -> navController.navigate(route) })
+            }
+            composable(BottomNavItem.Settings.route) {
+                SettingsScreen(onNavigate = { route -> navController.navigate(route) })
+            }
         }
     }
 }
