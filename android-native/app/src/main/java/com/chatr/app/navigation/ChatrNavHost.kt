@@ -26,8 +26,8 @@ sealed class BottomNavItem(
         unselectedIcon = Icons.Outlined.Home
     )
     object Chat : BottomNavItem(
-        route = "chat",
-        title = "Chat",
+        route = "chats",
+        title = "Chats",
         selectedIcon = Icons.Filled.Chat,
         unselectedIcon = Icons.Outlined.Chat
     )
