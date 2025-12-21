@@ -285,4 +285,14 @@ object NetworkModule {
     fun provideAIBrowserRepository(api: AIBrowserApi): AIBrowserRepository {
         return AIBrowserRepository(api)
     }
+    
+    /**
+     * SupabaseRpcRepository - Uses RPC functions for chat data
+     * This is what syncs data between Web and Native
+     */
+    @Provides
+    @Singleton
+    fun provideSupabaseRpcRepository(okHttpClient: OkHttpClient): SupabaseRpcRepository {
+        return SupabaseRpcRepository(okHttpClient)
+    }
 }
