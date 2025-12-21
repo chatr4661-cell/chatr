@@ -672,11 +672,156 @@ export class SimpleWebRTCCall {
     return this.callState;
   }
 
+  // Zoom state for cropping video
+  private zoomLevel: number = 1;
+  private zoomCanvas: HTMLCanvasElement | null = null;
+  private zoomCtx: CanvasRenderingContext2D | null = null;
+  private zoomVideoElement: HTMLVideoElement | null = null;
+  private zoomAnimationId: number | null = null;
+  private zoomedStream: MediaStream | null = null;
+
+  /**
+   * Apply zoom to local video and send zoomed/cropped video to remote user
+   * @param level Zoom level (1.0 = no zoom, 2.0 = 2x zoom, etc.)
+   */
+  async applyZoom(level: number) {
+    if (!this.localStream || !this.pc) {
+      console.error('❌ [SimpleWebRTC] No local stream or peer connection');
+      return;
+    }
+
+    const videoTrack = this.localStream.getVideoTracks()[0];
+    if (!videoTrack) {
+      console.error('❌ [SimpleWebRTC] No video track found');
+      return;
+    }
+
+    this.zoomLevel = Math.max(1, Math.min(4, level)); // Clamp between 1x and 4x
+
+    // If zoom is 1x, restore original track
+    if (this.zoomLevel === 1) {
+      await this.restoreOriginalTrack();
+      return;
+    }
+
+    console.log(`🔍 [SimpleWebRTC] Applying ${this.zoomLevel}x zoom`);
+
+    // Create canvas-based zoom if not already set up
+    if (!this.zoomCanvas) {
+      await this.setupZoomCanvas(videoTrack);
+    }
+
+    // The zoom rendering loop will handle the cropping
+    console.log(`✅ [SimpleWebRTC] Zoom set to ${this.zoomLevel}x`);
+  }
+
+  private async setupZoomCanvas(originalTrack: MediaStreamTrack) {
+    const settings = originalTrack.getSettings();
+    const width = settings.width || 1280;
+    const height = settings.height || 720;
+
+    // Create canvas for zoom processing
+    this.zoomCanvas = document.createElement('canvas');
+    this.zoomCanvas.width = width;
+    this.zoomCanvas.height = height;
+    this.zoomCtx = this.zoomCanvas.getContext('2d');
+
+    // Create video element to render source
+    this.zoomVideoElement = document.createElement('video');
+    this.zoomVideoElement.srcObject = new MediaStream([originalTrack.clone()]);
+    this.zoomVideoElement.muted = true;
+    this.zoomVideoElement.playsInline = true;
+    await this.zoomVideoElement.play();
+
+    // Create stream from canvas
+    this.zoomedStream = this.zoomCanvas.captureStream(30);
+    const zoomedTrack = this.zoomedStream.getVideoTracks()[0];
+
+    // Replace the sender's track with zoomed track
+    const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
+    if (sender) {
+      await sender.replaceTrack(zoomedTrack);
+      console.log('✅ [SimpleWebRTC] Replaced sender track with zoomed track');
+    }
+
+    // Start the zoom render loop
+    this.startZoomRenderLoop();
+  }
+
+  private startZoomRenderLoop() {
+    const render = () => {
+      if (!this.zoomCanvas || !this.zoomCtx || !this.zoomVideoElement) {
+        return;
+      }
+
+      const w = this.zoomCanvas.width;
+      const h = this.zoomCanvas.height;
+
+      // Calculate crop region based on zoom level (center crop)
+      const cropW = w / this.zoomLevel;
+      const cropH = h / this.zoomLevel;
+      const cropX = (w - cropW) / 2;
+      const cropY = (h - cropH) / 2;
+
+      // Clear and draw zoomed/cropped video
+      this.zoomCtx.clearRect(0, 0, w, h);
+      this.zoomCtx.drawImage(
+        this.zoomVideoElement,
+        cropX, cropY, cropW, cropH, // Source crop region
+        0, 0, w, h // Destination (full canvas)
+      );
+
+      this.zoomAnimationId = requestAnimationFrame(render);
+    };
+
+    render();
+  }
+
+  private async restoreOriginalTrack() {
+    // Stop zoom processing
+    if (this.zoomAnimationId) {
+      cancelAnimationFrame(this.zoomAnimationId);
+      this.zoomAnimationId = null;
+    }
+
+    if (this.zoomVideoElement) {
+      this.zoomVideoElement.pause();
+      this.zoomVideoElement.srcObject = null;
+      this.zoomVideoElement = null;
+    }
+
+    if (this.zoomedStream) {
+      this.zoomedStream.getTracks().forEach(t => t.stop());
+      this.zoomedStream = null;
+    }
+
+    this.zoomCanvas = null;
+    this.zoomCtx = null;
+
+    // Restore original video track
+    const originalTrack = this.localStream?.getVideoTracks()[0];
+    if (originalTrack && this.pc) {
+      const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) {
+        await sender.replaceTrack(originalTrack);
+        console.log('✅ [SimpleWebRTC] Restored original video track');
+      }
+    }
+  }
+
+  getZoomLevel(): number {
+    return this.zoomLevel;
+  }
+
   async switchCamera() {
     if (!this.localStream) {
       console.error('❌ [SimpleWebRTC] No local stream available');
       return null;
     }
+    
+    // Reset zoom when switching camera
+    await this.restoreOriginalTrack();
+    this.zoomLevel = 1;
     
     const videoTrack = this.localStream.getVideoTracks()[0];
     if (!videoTrack) {
@@ -695,8 +840,9 @@ export class SimpleWebRTCCall {
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: newFacingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 }
         },
         audio: false
       });

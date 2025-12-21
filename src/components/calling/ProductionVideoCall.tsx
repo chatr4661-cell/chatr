@@ -427,18 +427,28 @@ export default function ProductionVideoCall({
         />
       </div>
 
-      {/* Zoom indicator */}
+      {/* Zoom indicator with HD badge */}
       {isZoomed && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute top-24 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full"
+          className="absolute top-24 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full flex items-center gap-2"
         >
           <span className="text-white text-sm font-medium">{zoomScale.toFixed(1)}x</span>
+          <span className="text-xs text-green-400">Sending to partner</span>
         </motion.div>
       )}
 
-      {/* FaceTime-style Picture-in-picture video */}
+      {/* HD Quality Badge */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="absolute top-24 right-4 bg-black/60 backdrop-blur-xl px-3 py-1.5 rounded-full"
+      >
+        <span className="text-green-400 text-xs font-semibold">HD 1080p • NC</span>
+      </motion.div>
+
+      {/* Chatr Plus Picture-in-picture video */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -451,7 +461,7 @@ export default function ProductionVideoCall({
             pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
           }
         }}
-        className="absolute top-20 right-4 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm"
+        className="absolute top-20 right-4 mt-12 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm"
       >
         <video
           ref={pipVideoRef}
@@ -511,12 +521,20 @@ export default function ProductionVideoCall({
             exit={{ opacity: 0, scale: 0.8 }}
             className="absolute bottom-8 right-8 flex flex-col gap-3"
           >
-            {/* Zoom controls */}
+            {/* Zoom controls - applies zoom to outgoing video */}
             <Button
               size="lg"
               variant="secondary"
               className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
-              onClick={zoomIn}
+              onClick={() => {
+                zoomIn();
+                // Apply zoom to outgoing video stream
+                const newZoom = Math.min(4, zoomScale + 0.5);
+                webrtcRef.current?.applyZoom(newZoom);
+                if (newZoom > 1) {
+                  toast.info(`Sending ${newZoom.toFixed(1)}x zoomed video`, { duration: 2000 });
+                }
+              }}
             >
               <ZoomIn className="h-5 w-5 text-white" />
             </Button>
@@ -526,7 +544,11 @@ export default function ProductionVideoCall({
                 size="lg"
                 variant="secondary"
                 className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
-                onClick={resetZoom}
+                onClick={() => {
+                  resetZoom();
+                  webrtcRef.current?.applyZoom(1);
+                  toast.info('Zoom reset', { duration: 2000 });
+                }}
               >
                 <ZoomOut className="h-5 w-5 text-white" />
               </Button>
