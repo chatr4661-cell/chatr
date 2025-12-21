@@ -1,19 +1,138 @@
 # CHATR Complete API & Route Documentation
 
 > Auto-generated comprehensive documentation for chatr.chat domain
-> Last Updated: 2025-12-20
-> Version: 2.0.0
+> Last Updated: 2025-12-21
+> Version: 2.1.0
 
 ---
 
 ## Table of Contents
-1. [REST API Routes](#1-rest-api-routes)
-2. [WebSocket Routes](#2-websocket-routes)
-3. [Search Engine Routes](#3-search-engine-routes)
-4. [Frontend Pages](#4-frontend-pages)
-5. [Android Retrofit Interfaces](#5-android-retrofit-interfaces)
-6. [Deep Link Map](#6-deep-link-map)
-7. [Integration Checklist](#7-integration-checklist)
+1. [Native App RPC Functions](#0-native-app-rpc-functions-new)
+2. [REST API Routes](#1-rest-api-routes)
+3. [WebSocket Routes](#2-websocket-routes)
+4. [Search Engine Routes](#3-search-engine-routes)
+5. [Frontend Pages](#4-frontend-pages)
+6. [Android Retrofit Interfaces](#5-android-retrofit-interfaces)
+7. [Deep Link Map](#6-deep-link-map)
+8. [Integration Checklist](#7-integration-checklist)
+
+---
+
+## 0. Native App RPC Functions (NEW)
+
+> **Purpose**: JWT-aware functions that infer user from token - no userId params needed.
+> **Fixes**: "Unknown" user issue, "participant_user_id" column error
+
+### 0.1 Get User Conversations
+
+```
+POST /rest/v1/rpc/get_user_conversations
+
+Headers:
+  Authorization: Bearer <access_token>
+  apikey: <supabase_anon_key>
+  Content-Type: application/json
+
+Body: {}
+
+Response:
+[
+  {
+    "conversation_id": "uuid",
+    "is_group": false,
+    "group_name": null,
+    "group_icon_url": null,
+    "other_user_id": "uuid",
+    "other_user_name": "John Doe",      // ✅ No more "Unknown"
+    "other_user_avatar": "https://...",  // ✅ Pre-joined
+    "other_user_online": true,
+    "last_message": "Hey!",
+    "last_message_type": "text",
+    "last_message_at": "2025-12-21T04:30:00Z",
+    "last_message_sender_id": "uuid",
+    "unread_count": 3,
+    "is_muted": false,
+    "is_archived": false
+  }
+]
+```
+
+### 0.2 Get Conversation Messages
+
+```
+POST /rest/v1/rpc/get_conversation_messages
+
+Headers:
+  Authorization: Bearer <access_token>
+  apikey: <supabase_anon_key>
+  Content-Type: application/json
+
+Body:
+{
+  "p_conversation_id": "uuid",
+  "p_limit": 50,
+  "p_before": "2025-12-21T04:30:00Z"  // Optional pagination
+}
+
+Response:
+[
+  {
+    "message_id": "uuid",
+    "sender_id": "uuid",
+    "sender_name": "John Doe",        // ✅ Pre-joined
+    "sender_avatar": "https://...",   // ✅ Pre-joined
+    "content": "Hello!",
+    "message_type": "text",
+    "created_at": "2025-12-21T04:30:00Z",
+    "is_edited": false,
+    "is_deleted": false,
+    "is_starred": false,
+    "reply_to_id": null,
+    "media_url": null,
+    "media_attachments": [],
+    "reactions": [],
+    "status": "delivered"
+  }
+]
+```
+
+### 0.3 Database Schema Reference
+
+```
+conversations
+├── id (UUID, PK)
+├── is_group (BOOLEAN)
+├── group_name (TEXT)
+├── group_icon_url (TEXT)
+├── created_by (UUID)
+└── created_at (TIMESTAMPTZ)
+
+conversation_participants (Join Table)
+├── id (UUID, PK)
+├── conversation_id (UUID, FK)
+├── user_id (UUID, FK → profiles)
+├── role (TEXT: 'member'|'admin'|'owner')
+├── is_muted (BOOLEAN)
+├── is_archived (BOOLEAN)
+└── last_read_at (TIMESTAMPTZ)
+
+messages
+├── id (UUID, PK)
+├── conversation_id (UUID, FK)
+├── sender_id (UUID, FK → profiles)
+├── content (TEXT)
+├── message_type (TEXT)
+├── status (TEXT: 'sent'|'delivered'|'read')
+├── reactions (JSONB)
+└── created_at (TIMESTAMPTZ)
+
+profiles
+├── id (UUID, PK = auth.users.id)
+├── username (TEXT)
+├── avatar_url (TEXT)
+├── is_online (BOOLEAN)
+└── email (TEXT)
+```
 
 ---
 
