@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX, ZoomIn, ZoomOut } from 'lucide-react';
 import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { useCallUI } from '@/hooks/useCallUI';
 import { NetworkQualityIndicator } from './NetworkQualityIndicator';
 import { Capacitor } from '@capacitor/core';
 import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
+import { useVideoZoom } from '@/hooks/useVideoZoom';
 
 // Browser detection utilities
 const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -362,45 +363,80 @@ export default function ProductionVideoCall({
   const mainVideoRef = videoLayout === 'remote-main' ? remoteVideoRef : localVideoRef;
   const pipVideoRef = videoLayout === 'remote-main' ? localVideoRef : remoteVideoRef;
 
+  // Video zoom hook for pinch-to-zoom functionality
+  const { containerRef: zoomContainerRef, style: zoomStyle, scale: zoomScale, isZoomed, resetZoom, zoomIn, zoomOut } = useVideoZoom({
+    minScale: 1,
+    maxScale: 4,
+    enabled: callState === 'connected'
+  });
+
   return (
     <div 
       className="fixed inset-0 z-50 bg-black"
+      style={{ 
+        width: '100vw', 
+        height: '100dvh',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0
+      }}
       onClick={showControls}
     >
-      {/* Main video */}
-      <video
-        ref={mainVideoRef}
-        autoPlay
-        playsInline
-        muted={videoLayout === 'local-main'}
-        className="w-full h-full object-cover"
-        style={{ WebkitPlaysinline: 'true' } as any}
-        onDoubleClick={handleToggleFullScreen}
-        onLoadedMetadata={(e) => {
-          const video = e.currentTarget;
-          if (videoLayout === 'remote-main') {
-            // Start muted for autoplay compatibility
-            video.muted = true;
-            video.play().then(() => {
-              // Unmute after successful play
-              setTimeout(() => {
-                video.muted = false;
-                video.volume = 1.0;
-                console.log('🔊 Remote video metadata loaded, played and unmuted');
-              }, 100);
-            }).catch(err => console.log('Auto-play on metadata:', err));
-          }
-        }}
-        onClick={() => {
-          // Ensure audio plays and unmutes on any click
-          if (mainVideoRef.current && videoLayout === 'remote-main') {
-            mainVideoRef.current.muted = false;
-            mainVideoRef.current.volume = 1.0;
-            mainVideoRef.current.play().catch(err => console.log('Play on click:', err));
-            setUserInteracted(true);
-          }
-        }}
-      />
+      {/* Main video with zoom support */}
+      <div 
+        ref={zoomContainerRef}
+        className="w-full h-full overflow-hidden"
+        style={zoomStyle}
+      >
+        <video
+          ref={mainVideoRef}
+          autoPlay
+          playsInline
+          muted={videoLayout === 'local-main'}
+          className="w-full h-full object-cover"
+          style={{ WebkitPlaysinline: 'true' } as any}
+          onDoubleClick={() => {
+            if (isZoomed) {
+              resetZoom();
+            } else {
+              handleToggleFullScreen();
+            }
+          }}
+          onLoadedMetadata={(e) => {
+            const video = e.currentTarget;
+            if (videoLayout === 'remote-main') {
+              video.muted = true;
+              video.play().then(() => {
+                setTimeout(() => {
+                  video.muted = false;
+                  video.volume = 1.0;
+                  console.log('🔊 Remote video metadata loaded, played and unmuted');
+                }, 100);
+              }).catch(err => console.log('Auto-play on metadata:', err));
+            }
+          }}
+          onClick={() => {
+            if (mainVideoRef.current && videoLayout === 'remote-main') {
+              mainVideoRef.current.muted = false;
+              mainVideoRef.current.volume = 1.0;
+              mainVideoRef.current.play().catch(err => console.log('Play on click:', err));
+              setUserInteracted(true);
+            }
+          }}
+        />
+      </div>
+
+      {/* Zoom indicator */}
+      {isZoomed && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute top-24 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full"
+        >
+          <span className="text-white text-sm font-medium">{zoomScale.toFixed(1)}x</span>
+        </motion.div>
+      )}
 
       {/* FaceTime-style Picture-in-picture video */}
       <motion.div
@@ -475,6 +511,27 @@ export default function ProductionVideoCall({
             exit={{ opacity: 0, scale: 0.8 }}
             className="absolute bottom-8 right-8 flex flex-col gap-3"
           >
+            {/* Zoom controls */}
+            <Button
+              size="lg"
+              variant="secondary"
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              onClick={zoomIn}
+            >
+              <ZoomIn className="h-5 w-5 text-white" />
+            </Button>
+
+            {isZoomed && (
+              <Button
+                size="lg"
+                variant="secondary"
+                className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+                onClick={resetZoom}
+              >
+                <ZoomOut className="h-5 w-5 text-white" />
+              </Button>
+            )}
+
             <Button
               size="lg"
               variant="secondary"

@@ -28,8 +28,8 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'light',
-      backgroundColor: '#6200ee',
-      overlaysWebView: false
+      backgroundColor: '#00000000',
+      overlaysWebView: true
     },
     Keyboard: {
       resize: 'native',
@@ -67,9 +67,16 @@ const config: CapacitorConfig = {
       enableLogs: true
     }
   },
-  // iOS specific configuration
+  // iOS specific configuration for edge-to-edge
   ios: {
-    contentInset: 'automatic'
+    contentInset: 'always',
+    backgroundColor: '#000000',
+    preferredContentMode: 'mobile'
+  },
+  // Android specific configuration for edge-to-edge
+  android: {
+    backgroundColor: '#00000000',
+    allowMixedContent: true
   }
 };
 
