@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight, Plus, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { formatDistanceToNow } from 'date-fns';
 import { StoryViewer } from './StoryViewer';
 import { AddStoryDialog } from './AddStoryDialog';
 import { NewChatSheet } from './NewChatSheet';
+import { useChatConversations } from '@/hooks/useChatConversations';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ChatsListProps {
   userId: string;
@@ -19,20 +20,10 @@ interface Story {
   avatar_url: string | null;
 }
 
-interface Conversation {
-  id: string;
-  name: string;
-  avatar_url: string | null;
-  lastMessage: string;
-  lastMessageTime: string;
-  is_online: boolean;
-  unread_count: number;
-}
-
 export function ChatsList({ userId }: ChatsListProps) {
   const navigate = useNavigate();
+  const { conversations, isLoading, refresh } = useChatConversations(userId);
   const [stories, setStories] = useState<Story[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
@@ -41,12 +32,10 @@ export function ChatsList({ userId }: ChatsListProps) {
 
   useEffect(() => {
     loadStories();
-    loadConversations();
     loadCurrentUser();
   }, [userId]);
 
   const handleStartNewChat = async (contactUserId: string) => {
-    // Find or create conversation
     const { data: existingConv } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
@@ -68,7 +57,6 @@ export function ChatsList({ userId }: ChatsListProps) {
       }
     }
 
-    // Create new conversation
     const { data: newConv } = await supabase
       .from('conversations')
       .insert({ created_by: userId })
@@ -115,89 +103,35 @@ export function ChatsList({ userId }: ChatsListProps) {
     }
   };
 
-  const loadConversations = async () => {
-    const { data } = await supabase
-      .from('conversation_participants')
-      .select(`
-        conversation_id,
-        conversations!inner(
-          id,
-          is_group,
-          group_name,
-          group_icon_url,
-          updated_at
-        )
-      `)
-      .eq('user_id', userId)
-      .order('conversations(updated_at)', { ascending: false });
-
-    if (data) {
-      const conversationsData = await Promise.all(
-        data.map(async (cp: any) => {
-          const conv = cp.conversations;
-          
-          // Get other participant
-          const { data: participants } = await supabase
-            .from('conversation_participants')
-            .select('user_id, profiles!inner(username, avatar_url, is_online, last_seen)')
-            .eq('conversation_id', conv.id)
-            .neq('user_id', userId)
-            .limit(1);
-
-          // Get last message
-          const { data: lastMsg } = await supabase
-            .from('messages')
-            .select('content, created_at')
-            .eq('conversation_id', conv.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-          // Get unread count - simplified
-          const unreadCount = 0; // TODO: Implement unread count properly
-
-          const otherUser = participants?.[0]?.profiles;
-          
-          return {
-            id: conv.id,
-            name: conv.is_group ? conv.group_name : otherUser?.username || 'Unknown',
-            avatar_url: conv.is_group ? conv.group_icon_url : otherUser?.avatar_url,
-            lastMessage: lastMsg?.[0]?.content || 'No messages yet',
-            lastMessageTime: lastMsg?.[0]?.created_at ? formatDistanceToNow(new Date(lastMsg[0].created_at), { addSuffix: false }) : '',
-            is_online: otherUser?.is_online || false,
-            unread_count: unreadCount
-          };
-        })
-      );
-
-      setConversations(conversationsData.filter(c => c !== null));
-    }
-  };
-
   return (
-    <div className="h-full" style={{ background: 'linear-gradient(180deg, hsl(263, 70%, 50%) 0%, hsl(263, 70%, 55%) 30%, hsl(0, 0%, 98%) 30%)' }}>
-      {/* Header */}
-      <div className="px-4 pt-4 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-white">CHATR</h1>
-          <Avatar className="w-10 h-10">
-            <AvatarImage src={currentUser?.avatar_url} />
-            <AvatarFallback className="bg-white/20 text-white">
-              {currentUser?.username?.[0]?.toUpperCase() || '?'}
-            </AvatarFallback>
-          </Avatar>
+    <div className="h-full safe-area-inset" style={{ background: 'linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 30%, hsl(var(--background)) 30%)' }}>
+      {/* Header with safe area */}
+      <div className="px-4 pt-safe pb-6">
+        <div className="flex items-center justify-between mb-6 pt-4">
+          <h1 className="text-3xl font-bold text-primary-foreground">CHATR</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={refresh} className="p-2 rounded-full hover:bg-white/10">
+              <RefreshCw className="w-5 h-5 text-primary-foreground" />
+            </button>
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={currentUser?.avatar_url} />
+              <AvatarFallback className="bg-white/20 text-primary-foreground">
+                {currentUser?.username?.[0]?.toUpperCase() || '?'}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
 
         {/* Stories Bar */}
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {/* Add Story Button */}
           <button
             onClick={() => setShowAddStory(true)}
             className="flex flex-col items-center min-w-[60px]"
           >
             <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-1 ring-2 ring-white">
-              <Plus className="w-7 h-7 text-white" />
+              <Plus className="w-7 h-7 text-primary-foreground" />
             </div>
-            <span className="text-white text-xs font-medium">Add</span>
+            <span className="text-primary-foreground text-xs font-medium">Add</span>
           </button>
           
           {stories.map((story, idx) => (
@@ -211,17 +145,17 @@ export function ChatsList({ userId }: ChatsListProps) {
             >
               <Avatar className="w-14 h-14 ring-2 ring-white mb-1">
                 <AvatarImage src={story.avatar_url || undefined} />
-                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
                   {story.username[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-white text-xs font-medium truncate w-full text-center">{story.username}</span>
+              <span className="text-primary-foreground text-xs font-medium truncate w-full text-center">{story.username}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Story Viewer */}
+      {/* Story Dialogs */}
       <StoryViewer
         open={showStoryViewer}
         onOpenChange={setShowStoryViewer}
@@ -235,7 +169,6 @@ export function ChatsList({ userId }: ChatsListProps) {
         initialIndex={selectedStoryIndex}
       />
 
-      {/* Add Story Dialog */}
       <AddStoryDialog
         open={showAddStory}
         onOpenChange={setShowAddStory}
@@ -246,47 +179,62 @@ export function ChatsList({ userId }: ChatsListProps) {
       {/* Recent Conversations */}
       <div className="px-4 pb-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-white font-semibold text-lg">Recent Chats</h2>
-          <div className="w-2 h-2 rounded-full bg-gray-400" />
+          <h2 className="text-primary-foreground font-semibold text-lg">Recent Chats</h2>
+          <div className="w-2 h-2 rounded-full bg-muted-foreground" />
         </div>
         
-        <div className="bg-white/95 rounded-3xl shadow-lg">
-          {conversations.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No conversations yet
+        <div className="bg-card/95 backdrop-blur-sm rounded-3xl shadow-lg overflow-hidden">
+          {isLoading ? (
+            <div className="p-4 space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="w-12 h-12 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-40" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : conversations.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <p>No conversations yet</p>
+              <p className="text-sm mt-1">Tap + to start a new chat</p>
             </div>
           ) : (
             conversations.map((chat, idx) => (
               <div
                 key={chat.id}
                 onClick={() => navigate(`/chat/${chat.id}`)}
-                className={`flex items-center gap-3 p-3 ${idx !== conversations.length - 1 ? 'border-b border-gray-100' : ''} active:bg-gray-50 cursor-pointer`}
+                className={`flex items-center gap-3 p-3 ${idx !== conversations.length - 1 ? 'border-b border-border' : ''} active:bg-accent/50 cursor-pointer transition-colors`}
               >
                 <div className="relative">
                   <Avatar className="w-12 h-12">
                     <AvatarImage src={chat.avatar_url || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
                       {chat.name[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   {chat.is_online && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-white" />
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-card" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-gray-900">{chat.name}</span>
-                    {chat.lastMessageTime && <span className="text-xs text-gray-500">{chat.lastMessageTime}</span>}
+                    <span className="font-semibold text-foreground">{chat.name}</span>
+                    {chat.lastMessageTime && (
+                      <span className="text-xs text-muted-foreground">{chat.lastMessageTime}</span>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-600 truncate">{chat.lastMessage}</p>
+                  <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {chat.unread_count > 0 && (
-                    <div className="w-5 h-5 rounded-full bg-[hsl(263,70%,50%)] text-white text-xs flex items-center justify-center font-medium">
+                    <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
                       {chat.unread_count}
                     </div>
                   )}
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </div>
               </div>
             ))
@@ -295,18 +243,18 @@ export function ChatsList({ userId }: ChatsListProps) {
       </div>
 
       {/* CHATR Updates */}
-      <div className="px-4 pb-20">
-        <h2 className="font-semibold text-gray-700 mb-3">CHATR Updates</h2>
-        <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100">
+      <div className="px-4 pb-bottom-safe pb-20">
+        <h2 className="font-semibold text-foreground mb-3">CHATR Updates</h2>
+        <div className="bg-card rounded-2xl shadow-sm p-4 border border-border">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-xl">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-primary-foreground font-bold text-xl">
               C
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">CHATR Updates</h3>
-              <p className="text-sm text-gray-600">New features and announcements</p>
+              <h3 className="font-semibold text-foreground">CHATR Updates</h3>
+              <p className="text-sm text-muted-foreground">New features and announcements</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </div>
         </div>
       </div>
@@ -314,13 +262,12 @@ export function ChatsList({ userId }: ChatsListProps) {
       {/* Floating Action Button */}
       <button
         onClick={() => setShowNewChatSheet(true)}
-        className="fixed bottom-20 right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
-        style={{ zIndex: 40 }}
+        className="fixed bottom-24 right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 z-40"
+        style={{ marginBottom: 'env(safe-area-inset-bottom, 0)' }}
       >
         <Plus className="h-6 w-6" />
       </button>
 
-      {/* New Chat Sheet */}
       <NewChatSheet
         userId={userId}
         open={showNewChatSheet}
