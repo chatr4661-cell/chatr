@@ -41,6 +41,8 @@ export default function ProductionVideoCall({
   const [videoLayout, setVideoLayout] = useState<'remote-main' | 'local-main'>('remote-main');
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
+  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
+  const [currentCamera, setCurrentCamera] = useState<'user' | 'environment'>('user');
   const isMobileDevice = isMobile();
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
@@ -360,12 +362,34 @@ export default function ProductionVideoCall({
   };
 
   const handleSwitchCamera = async () => {
+    if (isSwitchingCamera) {
+      console.log('⏳ Camera switch already in progress');
+      return;
+    }
+    
+    if (!webrtcRef.current) {
+      console.error('❌ No WebRTC connection available');
+      toast.error('Camera not available during connection setup');
+      return;
+    }
+    
+    setIsSwitchingCamera(true);
+    
     try {
-      const newMode = await webrtcRef.current?.switchCamera();
-      toast.success(`Switched to ${newMode === 'user' ? 'front' : 'back'} camera`);
+      console.log('📷 Switching camera...');
+      const newMode = await webrtcRef.current.switchCamera();
+      
+      if (newMode) {
+        setCurrentCamera(newMode);
+        toast.success(`Switched to ${newMode === 'user' ? 'front' : 'back'} camera`);
+      } else {
+        toast.info('Camera switch not available');
+      }
     } catch (error) {
       console.error('Camera switch error:', error);
-      toast.error('Failed to switch camera');
+      toast.error('Failed to switch camera. Try again.');
+    } finally {
+      setIsSwitchingCamera(false);
     }
   };
 
@@ -566,11 +590,16 @@ export default function ProductionVideoCall({
             <Button
               size="lg"
               variant="secondary"
-              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              className={`rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl transition-all ${isSwitchingCamera ? 'opacity-50 animate-pulse' : ''}`}
               onClick={handleSwitchCamera}
+              disabled={isSwitchingCamera || callState !== 'connected'}
             >
-              <SwitchCamera className="h-5 w-5 text-white" />
+              <SwitchCamera className={`h-5 w-5 text-white ${isSwitchingCamera ? 'animate-spin' : ''}`} />
             </Button>
+            {/* Camera mode indicator */}
+            <div className="absolute -left-8 top-1/2 -translate-y-1/2 text-[10px] text-white/60 whitespace-nowrap">
+              {currentCamera === 'user' ? 'Front' : 'Back'}
+            </div>
 
             <Button
               size="lg"
