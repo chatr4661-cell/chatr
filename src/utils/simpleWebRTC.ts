@@ -96,48 +96,61 @@ export class SimpleWebRTCCall {
           this.localStream?.removeTrack(track);
         });
         this.localStream = null;
-        // Wait for devices to be fully released
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
       
       const isMobile = this.isMobileDevice();
       
-      // FaceTime-grade quality: 1080p @ 60fps (desktop) or 720p @ 30fps (mobile)
+      // ULTRA-LOW LATENCY: Optimized for real-time performance
+      // FaceTime-grade: 1080p @ 30fps with low-latency encoding
       const videoConstraints = this.isVideo ? (isMobile ? {
-        width: { ideal: 1280, max: 1280 },
-        height: { ideal: 720, max: 720 },
-        frameRate: { ideal: 30, max: 30 },
-        facingMode: 'user'
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 },
+        frameRate: { ideal: 30, min: 24, max: 30 },
+        facingMode: 'user',
+        // CRITICAL: Low-latency optimizations
+        // @ts-ignore - experimental constraints
+        latency: { ideal: 0, max: 0.1 }, // Target 0ms latency
+        resizeMode: 'none' // No software resize for speed
       } : {
         width: { ideal: 1920, max: 1920 },
         height: { ideal: 1080, max: 1080 },
-        frameRate: { ideal: 60, max: 60 },
-        facingMode: 'user'
+        frameRate: { ideal: 30, min: 24, max: 60 },
+        facingMode: 'user',
+        // @ts-ignore
+        latency: { ideal: 0, max: 0.05 }
       }) : false;
       
-      // HD Audio Quality - Studio-grade audio to match 1080p video
+      // STUDIO-GRADE HD AUDIO with Ultra-Low Latency
       const audioConstraints: MediaTrackConstraints = {
-        // Core audio processing
-        echoCancellation: { ideal: true },
-        noiseSuppression: { ideal: true },
-        autoGainControl: { ideal: true },
+        // Core processing - aggressive noise cancellation
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
         
-        // HD Audio settings - 48kHz stereo for crystal clear voice
+        // HD Audio: 48kHz stereo for crystal-clear voice
         sampleRate: { ideal: 48000, min: 44100 },
-        sampleSize: { ideal: 24, min: 16 }, // 24-bit audio depth
-        channelCount: { ideal: 2, min: 1 }, // Stereo for spatial audio
+        sampleSize: { ideal: 24, min: 16 },
+        channelCount: { ideal: 2, min: 1 },
         
-        // Advanced noise cancellation (Chrome/Edge specific)
-        // @ts-ignore - experimental constraints
+        // ULTRA-LOW LATENCY: Target 10ms audio buffer
+        // @ts-ignore - experimental
+        latency: { ideal: 0.01, max: 0.03 },
+        
+        // Chrome/Edge enhanced processing
+        // @ts-ignore
         googEchoCancellation: true,
         googAutoGainControl: true,
         googNoiseSuppression: true,
         googHighpassFilter: true,
         googTypingNoiseDetection: true,
         googNoiseReduction: true,
+        googAudioMirroring: false, // Prevent feedback
         
-        // Latency optimization for real-time calls
-        latency: { ideal: 0.01, max: 0.05 }, // 10-50ms latency
+        // Advanced voice clarity
+        // @ts-ignore
+        voiceIsolation: true, // AI voice isolation (Chrome 116+)
+        suppressLocalAudioPlayback: false
       };
 
       const constraints = {
@@ -145,9 +158,31 @@ export class SimpleWebRTCCall {
         video: videoConstraints
       };
 
-      console.log('🎤 [SimpleWebRTC] Requesting media access...');
+      console.log('🎤 [SimpleWebRTC] Requesting media with ultra-low latency config...');
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('✅ [SimpleWebRTC] Media stream obtained');
+      
+      // CRITICAL: Optimize tracks for real-time delivery
+      if (this.localStream) {
+        this.localStream.getTracks().forEach(track => {
+          // Enable low-latency mode where supported
+          if (track.kind === 'video') {
+            // @ts-ignore
+            if (track.contentHint !== undefined) {
+              // @ts-ignore
+              track.contentHint = 'motion'; // Optimize for motion (video call)
+            }
+          }
+          if (track.kind === 'audio') {
+            // @ts-ignore
+            if (track.contentHint !== undefined) {
+              // @ts-ignore
+              track.contentHint = 'speech'; // Optimize for speech
+            }
+          }
+        });
+      }
+      
+      console.log('✅ [SimpleWebRTC] Media stream obtained with optimized settings');
       this.emit('localStream', this.localStream);
     } catch (error: any) {
       console.error('❌ [SimpleWebRTC] Media access denied:', error);
@@ -155,11 +190,11 @@ export class SimpleWebRTCCall {
       // Handle "Device in use" error with retry
       if (error.name === 'NotReadableError') {
         console.log('⏳ [SimpleWebRTC] Device in use, waiting and retrying...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 800));
         try {
           const retryConstraints = {
-            audio: true,
-            video: this.isVideo ? { width: 640, height: 480 } : false
+            audio: { echoCancellation: true, noiseSuppression: true },
+            video: this.isVideo ? { width: 1280, height: 720, frameRate: 30 } : false
           };
           this.localStream = await navigator.mediaDevices.getUserMedia(retryConstraints);
           this.emit('localStream', this.localStream);
@@ -174,7 +209,7 @@ export class SimpleWebRTCCall {
         console.log('⚠️ Trying fallback constraints...');
         const fallbackConstraints = {
           audio: true,
-          video: { width: 320, height: 240 }
+          video: { width: 640, height: 480, frameRate: 24 }
         };
         this.localStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
         this.emit('localStream', this.localStream);
@@ -266,18 +301,52 @@ export class SimpleWebRTCCall {
       
       this.pc = new RTCPeerConnection(configuration);
 
-      // Add local stream tracks
+      // Add local stream tracks with ULTRA-LOW LATENCY RTP parameters
       if (this.localStream) {
         this.localStream.getTracks().forEach(track => {
           console.log('➕ [SimpleWebRTC] Adding track:', track.kind);
-          this.pc!.addTrack(track, this.localStream!);
+          const sender = this.pc!.addTrack(track, this.localStream!);
+          
+          // Configure RTP sender for minimum latency
+          if (sender && track.kind === 'video') {
+            const params = sender.getParameters();
+            if (params.encodings && params.encodings.length > 0) {
+              params.encodings.forEach(encoding => {
+                // ULTRA-LOW LATENCY: Maximum bitrate for quality, priority for speed
+                encoding.maxBitrate = 5000000; // 5 Mbps for HD
+                encoding.maxFramerate = 30;
+                // @ts-ignore - Priority for real-time (WebRTC priority)
+                encoding.priority = 'high';
+                encoding.networkPriority = 'high';
+              });
+              sender.setParameters(params).catch(e => console.log('RTP params:', e));
+            }
+          }
+          
+          // Audio: prioritize for voice clarity
+          if (sender && track.kind === 'audio') {
+            const params = sender.getParameters();
+            if (params.encodings && params.encodings.length > 0) {
+              params.encodings.forEach(encoding => {
+                encoding.maxBitrate = 128000; // 128 kbps for HD audio
+                // @ts-ignore
+                encoding.priority = 'high';
+                encoding.networkPriority = 'high';
+              });
+              sender.setParameters(params).catch(e => console.log('Audio RTP:', e));
+            }
+          }
         });
       }
 
-      // Handle incoming tracks
+      // Handle incoming tracks with low-latency playback hint
       this.pc.ontrack = (event) => {
         console.log('📺 [SimpleWebRTC] Remote track received:', event.track.kind);
         const [remoteStream] = event.streams;
+        
+        // Set content hint for decoder optimization
+        event.track.contentHint = event.track.kind === 'video' ? 'motion' : 'speech';
+        
         this.emit('remoteStream', remoteStream);
       };
 
@@ -616,6 +685,9 @@ export class SimpleWebRTCCall {
     
     this.clearConnectionTimeout();
 
+    // CRITICAL: Clean up cached cameras
+    this.cleanupCachedCameras();
+
     // CRITICAL: Stop and remove all tracks properly
     if (this.localStream) {
       console.log('🛑 [SimpleWebRTC] Stopping all local media tracks');
@@ -646,7 +718,7 @@ export class SimpleWebRTCCall {
     }
 
     // Wait for devices to be fully released
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     console.log('✅ [SimpleWebRTC] Cleanup complete');
   }
@@ -814,57 +886,178 @@ export class SimpleWebRTCCall {
     return this.zoomLevel;
   }
 
-  async switchCamera() {
-    if (!this.localStream) {
-      console.error('❌ [SimpleWebRTC] No local stream available');
-      return null;
-    }
-    
-    // Reset zoom when switching camera
-    await this.restoreOriginalTrack();
-    this.zoomLevel = 1;
-    
-    const videoTrack = this.localStream.getVideoTracks()[0];
-    if (!videoTrack) {
-      console.error('❌ [SimpleWebRTC] No video track found');
-      return null;
-    }
-    
-    const currentFacingMode = videoTrack.getSettings().facingMode;
-    const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-    
+  // Pre-cached camera streams for instant switching
+  private cachedBackCamera: MediaStream | null = null;
+  private cachedFrontCamera: MediaStream | null = null;
+  private currentFacingMode: 'user' | 'environment' = 'user';
+  private isSwitchingCamera: boolean = false;
+
+  /**
+   * Pre-cache alternate camera for instant switching
+   */
+  async preCacheAlternateCamera() {
     try {
-      console.log(`📷 [SimpleWebRTC] Switching camera from ${currentFacingMode} to ${newFacingMode}`);
+      const alternateFacing = this.currentFacingMode === 'user' ? 'environment' : 'user';
+      console.log(`📷 [SimpleWebRTC] Pre-caching ${alternateFacing} camera...`);
       
-      videoTrack.stop();
-      
-      const newStream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: newFacingMode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          facingMode: { exact: alternateFacing },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
           frameRate: { ideal: 30 }
         },
         audio: false
       });
       
-      const newVideoTrack = newStream.getVideoTracks()[0];
-      
-      const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
-      if (sender) {
-        await sender.replaceTrack(newVideoTrack);
+      if (alternateFacing === 'user') {
+        this.cachedFrontCamera = stream;
+      } else {
+        this.cachedBackCamera = stream;
       }
       
-      this.localStream.removeTrack(videoTrack);
+      console.log(`✅ [SimpleWebRTC] ${alternateFacing} camera pre-cached`);
+    } catch (error) {
+      console.warn('⚠️ [SimpleWebRTC] Could not pre-cache camera:', error);
+    }
+  }
+
+  async switchCamera() {
+    if (!this.localStream || !this.pc) {
+      console.error('❌ [SimpleWebRTC] No local stream available');
+      return null;
+    }
+    
+    // Prevent double-switching
+    if (this.isSwitchingCamera) {
+      console.log('⏳ [SimpleWebRTC] Camera switch already in progress');
+      return this.currentFacingMode;
+    }
+    
+    this.isSwitchingCamera = true;
+    
+    // Reset zoom when switching camera
+    await this.restoreOriginalTrack();
+    this.zoomLevel = 1;
+    
+    const oldVideoTrack = this.localStream.getVideoTracks()[0];
+    if (!oldVideoTrack) {
+      console.error('❌ [SimpleWebRTC] No video track found');
+      this.isSwitchingCamera = false;
+      return null;
+    }
+    
+    const newFacingMode = this.currentFacingMode === 'user' ? 'environment' : 'user';
+    
+    try {
+      console.log(`📷 [SimpleWebRTC] INSTANT switch from ${this.currentFacingMode} to ${newFacingMode}`);
+      
+      // Check if we have a pre-cached stream
+      let newVideoTrack: MediaStreamTrack | null = null;
+      const cachedStream = newFacingMode === 'user' ? this.cachedFrontCamera : this.cachedBackCamera;
+      
+      if (cachedStream && cachedStream.getVideoTracks()[0]?.readyState === 'live') {
+        // USE CACHED - instant switch!
+        console.log('⚡ [SimpleWebRTC] Using pre-cached camera - INSTANT switch');
+        newVideoTrack = cachedStream.getVideoTracks()[0];
+      } else {
+        // No cache, need to request new stream
+        console.log('📷 [SimpleWebRTC] Requesting new camera stream...');
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { exact: newFacingMode },
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            frameRate: { ideal: 30 }
+          },
+          audio: false
+        });
+        newVideoTrack = newStream.getVideoTracks()[0];
+      }
+      
+      if (!newVideoTrack) {
+        throw new Error('Failed to get new video track');
+      }
+      
+      // CRITICAL: Replace track in sender FIRST (seamless for remote user)
+      const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) {
+        await sender.replaceTrack(newVideoTrack);
+        console.log('✅ [SimpleWebRTC] Sender track replaced');
+      }
+      
+      // Update local stream
+      this.localStream.removeTrack(oldVideoTrack);
       this.localStream.addTrack(newVideoTrack);
       
+      // Stop old track AFTER replacing
+      oldVideoTrack.stop();
+      
+      // Update state
+      this.currentFacingMode = newFacingMode;
+      
+      // Clear used cache
+      if (newFacingMode === 'user') {
+        this.cachedFrontCamera = null;
+      } else {
+        this.cachedBackCamera = null;
+      }
+      
+      // Emit updated stream
       this.emit('localStream', this.localStream);
       
+      // Pre-cache the OTHER camera for next switch (async, non-blocking)
+      setTimeout(() => this.preCacheAlternateCamera(), 500);
+      
       console.log(`✅ [SimpleWebRTC] Camera switched to ${newFacingMode}`);
+      this.isSwitchingCamera = false;
       return newFacingMode;
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('❌ [SimpleWebRTC] Failed to switch camera:', error);
+      this.isSwitchingCamera = false;
+      
+      // Fallback: try without exact constraint
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: newFacingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+        
+        const fallbackTrack = fallbackStream.getVideoTracks()[0];
+        const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
+        
+        if (sender && fallbackTrack) {
+          await sender.replaceTrack(fallbackTrack);
+          this.localStream?.removeTrack(oldVideoTrack);
+          this.localStream?.addTrack(fallbackTrack);
+          oldVideoTrack.stop();
+          this.currentFacingMode = newFacingMode;
+          this.emit('localStream', this.localStream);
+          console.log('✅ [SimpleWebRTC] Camera switched with fallback');
+          return newFacingMode;
+        }
+      } catch (fallbackError) {
+        console.error('❌ [SimpleWebRTC] Fallback switch failed:', fallbackError);
+      }
+      
       throw error;
+    }
+  }
+
+  // Cleanup cached cameras on call end
+  private cleanupCachedCameras() {
+    if (this.cachedFrontCamera) {
+      this.cachedFrontCamera.getTracks().forEach(t => t.stop());
+      this.cachedFrontCamera = null;
+    }
+    if (this.cachedBackCamera) {
+      this.cachedBackCamera.getTracks().forEach(t => t.stop());
+      this.cachedBackCamera = null;
     }
   }
 }

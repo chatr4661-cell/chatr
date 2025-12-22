@@ -68,7 +68,7 @@ export default function ProductionVideoCall({
         }
         userIdRef.current = user.id;
 
-        console.log('🎬 [ProductionVideoCall] Initializing video call...');
+        console.log('🎬 [ProductionVideoCall] Initializing PREMIUM video call...');
         const call = new SimpleWebRTCCall(callId, partnerId, true, isInitiator, user.id);
         webrtcRef.current = call;
 
@@ -77,8 +77,17 @@ export default function ProductionVideoCall({
           if (localVideoRef.current) {
             localVideoRef.current.srcObject = stream;
             localVideoRef.current.muted = true;
+            // ULTRA-LOW LATENCY: Disable any buffering on local video
+            localVideoRef.current.preload = 'none';
             localVideoRef.current.play().catch(e => console.log('Local video play:', e));
           }
+          
+          // Pre-cache alternate camera for instant switching
+          setTimeout(() => {
+            if (webrtcRef.current) {
+              (webrtcRef.current as any).preCacheAlternateCamera?.();
+            }
+          }, 2000);
           
           // When local stream is ready, ensure any remote stream is unmuted
           setTimeout(() => {
@@ -87,7 +96,7 @@ export default function ProductionVideoCall({
               remoteVideoRef.current.volume = 1.0;
               console.log('🔊 Double-checking remote audio is unmuted');
             }
-          }, 500);
+          }, 300);
         });
 
         call.on('remoteStream', (stream: MediaStream) => {
