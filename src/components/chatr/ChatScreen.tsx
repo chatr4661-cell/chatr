@@ -28,6 +28,8 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
     editMessage, 
     deleteMessage,
     reactToMessage,
+    starMessage,
+    pinMessage,
     setTyping 
   } = useReliableMessages(chatId, userId);
   
