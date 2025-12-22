@@ -111,28 +111,31 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
 
   return (
     <div className="h-screen flex flex-col bg-background safe-area-inset">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary via-primary to-primary-glow text-primary-foreground pt-safe shadow-lg">
+      {/* Header - Premium glassmorphism */}
+      <div className="bg-gradient-to-r from-primary via-primary to-primary-glow text-primary-foreground pt-safe shadow-xl backdrop-blur-sm">
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/chat')} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+            <button 
+              onClick={() => navigate('/chat')} 
+              className="p-2 hover:bg-white/15 active:scale-95 rounded-full transition-all duration-200"
+            >
               <ArrowLeft className="w-6 h-6" />
             </button>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={otherUser?.avatar_url} />
-                  <AvatarFallback className="bg-white/20 text-primary-foreground">
+                <Avatar className="w-11 h-11 ring-2 ring-white/20 shadow-lg transition-transform hover:scale-105">
+                  <AvatarImage src={otherUser?.avatar_url} className="object-cover" />
+                  <AvatarFallback className="bg-white/20 text-primary-foreground font-semibold">
                     {(otherUser?.username || chatName)?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 {otherUser?.is_online && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-primary" />
+                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 rounded-full ring-2 ring-primary shadow-lg animate-pulse" />
                 )}
               </div>
               <div>
-                <h2 className="font-semibold">{otherUser?.username || chatName}</h2>
-                <p className="text-xs opacity-90">
+                <h2 className="font-semibold text-[15px] tracking-tight">{otherUser?.username || chatName}</h2>
+                <p className="text-xs opacity-80 font-medium">
                   {otherUser?.is_online ? 'Online' : otherUser?.last_seen 
                     ? `Last seen ${formatDistanceToNow(new Date(otherUser.last_seen), { addSuffix: true })}`
                     : 'Offline'}
@@ -140,58 +143,60 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button 
               onClick={() => navigate(`/call/video/${chatId}`)}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-full hover:bg-white/15 active:scale-95 transition-all duration-200"
             >
               <Video className="w-5 h-5" />
             </button>
             <button 
               onClick={() => navigate(`/call/audio/${chatId}`)}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-full hover:bg-white/15 active:scale-95 transition-all duration-200"
             >
               <Phone className="w-5 h-5" />
             </button>
             <button 
               onClick={() => setSearchOpen(!searchOpen)} 
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-full hover:bg-white/15 active:scale-95 transition-all duration-200"
             >
               <Search className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search Bar - Premium glass effect */}
         {searchOpen && (
-          <div className="px-4 pb-3">
+          <div className="px-4 pb-3 animate-fade-in">
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search in conversation..."
-              className="bg-white/10 border-white/20 text-primary-foreground placeholder:text-white/60"
+              className="bg-white/10 backdrop-blur-md border-white/20 text-primary-foreground placeholder:text-white/60 rounded-xl shadow-inner"
               autoFocus
             />
           </div>
         )}
       </div>
 
-      {/* Pinned Messages */}
+      {/* Pinned Messages - Subtle glass */}
       {pinnedMessages.length > 0 && (
-        <div className="bg-accent/20 border-b border-border px-4 py-2">
+        <div className="bg-accent/30 backdrop-blur-sm border-b border-border/50 px-4 py-2.5 shadow-sm">
           <div className="flex items-center gap-2 text-sm">
-            <Pin className="w-4 h-4 text-primary" />
+            <div className="p-1 bg-primary/10 rounded-full">
+              <Pin className="w-3.5 h-3.5 text-primary" />
+            </div>
             <span className="font-medium">{pinnedMessages.length} pinned message(s)</span>
           </div>
         </div>
       )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-background to-muted/20">
+      {/* Messages - Premium background */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-background via-background to-muted/30">
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} animate-pulse`}>
                 <Skeleton className="h-16 w-48 rounded-2xl" />
               </div>
             ))}
@@ -199,7 +204,7 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
         ) : filteredMessages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center text-muted-foreground">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-lg">
                 <Smile className="w-8 h-8 text-primary" />
               </div>
               <p className="font-medium">No messages yet</p>
@@ -207,21 +212,25 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
             </div>
           </div>
         ) : (
-          filteredMessages.map((message) => {
+          filteredMessages.map((message, index) => {
             const isOwn = message.sender_id === userId;
             const reactions = getReactionsArray(message.reactions);
             
             return (
-              <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+              <div 
+                key={message.id} 
+                className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                style={{ animationDelay: `${Math.min(index * 20, 200)}ms` }}
+              >
                 <div className={`max-w-[75%] ${isOwn 
-                  ? 'bg-primary text-primary-foreground rounded-t-2xl rounded-bl-2xl rounded-br-sm' 
-                  : 'bg-card text-card-foreground rounded-t-2xl rounded-br-2xl rounded-bl-sm shadow-sm'
-                } px-4 py-2`}>
+                  ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-t-2xl rounded-bl-2xl rounded-br-md shadow-md shadow-primary/20' 
+                  : 'bg-card text-card-foreground rounded-t-2xl rounded-br-2xl rounded-bl-md shadow-md border border-border/50'
+                } px-4 py-2.5 transition-all duration-200 hover:shadow-lg active:scale-[0.98]`}>
                   
-                  <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                   
-                  <div className="flex items-center justify-between mt-1 gap-2">
-                    <span className={`text-xs ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
+                  <div className="flex items-center justify-between mt-1.5 gap-2">
+                    <span className={`text-[11px] font-medium ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
                       {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                     </span>
                     <MessageReactionPicker 
@@ -240,23 +249,23 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
                     </div>
                   )}
                   
-                  <div className={`flex gap-3 mt-2 text-xs ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
+                  <div className={`flex gap-4 mt-2 text-[11px] font-medium ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
                     <button 
                       onClick={() => setReplyingTo(message)} 
-                      className="hover:opacity-100 transition-opacity"
+                      className="hover:opacity-100 active:scale-95 transition-all"
                     >
                       Reply
                     </button>
                     <button 
                       onClick={() => setForwardMessage(message)} 
-                      className="hover:opacity-100 transition-opacity"
+                      className="hover:opacity-100 active:scale-95 transition-all"
                     >
                       Forward
                     </button>
                     {isOwn && (
                       <button 
                         onClick={() => deleteMessage(message.id)} 
-                        className="hover:opacity-100 transition-opacity text-destructive"
+                        className="hover:opacity-100 active:scale-95 transition-all text-destructive"
                       >
                         Delete
                       </button>
@@ -270,29 +279,29 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Reply Preview */}
+      {/* Reply Preview - Refined */}
       {replyingTo && (
-        <div className="bg-secondary/50 px-4 py-2 border-t border-border flex items-center justify-between">
+        <div className="bg-secondary/60 backdrop-blur-sm px-4 py-2.5 border-t border-border/50 flex items-center justify-between shadow-inner animate-fade-in">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground">Replying to</p>
+            <p className="text-[11px] text-muted-foreground font-medium">Replying to</p>
             <p className="text-sm truncate">{replyingTo.content}</p>
           </div>
           <button 
             onClick={() => setReplyingTo(null)} 
-            className="text-muted-foreground hover:text-foreground p-1"
+            className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-muted rounded-full transition-all active:scale-95"
           >
             ×
           </button>
         </div>
       )}
 
-      {/* Input */}
-      <div className="border-t border-border p-4 pb-safe bg-card">
+      {/* Input - Premium glass effect */}
+      <div className="border-t border-border/50 p-4 pb-safe bg-card/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-2">
-          <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
+          <button className="p-2.5 text-primary hover:bg-primary/10 rounded-full transition-all duration-200 active:scale-95">
             <Paperclip className="w-5 h-5" />
           </button>
-          <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
+          <button className="p-2.5 text-primary hover:bg-primary/10 rounded-full transition-all duration-200 active:scale-95">
             <Image className="w-5 h-5" />
           </button>
           <Input
@@ -300,18 +309,18 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
             placeholder="Type a message..."
-            className="flex-1 bg-muted/50 border-0 focus-visible:ring-1"
+            className="flex-1 bg-muted/60 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-xl py-2.5 text-[15px] shadow-inner transition-all"
           />
           {inputText.trim() ? (
             <button 
               onClick={handleSend} 
               disabled={sending}
-              className="p-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="p-2.5 bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-full hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 disabled:opacity-50 active:scale-95"
             >
               <Send className="w-5 h-5" />
             </button>
           ) : (
-            <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
+            <button className="p-2.5 text-primary hover:bg-primary/10 rounded-full transition-all duration-200 active:scale-95">
               <Mic className="w-5 h-5" />
             </button>
           )}
