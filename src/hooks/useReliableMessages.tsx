@@ -164,6 +164,49 @@ export const useReliableMessages = (conversationId: string | null, userId: strin
     }
   };
 
+  // Star/unstar message
+  const starMessage = async (messageId: string) => {
+    try {
+      const { data: message } = await supabase
+        .from('messages')
+        .select('is_starred')
+        .eq('id', messageId)
+        .single();
+      
+      if (!message) return;
+
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_starred: !message.is_starred })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      console.log('[useReliableMessages] Message star toggled:', messageId);
+    } catch (error) {
+      console.error('[useReliableMessages] Error starring message:', error);
+    }
+  };
+
+  // Pin/unpin message (local storage since no DB column)
+  const pinMessage = async (messageId: string) => {
+    try {
+      const pinnedKey = `pinned_messages_${conversationId}`;
+      const pinned = JSON.parse(localStorage.getItem(pinnedKey) || '[]');
+      
+      if (pinned.includes(messageId)) {
+        const filtered = pinned.filter((id: string) => id !== messageId);
+        localStorage.setItem(pinnedKey, JSON.stringify(filtered));
+        console.log('[useReliableMessages] Message unpinned:', messageId);
+      } else {
+        pinned.push(messageId);
+        localStorage.setItem(pinnedKey, JSON.stringify(pinned));
+        console.log('[useReliableMessages] Message pinned:', messageId);
+      }
+    } catch (error) {
+      console.error('[useReliableMessages] Error pinning message:', error);
+    }
+  };
+
   // Load messages on conversation change
   useEffect(() => {
     loadMessages();
@@ -227,6 +270,8 @@ export const useReliableMessages = (conversationId: string | null, userId: strin
     setTyping,
     editMessage,
     deleteMessage,
-    reactToMessage
+    reactToMessage,
+    starMessage,
+    pinMessage
   };
 };

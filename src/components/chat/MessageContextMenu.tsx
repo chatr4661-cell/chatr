@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sheet';
 import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 import { cn } from '@/lib/utils';
-import { Reply, Forward, Star, Pin, Trash2, AlertTriangle, Sparkles, Languages, MessageSquare, ListTodo, Info, Plus } from 'lucide-react';
+import { Reply, Forward, Star, Pin, Trash2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface MessageAction {
@@ -88,13 +88,13 @@ export const MessageContextMenu = ({
   // WhatsApp-style main actions - icons on right, text on left
   const mainMenuActions: MessageAction[] = [
     { icon: Reply, label: 'Reply', action: onReply || (() => {}), show: !!onReply, section: 'main' },
-    { icon: Info, label: 'Info', action: () => {}, show: true, section: 'main' },
+    { icon: Forward, label: 'Forward', action: onForward || (() => {}), show: !!onForward, section: 'main' },
     { icon: Star, label: isStarred ? 'Unstar' : 'Star', action: onStar || (() => {}), show: !!onStar, section: 'main' },
     { icon: Pin, label: isPinned ? 'Unpin' : 'Pin', action: onPin || (() => {}), show: !!onPin, section: 'main' },
     { icon: Trash2, label: 'Delete', action: onDelete || (() => {}), variant: 'destructive', show: !!onDelete, section: 'main' },
   ];
 
-  const allActions = actions.length > 0 ? actions : mainMenuActions;
+  const allActions = mainMenuActions;
   const visibleActions = allActions.filter(a => a.show !== false && a.section !== 'ai');
 
   return (
