@@ -5,6 +5,7 @@ import ProductionVideoCall from "./ProductionVideoCall";
 import ProductionVoiceCall from "./ProductionVoiceCall";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignal } from "@/utils/webrtcSignaling";
+import { NotificationService } from "@/services/notificationService";
 
 export function GlobalCallListener() {
   const [incomingCall, setIncomingCall] = useState<any>(null);
@@ -79,10 +80,30 @@ export function GlobalCallListener() {
           if (call.status === 'ended' && incomingCall?.id === call.id) {
             console.log('📵 Call ended by caller');
             setIncomingCall(null);
-            toast({
-              title: "Call Ended",
-              description: "The caller ended the call",
-            });
+            
+            // Check if this was a missed call
+            if (call.missed) {
+              toast({
+                title: "Missed Call",
+                description: `You missed a call from ${incomingCall.callerName}`,
+                variant: "destructive",
+              });
+              
+              // Send push notification for missed call
+              if (currentUserId) {
+                NotificationService.sendMissedCallNotification(
+                  currentUserId,
+                  incomingCall.callerName || 'Unknown',
+                  call.id,
+                  call.call_type === 'video'
+                );
+              }
+            } else {
+              toast({
+                title: "Call Ended",
+                description: "The caller ended the call",
+              });
+            }
           }
           
           // If call is active and we're showing incoming call, dismiss it (answered on another device)

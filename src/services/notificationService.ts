@@ -83,6 +83,30 @@ export const NotificationService = {
   },
 
   /**
+   * Send a missed call notification
+   */
+  async sendMissedCallNotification(
+    recipientId: string,
+    callerName: string,
+    callId: string,
+    isVideo: boolean
+  ): Promise<boolean> {
+    return this.sendToUser(
+      recipientId,
+      `Missed ${isVideo ? 'Video' : 'Voice'} Call`,
+      `You missed a call from ${callerName}`,
+      {
+        callId,
+        callerName,
+        isVideo,
+        notificationType: 'missed_call',
+        click_action: '/call-history'
+      },
+      'call'
+    );
+  },
+
+  /**
    * Send a group notification
    */
   async sendGroupNotification(
