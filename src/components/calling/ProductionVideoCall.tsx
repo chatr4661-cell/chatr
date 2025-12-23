@@ -654,32 +654,43 @@ export default function ProductionVideoCall({
       </motion.div>
 
       {/* Chatr Plus Picture-in-picture video */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
+      <div
         onClick={(e) => {
           e.stopPropagation();
-          handleSwapVideos();
-          if (pipVideoRef.current && videoLayout === 'local-main') {
-            pipVideoRef.current.muted = false;
-            pipVideoRef.current.volume = 1.0;
-            pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
+          // Only allow swap if remote video is available
+          if (remoteVideoAvailable || videoLayout === 'local-main') {
+            handleSwapVideos();
+            if (pipVideoRef.current && videoLayout === 'local-main') {
+              pipVideoRef.current.muted = false;
+              pipVideoRef.current.volume = 1.0;
+              pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
+            }
           }
         }}
-        className="absolute top-20 right-4 mt-12 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm"
+        className="absolute top-20 right-4 mt-12 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm bg-gray-800"
       >
-        <video
-          ref={pipVideoRef}
-          autoPlay
-          playsInline
-          muted={videoLayout === 'remote-main'}
-          className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
-          style={{ WebkitPlaysinline: 'true' } as any}
-        />
+        {/* Show avatar placeholder when remote video is unavailable and PiP should show remote */}
+        {!remoteVideoAvailable && videoLayout === 'local-main' ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
+            <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2">
+              <span className="text-white text-lg font-semibold">{contactName.charAt(0).toUpperCase()}</span>
+            </div>
+            <span className="text-white/60 text-xs">Camera off</span>
+          </div>
+        ) : (
+          <video
+            ref={pipVideoRef}
+            autoPlay
+            playsInline
+            muted={videoLayout === 'remote-main'}
+            className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
+            style={{ WebkitPlaysinline: 'true' } as any}
+          />
+        )}
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
           <Repeat className="w-6 h-6 text-white" />
         </div>
-      </motion.div>
+      </div>
 
       {/* FaceTime-style Top Bar with Glassmorphism */}
       {!isFullScreen && (
