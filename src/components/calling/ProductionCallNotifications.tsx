@@ -8,6 +8,7 @@ import { GroupVideoCall } from './GroupVideoCall';
 import { GroupVoiceCall } from './GroupVoiceCall';
 import { useNavigate } from 'react-router-dom';
 import { showNativeIncomingCall, endNativeCall, registerNativeCallHandlers, setupNativeCallUI } from '@/utils/nativeCallUI';
+import { NotificationService } from '@/services/notificationService';
 
 interface ProductionCallNotificationsProps {
   userId: string;
@@ -271,11 +272,34 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
           if (incomingCall?.id === updatedCall.id) {
             console.log('🔚 Incoming call cancelled');
             setIncomingCall(null);
-            toast({
-              title: "Call cancelled",
-              description: "The caller ended the call",
-            });
+            
+            // Check if this was a missed call (receiver never answered)
+            if (updatedCall.missed) {
+              console.log('📵 Missed call detected, sending notification');
+              toast({
+                title: "Missed Call",
+                description: `You missed a call from ${updatedCall.caller_name || 'Unknown'}`,
+                variant: "destructive",
+              });
+            } else {
+              toast({
+                title: "Call cancelled",
+                description: "The caller ended the call",
+              });
+            }
           }
+        }
+        
+        // Handle missed call updates (for when caller times out)
+        if (updatedCall.missed && updatedCall.receiver_id === userId && !activeCall) {
+          console.log('📵 Missed call notification trigger');
+          // Send push notification for missed call
+          NotificationService.sendMissedCallNotification(
+            userId,
+            updatedCall.caller_name || 'Unknown',
+            updatedCall.id,
+            updatedCall.call_type === 'video'
+          );
         }
       })
       .subscribe((status) => {
