@@ -341,11 +341,29 @@ export class SimpleWebRTCCall {
 
       // Handle incoming tracks with low-latency playback hint
       this.pc.ontrack = (event) => {
-        console.log('📺 [SimpleWebRTC] Remote track received:', event.track.kind);
+        console.log('📺 [SimpleWebRTC] Remote track received:', event.track.kind, 'readyState:', event.track.readyState);
         const [remoteStream] = event.streams;
         
         // Set content hint for decoder optimization
         event.track.contentHint = event.track.kind === 'video' ? 'motion' : 'speech';
+        
+        // CRITICAL: Monitor track state changes to detect frozen video
+        event.track.onended = () => {
+          console.warn('⚠️ [SimpleWebRTC] Remote track ended:', event.track.kind);
+          this.emit('trackEnded', event.track.kind);
+        };
+        
+        event.track.onmute = () => {
+          console.warn('⚠️ [SimpleWebRTC] Remote track muted:', event.track.kind);
+          this.emit('trackMuted', event.track.kind);
+        };
+        
+        event.track.onunmute = () => {
+          console.log('✅ [SimpleWebRTC] Remote track unmuted:', event.track.kind);
+          this.emit('trackUnmuted', event.track.kind);
+          // Re-emit stream to force video element refresh
+          this.emit('remoteStream', remoteStream);
+        };
         
         this.emit('remoteStream', remoteStream);
       };
