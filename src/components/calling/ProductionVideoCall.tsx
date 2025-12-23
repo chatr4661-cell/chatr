@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX, ZoomIn, ZoomOut } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX, ZoomIn, ZoomOut, PictureInPicture2, ScreenShare, ScreenShareOff, Headphones } from 'lucide-react';
 import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -43,6 +43,9 @@ export default function ProductionVideoCall({
   const [userInteracted, setUserInteracted] = useState(false);
   const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
   const [currentCamera, setCurrentCamera] = useState<'user' | 'environment'>('user');
+  const [isPiPActive, setIsPiPActive] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [bluetoothConnected, setBluetoothConnected] = useState(false);
   const isMobileDevice = isMobile();
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
@@ -393,6 +396,90 @@ export default function ProductionVideoCall({
     }
   };
 
+  // Picture-in-Picture toggle
+  const handleTogglePiP = async () => {
+    try {
+      if (!remoteVideoRef.current) {
+        toast.error('Video not available');
+        return;
+      }
+
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPiPActive(false);
+        toast.info('Picture-in-Picture disabled');
+      } else if (document.pictureInPictureEnabled) {
+        await remoteVideoRef.current.requestPictureInPicture();
+        setIsPiPActive(true);
+        toast.success('Picture-in-Picture enabled');
+        
+        // Listen for PiP exit
+        remoteVideoRef.current.addEventListener('leavepictureinpicture', () => {
+          setIsPiPActive(false);
+        }, { once: true });
+      } else {
+        toast.error('Picture-in-Picture not supported');
+      }
+    } catch (error) {
+      console.error('PiP error:', error);
+      toast.error('Failed to enable Picture-in-Picture');
+    }
+  };
+
+  // Screen sharing toggle
+  const handleToggleScreenShare = async () => {
+    if (!webrtcRef.current) {
+      toast.error('Call not connected');
+      return;
+    }
+
+    try {
+      if (isScreenSharing) {
+        // Stop screen sharing and restore camera
+        await webrtcRef.current.stopScreenShare();
+        setIsScreenSharing(false);
+        toast.info('Screen sharing stopped');
+      } else {
+        // Start screen sharing
+        const success = await webrtcRef.current.startScreenShare();
+        if (success) {
+          setIsScreenSharing(true);
+          toast.success('Screen sharing started');
+        } else {
+          toast.error('Failed to start screen sharing');
+        }
+      }
+    } catch (error) {
+      console.error('Screen share error:', error);
+      toast.error('Screen sharing not available');
+    }
+  };
+
+  // Check for Bluetooth/headset devices
+  const checkAudioDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+      const hasBluetooth = audioOutputs.some(d => 
+        d.label.toLowerCase().includes('bluetooth') || 
+        d.label.toLowerCase().includes('airpods') ||
+        d.label.toLowerCase().includes('wireless')
+      );
+      setBluetoothConnected(hasBluetooth);
+    } catch (error) {
+      console.log('Device enumeration not available');
+    }
+  };
+
+  // Check audio devices on mount and when devices change
+  useEffect(() => {
+    checkAudioDevices();
+    navigator.mediaDevices.addEventListener('devicechange', checkAudioDevices);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', checkAudioDevices);
+    };
+  }, []);
+
   const mainVideoRef = videoLayout === 'remote-main' ? remoteVideoRef : localVideoRef;
   const pipVideoRef = videoLayout === 'remote-main' ? localVideoRef : remoteVideoRef;
 
@@ -622,11 +709,40 @@ export default function ProductionVideoCall({
             <Button
               size="lg"
               variant={speakerEnabled ? "default" : "secondary"}
-              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl relative"
               onClick={toggleSpeaker}
             >
               {speakerEnabled ? <Volume2 className="h-5 w-5 text-white" /> : <VolumeX className="h-5 w-5 text-white" />}
+              {bluetoothConnected && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Headphones className="h-2 w-2 text-white" />
+                </div>
+              )}
             </Button>
+
+            {/* Picture-in-Picture */}
+            <Button
+              size="lg"
+              variant={isPiPActive ? "default" : "secondary"}
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+              onClick={handleTogglePiP}
+              disabled={callState !== 'connected'}
+            >
+              <PictureInPicture2 className={`h-5 w-5 ${isPiPActive ? 'text-green-400' : 'text-white'}`} />
+            </Button>
+
+            {/* Screen Sharing */}
+            {!isMobileDevice && (
+              <Button
+                size="lg"
+                variant={isScreenSharing ? "default" : "secondary"}
+                className={`rounded-full w-14 h-14 backdrop-blur-xl border border-white/10 shadow-2xl ${isScreenSharing ? 'bg-green-500/60 hover:bg-green-500/80' : 'bg-black/40 hover:bg-black/60'}`}
+                onClick={handleToggleScreenShare}
+                disabled={callState !== 'connected'}
+              >
+                {isScreenSharing ? <ScreenShareOff className="h-5 w-5 text-white" /> : <ScreenShare className="h-5 w-5 text-white" />}
+              </Button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

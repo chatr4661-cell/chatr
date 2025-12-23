@@ -1060,4 +1060,141 @@ export class SimpleWebRTCCall {
       this.cachedBackCamera = null;
     }
   }
+
+  // Screen sharing state
+  private screenShareStream: MediaStream | null = null;
+  private originalVideoTrack: MediaStreamTrack | null = null;
+
+  /**
+   * Start screen sharing - replaces camera video with screen
+   */
+  async startScreenShare(): Promise<boolean> {
+    if (!this.pc || !this.localStream) {
+      console.error('❌ [SimpleWebRTC] No peer connection available');
+      return false;
+    }
+
+    try {
+      console.log('🖥️ [SimpleWebRTC] Starting screen share...');
+      
+      // Save original video track
+      this.originalVideoTrack = this.localStream.getVideoTracks()[0] || null;
+      
+      // Request screen share
+      this.screenShareStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+          frameRate: { ideal: 30, max: 60 }
+        },
+        audio: false
+      });
+
+      const screenTrack = this.screenShareStream.getVideoTracks()[0];
+      if (!screenTrack) {
+        throw new Error('No screen track available');
+      }
+
+      // Listen for user stopping screen share
+      screenTrack.addEventListener('ended', () => {
+        console.log('🖥️ [SimpleWebRTC] Screen share ended by user');
+        this.stopScreenShare();
+      });
+
+      // Replace video track in sender
+      const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) {
+        await sender.replaceTrack(screenTrack);
+        console.log('✅ [SimpleWebRTC] Screen share track replaced');
+      }
+
+      // Update local stream
+      if (this.originalVideoTrack) {
+        this.localStream.removeTrack(this.originalVideoTrack);
+      }
+      this.localStream.addTrack(screenTrack);
+      
+      this.emit('localStream', this.localStream);
+      console.log('✅ [SimpleWebRTC] Screen sharing started');
+      return true;
+      
+    } catch (error: any) {
+      console.error('❌ [SimpleWebRTC] Screen share failed:', error);
+      
+      if (error.name === 'NotAllowedError') {
+        console.log('User cancelled screen share');
+      }
+      
+      return false;
+    }
+  }
+
+  /**
+   * Stop screen sharing and restore camera
+   */
+  async stopScreenShare(): Promise<boolean> {
+    if (!this.pc || !this.localStream) {
+      console.error('❌ [SimpleWebRTC] No peer connection available');
+      return false;
+    }
+
+    try {
+      console.log('🖥️ [SimpleWebRTC] Stopping screen share...');
+      
+      // Stop screen share tracks
+      if (this.screenShareStream) {
+        this.screenShareStream.getTracks().forEach(track => track.stop());
+        this.screenShareStream = null;
+      }
+
+      // Restore original camera track
+      if (this.originalVideoTrack && this.originalVideoTrack.readyState === 'live') {
+        const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) {
+          await sender.replaceTrack(this.originalVideoTrack);
+        }
+        
+        // Update local stream
+        const currentTrack = this.localStream.getVideoTracks()[0];
+        if (currentTrack) {
+          this.localStream.removeTrack(currentTrack);
+        }
+        this.localStream.addTrack(this.originalVideoTrack);
+        
+      } else {
+        // Original track not available, request new camera
+        console.log('📷 [SimpleWebRTC] Requesting new camera stream...');
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: this.currentFacingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+          },
+          audio: false
+        });
+        
+        const newTrack = newStream.getVideoTracks()[0];
+        const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+        if (sender && newTrack) {
+          await sender.replaceTrack(newTrack);
+          
+          const currentTrack = this.localStream.getVideoTracks()[0];
+          if (currentTrack) {
+            this.localStream.removeTrack(currentTrack);
+          }
+          this.localStream.addTrack(newTrack);
+        }
+      }
+
+      this.originalVideoTrack = null;
+      this.emit('localStream', this.localStream);
+      console.log('✅ [SimpleWebRTC] Screen sharing stopped, camera restored');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ [SimpleWebRTC] Failed to stop screen share:', error);
+      return false;
+    }
+  }
 }
