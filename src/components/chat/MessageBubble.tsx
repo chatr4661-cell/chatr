@@ -68,7 +68,6 @@ interface MessageBubbleProps {
   onEdit?: (messageId: string, content: string) => void;
   onPin?: (messageId: string) => void;
   onReport?: (message: Message) => void;
-  onReaction?: (messageId: string, emoji: string) => void;
   isSelected?: boolean;
   onSelect?: (messageId: string) => void;
   selectionMode?: boolean;
@@ -86,7 +85,6 @@ const MessageBubbleComponent = ({
   onEdit,
   onPin,
   onReport,
-  onReaction,
   isSelected = false,
   onSelect,
   selectionMode = false
@@ -657,15 +655,6 @@ const MessageBubbleComponent = ({
         position={menuPosition}
         actions={messageActions.filter(a => a.show !== false)}
         message={message}
-        onReply={() => handleReply()}
-        onForward={() => handleForward()}
-        onStar={() => handleStarToggle()}
-        onPin={() => handlePin()}
-        onDelete={() => handleDelete()}
-        onReport={() => handleReport()}
-        onReaction={(emoji) => onReaction?.(message.id, emoji)}
-        isStarred={message.is_starred}
-        isPinned={false}
       />
 
       {/* Delete confirmation dialog */}

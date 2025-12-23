@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX, ZoomIn, ZoomOut, PictureInPicture2, ScreenShare, ScreenShareOff, Headphones } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX, ZoomIn, ZoomOut } from 'lucide-react';
 import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,22 +41,11 @@ export default function ProductionVideoCall({
   const [videoLayout, setVideoLayout] = useState<'remote-main' | 'local-main'>('remote-main');
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
-  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
-  const [currentCamera, setCurrentCamera] = useState<'user' | 'environment'>('user');
-  const [isPiPActive, setIsPiPActive] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [bluetoothConnected, setBluetoothConnected] = useState(false);
-  const [remoteVideoAvailable, setRemoteVideoAvailable] = useState(true); // Track if remote video is active
   const isMobileDevice = isMobile();
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-
-  // Keep streams independent from the <video> DOM node refs (refs can swap between main/PiP)
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const remoteStreamRef = useRef<MediaStream | null>(null);
-
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
   
@@ -79,28 +68,17 @@ export default function ProductionVideoCall({
         }
         userIdRef.current = user.id;
 
-        console.log('🎬 [ProductionVideoCall] Initializing PREMIUM video call...');
+        console.log('🎬 [ProductionVideoCall] Initializing video call...');
         const call = new SimpleWebRTCCall(callId, partnerId, true, isInitiator, user.id);
         webrtcRef.current = call;
 
         call.on('localStream', (stream: MediaStream) => {
           console.log('📹 [ProductionVideoCall] Local stream received');
-          localStreamRef.current = stream;
-
           if (localVideoRef.current) {
             localVideoRef.current.srcObject = stream;
             localVideoRef.current.muted = true;
-            // ULTRA-LOW LATENCY: Disable any buffering on local video
-            localVideoRef.current.preload = 'none';
             localVideoRef.current.play().catch(e => console.log('Local video play:', e));
           }
-          
-          // Pre-cache alternate camera for instant switching
-          setTimeout(() => {
-            if (webrtcRef.current) {
-              (webrtcRef.current as any).preCacheAlternateCamera?.();
-            }
-          }, 2000);
           
           // When local stream is ready, ensure any remote stream is unmuted
           setTimeout(() => {
@@ -109,28 +87,14 @@ export default function ProductionVideoCall({
               remoteVideoRef.current.volume = 1.0;
               console.log('🔊 Double-checking remote audio is unmuted');
             }
-          }, 300);
+          }, 500);
         });
 
         call.on('remoteStream', (stream: MediaStream) => {
-          console.log('📺 [ProductionVideoCall] Remote stream received, tracks:', stream.getTracks().length);
+          console.log('📺 [ProductionVideoCall] Remote stream received');
           console.log('🌐 Browser:', { isIOS: isIOS(), isSafari: isSafari(), isFirefox: isFirefox(), isChrome: isChrome() });
-
-          remoteStreamRef.current = stream;
-
-          // If remote joins without any video track, treat as camera off
-          const hasRemoteVideoTrack = stream.getVideoTracks().length > 0;
-          if (!hasRemoteVideoTrack) {
-            setRemoteVideoAvailable(false);
-            setVideoLayout('local-main');
-          }
           
           if (remoteVideoRef.current) {
-            // CRITICAL: Clear existing srcObject first to force refresh
-            if (remoteVideoRef.current.srcObject) {
-              remoteVideoRef.current.srcObject = null;
-            }
-            
             remoteVideoRef.current.srcObject = stream;
             remoteVideoRef.current.playsInline = true;
             remoteVideoRef.current.autoplay = true;
@@ -142,26 +106,6 @@ export default function ProductionVideoCall({
             // Safari/iOS specific: set webkit playsinline
             remoteVideoRef.current.setAttribute('webkit-playsinline', 'true');
             remoteVideoRef.current.setAttribute('playsinline', 'true');
-            
-            // CRITICAL: Monitor video element state for frozen detection
-            remoteVideoRef.current.onloadedmetadata = () => {
-              console.log('✅ Remote video metadata loaded');
-            };
-            
-            remoteVideoRef.current.onstalled = () => {
-              console.warn('⚠️ Remote video stalled - attempting recovery');
-              const el = remoteVideoRef.current;
-              const s = remoteStreamRef.current;
-              if (!el || !s) return;
-              // Re-attach stream to force decoder refresh
-              el.srcObject = null;
-              el.srcObject = s;
-              el.play().catch(e => console.log('Recovery play:', e));
-            };
-            
-            remoteVideoRef.current.onwaiting = () => {
-              console.log('⏳ Remote video waiting for data...');
-            };
             
             console.log('🔊 Remote video configured - muted=false, volume=1.0');
             
@@ -278,39 +222,6 @@ export default function ProductionVideoCall({
           handleEndCall();
         });
 
-        // CRITICAL: Handle track state changes for frozen video recovery + auto-swap
-        call.on('trackMuted', (kind: string) => {
-          console.warn(`⚠️ [ProductionVideoCall] Track muted: ${kind}`);
-          if (kind === 'video') {
-            setRemoteVideoAvailable(false);
-            // Auto-swap to local video when remote is off
-            setVideoLayout('local-main');
-            toast.info('Remote camera off – showing your video', { duration: 2000 });
-          }
-        });
-
-        call.on('trackUnmuted', (kind: string) => {
-          console.log(`✅ [ProductionVideoCall] Track unmuted: ${kind}`);
-          if (kind === 'video') {
-            setRemoteVideoAvailable(true);
-            // Auto-swap back to remote video when it's available again
-            setVideoLayout('remote-main');
-            toast.success('Remote camera back on', { duration: 2000 });
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.play().catch(e => console.log('Resume play:', e));
-            }
-          }
-        });
-
-        call.on('trackEnded', (kind: string) => {
-          console.warn(`⚠️ [ProductionVideoCall] Track ended: ${kind}`);
-          if (kind === 'video') {
-            setRemoteVideoAvailable(false);
-            setVideoLayout('local-main');
-            toast.warning('Remote video stopped');
-          }
-        });
-
         await call.start();
         await updateCallStatus('ringing');
 
@@ -425,11 +336,8 @@ export default function ProductionVideoCall({
   };
 
   const handleSwapVideos = () => {
-    setVideoLayout(prev => {
-      const next = prev === 'remote-main' ? 'local-main' : 'remote-main';
-      toast.info(next === 'local-main' ? 'Your video is now main' : 'Their video is now main');
-      return next;
-    });
+    setVideoLayout(prev => prev === 'remote-main' ? 'local-main' : 'remote-main');
+    toast.info(videoLayout === 'remote-main' ? 'Your video is now main' : 'Their video is now main');
   };
 
   const handleToggleFullScreen = async () => {
@@ -443,137 +351,14 @@ export default function ProductionVideoCall({
   };
 
   const handleSwitchCamera = async () => {
-    if (isSwitchingCamera) {
-      console.log('⏳ Camera switch already in progress');
-      return;
-    }
-    
-    if (!webrtcRef.current) {
-      console.error('❌ No WebRTC connection available');
-      toast.error('Camera not available during connection setup');
-      return;
-    }
-    
-    setIsSwitchingCamera(true);
-    
     try {
-      console.log('📷 Switching camera...');
-      const newMode = await webrtcRef.current.switchCamera();
-      
-      if (newMode) {
-        setCurrentCamera(newMode);
-        toast.success(`Switched to ${newMode === 'user' ? 'front' : 'back'} camera`);
-      } else {
-        toast.info('Camera switch not available');
-      }
+      const newMode = await webrtcRef.current?.switchCamera();
+      toast.success(`Switched to ${newMode === 'user' ? 'front' : 'back'} camera`);
     } catch (error) {
       console.error('Camera switch error:', error);
-      toast.error('Failed to switch camera. Try again.');
-    } finally {
-      setIsSwitchingCamera(false);
+      toast.error('Failed to switch camera');
     }
   };
-
-  // Picture-in-Picture toggle
-  const handleTogglePiP = async () => {
-    try {
-      if (!remoteVideoRef.current) {
-        toast.error('Video not available');
-        return;
-      }
-
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        setIsPiPActive(false);
-        toast.info('Picture-in-Picture disabled');
-      } else if (document.pictureInPictureEnabled) {
-        await remoteVideoRef.current.requestPictureInPicture();
-        setIsPiPActive(true);
-        toast.success('Picture-in-Picture enabled');
-        
-        // Listen for PiP exit
-        remoteVideoRef.current.addEventListener('leavepictureinpicture', () => {
-          setIsPiPActive(false);
-        }, { once: true });
-      } else {
-        toast.error('Picture-in-Picture not supported');
-      }
-    } catch (error) {
-      console.error('PiP error:', error);
-      toast.error('Failed to enable Picture-in-Picture');
-    }
-  };
-
-  // Screen sharing toggle
-  const handleToggleScreenShare = async () => {
-    if (!webrtcRef.current) {
-      toast.error('Call not connected');
-      return;
-    }
-
-    try {
-      if (isScreenSharing) {
-        // Stop screen sharing and restore camera
-        await webrtcRef.current.stopScreenShare();
-        setIsScreenSharing(false);
-        toast.info('Screen sharing stopped');
-      } else {
-        // Start screen sharing
-        const success = await webrtcRef.current.startScreenShare();
-        if (success) {
-          setIsScreenSharing(true);
-          toast.success('Screen sharing started');
-        } else {
-          toast.error('Failed to start screen sharing');
-        }
-      }
-    } catch (error) {
-      console.error('Screen share error:', error);
-      toast.error('Screen sharing not available');
-    }
-  };
-
-  // Check for Bluetooth/headset devices
-  const checkAudioDevices = async () => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-      const hasBluetooth = audioOutputs.some(d => 
-        d.label.toLowerCase().includes('bluetooth') || 
-        d.label.toLowerCase().includes('airpods') ||
-        d.label.toLowerCase().includes('wireless')
-      );
-      setBluetoothConnected(hasBluetooth);
-    } catch (error) {
-      console.log('Device enumeration not available');
-    }
-  };
-
-  // Check audio devices on mount and when devices change
-  useEffect(() => {
-    checkAudioDevices();
-    navigator.mediaDevices.addEventListener('devicechange', checkAudioDevices);
-    return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', checkAudioDevices);
-    };
-  }, []);
-
-  // Re-attach streams after swapping main/PiP video elements (refs point to different DOM nodes)
-  useEffect(() => {
-    const localStream = localStreamRef.current;
-    const remoteStream = remoteStreamRef.current;
-
-    if (localVideoRef.current && localStream && localVideoRef.current.srcObject !== localStream) {
-      localVideoRef.current.srcObject = localStream;
-      localVideoRef.current.muted = true;
-      localVideoRef.current.play().catch(() => {});
-    }
-
-    if (remoteVideoRef.current && remoteStream && remoteVideoRef.current.srcObject !== remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(() => {});
-    }
-  }, [videoLayout]);
 
   const mainVideoRef = videoLayout === 'remote-main' ? remoteVideoRef : localVideoRef;
   const pipVideoRef = videoLayout === 'remote-main' ? localVideoRef : remoteVideoRef;
@@ -604,51 +389,42 @@ export default function ProductionVideoCall({
         className="w-full h-full overflow-hidden"
         style={zoomStyle}
       >
-        {videoLayout === 'remote-main' && !remoteVideoAvailable ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-black">
-            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center mb-4">
-              <span className="text-white text-3xl font-semibold">{contactName.charAt(0).toUpperCase()}</span>
-            </div>
-            <div className="text-white/80 text-sm">Camera off</div>
-          </div>
-        ) : (
-          <video
-            ref={mainVideoRef}
-            autoPlay
-            playsInline
-            muted={videoLayout === 'local-main'}
-            className="w-full h-full object-cover"
-            style={{ WebkitPlaysinline: 'true' } as any}
-            onDoubleClick={() => {
-              if (isZoomed) {
-                resetZoom();
-              } else {
-                handleToggleFullScreen();
-              }
-            }}
-            onLoadedMetadata={(e) => {
-              const video = e.currentTarget;
-              if (videoLayout === 'remote-main') {
-                video.muted = true;
-                video.play().then(() => {
-                  setTimeout(() => {
-                    video.muted = false;
-                    video.volume = 1.0;
-                    console.log('🔊 Remote video metadata loaded, played and unmuted');
-                  }, 100);
-                }).catch(err => console.log('Auto-play on metadata:', err));
-              }
-            }}
-            onClick={() => {
-              if (mainVideoRef.current && videoLayout === 'remote-main') {
-                mainVideoRef.current.muted = false;
-                mainVideoRef.current.volume = 1.0;
-                mainVideoRef.current.play().catch(err => console.log('Play on click:', err));
-                setUserInteracted(true);
-              }
-            }}
-          />
-        )}
+        <video
+          ref={mainVideoRef}
+          autoPlay
+          playsInline
+          muted={videoLayout === 'local-main'}
+          className="w-full h-full object-cover"
+          style={{ WebkitPlaysinline: 'true' } as any}
+          onDoubleClick={() => {
+            if (isZoomed) {
+              resetZoom();
+            } else {
+              handleToggleFullScreen();
+            }
+          }}
+          onLoadedMetadata={(e) => {
+            const video = e.currentTarget;
+            if (videoLayout === 'remote-main') {
+              video.muted = true;
+              video.play().then(() => {
+                setTimeout(() => {
+                  video.muted = false;
+                  video.volume = 1.0;
+                  console.log('🔊 Remote video metadata loaded, played and unmuted');
+                }, 100);
+              }).catch(err => console.log('Auto-play on metadata:', err));
+            }
+          }}
+          onClick={() => {
+            if (mainVideoRef.current && videoLayout === 'remote-main') {
+              mainVideoRef.current.muted = false;
+              mainVideoRef.current.volume = 1.0;
+              mainVideoRef.current.play().catch(err => console.log('Play on click:', err));
+              setUserInteracted(true);
+            }
+          }}
+        />
       </div>
 
       {/* Zoom indicator with HD badge */}
@@ -673,16 +449,11 @@ export default function ProductionVideoCall({
       </motion.div>
 
       {/* Chatr Plus Picture-in-picture video */}
-      <div
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
         onClick={(e) => {
           e.stopPropagation();
-
-          // Prevent swapping to remote when their camera is off
-          if (videoLayout === 'local-main' && !remoteVideoAvailable) {
-            toast.info('Remote camera is off');
-            return;
-          }
-
           handleSwapVideos();
           if (pipVideoRef.current && videoLayout === 'local-main') {
             pipVideoRef.current.muted = false;
@@ -690,30 +461,20 @@ export default function ProductionVideoCall({
             pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
           }
         }}
-        className="absolute top-20 right-4 mt-12 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm bg-black/40"
+        className="absolute top-20 right-4 mt-12 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm"
       >
-        {/* Show avatar placeholder when remote video is unavailable and PiP should show remote */}
-        {!remoteVideoAvailable && videoLayout === 'local-main' ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-black/60">
-            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2">
-              <span className="text-white text-lg font-semibold">{contactName.charAt(0).toUpperCase()}</span>
-            </div>
-            <span className="text-white/60 text-xs">Camera off</span>
-          </div>
-        ) : (
-          <video
-            ref={pipVideoRef}
-            autoPlay
-            playsInline
-            muted={videoLayout === 'remote-main'}
-            className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
-            style={{ WebkitPlaysinline: 'true' } as any}
-          />
-        )}
+        <video
+          ref={pipVideoRef}
+          autoPlay
+          playsInline
+          muted={videoLayout === 'remote-main'}
+          className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
+          style={{ WebkitPlaysinline: 'true' } as any}
+        />
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
           <Repeat className="w-6 h-6 text-white" />
         </div>
-      </div>
+      </motion.div>
 
       {/* FaceTime-style Top Bar with Glassmorphism */}
       {!isFullScreen && (
@@ -796,16 +557,11 @@ export default function ProductionVideoCall({
             <Button
               size="lg"
               variant="secondary"
-              className={`rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl transition-all ${isSwitchingCamera ? 'opacity-50 animate-pulse' : ''}`}
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
               onClick={handleSwitchCamera}
-              disabled={isSwitchingCamera || callState !== 'connected'}
             >
-              <SwitchCamera className={`h-5 w-5 text-white ${isSwitchingCamera ? 'animate-spin' : ''}`} />
+              <SwitchCamera className="h-5 w-5 text-white" />
             </Button>
-            {/* Camera mode indicator */}
-            <div className="absolute -left-8 top-1/2 -translate-y-1/2 text-[10px] text-white/60 whitespace-nowrap">
-              {currentCamera === 'user' ? 'Front' : 'Back'}
-            </div>
 
             <Button
               size="lg"
@@ -828,40 +584,11 @@ export default function ProductionVideoCall({
             <Button
               size="lg"
               variant={speakerEnabled ? "default" : "secondary"}
-              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl relative"
+              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
               onClick={toggleSpeaker}
             >
               {speakerEnabled ? <Volume2 className="h-5 w-5 text-white" /> : <VolumeX className="h-5 w-5 text-white" />}
-              {bluetoothConnected && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                  <Headphones className="h-2 w-2 text-white" />
-                </div>
-              )}
             </Button>
-
-            {/* Picture-in-Picture */}
-            <Button
-              size="lg"
-              variant={isPiPActive ? "default" : "secondary"}
-              className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
-              onClick={handleTogglePiP}
-              disabled={callState !== 'connected'}
-            >
-              <PictureInPicture2 className={`h-5 w-5 ${isPiPActive ? 'text-green-400' : 'text-white'}`} />
-            </Button>
-
-            {/* Screen Sharing */}
-            {!isMobileDevice && (
-              <Button
-                size="lg"
-                variant={isScreenSharing ? "default" : "secondary"}
-                className={`rounded-full w-14 h-14 backdrop-blur-xl border border-white/10 shadow-2xl ${isScreenSharing ? 'bg-green-500/60 hover:bg-green-500/80' : 'bg-black/40 hover:bg-black/60'}`}
-                onClick={handleToggleScreenShare}
-                disabled={callState !== 'connected'}
-              >
-                {isScreenSharing ? <ScreenShareOff className="h-5 w-5 text-white" /> : <ScreenShare className="h-5 w-5 text-white" />}
-              </Button>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

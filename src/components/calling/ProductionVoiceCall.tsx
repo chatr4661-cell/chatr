@@ -55,35 +55,16 @@ export default function ProductionVoiceCall({
         webrtcRef.current = call;
 
         call.on('remoteStream', (stream: MediaStream) => {
-          console.log('🔊 [ProductionVoiceCall] Remote stream received - HD VOICE enabled');
+          console.log('🔊 [ProductionVoiceCall] Remote stream received');
           console.log('🌐 Browser:', { isIOS: isIOS(), isSafari: isSafari() });
           
           if (!remoteAudioRef.current) {
             remoteAudioRef.current = new Audio();
             remoteAudioRef.current.autoplay = true;
             remoteAudioRef.current.volume = 1.0;
-            // ULTRA-LOW LATENCY: Disable buffering for real-time audio
-            remoteAudioRef.current.preload = 'none';
           }
           
           remoteAudioRef.current.srcObject = stream;
-          
-          // Create AudioContext for enhanced processing if supported
-          try {
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-              latencyHint: 'interactive', // Lowest latency mode
-              sampleRate: 48000 // HD audio sample rate
-            });
-            
-            // Resume context if suspended (browser autoplay policy)
-            if (audioContext.state === 'suspended') {
-              audioContext.resume();
-            }
-            
-            console.log('🎧 [ProductionVoiceCall] AudioContext created with', audioContext.sampleRate, 'Hz');
-          } catch (e) {
-            console.log('AudioContext not available, using default playback');
-          }
           
           // Multi-stage audio playback with browser compatibility
           const forcePlay = async (attempt = 1) => {
@@ -91,7 +72,7 @@ export default function ProductionVoiceCall({
               if (remoteAudioRef.current) {
                 remoteAudioRef.current.volume = 1.0;
                 await remoteAudioRef.current.play();
-                console.log(`✅ Remote audio playing (attempt ${attempt}) - HD Voice Active`);
+                console.log(`✅ Remote audio playing (attempt ${attempt})`);
               }
             } catch (e) {
               console.warn(`⚠️ Audio play error (attempt ${attempt}):`, e);
@@ -117,7 +98,7 @@ export default function ProductionVoiceCall({
                 
                 // Show toast notification
                 toast.info('Tap screen to enable audio', {
-                  duration: 6000,
+                  duration: 8000,
                   action: {
                     label: 'Enable',
                     onClick: playOnInteraction
@@ -127,11 +108,11 @@ export default function ProductionVoiceCall({
             }
           };
           
-          // Faster retry with shorter delays for low latency
+          // Retry with increasing delays
           forcePlay(1);
-          setTimeout(() => forcePlay(2), 50);
-          setTimeout(() => forcePlay(3), 200);
-          setTimeout(() => forcePlay(4), 800);
+          setTimeout(() => forcePlay(2), 100);
+          setTimeout(() => forcePlay(3), 500);
+          setTimeout(() => forcePlay(4), 1500);
         });
 
         call.on('connected', () => {
@@ -278,24 +259,10 @@ export default function ProductionVoiceCall({
         animate={{ scale: 1, opacity: 1 }}
         className="flex flex-col items-center gap-8 p-8"
       >
-        {/* HD Voice Badge */}
-        {callState === 'connected' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute top-8 bg-green-500/20 backdrop-blur-xl px-4 py-2 rounded-full border border-green-500/30"
-          >
-            <span className="text-green-400 text-sm font-semibold">HD Voice • Noise Cancellation</span>
-          </motion.div>
-        )}
-
         <motion.div 
-          animate={{ 
-            scale: callState === 'connecting' ? [1, 1.05, 1] : 1,
-            boxShadow: callState === 'connected' ? '0 0 60px rgba(34, 197, 94, 0.3)' : 'none'
-          }}
+          animate={{ scale: callState === 'connecting' ? [1, 1.05, 1] : 1 }}
           transition={{ repeat: callState === 'connecting' ? Infinity : 0, duration: 2 }}
-          className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center shadow-2xl border-2 border-white/10"
+          className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center shadow-2xl"
         >
           <span className="text-5xl">{contactName[0]?.toUpperCase()}</span>
         </motion.div>
@@ -307,9 +274,6 @@ export default function ProductionVoiceCall({
             {callState === 'connected' && formatDuration(duration)}
             {callState === 'failed' && 'Connection failed'}
           </p>
-          {callState === 'connected' && (
-            <p className="text-xs text-green-400 mt-1">Chatr Plus Voice</p>
-          )}
         </div>
 
         <div className="flex items-center gap-4">

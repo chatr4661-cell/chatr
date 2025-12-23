@@ -965,7 +965,6 @@ const ChatEnhancedContent = () => {
                 onEdit={handleEditMessage}
                 onPin={handlePinMessage}
                 onReport={handleReportMessage}
-                onReaction={reactToMessage}
                 selectionMode={selectionMode}
                 selectedMessages={selectedMessages}
                 onSelectMessage={handleSelectMessage}
