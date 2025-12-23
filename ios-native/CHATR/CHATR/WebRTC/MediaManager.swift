@@ -86,23 +86,49 @@ class MediaManager: ObservableObject {
     }
     
     func switchCamera() {
-        guard let capturer = videoCapturer else { return }
+        guard let capturer = videoCapturer else { 
+            print("⚠️ No video capturer available")
+            return 
+        }
         
         let devices = RTCCameraVideoCapturer.captureDevices()
         let targetPosition: AVCaptureDevice.Position = currentCamera == .front ? .back : .front
         
-        guard let device = devices.first(where: { $0.position == targetPosition }) else { return }
+        guard let device = devices.first(where: { $0.position == targetPosition }) else { 
+            print("⚠️ Could not find camera for position: \(targetPosition)")
+            return 
+        }
         
         let formats = RTCCameraVideoCapturer.supportedFormats(for: device)
-        guard let format = formats.first(where: { format in
+        // Prefer 720p for reliable cross-device support
+        let preferredFormat = formats.first(where: { format in
             let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
             return dimensions.width == 1280 && dimensions.height == 720
-        }) ?? formats.last else { return }
+        }) ?? formats.last
         
-        let fps = format.videoSupportedFrameRateRanges.first?.maxFrameRate ?? 30
+        guard let format = preferredFormat else { 
+            print("⚠️ No supported format found for camera")
+            return 
+        }
         
-        capturer.startCapture(with: device, format: format, fps: Int(fps))
-        currentCamera = currentCamera == .front ? .back : .front
+        let fps = min(format.videoSupportedFrameRateRanges.first?.maxFrameRate ?? 30, 30)
+        
+        // Stop current capture before switching
+        capturer.stopCapture()
+        
+        // Small delay to ensure camera is released
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            capturer.startCapture(with: device, format: format, fps: Int(fps)) { error in
+                if let error = error {
+                    print("❌ Camera switch error: \(error)")
+                } else {
+                    print("✅ Camera switched to \(targetPosition == .front ? "front" : "back")")
+                    DispatchQueue.main.async {
+                        self?.currentCamera = targetPosition == .front ? .front : .back
+                    }
+                }
+            }
+        }
     }
     
     func setAudioRoute(_ route: AudioRoute) {
