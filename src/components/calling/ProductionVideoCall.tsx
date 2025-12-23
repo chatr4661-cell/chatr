@@ -51,6 +51,11 @@ export default function ProductionVideoCall({
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Keep streams independent from the <video> DOM node refs (refs can swap between main/PiP)
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
   
@@ -79,6 +84,8 @@ export default function ProductionVideoCall({
 
         call.on('localStream', (stream: MediaStream) => {
           console.log('📹 [ProductionVideoCall] Local stream received');
+          localStreamRef.current = stream;
+
           if (localVideoRef.current) {
             localVideoRef.current.srcObject = stream;
             localVideoRef.current.muted = true;
@@ -107,6 +114,8 @@ export default function ProductionVideoCall({
         call.on('remoteStream', (stream: MediaStream) => {
           console.log('📺 [ProductionVideoCall] Remote stream received, tracks:', stream.getTracks().length);
           console.log('🌐 Browser:', { isIOS: isIOS(), isSafari: isSafari(), isFirefox: isFirefox(), isChrome: isChrome() });
+
+          remoteStreamRef.current = stream;
           
           if (remoteVideoRef.current) {
             // CRITICAL: Clear existing srcObject first to force refresh
@@ -133,10 +142,13 @@ export default function ProductionVideoCall({
             
             remoteVideoRef.current.onstalled = () => {
               console.warn('⚠️ Remote video stalled - attempting recovery');
-              if (remoteVideoRef.current) {
-                remoteVideoRef.current.load();
-                remoteVideoRef.current.play().catch(e => console.log('Recovery play:', e));
-              }
+              const el = remoteVideoRef.current;
+              const s = remoteStreamRef.current;
+              if (!el || !s) return;
+              // Re-attach stream to force decoder refresh
+              el.srcObject = null;
+              el.srcObject = s;
+              el.play().catch(e => console.log('Recovery play:', e));
             };
             
             remoteVideoRef.current.onwaiting = () => {
@@ -524,6 +536,23 @@ export default function ProductionVideoCall({
       navigator.mediaDevices.removeEventListener('devicechange', checkAudioDevices);
     };
   }, []);
+
+  // Re-attach streams after swapping main/PiP video elements (refs point to different DOM nodes)
+  useEffect(() => {
+    const localStream = localStreamRef.current;
+    const remoteStream = remoteStreamRef.current;
+
+    if (localVideoRef.current && localStream && localVideoRef.current.srcObject !== localStream) {
+      localVideoRef.current.srcObject = localStream;
+      localVideoRef.current.muted = true;
+      localVideoRef.current.play().catch(() => {});
+    }
+
+    if (remoteVideoRef.current && remoteStream && remoteVideoRef.current.srcObject !== remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch(() => {});
+    }
+  }, [videoLayout]);
 
   const mainVideoRef = videoLayout === 'remote-main' ? remoteVideoRef : localVideoRef;
   const pipVideoRef = videoLayout === 'remote-main' ? localVideoRef : remoteVideoRef;

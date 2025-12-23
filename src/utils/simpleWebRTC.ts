@@ -640,53 +640,67 @@ export class SimpleWebRTCCall {
 
   private adaptiveIntervalId: number | null = null;
   private currentQuality: 'low' | 'medium' | 'high' = 'high';
+  private lastQualityChangeAt = 0;
 
   private setupAdaptiveBitrate() {
     if (!this.pc || !this.isVideo) return;
 
+    // NOTE: Applying camera constraints too frequently can freeze some devices.
+    // We only DOWNGRADE quality (never auto-upgrade) and we rate-limit changes.
     this.adaptiveIntervalId = window.setInterval(async () => {
       if (!this.pc) return;
-      
+
       const stats = await this.pc.getStats();
       let packetsLost = 0;
       let packetsReceived = 0;
-      
+
       stats.forEach(report => {
         if (report.type === 'inbound-rtp' && report.kind === 'video') {
           packetsLost = report.packetsLost || 0;
           packetsReceived = report.packetsReceived || 0;
         }
       });
-      
+
       const totalPackets = packetsLost + packetsReceived;
       const packetLossRate = totalPackets > 0 ? packetsLost / totalPackets : 0;
-      
-      if (packetLossRate > 0.05) {
-        this.adjustVideoQuality('low');
-      } else if (packetLossRate > 0.02) {
-        this.adjustVideoQuality('medium');
-      } else {
-        this.adjustVideoQuality('high');
+
+      const desiredQuality: 'low' | 'medium' | 'high' =
+        packetLossRate > 0.05 ? 'low' : packetLossRate > 0.02 ? 'medium' : 'high';
+
+      const rank = { low: 0, medium: 1, high: 2 } as const;
+
+      // Only downgrade automatically (avoid oscillation + camera restarts)
+      if (rank[desiredQuality] < rank[this.currentQuality]) {
+        await this.adjustVideoQuality(desiredQuality);
       }
-    }, 2000);
+    }, 4000);
   }
 
   private async adjustVideoQuality(quality: 'low' | 'medium' | 'high') {
     if (!this.localStream || this.currentQuality === quality) return;
-    
+
+    const now = Date.now();
+    if (now - this.lastQualityChangeAt < 15000) return;
+
+    const rank = { low: 0, medium: 1, high: 2 } as const;
+
+    // Never auto-upgrade during the call (reduces chances of camera freeze)
+    if (rank[quality] > rank[this.currentQuality]) return;
+
     const videoTrack = this.localStream.getVideoTracks()[0];
     if (!videoTrack) return;
-    
+
     const constraints = {
       low: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } },
       medium: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } },
       high: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }
     };
-    
+
     try {
       await videoTrack.applyConstraints(constraints[quality]);
       this.currentQuality = quality;
-      console.log(`📊 [SimpleWebRTC] Video quality adjusted to ${quality}`);
+      this.lastQualityChangeAt = now;
+      console.log(`📊 [SimpleWebRTC] Video quality downgraded to ${quality}`);
     } catch (error) {
       // CRITICAL: Don't crash on constraint errors - just log and continue
       console.warn('⚠️ [SimpleWebRTC] Failed to adjust quality (non-fatal):', error);
