@@ -105,10 +105,15 @@ export default function ProductionVideoCall({
         });
 
         call.on('remoteStream', (stream: MediaStream) => {
-          console.log('📺 [ProductionVideoCall] Remote stream received');
+          console.log('📺 [ProductionVideoCall] Remote stream received, tracks:', stream.getTracks().length);
           console.log('🌐 Browser:', { isIOS: isIOS(), isSafari: isSafari(), isFirefox: isFirefox(), isChrome: isChrome() });
           
           if (remoteVideoRef.current) {
+            // CRITICAL: Clear existing srcObject first to force refresh
+            if (remoteVideoRef.current.srcObject) {
+              remoteVideoRef.current.srcObject = null;
+            }
+            
             remoteVideoRef.current.srcObject = stream;
             remoteVideoRef.current.playsInline = true;
             remoteVideoRef.current.autoplay = true;
@@ -120,6 +125,23 @@ export default function ProductionVideoCall({
             // Safari/iOS specific: set webkit playsinline
             remoteVideoRef.current.setAttribute('webkit-playsinline', 'true');
             remoteVideoRef.current.setAttribute('playsinline', 'true');
+            
+            // CRITICAL: Monitor video element state for frozen detection
+            remoteVideoRef.current.onloadedmetadata = () => {
+              console.log('✅ Remote video metadata loaded');
+            };
+            
+            remoteVideoRef.current.onstalled = () => {
+              console.warn('⚠️ Remote video stalled - attempting recovery');
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.load();
+                remoteVideoRef.current.play().catch(e => console.log('Recovery play:', e));
+              }
+            };
+            
+            remoteVideoRef.current.onwaiting = () => {
+              console.log('⏳ Remote video waiting for data...');
+            };
             
             console.log('🔊 Remote video configured - muted=false, volume=1.0');
             
@@ -234,6 +256,29 @@ export default function ProductionVideoCall({
         call.on('ended', () => {
           console.log('👋 [ProductionVideoCall] Call ended');
           handleEndCall();
+        });
+
+        // CRITICAL: Handle track state changes for frozen video recovery
+        call.on('trackMuted', (kind: string) => {
+          console.warn(`⚠️ [ProductionVideoCall] Track muted: ${kind}`);
+          if (kind === 'video') {
+            toast.info('Remote video paused', { duration: 2000 });
+          }
+        });
+
+        call.on('trackUnmuted', (kind: string) => {
+          console.log(`✅ [ProductionVideoCall] Track unmuted: ${kind}`);
+          if (kind === 'video' && remoteVideoRef.current) {
+            // Force video refresh on track unmute
+            remoteVideoRef.current.play().catch(e => console.log('Resume play:', e));
+          }
+        });
+
+        call.on('trackEnded', (kind: string) => {
+          console.warn(`⚠️ [ProductionVideoCall] Track ended: ${kind}`);
+          if (kind === 'video') {
+            toast.warning('Remote video stopped');
+          }
         });
 
         await call.start();
