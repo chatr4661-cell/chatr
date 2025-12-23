@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, X, SwitchCamera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendSignal, subscribeToCallSignals } from '@/utils/webrtcSignaling';
+import { pickCameraDeviceId } from '@/utils/cameraDevices';
 
 interface GlobalCallNotificationsProps {
   userId: string;
@@ -383,33 +384,57 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
   // Switch camera (front/back)
   const switchCamera = async () => {
     if (!localStreamRef.current || callType !== 'video') return;
-    
-    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
-    
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: { facingMode: { exact: newFacingMode } }
-      });
 
-      const videoTrack = newStream.getVideoTracks()[0];
-      const sender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
-      
-      if (sender) {
-        await sender.replaceTrack(videoTrack);
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+
+    try {
+      // Keep existing audio track; request VIDEO ONLY
+      let newVideoStream: MediaStream | null = null;
+
+      try {
+        newVideoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: newFacingMode } },
+          audio: false,
+        });
+      } catch (exactErr) {
+        try {
+          newVideoStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: newFacingMode },
+            audio: false,
+          });
+        } catch (idealErr) {
+          const deviceId = await pickCameraDeviceId(newFacingMode);
+          if (!deviceId) throw idealErr;
+
+          newVideoStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: deviceId } },
+            audio: false,
+          });
+        }
+      }
+
+      const newVideoTrack = newVideoStream.getVideoTracks()[0];
+      const sender = peerConnectionRef.current?.getSenders().find((s) => s.track?.kind === 'video');
+
+      if (sender && newVideoTrack) {
+        await sender.replaceTrack(newVideoTrack);
       }
 
       // Stop old video track
-      localStreamRef.current.getVideoTracks()[0].stop();
-      
-      // Update local stream
-      localStreamRef.current = newStream;
+      const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (oldVideoTrack) oldVideoTrack.stop();
+
+      // Build a fresh combined stream (prevents "still showing old camera" on some browsers)
+      const audioTracks = localStreamRef.current.getAudioTracks();
+      const combined = new MediaStream([...audioTracks, newVideoTrack]);
+
+      localStreamRef.current = combined;
       if (localVideoRef.current) {
-        localVideoRef.current.srcObject = newStream;
+        localVideoRef.current.srcObject = combined;
       }
-      
+
       setFacingMode(newFacingMode);
-      
+
       toast({
         title: `Switched to ${newFacingMode === 'user' ? 'front' : 'back'} camera`,
       });
@@ -418,7 +443,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       toast({
         title: 'Camera switch failed',
         description: 'Unable to switch camera',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };

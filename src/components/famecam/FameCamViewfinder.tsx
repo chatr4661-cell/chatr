@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Video, Camera as CameraIcon, SwitchCamera, Loader2 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
+import { pickCameraDeviceId } from "@/utils/cameraDevices";
 
 // Check if device has multiple cameras
 const isMobileDevice = () => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -78,27 +79,57 @@ export default function FameCamViewfinder() {
         }
       } catch (exactError) {
         console.log(`⚠️ Exact constraint failed, trying ideal constraint...`, exactError);
-        
-        // Fallback: try with ideal constraint (less strict)
-        const fallbackConstraints: MediaStreamConstraints = {
-          video: {
-            facingMode: targetFacingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 }
-          },
-          audio: false
-        };
-        
-        const mediaStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-          await videoRef.current.play().catch(() => {});
-          setStream(mediaStream);
-          setHasPermission(true);
-          setFacingMode(targetFacingMode);
-          console.log(`✅ ${targetFacingMode} camera started with fallback`);
+
+        // Fallback 1: try with ideal constraint (less strict)
+        try {
+          const fallbackConstraints: MediaStreamConstraints = {
+            video: {
+              facingMode: targetFacingMode,
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 },
+            },
+            audio: false,
+          };
+
+          const mediaStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+            await videoRef.current.play().catch(() => {});
+            setStream(mediaStream);
+            setHasPermission(true);
+            setFacingMode(targetFacingMode);
+            console.log(`✅ ${targetFacingMode} camera started with fallback`);
+            return;
+          }
+        } catch (fallbackError) {
+          console.log(`⚠️ Ideal constraint failed, trying deviceId...`, fallbackError);
+
+          // Fallback 2: pick a camera deviceId (helps on some iOS/Android browsers)
+          const deviceId = await pickCameraDeviceId(targetFacingMode);
+          if (!deviceId) throw fallbackError;
+
+          const deviceConstraints: MediaStreamConstraints = {
+            video: {
+              deviceId: { exact: deviceId },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 },
+            },
+            audio: false,
+          };
+
+          const mediaStream = await navigator.mediaDevices.getUserMedia(deviceConstraints);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+            await videoRef.current.play().catch(() => {});
+            setStream(mediaStream);
+            setHasPermission(true);
+            setFacingMode(targetFacingMode);
+            console.log(`✅ ${targetFacingMode} camera started with deviceId fallback`);
+          }
         }
       }
     } catch (error) {
