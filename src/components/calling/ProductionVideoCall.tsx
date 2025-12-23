@@ -117,6 +117,13 @@ export default function ProductionVideoCall({
           console.log('🌐 Browser:', { isIOS: isIOS(), isSafari: isSafari(), isFirefox: isFirefox(), isChrome: isChrome() });
 
           remoteStreamRef.current = stream;
+
+          // If remote joins without any video track, treat as camera off
+          const hasRemoteVideoTrack = stream.getVideoTracks().length > 0;
+          if (!hasRemoteVideoTrack) {
+            setRemoteVideoAvailable(false);
+            setVideoLayout('local-main');
+          }
           
           if (remoteVideoRef.current) {
             // CRITICAL: Clear existing srcObject first to force refresh
@@ -418,8 +425,11 @@ export default function ProductionVideoCall({
   };
 
   const handleSwapVideos = () => {
-    setVideoLayout(prev => prev === 'remote-main' ? 'local-main' : 'remote-main');
-    toast.info(videoLayout === 'remote-main' ? 'Your video is now main' : 'Their video is now main');
+    setVideoLayout(prev => {
+      const next = prev === 'remote-main' ? 'local-main' : 'remote-main';
+      toast.info(next === 'local-main' ? 'Your video is now main' : 'Their video is now main');
+      return next;
+    });
   };
 
   const handleToggleFullScreen = async () => {
@@ -594,42 +604,51 @@ export default function ProductionVideoCall({
         className="w-full h-full overflow-hidden"
         style={zoomStyle}
       >
-        <video
-          ref={mainVideoRef}
-          autoPlay
-          playsInline
-          muted={videoLayout === 'local-main'}
-          className="w-full h-full object-cover"
-          style={{ WebkitPlaysinline: 'true' } as any}
-          onDoubleClick={() => {
-            if (isZoomed) {
-              resetZoom();
-            } else {
-              handleToggleFullScreen();
-            }
-          }}
-          onLoadedMetadata={(e) => {
-            const video = e.currentTarget;
-            if (videoLayout === 'remote-main') {
-              video.muted = true;
-              video.play().then(() => {
-                setTimeout(() => {
-                  video.muted = false;
-                  video.volume = 1.0;
-                  console.log('🔊 Remote video metadata loaded, played and unmuted');
-                }, 100);
-              }).catch(err => console.log('Auto-play on metadata:', err));
-            }
-          }}
-          onClick={() => {
-            if (mainVideoRef.current && videoLayout === 'remote-main') {
-              mainVideoRef.current.muted = false;
-              mainVideoRef.current.volume = 1.0;
-              mainVideoRef.current.play().catch(err => console.log('Play on click:', err));
-              setUserInteracted(true);
-            }
-          }}
-        />
+        {videoLayout === 'remote-main' && !remoteVideoAvailable ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center mb-4">
+              <span className="text-white text-3xl font-semibold">{contactName.charAt(0).toUpperCase()}</span>
+            </div>
+            <div className="text-white/80 text-sm">Camera off</div>
+          </div>
+        ) : (
+          <video
+            ref={mainVideoRef}
+            autoPlay
+            playsInline
+            muted={videoLayout === 'local-main'}
+            className="w-full h-full object-cover"
+            style={{ WebkitPlaysinline: 'true' } as any}
+            onDoubleClick={() => {
+              if (isZoomed) {
+                resetZoom();
+              } else {
+                handleToggleFullScreen();
+              }
+            }}
+            onLoadedMetadata={(e) => {
+              const video = e.currentTarget;
+              if (videoLayout === 'remote-main') {
+                video.muted = true;
+                video.play().then(() => {
+                  setTimeout(() => {
+                    video.muted = false;
+                    video.volume = 1.0;
+                    console.log('🔊 Remote video metadata loaded, played and unmuted');
+                  }, 100);
+                }).catch(err => console.log('Auto-play on metadata:', err));
+              }
+            }}
+            onClick={() => {
+              if (mainVideoRef.current && videoLayout === 'remote-main') {
+                mainVideoRef.current.muted = false;
+                mainVideoRef.current.volume = 1.0;
+                mainVideoRef.current.play().catch(err => console.log('Play on click:', err));
+                setUserInteracted(true);
+              }
+            }}
+          />
+        )}
       </div>
 
       {/* Zoom indicator with HD badge */}
@@ -657,22 +676,26 @@ export default function ProductionVideoCall({
       <div
         onClick={(e) => {
           e.stopPropagation();
-          // Only allow swap if remote video is available
-          if (remoteVideoAvailable || videoLayout === 'local-main') {
-            handleSwapVideos();
-            if (pipVideoRef.current && videoLayout === 'local-main') {
-              pipVideoRef.current.muted = false;
-              pipVideoRef.current.volume = 1.0;
-              pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
-            }
+
+          // Prevent swapping to remote when their camera is off
+          if (videoLayout === 'local-main' && !remoteVideoAvailable) {
+            toast.info('Remote camera is off');
+            return;
+          }
+
+          handleSwapVideos();
+          if (pipVideoRef.current && videoLayout === 'local-main') {
+            pipVideoRef.current.muted = false;
+            pipVideoRef.current.volume = 1.0;
+            pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
           }
         }}
-        className="absolute top-20 right-4 mt-12 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm bg-gray-800"
+        className="absolute top-20 right-4 mt-12 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm bg-black/40"
       >
         {/* Show avatar placeholder when remote video is unavailable and PiP should show remote */}
         {!remoteVideoAvailable && videoLayout === 'local-main' ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
-            <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mb-2">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-black/60">
+            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2">
               <span className="text-white text-lg font-semibold">{contactName.charAt(0).toUpperCase()}</span>
             </div>
             <span className="text-white/60 text-xs">Camera off</span>
