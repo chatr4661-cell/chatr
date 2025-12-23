@@ -46,6 +46,7 @@ export default function ProductionVideoCall({
   const [isPiPActive, setIsPiPActive] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [bluetoothConnected, setBluetoothConnected] = useState(false);
+  const [remoteVideoAvailable, setRemoteVideoAvailable] = useState(true); // Track if remote video is active
   const isMobileDevice = isMobile();
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
@@ -270,25 +271,35 @@ export default function ProductionVideoCall({
           handleEndCall();
         });
 
-        // CRITICAL: Handle track state changes for frozen video recovery
+        // CRITICAL: Handle track state changes for frozen video recovery + auto-swap
         call.on('trackMuted', (kind: string) => {
           console.warn(`⚠️ [ProductionVideoCall] Track muted: ${kind}`);
           if (kind === 'video') {
-            toast.info('Remote video paused', { duration: 2000 });
+            setRemoteVideoAvailable(false);
+            // Auto-swap to local video when remote is off
+            setVideoLayout('local-main');
+            toast.info('Remote camera off – showing your video', { duration: 2000 });
           }
         });
 
         call.on('trackUnmuted', (kind: string) => {
           console.log(`✅ [ProductionVideoCall] Track unmuted: ${kind}`);
-          if (kind === 'video' && remoteVideoRef.current) {
-            // Force video refresh on track unmute
-            remoteVideoRef.current.play().catch(e => console.log('Resume play:', e));
+          if (kind === 'video') {
+            setRemoteVideoAvailable(true);
+            // Auto-swap back to remote video when it's available again
+            setVideoLayout('remote-main');
+            toast.success('Remote camera back on', { duration: 2000 });
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.play().catch(e => console.log('Resume play:', e));
+            }
           }
         });
 
         call.on('trackEnded', (kind: string) => {
           console.warn(`⚠️ [ProductionVideoCall] Track ended: ${kind}`);
           if (kind === 'video') {
+            setRemoteVideoAvailable(false);
+            setVideoLayout('local-main');
             toast.warning('Remote video stopped');
           }
         });
