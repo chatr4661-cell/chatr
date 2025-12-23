@@ -428,11 +428,7 @@ export default function ProductionVideoCall({
           playsInline
           muted={videoLayout === 'local-main'}
           className="w-full h-full object-cover"
-          style={{ 
-            WebkitPlaysinline: 'true',
-            // Mirror local video when front camera, no mirror for remote or back camera
-            transform: videoLayout === 'local-main' && currentCamera === 'user' ? 'scaleX(-1)' : 'none'
-          } as any}
+          style={{ WebkitPlaysinline: 'true' } as any}
           onDoubleClick={() => {
             if (isZoomed) {
               resetZoom();
@@ -505,12 +501,8 @@ export default function ProductionVideoCall({
           autoPlay
           playsInline
           muted={videoLayout === 'remote-main'}
-          className="w-full h-full object-cover"
-          style={{ 
-            WebkitPlaysinline: 'true',
-            // Mirror local video when front camera, no mirror for remote or back camera
-            transform: videoLayout === 'remote-main' && currentCamera === 'user' ? 'scaleX(-1)' : 'none'
-          } as any}
+          className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
+          style={{ WebkitPlaysinline: 'true' } as any}
         />
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
           <Repeat className="w-6 h-6 text-white" />

@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { pickCameraDeviceId } from "@/utils/cameraDevices";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate';
@@ -986,28 +985,30 @@ export class SimpleWebRTCCall {
         await sender.replaceTrack(newVideoTrack);
         console.log('✅ [SimpleWebRTC] Sender track replaced');
       }
-
-      // Rebuild local stream (prevents some browsers from keeping the old camera track)
-      const audioTracks = this.localStream.getAudioTracks();
-      this.localStream.getVideoTracks().forEach(t => t.stop());
-      this.localStream = new MediaStream([...audioTracks, newVideoTrack]);
-
+      
+      // Update local stream
+      this.localStream.removeTrack(oldVideoTrack);
+      this.localStream.addTrack(newVideoTrack);
+      
+      // Stop old track AFTER replacing
+      oldVideoTrack.stop();
+      
       // Update state
       this.currentFacingMode = newFacingMode;
-
+      
       // Clear used cache
       if (newFacingMode === 'user') {
         this.cachedFrontCamera = null;
       } else {
         this.cachedBackCamera = null;
       }
-
+      
       // Emit updated stream
       this.emit('localStream', this.localStream);
-
+      
       // Pre-cache the OTHER camera for next switch (async, non-blocking)
       setTimeout(() => this.preCacheAlternateCamera(), 500);
-
+      
       console.log(`✅ [SimpleWebRTC] Camera switched to ${newFacingMode}`);
       this.isSwitchingCamera = false;
       return newFacingMode;
@@ -1016,43 +1017,25 @@ export class SimpleWebRTCCall {
       console.error('❌ [SimpleWebRTC] Failed to switch camera:', error);
       this.isSwitchingCamera = false;
       
-      // Fallback: try without exact constraint, then deviceId
+      // Fallback: try without exact constraint
       try {
-        let fallbackStream: MediaStream | null = null;
-
-        try {
-          fallbackStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: newFacingMode,
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-            },
-            audio: false,
-          });
-        } catch (idealErr) {
-          const deviceId = await pickCameraDeviceId(newFacingMode);
-          if (!deviceId) throw idealErr;
-
-          fallbackStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              deviceId: { exact: deviceId },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-            },
-            audio: false,
-          });
-        }
-
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: newFacingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+        
         const fallbackTrack = fallbackStream.getVideoTracks()[0];
         const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
-
+        
         if (sender && fallbackTrack) {
           await sender.replaceTrack(fallbackTrack);
-
-          const audioTracks = this.localStream?.getAudioTracks() ?? [];
-          this.localStream?.getVideoTracks().forEach(t => t.stop());
-          this.localStream = new MediaStream([...audioTracks, fallbackTrack]);
-
+          this.localStream?.removeTrack(oldVideoTrack);
+          this.localStream?.addTrack(fallbackTrack);
+          oldVideoTrack.stop();
           this.currentFacingMode = newFacingMode;
           this.emit('localStream', this.localStream);
           console.log('✅ [SimpleWebRTC] Camera switched with fallback');
@@ -1061,7 +1044,7 @@ export class SimpleWebRTCCall {
       } catch (fallbackError) {
         console.error('❌ [SimpleWebRTC] Fallback switch failed:', fallbackError);
       }
-
+      
       throw error;
     }
   }
