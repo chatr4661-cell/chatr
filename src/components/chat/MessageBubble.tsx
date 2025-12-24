@@ -1,10 +1,10 @@
 import React, { useState, memo, useCallback, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Check, CheckCheck, Star, Reply, Forward, Copy, Trash, Download, Share2, Edit, MapPin, Pin, AlertTriangle, FileText, Timer, Languages } from 'lucide-react';
+import { Check, CheckCheck, MapPin, FileText, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { MessageContextMenu } from './MessageContextMenu';
+import { WhatsAppContextMenu } from './WhatsAppContextMenu';
 import { PollMessageWrapper } from './PollMessageWrapper';
 import { ContactMessage } from './ContactMessage';
 import { EventMessage } from './EventMessage';
@@ -268,14 +268,18 @@ const MessageBubbleComponent = ({
     }
   };
 
-  const messageActions = [
-    { icon: Reply, label: 'Reply', action: () => handleReply(), show: true },
-    { icon: Forward, label: 'Forward', action: () => handleForward(), show: true },
-    { icon: Star, label: message.is_starred ? 'Unstar' : 'Star', action: () => handleStarToggle(), show: true },
-    { icon: Pin, label: 'Pin', action: () => handlePin(), show: true },
-    { icon: AlertTriangle, label: 'Report', action: () => handleReport(), variant: 'destructive' as const, show: !isOwn },
-    { icon: Trash, label: 'Delete', action: () => handleDelete(), variant: 'destructive' as const, show: isOwn }
-  ];
+  const handleReact = async (emoji: string) => {
+    try {
+      await supabase.rpc('toggle_message_reaction', {
+        p_message_id: message.id,
+        p_user_id: message.sender_id,
+        p_emoji: emoji
+      });
+      toast.success(`Reacted with ${emoji}`);
+    } catch (error) {
+      console.error('Failed to react:', error);
+    }
+  };
 
   // Debug logging
   console.log('[MessageBubble]', {
@@ -648,13 +652,20 @@ const MessageBubbleComponent = ({
         </div>
       </div>
 
-      {/* Context menu */}
-      <MessageContextMenu
+      {/* WhatsApp-style Context menu */}
+      <WhatsAppContextMenu
         open={showMenu}
         onClose={() => setShowMenu(false)}
-        position={menuPosition}
-        actions={messageActions.filter(a => a.show !== false)}
         message={message}
+        isOwn={isOwn}
+        onReply={handleReply}
+        onForward={handleForward}
+        onStar={handleStarToggle}
+        onPin={handlePin}
+        onDelete={handleDelete}
+        onCopy={handleCopy}
+        onReact={handleReact}
+        isStarred={message.is_starred}
       />
 
       {/* Delete confirmation dialog */}
