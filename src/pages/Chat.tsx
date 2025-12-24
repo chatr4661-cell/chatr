@@ -535,18 +535,18 @@ const ChatEnhancedContent = () => {
   };
 
   const handleDeleteMessage = async (messageId: string) => {
+    console.log('[Chat] handleDeleteMessage called:', messageId);
     try {
       const message = displayMessages.find(m => m.id === messageId);
-      if (!message) return;
+      console.log('[Chat] Found message:', message?.id, 'sender:', message?.sender_id, 'user:', user?.id);
+      if (!message) {
+        console.error('[Chat] Message not found in displayMessages');
+        return;
+      }
 
-      // Check if message is within 2 minutes window (for non-owners)
-      const messageTime = new Date(message.created_at).getTime();
-      const now = Date.now();
-      const twoMinutes = 2 * 60 * 1000;
-      const canDelete = message.sender_id === user?.id && (now - messageTime) <= twoMinutes;
-
-      if (!canDelete && message.sender_id === user?.id) {
-        toast.error('Messages can only be deleted within 2 minutes');
+      // Only allow deleting own messages
+      if (message.sender_id !== user?.id) {
+        toast.error('You can only delete your own messages');
         return;
       }
 
@@ -556,12 +556,16 @@ const ChatEnhancedContent = () => {
         .update({ 
           is_deleted: true, 
           deleted_at: new Date().toISOString(),
-          content: '' // Clear content for privacy
+          content: 'This message was deleted' // Keep placeholder
         })
         .eq('id', messageId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Chat] Delete error:', error);
+        throw error;
+      }
       
+      console.log('[Chat] Message deleted successfully');
       await loadMessages();
       toast.success('Message deleted');
     } catch (error) {

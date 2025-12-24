@@ -56,11 +56,13 @@ export const WhatsAppContextMenu: React.FC<WhatsAppContextMenuProps> = ({
     onClose();
   };
 
-  const handleAction = async (action: () => void, id: string) => {
+  const handleAction = async (action: () => void, id: string, skipClose?: boolean) => {
     if (navigator.vibrate) navigator.vibrate(25);
     await haptics.light();
     action();
-    onClose();
+    if (!skipClose) {
+      onClose();
+    }
   };
 
   const menuItems = [
@@ -69,7 +71,7 @@ export const WhatsAppContextMenu: React.FC<WhatsAppContextMenuProps> = ({
     { id: 'star', icon: Star, label: isStarred ? 'Unstar' : 'Star', action: onStar, show: !!onStar },
     { id: 'pin', icon: Pin, label: isPinned ? 'Unpin' : 'Pin', action: onPin, show: !!onPin },
     { id: 'copy', icon: Copy, label: 'Copy', action: onCopy, show: !!onCopy },
-    { id: 'delete', icon: Trash2, label: 'Delete', action: onDelete, show: isOwn && !!onDelete, destructive: true },
+    { id: 'delete', icon: Trash2, label: 'Delete', action: onDelete, show: isOwn && !!onDelete, destructive: true, skipClose: true },
   ].filter(item => item.show);
 
   return (
@@ -149,7 +151,7 @@ export const WhatsAppContextMenu: React.FC<WhatsAppContextMenuProps> = ({
                     onMouseDown={() => setPressedItem(item.id)}
                     onMouseUp={() => setPressedItem(null)}
                     onMouseLeave={() => setPressedItem(null)}
-                    onClick={() => item.action && handleAction(item.action, item.id)}
+                    onClick={() => item.action && handleAction(item.action, item.id, item.skipClose)}
                     className={cn(
                       "w-full flex items-center justify-between px-4 py-3.5 transition-all duration-150",
                       "active:bg-accent/80",

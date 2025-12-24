@@ -253,9 +253,11 @@ const MessageBubbleComponent = ({
 
   const confirmDelete = async () => {
     setShowDeleteDialog(false);
+    setShowMenu(false); // Close the context menu
     console.log('Confirm delete', message.id);
     if (onDelete) {
       onDelete(message.id);
+      toast.success('Message deleted');
     }
   };
 
@@ -678,7 +680,7 @@ const MessageBubbleComponent = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setShowMenu(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
