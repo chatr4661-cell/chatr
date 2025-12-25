@@ -2,30 +2,37 @@
 // Handles offline functionality, caching, background sync, and push notifications
 
 // Cache version - increment to force update
-const CACHE_NAME = 'chatr-cache-v3';
-const RUNTIME_CACHE = 'chatr-runtime-v3';
-const IMAGE_CACHE = 'chatr-images-v3';
+const CACHE_NAME = 'chatr-cache-v4';
+const RUNTIME_CACHE = 'chatr-runtime-v4';
+const IMAGE_CACHE = 'chatr-images-v4';
 
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/chatr-logo.png',
-  '/favicon.png',
-  '/notification.mp3',
-  '/ringtone.mp3'
+  '/manifest.json'
 ];
 
-// Install event - cache static assets
+// Install event - cache static assets with error handling
 self.addEventListener('install', (event) => {
   console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        // Cache each asset individually to prevent one failure from breaking all
+        return Promise.allSettled(
+          STATIC_ASSETS.map(url => 
+            cache.add(url).catch(err => {
+              console.warn('Failed to cache:', url, err.message);
+              return null;
+            })
+          )
+        );
       })
       .then(() => self.skipWaiting())
+      .catch(err => {
+        console.error('Service Worker install failed:', err);
+      })
   );
 });
 

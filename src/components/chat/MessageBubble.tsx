@@ -257,7 +257,7 @@ const MessageBubbleComponent = ({
     console.log('Confirm delete', message.id);
     if (onDelete) {
       onDelete(message.id);
-      toast.success('Message deleted');
+      // Toast is shown in Chat.tsx after successful deletion
     }
   };
 
