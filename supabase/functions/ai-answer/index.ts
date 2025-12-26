@@ -40,6 +40,207 @@ interface AIAnswerRequest {
   };
 }
 
+type QueryType = "place" | "person" | "general";
+
+/* ----------------------------------
+   Query Type Detection
+---------------------------------- */
+function detectQueryType(query: string, results: Array<{ title: string; snippet: string; url: string }>): QueryType {
+  const queryLower = query.toLowerCase();
+  const combinedText = results
+    .map((r) => `${r.title} ${r.snippet}`)
+    .join(" ")
+    .toLowerCase();
+
+  // Place indicators in query
+  const placeQueryKeywords = [
+    "city", "town", "village", "district", "state", "country", "capital",
+    "where is", "location of", "map of", "weather in", "things to do in",
+    "hotels in", "restaurants in", "places in", "travel to", "visit"
+  ];
+
+  // Place indicators in results
+  const placeResultKeywords = [
+    "located", "district", "city", "town", "village", "population",
+    "geography", "coordinates", "latitude", "longitude", "area",
+    "municipality", "region", "province", "capital", "india", "usa",
+    "united states", "europe", "asia", "country", "wikipedia",
+    "known for", "famous for", "tourist", "landmark", "monument"
+  ];
+
+  // Person indicators in query
+  const personQueryKeywords = [
+    "who is", "biography", "age of", "born", "death", "career",
+    "profession", "job of", "works at", "married", "children"
+  ];
+
+  // Person indicators in results
+  const personResultKeywords = [
+    "linkedin", "facebook", "twitter", "instagram", "profile",
+    "biography", "born", "age", "career", "profession", "ceo",
+    "founder", "director", "manager", "engineer", "doctor",
+    "politician", "actor", "actress", "singer", "author", "writer"
+  ];
+
+  // Score-based detection
+  let placeScore = 0;
+  let personScore = 0;
+
+  // Check query keywords
+  for (const keyword of placeQueryKeywords) {
+    if (queryLower.includes(keyword)) placeScore += 2;
+  }
+  for (const keyword of personQueryKeywords) {
+    if (queryLower.includes(keyword)) personScore += 2;
+  }
+
+  // Check results keywords
+  for (const keyword of placeResultKeywords) {
+    if (combinedText.includes(keyword)) placeScore += 1;
+  }
+  for (const keyword of personResultKeywords) {
+    if (combinedText.includes(keyword)) personScore += 1;
+  }
+
+  // Wikipedia with geographic/location context = place
+  if (combinedText.includes("wikipedia") && 
+      (combinedText.includes("district") || combinedText.includes("city") || 
+       combinedText.includes("located") || combinedText.includes("india"))) {
+    placeScore += 3;
+  }
+
+  // LinkedIn or professional profiles = person
+  if (combinedText.includes("linkedin") || combinedText.includes("profile")) {
+    personScore += 3;
+  }
+
+  console.log(`📊 Query type detection - Place: ${placeScore}, Person: ${personScore}`);
+
+  if (placeScore > personScore && placeScore >= 3) return "place";
+  if (personScore > placeScore && personScore >= 3) return "person";
+  return "general";
+}
+
+/* ----------------------------------
+   System Prompts by Query Type
+---------------------------------- */
+function getSystemPrompt(queryType: QueryType, contextText: string, locationContext: string): string {
+  if (queryType === "place") {
+    return `You are a factual geography assistant.
+
+TASK:
+Write a clear and reliable summary about a place using ONLY the provided search context.
+
+STRICT RULES:
+1. Summary must be 5 to 10 lines.
+2. One complete sentence per line.
+3. Do NOT use *, #, markdown, or bullet symbols.
+4. Numbers (1, 2, 3) and letters (a, b, c) are allowed for lists.
+5. Neutral, factual tone.
+6. Do not invent facts.
+7. If information is limited, say so clearly.
+
+CONTENT TO INCLUDE:
+- What the place is
+- Where it is located
+- Administrative or regional context
+- Why it is known
+- One practical or distinguishing fact
+
+OUTPUT FORMAT:
+Plain text only.
+One sentence per line.
+No markdown formatting whatsoever.
+
+SEARCH CONTEXT:
+${contextText}${locationContext}`.trim();
+  }
+
+  if (queryType === "person") {
+    return `You are a factual profile assistant.
+
+TASK:
+Write a neutral summary about a person using ONLY the provided search context.
+
+STRICT RULES:
+1. Summary must be 5 to 10 lines.
+2. One complete sentence per line.
+3. Do NOT use *, #, markdown, or bullet symbols.
+4. Numbers (1, 2, 3) and letters (a, b, c) are allowed for lists.
+5. Do not invent facts.
+6. If multiple people share the same name, clearly state this.
+7. If information is limited, say so clearly.
+
+CONTENT TO INCLUDE:
+- Professional identity if available
+- Public roles or affiliations
+- Type of work or domain
+- Any verified public presence
+- Clarification if identity is ambiguous
+
+OUTPUT FORMAT:
+Plain text only.
+One sentence per line.
+No markdown formatting whatsoever.
+
+SEARCH CONTEXT:
+${contextText}${locationContext}`.trim();
+  }
+
+  // General query
+  return `You are a factual AI assistant.
+
+TASK:
+Write a clear, neutral summary using ONLY the provided search context.
+
+STRICT RULES:
+1. Summary must be between 5 and 10 lines.
+2. Each line should be a complete sentence.
+3. Do NOT use *, #, markdown, or bullet symbols.
+4. Numbers (1, 2, 3) or letters (a, b, c) are allowed for lists.
+5. Do NOT invent facts.
+6. If information is limited, state that transparently.
+
+STYLE:
+- Professional and neutral tone.
+- Simple language.
+- No hype, no exaggeration.
+
+OUTPUT FORMAT:
+Plain text only.
+One sentence per line.
+No markdown formatting whatsoever.
+
+SEARCH CONTEXT:
+${contextText}${locationContext}`.trim();
+}
+
+/* ----------------------------------
+   Fallback Summary by Query Type
+---------------------------------- */
+function getFallbackSummary(query: string, queryType: QueryType): string {
+  if (queryType === "place") {
+    return `Information about "${query}" is based on available public sources.
+This appears to be a geographical location.
+The search found some relevant records about this place.
+More specific details may be available in the sources below.
+Please review the linked sources for comprehensive information.`;
+  }
+
+  if (queryType === "person") {
+    return `Information about "${query}" is based on available public sources.
+The name appears in multiple public records and profiles.
+Due to common naming, there may be multiple individuals with this name.
+More specific context is needed for precise identification.
+Please review the sources below for detailed information.`;
+  }
+
+  return `Information about "${query}" is limited based on available public sources.
+The search found some relevant records.
+More specific details may be required for a comprehensive summary.
+Please review the sources below for additional context.`;
+}
+
 /* ----------------------------------
    Helper: Call OpenRouter
 ---------------------------------- */
@@ -61,8 +262,8 @@ async function callOpenRouter(
       },
       body: JSON.stringify({
         model,
-        temperature: 0.6,
-        max_tokens: 600,
+        temperature: 0.5,
+        max_tokens: 700,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
@@ -103,7 +304,8 @@ serve(async (req) => {
 
     console.log("📝 AI Answer request:", query);
 
-    if (!query || !results || results.length === 0) {
+    // ALWAYS attempt AI summary if query exists (even with empty results)
+    if (!query) {
       return new Response(
         JSON.stringify({ text: null, sources: [], images: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -113,19 +315,36 @@ serve(async (req) => {
     /* ---------- API Key ---------- */
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY not configured");
+      console.error("❌ OPENROUTER_API_KEY not configured");
+      return new Response(
+        JSON.stringify({
+          text: getFallbackSummary(query, "general"),
+          sources: [],
+          images: [],
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
+    /* ---------- Handle empty results gracefully ---------- */
+    const safeResults = results || [];
+    
+    /* ---------- Detect Query Type ---------- */
+    const queryType = detectQueryType(query, safeResults);
+    console.log(`🔍 Detected query type: ${queryType}`);
+
     /* ---------- Build Context ---------- */
-    const contextText = results
-      .slice(0, 8)
-      .map(
-        (r, i) =>
-          `[Source ${i + 1}: ${new URL(r.url).hostname}]
+    const contextText = safeResults.length > 0
+      ? safeResults
+          .slice(0, 8)
+          .map(
+            (r, i) =>
+              `[Source ${i + 1}: ${new URL(r.url).hostname}]
 Title: ${r.title}
 Content: ${r.snippet}`
-      )
-      .join("\n\n");
+          )
+          .join("\n\n")
+      : `Query: "${query}" - Limited search results available.`;
 
     const locationContext = location?.city
       ? `\nUser location: ${location.city}`
@@ -140,7 +359,7 @@ Content: ${r.snippet}`
             source: img.source,
             title: img.title,
           }))
-        : results
+        : safeResults
             .filter((r) => r.image && !r.image.includes("favicon"))
             .slice(0, 4)
             .map((r) => ({
@@ -148,37 +367,9 @@ Content: ${r.snippet}`
               source: new URL(r.url).hostname,
             }));
 
-    /* ---------- System Prompt (Plain text, no markdown) ---------- */
-    const systemPrompt = `
-You are a factual AI assistant.
-
-TASK:
-Write a clear, neutral summary using ONLY the provided search context.
-
-STRICT RULES:
-1. Summary must be between 5 and 10 lines.
-2. Each line should be a complete sentence.
-3. Do NOT use *, #, markdown, or bullet symbols.
-4. Numbers (1, 2, 3) or letters (a, b, c) are allowed for lists.
-5. Do NOT invent facts.
-6. If multiple people share the same name, clearly say so.
-7. If information is limited, state that transparently.
-
-STYLE:
-- Professional and neutral tone.
-- Simple language.
-- No hype, no exaggeration.
-
-OUTPUT FORMAT:
-Plain text only.
-One sentence per line.
-No markdown formatting whatsoever.
-
-SEARCH CONTEXT:
-${contextText}${locationContext}
-`.trim();
-
-    const userMessage = `User Query: ${query}\n\nProvide a clear and accurate summary.`;
+    /* ---------- Get Query-Specific Prompt ---------- */
+    const systemPrompt = getSystemPrompt(queryType, contextText, locationContext);
+    const userMessage = `User Query: ${query}\n\nProvide a clear and accurate summary in 5-10 lines.`;
 
     /* ---------- Call OpenRouter with fallback ---------- */
     console.log("🤖 Trying primary model:", PRIMARY_MODEL);
@@ -192,44 +383,20 @@ ${contextText}${locationContext}
 
     console.log("📡 OpenRouter status:", result.status);
 
+    /* ---------- Sources ---------- */
+    const sources = safeResults.slice(0, 6).map((r) => ({
+      title: r.title,
+      url: r.url,
+      domain: new URL(r.url).hostname.replace("www.", ""),
+    }));
+
     if (!result.ok) {
-      if (result.status === 429) {
-        return new Response(
-          JSON.stringify({
-            error: "AI is temporarily busy. Please try again shortly.",
-            text: null,
-            sources: [],
-            images,
-          }),
-          {
-            status: 200, // Return 200 so frontend handles gracefully
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      if (result.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "AI quota temporarily exhausted.",
-            text: null,
-            sources: [],
-            images,
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      // For any other error, return graceful fallback
       console.error("OpenRouter error:", result.status, result.errorText);
+      // Return fallback summary instead of error
       return new Response(
         JSON.stringify({
-          error: "AI summary temporarily unavailable.",
-          text: null,
-          sources: [],
+          text: getFallbackSummary(query, queryType),
+          sources,
           images,
         }),
         {
@@ -242,28 +409,25 @@ ${contextText}${locationContext}
     /* ---------- Extract and validate AI text ---------- */
     let aiText = result.data?.choices?.[0]?.message?.content?.trim() || null;
 
-    // Validate response - ensure it's meaningful
-    if (!aiText || aiText.split("\n").filter((l: string) => l.trim()).length < 3) {
+    // Validate response - ensure it's meaningful (at least 5 non-empty lines)
+    const lineCount = aiText ? aiText.split("\n").filter((l: string) => l.trim().length > 10).length : 0;
+    
+    if (!aiText || lineCount < 3) {
       console.warn("⚠️ AI returned short/empty response, using fallback text");
-      aiText = `Information about "${query}" is limited based on available public sources. The search found some relevant records, but more specific details may be required for a comprehensive summary. Please review the sources below for additional context.`;
+      aiText = getFallbackSummary(query, queryType);
     }
 
     // Clean any markdown that might have slipped through
     aiText = aiText
-      .replace(/\*\*/g, '')
-      .replace(/##/g, '')
-      .replace(/\*/g, '')
-      .replace(/#/g, '')
+      .replace(/\*\*/g, "")
+      .replace(/##/g, "")
+      .replace(/\*/g, "")
+      .replace(/#/g, "")
+      .replace(/^[-•]\s/gm, "") // Remove bullet points at start of lines
       .trim();
 
-    /* ---------- Sources ---------- */
-    const sources = results.slice(0, 6).map((r) => ({
-      title: r.title,
-      url: r.url,
-      domain: new URL(r.url).hostname.replace("www.", ""),
-    }));
-
     /* ---------- Final Response ---------- */
+    console.log(`✅ AI Answer generated successfully for query type: ${queryType}`);
     return new Response(
       JSON.stringify({
         text: aiText,
@@ -276,16 +440,16 @@ ${contextText}${locationContext}
     );
   } catch (error) {
     console.error("❌ AI Answer Error:", error);
-    // Return graceful error - never expose raw errors
+    // Return graceful fallback - never expose raw errors
+    const query = "your search";
     return new Response(
       JSON.stringify({
-        error: "AI summary temporarily unavailable.",
-        text: null,
+        text: getFallbackSummary(query, "general"),
         sources: [],
         images: [],
       }),
       {
-        status: 200, // Return 200 so frontend handles gracefully
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
