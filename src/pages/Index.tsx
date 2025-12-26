@@ -502,7 +502,7 @@ const Index = () => {
     },
     {
       icon: Briefcase,
-      title: 'Local Jobs',
+      title: 'Jobs',
       description: 'Jobs near you',
       iconColor: 'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600',
       route: '/jobs'
