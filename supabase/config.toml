@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.register-device-token]
 verify_jwt = false
+
+[functions.crawl-jobs]
+verify_jwt = false

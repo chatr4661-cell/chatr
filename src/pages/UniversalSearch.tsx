@@ -37,6 +37,7 @@ import { AISummaryContent } from '@/components/ai/AISummaryContent';
 import { useLocalAI } from '@/hooks/useLocalAI';
 import { detectJobIntent, JobIntent } from '@/services/intentEngine/jobIntentDetector';
 import { JobActionCards, JobListing } from '@/components/jobs/JobActionCards';
+import { crawlJobs } from '@/lib/api/jobCrawler';
 
 interface SearchResult {
   id: string;
@@ -208,8 +209,41 @@ const UniversalSearch = () => {
           return; // Exit early - job action cards will be shown
         }
         
+        // No internal jobs found - trigger crawler to fetch from public sources
+        console.log('🔄 No internal jobs found, triggering crawler...');
+        
+        // Trigger background crawl for this location/query
+        const crawlResult = await crawlJobs({
+          query: detectedJobIntent.extractedData.category || fullQuery,
+          location: detectedJobIntent.extractedData.location || 'India',
+          limit: 15
+        });
+        
+        if (crawlResult.success && crawlResult.jobs && crawlResult.jobs.length > 0) {
+          // Use the crawled & normalized jobs
+          const crawledJobs = crawlResult.jobs.map((job: any) => ({
+            ...job,
+            id: job.id || `crawled-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            posted_ago: 'Just added',
+            is_urgent: detectedJobIntent.extractedData.urgency === 'immediate',
+          }));
+          
+          setJobListings(crawledJobs);
+          setJobsLoading(false);
+          setLoading(false);
+          setWebSearchLoading(false);
+          
+          setAiIntent({
+            intent: `Found ${crawledJobs.length} jobs from public sources`,
+            suggestions: detectedJobIntent.suggestedFilters,
+          });
+          
+          toast.success(`Found ${crawledJobs.length} jobs matching your search`);
+          return;
+        }
+        
         setJobsLoading(false);
-        // If no internal jobs found, fall through to web search
+        // If crawl also failed, fall through to web search
       }
 
       // Generate or get session ID
