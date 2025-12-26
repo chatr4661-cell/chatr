@@ -9,7 +9,7 @@ import { webExtraction, ExtractedContent } from './webExtraction';
 export type ChatrModule = 
   | 'ai-agents'
   | 'chatr-world'
-  | 'local-jobs'
+  | 'jobs'
   | 'healthcare'
   | 'browser'
   | 'care';
@@ -44,7 +44,7 @@ class ModuleHandlerService {
         return this.handleAIAgents(request);
       case 'chatr-world':
         return this.handleChatrWorld(request);
-      case 'local-jobs':
+      case 'jobs':
         return this.handleLocalJobs(request);
       case 'healthcare':
         return this.handleHealthcare(request);
@@ -138,7 +138,7 @@ Format as structured job cards.`;
     return {
       answer: response.text,
       confidence: response.confidence,
-      moduleUsed: 'local-jobs',
+      moduleUsed: 'jobs',
     };
   }
 

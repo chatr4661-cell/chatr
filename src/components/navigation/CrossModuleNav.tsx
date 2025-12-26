@@ -36,7 +36,7 @@ const MODULE_FLOWS: Record<string, ModuleLink[]> = {
   ],
   
   // Jobs → Resume → Companies → Skills
-  '/local-jobs': [
+  '/jobs': [
     { label: 'Upskill', path: '/tutors', icon: <Briefcase className="w-4 h-4" />, description: 'Learn new skills' },
     { label: 'Networking', path: '/communities', icon: <Users className="w-4 h-4" />, description: 'Professional groups' },
   ],

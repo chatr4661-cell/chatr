@@ -21,7 +21,7 @@ const ROUTE_PRIORITIES: Record<string, number> = {
   '/chat': 0.9,
   '/health': 0.9,
   '/care': 0.9,
-  '/local-jobs': 0.9,
+  '/jobs': 0.9,
   '/ai-browser': 0.9,
   '/chatr-wallet': 0.8,
   '/communities': 0.8,
@@ -41,7 +41,7 @@ const ROUTE_PRIORITIES: Record<string, number> = {
 const ROUTE_CHANGEFREQ: Record<string, SitemapEntry['changefreq']> = {
   '/': 'daily',
   '/chat': 'always',
-  '/local-jobs': 'daily',
+  '/jobs': 'daily',
   '/health': 'weekly',
   '/care': 'weekly',
   '/ai-browser': 'daily',
@@ -130,7 +130,7 @@ Disallow: /onboarding
 # Allow crawling of main content
 Allow: /health
 Allow: /care
-Allow: /local-jobs
+Allow: /jobs
 Allow: /ai-browser
 Allow: /communities
 Allow: /chatr-games

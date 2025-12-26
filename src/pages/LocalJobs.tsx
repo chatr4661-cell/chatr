@@ -362,7 +362,7 @@ export default function LocalJobs() {
         keywords="local jobs, jobs near me, employment, careers, job search, hiring"
         breadcrumbList={[
           { name: 'Home', url: '/' },
-          { name: 'Local Jobs', url: '/local-jobs' }
+          { name: 'Jobs', url: '/jobs' }
         ]}
       />
     <div className="min-h-screen bg-background pb-20">
@@ -376,7 +376,7 @@ export default function LocalJobs() {
             <div className="flex-1">
               <h1 className="text-lg font-bold">Jobs Near You</h1>
             </div>
-            <ShareDeepLink path="/local-jobs" title="Find Local Jobs" />
+            <ShareDeepLink path="/jobs" title="Find Local Jobs" />
           </div>
 
           {/* Location Bar */}

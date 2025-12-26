@@ -33,7 +33,7 @@ const ROUTE_LABELS: Record<string, string> = {
   'native-apps': 'Native Apps',
   'app-statistics': 'App Statistics',
   'developer-portal': 'Developer Portal',
-  'local-jobs': 'Local Jobs',
+  'jobs': 'Jobs',
   'ai-agents': 'AI Agents',
   'ai-assistant': 'AI Assistant',
   'ai-browser': 'AI Browser',

@@ -45,8 +45,8 @@ export const NOTIFICATION_DEEP_LINKS: Record<string, NotificationDeepLink> = {
   'refund_processed': { route: '/chatr-wallet' },
   
   // Jobs
-  'job_application_update': { route: '/local-jobs', params: { applicationId: ':applicationId' } },
-  'new_job_match': { route: '/local-jobs' },
+  'job_application_update': { route: '/jobs', params: { applicationId: ':applicationId' } },
+  'new_job_match': { route: '/jobs' },
   
   // Rewards
   'points_earned': { route: '/points' },
