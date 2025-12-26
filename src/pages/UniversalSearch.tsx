@@ -78,6 +78,7 @@ const UniversalSearch = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [webResults, setWebResults] = useState<any>(null);
   const [aiSummaryError, setAiSummaryError] = useState<string | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const [visualResults, setVisualResults] = useState<any>(null);
   const [aiIntent, setAiIntent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -115,6 +116,49 @@ const UniversalSearch = () => {
       setInstantAnswer(null);
     }
   }, [analyzeIntent]);
+
+  // 🚀 Async AI answer fetch (runs after results display)
+  const fetchAiAnswerAsync = useCallback(async (query: string, results: any[], locationData: any) => {
+    try {
+      console.log('🤖 Fetching AI summary async...');
+      const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-answer', {
+        body: {
+          query,
+          results: results.map((r: any) => ({
+            title: r.title,
+            snippet: r.snippet,
+            url: r.url
+          })),
+          images: [],
+          location: locationData?.effectiveLat && locationData?.effectiveLon 
+            ? { lat: locationData.effectiveLat, lon: locationData.effectiveLon, city: locationData.effectiveCity } 
+            : null
+        }
+      });
+
+      if (aiError) {
+        console.error('AI answer error:', aiError);
+        setAiSummaryError('AI summary unavailable');
+      } else if (aiData) {
+        console.log('✅ AI summary received');
+        setWebResults((prev: any) => ({
+          ...prev,
+          synthesis: aiData.text || null,
+          sources: aiData.sources || [],
+          images: aiData.images?.length > 0 ? aiData.images : prev?.images || []
+        }));
+        setAiIntent((prev: any) => ({
+          ...prev,
+          intent: aiData.text ? 'AI Summary Available' : prev?.intent
+        }));
+      }
+    } catch (err) {
+      console.error('AI fetch error:', err);
+      setAiSummaryError('AI summary temporarily unavailable');
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (initialQuery) {
@@ -274,25 +318,18 @@ const UniversalSearch = () => {
         toast.error('Search error. Please try again.');
       } else if (searchData) {
         console.log('Universal search results:', searchData);
+        const searchTime = Date.now() - searchStartTime.current;
+        console.log(`⚡ Search results received in ${searchTime}ms`);
 
-        const aiError = (searchData as any).aiAnswerError || searchData.aiAnswer?.error;
-        setAiSummaryError(aiError ? String(aiError) : null);
-        if (aiError) {
-          toast.error(aiError);
-        }
-
-        // Set web results with AI answer and images
-        // Filter out favicons - only use real images (AI images or images from Google Image Search)
+        // Set web results immediately (AI will load async)
         const aiImages = searchData.aiAnswer?.images || [];
-        // Only use result images if they're real images (not favicons)
-        const realImages = aiImages.length > 0 ? aiImages : [];
 
         setWebResults({
           synthesis: searchData.aiAnswer?.text || null,
           results: searchData.results || [],
           suggestions: [],
           sources: searchData.aiAnswer?.sources || [],
-          images: realImages
+          images: aiImages
         });
 
         // Convert to SearchResult format for display
@@ -319,10 +356,18 @@ const UniversalSearch = () => {
         }));
 
         setResults(searchResults);
+        setLoading(false);
+        setWebSearchLoading(false);
+
+        // 🚀 ASYNC: Fetch AI answer separately (doesn't block results)
+        if (searchData.fetchAiSeparately && searchData.results?.length > 0) {
+          setAiSummaryLoading(true);
+          fetchAiAnswerAsync(query, searchData.results.slice(0, 6), searchData.location);
+        }
 
         // AI intent
         setAiIntent({
-          intent: searchData.aiAnswer?.text ? 'AI Summary Available' : `Searching for: "${query}"`,
+          intent: `Searching for: "${query}"`,
           suggestions: [
             `${query} near me`,
             `best ${query}`,
