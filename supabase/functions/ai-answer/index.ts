@@ -99,20 +99,26 @@ Remember: Write like Perplexity - informative, flowing prose with natural source
 
     console.log('🚀 Calling Gemini API...');
 
-    // Try a couple of models + retry on 429 (quota/rate limiting)
-    const modelsToTry = ['gemini-2.0-flash-exp', 'gemini-1.5-flash'];
+    // Use the v1 endpoint; v1beta has different model availability and can produce 404s for valid models.
+    const modelsToTry = ['gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 
     let data: any | null = null;
     let usedModel: string | null = null;
     let lastStatus: number | null = null;
     let lastErrorText: string | null = null;
+    let lastErrorMessage: string | null = null;
+    let hardQuotaExceeded = false;
 
     const requestBody = {
       contents: [
         {
           role: 'user',
-          parts: [{ text: `${systemPrompt}\n\nUser Query: ${query}\n\nProvide a comprehensive answer about this topic.` }]
-        }
+          parts: [
+            {
+              text: `${systemPrompt}\n\nUser Query: ${query}\n\nProvide a comprehensive answer about this topic.`,
+            },
+          ],
+        },
       ],
       generationConfig: {
         temperature: 0.6,
@@ -120,11 +126,21 @@ Remember: Write like Perplexity - informative, flowing prose with natural source
       },
     };
 
+    const extractGeminiErrorMessage = (raw: string | null): string | null => {
+      if (!raw) return null;
+      try {
+        const j = JSON.parse(raw);
+        return j?.error?.message || null;
+      } catch {
+        return raw;
+      }
+    };
+
     for (const model of modelsToTry) {
       usedModel = model;
 
       for (let attempt = 0; attempt < 3; attempt++) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
         const response = await fetch(url, {
           method: 'POST',
@@ -143,55 +159,99 @@ Remember: Write like Perplexity - informative, flowing prose with natural source
         }
 
         const errorText = await response.text();
-        lastErrorText = errorText?.substring(0, 800) || null;
-        console.error(`AI API error (${model}):`, response.status, lastErrorText);
+        lastErrorText = errorText?.substring(0, 1200) || null;
+        lastErrorMessage = extractGeminiErrorMessage(errorText);
 
-        // Retry on Gemini rate limit
-        if (response.status === 429 && attempt < 2) {
-          const retryAfterHeader = response.headers.get('retry-after');
-          const retryAfterSec = retryAfterHeader ? Number(retryAfterHeader) : NaN;
-          const waitMs = Number.isFinite(retryAfterSec)
-            ? Math.min(15000, Math.max(1000, retryAfterSec * 1000))
-            : 900 * (attempt + 1) ** 2;
+        console.error(
+          `AI API error (${model}):`,
+          response.status,
+          lastErrorMessage || lastErrorText
+        );
 
-          console.log(`⏳ Rate limited by Gemini; retrying in ${waitMs}ms...`);
-          await new Promise((r) => setTimeout(r, waitMs));
-          continue;
+        if (response.status === 429) {
+          // If the key has no quota/billing (often shows `limit: 0`) retries/models won't help.
+          const msg = (lastErrorMessage || '').toLowerCase();
+          if (msg.includes('limit: 0') || msg.includes('billing') || msg.includes('quota exceeded')) {
+            hardQuotaExceeded = true;
+            break;
+          }
+
+          // Retry on rate limiting
+          if (attempt < 2) {
+            const retryAfterHeader = response.headers.get('retry-after');
+            const retryAfterSec = retryAfterHeader ? Number(retryAfterHeader) : NaN;
+            const waitMs = Number.isFinite(retryAfterSec)
+              ? Math.min(15000, Math.max(1000, retryAfterSec * 1000))
+              : 900 * (attempt + 1) ** 2;
+
+            console.log(`⏳ Rate limited by Gemini; retrying in ${waitMs}ms...`);
+            await new Promise((r) => setTimeout(r, waitMs));
+            continue;
+          }
         }
 
-        // Non-retryable error for this model
+        // Non-retryable error for this attempt/model
         break;
       }
 
-      if (data) break;
+      if (data || hardQuotaExceeded) break;
     }
 
     if (!data) {
       if (lastStatus === 429) {
         return new Response(
-          JSON.stringify({ error: 'Gemini rate limited. Please try again in a minute.', text: null, sources: [], images: [] }),
+          JSON.stringify({
+            error:
+              lastErrorMessage ||
+              'Gemini quota exceeded / rate limited. Please enable billing for your Gemini API key.',
+            details: lastErrorText,
+            model: usedModel,
+            text: null,
+            sources: [],
+            images: [],
+          }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       if (lastStatus === 402) {
         return new Response(
-          JSON.stringify({ error: 'Gemini billing/credits issue (402).', text: null, sources: [], images: [] }),
+          JSON.stringify({
+            error: 'Gemini billing/credits issue (402).',
+            details: lastErrorText,
+            model: usedModel,
+            text: null,
+            sources: [],
+            images: [],
+          }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       return new Response(
-        JSON.stringify({ error: 'Gemini API error', details: lastErrorText, model: usedModel, text: null, sources: [], images: [] }),
+        JSON.stringify({
+          error: 'Gemini API error',
+          message: lastErrorMessage,
+          details: lastErrorText,
+          model: usedModel,
+          text: null,
+          sources: [],
+          images: [],
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('📊 Gemini response:', JSON.stringify(data).substring(0, 200));
-    
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+
+    const aiText =
+      data?.candidates?.[0]?.content?.parts
+        ?.map((p: any) => p?.text)
+        .filter(Boolean)
+        .join('') || null;
+
     console.log('✅ AI text generated:', aiText ? 'yes' : 'no');
-    
+
     // Extract source information
     const sources = results.slice(0, 6).map(r => ({
       title: r.title,
@@ -200,18 +260,23 @@ Remember: Write like Perplexity - informative, flowing prose with natural source
     }));
 
     return new Response(
-      JSON.stringify({ 
-        text: aiText, 
+      JSON.stringify({
+        text: aiText,
         sources,
-        images 
+        images
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('AI answer error:', error);
     return new Response(
-      JSON.stringify({ text: null, sources: [], images: [] }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Unknown error',
+        text: null,
+        sources: [],
+        images: [],
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
