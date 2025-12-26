@@ -253,6 +253,17 @@ class AuthRepository @Inject constructor(
         secureStore.putLong("token_expires_at", System.currentTimeMillis() + (response.expiresIn * 1000))
     }
     
+    /**
+     * Save tokens from web authentication
+     */
+    fun saveWebAuthTokens(accessToken: String, refreshToken: String?, userId: String) {
+        secureStore.putString("access_token", accessToken)
+        refreshToken?.let { secureStore.putString("refresh_token", it) }
+        secureStore.putString("user_id", userId)
+        // Default expiry of 1 hour for web auth tokens
+        secureStore.putLong("token_expires_at", System.currentTimeMillis() + (3600 * 1000))
+    }
+    
     private fun clearTokens() {
         secureStore.remove("access_token")
         secureStore.remove("refresh_token")

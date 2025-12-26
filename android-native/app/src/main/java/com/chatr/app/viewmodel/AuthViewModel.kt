@@ -277,4 +277,33 @@ class AuthViewModel @Inject constructor(
     fun getCurrentUserId(): String? = _uiState.value.user?.id
     
     fun isSignedIn(): Boolean = authRepository.isLoggedIn()
+    
+    /**
+     * Handle successful web authentication
+     * Called when WebView auth completes and we have tokens
+     */
+    fun handleWebAuthSuccess(accessToken: String, refreshToken: String?, userId: String) {
+        viewModelScope.launch {
+            authRepository.saveWebAuthTokens(accessToken, refreshToken, userId)
+            
+            // Fetch user details
+            authRepository.getCurrentUser()
+                .onSuccess { user ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isAuthenticated = true,
+                        user = user
+                    )
+                    _authState.value = AuthState.Authenticated
+                }
+                .onFailure {
+                    // Even if we can't fetch user, we're authenticated
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isAuthenticated = true
+                    )
+                    _authState.value = AuthState.Authenticated
+                }
+        }
+    }
 }
