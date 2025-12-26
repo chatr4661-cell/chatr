@@ -23,7 +23,8 @@ import {
   Bookmark,
   Globe,
   Image as ImageIcon,
-  Zap
+  Zap,
+  Briefcase
 } from 'lucide-react';
 import { TrendingSearches } from '@/components/search/TrendingSearches';
 import { CategoryShortcuts } from '@/components/search/CategoryShortcuts';
@@ -34,6 +35,8 @@ import { useLocation } from '@/contexts/LocationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AISummaryContent } from '@/components/ai/AISummaryContent';
 import { useLocalAI } from '@/hooks/useLocalAI';
+import { detectJobIntent, JobIntent } from '@/services/intentEngine/jobIntentDetector';
+import { JobActionCards, JobListing } from '@/components/jobs/JobActionCards';
 
 interface SearchResult {
   id: string;
@@ -52,6 +55,19 @@ interface SearchResult {
   metadata?: any;
 }
 
+// Helper function for time ago
+const getTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  return `${Math.floor(diffDays / 30)} months ago`;
+};
+
 const UniversalSearch = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -67,6 +83,11 @@ const UniversalSearch = () => {
   const { location, isLoading: locationLoading, error: locationError } = useLocation();
   const [isFavorite, setIsFavorite] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('all');
+  
+  // Job Intent Engine state
+  const [jobIntent, setJobIntent] = useState<JobIntent | null>(null);
+  const [jobListings, setJobListings] = useState<JobListing[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
   
   // Local AI for instant responses
   const { analyzeIntent, supportsWebGPU } = useLocalAI();
@@ -99,8 +120,10 @@ const UniversalSearch = () => {
     }
   }, [initialQuery]);
 
-  const performSearch = async (query: string) => {
+  const performSearch = async (query: string, additionalFilter?: string) => {
     if (!query.trim()) return;
+    
+    const fullQuery = additionalFilter ? `${query} ${additionalFilter}` : query;
     
     searchStartTime.current = Date.now();
     setLoading(true);
@@ -108,9 +131,86 @@ const UniversalSearch = () => {
     setResults([]);
     setInstantAnswer(null);
     setWebResults(null);
+    setJobListings([]);
+    setJobIntent(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // 🔥 INTENT ENGINE: Check if this is a job search
+      const detectedJobIntent = detectJobIntent(fullQuery);
+      
+      if (detectedJobIntent.isJobSearch && detectedJobIntent.confidence > 0.3) {
+        // This is a job search - use Action Engine instead of web search
+        setJobIntent(detectedJobIntent);
+        setJobsLoading(true);
+        
+        // Fetch jobs from internal database first
+        let jobQuery = supabase
+          .from('chatr_jobs')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        
+        // Apply location filter if detected
+        if (detectedJobIntent.extractedData.location) {
+          jobQuery = jobQuery.ilike('location', `%${detectedJobIntent.extractedData.location}%`);
+        }
+        
+        // Apply job type filter if detected
+        if (detectedJobIntent.extractedData.jobType) {
+          jobQuery = jobQuery.eq('job_type', detectedJobIntent.extractedData.jobType);
+        }
+        
+        // Apply category filter if detected
+        if (detectedJobIntent.extractedData.category) {
+          jobQuery = jobQuery.eq('category', detectedJobIntent.extractedData.category);
+        }
+        
+        const { data: jobs, error: jobsError } = await jobQuery;
+        
+        if (!jobsError && jobs && jobs.length > 0) {
+          // Calculate posted_ago
+          const jobsWithMeta = jobs.map(job => ({
+            ...job,
+            posted_ago: getTimeAgo(job.created_at),
+            is_urgent: detectedJobIntent.extractedData.urgency === 'immediate',
+          }));
+          
+          setJobListings(jobsWithMeta);
+          setJobsLoading(false);
+          setLoading(false);
+          setWebSearchLoading(false);
+          
+          // Also set AI intent for display
+          setAiIntent({
+            intent: `Found ${jobs.length} job${jobs.length > 1 ? 's' : ''} matching your search`,
+            suggestions: detectedJobIntent.suggestedFilters,
+          });
+          
+          // Save search
+          if (user && query) {
+            try {
+              await supabase.from('saved_searches').upsert({
+                user_id: user.id,
+                query,
+                results_count: jobs.length
+              }, {
+                onConflict: 'user_id,query',
+                ignoreDuplicates: false
+              });
+            } catch (err) {
+              console.error('Failed to save search:', err);
+            }
+          }
+          
+          return; // Exit early - job action cards will be shown
+        }
+        
+        setJobsLoading(false);
+        // If no internal jobs found, fall through to web search
+      }
 
       // Generate or get session ID
       let sessionId = localStorage.getItem('chatr_session_id');
@@ -485,19 +585,30 @@ const UniversalSearch = () => {
           </Card>
         )}
 
-        {loading && results.length === 0 ? (
+        {/* 🔥 JOB ACTION CARDS - Show when job intent detected */}
+        {jobIntent?.isJobSearch && jobListings.length > 0 && (
+          <JobActionCards
+            jobs={jobListings}
+            intent={jobIntent}
+            onApply={(job) => navigate(`/jobs/${job.id}`)}
+            onFilterSelect={(filter) => performSearch(searchQuery, filter)}
+            isLoading={jobsLoading}
+          />
+        )}
+
+        {loading && results.length === 0 && !jobListings.length ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground font-medium mb-1">Searching the web at lightning speed...</p>
             <p className="text-xs text-muted-foreground">Powered by DuckDuckGo + AI</p>
           </div>
-        ) : results.length === 0 && searchQuery ? (
+        ) : results.length === 0 && searchQuery && !jobListings.length ? (
           <div className="text-center py-16">
             <Search className="w-20 h-20 mx-auto text-muted-foreground/30 mb-4" />
             <p className="text-lg font-medium mb-2">No results found</p>
             <p className="text-muted-foreground mb-4">Try different keywords</p>
           </div>
-        ) : results.length > 0 ? (
+        ) : results.length > 0 && !jobListings.length ? (
           <div className="space-y-3">
             {/* Map placeholder */}
             {location && (
