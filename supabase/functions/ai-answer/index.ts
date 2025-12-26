@@ -456,22 +456,67 @@ Content: ${r.snippet}`
       ? `\nUser location: ${location.city}`
       : "";
 
-    /* ---------- Images ---------- */
-    const images =
-      googleImages && googleImages.length > 0
-        ? googleImages.slice(0, 6).map((img) => ({
-            url: img.thumbnail || img.url,
-            fullUrl: img.url,
-            source: img.source,
-            title: img.title,
-          }))
-        : safeResults
-            .filter((r) => r.image && !r.image.includes("favicon"))
-            .slice(0, 4)
-            .map((r) => ({
-              url: r.image!,
-              source: new URL(r.url).hostname,
-            }));
+    /* ---------- Images (Prioritize for place queries) ---------- */
+    const minImages = queryType === "place" ? 3 : 2;
+    const maxImages = queryType === "place" ? 5 : 4;
+    
+    let collectedImages: Array<{ url: string; fullUrl?: string; source: string; title?: string }> = [];
+    
+    // First: Use Google Images if available
+    if (googleImages && googleImages.length > 0) {
+      const validGoogleImages = googleImages
+        .filter((img) => {
+          const url = img.thumbnail || img.url;
+          // Filter out tiny images, icons, and favicons
+          return url && 
+            !url.includes("favicon") && 
+            !url.includes("icon") &&
+            !url.includes("logo") &&
+            url.length > 20;
+        })
+        .slice(0, maxImages)
+        .map((img) => ({
+          url: img.thumbnail || img.url,
+          fullUrl: img.url,
+          source: img.source || "Google Images",
+          title: img.title || query,
+        }));
+      collectedImages = [...collectedImages, ...validGoogleImages];
+    }
+    
+    // Second: Extract images from search results
+    if (collectedImages.length < maxImages) {
+      const resultImages = safeResults
+        .filter((r) => {
+          if (!r.image) return false;
+          const imgUrl = r.image.toLowerCase();
+          // Filter out favicons, icons, and tracking pixels
+          return !imgUrl.includes("favicon") && 
+            !imgUrl.includes("icon") &&
+            !imgUrl.includes("logo") &&
+            !imgUrl.includes("pixel") &&
+            !imgUrl.includes("1x1") &&
+            r.image.length > 30;
+        })
+        .slice(0, maxImages - collectedImages.length)
+        .map((r) => ({
+          url: r.image!,
+          fullUrl: r.image!,
+          source: new URL(r.url).hostname.replace("www.", ""),
+          title: r.title || query,
+        }));
+      collectedImages = [...collectedImages, ...resultImages];
+    }
+    
+    // Remove duplicates by URL
+    const uniqueImages = collectedImages.filter((img, index, self) =>
+      index === self.findIndex((t) => t.url === img.url)
+    );
+    
+    // Final images array
+    const images = uniqueImages.slice(0, maxImages);
+    
+    console.log(`📸 Images collected: ${images.length} (min: ${minImages}, type: ${queryType})`);
 
     /* ---------- Get Query-Specific Prompt ---------- */
     const systemPrompt = getSystemPrompt(queryType, contextText, locationContext);
