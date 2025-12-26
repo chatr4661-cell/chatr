@@ -272,13 +272,18 @@ const UniversalSearch = () => {
         toast.error('Search error. Please try again.');
       } else if (searchData) {
         console.log('Universal search results:', searchData);
-        
+
+        const aiError = (searchData as any).aiAnswerError || searchData.aiAnswer?.error;
+        if (aiError) {
+          toast.error(aiError);
+        }
+
         // Set web results with AI answer and images
         // Filter out favicons - only use real images (AI images or images from Google Image Search)
         const aiImages = searchData.aiAnswer?.images || [];
         // Only use result images if they're real images (not favicons)
         const realImages = aiImages.length > 0 ? aiImages : [];
-        
+
         setWebResults({
           synthesis: searchData.aiAnswer?.text || null,
           results: searchData.results || [],

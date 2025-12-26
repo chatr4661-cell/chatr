@@ -279,9 +279,9 @@ serve(async (req) => {
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
         const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-        
+
         console.log('Calling ai-answer function...');
-        
+
         const aiResponse = await fetch(`${supabaseUrl}/functions/v1/ai-answer`, {
           method: 'POST',
           headers: {
@@ -298,24 +298,37 @@ serve(async (req) => {
             images: [],
             location: effectiveLat && effectiveLon ? { lat: effectiveLat, lon: effectiveLon, city: effectiveCity } : null
           }),
-          signal: AbortSignal.timeout(8000) // 8s timeout for AI generation
+          // Allow time for Gemini retries in ai-answer
+          signal: AbortSignal.timeout(15000)
         });
-        
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          console.log('AI answer received:', aiData.text ? 'Yes' : 'No');
-          return {
-            text: aiData.text || null,
-            sources: aiData.sources || [],
-            images: aiData.images || []
-          };
-        } else {
-          console.error('AI answer error:', aiResponse.status, await aiResponse.text());
+
+        const rawText = await aiResponse.text();
+        let parsed: any = null;
+        try {
+          parsed = rawText ? JSON.parse(rawText) : null;
+        } catch {
+          parsed = null;
         }
+
+        if (aiResponse.ok) {
+          console.log('AI answer received:', parsed?.text ? 'Yes' : 'No');
+          return {
+            text: parsed?.text || null,
+            sources: parsed?.sources || [],
+            images: parsed?.images || [],
+            error: parsed?.error || null,
+            status: aiResponse.status,
+          };
+        }
+
+        const errMsg = parsed?.error || parsed?.message || `AI summary unavailable (status ${aiResponse.status})`;
+        console.error('AI answer error:', aiResponse.status, rawText?.slice(0, 500));
+        return { text: null, sources: [], images: [], error: errMsg, status: aiResponse.status };
       } catch (e) {
         console.log('AI answer timeout/error:', e);
       }
-      return { text: null, sources: [], images: [] };
+
+      return { text: null, sources: [], images: [], error: 'AI summary timed out', status: 0 };
     })();
 
     // Wait for both in parallel
@@ -326,11 +339,20 @@ serve(async (req) => {
       aiAnswer.images = imageResults;
     }
 
+    const aiAnswerError = (aiAnswer as any)?.error || null;
+    const aiAnswerStatus = (aiAnswer as any)?.status || null;
+
     return new Response(
       JSON.stringify({
         searchId,
         query,
-        aiAnswer,
+        aiAnswer: {
+          text: aiAnswer.text || null,
+          sources: aiAnswer.sources || [],
+          images: aiAnswer.images || [],
+        },
+        aiAnswerError,
+        aiAnswerStatus,
         searchEngine,
         location: {
           gpsLat,
