@@ -98,51 +98,95 @@ ${contextText}${locationContext}
 Remember: Write like Perplexity - informative, flowing prose with natural source citations.`;
 
     console.log('🚀 Calling Gemini API...');
-    
-    // Use Google Gemini API directly
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\nUser Query: ${query}\n\nProvide a comprehensive answer about this topic.` }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.6,
-          maxOutputTokens: 600,
-        },
-      }),
-    });
-    
-    console.log('📡 Gemini response status:', response.status);
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    // Try a couple of models + retry on 429 (quota/rate limiting)
+    const modelsToTry = ['gemini-2.0-flash-exp', 'gemini-1.5-flash'];
+
+    let data: any | null = null;
+    let usedModel: string | null = null;
+    let lastStatus: number | null = null;
+    let lastErrorText: string | null = null;
+
+    const requestBody = {
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `${systemPrompt}\n\nUser Query: ${query}\n\nProvide a comprehensive answer about this topic.` }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.6,
+        maxOutputTokens: 600,
+      },
+    };
+
+    for (const model of modelsToTry) {
+      usedModel = model;
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        lastStatus = response.status;
+        console.log(`📡 Gemini response status (${model}) [attempt ${attempt + 1}/3]:`, response.status);
+
+        if (response.ok) {
+          data = await response.json();
+          break;
+        }
+
+        const errorText = await response.text();
+        lastErrorText = errorText?.substring(0, 800) || null;
+        console.error(`AI API error (${model}):`, response.status, lastErrorText);
+
+        // Retry on Gemini rate limit
+        if (response.status === 429 && attempt < 2) {
+          const retryAfterHeader = response.headers.get('retry-after');
+          const retryAfterSec = retryAfterHeader ? Number(retryAfterHeader) : NaN;
+          const waitMs = Number.isFinite(retryAfterSec)
+            ? Math.min(15000, Math.max(1000, retryAfterSec * 1000))
+            : 900 * (attempt + 1) ** 2;
+
+          console.log(`⏳ Rate limited by Gemini; retrying in ${waitMs}ms...`);
+          await new Promise((r) => setTimeout(r, waitMs));
+          continue;
+        }
+
+        // Non-retryable error for this model
+        break;
+      }
+
+      if (data) break;
+    }
+
+    if (!data) {
+      if (lastStatus === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limited', text: null, sources: [], images: [] }),
+          JSON.stringify({ error: 'Gemini rate limited. Please try again in a minute.', text: null, sources: [], images: [] }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
+
+      if (lastStatus === 402) {
         return new Response(
-          JSON.stringify({ error: 'Credits depleted', text: null, sources: [], images: [] }),
+          JSON.stringify({ error: 'Gemini billing/credits issue (402).', text: null, sources: [], images: [] }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
+
       return new Response(
-        JSON.stringify({ text: null, sources: [], images: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Gemini API error', details: lastErrorText, model: usedModel, text: null, sources: [], images: [] }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const data = await response.json();
     console.log('📊 Gemini response:', JSON.stringify(data).substring(0, 200));
     
     const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
