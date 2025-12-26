@@ -33,8 +33,10 @@ serve(async (req) => {
 
   try {
     const { query, results, images: googleImages, location }: AIAnswerRequest = await req.json();
+    console.log('📝 AI Answer request for:', query);
 
     if (!query || !results || results.length === 0) {
+      console.log('❌ No query or results provided');
       return new Response(
         JSON.stringify({ text: null, sources: [], images: [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -43,8 +45,10 @@ serve(async (req) => {
 
     const GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
     if (!GEMINI_API_KEY) {
+      console.error('❌ GOOGLE_GEMINI_API_KEY not configured');
       throw new Error('GOOGLE_GEMINI_API_KEY not configured');
     }
+    console.log('✅ Gemini API key found');
 
     // Build context from search results with source attribution
     const contextText = results
@@ -93,8 +97,10 @@ ${contextText}${locationContext}
 
 Remember: Write like Perplexity - informative, flowing prose with natural source citations.`;
 
+    console.log('🚀 Calling Gemini API...');
+    
     // Use Google Gemini API directly
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -112,6 +118,8 @@ Remember: Write like Perplexity - informative, flowing prose with natural source
         },
       }),
     });
+    
+    console.log('📡 Gemini response status:', response.status);
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -135,7 +143,10 @@ Remember: Write like Perplexity - informative, flowing prose with natural source
     }
 
     const data = await response.json();
+    console.log('📊 Gemini response:', JSON.stringify(data).substring(0, 200));
+    
     const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    console.log('✅ AI text generated:', aiText ? 'yes' : 'no');
     
     // Extract source information
     const sources = results.slice(0, 6).map(r => ({
