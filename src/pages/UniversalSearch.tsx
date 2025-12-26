@@ -632,9 +632,7 @@ const UniversalSearch = () => {
                   <AISummaryContent content="" images={webResults.images} />
                 )}
                 <p className="text-sm text-muted-foreground">
-                  {aiSummaryError
-                    ? `AI summary unavailable: ${aiSummaryError}`
-                    : 'AI summary is not available for this query.'}
+                  AI summary is temporarily unavailable. Showing verified sources below.
                 </p>
               </div>
             )}
