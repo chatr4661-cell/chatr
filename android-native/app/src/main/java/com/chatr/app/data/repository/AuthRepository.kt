@@ -227,9 +227,11 @@ class AuthRepository @Inject constructor(
     
     /**
      * Check if user is logged in
+     *
+     * IMPORTANT: WebView-based auth does not sign into Firebase, so we must rely on stored tokens.
      */
     fun isLoggedIn(): Boolean {
-        return secureStore.getString("access_token") != null && firebaseAuth.currentUser != null
+        return secureStore.getString("access_token") != null && secureStore.getString("user_id") != null
     }
     
     /**
