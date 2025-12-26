@@ -16,10 +16,10 @@ interface ChatrApi {
     @POST("auth/signout")
     suspend fun signOut(): Response<Unit>
     
-    @POST("auth/otp/send")
-    suspend fun sendOtp(@Body request: OtpRequest): Response<Unit>
+    @POST("auth-phone-otp")
+    suspend fun sendOtp(@Body request: OtpRequest): Response<OtpSendResponse>
     
-    @POST("auth/otp/verify")
+    @POST("auth-phone-otp")
     suspend fun verifyOtp(@Body request: OtpVerifyRequest): Response<AuthResponse>
     
     @GET("auth/user")
@@ -123,11 +123,21 @@ data class SignInRequest(
     val otp: String?
 )
 
-data class OtpRequest(val phoneNumber: String)
+data class OtpRequest(
+    val phoneNumber: String,
+    val action: String = "send"
+)
+
+data class OtpSendResponse(
+    val success: Boolean,
+    val message: String?
+)
 
 data class OtpVerifyRequest(
     val phoneNumber: String,
-    val otp: String
+    val otp: String? = null,
+    val firebaseUid: String? = null,
+    val action: String = "verify"
 )
 
 data class RefreshTokenRequest(val refreshToken: String)

@@ -100,33 +100,39 @@ class AuthRepository @Inject constructor(
     }
     
     /**
-     * Send OTP to phone number
+     * Send OTP to phone number (Firebase handles this on client)
      */
     suspend fun sendOtp(phoneNumber: String): Result<Unit> {
         return try {
-            val response = api.sendOtp(OtpRequest(phoneNumber))
+            val response = api.sendOtp(OtpRequest(phoneNumber, "send"))
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Failed to send OTP"))
+                Result.failure(Exception("Failed to initiate OTP"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            // Even if backend fails, Firebase can still send OTP
+            Result.success(Unit)
         }
     }
     
     /**
-     * Verify OTP
+     * Verify OTP and get Supabase session
+     * After Firebase verifies OTP, call this with Firebase UID
      */
-    suspend fun verifyOtp(phoneNumber: String, otp: String): Result<AuthResponse> {
+    suspend fun verifyOtp(phoneNumber: String, firebaseUid: String): Result<AuthResponse> {
         return try {
-            val response = api.verifyOtp(OtpVerifyRequest(phoneNumber, otp))
+            val response = api.verifyOtp(OtpVerifyRequest(
+                phoneNumber = phoneNumber,
+                firebaseUid = firebaseUid,
+                action = "verify"
+            ))
             if (response.isSuccessful && response.body() != null) {
                 val authResponse = response.body()!!
                 saveTokens(authResponse)
                 Result.success(authResponse)
             } else {
-                Result.failure(Exception("OTP verification failed"))
+                Result.failure(Exception(response.errorBody()?.string() ?: "Verification failed"))
             }
         } catch (e: Exception) {
             Result.failure(e)

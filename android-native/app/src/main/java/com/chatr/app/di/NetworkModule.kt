@@ -192,8 +192,12 @@ object NetworkModule {
     // Repositories
     @Provides
     @Singleton
-    fun provideAuthRepository(api: ChatrApi, secureStore: SecureStore): AuthRepository {
-        return AuthRepository(api, secureStore)
+    fun provideAuthRepository(
+        api: ChatrApi, 
+        secureStore: SecureStore,
+        firebaseAuth: com.google.firebase.auth.FirebaseAuth
+    ): AuthRepository {
+        return AuthRepository(api, secureStore, firebaseAuth)
     }
     
     @Provides
