@@ -21,23 +21,36 @@ class SecureStore(context: Context) {
     fun saveString(key: String, value: String) {
         encryptedPrefs.edit().putString(key, value).apply()
     }
-    
+
+    /**
+     * Backwards-compatible alias (older code uses putString)
+     */
+    fun putString(key: String, value: String) = saveString(key, value)
+
     fun getString(key: String, default: String? = null): String? {
         return encryptedPrefs.getString(key, default)
     }
-    
+
+    fun putLong(key: String, value: Long) {
+        encryptedPrefs.edit().putLong(key, value).apply()
+    }
+
+    fun getLong(key: String, default: Long = 0L): Long {
+        return encryptedPrefs.getLong(key, default)
+    }
+
     fun saveBoolean(key: String, value: Boolean) {
         encryptedPrefs.edit().putBoolean(key, value).apply()
     }
-    
+
     fun getBoolean(key: String, default: Boolean = false): Boolean {
         return encryptedPrefs.getBoolean(key, default)
     }
-    
+
     fun remove(key: String) {
         encryptedPrefs.edit().remove(key).apply()
     }
-    
+
     fun clear() {
         encryptedPrefs.edit().clear().apply()
     }
