@@ -37,6 +37,10 @@ class AuthViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
     
+    // Convenience property for loading state
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    
     private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
     val authState: StateFlow<AuthState> = _authState
     
@@ -135,10 +139,19 @@ class AuthViewModel @Inject constructor(
     }
     
     fun verifyOtp(phoneNumber: String, otp: String) {
+        // Legacy method - redirect to new method
+        verifyOtpWithFirebaseUid(phoneNumber, otp)
+    }
+    
+    /**
+     * Verify OTP with Firebase UID - this is the correct flow
+     * Called after Firebase successfully verifies the OTP
+     */
+    fun verifyOtpWithFirebaseUid(phoneNumber: String, firebaseUid: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
-            authRepository.verifyOtp(phoneNumber, otp)
+            authRepository.verifyOtp(phoneNumber, firebaseUid)
                 .onSuccess { response ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -153,6 +166,7 @@ class AuthViewModel @Inject constructor(
                         isLoading = false,
                         error = exception.message ?: "OTP verification failed"
                     )
+                    _authState.value = AuthState.Error(exception.message ?: "OTP verification failed")
                 }
         }
     }
