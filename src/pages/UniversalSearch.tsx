@@ -77,6 +77,7 @@ const UniversalSearch = () => {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [webResults, setWebResults] = useState<any>(null);
+  const [aiSummaryError, setAiSummaryError] = useState<string | null>(null);
   const [visualResults, setVisualResults] = useState<any>(null);
   const [aiIntent, setAiIntent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -132,6 +133,7 @@ const UniversalSearch = () => {
     setResults([]);
     setInstantAnswer(null);
     setWebResults(null);
+    setAiSummaryError(null);
     setJobListings([]);
     setJobIntent(null);
 
@@ -274,6 +276,7 @@ const UniversalSearch = () => {
         console.log('Universal search results:', searchData);
 
         const aiError = (searchData as any).aiAnswerError || searchData.aiAnswer?.error;
+        setAiSummaryError(aiError ? String(aiError) : null);
         if (aiError) {
           toast.error(aiError);
         }
@@ -610,17 +613,31 @@ const UniversalSearch = () => {
 
 
         {/* Perplexity-Style AI Summary with Images */}
-        {webResults && webResults.synthesis && (
+        {webResults && (
           <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-xs font-medium text-primary uppercase tracking-wide">AI Answer</span>
             </div>
-            <AISummaryContent 
-              content={webResults.synthesis}
-              sources={webResults.sources}
-              images={webResults.images}
-            />
+
+            {webResults.synthesis ? (
+              <AISummaryContent 
+                content={webResults.synthesis}
+                sources={webResults.sources}
+                images={webResults.images}
+              />
+            ) : (
+              <div className="space-y-3">
+                {Array.isArray(webResults.images) && webResults.images.length > 0 && (
+                  <AISummaryContent content="" images={webResults.images} />
+                )}
+                <p className="text-sm text-muted-foreground">
+                  {aiSummaryError
+                    ? `AI summary unavailable: ${aiSummaryError}`
+                    : 'AI summary is not available for this query.'}
+                </p>
+              </div>
+            )}
           </Card>
         )}
 
