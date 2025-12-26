@@ -382,7 +382,8 @@ const App = () => {
           <Route path="/ai-agents" element={<AIAgents />} />
           <Route path="/ai-agents/chat/:agentId" element={<AIAgentChat />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
-          <Route path="/local-jobs" element={<LocalJobs />} />
+          <Route path="/jobs" element={<LocalJobs />} />
+          <Route path="/local-jobs" element={<Navigate to="/jobs" replace />} />
           <Route path="/local-healthcare" element={<LocalHealthcare />} />
             <Route path="/geofences" element={<Geofences />} />
             <Route path="/geofence-history" element={<GeofenceHistory />} />

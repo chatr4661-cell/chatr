@@ -131,7 +131,7 @@ export const VALID_ROUTES = [
   '/native-apps',
   '/app-statistics',
   '/developer-portal',
-  '/local-jobs',
+  '/jobs',
   '/ai-agents',
   '/ai-agents/chat/:agentId',
   '/ai-assistant',
@@ -204,5 +204,5 @@ export const isValidRoute = (path: string): boolean => {
  * https://chatr.chat/ai-browser?url=https://example.com
  * 
  * https://www.chatr.chat/health
- * https://www.chatr.chat/local-jobs
+ * https://www.chatr.chat/jobs
  */

@@ -70,7 +70,7 @@ const Home = () => {
 
   const quickAccessItems = [
     { icon: Heart, title: 'Healthcare', desc: 'Find doctors', route: '/local-healthcare', gradient: 'from-rose-500 to-pink-600' },
-    { icon: Briefcase, title: 'Jobs', desc: 'Find work', route: '/local-jobs', gradient: 'from-emerald-500 to-teal-600' },
+    { icon: Briefcase, title: 'Jobs', desc: 'Find work', route: '/jobs', gradient: 'from-emerald-500 to-teal-600' },
     { icon: UtensilsCrossed, title: 'Food', desc: 'Order now', route: '/food-ordering', gradient: 'from-orange-500 to-amber-600' },
     { icon: Tag, title: 'Deals', desc: 'Save money', route: '/local-deals', gradient: 'from-violet-500 to-purple-600' },
   ];

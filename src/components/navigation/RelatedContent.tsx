@@ -23,7 +23,7 @@ const RELATED_CONTENT: Record<string, RelatedItem[]> = {
     { title: 'Local Healthcare', description: 'Find nearby clinics', path: '/local-healthcare' },
     { title: 'Health Passport', description: 'Your medical records', path: '/health-passport' },
   ],
-  '/local-jobs': [
+  '/jobs': [
     { title: 'AI Browser', description: 'Search for more opportunities', path: '/ai-browser' },
     { title: 'Chatr Points', description: 'Earn rewards for applications', path: '/points' },
     { title: 'Communities', description: 'Join professional networks', path: '/communities' },
