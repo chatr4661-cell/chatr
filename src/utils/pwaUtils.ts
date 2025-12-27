@@ -2,26 +2,36 @@
 
 // Register service worker
 export const registerServiceWorker = async () => {
-  if ('serviceWorker' in navigator) {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
-      });
-      
-      console.log('✅ Service Worker registered:', registration.scope);
-      
-      // Check for updates periodically
-      setInterval(() => {
-        registration.update();
-      }, 60000); // Check every minute
-      
-      return registration;
-    } catch (error) {
-      console.error('❌ Service Worker registration failed:', error);
-      return null;
-    }
+  if (!('serviceWorker' in navigator)) {
+    console.log('Service Worker not supported');
+    return null;
   }
-  return null;
+  
+  try {
+    // Check if already registered
+    const existing = await navigator.serviceWorker.getRegistration('/');
+    if (existing) {
+      console.log('✅ Service Worker already registered');
+      return existing;
+    }
+    
+    const registration = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/'
+    });
+    
+    console.log('✅ Service Worker registered:', registration.scope);
+    
+    // Check for updates periodically
+    setInterval(() => {
+      registration.update().catch(() => {});
+    }, 60000);
+    
+    return registration;
+  } catch (error) {
+    // Silently fail - SW is optional, app works without it
+    console.warn('Service Worker registration skipped:', (error as Error).message);
+    return null;
+  }
 };
 
 // Check if app is installed as PWA
