@@ -676,6 +676,26 @@ const ChatEnhancedContent = () => {
       }
 
       console.log('✅ Call created successfully:', data.id);
+      
+      // Send FCM push notification to receiver for background/killed app
+      try {
+        console.log('📲 Sending FCM call notification to:', otherUser.id);
+        await supabase.functions.invoke('fcm-notify', {
+          body: {
+            type: 'call',
+            receiverId: otherUser.id,
+            callerId: user!.id,
+            callerName: profile?.username || user!.email || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callId: data.id,
+            callType: callType
+          }
+        });
+        console.log('✅ FCM call notification sent');
+      } catch (fcmError) {
+        console.warn('⚠️ FCM notification failed (user may still receive via realtime):', fcmError);
+      }
+      
       toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
     } catch (error) {
       console.error('Error starting call:', error);

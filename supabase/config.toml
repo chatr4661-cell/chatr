@@ -122,3 +122,9 @@ verify_jwt = false
 
 [functions.crawl-jobs]
 verify_jwt = false
+
+[functions.websocket-signaling]
+verify_jwt = false
+
+[functions.send-call-notification]
+verify_jwt = true

@@ -154,17 +154,56 @@ export default function CallHistory() {
         conversationId = newConv.id;
       }
 
-      const { error: callError } = await supabase
+      // Get caller profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      // Get receiver profile
+      const { data: receiverProfile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', contactId)
+        .single();
+
+      const { data: callData, error: callError } = await supabase
         .from('calls')
         .insert({
           conversation_id: conversationId,
           caller_id: user.id,
+          caller_name: profile?.username || 'Unknown',
+          caller_avatar: profile?.avatar_url,
           receiver_id: contactId,
+          receiver_name: receiverProfile?.username || 'Unknown',
+          receiver_avatar: receiverProfile?.avatar_url,
           call_type: callType,
           status: 'ringing'
-        });
+        })
+        .select()
+        .single();
 
       if (callError) throw callError;
+
+      // Send FCM push notification to receiver
+      try {
+        console.log('📲 Sending FCM call notification to:', contactId);
+        await supabase.functions.invoke('fcm-notify', {
+          body: {
+            type: 'call',
+            receiverId: contactId,
+            callerId: user.id,
+            callerName: profile?.username || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callId: callData.id,
+            callType: callType
+          }
+        });
+        console.log('✅ FCM call notification sent');
+      } catch (fcmError) {
+        console.warn('⚠️ FCM notification failed:', fcmError);
+      }
 
       toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
       setShowNewCall(false);

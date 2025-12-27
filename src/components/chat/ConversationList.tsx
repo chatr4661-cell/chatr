@@ -187,7 +187,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
         .eq('id', userId)
         .single();
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('calls')
         .insert({
           conversation_id: conversation.id,
@@ -199,14 +199,36 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
           receiver_avatar: conversation.other_user?.avatar_url,
           call_type: callType,
           status: 'ringing'
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('❌ Failed to create call:', error);
         throw error;
       }
       
-      console.log('✅ Call created successfully');
+      console.log('✅ Call created successfully:', data.id);
+      
+      // Send FCM push notification to receiver for background/killed app
+      try {
+        console.log('📲 Sending FCM call notification to:', conversation.other_user?.id);
+        await supabase.functions.invoke('fcm-notify', {
+          body: {
+            type: 'call',
+            receiverId: conversation.other_user?.id,
+            callerId: userId,
+            callerName: profile?.username || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callId: data.id,
+            callType: callType
+          }
+        });
+        console.log('✅ FCM call notification sent');
+      } catch (fcmError) {
+        console.warn('⚠️ FCM notification failed (user may still receive via realtime):', fcmError);
+      }
+      
       toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
     } catch (error) {
       console.error('Error starting call:', error);
