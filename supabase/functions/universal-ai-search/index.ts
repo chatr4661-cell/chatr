@@ -1,9 +1,11 @@
-// Universal AI search intent detection using Lovable AI
+// Universal AI search intent detection using OpenRouter
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -20,27 +22,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
+    if (!OPENROUTER_API_KEY) {
+      throw new Error('OPENROUTER_API_KEY not configured');
     }
 
-    // Call Lovable AI to understand search intent
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call OpenRouter AI to understand search intent
+    const aiResponse = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://chatr.chat',
+        'X-Title': 'Chatr Universal Search',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-flash-preview',
         messages: [
           {
             role: 'system',
             content: `You are an AI search assistant for Chatr.chat - a universal search platform.
 Analyze the user's search query and extract:
-1. Intent: What is the user looking for? (e.g., "find service", "order food", "book appointment", "hire worker", "find deal")
-2. Category: Main category (e.g., "plumbing", "food", "healthcare", "jobs", "beauty")
+1. Intent: What is the user looking for?
+2. Category: Main category
 3. Keywords: Important search terms
 4. Location intent: If location mentioned or implied
 5. Suggestions: 3-5 related search suggestions
@@ -70,24 +74,16 @@ Respond in JSON format:
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'AI credits depleted. Please contact support.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
     const aiMessage = aiData.choices?.[0]?.message?.content || '{}';
 
-    // Try to parse JSON response
     let parsedIntent;
     try {
       parsedIntent = JSON.parse(aiMessage);
     } catch {
-      // If AI doesn't return valid JSON, extract from text
       parsedIntent = {
         intent: 'general search',
         category: 'general',
