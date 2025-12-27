@@ -14,6 +14,8 @@ import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { GlobalCallListener } from "./components/calling/GlobalCallListener";
 import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
+import { Toaster } from "./components/ui/toaster";
+import { Toaster as Sonner } from "./components/ui/sonner";
 
 // Pages
 import Index from "./pages/Index";
@@ -506,6 +508,8 @@ const App = () => {
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <Toaster />
+          <Sonner />
           </NativeAppProvider>
         </BrowserRouter>
         </LocationProvider>
