@@ -87,10 +87,31 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
       })
     });
 
+    if (!intentResponse.ok) {
+      const errText = await intentResponse.text();
+      console.error('Intent API error:', intentResponse.status, errText);
+      throw new Error(`Intent analysis failed: ${intentResponse.status}`);
+    }
+
     const intentData = await intentResponse.json();
-    const analysis = JSON.parse(
-      intentData.choices[0].message.tool_calls[0].function.arguments
-    );
+    console.log('Intent API response:', JSON.stringify(intentData));
+
+    // Safe access with null checks
+    const toolCall = intentData?.choices?.[0]?.message?.tool_calls?.[0];
+    let analysis: { modules: string[]; primary_intent: string; search_terms: string[]; location_needed: boolean; entity_type?: string };
+    
+    if (!toolCall?.function?.arguments) {
+      console.error('No tool call in intent response:', JSON.stringify(intentData));
+      // Fallback to default analysis
+      analysis = {
+        modules: ['browser', 'food'],
+        primary_intent: query,
+        search_terms: query.split(' ').filter((w: string) => w.length > 2),
+        location_needed: query.toLowerCase().includes('near')
+      };
+    } else {
+      analysis = JSON.parse(toolCall.function.arguments);
+    }
 
     console.log('Intent analysis:', analysis);
 
@@ -317,8 +338,18 @@ Be specific about what's available and how to get it.`
       })
     });
 
+    if (!responseGeneration.ok) {
+      const errText = await responseGeneration.text();
+      console.error('Response generation API error:', responseGeneration.status, errText);
+      throw new Error(`Response generation failed: ${responseGeneration.status}`);
+    }
+
     const finalResponse = await responseGeneration.json();
-    const conversationalText = finalResponse.choices[0].message.content;
+    console.log('Final response received');
+
+    // Safe access with null checks
+    const conversationalText = finalResponse?.choices?.[0]?.message?.content 
+      || 'I found some results for you, but I had trouble formatting a response. Please check the data below.';
 
     return new Response(
       JSON.stringify({
