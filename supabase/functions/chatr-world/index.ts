@@ -111,9 +111,9 @@ serve(async (req) => {
       );
     }
     
-    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
-    if (!OPENROUTER_API_KEY) {
-      throw new Error('OPENROUTER_API_KEY not configured');
+    const openRouterKey = Deno.env.get('OPENROUTER_API_KEY') ?? '';
+    if (!openRouterKey) {
+      console.warn('OPENROUTER_API_KEY not configured; using fallback response text');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -215,7 +215,9 @@ Query: ${query}
 Available data: ${JSON.stringify(results.data)}
 Give a helpful response about what is available.`;
 
-    let conversationalText = await callAI(OPENROUTER_API_KEY, systemPrompt, userPrompt);
+    let conversationalText = openRouterKey
+      ? await callAI(openRouterKey, systemPrompt, userPrompt)
+      : '';
     
     // Fallback response if AI fails
     if (!conversationalText) {
