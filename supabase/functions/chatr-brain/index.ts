@@ -8,6 +8,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
 interface BrainRequest {
   query: string;
   systemPrompt: string;
@@ -133,9 +135,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
+    if (!OPENROUTER_API_KEY) {
+      throw new Error('OPENROUTER_API_KEY not configured');
     }
 
     // Build enhanced prompt with multi-agent awareness
@@ -144,15 +146,17 @@ Deno.serve(async (req) => {
     console.log(`🧠 [CHATR Intelligence] Processing for agents: ${agents.join(', ')}`);
     console.log(`🎯 [CHATR Intelligence] Intent: ${intent.primary}, Action: ${intent.actionRequired}`);
 
-    // Call Lovable AI
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call OpenRouter AI
+    const aiResponse = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://chatr.chat',
+        'X-Title': 'Chatr Brain',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-flash-preview',
         messages: [
           { role: 'system', content: enhancedPrompt },
           { role: 'user', content: query }

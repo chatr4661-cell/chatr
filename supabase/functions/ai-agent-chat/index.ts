@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,10 +18,10 @@ serve(async (req) => {
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
 
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    if (!OPENROUTER_API_KEY) {
+      throw new Error('OPENROUTER_API_KEY not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -32,21 +34,16 @@ serve(async (req) => {
       .single();
 
     if (agentError || !agent) {
-      console.error('Agent not found:', agentError);
       throw new Error('Agent not found');
     }
 
     // Get conversation history
-    const { data: messages, error: messagesError } = await supabase
+    const { data: messages } = await supabase
       .from('messages')
       .select('content, sender_id, created_at')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
       .limit(20);
-
-    if (messagesError) {
-      console.error('Error fetching messages:', messagesError);
-    }
 
     // Get training data
     const { data: trainingData } = await supabase
@@ -55,7 +52,6 @@ serve(async (req) => {
       .eq('agent_id', agentId)
       .limit(10);
 
-    // Build context
     const conversationHistory = messages?.map(m => ({
       role: m.sender_id === agent.user_id ? 'assistant' : 'user',
       content: m.content
@@ -66,31 +62,24 @@ serve(async (req) => {
     ).join('\n\n') || '';
 
     const systemPrompt = `You are ${agent.agent_name}, an AI assistant.
-
 Description: ${agent.agent_description}
 Personality: ${agent.agent_personality}
 Purpose: ${agent.agent_purpose}
-
 ${agent.knowledge_base ? `Knowledge Base:\n${agent.knowledge_base}\n` : ''}
 ${trainingContext ? `Training Examples:\n${trainingContext}\n` : ''}
+Keep responses concise and helpful (2-3 sentences).`;
 
-Guidelines:
-- Stay in character as ${agent.agent_name}
-- Be ${agent.agent_personality}
-- Focus on ${agent.agent_purpose}
-- Keep responses concise and helpful (2-3 sentences)
-- If you don't know something, be honest
-- Never break character or mention you're an AI unless asked`;
-
-    // Call Lovable AI
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call OpenRouter AI
+    const aiResponse = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://chatr.chat',
+        'X-Title': 'Chatr Agent Chat',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-flash-preview',
         messages: [
           { role: 'system', content: systemPrompt },
           ...conversationHistory.slice(-10),
@@ -102,56 +91,21 @@ Guidelines:
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
       throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
     const reply = aiData.choices[0]?.message?.content;
 
-    if (!reply) {
-      throw new Error('No response from AI');
-    }
+    if (!reply) throw new Error('No response from AI');
 
-    // Save agent's response to database
-    const { error: insertError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        sender_id: agent.user_id,
-        content: reply,
-        message_type: 'text'
-      });
-
-    if (insertError) {
-      console.error('Error saving message:', insertError);
-    }
-
-    // Update analytics
-    const today = new Date().toISOString().split('T')[0];
-    const { error: analyticsError } = await supabase
-      .from('ai_agent_analytics')
-      .upsert({
-        agent_id: agentId,
-        metric_date: today,
-        messages_sent: 1
-      }, {
-        onConflict: 'agent_id,metric_date',
-        ignoreDuplicates: false
-      });
-    
-    if (analyticsError) {
-      console.error('Analytics error:', analyticsError);
-    }
+    // Save agent's response
+    await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      sender_id: agent.user_id,
+      content: reply,
+      message_type: 'text'
+    });
 
     return new Response(
       JSON.stringify({ reply, agentName: agent.agent_name }),
@@ -160,9 +114,8 @@ Guidelines:
 
   } catch (error) {
     console.error('Error in ai-agent-chat:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

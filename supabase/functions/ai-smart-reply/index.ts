@@ -5,6 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,9 +16,9 @@ serve(async (req) => {
     const { lastMessage, message, context = [], replyCount = 3, tone, action } = await req.json();
     const userMessage = message || lastMessage;
     
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
+    if (!OPENROUTER_API_KEY) {
+      throw new Error('OPENROUTER_API_KEY not configured');
     }
 
     // Handle chat mode (direct AI conversation)
@@ -39,14 +41,16 @@ serve(async (req) => {
       // Add current user message
       messages.push({ role: 'user', content: userMessage });
 
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const response = await fetch(OPENROUTER_API_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://chatr.chat',
+          'X-Title': 'Chatr Smart Reply',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-2.5-flash-preview',
           messages: [
             { 
               role: 'system', 
@@ -93,14 +97,16 @@ serve(async (req) => {
         friendly: 'Rewrite this message to be warmer and more friendly'
       };
 
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const response = await fetch(OPENROUTER_API_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://chatr.chat',
+          'X-Title': 'Chatr Smart Reply',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-2.5-flash-preview',
           messages: [
             { 
               role: 'system', 
@@ -125,14 +131,16 @@ serve(async (req) => {
       ? `\n\nRecent conversation:\n${context.join('\n')}` 
       : '';
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://chatr.chat',
+        'X-Title': 'Chatr Smart Reply',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-flash-preview',
         messages: [
           { 
             role: 'system', 
