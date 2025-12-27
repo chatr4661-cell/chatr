@@ -87,7 +87,7 @@ export default function GlobalContacts() {
 
       if (convError) throw convError;
 
-      const { error: callError } = await supabase
+      const { data: callData, error: callError } = await supabase
         .from('calls')
         .insert({
           conversation_id: convData,
@@ -99,14 +99,36 @@ export default function GlobalContacts() {
           receiver_avatar: contact.avatar_url,
           call_type: callType,
           status: 'ringing'
-        });
+        })
+        .select()
+        .single();
 
       if (callError) {
         console.error('❌ Failed to create call:', callError);
         throw callError;
       }
 
-      console.log('✅ Call created successfully');
+      console.log('✅ Call created successfully:', callData.id);
+      
+      // Send FCM push notification to receiver
+      try {
+        console.log('📲 Sending FCM call notification to:', contact.id);
+        await supabase.functions.invoke('fcm-notify', {
+          body: {
+            type: 'call',
+            receiverId: contact.id,
+            callerId: user?.id,
+            callerName: profile?.username || user?.email || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callId: callData.id,
+            callType: callType
+          }
+        });
+        console.log('✅ FCM call notification sent');
+      } catch (fcmError) {
+        console.warn('⚠️ FCM notification failed:', fcmError);
+      }
+
       toast({
         title: 'Success',
         description: `${callType === 'voice' ? 'Voice' : 'Video'} call started`
