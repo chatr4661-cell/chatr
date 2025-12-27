@@ -210,56 +210,128 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
-// Push Notification Handler
+// Push Notification Handler - Enhanced for Calls and Messages
 self.addEventListener('push', (event) => {
-  console.log('Push notification received');
+  console.log('📲 Push notification received');
   
-  let notificationData = {
-    title: 'Chatr',
-    body: 'You have a new message',
+  let notificationOptions = {
     icon: '/chatr-logo.png',
     badge: '/chatr-logo.png',
     vibrate: [200, 100, 200],
     tag: 'chatr-notification',
     requireInteraction: false,
-    data: {
-      url: '/'
-    }
+    data: { url: '/' }
   };
+
+  let title = 'Chatr';
 
   if (event.data) {
     try {
       const data = event.data.json();
-      notificationData = {
-        ...notificationData,
-        title: data.title || notificationData.title,
-        body: data.body || data.message || notificationData.body,
-        data: data
-      };
+      console.log('📲 Push data:', data);
+      
+      // Handle INCOMING CALL notifications
+      if (data.type === 'call' || data.call_id) {
+        title = data.caller_name || 'Incoming Call';
+        notificationOptions = {
+          ...notificationOptions,
+          body: data.call_type === 'video' ? '📹 Incoming Video Call' : '📞 Incoming Voice Call',
+          icon: data.caller_avatar || '/chatr-logo.png',
+          tag: 'chatr-call-' + (data.call_id || Date.now()),
+          requireInteraction: true, // Keep notification until user acts
+          vibrate: [500, 200, 500, 200, 500], // Longer vibration for calls
+          actions: [
+            { action: 'answer', title: '✓ Answer' },
+            { action: 'reject', title: '✗ Decline' }
+          ],
+          data: {
+            type: 'call',
+            callId: data.call_id,
+            callerId: data.caller_id,
+            callerName: data.caller_name,
+            callType: data.call_type,
+            url: '/chat'
+          }
+        };
+      }
+      // Handle MESSAGE notifications
+      else if (data.type === 'message' || data.conversation_id) {
+        const sender = data.sender ? JSON.parse(data.sender) : {};
+        const message = data.message ? JSON.parse(data.message) : {};
+        
+        title = sender.username || data.senderName || 'New Message';
+        notificationOptions = {
+          ...notificationOptions,
+          body: message.content || data.messageContent || 'You have a new message',
+          icon: sender.avatar_url || data.senderAvatar || '/chatr-logo.png',
+          tag: 'chatr-msg-' + (data.conversation_id || Date.now()),
+          actions: [
+            { action: 'reply', title: 'Reply' },
+            { action: 'view', title: 'View' }
+          ],
+          data: {
+            type: 'message',
+            conversationId: data.conversation_id,
+            url: '/chat/' + data.conversation_id
+          }
+        };
+      }
+      // Generic notification
+      else {
+        title = data.title || title;
+        notificationOptions.body = data.body || data.message || 'You have a new notification';
+        notificationOptions.data = data;
+      }
     } catch (e) {
-      notificationData.body = event.data.text();
+      console.error('Error parsing push data:', e);
+      notificationOptions.body = event.data.text() || 'You have a new notification';
     }
   }
 
   event.waitUntil(
-    self.registration.showNotification(notificationData.title, notificationData)
+    self.registration.showNotification(title, notificationOptions)
   );
 });
 
-// Notification Click Handler
+// Notification Click Handler - Enhanced for Calls
 self.addEventListener('notificationclick', (event) => {
-  console.log('Notification clicked');
+  console.log('📲 Notification clicked:', event.action);
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/';
+  const data = event.notification.data || {};
+  let urlToOpen = data.url || '/';
+
+  // Handle call notification actions
+  if (data.type === 'call') {
+    if (event.action === 'answer') {
+      urlToOpen = '/chat?answerCall=' + data.callId;
+    } else if (event.action === 'reject') {
+      // Just close notification, reject handled by app
+      return;
+    }
+  }
+  
+  // Handle message notification actions
+  if (data.type === 'message') {
+    if (event.action === 'reply' || event.action === 'view') {
+      urlToOpen = '/chat/' + data.conversationId;
+    }
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(windowClients => {
-        // Check if there's already a window open
+        // Focus existing window if available
         for (let client of windowClients) {
-          if (client.url === urlToOpen && 'focus' in client) {
-            return client.focus();
+          if ('focus' in client) {
+            client.focus();
+            // Navigate to the correct URL
+            client.postMessage({
+              type: 'NAVIGATE',
+              url: urlToOpen,
+              callData: data.type === 'call' ? data : null
+            });
+            return;
           }
         }
         // Open new window if none exists

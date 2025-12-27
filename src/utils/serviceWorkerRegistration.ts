@@ -35,6 +35,14 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       registration.update();
     }, 60000); // Check every minute
 
+    // Listen for messages from service worker (e.g., navigate on notification click)
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      console.log('📲 SW Message:', event.data);
+      if (event.data?.type === 'NAVIGATE' && event.data?.url) {
+        window.location.href = event.data.url;
+      }
+    });
+
     return registration;
   } catch (error) {
     console.error('❌ Service Worker registration failed:', error);
