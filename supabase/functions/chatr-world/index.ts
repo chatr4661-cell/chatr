@@ -7,6 +7,85 @@ const corsHeaders = {
 };
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const PRIMARY_MODEL = 'qwen/qwen-2.5-72b-instruct:free';
+const FALLBACK_MODEL = 'mistralai/mistral-7b-instruct:free';
+
+// Simple intent detection without AI
+function detectIntent(query: string): { modules: string[]; primary_intent: string; search_terms: string[]; location_needed: boolean } {
+  const q = query.toLowerCase();
+  const modules: string[] = [];
+  
+  if (q.includes('food') || q.includes('restaurant') || q.includes('eat') || q.includes('pizza') || q.includes('burger') || q.includes('biryani') || q.includes('cafe')) {
+    modules.push('food');
+  }
+  if (q.includes('doctor') || q.includes('hospital') || q.includes('health') || q.includes('clinic') || q.includes('medical')) {
+    modules.push('health');
+  }
+  if (q.includes('job') || q.includes('work') || q.includes('hiring') || q.includes('career') || q.includes('service')) {
+    modules.push('business');
+  }
+  if (q.includes('deal') || q.includes('discount') || q.includes('offer') || q.includes('coupon') || q.includes('sale')) {
+    modules.push('deals');
+  }
+  if (q.includes('clean') || q.includes('plumber') || q.includes('electrician') || q.includes('repair') || q.includes('home service')) {
+    modules.push('business');
+  }
+  
+  if (modules.length === 0) {
+    modules.push('browser', 'food');
+  }
+  
+  return {
+    modules,
+    primary_intent: query,
+    search_terms: query.split(' ').filter(w => w.length > 2),
+    location_needed: q.includes('near') || q.includes('nearby') || q.includes('local')
+  };
+}
+
+// AI call with fallback
+async function callAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
+  const models = [PRIMARY_MODEL, FALLBACK_MODEL];
+  
+  for (const model of models) {
+    try {
+      console.log(`Trying model: ${model}`);
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://chatr.chat',
+          'X-Title': 'Chatr World',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        console.error(`Model ${model} failed:`, response.status);
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content;
+      
+      if (content && content.trim().length > 10) {
+        console.log(`Model ${model} succeeded`);
+        return content;
+      }
+    } catch (err) {
+      console.error(`Model ${model} error:`, err);
+    }
+  }
+  
+  return '';
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,16 +95,13 @@ serve(async (req) => {
   try {
     const { query, userId, latitude, longitude, city, country } = await req.json();
     
-    console.log('Received request:', { query, userId, latitude, longitude, city, country });
+    console.log('Received request:', { query, userId, city, country });
     
-    // Validate location data when query requires it
     const isLocationQuery = query.toLowerCase().includes('near') || 
                             query.toLowerCase().includes('nearby') || 
-                            query.toLowerCase().includes('local') ||
-                            query.toLowerCase().includes('around me');
+                            query.toLowerCase().includes('local');
     
     if (isLocationQuery && (!latitude || !longitude)) {
-      console.error('Location required but missing coordinates');
       return new Response(
         JSON.stringify({ 
           error: 'LOCATION_REQUIRED',
@@ -44,252 +120,81 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Analyze intent using AI via OpenRouter
-    const intentResponse = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://chatr.chat',
-        'X-Title': 'Chatr World',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `You are Chatr World AI. Analyze user queries and determine which modules to engage:
-- browser: web search, information lookup
-- health: medical, wellness, healthcare queries
-- business: services, bookings, marketplace
-- community: social connections, groups
-- food: restaurant, delivery queries
-- deals: discounts, offers, local deals
-
-Return a JSON with: modules (array), primary_intent (string), search_terms (array), location_needed (boolean)`
-          },
-          { role: 'user', content: query }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'analyze_intent',
-            parameters: {
-              type: 'object',
-              properties: {
-                modules: { type: 'array', items: { type: 'string' } },
-                primary_intent: { type: 'string' },
-                search_terms: { type: 'array', items: { type: 'string' } },
-                location_needed: { type: 'boolean' },
-                entity_type: { type: 'string', enum: ['hostel', 'restaurant', 'doctor', 'service', 'product', 'other'] }
-              },
-              required: ['modules', 'primary_intent', 'search_terms']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'analyze_intent' } }
-      })
-    });
-
-    if (!intentResponse.ok) {
-      const errText = await intentResponse.text();
-      console.error('Intent API error:', intentResponse.status, errText);
-      throw new Error(`Intent analysis failed: ${intentResponse.status}`);
-    }
-
-    const intentData = await intentResponse.json();
-    console.log('Intent API response:', JSON.stringify(intentData));
-
-    // Safe access with null checks
-    const toolCall = intentData?.choices?.[0]?.message?.tool_calls?.[0];
-    let analysis: { modules: string[]; primary_intent: string; search_terms: string[]; location_needed: boolean; entity_type?: string };
-    
-    if (!toolCall?.function?.arguments) {
-      console.error('No tool call in intent response:', JSON.stringify(intentData));
-      // Fallback to default analysis
-      analysis = {
-        modules: ['browser', 'food'],
-        primary_intent: query,
-        search_terms: query.split(' ').filter((w: string) => w.length > 2),
-        location_needed: query.toLowerCase().includes('near')
-      };
-    } else {
-      analysis = JSON.parse(toolCall.function.arguments);
-    }
-
+    // Use simple intent detection
+    const analysis = detectIntent(query);
     console.log('Intent analysis:', analysis);
 
-    // Fetch data from multiple modules in parallel
-    const results: any = {
-      modules: analysis.modules,
-      intent: analysis.primary_intent,
-      data: {}
-    };
-
+    // Fetch data from modules
+    const results: any = { modules: analysis.modules, intent: analysis.primary_intent, data: {} };
     const fetchPromises = [];
 
-    // Browser module - web search
     if (analysis.modules.includes('browser')) {
-      fetchPromises.push(
-        (async () => {
-          results.data.browser = {
-            type: 'web_results',
-            query: query,
-            suggestion: `Searching the web for "${analysis.search_terms.join(', ')}"`
-          };
-        })()
-      );
+      results.data.browser = { type: 'web_results', query, suggestion: `Searching for "${query}"` };
     }
 
-    // Business/Jobs module
     if (analysis.modules.includes('business')) {
       fetchPromises.push(
         (async () => {
-          let jobQuery = supabase
-            .from('chatr_jobs')
-            .select('*')
-            .eq('is_active', true);
-          
-          if (city) {
-            jobQuery = jobQuery.ilike('location', `%${city}%`);
-          }
-          
+          let jobQuery = supabase.from('chatr_jobs').select('*').eq('is_active', true);
+          if (city) jobQuery = jobQuery.ilike('location', `%${city}%`);
           const { data } = await jobQuery.limit(10);
-          
           results.data.business = {
             type: 'jobs',
             providers: (data || []).map(j => ({
-              id: j.id,
-              name: j.title,
-              description: `${j.company_name} - ${j.salary_min ? `₹${j.salary_min.toLocaleString()}-${j.salary_max?.toLocaleString()}` : 'Competitive'}`,
-              location: j.location,
-              company: j.company_name
+              id: j.id, name: j.title, description: `${j.company_name}`, location: j.location
             })),
-            count: data?.length || 0,
-            location: city || 'all locations',
-            hasLocation: !!(latitude && longitude)
-          };
-        })()
-      );
-    }
-
-    // Health module - using chatr_healthcare
-    if (analysis.modules.includes('health')) {
-      fetchPromises.push(
-        (async () => {
-          let healthQuery = supabase
-            .from('chatr_healthcare')
-            .select('*')
-            .eq('is_active', true);
-          
-          if (city) {
-            healthQuery = healthQuery.ilike('city', `%${city}%`);
-          }
-          
-          const { data } = await healthQuery.limit(10);
-          
-          results.data.health = {
-            type: 'healthcare_providers',
-            providers: (data || []).map(h => ({
-              id: h.id,
-              name: h.name,
-              description: h.description,
-              specialty: h.specialty,
-              location: h.city,
-              fee: h.consultation_fee,
-              rating: h.rating_average,
-              phone: h.phone
-            })),
-            count: data?.length || 0,
-            location: city || 'all locations'
-          };
-        })()
-      );
-    }
-
-    // Community module
-    if (analysis.modules.includes('community')) {
-      fetchPromises.push(
-        (async () => {
-          const { data } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('is_community', true)
-            .limit(5);
-          
-          results.data.community = {
-            type: 'communities',
-            communities: data || [],
             count: data?.length || 0
           };
         })()
       );
     }
 
-    // Food module - using chatr_restaurants
-    if (analysis.modules.includes('food')) {
+    if (analysis.modules.includes('health')) {
       fetchPromises.push(
         (async () => {
-          let foodQuery = supabase
-            .from('chatr_restaurants')
-            .select('*')
-            .eq('is_active', true);
-          
-          if (city) {
-            foodQuery = foodQuery.ilike('city', `%${city}%`);
-          }
-          
-          const { data } = await foodQuery.limit(10);
-          
-          results.data.food = {
-            type: 'restaurants',
-            vendors: (data || []).map(r => ({
-              id: r.id,
-              name: r.name,
-              description: r.description,
-              location: r.city,
-              address: r.address,
-              price: r.delivery_fee,
-              rating: r.rating_average,
-              phone: r.phone,
-              cuisine: r.cuisine_type
+          let healthQuery = supabase.from('chatr_healthcare').select('*').eq('is_active', true);
+          if (city) healthQuery = healthQuery.ilike('city', `%${city}%`);
+          const { data } = await healthQuery.limit(10);
+          results.data.health = {
+            type: 'healthcare',
+            providers: (data || []).map(h => ({
+              id: h.id, name: h.name, specialty: h.specialty, location: h.city, fee: h.consultation_fee
             })),
-            count: data?.length || 0,
-            location: city || 'all locations',
-            hasLocation: !!(latitude && longitude)
+            count: data?.length || 0
           };
         })()
       );
     }
 
-    // Deals module - using chatr_deals
+    if (analysis.modules.includes('food')) {
+      fetchPromises.push(
+        (async () => {
+          let foodQuery = supabase.from('chatr_restaurants').select('*').eq('is_active', true);
+          if (city) foodQuery = foodQuery.ilike('city', `%${city}%`);
+          const { data } = await foodQuery.limit(10);
+          results.data.food = {
+            type: 'restaurants',
+            vendors: (data || []).map(r => ({
+              id: r.id, name: r.name, cuisine: r.cuisine_type, location: r.city, rating: r.rating_average
+            })),
+            count: data?.length || 0
+          };
+        })()
+      );
+    }
+
     if (analysis.modules.includes('deals')) {
       fetchPromises.push(
         (async () => {
-          let dealsQuery = supabase
-            .from('chatr_deals')
-            .select('*')
-            .eq('is_active', true)
-            .gte('expires_at', new Date().toISOString());
-          
-          if (city) {
-            dealsQuery = dealsQuery.ilike('location', `%${city}%`);
-          }
-          
+          let dealsQuery = supabase.from('chatr_deals').select('*').eq('is_active', true).gte('expires_at', new Date().toISOString());
+          if (city) dealsQuery = dealsQuery.ilike('location', `%${city}%`);
           const { data } = await dealsQuery.limit(10);
-          
           results.data.deals = {
             type: 'deals',
             deals: (data || []).map(d => ({
-              id: d.id,
-              name: d.title,
-              description: d.description,
-              discount: `${d.discount_percent}% OFF`,
-              code: d.coupon_code,
-              expires_at: d.expires_at
+              id: d.id, name: d.title, discount: `${d.discount_percent}% OFF`, code: d.coupon_code
             })),
-            count: data?.length || 0,
-            location: city || 'all locations'
+            count: data?.length || 0
           };
         })()
       );
@@ -297,65 +202,30 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
 
     await Promise.all(fetchPromises);
 
-    // Generate conversational response via OpenRouter
-    const responseGeneration = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://chatr.chat',
-        'X-Title': 'Chatr World',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `You are Chatr World - a conversational multiverse interface that helps users find and order services, food, deals, healthcare, and more. 
+    // Generate response with AI (plain text prompt)
+    const systemPrompt = `You are Chatr World assistant.
+Help users find services, food, deals and healthcare.
+Give short helpful answers with specific names and details.
+Use plain text, no markdown formatting.
+Be friendly and conversational.
+Always mention how to order or book if relevant.`;
 
-When presenting results:
-- Show specific items with names, prices, and details
-- Include actionable next steps (how to order, book, purchase)
-- Mention delivery/pickup options for food
-- Include contact info or booking methods for services
-- Be conversational and helpful
+    const userPrompt = `Location: ${city || 'Unknown'}, ${country || 'Unknown'}
+Query: ${query}
+Available data: ${JSON.stringify(results.data)}
+Give a helpful response about what is available.`;
 
-Format your response with markdown for better readability.`
-          },
-          {
-            role: 'user',
-            content: `User location: ${city || 'unknown'}, ${country || 'unknown'}
-            
-User asked: "${query}"
-
-Data gathered from modules:
-${JSON.stringify(results.data, null, 2)}
-
-Provide a helpful, conversational response that:
-1. Acknowledges their location if relevant
-2. Presents available options with specific details
-3. Explains how they can order/book/purchase
-4. Mentions any deals or special offers
-5. Provides next steps
-
-Be specific about what's available and how to get it.`
-          }
-        ]
-      })
-    });
-
-    if (!responseGeneration.ok) {
-      const errText = await responseGeneration.text();
-      console.error('Response generation API error:', responseGeneration.status, errText);
-      throw new Error(`Response generation failed: ${responseGeneration.status}`);
+    let conversationalText = await callAI(OPENROUTER_API_KEY, systemPrompt, userPrompt);
+    
+    // Fallback response if AI fails
+    if (!conversationalText) {
+      const dataCount = Object.values(results.data).reduce((sum: number, d: any) => sum + (d.count || d.vendors?.length || d.providers?.length || 0), 0);
+      if (dataCount > 0) {
+        conversationalText = `I found ${dataCount} results for "${query}" in ${city || 'your area'}. Check the results below to see what's available. You can tap on any item for more details.`;
+      } else {
+        conversationalText = `I searched for "${query}" but couldn't find exact matches in ${city || 'your area'}. Try broadening your search or check nearby areas.`;
+      }
     }
-
-    const finalResponse = await responseGeneration.json();
-    console.log('Final response received');
-
-    // Safe access with null checks
-    const conversationalText = finalResponse?.choices?.[0]?.message?.content 
-      || 'I found some results for you, but I had trouble formatting a response. Please check the data below.';
 
     return new Response(
       JSON.stringify({
@@ -366,10 +236,7 @@ Be specific about what's available and how to get it.`
         modules: results.data,
         timestamp: new Date().toISOString()
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
 
   } catch (error) {
@@ -379,10 +246,7 @@ Be specific about what's available and how to get it.`
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error' 
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
