@@ -128,3 +128,6 @@ verify_jwt = false
 
 [functions.send-call-notification]
 verify_jwt = true
+
+[functions.send-push]
+verify_jwt = false
