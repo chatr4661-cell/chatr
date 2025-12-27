@@ -13,6 +13,7 @@ import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { GlobalCallListener } from "./components/calling/GlobalCallListener";
+import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
 
 // Pages
 import Index from "./pages/Index";
@@ -278,6 +279,7 @@ const App = () => {
             <NativeAppProvider>
             <OfflineIndicator />
             <GlobalCallListener />
+            <GlobalNotificationListener />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />
