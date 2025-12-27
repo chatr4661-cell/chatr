@@ -54,7 +54,7 @@ serve(async (req) => {
         'X-Title': 'Chatr World',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -307,7 +307,7 @@ Return a JSON with: modules (array), primary_intent (string), search_terms (arra
         'X-Title': 'Chatr World',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
