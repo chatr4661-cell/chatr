@@ -44,14 +44,14 @@ serve(async (req) => {
     // Get receiver's FCM token
     const { data: tokenData } = await serviceClient
       .from('device_tokens')
-      .select('fcm_token')
+      .select('device_token, platform')
       .eq('user_id', receiverId)
-      .not('fcm_token', 'is', null)
+      .not('device_token', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(1)
       .single()
 
-    if (!tokenData?.fcm_token) {
+    if (!tokenData?.device_token) {
       console.log(`[Send-Call-Notification] No FCM token for receiver ${receiverId}`)
       return new Response(JSON.stringify({ 
         success: true, 
@@ -62,9 +62,9 @@ serve(async (req) => {
       })
     }
 
-    const fcmServerKey = Deno.env.get('FCM_SERVER_KEY')
-    if (!fcmServerKey) {
-      console.error('[Send-Call-Notification] FCM_SERVER_KEY not set')
+    const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY')
+    if (!firebaseServerKey) {
+      console.error('[Send-Call-Notification] FIREBASE_SERVER_KEY not set')
       return new Response(JSON.stringify({ 
         success: true, 
         fcmSent: false,
@@ -74,54 +74,71 @@ serve(async (req) => {
       })
     }
 
-    // Send high-priority FCM for incoming call
+    /**
+     * CRITICAL: DATA-ONLY FCM MESSAGE FOR INCOMING CALLS
+     * 
+     * WhatsApp-style incoming calls require DATA-ONLY messages:
+     * - NO "notification" block (would prevent app wake when killed)
+     * - NO "android.notification" block
+     * - NO "apns.alert" or iOS notification fields for Android
+     * - Android priority MUST be "high"
+     * - Token-based sending ONLY (no topics/conditions)
+     */
     const fcmPayload = {
-      to: tokenData.fcm_token,
-      priority: 'high',
+      to: tokenData.device_token,
+      // HIGH priority is MANDATORY for data-only messages to wake the app
+      priority: "high",
+      // Android-specific high priority
+      android: {
+        priority: "high"
+      },
+      // DATA-ONLY payload - NO notification block
       data: {
-        type: 'incoming_call',
-        callId,
-        callerId: user.id,
-        callerName: callerName || 'Unknown',
-        callerAvatar: callerAvatar || '',
-        callType: callType || 'audio',
-        conversationId,
-        click_action: 'OPEN_CALL_ACTIVITY',
+        type: "call",
+        call_id: callId,
+        caller_id: user.id,
+        caller_name: callerName || "Unknown",
+        caller_avatar: callerAvatar || "",
+        is_video: callType === 'video' ? "true" : "false",
+        conversation_id: conversationId || "",
         timestamp: Date.now().toString()
       },
-      android: {
-        priority: 'high',
-        ttl: '30s',
-        direct_boot_ok: true
-      },
-      apns: {
-        headers: {
-          'apns-priority': '10',
-          'apns-push-type': 'voip'
-        },
-        payload: {
-          aps: {
-            'content-available': 1,
-            sound: 'ringtone.caf',
-            'mutable-content': 1
-          }
-        }
-      }
+      // Short TTL - call should be answered quickly
+      time_to_live: 30
     }
 
-    console.log('[Send-Call-Notification] Sending FCM:', JSON.stringify(fcmPayload))
+    console.log('[Send-Call-Notification] Sending DATA-ONLY FCM payload:')
+    console.log(JSON.stringify(fcmPayload, null, 2))
 
     const fcmResponse = await fetch('https://fcm.googleapis.com/fcm/send', {
       method: 'POST',
       headers: {
-        'Authorization': `key=${fcmServerKey}`,
+        'Authorization': `key=${firebaseServerKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(fcmPayload)
     })
 
     const fcmResult = await fcmResponse.json()
-    console.log('[Send-Call-Notification] FCM Result:', fcmResult)
+    console.log('[Send-Call-Notification] FCM Result:', JSON.stringify(fcmResult))
+
+    // Update last_used_at for the token
+    if (fcmResult.success === 1) {
+      await serviceClient
+        .from('device_tokens')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('device_token', tokenData.device_token)
+    }
+
+    // Handle invalid tokens
+    if (fcmResult.results?.[0]?.error === 'NotRegistered' || 
+        fcmResult.results?.[0]?.error === 'InvalidRegistration') {
+      console.log('[Send-Call-Notification] Removing invalid FCM token')
+      await serviceClient
+        .from('device_tokens')
+        .delete()
+        .eq('device_token', tokenData.device_token)
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
