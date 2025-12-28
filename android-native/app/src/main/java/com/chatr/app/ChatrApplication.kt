@@ -8,6 +8,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.chatr.app.call.TelecomHelper
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -20,6 +21,7 @@ import javax.inject.Inject
  * - Firebase services
  * - Notification channels
  * - WorkManager for background tasks with HiltWorkerFactory
+ * - Telecom integration for native calling
  */
 @HiltAndroidApp
 class ChatrApplication : Application(), Configuration.Provider {
@@ -35,6 +37,9 @@ class ChatrApplication : Application(), Configuration.Provider {
         
         // Create notification channels (Android 8.0+)
         createNotificationChannels()
+        
+        // Register PhoneAccount for native call integration (Android 8.0+)
+        registerPhoneAccount()
     }
     
     override val workManagerConfiguration: Configuration
@@ -42,6 +47,16 @@ class ChatrApplication : Application(), Configuration.Provider {
             .setWorkerFactory(workerFactory)
             .setMinimumLoggingLevel(android.util.Log.INFO)
             .build()
+    
+    /**
+     * Registers ChatrPlus PhoneAccount with TelecomManager
+     * This enables native call UI integration with proper branding
+     */
+    private fun registerPhoneAccount() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            TelecomHelper.registerPhoneAccount(this)
+        }
+    }
     
     /**
      * Creates notification channels for Android 8.0+ (API 26+)
