@@ -476,7 +476,7 @@ export default function ProductionVideoCall({
         </div>
       </motion.div>
 
-      {/* FaceTime-style Top Bar with Glassmorphism */}
+      {/* ChatrPlus-style Top Bar with Glassmorphism */}
       {!isFullScreen && (
         <motion.div 
           initial={{ y: -20, opacity: 0 }}
@@ -494,7 +494,7 @@ export default function ProductionVideoCall({
         </motion.div>
       )}
 
-      {/* FaceTime-style End Call Button - Bottom Center */}
+      {/* ChatrPlus-style End Call Button - Bottom Center */}
       {!isFullScreen && (
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
@@ -512,7 +512,7 @@ export default function ProductionVideoCall({
         </motion.div>
       )}
 
-      {/* FaceTime-style Controls - Bottom Right */}
+      {/* ChatrPlus-style Controls - Bottom Right */}
       <AnimatePresence>
         {controlsVisible && !isFullScreen && (
           <motion.div
