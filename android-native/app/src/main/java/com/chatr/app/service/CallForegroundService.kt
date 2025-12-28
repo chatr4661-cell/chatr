@@ -26,19 +26,29 @@ class CallForegroundService : Service() {
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        android.util.Log.e("FCM_KILLED", "🔥 CallForegroundService.onStartCommand called")
+        android.util.Log.e("FCM_KILLED", "🔥 Intent action: ${intent?.action}")
+        
         when (intent?.action) {
             ACTION_START_CALL -> {
                 val callId = intent.getStringExtra(EXTRA_CALL_ID) ?: ""
                 val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: "Unknown Caller"
                 val isVideo = intent.getBooleanExtra(EXTRA_IS_VIDEO, false)
+                
+                android.util.Log.e("FCM_KILLED", "🔥 ACTION_START_CALL: callId=$callId, caller=$callerName, video=$isVideo")
                 startForegroundService(callId, callerName, isVideo)
             }
-            ACTION_END_CALL -> stopForegroundService()
+            ACTION_END_CALL -> {
+                android.util.Log.e("FCM_KILLED", "🔥 ACTION_END_CALL")
+                stopForegroundService()
+            }
         }
         return START_NOT_STICKY
     }
     
     private fun startForegroundService(callId: String, callerName: String, isVideo: Boolean) {
+        android.util.Log.e("FCM_KILLED", "🔥 startForegroundService: Creating full screen intent")
+        
         val fullScreenIntent = Intent(this, com.chatr.app.ui.activities.CallActivity::class.java).apply {
             putExtra("callerName", callerName)
             putExtra("callId", callId)
@@ -49,11 +59,17 @@ class CallForegroundService : Service() {
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
         }
 
+        android.util.Log.e("FCM_KILLED", "🔥 Creating notification with full screen intent")
         val notification = createNotification(callId, callerName, isVideo, fullScreenIntent)
+        
+        android.util.Log.e("FCM_KILLED", "🔥 Calling startForeground with notification")
         startForeground(NOTIFICATION_ID, notification)
 
+        android.util.Log.e("FCM_KILLED", "🔥 Starting CallActivity")
         // Force the call screen over any existing UI
         startActivity(fullScreenIntent)
+        
+        android.util.Log.e("FCM_KILLED", "✅ CallForegroundService fully started - call UI should be visible!")
     }
     
     private fun stopForegroundService() {

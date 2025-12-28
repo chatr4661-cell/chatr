@@ -67,6 +67,14 @@ class ChatrFirebaseService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
 
+        // 🔥 CRITICAL DEBUG LOG - This MUST appear in logcat when FCM arrives
+        // Use android.util.Log.e for MAXIMUM visibility
+        android.util.Log.e("FCM_KILLED", "🔥🔥🔥 FCM RECEIVED - App state unknown 🔥🔥🔥")
+        android.util.Log.e("FCM_KILLED", "🔥 Data payload: $data")
+        android.util.Log.e("FCM_KILLED", "🔥 Type: ${data["type"]}")
+        android.util.Log.e("FCM_KILLED", "🔥 Call ID: ${data["call_id"] ?: data["callId"]}")
+        android.util.Log.e("FCM_KILLED", "🔥 Caller: ${data["caller_name"] ?: data["callerName"]}")
+
         // Ensure CPU stays awake long enough to handle high-priority FCM
         val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         val wakeLock = powerManager.newWakeLock(
@@ -76,9 +84,15 @@ class ChatrFirebaseService : FirebaseMessagingService() {
 
         try {
             wakeLock.acquire(10_000)
+            
+            android.util.Log.e("FCM_KILLED", "🔥 Processing message type: ${data["type"]}")
+            
             when (data["type"]) {
                 "message" -> handleMessageNotification(data)
-                "call" -> handleCallNotification(data)
+                "call" -> {
+                    android.util.Log.e("FCM_KILLED", "🔥 CALL TYPE DETECTED - Launching CallForegroundService")
+                    handleCallNotification(data)
+                }
                 else -> handleSystemNotification(data)
             }
         } finally {
@@ -118,6 +132,9 @@ class ChatrFirebaseService : FirebaseMessagingService() {
     }
     
     private fun handleCallNotification(data: Map<String, String>) {
+        android.util.Log.e("FCM_KILLED", "🔥 handleCallNotification START")
+        android.util.Log.e("FCM_KILLED", "🔥 Raw data map: $data")
+        
         // Extract call data with support for both camelCase and snake_case keys
         val callerName = data["callerName"]
             ?: data["caller_name"]
@@ -131,9 +148,14 @@ class ChatrFirebaseService : FirebaseMessagingService() {
             ?: data["is_video"]?.toBoolean()
             ?: false
 
+        android.util.Log.e("FCM_KILLED", "🔥 Parsed: callId=$callId, callerName=$callerName, isVideo=$isVideo")
+
         if (callId.isEmpty()) {
+            android.util.Log.e("FCM_KILLED", "❌ CALL ID IS EMPTY - ABORTING")
             return
         }
+
+        android.util.Log.e("FCM_KILLED", "🔥 Starting CallForegroundService...")
 
         // Start the foreground service responsible for showing the native call UI
         val serviceIntent = Intent(this, com.chatr.app.service.CallForegroundService::class.java).apply {
@@ -143,10 +165,17 @@ class ChatrFirebaseService : FirebaseMessagingService() {
             putExtra("isVideo", isVideo)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                android.util.Log.e("FCM_KILLED", "🔥 Calling startForegroundService (Android O+)")
+                startForegroundService(serviceIntent)
+            } else {
+                android.util.Log.e("FCM_KILLED", "🔥 Calling startService (pre-Android O)")
+                startService(serviceIntent)
+            }
+            android.util.Log.e("FCM_KILLED", "✅ Service started successfully!")
+        } catch (e: Exception) {
+            android.util.Log.e("FCM_KILLED", "❌ Failed to start service: ${e.message}", e)
         }
     }
     
