@@ -101,7 +101,7 @@ export function IncomingCallScreen({
       right: 0,
       bottom: 0
     }}>
-      {/* Full-screen caller photo background - FaceTime style */}
+      {/* Full-screen caller photo background - ChatrPlus style */}
       <div className="absolute inset-0">
         {callerAvatar ? (
           <img
@@ -135,7 +135,7 @@ export function IncomingCallScreen({
         </h1>
         <p className="text-white/80 text-xl mt-2 flex items-center justify-center gap-2">
           <Phone className="w-5 h-5" />
-          <span>{callType === 'video' ? 'FaceTime Video' : 'mobile'}</span>
+          <span>{callType === 'video' ? 'ChatrPlus Video' : 'ChatrPlus Audio'}</span>
         </p>
         
         {/* Location Display */}
