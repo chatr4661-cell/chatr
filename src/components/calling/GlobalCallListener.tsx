@@ -5,6 +5,11 @@ import ProductionVideoCall from "./ProductionVideoCall";
 import ProductionVoiceCall from "./ProductionVoiceCall";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignal } from "@/utils/webrtcSignaling";
+import { Capacitor } from "@capacitor/core";
+
+// ARCHITECTURE: Skip web-based call handling when running inside native Android/iOS shell
+// Native shell uses TelecomManager (Android) / CallKit (iOS) for incoming calls
+const isNativeShell = () => Capacitor.isNativePlatform();
 
 export function GlobalCallListener() {
   const [incomingCall, setIncomingCall] = useState<any>(null);
@@ -40,8 +45,16 @@ export function GlobalCallListener() {
   }, []);
 
   // Subscribe once per logged-in user
+  // CRITICAL: Skip subscription in native shell - native handles calls via TelecomManager/CallKit
   useEffect(() => {
     if (!userId) return;
+    
+    // Native shell uses FCM → TelecomManager/CallKit for incoming calls
+    // Web listener would cause duplicate notifications
+    if (isNativeShell()) {
+      console.log("📱 [GlobalCallListener] Native shell detected - deferring to native call handling");
+      return;
+    }
 
     console.log("🔔 GlobalCallListener active for user:", userId);
 
