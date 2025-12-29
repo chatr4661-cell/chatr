@@ -13,7 +13,7 @@ import { useNetworkQuality } from '@/hooks/useNetworkQuality';
 import { useLiteMode } from '@/hooks/useLiteMode';
 import { useDataUsageTracking } from '@/hooks/useDataUsageTracking';
 import { useBandwidthEstimation } from '@/hooks/useBandwidthEstimation';
-import { LocationPrivacySettings } from '@/components/settings/LocationPrivacySettings';
+
 import { ConnectedAccounts } from '@/components/ConnectedAccounts';
 
 export default function Account() {
@@ -471,8 +471,7 @@ export default function Account() {
           </CardContent>
         </Card>
 
-        {/* Location & Privacy Settings */}
-        {user && <LocationPrivacySettings userId={user.id} />}
+        {/* Location settings removed from UI */}
       </div>
     </div>
   );

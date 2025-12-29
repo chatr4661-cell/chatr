@@ -5,7 +5,7 @@ import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { useNativeRingtone } from "@/hooks/useNativeRingtone";
 import { motion } from "framer-motion";
-import { LocationPresenceBadge } from "@/components/LocationPresenceBadge";
+
 
 interface IncomingCallScreenProps {
   callerName: string;
@@ -138,20 +138,7 @@ export function IncomingCallScreen({
           <span>{callType === 'video' ? 'ChatrPlus Video' : 'ChatrPlus Audio'}</span>
         </p>
         
-        {/* Location Display */}
-        {(callerCity || callerCountry) && (
-          <div className="mt-3">
-            <LocationPresenceBadge
-              city={callerCity}
-              country={callerCountry}
-              locationSharingEnabled={callerLocationSharing}
-              locationPrecision={callerLocationPrecision}
-              showLastSeen={false}
-              compact={true}
-              className="justify-center text-white/60 text-base"
-            />
-          </div>
-        )}
+        {/* Location display removed for cleaner call UI */}
       </motion.div>
 
       {/* Center - Large avatar for video calls */}

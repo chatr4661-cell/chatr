@@ -544,3 +544,51 @@ a:focus-visible {
   will-change: transform;
   backface-visibility: hidden;
 }
+
+/* Ultra-fast list scrolling */
+.fast-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: auto;
+  contain: strict;
+}
+
+/* Instant content visibility */
+.content-visible {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100px;
+}
+
+/* Native button press feedback */
+.btn-native {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.btn-native:active {
+  transform: scale(0.96);
+  transition: transform 40ms ease-out;
+}
+
+/* Prevent layout shift */
+.stable-layout {
+  contain: layout style paint;
+}
+
+/* Instant image loading placeholder */
+.img-placeholder {
+  background: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--muted-foreground) / 0.1) 100%);
+}
+
+/* Native list item styling */
+.list-item-native {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.list-item-native:active {
+  background: hsl(var(--accent) / 0.5);
+  transition: background 30ms ease-out;
+}
