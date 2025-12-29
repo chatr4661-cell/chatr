@@ -519,15 +519,7 @@ const UniversalSearch = () => {
               <h1 className="text-lg font-bold">Universal AI Search</h1>
               <p className="text-xs text-muted-foreground">Ask Anything. Find Everything. Instantly.</p>
             </div>
-            <Button 
-              variant="outline"
-              size="sm"
-              disabled={locationLoading}
-              className="gap-2"
-            >
-              <Navigation className="w-4 h-4" />
-              {locationLoading ? 'Loading...' : location ? 'Location On' : 'No Location'}
-            </Button>
+            {/* Location indicator removed for cleaner UI */}
           </div>
 
           {/* Search Bar */}
