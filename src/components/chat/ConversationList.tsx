@@ -180,10 +180,10 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
     try {
       console.log('🎥 Starting call from conversation list:', { callType, to: conversation.other_user?.username });
       
-      // Get current user profile
+      // Get current user profile with phone number
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, avatar_url')
+        .select('username, avatar_url, phone_number')
         .eq('id', userId)
         .single();
 
@@ -194,9 +194,11 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
           caller_id: userId,
           caller_name: profile?.username || 'Unknown',
           caller_avatar: profile?.avatar_url,
+          caller_phone: profile?.phone_number || null,
           receiver_id: conversation.other_user?.id,
           receiver_name: conversation.other_user?.username || conversation.other_user?.email || 'Unknown',
           receiver_avatar: conversation.other_user?.avatar_url,
+          receiver_phone: conversation.other_user?.phone_number || null,
           call_type: callType,
           status: 'ringing'
         })
@@ -220,6 +222,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
             callerId: userId,
             callerName: profile?.username || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
             callId: data.id,
             callType: callType
           }

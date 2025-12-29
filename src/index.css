@@ -196,16 +196,19 @@
     --safe-area-right: env(safe-area-inset-right, 0px);
   }
   
-  /* Premium typography */
+  /* Premium typography - Native-like performance */
   html {
     overscroll-behavior: contain;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    scroll-behavior: smooth;
+    text-rendering: optimizeSpeed;
     font-size: 14px;
-    /* Enable viewport-fit for edge-to-edge */
     height: 100%;
+    /* GPU acceleration for smooth scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Instant page transitions */
+    scroll-behavior: auto;
   }
 
   @media (min-width: 768px) {
@@ -217,10 +220,14 @@
   body {
     @apply bg-background text-foreground;
     background-color: hsl(var(--background));
-    /* Edge-to-edge: no padding on body, let components handle safe areas */
     min-height: 100vh;
     min-height: -webkit-fill-available;
     min-height: 100dvh;
+    /* Native-like instant rendering */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    /* Prevent layout shifts */
+    contain: layout style;
   }
   
   /* Safe area utility classes */

@@ -1889,6 +1889,7 @@ export type Database = {
           caller_avatar: string | null
           caller_id: string
           caller_name: string | null
+          caller_phone: string | null
           connection_quality: string | null
           conversation_id: string
           created_at: string | null
@@ -1904,6 +1905,7 @@ export type Database = {
           receiver_avatar: string | null
           receiver_id: string | null
           receiver_name: string | null
+          receiver_phone: string | null
           reconnection_count: number | null
           started_at: string | null
           status: string | null
@@ -1916,6 +1918,7 @@ export type Database = {
           caller_avatar?: string | null
           caller_id: string
           caller_name?: string | null
+          caller_phone?: string | null
           connection_quality?: string | null
           conversation_id: string
           created_at?: string | null
@@ -1931,6 +1934,7 @@ export type Database = {
           receiver_avatar?: string | null
           receiver_id?: string | null
           receiver_name?: string | null
+          receiver_phone?: string | null
           reconnection_count?: number | null
           started_at?: string | null
           status?: string | null
@@ -1943,6 +1947,7 @@ export type Database = {
           caller_avatar?: string | null
           caller_id?: string
           caller_name?: string | null
+          caller_phone?: string | null
           connection_quality?: string | null
           conversation_id?: string
           created_at?: string | null
@@ -1958,6 +1963,7 @@ export type Database = {
           receiver_avatar?: string | null
           receiver_id?: string | null
           receiver_name?: string | null
+          receiver_phone?: string | null
           reconnection_count?: number | null
           started_at?: string | null
           status?: string | null

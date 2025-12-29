@@ -647,11 +647,18 @@ const ChatEnhancedContent = () => {
     try {
       console.log('🎥 Starting call:', { callType, to: otherUser.username });
       
-      // Get current user profile for caller name
+      // Get current user profile for caller name and phone
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, avatar_url')
+        .select('username, avatar_url, phone_number')
         .eq('id', user!.id)
+        .single();
+
+      // Get receiver's phone number
+      const { data: receiverProfile } = await supabase
+        .from('profiles')
+        .select('phone_number')
+        .eq('id', otherUser.id)
         .single();
 
       const { data, error } = await supabase
@@ -661,9 +668,11 @@ const ChatEnhancedContent = () => {
           caller_id: user!.id,
           caller_name: profile?.username || user!.email || 'Unknown',
           caller_avatar: profile?.avatar_url,
+          caller_phone: profile?.phone_number || null,
           receiver_id: otherUser.id,
           receiver_name: otherUser.username || otherUser.email || 'Unknown',
           receiver_avatar: otherUser.avatar_url,
+          receiver_phone: receiverProfile?.phone_number || otherUser.phone_number || null,
           call_type: callType,
           status: 'ringing'
         })
@@ -687,6 +696,7 @@ const ChatEnhancedContent = () => {
             callerId: user!.id,
             callerName: profile?.username || user!.email || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
             callId: data.id,
             callType: callType
           }
