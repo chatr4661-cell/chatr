@@ -74,10 +74,10 @@ export default function GlobalContacts() {
     try {
       console.log('🎥 Starting call from global contacts:', { callType, to: contact.username });
       
-      // Get current user profile
+      // Get current user profile with phone number
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, avatar_url')
+        .select('username, avatar_url, phone_number')
         .eq('id', user?.id)
         .single();
 
@@ -94,9 +94,11 @@ export default function GlobalContacts() {
           caller_id: user?.id,
           caller_name: profile?.username || user?.email || 'Unknown',
           caller_avatar: profile?.avatar_url,
+          caller_phone: profile?.phone_number || null,
           receiver_id: contact.id,
           receiver_name: contact.username || contact.email || 'Unknown',
           receiver_avatar: contact.avatar_url,
+          receiver_phone: contact.phone_number || null,
           call_type: callType,
           status: 'ringing'
         })
@@ -120,6 +122,7 @@ export default function GlobalContacts() {
             callerId: user?.id,
             callerName: profile?.username || user?.email || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
             callId: callData.id,
             callType: callType
           }

@@ -24,6 +24,7 @@ interface CallNotification {
   callerId: string;
   callerName: string;
   callerAvatar?: string;
+  callerPhone?: string;
   callId: string;
   callType: 'audio' | 'video';
   conversationId?: string;
@@ -121,6 +122,7 @@ async function sendFCMv1Call(
     callerId: string;
     callerName: string;
     callerAvatar: string;
+    callerPhone: string;
     isVideo: boolean;
     conversationId: string;
   }
@@ -128,6 +130,7 @@ async function sendFCMv1Call(
   const endpoint = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
   
   // EXACT PAYLOAD FORMAT - DATA-ONLY, NO notification blocks!
+  // CRITICAL: Include caller_phone for Android tel: URI (not user_id)
   const fcmPayload = {
     message: {
       token: fcmToken,
@@ -141,6 +144,7 @@ async function sendFCMv1Call(
         caller_id: callData.callerId,
         caller_name: callData.callerName || "Unknown",
         caller_avatar: callData.callerAvatar || "",
+        caller_phone: callData.callerPhone || "",
         is_video: callData.isVideo ? "true" : "false",
         conversation_id: callData.conversationId || "",
         timestamp: Date.now().toString()
@@ -340,10 +344,11 @@ async function handleCallNotificationV1(
   supabase: any,
   payload: CallNotification
 ) {
-  const { receiverId, callerId, callerName, callerAvatar, callId, callType, conversationId } = payload;
+  const { receiverId, callerId, callerName, callerAvatar, callerPhone, callId, callType, conversationId } = payload;
 
   console.log('📞 Processing CALL notification (FCM v1) for receiver:', receiverId);
   console.log('📞 Call type:', callType, '| Call ID:', callId);
+  console.log('📞 Caller phone:', callerPhone || 'not provided');
 
   // Get Firebase service account for OAuth2
   const firebaseServiceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
@@ -388,6 +393,7 @@ async function handleCallNotificationV1(
     callerId,
     callerName: callerName || "Unknown",
     callerAvatar: callerAvatar || "",
+    callerPhone: callerPhone || "",
     isVideo: callType === 'video',
     conversationId: conversationId || ""
   };
