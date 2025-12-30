@@ -31,9 +31,13 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    // Read from SupabaseConfig - no hardcoded values
-    private val BASE_URL: String
+    // Edge Functions URL - for auth, etc.
+    private val FUNCTIONS_URL: String
         get() = SupabaseConfig.FUNCTIONS_URL + "/"
+    
+    // REST API URL - for RPC functions
+    private val REST_URL: String
+        get() = SupabaseConfig.REST_URL + "/"
     
     private val SUPABASE_ANON_KEY: String
         get() = SupabaseConfig.SUPABASE_ANON_KEY
@@ -96,96 +100,115 @@ object NetworkModule {
     
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
+    @Named("functionsRetrofit")
+    fun provideFunctionsRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(FUNCTIONS_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
     
-    // API Interfaces
     @Provides
     @Singleton
-    fun provideChatrApi(retrofit: Retrofit): ChatrApi {
+    @Named("restRetrofit")
+    fun provideRestRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(REST_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+    
+    // API Interfaces - Edge Functions
+    @Provides
+    @Singleton
+    fun provideChatrApi(@Named("functionsRetrofit") retrofit: Retrofit): ChatrApi {
         return retrofit.create(ChatrApi::class.java)
+    }
+    
+    // API Interface - Supabase REST/RPC
+    @Provides
+    @Singleton
+    fun provideSupabaseRestApi(@Named("restRetrofit") retrofit: Retrofit): SupabaseRestApi {
+        return retrofit.create(SupabaseRestApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideSearchApi(retrofit: Retrofit): SearchApi {
+    fun provideSearchApi(@Named("functionsRetrofit") retrofit: Retrofit): SearchApi {
         return retrofit.create(SearchApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideAIApi(retrofit: Retrofit): AIApi {
+    fun provideAIApi(@Named("functionsRetrofit") retrofit: Retrofit): AIApi {
         return retrofit.create(AIApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideCallsApi(retrofit: Retrofit): CallsApi {
+    fun provideCallsApi(@Named("functionsRetrofit") retrofit: Retrofit): CallsApi {
         return retrofit.create(CallsApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideContactsApi(retrofit: Retrofit): ContactsApi {
+    fun provideContactsApi(@Named("functionsRetrofit") retrofit: Retrofit): ContactsApi {
         return retrofit.create(ContactsApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideLocationApi(retrofit: Retrofit): LocationApi {
+    fun provideLocationApi(@Named("functionsRetrofit") retrofit: Retrofit): LocationApi {
         return retrofit.create(LocationApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideSocialApi(retrofit: Retrofit): SocialApi {
+    fun provideSocialApi(@Named("functionsRetrofit") retrofit: Retrofit): SocialApi {
         return retrofit.create(SocialApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideNotificationsApi(retrofit: Retrofit): NotificationsApi {
+    fun provideNotificationsApi(@Named("functionsRetrofit") retrofit: Retrofit): NotificationsApi {
         return retrofit.create(NotificationsApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun providePaymentsApi(retrofit: Retrofit): PaymentsApi {
+    fun providePaymentsApi(@Named("functionsRetrofit") retrofit: Retrofit): PaymentsApi {
         return retrofit.create(PaymentsApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideStudioApi(retrofit: Retrofit): StudioApi {
+    fun provideStudioApi(@Named("functionsRetrofit") retrofit: Retrofit): StudioApi {
         return retrofit.create(StudioApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideGamesApi(retrofit: Retrofit): GamesApi {
+    fun provideGamesApi(@Named("functionsRetrofit") retrofit: Retrofit): GamesApi {
         return retrofit.create(GamesApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideStealthModeApi(retrofit: Retrofit): StealthModeApi {
+    fun provideStealthModeApi(@Named("functionsRetrofit") retrofit: Retrofit): StealthModeApi {
         return retrofit.create(StealthModeApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideChatrWorldApi(retrofit: Retrofit): ChatrWorldApi {
+    fun provideChatrWorldApi(@Named("functionsRetrofit") retrofit: Retrofit): ChatrWorldApi {
         return retrofit.create(ChatrWorldApi::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideAIBrowserApi(retrofit: Retrofit): AIBrowserApi {
+    fun provideAIBrowserApi(@Named("functionsRetrofit") retrofit: Retrofit): AIBrowserApi {
         return retrofit.create(AIBrowserApi::class.java)
     }
     
