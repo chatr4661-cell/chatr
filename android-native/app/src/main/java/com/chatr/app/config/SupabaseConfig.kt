@@ -25,9 +25,13 @@ object SupabaseConfig {
     // 👆 ENTER YOUR SUPABASE CREDENTIALS ABOVE 👆
     // ============================================
     
-    // Edge Functions Base URL
+    // Edge Functions Base URL (for edge functions like auth-phone-otp)
     val FUNCTIONS_URL: String
         get() = "$SUPABASE_URL/functions/v1"
+    
+    // REST API Base URL (for RPC functions like get_user_conversations)
+    val REST_URL: String
+        get() = "$SUPABASE_URL/rest/v1"
     
     // Storage Base URL
     val STORAGE_URL: String
