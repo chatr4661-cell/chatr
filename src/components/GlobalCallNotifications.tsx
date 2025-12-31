@@ -5,6 +5,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, X, SwitchCamera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendSignal, subscribeToCallSignals } from '@/utils/webrtcSignaling';
+import { Capacitor } from '@capacitor/core';
+
+// Platform detection
+const isNativePlatform = () => Capacitor.isNativePlatform();
 
 interface GlobalCallNotificationsProps {
   userId: string;
@@ -492,6 +496,15 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         const call = payload.new as any;
         console.log('🔔 INCOMING CALL RECEIVED:', call);
         
+        // On native platforms, incoming call UI is handled by TelecomManager/CallKit
+        // Only show web-based incoming call UI on web platform
+        if (isNativePlatform()) {
+          console.log('📱 Native platform - incoming call UI handled by system');
+          // Still store the call data so we can connect WebRTC when user answers via native UI
+          // The native layer will update call status to 'active' when answered
+          return;
+        }
+        
         if (call.status === 'ringing' && !activeCall && !incomingCall) {
           console.log('📱 Showing incoming call dialog for:', call.caller_name);
           setIncomingCall(call);
@@ -535,15 +548,31 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         console.log('📡 Global outgoing calls subscription status:', status);
       });
 
-    // Listen for call updates (when caller/receiver ends call)
+    // Listen for call updates (when caller/receiver ends call OR native answers)
     const updatesChannel = supabase
       .channel(`global-call-updates-${userId}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'calls'
-      }, (payload) => {
+      }, async (payload) => {
         const updatedCall = payload.new as any;
+        const oldCall = payload.old as any;
+        
+        // NATIVE PLATFORM: When call status changes to 'active' (answered via native UI)
+        // We need to establish WebRTC connection
+        if (isNativePlatform() && 
+            updatedCall.status === 'active' && 
+            oldCall?.status === 'ringing' &&
+            !activeCall) {
+          
+          // Check if we are the receiver (native answered the call)
+          if (updatedCall.receiver_id === userId) {
+            console.log('📱 Native platform - call answered via system UI, starting WebRTC');
+            // Answer the call with WebRTC
+            answerCall(updatedCall);
+          }
+        }
         
         // If the call was ended and it matches our active/incoming call
         if (updatedCall.status === 'ended') {
