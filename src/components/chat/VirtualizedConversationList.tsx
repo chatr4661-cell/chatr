@@ -131,51 +131,12 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const loadConversations = useCallback(async () => {
     if (!userId) return;
 
-    // Never block the chat list UI for long (keeps app feeling instant)
-    const maxLoadingTimer = setTimeout(() => setLoading(false), 900);
-
     try {
-      // 1) Show cached data immediately (instant)
-      const cached = await getCachedConversations();
-      if (cached && cached.length > 0) {
-        setConversations(cached);
-        setLoading(false);
-      }
-
-      // 2) Fetch fresh data (fastest path)
-      const { data: optimizedData, error: rpcError } = await supabase
-        .rpc('get_user_conversations_optimized', { p_user_id: userId });
-
-      if (!rpcError && optimizedData) {
-        const conversationData: Conversation[] = optimizedData.map((conv: any) => ({
-          id: conv.id,
-          is_group: conv.is_group,
-          group_name: conv.group_name,
-          group_icon_url: conv.group_icon_url,
-          is_community: conv.is_community,
-          community_description: conv.community_description,
-          updated_at: conv.lastmessagetime || new Date().toISOString(),
-          last_message: conv.lastmessage
-            ? {
-                content: conv.lastmessage,
-                created_at: conv.lastmessagetime,
-                sender_id: '',
-                read_at: undefined,
-              }
-            : undefined,
-          other_user: conv.otheruser || undefined,
-        }));
-
-        setConversations(conversationData);
-        await setCachedConversations(conversationData);
-        setLoading(false);
-        return;
-      }
-
-      // 3) Fallback: auth-scoped RPC (more reliable than client-side joins)
-      const { data: rpcData, error: rpcV2Error } = await supabase.rpc('get_user_conversations');
-      if (!rpcV2Error && rpcData) {
-        const conversationData: Conversation[] = (rpcData as any[]).map((row: any) => ({
+      // Try optimized RPC first (fastest)
+      const { data, error } = await supabase.rpc('get_user_conversations');
+      
+      if (!error && data) {
+        const conversationData: Conversation[] = (data as any[]).map((row: any) => ({
           id: row.conversation_id,
           is_group: row.is_group,
           group_name: row.group_name,
@@ -189,7 +150,6 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                 content: row.last_message,
                 created_at: row.last_message_at,
                 sender_id: row.last_message_sender_id || '',
-                read_at: undefined,
               }
             : undefined,
           other_user: row.other_user_id
@@ -203,82 +163,14 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         }));
 
         setConversations(conversationData);
-        await setCachedConversations(conversationData);
-        setLoading(false);
-        return;
+        setCachedConversations(conversationData);
       }
-
-      // 4) Last-resort fallback: client-side joins
-      const { data: participations } = await supabase
-        .from('conversation_participants')
-        .select(`
-          conversation_id,
-          conversations!inner (id, is_group, group_name, group_icon_url, updated_at)
-        `)
-        .eq('user_id', userId)
-        .limit(50);
-
-      if (!participations?.length) {
-        setConversations([]);
-        setLoading(false);
-        return;
-      }
-
-      const convIds = participations.map(p => (p.conversations as any).id);
-
-      const [messagesResult, participantsResult] = await Promise.all([
-        supabase
-          .from('messages')
-          .select('conversation_id, content, created_at')
-          .in('conversation_id', convIds)
-          .order('created_at', { ascending: false })
-          .limit(convIds.length),
-        supabase
-          .from('conversation_participants')
-          .select('conversation_id, user_id, profiles!inner(id, username, avatar_url, is_online)')
-          .in('conversation_id', convIds)
-          .neq('user_id', userId),
-      ]);
-
-      const lastMessageMap = new Map();
-      messagesResult.data?.forEach(msg => {
-        if (!lastMessageMap.has(msg.conversation_id)) {
-          lastMessageMap.set(msg.conversation_id, msg);
-        }
-      });
-
-      const otherUserMap = new Map();
-      participantsResult.data?.forEach((p: any) => {
-        if (!otherUserMap.has(p.conversation_id)) {
-          otherUserMap.set(p.conversation_id, p.profiles);
-        }
-      });
-
-      const conversationData = participations
-        .map((p: any) => {
-          const conv = p.conversations;
-          return {
-            ...conv,
-            last_message: lastMessageMap.get(conv.id) || null,
-            other_user: otherUserMap.get(conv.id) || null,
-          };
-        })
-        .sort((a, b) => {
-          const aTime = a.last_message?.created_at || a.updated_at;
-          const bTime = b.last_message?.created_at || b.updated_at;
-          return new Date(bTime).getTime() - new Date(aTime).getTime();
-        });
-
-      setConversations(conversationData);
-      await setCachedConversations(conversationData);
-      setLoading(false);
     } catch (error) {
       console.error('Error loading conversations:', error);
-      setLoading(false);
     } finally {
-      clearTimeout(maxLoadingTimer);
+      setLoading(false);
     }
-  }, [userId, getCachedConversations, setCachedConversations]);
+  }, [userId, setCachedConversations]);
 
   // Load contacts for search
   const loadContacts = useCallback(async () => {
