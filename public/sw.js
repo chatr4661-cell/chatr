@@ -210,9 +210,9 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
-// Push Notification Handler - Enhanced for Calls and Messages
+// Push Notification Handler - Enhanced for Calls and Messages (when app is killed)
 self.addEventListener('push', (event) => {
-  console.log('📲 Push notification received');
+  console.log('📲 Push notification received (app may be killed)');
   
   let notificationOptions = {
     icon: '/chatr-logo.png',
@@ -220,6 +220,7 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
     tag: 'chatr-notification',
     requireInteraction: false,
+    renotify: true,
     data: { url: '/' }
   };
 
@@ -228,53 +229,83 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const data = event.data.json();
-      console.log('📲 Push data:', data);
+      console.log('📲 Push data:', JSON.stringify(data));
       
-      // Handle INCOMING CALL notifications
+      // Handle INCOMING CALL notifications - HIGHEST priority
       if (data.type === 'call' || data.call_id) {
-        title = data.caller_name || 'Incoming Call';
+        const callerName = data.caller_name || data.callerName || 'Incoming Call';
+        const callType = data.call_type || data.callType || 'voice';
+        const callId = data.call_id || data.callId || Date.now().toString();
+        
+        title = callerName;
         notificationOptions = {
-          ...notificationOptions,
-          body: data.call_type === 'video' ? '📹 Incoming Video Call' : '📞 Incoming Voice Call',
-          icon: data.caller_avatar || '/chatr-logo.png',
-          tag: 'chatr-call-' + (data.call_id || Date.now()),
+          body: callType === 'video' ? '📹 Incoming Video Call' : '📞 Incoming Voice Call',
+          icon: data.caller_avatar || data.callerAvatar || '/chatr-logo.png',
+          tag: 'chatr-call-' + callId,
           requireInteraction: true, // Keep notification until user acts
-          vibrate: [500, 200, 500, 200, 500], // Longer vibration for calls
+          vibrate: [500, 200, 500, 200, 500, 200, 500], // Long vibration for calls
+          renotify: true,
           actions: [
-            { action: 'answer', title: '✓ Answer' },
-            { action: 'reject', title: '✗ Decline' }
+            { action: 'answer', title: '✓ Answer', icon: '/icons/answer.png' },
+            { action: 'reject', title: '✗ Decline', icon: '/icons/reject.png' }
           ],
           data: {
             type: 'call',
-            callId: data.call_id,
-            callerId: data.caller_id,
-            callerName: data.caller_name,
-            callType: data.call_type,
-            url: '/chat'
+            callId: callId,
+            callerId: data.caller_id || data.callerId,
+            callerName: callerName,
+            callType: callType,
+            url: '/chat?answerCall=' + callId
           }
         };
+        console.log('📞 INCOMING CALL notification created for:', callerName);
       }
       // Handle MESSAGE notifications
       else if (data.type === 'message' || data.conversation_id) {
-        const sender = data.sender ? JSON.parse(data.sender) : {};
-        const message = data.message ? JSON.parse(data.message) : {};
+        let senderName = 'New Message';
+        let messageContent = 'You have a new message';
+        let senderAvatar = '/chatr-logo.png';
+        const conversationId = data.conversation_id || data.conversationId || '';
         
-        title = sender.username || data.senderName || 'New Message';
+        // Parse sender from JSON string if present
+        try {
+          if (data.sender && typeof data.sender === 'string') {
+            const senderObj = JSON.parse(data.sender);
+            senderName = senderObj.username || senderObj.name || 'New Message';
+            senderAvatar = senderObj.avatar_url || '/chatr-logo.png';
+          } else if (data.senderName) {
+            senderName = data.senderName;
+          }
+          
+          if (data.message && typeof data.message === 'string') {
+            const msgObj = JSON.parse(data.message);
+            messageContent = msgObj.content || 'You have a new message';
+          } else if (data.messageContent) {
+            messageContent = data.messageContent;
+          }
+        } catch (e) {
+          console.log('Error parsing sender/message:', e);
+          senderName = data.senderName || data.sender_name || 'New Message';
+          messageContent = data.messageContent || data.message_content || data.body || 'You have a new message';
+        }
+        
+        title = senderName;
         notificationOptions = {
-          ...notificationOptions,
-          body: message.content || data.messageContent || 'You have a new message',
-          icon: sender.avatar_url || data.senderAvatar || '/chatr-logo.png',
-          tag: 'chatr-msg-' + (data.conversation_id || Date.now()),
+          body: messageContent,
+          icon: senderAvatar,
+          tag: 'chatr-msg-' + conversationId,
+          renotify: true,
           actions: [
             { action: 'reply', title: 'Reply' },
             { action: 'view', title: 'View' }
           ],
           data: {
             type: 'message',
-            conversationId: data.conversation_id,
-            url: '/chat/' + data.conversation_id
+            conversationId: conversationId,
+            url: '/chat/' + conversationId
           }
         };
+        console.log('💬 MESSAGE notification created for:', senderName);
       }
       // Generic notification
       else {
@@ -288,6 +319,7 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  console.log('📲 Showing notification:', title, notificationOptions);
   event.waitUntil(
     self.registration.showNotification(title, notificationOptions)
   );
