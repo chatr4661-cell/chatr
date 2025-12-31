@@ -223,7 +223,9 @@ export default function ProductionVideoCall({
         });
 
         await call.start();
-        await updateCallStatus('ringing');
+        if (isInitiator) {
+          await updateCallStatus('ringing');
+        }
 
       } catch (error) {
         console.error('❌ [ProductionVideoCall] Init error:', error);

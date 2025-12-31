@@ -327,24 +327,27 @@ export class SimpleWebRTCCall {
             this.callState = 'failed';
             this.emit('failed', new Error('Connection failed'));
           }
-      } else if (state === 'disconnected') {
-          // CRITICAL: Don't fail immediately on disconnect - mobile networks are unstable
-          console.warn('⚠️ [SimpleWebRTC] ICE disconnected - waiting for reconnection...');
-          
-          // Attempt ICE restart for faster recovery
+        } else if (state === 'disconnected') {
+          // IMPORTANT: 'disconnected' can happen briefly even in healthy calls (esp. mobile/WiFi↔LTE)
+          // We must NOT auto-end the call unless the user hangs up.
+          console.warn('⚠️ [SimpleWebRTC] ICE disconnected - attempting recovery (not ending call)');
+
+          // Attempt ICE restart for faster recovery (initiator only)
           if (this.isInitiator && this.pc) {
             console.log('🔄 [SimpleWebRTC] Attempting ICE restart on disconnect...');
             this.pc.restartIce();
           }
-          
-          // Give it 15 seconds to reconnect before failing (increased from 10s)
-          setTimeout(() => {
-            if (this.pc?.iceConnectionState === 'disconnected') {
-              console.error('❌ [SimpleWebRTC] Still disconnected after 15s');
-              this.callState = 'failed';
-              this.emit('failed', new Error('Connection lost'));
-            }
-          }, 15000);
+
+          // Only fail on disconnect if we were NEVER connected and are still trying to connect
+          if (this.callState === 'connecting') {
+            setTimeout(() => {
+              if (this.callState === 'connecting' && this.pc?.iceConnectionState === 'disconnected') {
+                console.error('❌ [SimpleWebRTC] Still disconnected while connecting (20s)');
+                this.callState = 'failed';
+                this.emit('failed', new Error('Connection lost'));
+              }
+            }, 20000);
+          }
         }
       };
 
