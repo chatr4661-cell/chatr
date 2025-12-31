@@ -37,7 +37,7 @@ export function IncomingCallScreen({
   const hapticIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const autoRejectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [ringtoneEnabled, setRingtoneEnabled] = React.useState(true);
-  const [timeRemaining, setTimeRemaining] = React.useState(15);
+  const [timeRemaining, setTimeRemaining] = React.useState(30);
 
   useNativeRingtone({
     enabled: ringtoneEnabled,
@@ -48,11 +48,11 @@ export function IncomingCallScreen({
   useEffect(() => {
     console.log('🔔 Ringtone active for incoming call');
 
-    // AUTO-DISCONNECT: Reject call after 15 seconds if not answered
+    // AUTO-DISCONNECT: Reject call after 30 seconds if not answered
     autoRejectTimerRef.current = setTimeout(() => {
-      console.log('⏰ Auto-rejecting call after 15 seconds');
+      console.log('⏰ Auto-rejecting call after 30 seconds');
       handleReject();
-    }, 15000);
+    }, 30000);
 
     // Countdown timer for UI
     const countdownInterval = setInterval(() => {
