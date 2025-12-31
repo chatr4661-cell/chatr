@@ -90,16 +90,13 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
   const answerCall = async (call: any) => {
     console.log('✅ Answering call instantly:', call.id);
     
-    // End native call UI
-    await endNativeCall(call.id);
-    
-    // CRITICAL: Stop ringtone FIRST by clearing incoming call
+    // End native call UI (don't block starting WebRTC)
+    void endNativeCall(call.id);
+
+    // Stop ringtone / incoming UI immediately
     setIncomingCall(null);
-    
-    // Wait longer to ensure ALL media devices are fully released
-    // This prevents "Device in use" errors
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+
+    // Start call UI immediately (WebRTC will connect as fast as possible)
     setActiveCall(call);
 
     await supabase

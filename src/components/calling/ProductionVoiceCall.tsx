@@ -136,7 +136,9 @@ export default function ProductionVoiceCall({
         });
 
         await call.start();
-        await updateCallStatus('ringing');
+        if (isInitiator) {
+          await updateCallStatus('ringing');
+        }
 
       } catch (error) {
         console.error('❌ [ProductionVoiceCall] Init error:', error);
