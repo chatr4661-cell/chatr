@@ -132,12 +132,14 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     if (!userId) return;
 
     try {
+      // CRITICAL: Show cached data immediately - don't wait for network
       const cached = await getCachedConversations();
-      if (cached) {
+      if (cached && cached.length > 0) {
         setConversations(cached);
-        setLoading(false);
+        setLoading(false); // Stop loading immediately with cache
       }
 
+      // Now fetch fresh data in background
       const { data: optimizedData, error: rpcError } = await supabase
         .rpc('get_user_conversations_optimized', { p_user_id: userId });
 
@@ -393,25 +395,32 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
   useEffect(() => {
     if (!userId) return;
+    
+    // Load conversations immediately
     loadConversations();
-    // Defer contacts loading to not block initial render
-    const contactsTimer = setTimeout(loadContacts, 1000);
+    
+    // Defer contacts loading to not block initial render (2 seconds)
+    const contactsTimer = setTimeout(loadContacts, 2000);
 
-    const channel = supabase
-      .channel('conv-updates-realtime', {
-        config: { broadcast: { self: true } }
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, debouncedReload)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, debouncedReload)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, debouncedReload)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, debouncedReload)
-      .subscribe();
+    // Subscribe to realtime updates (deferred by 1 second to prioritize initial render)
+    let channel: any = null;
+    const realtimeTimer = setTimeout(() => {
+      channel = supabase
+        .channel('conv-updates-realtime-' + userId, {
+          config: { broadcast: { self: true } }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, debouncedReload)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, debouncedReload)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, debouncedReload)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, debouncedReload)
+        .subscribe();
+    }, 1000);
 
-    // Remove aggressive 5s polling - rely on realtime only
     return () => {
       clearTimeout(contactsTimer);
+      clearTimeout(realtimeTimer);
       if (pendingReloadRef.current) clearTimeout(pendingReloadRef.current);
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [userId, loadConversations, loadContacts, debouncedReload]);
 
