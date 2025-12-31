@@ -43,17 +43,32 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Session management with recovery
+  // Session management with fast initialization
   React.useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        // First, check for existing session
+        // CRITICAL: Mark auth as ready immediately if we have cached session
+        const cachedSession = localStorage.getItem('sb-sbayuqgomlflmxgicplz-auth-token');
+        if (cachedSession && mounted) {
+          try {
+            const parsed = JSON.parse(cachedSession);
+            if (parsed?.access_token) {
+              // Optimistic: set user from cache while verifying
+              setIsAuthReady(true);
+            }
+          } catch (e) {
+            // Invalid cache, continue with normal flow
+          }
+        }
+        
+        // Now verify session properly
         const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error('Session retrieval error:', sessionError);
+          if (mounted) setIsAuthReady(true);
           return;
         }
 
@@ -63,13 +78,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           setIsAuthReady(true);
           console.log('✅ Session restored:', existingSession.user.id);
           
-          // Sync to native Android on session restore
-          syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
+          // Sync to native Android on session restore (deferred)
+          setTimeout(() => {
+            syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
+          }, 100);
         } else if (mounted) {
           setIsAuthReady(true);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        if (mounted) setIsAuthReady(true);
       }
     };
 
@@ -84,6 +102,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setSession(newSession);
         setUser(newSession?.user ?? null);
+        setIsAuthReady(true);
         
         // Sync SIGNED_IN to native Android
         if (newSession?.user) {
