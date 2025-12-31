@@ -131,20 +131,23 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const loadConversations = useCallback(async () => {
     if (!userId) return;
 
+    // Never block the chat list UI for long (keeps app feeling instant)
+    const maxLoadingTimer = setTimeout(() => setLoading(false), 900);
+
     try {
-      // CRITICAL: Show cached data immediately - don't wait for network
+      // 1) Show cached data immediately (instant)
       const cached = await getCachedConversations();
       if (cached && cached.length > 0) {
         setConversations(cached);
-        setLoading(false); // Stop loading immediately with cache
+        setLoading(false);
       }
 
-      // Now fetch fresh data in background
+      // 2) Fetch fresh data (fastest path)
       const { data: optimizedData, error: rpcError } = await supabase
         .rpc('get_user_conversations_optimized', { p_user_id: userId });
 
       if (!rpcError && optimizedData) {
-        const conversationData = optimizedData.map((conv: any) => ({
+        const conversationData: Conversation[] = optimizedData.map((conv: any) => ({
           id: conv.id,
           is_group: conv.is_group,
           group_name: conv.group_name,
@@ -152,13 +155,15 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           is_community: conv.is_community,
           community_description: conv.community_description,
           updated_at: conv.lastmessagetime || new Date().toISOString(),
-          last_message: conv.lastmessage ? {
-            content: conv.lastmessage,
-            created_at: conv.lastmessagetime,
-            sender_id: '',
-            read_at: undefined
-          } : undefined,
-          other_user: conv.otheruser || undefined
+          last_message: conv.lastmessage
+            ? {
+                content: conv.lastmessage,
+                created_at: conv.lastmessagetime,
+                sender_id: '',
+                read_at: undefined,
+              }
+            : undefined,
+          other_user: conv.otheruser || undefined,
         }));
 
         setConversations(conversationData);
@@ -167,6 +172,43 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         return;
       }
 
+      // 3) Fallback: auth-scoped RPC (more reliable than client-side joins)
+      const { data: rpcData, error: rpcV2Error } = await supabase.rpc('get_user_conversations');
+      if (!rpcV2Error && rpcData) {
+        const conversationData: Conversation[] = (rpcData as any[]).map((row: any) => ({
+          id: row.conversation_id,
+          is_group: row.is_group,
+          group_name: row.group_name,
+          group_icon_url: row.group_icon_url,
+          updated_at: row.last_message_at || new Date().toISOString(),
+          is_archived: row.is_archived,
+          is_muted: row.is_muted,
+          unread_count: Number(row.unread_count || 0),
+          last_message: row.last_message
+            ? {
+                content: row.last_message,
+                created_at: row.last_message_at,
+                sender_id: row.last_message_sender_id || '',
+                read_at: undefined,
+              }
+            : undefined,
+          other_user: row.other_user_id
+            ? {
+                id: row.other_user_id,
+                username: row.other_user_name,
+                avatar_url: row.other_user_avatar,
+                is_online: !!row.other_user_online,
+              }
+            : undefined,
+        }));
+
+        setConversations(conversationData);
+        await setCachedConversations(conversationData);
+        setLoading(false);
+        return;
+      }
+
+      // 4) Last-resort fallback: client-side joins
       const { data: participations } = await supabase
         .from('conversation_participants')
         .select(`
@@ -195,7 +237,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           .from('conversation_participants')
           .select('conversation_id, user_id, profiles!inner(id, username, avatar_url, is_online)')
           .in('conversation_id', convIds)
-          .neq('user_id', userId)
+          .neq('user_id', userId),
       ]);
 
       const lastMessageMap = new Map();
@@ -218,7 +260,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           return {
             ...conv,
             last_message: lastMessageMap.get(conv.id) || null,
-            other_user: otherUserMap.get(conv.id) || null
+            other_user: otherUserMap.get(conv.id) || null,
           };
         })
         .sort((a, b) => {
@@ -233,6 +275,8 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     } catch (error) {
       console.error('Error loading conversations:', error);
       setLoading(false);
+    } finally {
+      clearTimeout(maxLoadingTimer);
     }
   }, [userId, getCachedConversations, setCachedConversations]);
 
