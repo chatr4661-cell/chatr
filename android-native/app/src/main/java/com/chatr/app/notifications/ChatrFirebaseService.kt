@@ -39,14 +39,17 @@ class ChatrFirebaseService : FirebaseMessagingService() {
                 enableVibration(true)
             }
             
-            // Calls channel
+            // Calls channel - HIGH priority with vibration for lock screen
             val callsChannel = NotificationChannel(
                 CHANNEL_CALLS,
                 "Calls",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Incoming call notifications"
-                setSound(null, null)
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 500)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                setBypassDnd(true)
             }
             
             // System channel
@@ -103,32 +106,80 @@ class ChatrFirebaseService : FirebaseMessagingService() {
     }
     
     private fun handleMessageNotification(data: Map<String, String>) {
+        android.util.Log.e("FCM_MESSAGE", "🔥 handleMessageNotification START")
+        android.util.Log.e("FCM_MESSAGE", "🔥 Raw data: $data")
+        
+        // Parse the nested JSON data from FCM payload
+        val conversationId = data["conversation_id"] 
+            ?: data["conversationId"] 
+            ?: ""
+        
+        // Parse sender from JSON string if present
+        var senderName = "New Message"
+        var senderAvatar = ""
+        var messageContent = "You have a new message"
+        
+        try {
+            val senderJson = data["sender"]
+            if (senderJson != null) {
+                val senderObj = org.json.JSONObject(senderJson)
+                senderName = senderObj.optString("username", senderObj.optString("name", "New Message"))
+                senderAvatar = senderObj.optString("avatar_url", "")
+            } else {
+                senderName = data["senderName"] ?: data["sender_name"] ?: "New Message"
+            }
+            
+            val messageJson = data["message"]
+            if (messageJson != null) {
+                val msgObj = org.json.JSONObject(messageJson)
+                messageContent = msgObj.optString("content", "You have a new message")
+            } else {
+                messageContent = data["messageContent"] 
+                    ?: data["message_content"] 
+                    ?: data["body"] 
+                    ?: "You have a new message"
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FCM_MESSAGE", "Error parsing message data: ${e.message}")
+            // Use fallback values from direct fields
+            senderName = data["senderName"] ?: data["sender_name"] ?: "New Message"
+            messageContent = data["messageContent"] ?: data["body"] ?: "You have a new message"
+        }
+        
+        android.util.Log.e("FCM_MESSAGE", "🔥 Parsed: sender=$senderName, content=$messageContent, convId=$conversationId")
+        
         val intent = Intent(this, MainActivity::class.java).apply {
-            putExtra("conversationId", data["conversationId"])
+            putExtra("conversationId", conversationId)
+            putExtra("action", "OPEN_CONVERSATION")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
+            this, conversationId.hashCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
         val notification = NotificationCompat.Builder(this, CHANNEL_MESSAGES)
-            .setContentTitle(data["senderName"])
-            .setContentText(data["messageText"])
+            .setContentTitle(senderName)
+            .setContentText(messageContent)
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setVibrate(longArrayOf(0, 300, 100, 300))
+            .setDefaults(NotificationCompat.DEFAULT_SOUND)
             .addAction(
                 R.drawable.ic_reply,
                 "Reply",
-                createReplyIntent(data["conversationId"] ?: "")
+                createReplyIntent(conversationId)
             )
             .build()
         
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(data["conversationId"].hashCode(), notification)
+        val notificationId = if (conversationId.isNotEmpty()) conversationId.hashCode() else System.currentTimeMillis().toInt()
+        notificationManager.notify(notificationId, notification)
+        
+        android.util.Log.e("FCM_MESSAGE", "✅ Message notification displayed")
     }
     
     private fun handleCallNotification(data: Map<String, String>) {
@@ -139,6 +190,14 @@ class ChatrFirebaseService : FirebaseMessagingService() {
         val callerName = data["callerName"]
             ?: data["caller_name"]
             ?: "Unknown Caller"
+
+        val callerId = data["callerId"]
+            ?: data["caller_id"]
+            ?: ""
+
+        val callerAvatar = data["callerAvatar"]
+            ?: data["caller_avatar"]
+            ?: ""
 
         val callId = data["callId"]
             ?: data["call_id"]
@@ -151,7 +210,8 @@ class ChatrFirebaseService : FirebaseMessagingService() {
         android.util.Log.e("FCM_KILLED", "🔥 Parsed: callId=$callId, callerName=$callerName, isVideo=$isVideo")
 
         if (callId.isEmpty()) {
-            android.util.Log.e("FCM_KILLED", "❌ CALL ID IS EMPTY - ABORTING")
+            android.util.Log.e("FCM_KILLED", "❌ CALL ID IS EMPTY - Showing fallback notification")
+            showFallbackCallNotification(callerName, isVideo)
             return
         }
 
@@ -161,6 +221,8 @@ class ChatrFirebaseService : FirebaseMessagingService() {
         val serviceIntent = Intent(this, com.chatr.app.service.CallForegroundService::class.java).apply {
             action = com.chatr.app.service.CallForegroundService.ACTION_START_CALL
             putExtra("callerName", callerName)
+            putExtra("callerId", callerId)
+            putExtra("callerAvatar", callerAvatar)
             putExtra("callId", callId)
             putExtra("isVideo", isVideo)
         }
@@ -176,20 +238,75 @@ class ChatrFirebaseService : FirebaseMessagingService() {
             android.util.Log.e("FCM_KILLED", "✅ Service started successfully!")
         } catch (e: Exception) {
             android.util.Log.e("FCM_KILLED", "❌ Failed to start service: ${e.message}", e)
+            // Show fallback notification if service fails
+            showFallbackCallNotification(callerName, isVideo)
         }
     }
     
+    /**
+     * Fallback notification when CallForegroundService fails to start
+     * This ensures user ALWAYS sees something even if Android kills the foreground service
+     */
+    private fun showFallbackCallNotification(callerName: String, isVideo: Boolean) {
+        android.util.Log.e("FCM_KILLED", "🔥 Showing FALLBACK call notification")
+        
+        val intent = Intent(this, MainActivity::class.java).apply {
+            putExtra("action", "ANSWER_CALL")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        
+        val pendingIntent = PendingIntent.getActivity(
+            this, System.currentTimeMillis().toInt(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val notification = NotificationCompat.Builder(this, CHANNEL_CALLS)
+            .setContentTitle("Incoming ${if (isVideo) "Video" else "Voice"} Call")
+            .setContentText(callerName)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setFullScreenIntent(pendingIntent, true)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setVibrate(longArrayOf(0, 500, 200, 500, 200, 500))
+            .setOngoing(true)
+            .build()
+        
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(9999, notification)
+        
+        android.util.Log.e("FCM_KILLED", "✅ Fallback notification displayed")
+    }
+    
     private fun handleSystemNotification(data: Map<String, String>) {
+        android.util.Log.e("FCM_SYSTEM", "🔥 handleSystemNotification: $data")
+        
+        val title = data["title"] ?: data["notification_title"] ?: "Chatr"
+        val body = data["body"] ?: data["notification_body"] ?: data["message"] ?: "You have a notification"
+        
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        
+        val pendingIntent = PendingIntent.getActivity(
+            this, System.currentTimeMillis().toInt(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
         val notification = NotificationCompat.Builder(this, CHANNEL_SYSTEM)
-            .setContentTitle(data["title"])
-            .setContentText(data["body"])
+            .setContentTitle(title)
+            .setContentText(body)
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
             .build()
         
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+        
+        android.util.Log.e("FCM_SYSTEM", "✅ System notification displayed")
     }
     
     private fun createReplyIntent(conversationId: String): PendingIntent {
