@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
 interface ConversationCache {
@@ -25,40 +25,65 @@ interface ChatDB extends DBSchema {
 
 const DB_NAME = 'chatr-cache';
 const DB_VERSION = 1;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes for better UX
+const LS_KEY = 'chatr-conv-cache';
 
 export const useConversationCache = () => {
   const [db, setDb] = useState<IDBPDatabase<ChatDB> | null>(null);
+  const dbInitPromise = useRef<Promise<IDBPDatabase<ChatDB>> | null>(null);
 
   useEffect(() => {
     const initDB = async () => {
-      const database = await openDB<ChatDB>(DB_NAME, DB_VERSION, {
-        upgrade(db) {
-          if (!db.objectStoreNames.contains('conversations')) {
-            db.createObjectStore('conversations', { keyPath: 'id' });
-          }
-          if (!db.objectStoreNames.contains('messages')) {
-            const messageStore = db.createObjectStore('messages', { keyPath: 'conversationId' });
-            messageStore.createIndex('by-conversation', 'conversationId');
-          }
-        },
-      });
-      setDb(database);
+      try {
+        const database = await openDB<ChatDB>(DB_NAME, DB_VERSION, {
+          upgrade(db) {
+            if (!db.objectStoreNames.contains('conversations')) {
+              db.createObjectStore('conversations', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('messages')) {
+              const messageStore = db.createObjectStore('messages', { keyPath: 'conversationId' });
+              messageStore.createIndex('by-conversation', 'conversationId');
+            }
+          },
+        });
+        setDb(database);
+        return database;
+      } catch (error) {
+        console.error('IndexedDB init error:', error);
+        return null;
+      }
     };
 
-    initDB();
+    dbInitPromise.current = initDB() as Promise<IDBPDatabase<ChatDB>>;
   }, []);
 
+  // FAST: Get from localStorage first, then IndexedDB
   const getCachedConversations = useCallback(async (): Promise<any[] | null> => {
-    if (!db) return null;
+    // CRITICAL: Try localStorage first (instant)
+    try {
+      const lsCache = localStorage.getItem(LS_KEY);
+      if (lsCache) {
+        const parsed = JSON.parse(lsCache);
+        const age = Date.now() - (parsed.timestamp || 0);
+        if (age < CACHE_TTL && parsed.data?.length > 0) {
+          return parsed.data;
+        }
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+
+    // Fallback to IndexedDB
+    const database = db || (dbInitPromise.current ? await dbInitPromise.current : null);
+    if (!database) return null;
 
     try {
-      const cached = await db.get('conversations', 'list');
+      const cached = await database.get('conversations', 'list');
       if (!cached) return null;
 
       const age = Date.now() - cached.timestamp;
       if (age > CACHE_TTL) {
-        await db.delete('conversations', 'list');
+        await database.delete('conversations', 'list');
         return null;
       }
 
@@ -70,10 +95,22 @@ export const useConversationCache = () => {
   }, [db]);
 
   const setCachedConversations = useCallback(async (conversations: any[]) => {
-    if (!db) return;
+    // CRITICAL: Write to localStorage first (instant for next load)
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        data: conversations.slice(0, 30), // Only cache first 30 for speed
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+
+    // Then write to IndexedDB for full cache
+    const database = db || (dbInitPromise.current ? await dbInitPromise.current : null);
+    if (!database) return;
 
     try {
-      await db.put('conversations', {
+      await database.put('conversations', {
         id: 'list',
         data: conversations,
         timestamp: Date.now(),
@@ -84,15 +121,16 @@ export const useConversationCache = () => {
   }, [db]);
 
   const getCachedMessages = useCallback(async (conversationId: string): Promise<any[] | null> => {
-    if (!db) return null;
+    const database = db || (dbInitPromise.current ? await dbInitPromise.current : null);
+    if (!database) return null;
 
     try {
-      const cached = await db.get('messages', conversationId);
+      const cached = await database.get('messages', conversationId);
       if (!cached) return null;
 
       const age = Date.now() - cached.timestamp;
       if (age > CACHE_TTL) {
-        await db.delete('messages', conversationId);
+        await database.delete('messages', conversationId);
         return null;
       }
 
@@ -104,10 +142,11 @@ export const useConversationCache = () => {
   }, [db]);
 
   const setCachedMessages = useCallback(async (conversationId: string, messages: any[]) => {
-    if (!db) return;
+    const database = db || (dbInitPromise.current ? await dbInitPromise.current : null);
+    if (!database) return;
 
     try {
-      await db.put('messages', {
+      await database.put('messages', {
         conversationId,
         messages,
         timestamp: Date.now(),
@@ -118,11 +157,17 @@ export const useConversationCache = () => {
   }, [db]);
 
   const clearCache = useCallback(async () => {
-    if (!db) return;
+    // Clear localStorage
+    try {
+      localStorage.removeItem(LS_KEY);
+    } catch (e) {}
+
+    const database = db || (dbInitPromise.current ? await dbInitPromise.current : null);
+    if (!database) return;
 
     try {
-      await db.clear('conversations');
-      await db.clear('messages');
+      await database.clear('conversations');
+      await database.clear('messages');
     } catch (error) {
       console.error('Cache clear error:', error);
     }
