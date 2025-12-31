@@ -43,32 +43,62 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Session management - simple and fast
+  // Session management with recovery
   React.useEffect(() => {
     let mounted = true;
 
-    // Get session immediately (Supabase caches this internally)
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      if (!mounted) return;
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsAuthReady(true);
-    });
+    const initializeAuth = async () => {
+      try {
+        // First, check for existing session
+        const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session retrieval error:', sessionError);
+          return;
+        }
+
+        if (existingSession && mounted) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+          setIsAuthReady(true);
+          console.log('✅ Session restored:', existingSession.user.id);
+          
+          // Sync to native Android on session restore
+          syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
+        } else if (mounted) {
+          setIsAuthReady(true);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      }
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
+
+      console.log('🔐 Auth event:', event);
       
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      setIsAuthReady(true);
-      
-      // Sync to native Android (deferred)
-      if (newSession?.user) {
-        setTimeout(() => syncAuthToNative('SIGNED_IN', newSession.user.id, newSession.access_token), 50);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        // Sync SIGNED_IN to native Android
+        if (newSession?.user) {
+          syncAuthToNative('SIGNED_IN', newSession.user.id, newSession.access_token);
+        }
       } else if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
         setActiveConversationId(null);
+        
+        // Sync SIGNED_OUT to native Android
         syncAuthToNative('SIGNED_OUT', null, null);
+      } else if (event === 'USER_UPDATED') {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
       }
     });
 

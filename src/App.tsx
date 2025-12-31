@@ -14,7 +14,6 @@ import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { GlobalCallListener } from "./components/calling/GlobalCallListener";
 import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
-import { UnifiedCallHandler } from "./components/UnifiedCallHandler";
 import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 
@@ -282,7 +281,6 @@ const App = () => {
             <NativeAppProvider>
             <OfflineIndicator />
             <GlobalCallListener />
-            <UnifiedCallHandler />
             <GlobalNotificationListener />
             <Routes>
             {/* Public Routes */}

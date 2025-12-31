@@ -57,12 +57,12 @@ import { DocumentPreviewModal } from '@/components/chat/DocumentPreviewModal';
 import { VoicemailList } from '@/components/calls/VoicemailList';
 
 const ChatEnhancedContent = () => {
-  const { user, session, isAuthReady, isOnline } = useChatContext();
+  const { user, session, isAuthReady } = useChatContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
   const [otherUser, setOtherUser] = React.useState<any>(null);
-  // CRITICAL: Don't block on loading - use isAuthReady from context
+  const [loading, setLoading] = React.useState(true);
   const [showClusterCreator, setShowClusterCreator] = React.useState(false);
   const [showPulseCreator, setShowPulseCreator] = React.useState(false);
   const [showAIFeatures, setShowAIFeatures] = React.useState(false);
@@ -72,6 +72,7 @@ const ChatEnhancedContent = () => {
   const [showGlobalSearch, setShowGlobalSearch] = React.useState(false);
   const [contacts, setContacts] = React.useState<any[]>([]);
   const [profile, setProfile] = React.useState<any>(null);
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [notificationCount, setNotificationCount] = React.useState(0);
   const { streak } = useStreakTracking('ai_chat');
   const networkQuality = useNetworkQuality();
@@ -141,78 +142,75 @@ const ChatEnhancedContent = () => {
   // Enable realtime notifications with sound
   useRealtimeNotifications(user?.id);
 
-  // FAST: Redirect to auth if not authenticated (using context state)
-  React.useEffect(() => {
-    if (isAuthReady && !user) {
-      navigate('/auth', { replace: true });
-    }
-  }, [isAuthReady, user, navigate]);
-
-  // Load user profile - heavily deferred (non-critical for initial render)
+  // Load user profile - deferred slightly to prioritize chat list
   React.useEffect(() => {
     if (!user?.id) return;
     
-    // Use requestIdleCallback for non-critical profile load
-    const loadProfile = () => {
-      supabase
+    // Defer profile load by 500ms
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
         .from('profiles')
         .select('username, avatar_url')
         .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) setProfile(data);
-        });
-    };
+        .single();
+      
+      setProfile(data);
+    }, 500);
     
-    if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(loadProfile);
-    } else {
-      setTimeout(loadProfile, 1000);
-    }
+    return () => clearTimeout(timer);
   }, [user?.id]);
 
-  // Load notification count - heavily deferred (5 seconds) to not block initial render
+  // Monitor online status
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Load notification count - deferred to not block initial render
   React.useEffect(() => {
     if (!user?.id) return;
     
-    let channel: any = null;
-    let cancelled = false;
-    
-    // Use requestIdleCallback or heavy defer
-    const initNotifications = () => {
-      if (cancelled) return;
-      
-      supabase
+    const loadNotifications = async () => {
+      const { count } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('read', false)
-        .then(({ count }) => {
-          if (!cancelled) setNotificationCount(count || 0);
-        });
+        .eq('read', false);
+      
+      setNotificationCount(count || 0);
+    };
+    
+    // Defer by 2 seconds
+    const timer = setTimeout(() => {
+      loadNotifications();
       
       // Subscribe to new notifications
-      channel = supabase
-        .channel('notifications-' + user.id)
+      const channel = supabase
+        .channel('notifications')
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
           filter: `user_id=eq.${user.id}`
-        }, () => {
-          setNotificationCount(prev => prev + 1);
-        })
+        }, loadNotifications)
         .subscribe();
-    };
-    
-    // Defer by 5 seconds
-    const timer = setTimeout(initNotifications, 5000);
+      
+      // Store channel for cleanup
+      (window as any).__notifChannel = channel;
+    }, 2000);
     
     return () => {
-      cancelled = true;
       clearTimeout(timer);
-      if (channel) {
-        supabase.removeChannel(channel);
+      if ((window as any).__notifChannel) {
+        supabase.removeChannel((window as any).__notifChannel);
       }
     };
   }, [user?.id]);
@@ -341,7 +339,20 @@ const ChatEnhancedContent = () => {
     return () => clearTimeout(syncTimer);
   }, [user?.id]);
 
-  // Auth check is now handled by ChatContext - removed duplicate check
+  // Fast auth check - non-blocking
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate('/auth');
+      } else {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
 
   const handleStartConversation = async (contact: any) => {
     try {
@@ -702,8 +713,8 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Show loading only during initial auth check
-  if (!isAuthReady) {
+  // Show loading only during initial check
+  if (loading || !isAuthReady) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center space-y-2">

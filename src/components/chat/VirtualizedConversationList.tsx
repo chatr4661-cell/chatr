@@ -132,45 +132,107 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     if (!userId) return;
 
     try {
-      // Try optimized RPC first (fastest)
-      const { data, error } = await supabase.rpc('get_user_conversations');
-      
-      if (!error && data) {
-        const conversationData: Conversation[] = (data as any[]).map((row: any) => ({
-          id: row.conversation_id,
-          is_group: row.is_group,
-          group_name: row.group_name,
-          group_icon_url: row.group_icon_url,
-          updated_at: row.last_message_at || new Date().toISOString(),
-          is_archived: row.is_archived,
-          is_muted: row.is_muted,
-          unread_count: Number(row.unread_count || 0),
-          last_message: row.last_message
-            ? {
-                content: row.last_message,
-                created_at: row.last_message_at,
-                sender_id: row.last_message_sender_id || '',
-              }
-            : undefined,
-          other_user: row.other_user_id
-            ? {
-                id: row.other_user_id,
-                username: row.other_user_name,
-                avatar_url: row.other_user_avatar,
-                is_online: !!row.other_user_online,
-              }
-            : undefined,
+      const cached = await getCachedConversations();
+      if (cached) {
+        setConversations(cached);
+        setLoading(false);
+      }
+
+      const { data: optimizedData, error: rpcError } = await supabase
+        .rpc('get_user_conversations_optimized', { p_user_id: userId });
+
+      if (!rpcError && optimizedData) {
+        const conversationData = optimizedData.map((conv: any) => ({
+          id: conv.id,
+          is_group: conv.is_group,
+          group_name: conv.group_name,
+          group_icon_url: conv.group_icon_url,
+          is_community: conv.is_community,
+          community_description: conv.community_description,
+          updated_at: conv.lastmessagetime || new Date().toISOString(),
+          last_message: conv.lastmessage ? {
+            content: conv.lastmessage,
+            created_at: conv.lastmessagetime,
+            sender_id: '',
+            read_at: undefined
+          } : undefined,
+          other_user: conv.otheruser || undefined
         }));
 
         setConversations(conversationData);
-        setCachedConversations(conversationData);
+        await setCachedConversations(conversationData);
+        setLoading(false);
+        return;
       }
+
+      const { data: participations } = await supabase
+        .from('conversation_participants')
+        .select(`
+          conversation_id,
+          conversations!inner (id, is_group, group_name, group_icon_url, updated_at)
+        `)
+        .eq('user_id', userId)
+        .limit(50);
+
+      if (!participations?.length) {
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
+
+      const convIds = participations.map(p => (p.conversations as any).id);
+
+      const [messagesResult, participantsResult] = await Promise.all([
+        supabase
+          .from('messages')
+          .select('conversation_id, content, created_at')
+          .in('conversation_id', convIds)
+          .order('created_at', { ascending: false })
+          .limit(convIds.length),
+        supabase
+          .from('conversation_participants')
+          .select('conversation_id, user_id, profiles!inner(id, username, avatar_url, is_online)')
+          .in('conversation_id', convIds)
+          .neq('user_id', userId)
+      ]);
+
+      const lastMessageMap = new Map();
+      messagesResult.data?.forEach(msg => {
+        if (!lastMessageMap.has(msg.conversation_id)) {
+          lastMessageMap.set(msg.conversation_id, msg);
+        }
+      });
+
+      const otherUserMap = new Map();
+      participantsResult.data?.forEach((p: any) => {
+        if (!otherUserMap.has(p.conversation_id)) {
+          otherUserMap.set(p.conversation_id, p.profiles);
+        }
+      });
+
+      const conversationData = participations
+        .map((p: any) => {
+          const conv = p.conversations;
+          return {
+            ...conv,
+            last_message: lastMessageMap.get(conv.id) || null,
+            other_user: otherUserMap.get(conv.id) || null
+          };
+        })
+        .sort((a, b) => {
+          const aTime = a.last_message?.created_at || a.updated_at;
+          const bTime = b.last_message?.created_at || b.updated_at;
+          return new Date(bTime).getTime() - new Date(aTime).getTime();
+        });
+
+      setConversations(conversationData);
+      await setCachedConversations(conversationData);
+      setLoading(false);
     } catch (error) {
       console.error('Error loading conversations:', error);
-    } finally {
       setLoading(false);
     }
-  }, [userId, setCachedConversations]);
+  }, [userId, getCachedConversations, setCachedConversations]);
 
   // Load contacts for search
   const loadContacts = useCallback(async () => {
@@ -331,32 +393,25 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
   useEffect(() => {
     if (!userId) return;
-    
-    // Load conversations immediately
     loadConversations();
-    
-    // Defer contacts loading to not block initial render (2 seconds)
-    const contactsTimer = setTimeout(loadContacts, 2000);
+    // Defer contacts loading to not block initial render
+    const contactsTimer = setTimeout(loadContacts, 1000);
 
-    // Subscribe to realtime updates (deferred by 1 second to prioritize initial render)
-    let channel: any = null;
-    const realtimeTimer = setTimeout(() => {
-      channel = supabase
-        .channel('conv-updates-realtime-' + userId, {
-          config: { broadcast: { self: true } }
-        })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, debouncedReload)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, debouncedReload)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, debouncedReload)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, debouncedReload)
-        .subscribe();
-    }, 1000);
+    const channel = supabase
+      .channel('conv-updates-realtime', {
+        config: { broadcast: { self: true } }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, debouncedReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, debouncedReload)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, debouncedReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, debouncedReload)
+      .subscribe();
 
+    // Remove aggressive 5s polling - rely on realtime only
     return () => {
       clearTimeout(contactsTimer);
-      clearTimeout(realtimeTimer);
       if (pendingReloadRef.current) clearTimeout(pendingReloadRef.current);
-      if (channel) supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
   }, [userId, loadConversations, loadContacts, debouncedReload]);
 

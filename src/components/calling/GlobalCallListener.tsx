@@ -7,12 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
 
-// ARCHITECTURE: 
-// - Native: Uses FCM → TelecomManager/CallKit for incoming calls (handled by native layer)
-// - Web: Handled by GlobalCallNotifications component (provides full WebRTC UI)
-// This component only provides backup incoming call handling for edge cases
+// ARCHITECTURE: Skip web-based call handling when running inside native Android/iOS shell
+// Native shell uses TelecomManager (Android) / CallKit (iOS) for incoming calls
 const isNativeShell = () => Capacitor.isNativePlatform();
-const isWebPlatform = () => !Capacitor.isNativePlatform();
 
 export function GlobalCallListener() {
   const [incomingCall, setIncomingCall] = useState<any>(null);
@@ -47,22 +44,15 @@ export function GlobalCallListener() {
     };
   }, []);
 
-  // CRITICAL: Skip subscription on BOTH platforms:
-  // - Native: FCM → TelecomManager/CallKit handles incoming calls
-  // - Web: GlobalCallNotifications handles all call UI with full WebRTC
-  // This component is now essentially disabled in favor of unified handling
+  // Subscribe once per logged-in user
+  // CRITICAL: Skip subscription in native shell - native handles calls via TelecomManager/CallKit
   useEffect(() => {
     if (!userId) return;
     
-    // On native, defer to native call handling
+    // Native shell uses FCM → TelecomManager/CallKit for incoming calls
+    // Web listener would cause duplicate notifications
     if (isNativeShell()) {
       console.log("📱 [GlobalCallListener] Native shell detected - deferring to native call handling");
-      return;
-    }
-    
-    // On web, defer to GlobalCallNotifications which handles full WebRTC
-    if (isWebPlatform()) {
-      console.log("🌐 [GlobalCallListener] Web platform - deferring to GlobalCallNotifications");
       return;
     }
 
