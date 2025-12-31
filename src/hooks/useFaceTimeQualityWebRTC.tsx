@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Json } from '@/integrations/supabase/types';
 
 export interface MediaSettings {
   video: {
@@ -194,14 +193,12 @@ export const useFaceTimeQualityWebRTC = (callId: string | null, isVideo: boolean
       if (event.candidate && callId) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const signalData = {
-            call_id: callId,
-            from_user: user.id,
-            to_user: callId,
-            signal_type: 'ice_candidate',
-            signal_data: event.candidate.toJSON() as Json,
-          };
-          await supabase.from('webrtc_signals').insert(signalData);
+        await supabase.from('webrtc_signals').insert({
+          from_user: user.id,
+          to_user: callId, // Using callId to track
+          signal_type: 'ice_candidate',
+          signal_data: event.candidate.toJSON(),
+        });
         }
       }
     };
@@ -266,14 +263,12 @@ export const useFaceTimeQualityWebRTC = (callId: string | null, isVideo: boolean
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const signalData = {
-          call_id: callId,
+        await supabase.from('webrtc_signals').insert({
           from_user: user.id,
           to_user: callId,
           signal_type: 'offer',
-          signal_data: { sdp: offer.sdp, type: offer.type } as Json,
-        };
-        await supabase.from('webrtc_signals').insert(signalData);
+          signal_data: { sdp: offer.sdp, type: offer.type },
+        });
       }
 
       console.log('📤 Offer sent');
@@ -295,14 +290,12 @@ export const useFaceTimeQualityWebRTC = (callId: string | null, isVideo: boolean
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const signalData = {
-          call_id: callId,
+        await supabase.from('webrtc_signals').insert({
           from_user: user.id,
           to_user: callId,
           signal_type: 'answer',
-          signal_data: { sdp: answer.sdp, type: answer.type } as Json,
-        };
-        await supabase.from('webrtc_signals').insert(signalData);
+          signal_data: { sdp: answer.sdp, type: answer.type },
+        });
       }
 
       // Process queued ICE candidates
@@ -360,14 +353,12 @@ export const useFaceTimeQualityWebRTC = (callId: string | null, isVideo: boolean
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const signalData = {
-          call_id: callId,
+        await supabase.from('webrtc_signals').insert({
           from_user: user.id,
           to_user: callId,
           signal_type: 'offer',
-          signal_data: { sdp: offer.sdp, type: offer.type, iceRestart: true } as Json,
-        };
-        await supabase.from('webrtc_signals').insert(signalData);
+          signal_data: { sdp: offer.sdp, type: offer.type, iceRestart: true },
+        });
       }
     } catch (error) {
       console.error('ICE restart failed:', error);

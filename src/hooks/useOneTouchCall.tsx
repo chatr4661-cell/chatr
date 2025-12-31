@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Json } from '@/integrations/supabase/types';
 
 export type CallType = 'audio' | 'video';
 
@@ -65,15 +64,13 @@ export const useOneTouchCall = () => {
         .eq('id', user.id)
         .single();
 
-      // Create call record
+      // Create call record - using conversation_id as required field
       const { data: callData, error: callError } = await supabase
         .from('calls')
         .insert({
-          caller_id: user.id,
-          conversation_id: recipientId, // Required field - using recipientId as placeholder
+          conversation_id: recipientId, // Required field
           call_type: callType,
           status: 'ringing',
-          receiver_id: recipientId,
           caller_name: callerProfile?.username,
           caller_avatar: callerProfile?.avatar_url,
           webrtc_state: 'new',
@@ -102,14 +99,12 @@ export const useOneTouchCall = () => {
       });
 
       // Send WebRTC offer signal
-      const signalData = {
-        call_id: callData.id,
+      await supabase.from('webrtc_signals').insert({
         from_user: user.id,
         to_user: recipientId,
         signal_type: 'offer_pending',
-        signal_data: { callType, timestamp: Date.now() } as Json,
-      };
-      await supabase.from('webrtc_signals').insert(signalData);
+        signal_data: { callType, timestamp: Date.now(), callId: callData.id },
+      });
 
       return callData.id;
     } catch (error: any) {
@@ -140,15 +135,13 @@ export const useOneTouchCall = () => {
 
       // Send hangup signal
       const { data: { user } } = await supabase.auth.getUser();
-      if (user && callState.recipientId && callState.callId) {
-        const signalData = {
-          call_id: callState.callId,
+      if (user && callState.recipientId) {
+        await supabase.from('webrtc_signals').insert({
           from_user: user.id,
           to_user: callState.recipientId,
           signal_type: 'hangup',
-          signal_data: { reason: reason || 'user_ended' } as Json,
-        };
-        await supabase.from('webrtc_signals').insert(signalData);
+          signal_data: { reason: reason || 'user_ended', callId: callState.callId },
+        });
       }
 
       setCallState(prev => ({

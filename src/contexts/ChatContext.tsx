@@ -43,40 +43,17 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Session management with fast initialization
+  // Session management with recovery
   React.useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        // CRITICAL: Try to hydrate user from cached session BEFORE async call
-        const cachedSession = localStorage.getItem('sb-sbayuqgomlflmxgicplz-auth-token');
-        if (cachedSession && mounted) {
-          try {
-            const parsed = JSON.parse(cachedSession);
-            // Supabase stores session with user object - hydrate it immediately
-            if (parsed?.user?.id && parsed?.access_token) {
-              setUser(parsed.user);
-              setSession(parsed as Session);
-              setIsAuthReady(true);
-              console.log('⚡ Instant auth hydration from cache:', parsed.user.id);
-            }
-          } catch (e) {
-            // Invalid cache, continue with normal flow
-          }
-        }
-        
-        // Now verify session properly (background validation)
+        // First, check for existing session
         const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error('Session retrieval error:', sessionError);
-          // Clear stale cache if session is invalid
-          if (mounted) {
-            setUser(null);
-            setSession(null);
-            setIsAuthReady(true);
-          }
           return;
         }
 
@@ -84,21 +61,15 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(existingSession);
           setUser(existingSession.user);
           setIsAuthReady(true);
-          console.log('✅ Session verified:', existingSession.user.id);
+          console.log('✅ Session restored:', existingSession.user.id);
           
-          // Sync to native Android on session restore (deferred)
-          setTimeout(() => {
-            syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
-          }, 100);
+          // Sync to native Android on session restore
+          syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
         } else if (mounted) {
-          // No valid session - clear any stale state
-          setUser(null);
-          setSession(null);
           setIsAuthReady(true);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        if (mounted) setIsAuthReady(true);
       }
     };
 
@@ -113,7 +84,6 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        setIsAuthReady(true);
         
         // Sync SIGNED_IN to native Android
         if (newSession?.user) {
