@@ -327,18 +327,24 @@ export class SimpleWebRTCCall {
             this.callState = 'failed';
             this.emit('failed', new Error('Connection failed'));
           }
-        } else if (state === 'disconnected') {
+      } else if (state === 'disconnected') {
           // CRITICAL: Don't fail immediately on disconnect - mobile networks are unstable
           console.warn('⚠️ [SimpleWebRTC] ICE disconnected - waiting for reconnection...');
           
-          // Give it 10 seconds to reconnect before failing
+          // Attempt ICE restart for faster recovery
+          if (this.isInitiator && this.pc) {
+            console.log('🔄 [SimpleWebRTC] Attempting ICE restart on disconnect...');
+            this.pc.restartIce();
+          }
+          
+          // Give it 15 seconds to reconnect before failing (increased from 10s)
           setTimeout(() => {
             if (this.pc?.iceConnectionState === 'disconnected') {
-              console.error('❌ [SimpleWebRTC] Still disconnected after 10s');
+              console.error('❌ [SimpleWebRTC] Still disconnected after 15s');
               this.callState = 'failed';
               this.emit('failed', new Error('Connection lost'));
             }
-          }, 10000);
+          }, 15000);
         }
       };
 
@@ -528,17 +534,34 @@ export class SimpleWebRTCCall {
   }
 
   private setConnectionTimeout() {
-    // ULTRA-FAST: 8s for mobile, 6s for desktop (sub-FaceTime speed)
-    // Aggressive timeout forces faster ICE completion
-    const timeout = this.isMobileDevice() ? 8000 : 6000;
+    // RELIABLE: 25s for mobile, 20s for desktop
+    // Allows proper ICE negotiation especially on slower networks
+    const timeout = this.isMobileDevice() ? 25000 : 20000;
     console.log(`⏱️ [SimpleWebRTC] Connection timeout set: ${timeout}ms`);
     
     this.iceConnectionTimeout = setTimeout(() => {
       if (this.callState === 'connecting') {
-        console.error('⏰ [SimpleWebRTC] Connection timeout after', timeout/1000, 'seconds');
-        this.callState = 'failed';
-        this.emit('failed', new Error('Connection timeout - please check your network settings'));
-        this.cleanup();
+        console.warn('⏰ [SimpleWebRTC] Connection timeout after', timeout/1000, 'seconds - attempting ICE restart');
+        
+        // CRITICAL: Try ICE restart before failing completely
+        if (this.pc && this.isInitiator) {
+          console.log('🔄 [SimpleWebRTC] Final ICE restart attempt...');
+          this.pc.restartIce();
+          
+          // Give restart 10 more seconds
+          setTimeout(() => {
+            if (this.callState === 'connecting') {
+              console.error('❌ [SimpleWebRTC] Final connection timeout');
+              this.callState = 'failed';
+              this.emit('failed', new Error('Connection timeout - please check your network settings'));
+              this.cleanup();
+            }
+          }, 10000);
+        } else {
+          this.callState = 'failed';
+          this.emit('failed', new Error('Connection timeout - please check your network settings'));
+          this.cleanup();
+        }
       }
     }, timeout);
   }
