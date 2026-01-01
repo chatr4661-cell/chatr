@@ -37,6 +37,11 @@ import WellnessTracking from "./pages/WellnessTracking";
 import HealthPassport from "./pages/HealthPassport";
 import LabReports from "./pages/LabReports";
 import MedicineReminders from "./pages/MedicineReminders";
+import BMICalculator from "./pages/BMICalculator";
+import NutritionTracker from "./pages/NutritionTracker";
+import MentalHealth from "./pages/MentalHealth";
+import HealthReminders from "./pages/HealthReminders";
+import HealthRiskPredictions from "./pages/HealthRiskPredictions";
 import BookingPage from "./pages/BookingPage";
 import ProviderPortal from "./pages/ProviderPortal";
 import ProviderRegister from "./pages/ProviderRegister";
@@ -342,6 +347,11 @@ const App = () => {
             <Route path="/health-passport" element={<HealthPassport />} />
             <Route path="/lab-reports" element={<LabReports />} />
             <Route path="/medicine-reminders" element={<MedicineReminders />} />
+            <Route path="/bmi-calculator" element={<BMICalculator />} />
+            <Route path="/nutrition-tracker" element={<NutritionTracker />} />
+            <Route path="/mental-health" element={<MentalHealth />} />
+            <Route path="/health-reminders" element={<HealthReminders />} />
+            <Route path="/health-risks" element={<HealthRiskPredictions />} />
             <Route path="/emergency" element={<EmergencyButton />} />
             <Route path="/emergency-services" element={<EmergencyServices />} />
             
