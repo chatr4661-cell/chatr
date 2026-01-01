@@ -1129,6 +1129,45 @@ export type Database = {
         }
         Relationships: []
       }
+      bmi_records: {
+        Row: {
+          bmi_category: string
+          bmi_value: number
+          body_fat_percent: number | null
+          created_at: string
+          height_cm: number
+          id: string
+          recorded_at: string
+          user_id: string
+          waist_cm: number | null
+          weight_kg: number
+        }
+        Insert: {
+          bmi_category: string
+          bmi_value: number
+          body_fat_percent?: number | null
+          created_at?: string
+          height_cm: number
+          id?: string
+          recorded_at?: string
+          user_id: string
+          waist_cm?: number | null
+          weight_kg: number
+        }
+        Update: {
+          bmi_category?: string
+          bmi_value?: number
+          body_fat_percent?: number | null
+          created_at?: string
+          height_cm?: number
+          id?: string
+          recorded_at?: string
+          user_id?: string
+          waist_cm?: number | null
+          weight_kg?: number
+        }
+        Relationships: []
+      }
       booking_status_updates: {
         Row: {
           booking_id: string
@@ -2510,10 +2549,14 @@ export type Database = {
           image_url: string | null
           insurance_providers: string[] | null
           is_active: boolean | null
+          is_mental_health_provider: boolean | null
           is_verified: boolean | null
+          languages: string[] | null
           latitude: number | null
           longitude: number | null
+          mental_health_specialties: string[] | null
           name: string
+          offers_teletherapy: boolean | null
           opening_time: string | null
           owner_id: string | null
           phone: string | null
@@ -2521,6 +2564,7 @@ export type Database = {
           rating_average: number | null
           rating_count: number | null
           specialty: string | null
+          therapy_modes: string[] | null
           updated_at: string | null
           website: string | null
         }
@@ -2539,10 +2583,14 @@ export type Database = {
           image_url?: string | null
           insurance_providers?: string[] | null
           is_active?: boolean | null
+          is_mental_health_provider?: boolean | null
           is_verified?: boolean | null
+          languages?: string[] | null
           latitude?: number | null
           longitude?: number | null
+          mental_health_specialties?: string[] | null
           name: string
+          offers_teletherapy?: boolean | null
           opening_time?: string | null
           owner_id?: string | null
           phone?: string | null
@@ -2550,6 +2598,7 @@ export type Database = {
           rating_average?: number | null
           rating_count?: number | null
           specialty?: string | null
+          therapy_modes?: string[] | null
           updated_at?: string | null
           website?: string | null
         }
@@ -2568,10 +2617,14 @@ export type Database = {
           image_url?: string | null
           insurance_providers?: string[] | null
           is_active?: boolean | null
+          is_mental_health_provider?: boolean | null
           is_verified?: boolean | null
+          languages?: string[] | null
           latitude?: number | null
           longitude?: number | null
+          mental_health_specialties?: string[] | null
           name?: string
+          offers_teletherapy?: boolean | null
           opening_time?: string | null
           owner_id?: string | null
           phone?: string | null
@@ -2579,6 +2632,7 @@ export type Database = {
           rating_average?: number | null
           rating_count?: number | null
           specialty?: string | null
+          therapy_modes?: string[] | null
           updated_at?: string | null
           website?: string | null
         }
@@ -6508,6 +6562,51 @@ export type Database = {
         }
         Relationships: []
       }
+      health_reminders: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          reference_id: string | null
+          reference_type: string | null
+          reminder_time: string
+          reminder_type: string
+          repeat_pattern: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          reminder_time: string
+          reminder_type: string
+          repeat_pattern?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          reminder_time?: string
+          reminder_type?: string
+          repeat_pattern?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       health_vitals: {
         Row: {
           created_at: string | null
@@ -6908,6 +7007,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      insurance_preauth: {
+        Row: {
+          approved_amount: number | null
+          created_at: string
+          documents: Json | null
+          estimated_cost: number | null
+          id: string
+          insurance_provider: string
+          notes: string | null
+          policy_number: string
+          preauth_number: string | null
+          preauth_status: string | null
+          procedure_code: string | null
+          procedure_name: string
+          processed_at: string | null
+          provider_id: string | null
+          submitted_at: string | null
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          approved_amount?: number | null
+          created_at?: string
+          documents?: Json | null
+          estimated_cost?: number | null
+          id?: string
+          insurance_provider: string
+          notes?: string | null
+          policy_number: string
+          preauth_number?: string | null
+          preauth_status?: string | null
+          procedure_code?: string | null
+          procedure_name: string
+          processed_at?: string | null
+          provider_id?: string | null
+          submitted_at?: string | null
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          approved_amount?: number | null
+          created_at?: string
+          documents?: Json | null
+          estimated_cost?: number | null
+          id?: string
+          insurance_provider?: string
+          notes?: string | null
+          policy_number?: string
+          preauth_number?: string | null
+          preauth_status?: string | null
+          procedure_code?: string | null
+          procedure_name?: string
+          processed_at?: string | null
+          provider_id?: string | null
+          submitted_at?: string | null
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: []
       }
       inter_app_messages: {
         Row: {
@@ -8619,6 +8778,42 @@ export type Database = {
         }
         Relationships: []
       }
+      mental_health_assessments: {
+        Row: {
+          assessed_at: string
+          assessment_type: string
+          created_at: string
+          id: string
+          interpretation: string | null
+          recommendations: string[] | null
+          responses: Json | null
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          assessed_at?: string
+          assessment_type: string
+          created_at?: string
+          id?: string
+          interpretation?: string | null
+          recommendations?: string[] | null
+          responses?: Json | null
+          score?: number | null
+          user_id: string
+        }
+        Update: {
+          assessed_at?: string
+          assessment_type?: string
+          created_at?: string
+          id?: string
+          interpretation?: string | null
+          recommendations?: string[] | null
+          responses?: Json | null
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_delivery_status: {
         Row: {
           created_at: string | null
@@ -9550,6 +9745,105 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      nutrition_daily_summary: {
+        Row: {
+          created_at: string
+          goal_calories: number | null
+          goal_carbs_g: number | null
+          goal_fat_g: number | null
+          goal_protein_g: number | null
+          goal_water_ml: number | null
+          id: string
+          summary_date: string
+          total_calories: number | null
+          total_carbs_g: number | null
+          total_fat_g: number | null
+          total_protein_g: number | null
+          total_water_ml: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal_calories?: number | null
+          goal_carbs_g?: number | null
+          goal_fat_g?: number | null
+          goal_protein_g?: number | null
+          goal_water_ml?: number | null
+          id?: string
+          summary_date: string
+          total_calories?: number | null
+          total_carbs_g?: number | null
+          total_fat_g?: number | null
+          total_protein_g?: number | null
+          total_water_ml?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goal_calories?: number | null
+          goal_carbs_g?: number | null
+          goal_fat_g?: number | null
+          goal_protein_g?: number | null
+          goal_water_ml?: number | null
+          id?: string
+          summary_date?: string
+          total_calories?: number | null
+          total_carbs_g?: number | null
+          total_fat_g?: number | null
+          total_protein_g?: number | null
+          total_water_ml?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nutrition_logs: {
+        Row: {
+          calories: number | null
+          carbs_g: number | null
+          created_at: string
+          fat_g: number | null
+          fiber_g: number | null
+          food_name: string
+          id: string
+          log_date: string
+          meal_type: string
+          notes: string | null
+          protein_g: number | null
+          user_id: string
+          water_ml: number | null
+        }
+        Insert: {
+          calories?: number | null
+          carbs_g?: number | null
+          created_at?: string
+          fat_g?: number | null
+          fiber_g?: number | null
+          food_name: string
+          id?: string
+          log_date?: string
+          meal_type: string
+          notes?: string | null
+          protein_g?: number | null
+          user_id: string
+          water_ml?: number | null
+        }
+        Update: {
+          calories?: number | null
+          carbs_g?: number | null
+          created_at?: string
+          fat_g?: number | null
+          fiber_g?: number | null
+          food_name?: string
+          id?: string
+          log_date?: string
+          meal_type?: string
+          notes?: string | null
+          protein_g?: number | null
+          user_id?: string
+          water_ml?: number | null
         }
         Relationships: []
       }
@@ -13163,6 +13457,54 @@ export type Database = {
           },
         ]
       }
+      therapy_sessions: {
+        Row: {
+          amount: number | null
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          mood_after: number | null
+          mood_before: number | null
+          payment_status: string | null
+          scheduled_at: string
+          session_notes: string | null
+          session_type: string
+          status: string
+          therapist_id: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          mood_after?: number | null
+          mood_before?: number | null
+          payment_status?: string | null
+          scheduled_at: string
+          session_notes?: string | null
+          session_type: string
+          status?: string
+          therapist_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          mood_after?: number | null
+          mood_before?: number | null
+          payment_status?: string | null
+          scheduled_at?: string
+          session_notes?: string | null
+          session_type?: string
+          status?: string
+          therapist_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trending_categories: {
         Row: {
           category_name: string
@@ -14450,6 +14792,13 @@ export type Database = {
         Returns: undefined
       }
       backfill_phone_hashes: { Args: never; Returns: undefined }
+      calculate_bmi: {
+        Args: { p_height_cm: number; p_weight_kg: number }
+        Returns: {
+          bmi_category: string
+          bmi_value: number
+        }[]
+      }
       check_api_limit: {
         Args: { api: string; daily_max?: number }
         Returns: Json
