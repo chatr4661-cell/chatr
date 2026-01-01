@@ -477,9 +477,6 @@ function ReminderCard({
             <Repeat className="h-3 w-3" />
             {reminder.repeat_pattern}
           </span>
-          {reminder.days_of_week && reminder.days_of_week.length > 0 && (
-            <span>{reminder.days_of_week.join(', ')}</span>
-          )}
         </div>
 
         <div className="flex gap-2 mt-3">

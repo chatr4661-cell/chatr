@@ -243,11 +243,43 @@ export default function HealthHub() {
                 </CardHeader>
               </Card>
 
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/bmi-calculator')}>
+                <CardHeader>
+                  <TrendingUp className="w-8 h-8 text-teal-600 mb-2" />
+                  <CardTitle>BMI Calculator</CardTitle>
+                  <CardDescription>Track your body mass index</CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-orange-50 to-red-50 border-orange-200" onClick={() => navigate('/nutrition-tracker')}>
+                <CardHeader>
+                  <Activity className="w-8 h-8 text-orange-600 mb-2" />
+                  <CardTitle>Nutrition Tracker</CardTitle>
+                  <CardDescription className="text-orange-700">Track meals & macros</CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200" onClick={() => navigate('/mental-health')}>
+                <CardHeader>
+                  <Brain className="w-8 h-8 text-purple-600 mb-2" />
+                  <CardTitle>Mental Health</CardTitle>
+                  <CardDescription className="text-purple-700">Assessments & support</CardDescription>
+                </CardHeader>
+              </Card>
+
               <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/medicine-reminders')}>
                 <CardHeader>
                   <Pill className="w-8 h-8 text-orange-600 mb-2" />
                   <CardTitle>Medications</CardTitle>
                   <CardDescription>{healthData.reminders.length} active reminders</CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/health-reminders')}>
+                <CardHeader>
+                  <Calendar className="w-8 h-8 text-amber-600 mb-2" />
+                  <CardTitle>Health Reminders</CardTitle>
+                  <CardDescription>Never miss appointments</CardDescription>
                 </CardHeader>
               </Card>
 
@@ -267,11 +299,19 @@ export default function HealthHub() {
                 </CardHeader>
               </Card>
 
+              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200" onClick={() => navigate('/health-risks')}>
+                <CardHeader>
+                  <Heart className="w-8 h-8 text-blue-600 mb-2" />
+                  <CardTitle>Health Predictions</CardTitle>
+                  <CardDescription className="text-blue-700">AI-powered risk analysis</CardDescription>
+                </CardHeader>
+              </Card>
+
               <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200" onClick={() => navigate('/symptom-checker')}>
                 <CardHeader>
                   <Brain className="w-8 h-8 text-purple-600 mb-2" />
                   <CardTitle>Symptom Checker</CardTitle>
-                  <CardDescription className="text-purple-700">AI-powered triage (New!)</CardDescription>
+                  <CardDescription className="text-purple-700">AI-powered triage</CardDescription>
                 </CardHeader>
               </Card>
             </div>
