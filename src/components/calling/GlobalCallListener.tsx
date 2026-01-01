@@ -14,13 +14,20 @@ const isNativeShell = () => Capacitor.isNativePlatform();
 export function GlobalCallListener() {
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [activeCall, setActiveCall] = useState<any>(null);
+  const [outgoingCall, setOutgoingCall] = useState<any>(null); // NEW: Track outgoing calls (caller side)
   const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const incomingCallRef = useRef<any>(null);
+  const outgoingCallRef = useRef<any>(null);
+  
   useEffect(() => {
     incomingCallRef.current = incomingCall;
   }, [incomingCall]);
+  
+  useEffect(() => {
+    outgoingCallRef.current = outgoingCall;
+  }, [outgoingCall]);
 
   // Track auth state (so this works on ALL screens and after refresh)
   useEffect(() => {
@@ -67,7 +74,6 @@ export function GlobalCallListener() {
           event: "INSERT",
           schema: "public",
           table: "calls",
-          // IMPORTANT: use only supported filter ops (eq)
           filter: `receiver_id=eq.${userId}`,
         },
         async (payload) => {
@@ -76,7 +82,6 @@ export function GlobalCallListener() {
 
           if (call.status !== "ringing") return;
 
-          // Fetch caller profile (best-effort)
           const { data: callerProfile } = await supabase
             .from("profiles")
             .select("username, avatar_url")
@@ -110,7 +115,6 @@ export function GlobalCallListener() {
           const currentIncoming = incomingCallRef.current;
 
           if (!currentIncoming) return;
-
           if (call.id !== currentIncoming.id) return;
 
           if (call.status === "ended") {
@@ -132,9 +136,104 @@ export function GlobalCallListener() {
         console.log("📡 call-updates channel status:", status);
       });
 
+    // NEW: Outgoing calls (caller side) - listen for when receiver accepts
+    const outgoingChannel = supabase
+      .channel(`outgoing-calls:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "calls",
+          filter: `caller_id=eq.${userId}`,
+        },
+        async (payload) => {
+          const call = payload.new as any;
+          console.log("📤 [GlobalCallListener] Outgoing call created:", call.id, "status:", call.status);
+
+          if (call.status === "ringing") {
+            const { data: receiverProfile } = await supabase
+              .from("profiles")
+              .select("username, avatar_url")
+              .eq("id", call.receiver_id)
+              .maybeSingle();
+
+            setOutgoingCall({
+              ...call,
+              receiverName: receiverProfile?.username || call.receiver_name || "Unknown",
+              receiverAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("📡 outgoing-calls channel status:", status);
+      });
+
+    // NEW: Listen for outgoing call status changes (accepted/rejected/ended)
+    const outgoingUpdatesChannel = supabase
+      .channel(`outgoing-updates:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "calls",
+          filter: `caller_id=eq.${userId}`,
+        },
+        async (payload) => {
+          const call = payload.new as any;
+          const currentOutgoing = outgoingCallRef.current;
+
+          console.log("📤 [GlobalCallListener] Outgoing call UPDATE:", call.id, "status:", call.status);
+
+          if (!currentOutgoing || call.id !== currentOutgoing.id) return;
+
+          // CRITICAL: Receiver accepted the call - start WebRTC as initiator!
+          if (call.status === "active") {
+            console.log("🎉 [GlobalCallListener] Call accepted by receiver! Starting WebRTC...");
+            
+            const { data: receiverProfile } = await supabase
+              .from("profiles")
+              .select("username, avatar_url")
+              .eq("id", call.receiver_id)
+              .maybeSingle();
+
+            setActiveCall({
+              ...call,
+              isInitiator: true, // Caller is the initiator
+              partnerId: call.receiver_id,
+              callerName: receiverProfile?.username || call.receiver_name || "Unknown",
+              callerAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
+            });
+            setOutgoingCall(null);
+            
+            toast({
+              title: "Call Connected",
+              description: `Connected with ${receiverProfile?.username || "Unknown"}`,
+            });
+          }
+
+          // Receiver rejected or call ended
+          if (call.status === "ended" || call.status === "rejected") {
+            console.log("📵 [GlobalCallListener] Outgoing call ended/rejected");
+            setOutgoingCall(null);
+            toast({
+              title: "Call Ended",
+              description: call.status === "rejected" ? "Call was declined" : "Call ended",
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("📡 outgoing-updates channel status:", status);
+      });
+
     return () => {
       supabase.removeChannel(incomingChannel);
       supabase.removeChannel(updatesChannel);
+      supabase.removeChannel(outgoingChannel);
+      supabase.removeChannel(outgoingUpdatesChannel);
     };
   }, [userId, toast]);
 
@@ -143,7 +242,6 @@ export function GlobalCallListener() {
 
     console.log("✅ Answering call:", incomingCall.id);
 
-    // Instant UI response
     setActiveCall({
       ...incomingCall,
       isInitiator: false,
@@ -151,7 +249,6 @@ export function GlobalCallListener() {
     });
     setIncomingCall(null);
 
-    // Update call status in background
     const { error } = await supabase
       .from("calls")
       .update({ status: "active", started_at: new Date().toISOString() })
@@ -189,6 +286,25 @@ export function GlobalCallListener() {
     });
   };
 
+  // NEW: Cancel outgoing call
+  const handleCancelOutgoing = async () => {
+    if (!outgoingCall) return;
+
+    console.log("❌ Cancelling outgoing call:", outgoingCall.id);
+
+    await supabase
+      .from("calls")
+      .update({ status: "ended", ended_at: new Date().toISOString() })
+      .eq("id", outgoingCall.id);
+
+    setOutgoingCall(null);
+
+    toast({
+      title: "Call Cancelled",
+      description: "Call was cancelled",
+    });
+  };
+
   const handleEndCall = async () => {
     if (!activeCall) return;
 
@@ -213,6 +329,7 @@ export function GlobalCallListener() {
     setActiveCall(null);
   };
 
+  // Show incoming call screen (receiver side)
   if (incomingCall && !activeCall) {
     return (
       <IncomingCallScreen
@@ -226,12 +343,50 @@ export function GlobalCallListener() {
     );
   }
 
+  // NEW: Show outgoing call screen (caller side - waiting for receiver to accept)
+  if (outgoingCall && !activeCall) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gradient-to-b from-primary/20 to-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6 p-8 animate-pulse">
+          <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center shadow-2xl">
+            {outgoingCall.receiverAvatar ? (
+              <img 
+                src={outgoingCall.receiverAvatar} 
+                alt={outgoingCall.receiverName}
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <span className="text-5xl">{outgoingCall.receiverName?.[0]?.toUpperCase() || '?'}</span>
+            )}
+          </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold mb-2">{outgoingCall.receiverName}</h2>
+            <p className="text-muted-foreground">
+              {outgoingCall.call_type === 'video' ? '📹 Video calling...' : '📞 Calling...'}
+            </p>
+          </div>
+          <button
+            onClick={handleCancelOutgoing}
+            className="mt-4 px-8 py-3 bg-destructive text-destructive-foreground rounded-full font-medium shadow-lg hover:bg-destructive/90 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show active call (both caller and receiver)
   if (activeCall) {
+    const contactName = activeCall.isInitiator 
+      ? activeCall.callerName 
+      : activeCall.callerName;
+      
     if (activeCall.call_type === "video") {
       return (
         <ProductionVideoCall
           callId={activeCall.id}
-          contactName={activeCall.callerName}
+          contactName={contactName}
           isInitiator={activeCall.isInitiator}
           partnerId={activeCall.partnerId}
           onEnd={handleEndCall}
@@ -242,7 +397,7 @@ export function GlobalCallListener() {
     return (
       <ProductionVoiceCall
         callId={activeCall.id}
-        contactName={activeCall.callerName}
+        contactName={contactName}
         isInitiator={activeCall.isInitiator}
         partnerId={activeCall.partnerId}
         onEnd={handleEndCall}
