@@ -9,7 +9,7 @@ export const Footer = () => {
             Chatr is a brand of TalentXcel Services Pvt. Ltd.
           </p>
           <p className="text-[11px] text-muted-foreground/70">
-            © 2025 All rights reserved.
+            © 2026 All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 text-[11px]">
             <Link 
