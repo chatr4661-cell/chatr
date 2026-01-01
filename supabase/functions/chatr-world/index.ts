@@ -6,16 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const PRIMARY_MODEL = 'qwen/qwen-2.5-72b-instruct:free';
-const FALLBACK_MODEL = 'mistralai/mistral-7b-instruct:free';
+// Lovable AI Gateway (reliable, no credit issues)
+const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+
+// Map cities to include nearby metros for better results
+const NEARBY_CITIES: Record<string, string[]> = {
+  'noida': ['noida', 'delhi', 'gurgaon', 'gurugram', 'ghaziabad', 'ncr'],
+  'gurgaon': ['gurgaon', 'gurugram', 'delhi', 'noida', 'ncr'],
+  'gurugram': ['gurgaon', 'gurugram', 'delhi', 'noida', 'ncr'],
+  'ghaziabad': ['ghaziabad', 'delhi', 'noida', 'ncr'],
+  'faridabad': ['faridabad', 'delhi', 'noida', 'ncr'],
+  'thane': ['thane', 'mumbai', 'navi mumbai'],
+  'navi mumbai': ['navi mumbai', 'mumbai', 'thane'],
+  'howrah': ['howrah', 'kolkata'],
+};
+
+function getSearchCities(city: string | undefined): string[] {
+  if (!city) return [];
+  const lower = city.toLowerCase();
+  return NEARBY_CITIES[lower] || [lower];
+}
 
 // Simple intent detection without AI
 function detectIntent(query: string): { modules: string[]; primary_intent: string; search_terms: string[]; location_needed: boolean } {
   const q = query.toLowerCase();
   const modules: string[] = [];
   
-  if (q.includes('food') || q.includes('restaurant') || q.includes('eat') || q.includes('pizza') || q.includes('burger') || q.includes('biryani') || q.includes('cafe')) {
+  if (q.includes('food') || q.includes('restaurant') || q.includes('eat') || q.includes('pizza') || q.includes('burger') || q.includes('biryani') || q.includes('cafe') || q.includes('affordable') || q.includes('cheap')) {
     modules.push('food');
   }
   if (q.includes('doctor') || q.includes('hospital') || q.includes('health') || q.includes('clinic') || q.includes('medical')) {
@@ -43,45 +60,49 @@ function detectIntent(query: string): { modules: string[]; primary_intent: strin
   };
 }
 
-// AI call with fallback
-async function callAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
-  const models = [PRIMARY_MODEL, FALLBACK_MODEL];
-  
-  for (const model of models) {
-    try {
-      console.log(`Trying model: ${model}`);
-      const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://chatr.chat',
-          'X-Title': 'Chatr World',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ]
-        })
-      });
+// Lovable AI call (reliable, no credits needed)
+async function callLovableAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  const apiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!apiKey) {
+    console.warn('LOVABLE_API_KEY not configured');
+    return '';
+  }
 
-      if (!response.ok) {
-        console.error(`Model ${model} failed:`, response.status);
-        continue;
-      }
+  try {
+    console.log('Calling Lovable AI...');
+    const response = await fetch(LOVABLE_AI_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ]
+      })
+    });
 
-      const data = await response.json();
-      const content = data?.choices?.[0]?.message?.content;
-      
-      if (content && content.trim().length > 10) {
-        console.log(`Model ${model} succeeded`);
-        return content;
+    if (!response.ok) {
+      const status = response.status;
+      console.error(`Lovable AI failed: ${status}`);
+      if (status === 429) {
+        return 'I\'m experiencing high demand right now. Please try again in a moment.';
       }
-    } catch (err) {
-      console.error(`Model ${model} error:`, err);
+      return '';
     }
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    
+    if (content && content.trim().length > 10) {
+      console.log('Lovable AI succeeded');
+      return content;
+    }
+  } catch (err) {
+    console.error('Lovable AI error:', err);
   }
   
   return '';
@@ -97,25 +118,6 @@ serve(async (req) => {
     
     console.log('Received request:', { query, userId, city, country });
     
-    const isLocationQuery = query.toLowerCase().includes('near') || 
-                            query.toLowerCase().includes('nearby') || 
-                            query.toLowerCase().includes('local');
-    
-    if (isLocationQuery && (!latitude || !longitude)) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'LOCATION_REQUIRED',
-          message: 'This search requires your location. Please enable location services.' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const openRouterKey = Deno.env.get('OPENROUTER_API_KEY') ?? '';
-    if (!openRouterKey) {
-      console.warn('OPENROUTER_API_KEY not configured; using fallback response text');
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -123,6 +125,10 @@ serve(async (req) => {
     // Use simple intent detection
     const analysis = detectIntent(query);
     console.log('Intent analysis:', analysis);
+
+    // Get search cities (includes nearby metros)
+    const searchCities = getSearchCities(city);
+    console.log('Search cities:', searchCities);
 
     // Fetch data from modules
     const results: any = { modules: analysis.modules, intent: analysis.primary_intent, data: {} };
@@ -136,7 +142,11 @@ serve(async (req) => {
       fetchPromises.push(
         (async () => {
           let jobQuery = supabase.from('chatr_jobs').select('*').eq('is_active', true);
-          if (city) jobQuery = jobQuery.ilike('location', `%${city}%`);
+          if (searchCities.length > 0) {
+            // Use OR for multiple cities
+            const cityFilters = searchCities.map(c => `location.ilike.%${c}%`).join(',');
+            jobQuery = jobQuery.or(cityFilters);
+          }
           const { data } = await jobQuery.limit(10);
           results.data.business = {
             type: 'jobs',
@@ -153,7 +163,10 @@ serve(async (req) => {
       fetchPromises.push(
         (async () => {
           let healthQuery = supabase.from('chatr_healthcare').select('*').eq('is_active', true);
-          if (city) healthQuery = healthQuery.ilike('city', `%${city}%`);
+          if (searchCities.length > 0) {
+            const cityFilters = searchCities.map(c => `city.ilike.%${c}%`).join(',');
+            healthQuery = healthQuery.or(cityFilters);
+          }
           const { data } = await healthQuery.limit(10);
           results.data.health = {
             type: 'healthcare',
@@ -170,7 +183,10 @@ serve(async (req) => {
       fetchPromises.push(
         (async () => {
           let foodQuery = supabase.from('chatr_restaurants').select('*').eq('is_active', true);
-          if (city) foodQuery = foodQuery.ilike('city', `%${city}%`);
+          if (searchCities.length > 0) {
+            const cityFilters = searchCities.map(c => `city.ilike.%${c}%`).join(',');
+            foodQuery = foodQuery.or(cityFilters);
+          }
           const { data } = await foodQuery.limit(10);
           results.data.food = {
             type: 'restaurants',
@@ -187,7 +203,10 @@ serve(async (req) => {
       fetchPromises.push(
         (async () => {
           let dealsQuery = supabase.from('chatr_deals').select('*').eq('is_active', true).gte('expires_at', new Date().toISOString());
-          if (city) dealsQuery = dealsQuery.ilike('location', `%${city}%`);
+          if (searchCities.length > 0) {
+            const cityFilters = searchCities.map(c => `location.ilike.%${c}%`).join(',');
+            dealsQuery = dealsQuery.or(cityFilters);
+          }
           const { data } = await dealsQuery.limit(10);
           results.data.deals = {
             type: 'deals',
@@ -202,7 +221,7 @@ serve(async (req) => {
 
     await Promise.all(fetchPromises);
 
-    // Generate response with AI (plain text prompt)
+    // Generate response with Lovable AI (plain text prompt)
     const systemPrompt = `You are Chatr World assistant.
 Help users find services, food, deals and healthcare.
 Give short helpful answers with specific names and details.
@@ -215,9 +234,7 @@ Query: ${query}
 Available data: ${JSON.stringify(results.data)}
 Give a helpful response about what is available.`;
 
-    let conversationalText = openRouterKey
-      ? await callAI(openRouterKey, systemPrompt, userPrompt)
-      : '';
+    let conversationalText = await callLovableAI(systemPrompt, userPrompt);
     
     // Fallback response if AI fails
     if (!conversationalText) {
