@@ -94,49 +94,61 @@ class ChatrConnectionService : ConnectionService() {
     }
     
     /**
-     * Update call status in database directly via Supabase REST API
+     * Update call status via Edge Function (bypasses RLS restrictions)
+     * The anon key can't update calls directly due to RLS requiring auth.uid()
      */
     private fun updateCallStatus(callId: String, status: String, additionalFields: Map<String, Any> = emptyMap()) {
         serviceScope.launch {
-            try {
-                Log.d(TAG, "📡 Updating call $callId to status: $status")
-                
-                val jsonBody = JSONObject().apply {
-                    put("status", status)
-                    if (status == "active") {
-                        put("started_at", java.time.Instant.now().toString())
-                        put("webrtc_state", "connecting")
+            var attempt = 0
+            val maxAttempts = 3
+            
+            while (attempt < maxAttempts) {
+                try {
+                    Log.d(TAG, "📡 Updating call $callId to status: $status (attempt ${attempt + 1}/$maxAttempts)")
+                    
+                    // Use Edge Function instead of direct REST API to bypass RLS
+                    val jsonBody = JSONObject().apply {
+                        put("callId", callId)
+                        put("status", status)
+                        if (additionalFields.isNotEmpty()) {
+                            val additional = JSONObject()
+                            additionalFields.forEach { (key, value) ->
+                                additional.put(key, value)
+                            }
+                            put("additionalFields", additional)
+                        }
                     }
-                    if (status == "ended") {
-                        put("ended_at", java.time.Instant.now().toString())
-                        put("webrtc_state", "ended")
+                    
+                    val requestBody = jsonBody.toString()
+                        .toRequestBody("application/json".toMediaType())
+                    
+                    val request = Request.Builder()
+                        .url("$SUPABASE_URL/functions/v1/native-call-update")
+                        .post(requestBody)
+                        .addHeader("apikey", SUPABASE_ANON_KEY)
+                        .addHeader("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                        .addHeader("Content-Type", "application/json")
+                        .build()
+                    
+                    client.newCall(request).execute().use { response ->
+                        val responseBody = response.body?.string()
+                        if (response.isSuccessful) {
+                            Log.d(TAG, "✅ Call $callId updated to $status successfully via Edge Function")
+                            return@launch // Success, exit the retry loop
+                        } else {
+                            Log.e(TAG, "❌ Failed to update call: ${response.code} - $responseBody")
+                        }
                     }
-                    additionalFields.forEach { (key, value) ->
-                        put(key, value)
+                } catch (e: java.net.UnknownHostException) {
+                    attempt++
+                    Log.w(TAG, "⏳ DNS lookup failed, retrying... ($attempt/$maxAttempts)")
+                    if (attempt < maxAttempts) {
+                        kotlinx.coroutines.delay(1000) // Wait 1s for mobile data to wake up
                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error updating call status", e)
+                    break // Don't retry for other errors
                 }
-                
-                val requestBody = jsonBody.toString()
-                    .toRequestBody("application/json".toMediaType())
-                
-                val request = Request.Builder()
-                    .url("$SUPABASE_URL/rest/v1/calls?id=eq.$callId")
-                    .patch(requestBody)
-                    .addHeader("apikey", SUPABASE_ANON_KEY)
-                    .addHeader("Authorization", "Bearer $SUPABASE_ANON_KEY")
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Prefer", "return=minimal")
-                    .build()
-                
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        Log.d(TAG, "✅ Call $callId updated to $status successfully")
-                    } else {
-                        Log.e(TAG, "❌ Failed to update call: ${response.code} - ${response.body?.string()}")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Error updating call status", e)
             }
         }
     }
