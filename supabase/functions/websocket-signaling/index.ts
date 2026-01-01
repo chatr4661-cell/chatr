@@ -137,6 +137,83 @@ serve(async (req) => {
           }
         }
 
+        // CRITICAL: Handle call:accept from native app (Android/iOS)
+        // This bridges native TelecomManager/CallKit → Web app WebRTC connection
+        if (data.type === 'call:accept' || data.type === 'call_accept') {
+          console.log(`[WS-Signaling] 🎯 call:accept received from native app for call ${data.callId}`)
+          
+          // Create a Supabase client to update the call and insert signal
+          const supabaseClient = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+          )
+          
+          // 1. Update call status to 'active' (this triggers the caller's realtime listener)
+          const { error: updateError } = await supabaseClient
+            .from('calls')
+            .update({ 
+              status: 'active', 
+              started_at: new Date().toISOString(),
+              webrtc_state: 'connecting'
+            })
+            .eq('id', data.callId)
+          
+          if (updateError) {
+            console.error(`[WS-Signaling] Failed to update call status:`, updateError)
+          } else {
+            console.log(`[WS-Signaling] ✅ Call ${data.callId} marked as active`)
+          }
+          
+          // 2. Fetch the call to get caller_id (the web app user who initiated the call)
+          const { data: callData, error: fetchError } = await supabaseClient
+            .from('calls')
+            .select('caller_id, receiver_id')
+            .eq('id', data.callId)
+            .single()
+          
+          if (fetchError || !callData) {
+            console.error(`[WS-Signaling] Failed to fetch call:`, fetchError)
+          } else {
+            // 3. Forward to caller if connected via WebSocket
+            const callerSocket = connections.get(callData.caller_id)
+            if (callerSocket && callerSocket.readyState === WebSocket.OPEN) {
+              callerSocket.send(JSON.stringify({
+                type: 'call_accepted',
+                callId: data.callId,
+                acceptedBy: userId,
+                timestamp: Date.now()
+              }))
+              console.log(`[WS-Signaling] ✅ Forwarded call_accepted to caller ${callData.caller_id}`)
+            } else {
+              console.log(`[WS-Signaling] Caller ${callData.caller_id} not on WebSocket - relying on Realtime`)
+            }
+            
+            // 4. Insert into webrtc_signals so web app's Supabase Realtime picks it up
+            const { error: signalError } = await supabaseClient
+              .from('webrtc_signals')
+              .insert({
+                call_id: data.callId,
+                from_user: userId,
+                to_user: callData.caller_id,
+                signal_type: 'answer',
+                signal_data: { accepted: true, timestamp: Date.now(), source: 'native_app' }
+              })
+            
+            if (signalError) {
+              console.error(`[WS-Signaling] Failed to insert accept signal:`, signalError)
+            } else {
+              console.log(`[WS-Signaling] ✅ Inserted accept signal for Realtime`)
+            }
+          }
+          
+          // Acknowledge to native app
+          socket.send(JSON.stringify({ 
+            type: 'call_accept_ack', 
+            callId: data.callId,
+            success: true 
+          }))
+        }
+
         // Handle incoming call notification
         if (data.type === 'incoming_call') {
           const targetSocket = connections.get(data.receiverId)
