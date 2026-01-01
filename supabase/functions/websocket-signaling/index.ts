@@ -1,258 +1,303 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-// Store active WebSocket connections by user ID
-const connections = new Map<string, WebSocket>()
+// Store active WebSocket connections by user ID (best-effort; function instances are ephemeral)
+const connections = new Map<string, WebSocket>();
+
+const getBearerFromAuthHeader = (authHeader: string | null) => {
+  if (!authHeader) return null;
+  const m = authHeader.match(/^Bearer\s+(.+)$/i);
+  return m?.[1] ?? null;
+};
+
+const makeAuthedClient = (token: string) =>
+  createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
 
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
 
-  const { headers } = req
-  const upgradeHeader = headers.get("upgrade") || ""
+  const upgradeHeader = (req.headers.get("upgrade") || "").toLowerCase();
 
-  // Check if this is a WebSocket upgrade request
-  if (upgradeHeader.toLowerCase() !== "websocket") {
-    // Handle regular HTTP requests for sending events
+  // Log every request so Cloud "Logs" isn't blank
+  console.log("[WS-Signaling] Request", {
+    method: req.method,
+    url: req.url,
+    upgrade: upgradeHeader,
+  });
+
+  // -----------------------------
+  // Non-WebSocket HTTP endpoint
+  // -----------------------------
+  if (upgradeHeader !== "websocket") {
     try {
+      const authHeader = req.headers.get("Authorization");
       const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
         {
           global: {
-            headers: { Authorization: req.headers.get('Authorization')! },
+            headers: authHeader ? { Authorization: authHeader } : {},
           },
-        }
-      )
+        },
+      );
 
-      const { data: { user } } = await supabaseClient.auth.getUser()
+      const {
+        data: { user },
+        error: userErr,
+      } = await supabaseClient.auth.getUser();
+
+      if (userErr) console.log("[WS-Signaling] getUser error", userErr);
       if (!user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      const body = await req.json()
-      const { action, targetUserId, eventType, eventData } = body
+      const body = await req.json();
+      const { action, targetUserId, eventType, eventData } = body;
 
-      console.log(`[WS-Signaling] Action: ${action}, Target: ${targetUserId}, Event: ${eventType}`)
+      console.log("[WS-Signaling] HTTP action", { action, targetUserId, eventType, from: user.id });
 
-      if (action === 'send-event') {
-        // Send event to target user if they're connected
-        const targetSocket = connections.get(targetUserId)
-        if (targetSocket && targetSocket.readyState === WebSocket.OPEN) {
-          targetSocket.send(JSON.stringify({
-            type: eventType,
-            ...eventData
-          }))
-          console.log(`[WS-Signaling] Event sent to ${targetUserId}`)
+      if (action === "send-event") {
+        const targetSocket = connections.get(targetUserId);
+        const canDeliver = targetSocket && targetSocket.readyState === WebSocket.OPEN;
+
+        if (canDeliver) {
+          targetSocket!.send(
+            JSON.stringify({
+              type: eventType,
+              ...eventData,
+            }),
+          );
+          console.log("[WS-Signaling] Delivered HTTP event", { to: targetUserId, eventType });
           return new Response(JSON.stringify({ success: true, delivered: true }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          })
-        } else {
-          console.log(`[WS-Signaling] User ${targetUserId} not connected`)
-          return new Response(JSON.stringify({ success: true, delivered: false, reason: 'user_offline' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          })
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
+
+        console.log("[WS-Signaling] HTTP event NOT delivered (offline)", { to: targetUserId, eventType });
+        return new Response(JSON.stringify({ success: true, delivered: false, reason: "user_offline" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      return new Response(JSON.stringify({ error: 'Invalid action' }), {
+      return new Response(JSON.stringify({ error: "Invalid action" }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     } catch (error) {
-      console.error('[WS-Signaling] Error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      return new Response(JSON.stringify({ error: errorMessage }), {
+      console.error("[WS-Signaling] HTTP error", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return new Response(JSON.stringify({ error: message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
   }
 
-  // Handle WebSocket upgrade
+  // -----------------------------
+  // WebSocket upgrade endpoint
+  // -----------------------------
   try {
-    const { socket, response } = Deno.upgradeWebSocket(req)
-    let userId: string | null = null
+    // Support auth via query param or Authorization header on the upgrade request
+    const url = new URL(req.url);
+    const tokenFromQuery = url.searchParams.get("token");
+    const bearer = getBearerFromAuthHeader(req.headers.get("Authorization"));
+    const initialToken = tokenFromQuery || bearer;
 
-    socket.onopen = () => {
-      console.log('[WS-Signaling] WebSocket opened')
-    }
+    const { socket, response } = Deno.upgradeWebSocket(req);
+
+    let userId: string | null = null;
+    let userToken: string | null = null;
+
+    const authenticate = async (token: string) => {
+      console.log("[WS-Signaling] Authenticating socket...");
+      const supabaseClient = makeAuthedClient(token);
+      const {
+        data: { user },
+        error,
+      } = await supabaseClient.auth.getUser();
+
+      if (error) {
+        console.error("[WS-Signaling] Auth getUser error", error);
+      }
+
+      if (!user) {
+        socket.send(JSON.stringify({ type: "auth_error", error: "Invalid token" }));
+        return false;
+      }
+
+      userId = user.id;
+      userToken = token;
+      connections.set(userId, socket);
+      socket.send(JSON.stringify({ type: "auth_success", userId }));
+      console.log("[WS-Signaling] ✅ Socket authenticated", { userId });
+      return true;
+    };
+
+    socket.onopen = async () => {
+      console.log("[WS-Signaling] WebSocket opened");
+      if (initialToken) {
+        await authenticate(initialToken);
+      } else {
+        console.log("[WS-Signaling] No initial token provided; waiting for auth message");
+      }
+    };
 
     socket.onmessage = async (event) => {
       try {
-        const data = JSON.parse(event.data)
-        console.log('[WS-Signaling] Received:', data.type)
+        const data = JSON.parse(event.data);
+        console.log("[WS-Signaling] Received", data?.type);
 
-        // Handle authentication
-        if (data.type === 'auth') {
-          const token = data.token
-          const supabaseClient = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            {
-              global: {
-                headers: { Authorization: `Bearer ${token}` },
-              },
-            }
-          )
-
-          const { data: { user } } = await supabaseClient.auth.getUser()
-          if (user) {
-            userId = user.id
-            connections.set(userId, socket)
-            socket.send(JSON.stringify({ type: 'auth_success', userId }))
-            console.log(`[WS-Signaling] User ${userId} authenticated`)
-          } else {
-            socket.send(JSON.stringify({ type: 'auth_error', error: 'Invalid token' }))
-          }
-          return
+        // Auth message (legacy)
+        if (data.type === "auth") {
+          const ok = await authenticate(data.token);
+          if (!ok) return;
+          return;
         }
 
-        // Require authentication for other messages
-        if (!userId) {
-          socket.send(JSON.stringify({ type: 'error', error: 'Not authenticated' }))
-          return
+        if (!userId || !userToken) {
+          socket.send(JSON.stringify({ type: "error", error: "Not authenticated" }));
+          return;
         }
 
-        // Handle call signaling
-        if (data.type === 'call_offer' || data.type === 'call_answer' || 
-            data.type === 'ice_candidate' || data.type === 'call_end') {
-          const targetSocket = connections.get(data.targetUserId)
+        const supabaseClient = makeAuthedClient(userToken);
+
+        // Forward signaling messages (best-effort)
+        if (data.type === "call_offer" || data.type === "call_answer" || data.type === "ice_candidate" || data.type === "call_end") {
+          const targetSocket = connections.get(data.targetUserId);
           if (targetSocket && targetSocket.readyState === WebSocket.OPEN) {
-            targetSocket.send(JSON.stringify({
-              ...data,
-              fromUserId: userId
-            }))
-            console.log(`[WS-Signaling] Forwarded ${data.type} to ${data.targetUserId}`)
+            targetSocket.send(JSON.stringify({ ...data, fromUserId: userId }));
+            console.log("[WS-Signaling] Forwarded", { type: data.type, to: data.targetUserId });
+          } else {
+            console.log("[WS-Signaling] Target not connected", { type: data.type, to: data.targetUserId });
           }
+          return;
         }
 
-        // CRITICAL: Handle call:accept from native app (Android/iOS)
-        // This bridges native TelecomManager/CallKit → Web app WebRTC connection
-        if (data.type === 'call:accept' || data.type === 'call_accept') {
-          console.log(`[WS-Signaling] 🎯 call:accept received from native app for call ${data.callId}`)
-          
-          // Create a Supabase client to update the call and insert signal
-          const supabaseClient = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-          )
-          
-          // 1. Update call status to 'active' (this triggers the caller's realtime listener)
+        // Bridge native accept → DB update so web caller's realtime listener can start WebRTC
+        if (data.type === "call:accept" || data.type === "call_accept") {
+          const callId = data.callId;
+          console.log("[WS-Signaling] 🎯 call:accept", { callId, from: userId });
+
           const { error: updateError } = await supabaseClient
-            .from('calls')
-            .update({ 
-              status: 'active', 
+            .from("calls")
+            .update({
+              status: "active",
               started_at: new Date().toISOString(),
-              webrtc_state: 'connecting'
+              webrtc_state: "connecting",
             })
-            .eq('id', data.callId)
-          
+            .eq("id", callId);
+
           if (updateError) {
-            console.error(`[WS-Signaling] Failed to update call status:`, updateError)
+            console.error("[WS-Signaling] ❌ Failed to update call", updateError);
           } else {
-            console.log(`[WS-Signaling] ✅ Call ${data.callId} marked as active`)
+            console.log("[WS-Signaling] ✅ Call marked active", { callId });
           }
-          
-          // 2. Fetch the call to get caller_id (the web app user who initiated the call)
-          const { data: callData, error: fetchError } = await supabaseClient
-            .from('calls')
-            .select('caller_id, receiver_id')
-            .eq('id', data.callId)
-            .single()
-          
-          if (fetchError || !callData) {
-            console.error(`[WS-Signaling] Failed to fetch call:`, fetchError)
+
+          const { data: callRow, error: callErr } = await supabaseClient
+            .from("calls")
+            .select("caller_id, receiver_id")
+            .eq("id", callId)
+            .maybeSingle();
+
+          if (callErr || !callRow) {
+            console.error("[WS-Signaling] ❌ Failed to fetch call row", callErr);
           } else {
-            // 3. Forward to caller if connected via WebSocket
-            const callerSocket = connections.get(callData.caller_id)
+            // Best-effort notify caller via WS if they are connected (optional)
+            const callerSocket = connections.get(callRow.caller_id);
             if (callerSocket && callerSocket.readyState === WebSocket.OPEN) {
-              callerSocket.send(JSON.stringify({
-                type: 'call_accepted',
-                callId: data.callId,
-                acceptedBy: userId,
-                timestamp: Date.now()
-              }))
-              console.log(`[WS-Signaling] ✅ Forwarded call_accepted to caller ${callData.caller_id}`)
-            } else {
-              console.log(`[WS-Signaling] Caller ${callData.caller_id} not on WebSocket - relying on Realtime`)
+              callerSocket.send(
+                JSON.stringify({
+                  type: "call_accepted",
+                  callId,
+                  acceptedBy: userId,
+                  timestamp: Date.now(),
+                }),
+              );
+              console.log("[WS-Signaling] ✅ Sent call_accepted to caller", { caller: callRow.caller_id });
             }
-            
-            // 4. Insert into webrtc_signals so web app's Supabase Realtime picks it up
-            const { error: signalError } = await supabaseClient
-              .from('webrtc_signals')
-              .insert({
-                call_id: data.callId,
-                from_user: userId,
-                to_user: callData.caller_id,
-                signal_type: 'answer',
-                signal_data: { accepted: true, timestamp: Date.now(), source: 'native_app' }
-              })
-            
+
+            // Also drop a lightweight signal row so any web listeners can react immediately
+            const { error: signalError } = await supabaseClient.from("webrtc_signals").insert({
+              call_id: callId,
+              from_user: userId,
+              to_user: callRow.caller_id,
+              signal_type: "answer",
+              signal_data: { accepted: true, timestamp: Date.now(), source: "native_accept" },
+            });
+
             if (signalError) {
-              console.error(`[WS-Signaling] Failed to insert accept signal:`, signalError)
+              console.error("[WS-Signaling] ❌ Failed to insert accept signal", signalError);
             } else {
-              console.log(`[WS-Signaling] ✅ Inserted accept signal for Realtime`)
+              console.log("[WS-Signaling] ✅ Inserted accept signal", { callId });
             }
           }
-          
-          // Acknowledge to native app
-          socket.send(JSON.stringify({ 
-            type: 'call_accept_ack', 
-            callId: data.callId,
-            success: true 
-          }))
+
+          socket.send(JSON.stringify({ type: "call_accept_ack", callId, success: !updateError }));
+          return;
         }
 
-        // Handle incoming call notification
-        if (data.type === 'incoming_call') {
-          const targetSocket = connections.get(data.receiverId)
+        // Incoming call notification forwarding (optional)
+        if (data.type === "incoming_call") {
+          const targetSocket = connections.get(data.receiverId);
           if (targetSocket && targetSocket.readyState === WebSocket.OPEN) {
-            targetSocket.send(JSON.stringify({
-              type: 'incoming_call',
-              callId: data.callId,
-              callerId: userId,
-              callerName: data.callerName,
-              callerAvatar: data.callerAvatar,
-              callType: data.callType,
-              conversationId: data.conversationId
-            }))
-            console.log(`[WS-Signaling] Sent incoming_call to ${data.receiverId}`)
+            targetSocket.send(
+              JSON.stringify({
+                type: "incoming_call",
+                callId: data.callId,
+                callerId: userId,
+                callerName: data.callerName,
+                callerAvatar: data.callerAvatar,
+                callType: data.callType,
+                conversationId: data.conversationId,
+              }),
+            );
+            console.log("[WS-Signaling] Sent incoming_call", { to: data.receiverId, callId: data.callId });
           }
+          return;
         }
 
+        console.log("[WS-Signaling] Unhandled message", data);
       } catch (error) {
-        console.error('[WS-Signaling] Message error:', error)
+        console.error("[WS-Signaling] Message error", error);
       }
-    }
+    };
 
     socket.onclose = () => {
       if (userId) {
-        connections.delete(userId)
-        console.log(`[WS-Signaling] User ${userId} disconnected`)
+        connections.delete(userId);
+        console.log("[WS-Signaling] User disconnected", { userId });
+      } else {
+        console.log("[WS-Signaling] Socket closed (unauthenticated)");
       }
-    }
+    };
 
     socket.onerror = (error) => {
-      console.error('[WS-Signaling] Socket error:', error)
-    }
+      console.error("[WS-Signaling] Socket error", error);
+    };
 
-    return response
+    return response;
   } catch (error) {
-    console.error('[WS-Signaling] Upgrade error:', error)
-    return new Response(JSON.stringify({ error: 'WebSocket upgrade failed' }), {
+    console.error("[WS-Signaling] Upgrade error", error);
+    return new Response(JSON.stringify({ error: "WebSocket upgrade failed" }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
-})
+});
