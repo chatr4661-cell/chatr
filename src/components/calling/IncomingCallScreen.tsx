@@ -35,9 +35,7 @@ export function IncomingCallScreen({
   callerLocationPrecision
 }: IncomingCallScreenProps) {
   const hapticIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const autoRejectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [ringtoneEnabled, setRingtoneEnabled] = React.useState(true);
-  const [timeRemaining, setTimeRemaining] = React.useState(30);
 
   useNativeRingtone({
     enabled: ringtoneEnabled,
@@ -47,23 +45,6 @@ export function IncomingCallScreen({
 
   useEffect(() => {
     console.log('🔔 Ringtone active for incoming call');
-
-    // AUTO-DISCONNECT: Reject call after 30 seconds if not answered
-    autoRejectTimerRef.current = setTimeout(() => {
-      console.log('⏰ Auto-rejecting call after 30 seconds');
-      handleReject();
-    }, 30000);
-
-    // Countdown timer for UI
-    const countdownInterval = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
 
     // iOS-style haptic pattern
     if (Capacitor.isNativePlatform()) {
@@ -83,19 +64,12 @@ export function IncomingCallScreen({
       if (hapticIntervalRef.current) {
         clearInterval(hapticIntervalRef.current);
       }
-      if (autoRejectTimerRef.current) {
-        clearTimeout(autoRejectTimerRef.current);
-      }
-      clearInterval(countdownInterval);
     };
   }, []);
 
   const handleAnswer = async () => {
     console.log('🔕 Stopping ringtone - call answered');
     setRingtoneEnabled(false);
-    if (autoRejectTimerRef.current) {
-      clearTimeout(autoRejectTimerRef.current);
-    }
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Medium });
     }
@@ -105,9 +79,6 @@ export function IncomingCallScreen({
   const handleReject = async () => {
     console.log('🔕 Stopping ringtone - call rejected');
     setRingtoneEnabled(false);
-    if (autoRejectTimerRef.current) {
-      clearTimeout(autoRejectTimerRef.current);
-    }
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Light });
     }
@@ -166,15 +137,6 @@ export function IncomingCallScreen({
           <Phone className="w-5 h-5" />
           <span>{callType === 'video' ? 'ChatrPlus Video' : 'ChatrPlus Audio'}</span>
         </p>
-        
-        {/* Auto-disconnect countdown */}
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-white/60 text-sm mt-3"
-        >
-          Auto-decline in {timeRemaining}s
-        </motion.p>
       </motion.div>
 
       {/* Center - Large avatar for video calls */}
