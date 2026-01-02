@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Room entity for Call History
+ * Room entity for Call History - Telecom-grade call log
  */
 @Entity(tableName = "calls")
 data class CallEntity(
@@ -41,16 +41,19 @@ data class CallEntity(
     val receiverAvatar: String?,
     
     @ColumnInfo(name = "type")
-    val type: String, // AUDIO, VIDEO
+    val type: String, // audio, video
     
     @ColumnInfo(name = "direction")
-    val direction: String, // INCOMING, OUTGOING
+    val direction: String, // incoming, outgoing
     
     @ColumnInfo(name = "status")
-    val status: String, // ACTIVE, ENDED, MISSED, REJECTED, FAILED
+    val status: String, // initiating, ringing, active, ended, missed, rejected, failed, canceled
     
     @ColumnInfo(name = "isGroup")
     val isGroup: Boolean = false,
+    
+    @ColumnInfo(name = "missed")
+    val missed: Boolean = false,
     
     @ColumnInfo(name = "createdAt")
     val createdAt: Long = System.currentTimeMillis(),
@@ -65,5 +68,11 @@ data class CallEntity(
     val duration: Long? = null,
     
     @ColumnInfo(name = "isSeen")
-    val isSeen: Boolean = false
+    val isSeen: Boolean = false,
+    
+    @ColumnInfo(name = "qualityRating")
+    val qualityRating: Int? = null,
+    
+    @ColumnInfo(name = "reconnectionCount")
+    val reconnectionCount: Int = 0
 )
