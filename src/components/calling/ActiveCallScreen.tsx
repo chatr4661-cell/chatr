@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { SubtleCallHint, CallQualityIndicator, RecoveryOverlay } from './SubtleCallHint';
 
 interface ActiveCallScreenProps {
   callId: string;
@@ -16,6 +17,12 @@ interface ActiveCallScreenProps {
   receiverName: string;
   receiverAvatar?: string;
   onEndCall: () => void;
+  // Copilot integration
+  copilotHint?: string | null;
+  qualityIndicator?: 'excellent' | 'good' | 'fair' | 'poor' | 'reconnecting';
+  isRecovering?: boolean;
+  recoveryAttempts?: number;
+  onClearHint?: () => void;
 }
 
 export const ActiveCallScreen = ({
@@ -25,7 +32,12 @@ export const ActiveCallScreen = ({
   callerAvatar,
   receiverName,
   receiverAvatar,
-  onEndCall
+  onEndCall,
+  copilotHint,
+  qualityIndicator = 'excellent',
+  isRecovering = false,
+  recoveryAttempts = 0,
+  onClearHint
 }: ActiveCallScreenProps) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -98,6 +110,18 @@ export const ActiveCallScreen = ({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
     >
+      {/* Copilot Subtle Hint - appears only when needed */}
+      <SubtleCallHint 
+        message={copilotHint || null} 
+        onDismiss={onClearHint}
+      />
+
+      {/* Recovery Overlay - shows during connection recovery */}
+      <RecoveryOverlay 
+        isRecovering={isRecovering} 
+        attempt={recoveryAttempts}
+      />
+
       {/* Video Container */}
       <div className="relative h-full w-full">
         {callType === 'video' && !isVideoOff ? (
@@ -165,10 +189,15 @@ export const ActiveCallScreen = ({
         {/* Top Bar */}
         <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/50 to-transparent">
           <div className="flex items-center justify-between max-w-2xl mx-auto">
-            <Badge variant="secondary" className="bg-green-500/90 text-white border-0">
-              <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
-              {formatDuration(callDuration)}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="bg-green-500/90 text-white border-0">
+                <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
+                {formatDuration(callDuration)}
+              </Badge>
+              
+              {/* Quality indicator - only shows when not excellent */}
+              <CallQualityIndicator quality={qualityIndicator} />
+            </div>
             
             <div className="flex items-center gap-2">
               {callType === 'video' && (
