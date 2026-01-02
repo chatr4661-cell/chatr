@@ -3,20 +3,20 @@ package com.chatr.app.calling.service
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
-import android.media.AudioDeviceInfo
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
-import android.os.Bundle
 import android.telecom.CallAudioState
 import android.telecom.Connection
 import android.telecom.DisconnectCause
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.chatr.app.presentation.calling.CallActivity
+import com.chatr.app.webrtc.audio.AudioRoute
+import com.chatr.app.webrtc.bridge.TelecomWebRtcBridge
 
 /**
- * CHATR Connection - Telecom-grade call connection
+ * CHATR Connection - Telecom-grade call connection with WebRTC bridge
  * 
  * This represents a single call and handles:
  * - Call state management
@@ -24,6 +24,7 @@ import com.chatr.app.presentation.calling.CallActivity
  * - Hold/unhold
  * - Answer/reject
  * - DTMF tones
+ * - WebRTC lifecycle via TelecomWebRtcBridge
  */
 @RequiresApi(Build.VERSION_CODES.O)
 class ChatrConnection(
@@ -34,7 +35,8 @@ class ChatrConnection(
     val callerAvatar: String?,
     val isVideo: Boolean,
     val isIncoming: Boolean,
-    private val onStatusChange: (String) -> Unit
+    private val onStatusChange: (String) -> Unit,
+    private val webRtcBridge: TelecomWebRtcBridge? = null
 ) : Connection() {
 
     companion object {
@@ -47,10 +49,8 @@ class ChatrConnection(
     init {
         audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         
-        // Set connection properties
         connectionProperties = PROPERTY_SELF_MANAGED
         
-        // Set capabilities
         connectionCapabilities = 
             CAPABILITY_HOLD or
             CAPABILITY_SUPPORT_HOLD or
@@ -58,10 +58,10 @@ class ChatrConnection(
             CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION
 
         if (isVideo) {
-            connectionCapabilities = connectionCapabilities or CAPABILITY_SUPPORTS_VT_LOCAL_TX or CAPABILITY_SUPPORTS_VT_REMOTE_RX
+            connectionCapabilities = connectionCapabilities or 
+                CAPABILITY_SUPPORTS_VT_LOCAL_TX or CAPABILITY_SUPPORTS_VT_REMOTE_RX
         }
 
-        // Set audio mode
         audioModeIsVoip = true
     }
 
@@ -70,6 +70,10 @@ class ChatrConnection(
         setActive()
         onStatusChange("active")
         requestAudioFocus()
+        
+        // START WEBRTC via bridge
+        webRtcBridge?.onCallAnswered()
+        
         launchCallActivity()
     }
 
@@ -81,19 +85,26 @@ class ChatrConnection(
     override fun onReject() {
         Log.d(TAG, "onReject: $callId")
         onStatusChange("rejected")
+        
+        // Notify bridge
+        webRtcBridge?.onCallRejected()
+        
         setDisconnected(DisconnectCause(DisconnectCause.REJECTED))
         releaseAudioFocus()
         destroy()
     }
 
     override fun onReject(replyMessage: String?) {
-        Log.d(TAG, "onReject with message: $replyMessage")
         onReject()
     }
 
     override fun onDisconnect() {
         Log.d(TAG, "onDisconnect: $callId")
         onStatusChange("ended")
+        
+        // CLOSE WEBRTC via bridge
+        webRtcBridge?.onCallDisconnected()
+        
         setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
         releaseAudioFocus()
         destroy()
@@ -102,6 +113,7 @@ class ChatrConnection(
     override fun onAbort() {
         Log.d(TAG, "onAbort: $callId")
         onStatusChange("ended")
+        webRtcBridge?.onCallDisconnected()
         setDisconnected(DisconnectCause(DisconnectCause.CANCELED))
         releaseAudioFocus()
         destroy()
@@ -111,102 +123,76 @@ class ChatrConnection(
         Log.d(TAG, "onHold: $callId")
         setOnHold()
         onStatusChange("on_hold")
+        
+        // MUTE RTP via bridge
+        webRtcBridge?.onCallHold(true)
     }
 
     override fun onUnhold() {
         Log.d(TAG, "onUnhold: $callId")
         setActive()
         onStatusChange("active")
+        
+        // UNMUTE RTP via bridge
+        webRtcBridge?.onCallHold(false)
     }
 
     override fun onCallAudioStateChanged(state: CallAudioState?) {
         Log.d(TAG, "onCallAudioStateChanged: ${state?.route}")
         state?.let {
-            // Handle audio route changes
-            when (it.route) {
-                CallAudioState.ROUTE_SPEAKER -> {
-                    audioManager?.isSpeakerphoneOn = true
-                }
-                CallAudioState.ROUTE_EARPIECE -> {
-                    audioManager?.isSpeakerphoneOn = false
-                }
-                CallAudioState.ROUTE_BLUETOOTH -> {
-                    // Bluetooth handling
-                }
-                CallAudioState.ROUTE_WIRED_HEADSET -> {
-                    // Wired headset handling
-                }
+            val route = when (it.route) {
+                CallAudioState.ROUTE_SPEAKER -> AudioRoute.SPEAKER
+                CallAudioState.ROUTE_BLUETOOTH -> AudioRoute.BLUETOOTH
+                CallAudioState.ROUTE_WIRED_HEADSET -> AudioRoute.WIRED_HEADSET
+                else -> AudioRoute.EARPIECE
             }
+            webRtcBridge?.setAudioRoute(route)
         }
     }
 
     override fun onPlayDtmfTone(c: Char) {
         Log.d(TAG, "DTMF tone: $c")
-        // Handle DTMF for IVR systems if needed
     }
 
-    override fun onStopDtmfTone() {
-        Log.d(TAG, "Stop DTMF tone")
-    }
+    override fun onStopDtmfTone() {}
 
-    /**
-     * Set call as connected (for outgoing calls when other party answers)
-     */
     fun setCallConnected() {
         setActive()
         onStatusChange("active")
         requestAudioFocus()
+        webRtcBridge?.onCallAnswered()
         launchCallActivity()
     }
 
-    /**
-     * End call remotely (other party hung up)
-     */
     fun endCallRemotely() {
         onStatusChange("ended")
+        webRtcBridge?.onCallDisconnected()
         setDisconnected(DisconnectCause(DisconnectCause.REMOTE))
         releaseAudioFocus()
         destroy()
     }
 
-    /**
-     * Request audio focus for call
-     */
     private fun requestAudioFocus() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build()
-                )
-                .setAcceptsDelayedFocusGain(true)
-                .setOnAudioFocusChangeListener { focusChange ->
-                    Log.d(TAG, "Audio focus changed: $focusChange")
-                }
-                .build()
+        audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            .setAcceptsDelayedFocusGain(true)
+            .setOnAudioFocusChangeListener { }
+            .build()
 
-            audioManager?.requestAudioFocus(audioFocusRequest!!)
-            audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
-        }
+        audioManager?.requestAudioFocus(audioFocusRequest!!)
+        audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
     }
 
-    /**
-     * Release audio focus
-     */
     private fun releaseAudioFocus() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioFocusRequest?.let {
-                audioManager?.abandonAudioFocusRequest(it)
-            }
-            audioManager?.mode = AudioManager.MODE_NORMAL
-        }
+        audioFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
+        audioManager?.mode = AudioManager.MODE_NORMAL
     }
 
-    /**
-     * Launch the in-call activity
-     */
     private fun launchCallActivity() {
         val intent = Intent(context, CallActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
