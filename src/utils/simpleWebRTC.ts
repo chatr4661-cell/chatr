@@ -47,6 +47,11 @@ export class SimpleWebRTCCall {
     try {
       console.log('🚀 [SimpleWebRTC] Starting call setup...');
       
+      // Step 0: Pre-call network quality check (silent, copilot-style)
+      const networkQuality = await this.analyzeNetworkQuality();
+      console.log(`📶 [SimpleWebRTC] Network quality: ${networkQuality}`);
+      this.emit('networkQuality', networkQuality);
+      
       // Step 1: Get media
       await this.getMedia();
       
@@ -906,6 +911,56 @@ export class SimpleWebRTCCall {
 
   getState(): CallState {
     return this.callState;
+  }
+
+  /**
+   * Pre-call network quality analysis (Copilot-style silent check)
+   * Returns quality level to help decide call route
+   */
+  private async analyzeNetworkQuality(): Promise<'excellent' | 'good' | 'fair' | 'poor'> {
+    try {
+      // Measure latency via fetch
+      const startTime = performance.now();
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      try {
+        await fetch('https://www.google.com/favicon.ico', {
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+      } catch {
+        clearTimeout(timeoutId);
+      }
+      
+      const latency = performance.now() - startTime;
+      
+      // Check connection type if available
+      const connection = (navigator as any).connection;
+      const effectiveType = connection?.effectiveType;
+      const downlink = connection?.downlink || 10; // Mbps
+      
+      console.log(`📶 [SimpleWebRTC] Network: latency=${latency.toFixed(0)}ms, type=${effectiveType}, downlink=${downlink}Mbps`);
+      
+      // Determine quality based on latency and connection info
+      if (!navigator.onLine) {
+        return 'poor';
+      } else if (latency < 50 && downlink > 10) {
+        return 'excellent';
+      } else if (latency < 150 && downlink > 5) {
+        return 'good';
+      } else if (latency < 300 && downlink > 1) {
+        return 'fair';
+      } else {
+        return 'poor';
+      }
+    } catch (error) {
+      console.warn('⚠️ [SimpleWebRTC] Network analysis failed:', error);
+      return 'good'; // Assume good on failure
+    }
   }
 
   // Zoom state for cropping video
