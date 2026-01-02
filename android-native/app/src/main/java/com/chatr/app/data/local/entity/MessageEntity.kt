@@ -1,5 +1,6 @@
 package com.chatr.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.chatr.app.data.models.Message
@@ -9,18 +10,18 @@ import com.chatr.app.data.models.MessageStatus
 @Entity(tableName = "messages")
 data class MessageEntity(
     @PrimaryKey val id: String,
-    val conversationId: String,
-    val senderId: String,
-    val senderName: String? = null,
+    @ColumnInfo(name = "conversationId") val conversationId: String,
+    @ColumnInfo(name = "senderId") val senderId: String,
+    @ColumnInfo(name = "senderName") val senderName: String? = null,
     val content: String,
     val timestamp: Long,
     val type: String = "TEXT",
     val status: String = "SENT",
-    val syncStatus: SyncStatus = SyncStatus.SYNCED,
-    val replyTo: String? = null,
-    val mediaUrl: String? = null,
-    val deliveredAt: Long? = null,
-    val readAt: Long? = null
+    @ColumnInfo(name = "syncStatus") val syncStatus: SyncStatus = SyncStatus.SYNCED,
+    @ColumnInfo(name = "replyTo") val replyTo: String? = null,
+    @ColumnInfo(name = "mediaUrl") val mediaUrl: String? = null,
+    @ColumnInfo(name = "deliveredAt") val deliveredAt: Long? = null,
+    @ColumnInfo(name = "readAt") val readAt: Long? = null
 ) {
     fun toMessage(): Message {
         return Message(
