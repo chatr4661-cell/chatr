@@ -453,18 +453,28 @@ export class SimpleWebRTCCall {
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
           console.log('✅ [SimpleWebRTC] Remote description (OFFER) set');
           
+          // Set preferred codecs for answer too
+          this.setPreferredCodecs();
+          
           const answer = await this.pc.createAnswer();
           console.log('📤 [SimpleWebRTC] ANSWER created');
           
-          await this.pc.setLocalDescription(answer);
-          console.log('✅ [SimpleWebRTC] Local description (ANSWER) set');
+          // Enhance SDP for FaceTime-grade quality on answer too
+          const enhancedAnswerSdp = this.enhanceSDP(answer.sdp || '');
+          const enhancedAnswer = new RTCSessionDescription({
+            type: 'answer',
+            sdp: enhancedAnswerSdp
+          });
+          
+          await this.pc.setLocalDescription(enhancedAnswer);
+          console.log('✅ [SimpleWebRTC] Local description (ANSWER) set with enhanced SDP');
           
           await this.sendSignal({
             type: 'answer',
-            data: answer,
+            data: enhancedAnswer,
             from: this.userId
           });
-          console.log('✅ [SimpleWebRTC] ANSWER sent to database');
+          console.log('✅ [SimpleWebRTC] Enhanced ANSWER sent to database');
           break;
 
         case 'answer':
@@ -508,18 +518,130 @@ export class SimpleWebRTCCall {
 
     try {
       console.log('📤 [SimpleWebRTC] Creating offer...');
+      
+      // Set preferred codecs before creating offer for best quality
+      this.setPreferredCodecs();
+      
       const offer = await this.pc.createOffer();
-      await this.pc.setLocalDescription(offer);
+      
+      // Enhance SDP for FaceTime-grade quality
+      const enhancedSdp = this.enhanceSDP(offer.sdp || '');
+      const enhancedOffer = new RTCSessionDescription({
+        type: 'offer',
+        sdp: enhancedSdp
+      });
+      
+      await this.pc.setLocalDescription(enhancedOffer);
       await this.sendSignal({
         type: 'offer',
-        data: offer,
+        data: enhancedOffer,
         from: this.userId
       });
-      console.log('✅ [SimpleWebRTC] Offer sent');
+      console.log('✅ [SimpleWebRTC] Enhanced offer sent');
     } catch (error) {
       console.error('❌ [SimpleWebRTC] Failed to create offer:', error);
       throw error;
     }
+  }
+
+  /**
+   * Set preferred video/audio codecs for maximum quality
+   */
+  private setPreferredCodecs() {
+    if (!this.pc) return;
+
+    const transceivers = this.pc.getTransceivers();
+    
+    transceivers.forEach((transceiver) => {
+      if (transceiver.sender?.track?.kind === 'video') {
+        const capabilities = RTCRtpSender.getCapabilities('video');
+        if (!capabilities) return;
+
+        // Prefer VP9 for best quality, then H264 for hardware acceleration, then VP8
+        const preferredOrder = ['VP9', 'H264', 'VP8'];
+        const sortedCodecs = [...capabilities.codecs].sort((a, b) => {
+          const aIndex = preferredOrder.findIndex(p => a.mimeType.includes(p));
+          const bIndex = preferredOrder.findIndex(p => b.mimeType.includes(p));
+          return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+        });
+
+        try {
+          transceiver.setCodecPreferences(sortedCodecs);
+          console.log('✅ [SimpleWebRTC] Video codec preference set (VP9 > H264 > VP8)');
+        } catch (e) {
+          console.warn('⚠️ [SimpleWebRTC] Could not set codec preference:', e);
+        }
+      }
+
+      if (transceiver.sender?.track?.kind === 'audio') {
+        const capabilities = RTCRtpSender.getCapabilities('audio');
+        if (!capabilities) return;
+
+        // Prefer Opus for best audio quality
+        const sortedCodecs = [...capabilities.codecs].sort((a, b) => {
+          if (a.mimeType.includes('opus')) return -1;
+          if (b.mimeType.includes('opus')) return 1;
+          return 0;
+        });
+
+        try {
+          transceiver.setCodecPreferences(sortedCodecs);
+          console.log('✅ [SimpleWebRTC] Audio codec preference set (Opus preferred)');
+        } catch (e) {
+          console.warn('⚠️ [SimpleWebRTC] Could not set audio codec preference:', e);
+        }
+      }
+    });
+  }
+
+  /**
+   * Enhance SDP for FaceTime-grade video/audio quality
+   * Sets higher bitrates and quality parameters
+   */
+  private enhanceSDP(sdp: string): string {
+    let enhanced = sdp;
+
+    // VIDEO: Set very high bitrate for 1080p60 quality (8 Mbps max, 4 Mbps target)
+    // This matches FaceTime's quality tier
+    enhanced = enhanced.replace(
+      /a=mid:video\r\n/g,
+      'a=mid:video\r\nb=AS:8000\r\n'
+    );
+    
+    // Also set bitrate on video m-line if mid:video not found
+    if (!enhanced.includes('b=AS:8000')) {
+      enhanced = enhanced.replace(
+        /(m=video.*\r\n)/g,
+        '$1b=AS:8000\r\n'
+      );
+    }
+
+    // AUDIO: High quality stereo Opus at 128kbps (matches FaceTime HD audio)
+    enhanced = enhanced.replace(
+      /a=mid:audio\r\n/g,
+      'a=mid:audio\r\nb=AS:128\r\n'
+    );
+
+    // Set Opus parameters for maximum quality:
+    // - maxaveragebitrate: 128000 (128 kbps)
+    // - stereo: 1 (enable stereo)
+    // - sprop-stereo: 1 (sender prefers stereo)
+    // - maxplaybackrate: 48000 (48kHz)
+    // - useinbandfec: 1 (forward error correction)
+    // - usedtx: 0 (disable discontinuous transmission for constant quality)
+    enhanced = enhanced.replace(
+      /a=fmtp:111 /g,
+      'a=fmtp:111 maxaveragebitrate=128000;stereo=1;sprop-stereo=1;maxplaybackrate=48000;useinbandfec=1;usedtx=0;'
+    );
+
+    // Also handle fmtp:109 for opus
+    enhanced = enhanced.replace(
+      /a=fmtp:109 /g,
+      'a=fmtp:109 maxaveragebitrate=128000;stereo=1;sprop-stereo=1;maxplaybackrate=48000;useinbandfec=1;usedtx=0;'
+    );
+
+    console.log('✅ [SimpleWebRTC] SDP enhanced for FaceTime-grade quality');
+    return enhanced;
   }
 
   private async sendSignal(signal: Signal) {
@@ -584,10 +706,15 @@ export class SimpleWebRTCCall {
   }
 
   private adaptiveIntervalId: number | null = null;
-  private currentQuality: 'low' | 'medium' | 'high' = 'high';
+  private currentQuality: 'ultra' | 'high' | 'medium' | 'low' = 'ultra';
+  private lastQualityChangeTime: number = 0;
+  private readonly QUALITY_CHANGE_COOLDOWN = 15000; // 15 seconds cooldown between quality changes
 
   private setupAdaptiveBitrate() {
     if (!this.pc || !this.isVideo) return;
+
+    // CRITICAL: Set initial high bitrate on sender for FaceTime-grade quality
+    this.setEncoderParameters();
 
     this.adaptiveIntervalId = window.setInterval(async () => {
       if (!this.pc) return;
@@ -595,46 +722,122 @@ export class SimpleWebRTCCall {
       const stats = await this.pc.getStats();
       let packetsLost = 0;
       let packetsReceived = 0;
+      let rtt = 0;
       
       stats.forEach(report => {
         if (report.type === 'inbound-rtp' && report.kind === 'video') {
           packetsLost = report.packetsLost || 0;
           packetsReceived = report.packetsReceived || 0;
         }
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          rtt = (report.currentRoundTripTime || 0) * 1000;
+        }
       });
       
       const totalPackets = packetsLost + packetsReceived;
       const packetLossRate = totalPackets > 0 ? packetsLost / totalPackets : 0;
       
-      if (packetLossRate > 0.05) {
+      // CONSERVATIVE: Only reduce quality on severe network issues
+      // FaceTime maintains quality unless absolutely necessary
+      if (packetLossRate > 0.10 || rtt > 500) {
         this.adjustVideoQuality('low');
-      } else if (packetLossRate > 0.02) {
+      } else if (packetLossRate > 0.05 || rtt > 300) {
         this.adjustVideoQuality('medium');
-      } else {
+      } else if (packetLossRate > 0.02 || rtt > 150) {
         this.adjustVideoQuality('high');
+      } else {
+        this.adjustVideoQuality('ultra');
       }
-    }, 2000);
+    }, 5000); // Check every 5 seconds (less aggressive than 2s)
   }
 
-  private async adjustVideoQuality(quality: 'low' | 'medium' | 'high') {
+  /**
+   * Set encoder parameters for maximum quality output
+   */
+  private async setEncoderParameters() {
+    if (!this.pc) return;
+
+    const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+    if (!sender) return;
+
+    try {
+      const params = sender.getParameters();
+      if (!params.encodings || params.encodings.length === 0) {
+        params.encodings = [{}];
+      }
+
+      // FaceTime-grade encoding: 8 Mbps max, 60fps priority
+      params.encodings[0] = {
+        ...params.encodings[0],
+        maxBitrate: 8000000, // 8 Mbps
+        maxFramerate: 60,
+        priority: 'high',
+        networkPriority: 'high',
+      };
+
+      await sender.setParameters(params);
+      console.log('✅ [SimpleWebRTC] Encoder parameters set for FaceTime-grade quality');
+    } catch (error) {
+      console.warn('⚠️ [SimpleWebRTC] Could not set encoder parameters:', error);
+    }
+  }
+
+  private async adjustVideoQuality(quality: 'ultra' | 'high' | 'medium' | 'low') {
     if (!this.localStream || this.currentQuality === quality) return;
+    
+    // COOLDOWN: Don't change quality too frequently (prevents jarring experience)
+    const now = Date.now();
+    if (now - this.lastQualityChangeTime < this.QUALITY_CHANGE_COOLDOWN) {
+      return;
+    }
     
     const videoTrack = this.localStream.getVideoTracks()[0];
     if (!videoTrack) return;
     
+    // FaceTime-grade quality presets
     const constraints = {
-      low: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } },
-      medium: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } },
-      high: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }
+      ultra: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 60 } },
+      high: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+      medium: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+      low: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } }
     };
     
     try {
       await videoTrack.applyConstraints(constraints[quality]);
       this.currentQuality = quality;
+      this.lastQualityChangeTime = now;
       console.log(`📊 [SimpleWebRTC] Video quality adjusted to ${quality}`);
+      
+      // Update encoder bitrate to match quality level
+      await this.updateEncoderBitrate(quality);
     } catch (error) {
       // CRITICAL: Don't crash on constraint errors - just log and continue
       console.warn('⚠️ [SimpleWebRTC] Failed to adjust quality (non-fatal):', error);
+    }
+  }
+
+  private async updateEncoderBitrate(quality: 'ultra' | 'high' | 'medium' | 'low') {
+    if (!this.pc) return;
+
+    const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+    if (!sender) return;
+
+    const bitrates = {
+      ultra: 8000000,  // 8 Mbps
+      high: 5000000,   // 5 Mbps
+      medium: 2500000, // 2.5 Mbps
+      low: 1000000     // 1 Mbps
+    };
+
+    try {
+      const params = sender.getParameters();
+      if (params.encodings && params.encodings[0]) {
+        params.encodings[0].maxBitrate = bitrates[quality];
+        await sender.setParameters(params);
+        console.log(`✅ [SimpleWebRTC] Encoder bitrate set to ${bitrates[quality] / 1000000} Mbps`);
+      }
+    } catch (error) {
+      console.warn('⚠️ [SimpleWebRTC] Could not update encoder bitrate:', error);
     }
   }
 
