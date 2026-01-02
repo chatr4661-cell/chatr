@@ -314,44 +314,30 @@ export class SimpleWebRTCCall {
           this.setupAdaptiveBitrate();
           console.log('🎉 [SimpleWebRTC] Call connected successfully!');
         } else if (state === 'failed') {
-          // CRITICAL: Attempt ICE restart before failing completely
-          console.error('❌ [SimpleWebRTC] ICE connection failed - attempting restart');
-          if (this.isInitiator && this.pc) {
-            console.log('🔄 [SimpleWebRTC] Restarting ICE...');
-            this.pc.restartIce();
-            
-            // Give restart 15 seconds to work
-            setTimeout(() => {
-              if (this.pc?.iceConnectionState === 'failed') {
-                console.error('❌ [SimpleWebRTC] ICE restart failed');
-                this.callState = 'failed';
-                this.emit('failed', new Error('Connection failed after restart'));
-              }
-            }, 15000);
-          } else {
-            this.callState = 'failed';
-            this.emit('failed', new Error('Connection failed'));
-          }
+          // CRITICAL: Never give up - keep attempting ICE restart
+          console.warn('⚠️ [SimpleWebRTC] ICE connection failed - attempting continuous recovery');
+          this.attemptContinuousRecovery();
         } else if (state === 'disconnected') {
           // IMPORTANT: 'disconnected' can happen briefly even in healthy calls (esp. mobile/WiFi↔LTE)
           // We must NOT auto-end the call unless the user hangs up.
           console.warn('⚠️ [SimpleWebRTC] ICE disconnected - attempting recovery (not ending call)');
 
-          // Attempt ICE restart for faster recovery (initiator only)
-          if (this.isInitiator && this.pc) {
+          // Attempt ICE restart for faster recovery
+          if (this.pc) {
             console.log('🔄 [SimpleWebRTC] Attempting ICE restart on disconnect...');
             this.pc.restartIce();
           }
 
-          // Only fail on disconnect if we were NEVER connected and are still trying to connect
+          // NEVER auto-fail active calls - only fail during initial connection phase
           if (this.callState === 'connecting') {
+            // Extended timeout for initial connection - 45 seconds
             setTimeout(() => {
               if (this.callState === 'connecting' && this.pc?.iceConnectionState === 'disconnected') {
-                console.error('❌ [SimpleWebRTC] Still disconnected while connecting (20s)');
-                this.callState = 'failed';
-                this.emit('failed', new Error('Connection lost'));
+                console.warn('⚠️ [SimpleWebRTC] Still connecting after 45s - continuing to try...');
+                // Still don't fail - emit warning but keep trying
+                this.emit('failed', new Error('Connection taking longer than expected'));
               }
-            }, 20000);
+            }, 45000);
           }
         }
       };
@@ -663,37 +649,86 @@ export class SimpleWebRTCCall {
     }
   }
 
+  private recoveryAttempts: number = 0;
+  private maxRecoveryAttempts: number = 10; // Much higher limit
+  private recoveryIntervalId: number | null = null;
+
   private setConnectionTimeout() {
-    // RELIABLE: 25s for mobile, 20s for desktop
-    // Allows proper ICE negotiation especially on slower networks
-    const timeout = this.isMobileDevice() ? 25000 : 20000;
+    // RELIABLE: Extended timeouts - 45s for mobile, 35s for desktop
+    const timeout = this.isMobileDevice() ? 45000 : 35000;
     console.log(`⏱️ [SimpleWebRTC] Connection timeout set: ${timeout}ms`);
     
     this.iceConnectionTimeout = setTimeout(() => {
       if (this.callState === 'connecting') {
-        console.warn('⏰ [SimpleWebRTC] Connection timeout after', timeout/1000, 'seconds - attempting ICE restart');
+        console.warn('⏰ [SimpleWebRTC] Initial connection timeout - starting continuous recovery');
         
-        // CRITICAL: Try ICE restart before failing completely
-        if (this.pc && this.isInitiator) {
-          console.log('🔄 [SimpleWebRTC] Final ICE restart attempt...');
-          this.pc.restartIce();
-          
-          // Give restart 10 more seconds
-          setTimeout(() => {
-            if (this.callState === 'connecting') {
-              console.error('❌ [SimpleWebRTC] Final connection timeout');
-              this.callState = 'failed';
-              this.emit('failed', new Error('Connection timeout - please check your network settings'));
-              this.cleanup();
-            }
-          }, 10000);
-        } else {
-          this.callState = 'failed';
-          this.emit('failed', new Error('Connection timeout - please check your network settings'));
-          this.cleanup();
-        }
+        // CRITICAL: Start continuous recovery instead of failing
+        this.attemptContinuousRecovery();
       }
     }, timeout);
+  }
+
+  /**
+   * Continuous recovery - keeps trying until user hangs up
+   * Never shows "call failed" if recovery is possible
+   */
+  private attemptContinuousRecovery() {
+    if (this.recoveryIntervalId) return; // Already recovering
+    
+    this.recoveryAttempts = 0;
+    console.log('🔄 [SimpleWebRTC] Starting continuous recovery mode...');
+    
+    const attemptRecovery = () => {
+      if (!this.pc || this.callState === 'ended') {
+        this.stopRecovery();
+        return;
+      }
+      
+      const iceState = this.pc.iceConnectionState;
+      
+      // Success - stop recovery
+      if (iceState === 'connected' || iceState === 'completed') {
+        console.log('✅ [SimpleWebRTC] Connection recovered!');
+        this.callState = 'connected';
+        this.emit('connected');
+        this.stopRecovery();
+        return;
+      }
+      
+      this.recoveryAttempts++;
+      console.log(`🔄 [SimpleWebRTC] Recovery attempt ${this.recoveryAttempts}...`);
+      
+      // Attempt ICE restart
+      try {
+        this.pc.restartIce();
+      } catch (e) {
+        console.warn('⚠️ [SimpleWebRTC] ICE restart error:', e);
+      }
+      
+      // Emit warning (not failure) after several attempts
+      if (this.recoveryAttempts === 3) {
+        this.emit('failed', new Error('Connection unstable - recovering...'));
+      }
+      
+      // After many attempts, still don't give up but warn more strongly
+      if (this.recoveryAttempts >= this.maxRecoveryAttempts) {
+        console.warn('⚠️ [SimpleWebRTC] Many recovery attempts - still trying...');
+        // Reset counter but keep trying
+        this.recoveryAttempts = 0;
+      }
+    };
+    
+    // Try immediately, then every 5 seconds
+    attemptRecovery();
+    this.recoveryIntervalId = window.setInterval(attemptRecovery, 5000);
+  }
+
+  private stopRecovery() {
+    if (this.recoveryIntervalId) {
+      clearInterval(this.recoveryIntervalId);
+      this.recoveryIntervalId = null;
+    }
+    this.recoveryAttempts = 0;
   }
 
   private clearConnectionTimeout() {
@@ -848,6 +883,9 @@ export class SimpleWebRTCCall {
 
   private async cleanup() {
     console.log('🧹 [SimpleWebRTC] Cleaning up...');
+    
+    // Stop recovery attempts
+    this.stopRecovery();
     
     if (this.adaptiveIntervalId) {
       clearInterval(this.adaptiveIntervalId);
