@@ -1,24 +1,27 @@
 # CHATR Complete API & Route Documentation
 
 > Auto-generated comprehensive documentation for chatr.chat domain
-> Last Updated: 2025-12-21
-> Version: 2.1.0
+> Last Updated: 2026-01-02
+> Version: 3.0.0
 
 ---
 
 ## Table of Contents
-1. [Native App RPC Functions](#0-native-app-rpc-functions-new)
+1. [Native App RPC Functions](#0-native-app-rpc-functions)
 2. [REST API Routes](#1-rest-api-routes)
 3. [WebSocket Routes](#2-websocket-routes)
 4. [Search Engine Routes](#3-search-engine-routes)
 5. [Frontend Pages](#4-frontend-pages)
-6. [Android Retrofit Interfaces](#5-android-retrofit-interfaces)
-7. [Deep Link Map](#6-deep-link-map)
-8. [Integration Checklist](#7-integration-checklist)
+6. [Android Native Architecture](#5-android-native-architecture)
+7. [Android Retrofit Interfaces](#6-android-retrofit-interfaces)
+8. [Deep Link Map](#7-deep-link-map)
+9. [Integration Checklist](#8-integration-checklist)
+10. [WebRTC & Calling Architecture](#9-webrtc--calling-architecture)
+11. [CHATR Brain AI System](#10-chatr-brain-ai-system)
 
 ---
 
-## 0. Native App RPC Functions (NEW)
+## 0. Native App RPC Functions
 
 > **Purpose**: JWT-aware functions that infer user from token - no userId params needed.
 > **Fixes**: "Unknown" user issue, "participant_user_id" column error
@@ -316,10 +319,30 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 | Method | Endpoint | Description | Auth | Request/Response |
 |--------|----------|-------------|------|------------------|
 | POST | `webrtc-signaling` | WebRTC signaling | No | `{ type, sdp?, candidate? }` |
+| POST | `websocket-signaling` | Dual-protocol signaling | Yes | `{ type, callId, data }` |
 | POST | `get-turn-credentials` | Get TURN credentials | Yes | Response: `{ urls, username, credential }` |
 | POST | `realtime-token` | Get realtime token | Yes | Response: `{ token }` |
+| POST | `native-call-update` | Native call status update (service role) | Yes | `{ callId, status, userId }` |
 
----
+### 1.17 FCM & Push Services
+
+| Method | Endpoint | Description | Auth | Request/Response |
+|--------|----------|-------------|------|------------------|
+| POST | `fcm-notify` | Send FCM v1 push (OAuth2) | Yes | `{ userId, title, body, data }` |
+| POST | `send-call-notification` | High-priority call notification | Yes | `{ callId, callerName, isVideo }` |
+| POST | `send-chat-notification` | Chat message notification | Yes | `{ conversationId, message }` |
+| POST | `send-push-notification` | Generic push notification | Yes | `{ userId, title, body }` |
+| POST | `register-device-token` | Register FCM token | Yes | `{ token, platform }` |
+
+### 1.18 CHATR Brain AI Services
+
+| Method | Endpoint | Description | Auth | Request/Response |
+|--------|----------|-------------|------|------------------|
+| POST | `chatr-brain` | Unified AI router | Yes | `{ message, context?, agentHint? }` |
+| POST | `chatr-world-ai` | Social feed AI | Yes | `{ query, context }` |
+| POST | `chatr-games-ai` | Gaming AI assistant | Yes | `{ gameContext, action }` |
+| POST | `universal-ai-search` | Universal AI search | Yes | `{ query, category? }` |
+| POST | `mental-health-assistant` | Mental health AI | Yes | `{ message, history? }` |
 
 ## 2. WebSocket Routes
 
@@ -705,9 +728,128 @@ Response:
 
 ---
 
-## 5. Android Retrofit Interfaces
+## 5. Android Native Architecture
 
-### 5.1 ChatrApi.kt (Complete Interface)
+> **Critical**: CHATR uses a hybrid architecture with Capacitor WebView + Native Kotlin components
+
+### 5.1 Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CHATR Android App                            │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              Capacitor WebView (UI Shell)                 │  │
+│  │  - React/TypeScript PWA                                   │  │
+│  │  - Full web app functionality                             │  │
+│  │  - Syncs credentials to SecureStore                       │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              │                                   │
+│                    localStorage sync                             │
+│                              ▼                                   │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │           Native Kotlin Layer (android-native/)          │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
+│  │  │ ChatrFire-  │  │ ChatrConn-  │  │ Supabase RPC    │   │  │
+│  │  │ baseService │  │ ectionSvc   │  │ Repository      │   │  │
+│  │  │ (FCM)       │  │ (Telecom)   │  │ (REST API)      │   │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────────┘   │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
+│  │  │ Message     │  │ SecureStore │  │ Room Database   │   │  │
+│  │  │ SyncWorker  │  │ (Encrypted) │  │ (Offline)       │   │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────────┘   │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 5.2 Key Native Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `ChatrFirebaseService` | `service/` | FCM message handling, TelecomManager invocation |
+| `ChatrConnectionService` | `call/` | WhatsApp-style background call management |
+| `SupabaseRpcRepository` | `data/repository/` | JWT-aware RPC calls via Retrofit REST API |
+| `MessageRepository` | `data/repository/` | Offline-first message management |
+| `MessageSyncWorker` | `sync/` | Background message synchronization |
+| `SecureStore` | `security/` | Encrypted credential storage |
+| `SimpleWebRTC` | `webrtc/` | WebRTC connection management |
+| `SocketService` | `websocket/` | Real-time WebSocket communication |
+
+### 5.3 Room Database Entities
+
+```kotlin
+// MessageEntity with proper column annotations
+@Entity(tableName = "messages")
+data class MessageEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "conversationId") val conversationId: String,
+    @ColumnInfo(name = "senderId") val senderId: String,
+    @ColumnInfo(name = "senderName") val senderName: String? = null,
+    val content: String,
+    val timestamp: Long,
+    val type: String = "TEXT",
+    val status: String = "SENT",
+    @ColumnInfo(name = "syncStatus") val syncStatus: SyncStatus = SyncStatus.SYNCED,
+    @ColumnInfo(name = "replyTo") val replyTo: String? = null,
+    @ColumnInfo(name = "mediaUrl") val mediaUrl: String? = null,
+    @ColumnInfo(name = "deliveredAt") val deliveredAt: Long? = null,
+    @ColumnInfo(name = "readAt") val readAt: Long? = null
+)
+
+enum class SyncStatus { PENDING, SYNCED, FAILED }
+```
+
+### 5.4 SupabaseRestApi Interface
+
+```kotlin
+// Native Retrofit interface for RPC calls (avoids Edge Function gateway 405 errors)
+interface SupabaseRestApi {
+    
+    @POST("rpc/get_user_conversations")
+    suspend fun getUserConversations(): Response<List<ConversationResponse>>
+    
+    @POST("rpc/get_conversation_messages")
+    suspend fun getConversationMessages(
+        @Body request: GetMessagesRequest
+    ): Response<List<MessageResponse>>
+    
+    @POST("rpc/create_direct_conversation")
+    suspend fun createDirectConversation(
+        @Body request: CreateConversationRequest
+    ): Response<String>
+    
+    @POST("rpc/toggle_message_reaction")
+    suspend fun toggleReaction(
+        @Body request: ToggleReactionRequest
+    ): Response<JsonElement>
+}
+
+// Base URL: https://sbayuqgomlflmxgicplz.supabase.co/rest/v1/
+```
+
+### 5.5 Credential Sync Flow
+
+```
+WebView localStorage          SecureStore (Native)
+┌──────────────────┐          ┌──────────────────┐
+│ access_token     │ ──sync──▶│ SUPABASE_TOKEN   │
+│ refresh_token    │          │ REFRESH_TOKEN    │
+│ user_id          │          │ USER_ID          │
+└──────────────────┘          └──────────────────┘
+        │                              │
+        │                              ▼
+        │                     ┌──────────────────┐
+        │                     │ Background Repos │
+        │                     │ - MessageRepo    │
+        │                     │ - CallRepo       │
+        │                     └──────────────────┘
+```
+
+---
+
+## 6. Android Retrofit Interfaces
+
+### 6.1 ChatrApi.kt (Complete Interface)
 
 ```kotlin
 package com.chatr.app.data.api
@@ -884,7 +1026,7 @@ interface ChatrApi {
 }
 ```
 
-### 5.2 SearchApi.kt
+### 6.2 SearchApi.kt
 
 ```kotlin
 package com.chatr.app.data.api
@@ -921,7 +1063,7 @@ interface SearchApi {
 }
 ```
 
-### 5.3 AIApi.kt
+### 6.3 AIApi.kt
 
 ```kotlin
 package com.chatr.app.data.api
@@ -967,7 +1109,7 @@ interface AIApi {
 }
 ```
 
-### 5.4 Data Models (Models.kt)
+### 6.4 Data Models (Models.kt)
 
 ```kotlin
 package com.chatr.app.data.models
@@ -1444,7 +1586,7 @@ data class ImageGeneratorResponse(
 )
 ```
 
-### 5.5 Repository Classes
+### 6.5 Repository Classes
 
 ```kotlin
 package com.chatr.app.data.repository
@@ -1565,7 +1707,7 @@ private suspend fun <T> safeApiCall(call: suspend () -> retrofit2.Response<T>): 
 }
 ```
 
-### 5.6 Dependency Injection (NetworkModule.kt)
+### 6.6 Dependency Injection (NetworkModule.kt)
 
 ```kotlin
 package com.chatr.app.di
@@ -1681,9 +1823,9 @@ object NetworkModule {
 
 ---
 
-## 6. Deep Link Map
+## 7. Deep Link Map
 
-### 6.1 Deep Link Configuration
+### 7.1 Deep Link Configuration
 
 ```kotlin
 // AndroidManifest.xml intent-filter
@@ -1697,7 +1839,7 @@ object NetworkModule {
 </intent-filter>
 ```
 
-### 6.2 Route Mapping Table
+### 7.2 Route Mapping Table
 
 | Web Route | Android Deep Link | Parameters | Example |
 |-----------|-------------------|------------|---------|
@@ -1736,7 +1878,7 @@ object NetworkModule {
 | `/chatr-world` | `chatr://world` | - | `chatr://world` |
 | `/native-apps` | `chatr://apps` | - | `chatr://apps` |
 
-### 6.3 Navigation Graph Entry (nav_graph.xml)
+### 7.3 Navigation Graph Entry (nav_graph.xml)
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -1805,7 +1947,7 @@ object NetworkModule {
 
 ---
 
-## 7. Integration Checklist
+## 8. Integration Checklist
 
 ### ✅ Phase 1: Core Setup
 
@@ -1951,6 +2093,56 @@ object NetworkModule {
 
 ## Changelog
 
+### v3.0.0 (January 2, 2026)
+**Major Android Native Architecture Overhaul:**
+- Added dual-protocol signaling (WebSocket + Supabase Realtime) for cross-platform call sync
+- New `websocket-signaling` edge function handles native `call:accept` events
+- New `native-call-update` edge function (service role) bypasses RLS for background call updates
+- FCM v1 migration with OAuth2 authentication for high-priority data-only messages
+- Added `ChatrFirebaseService` for native TelecomManager integration
+- Added `ChatrConnectionService` for WhatsApp-style background calls
+- SecureStore credential sync from WebView localStorage for background operations
+- Added `MessageSyncWorker` for offline-first message synchronization
+- Room database schema updated with `@ColumnInfo` annotations for camelCase column preservation
+
+**WebRTC & Calling Improvements:**
+- Extended ICE connection timeouts (45s mobile, 35s desktop)
+- Continuous ICE recovery mode with 5-second restart intervals
+- Removed auto-disconnect on connection failures - calls only end on explicit hangup
+- REPLICA IDENTITY FULL on `calls` table for reliable Realtime delivery
+- TelecomManager uses `tel:` URI schemes (E.164) with `ChatrPlus` branding
+- Removed 30-second auto-reject timer on incoming calls
+
+**CHATR Brain AI System:**
+- Unified AI router with intent detection and agent selection
+- Six specialized agents: Personal, Work, Search, Local Services, Job-Matching, Health
+- Shared memory context across agents for cross-domain intelligence
+- Action dispatcher for transaction completion (book, order, apply)
+- New edge functions: `chatr-brain`, `chatr-games-ai`, `mental-health-assistant`
+
+**New Edge Functions:**
+- `websocket-signaling` - Dual-protocol call signaling bridge
+- `native-call-update` - Service role call status updates
+- `fcm-notify` - FCM v1 OAuth2 push notifications
+- `chatr-brain` - Unified AI routing
+- `chatr-games-ai` - Gaming AI assistant
+- `mental-health-assistant` - Mental health support AI
+
+**Android Native Components (android-native/ folder):**
+- `ChatrFirebaseService` - FCM message handling with TelecomManager
+- `ChatrConnectionService` - Background call management
+- `SupabaseRpcRepository` - JWT-aware RPC calls via Retrofit
+- `MessageRepository` - Offline-first message management
+- `MessageSyncWorker` - Background sync worker
+- `SecureStore` - Encrypted credential storage
+- Room entities with proper column annotations
+
+### v2.1.0 (December 21, 2025)
+- Added JWT-aware RPC functions (`get_user_conversations`, `get_conversation_messages`)
+- Fixed "Unknown" user issue with pre-joined profile data
+- Added Supabase REST API routing for Android native clients
+- Updated Database Schema Reference
+
 ### v2.0.0 (December 20, 2025)
 - Added message reactions with `toggle_message_reaction` RPC function
 - Added privacy settings to profiles (last_seen, profile_photo, about, read_receipts, groups_add)
@@ -1976,6 +2168,138 @@ object NetworkModule {
 
 ---
 
-**Document Version**: 2.0.0  
-**Generated**: 2025-12-20  
+## 9. WebRTC & Calling Architecture
+
+### 9.1 Production Standards (ChatrPlus Quality)
+
+```
+Video: VP9 codec @ 8Mbps/60fps (FaceTime-standard)
+Audio: Opus @ 128kbps with noise suppression
+Adaptive Bitrate: Auto-adjusts based on network conditions
+ICE Timeout: 45s mobile, 35s desktop
+Recovery: Continuous ICE restarts every 5s if disconnected
+```
+
+### 9.2 Dual-Protocol Signaling
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Native Android │     │  Edge Function   │     │  Web/PWA App    │
+│  (WebSocket)    │────▶│ websocket-       │────▶│ (Realtime)      │
+│  call:accept    │     │ signaling        │     │ status: active  │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                              │
+                              ▼
+                        ┌──────────────────┐
+                        │  Database        │
+                        │  calls.status    │
+                        │  webrtc_signals  │
+                        └──────────────────┘
+```
+
+### 9.3 FCM v1 Call Notifications
+
+```json
+{
+  "message": {
+    "token": "<device_token>",
+    "android": {
+      "priority": "high",
+      "data": {
+        "type": "incoming_call",
+        "callId": "uuid",
+        "callerName": "John Doe",
+        "callerPhone": "+1234567890",
+        "isVideo": "true"
+      }
+    }
+  }
+}
+```
+
+### 9.4 Native TelecomManager Integration
+
+```kotlin
+// URI scheme for system call UI
+val uri = Uri.parse("tel:+1234567890")
+val extras = Bundle().apply {
+    putString(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, "ChatrPlus")
+}
+telecomManager.addNewIncomingCall(phoneAccountHandle, extras)
+```
+
+---
+
+## 10. CHATR Brain AI System
+
+### 10.1 Unified Router Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     CHATR BRAIN (Router)                        │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
+│  │ Intent      │──│ Agent       │──│ Shared Memory Store     │  │
+│  │ Detection   │  │ Selection   │  │ (Cross-Agent Context)   │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
+└───────────────────────────┬─────────────────────────────────────┘
+                            ▼
+    ┌───────────┬───────────┬───────────┬───────────┬───────────┐
+    │ Personal  │ Work AI   │ Search AI │ Local     │ Health AI │
+    │ AI        │           │           │ Services  │           │
+    │ (habits)  │ (tasks)   │ (answers) │ (booking) │ (symptoms)│
+    └───────────┴───────────┴───────────┴───────────┴───────────┘
+```
+
+### 10.2 Specialized Agents
+
+| Agent | Purpose | Actions |
+|-------|---------|---------|
+| Personal AI | Learns habits, tone, preferences | Reminders, personalization |
+| Work AI | Tasks, docs, meetings | Summarize, schedule, organize |
+| Search AI | Perplexity-style answers | Web search with citations |
+| Local Services | Plumbers, food, groceries, doctors | Book, order, schedule |
+| Job-Matching AI | Resume to job application | Apply, match, prepare |
+| Health AI | Symptoms, doctor search | Check symptoms, find doctors |
+
+### 10.3 Cross-Agent Intelligence
+
+```typescript
+// Shared context enables features like:
+// - Health AI knowing user location from Local Services AI
+// - Work AI knowing meetings for Personal AI reminders
+// - Job AI knowing skills for Search AI career advice
+
+interface SharedContext {
+  userId: string;
+  location?: { lat: number; lon: number };
+  recentSearches: string[];
+  healthProfile?: HealthData;
+  workContext?: WorkData;
+  preferences: UserPreferences;
+}
+```
+
+---
+
+## Summary Statistics
+
+| Category | Count |
+|----------|-------|
+| REST API Endpoints | 85+ |
+| WebSocket Channels | 6 |
+| Search Endpoints | 10 |
+| Frontend Routes | 130+ |
+| Deep Link Routes | 55+ |
+| Edge Functions | 85+ |
+| Data Models | 60+ |
+| Retrofit Interfaces | 4 |
+| Repositories | 8 |
+| Database Functions | 65+ |
+| AI Agents | 6 |
+| Native Android Components | 15+ |
+
+---
+
+**Document Version**: 3.0.0  
+**Generated**: 2026-01-02  
 **Domain**: chatr.chat
