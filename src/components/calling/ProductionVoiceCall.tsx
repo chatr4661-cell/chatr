@@ -124,10 +124,12 @@ export default function ProductionVoiceCall({
         });
 
         call.on('failed', (error: Error) => {
-          console.error('❌ [ProductionVoiceCall] Call failed:', error);
-          setCallState('failed');
-          toast.error(error.message || 'Call failed');
-          setTimeout(() => handleEndCall(), 2000);
+          console.error('⚠️ [ProductionVoiceCall] Connection issue:', error);
+          // CRITICAL: Do NOT auto-end - let user decide to hang up
+          // Show warning but keep call alive for recovery
+          toast.warning('Connection unstable - attempting recovery...', {
+            duration: 5000,
+          });
         });
 
         call.on('ended', () => {

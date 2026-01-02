@@ -192,29 +192,27 @@ export default function ProductionVideoCall({
         });
 
         call.on('failed', (error: Error) => {
-          console.error('❌ [ProductionVideoCall] Call failed:', error);
-          setCallState('failed');
+          console.error('⚠️ [ProductionVideoCall] Connection issue:', error);
           
-          let errorMessage = 'Call failed';
-          let actionMessage = 'Please try again';
+          // CRITICAL: Do NOT auto-end - let user decide to hang up
+          // Only show warning for recoverable errors
+          let warningMessage = 'Connection unstable - recovering...';
           
           if (error.message.includes('camera') || error.message.includes('microphone')) {
-            errorMessage = 'Camera/Microphone access denied';
-            actionMessage = 'Please allow camera and microphone access in your browser settings';
-          } else if (error.message.includes('timeout')) {
-            errorMessage = 'Connection timeout';
-            actionMessage = 'Check your internet connection and try again';
-          } else if (error.message.includes('ice') || error.message.includes('Connection failed')) {
-            errorMessage = 'Could not establish connection';
-            actionMessage = 'Your network may be blocking video calls. Try a different network.';
+            // Camera/mic errors ARE terminal - end immediately
+            toast.error('Camera/Microphone access denied', {
+              description: 'Please allow camera and microphone access',
+              duration: 5000
+            });
+            setCallState('failed');
+            setTimeout(() => handleEndCall(), 3000);
+            return;
           }
           
-          toast.error(errorMessage, {
-            description: actionMessage,
-            duration: 5000
+          // Network errors - keep trying, don't auto-end
+          toast.warning(warningMessage, {
+            duration: 5000,
           });
-          
-          setTimeout(() => handleEndCall(), 3000);
         });
 
         call.on('ended', () => {
