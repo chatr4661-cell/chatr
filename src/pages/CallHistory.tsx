@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CallHistoryEmptyState, CallListSkeleton } from "@/components/ui/PremiumEmptyStates";
 
 interface Call {
   id: string;
@@ -330,11 +331,9 @@ export default function CallHistory() {
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-2">
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading calls...</div>
+            <CallListSkeleton count={6} />
           ) : filteredCalls.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No {activeFilter === 'missed' ? 'missed' : ''} calls found
-            </div>
+            <CallHistoryEmptyState onStartCall={() => setShowNewCall(true)} />
           ) : (
             filteredCalls.map((call) => {
               const contact = getContactInfo(call);

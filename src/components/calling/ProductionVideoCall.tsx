@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX, ZoomIn, ZoomOut } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, SwitchCamera, Repeat, Maximize2, Minimize2, Volume2, VolumeX, ZoomIn, ZoomOut, MonitorUp, MonitorOff } from 'lucide-react';
 import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -37,6 +37,7 @@ export default function ProductionVideoCall({
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [duration, setDuration] = useState(0);
   const [videoLayout, setVideoLayout] = useState<'remote-main' | 'local-main'>('remote-main');
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -360,6 +361,69 @@ export default function ProductionVideoCall({
     }
   };
 
+  const toggleScreenShare = async () => {
+    if (!isScreenSharing) {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: false,
+        } as DisplayMediaStreamOptions);
+        
+        const videoTrack = screenStream.getVideoTracks()[0];
+        
+        // Replace camera track with screen track
+        if (webrtcRef.current) {
+          await webrtcRef.current.replaceTrack(videoTrack);
+        }
+        
+        // Show local preview of screen
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = screenStream;
+        }
+        
+        setIsScreenSharing(true);
+        toast.success('Screen sharing started');
+        
+        // Handle when user stops sharing via browser UI
+        videoTrack.onended = () => {
+          stopScreenShare();
+        };
+      } catch (error) {
+        console.error('Screen share error:', error);
+        if ((error as Error).name !== 'NotAllowedError') {
+          toast.error('Failed to share screen');
+        }
+      }
+    } else {
+      stopScreenShare();
+    }
+  };
+
+  const stopScreenShare = async () => {
+    try {
+      // Get camera stream back
+      const cameraStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user' },
+        audio: false 
+      });
+      
+      const videoTrack = cameraStream.getVideoTracks()[0];
+      
+      if (webrtcRef.current) {
+        await webrtcRef.current.replaceTrack(videoTrack);
+      }
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = cameraStream;
+      }
+      
+      setIsScreenSharing(false);
+      toast.info('Screen sharing stopped');
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+    }
+  };
+
   const mainVideoRef = videoLayout === 'remote-main' ? remoteVideoRef : localVideoRef;
   const pipVideoRef = videoLayout === 'remote-main' ? localVideoRef : remoteVideoRef;
 
@@ -551,6 +615,18 @@ export default function ProductionVideoCall({
                 }}
               >
                 <ZoomOut className="h-5 w-5 text-white" />
+              </Button>
+            )}
+
+            {/* Screen Share - Desktop only */}
+            {!isMobileDevice && (
+              <Button
+                size="lg"
+                variant={isScreenSharing ? "default" : "secondary"}
+                className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
+                onClick={toggleScreenShare}
+              >
+                {isScreenSharing ? <MonitorOff className="h-5 w-5 text-white" /> : <MonitorUp className="h-5 w-5 text-white" />}
               </Button>
             )}
 

@@ -46,8 +46,10 @@ export const ParticipantTile = ({
   return (
     <div
       className={cn(
-        "relative bg-muted rounded-lg overflow-hidden aspect-video group",
-        isSpeaking && "ring-4 ring-primary ring-opacity-75"
+        "relative bg-muted/80 rounded-2xl overflow-hidden aspect-video group",
+        "shadow-lg hover:shadow-xl transition-all duration-300",
+        "border border-border/50",
+        isSpeaking && "ring-4 ring-primary/70 ring-offset-2 ring-offset-background animate-pulse"
       )}
     >
       {videoEnabled && videoStream ? (

@@ -12,6 +12,7 @@ import aiPoweredChatr from '@/assets/ai-powered-chatr.jpeg';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 import { logAuthEvent, logAuthError } from '@/utils/authDebug';
 import { BiometricLogin } from '@/components/BiometricLogin';
+import { AuthLoadingSkeleton } from '@/components/ui/PremiumEmptyStates';
 
 const Auth = () => {
   const { toast } = useToast();
@@ -171,15 +172,7 @@ const Auth = () => {
   }, [toast, navigate]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-hero">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-background/50 backdrop-blur-3xl" />
-        <div className="text-center">
-          <img src={logo} alt="chatr.chat" className="h-20 mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <AuthLoadingSkeleton />;
   }
 
   return (
