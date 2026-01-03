@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, Trophy, Coins, ChevronRight, Sparkles, Users, Plane } from 'lucide-react';
+import { ArrowLeft, Play, Trophy, Coins, ChevronRight, Sparkles, Users, Plane, Flame, Zap, Star, Clock, Gift, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SEOHead } from '@/components/SEOHead';
@@ -42,44 +42,63 @@ interface Game {
   isMultiplayer?: boolean;
   isNew?: boolean;
   isFeatured?: boolean;
+  isHot?: boolean;
 }
 
 const games: Game[] = [
-  // FEATURED MAIN GAME
-  { id: 'air_runner', title: 'CHATR AIR RUNNER', subtitle: 'Endless Sky Runner', description: 'AI-powered infinite plane runner with 7 dynamic worlds', icon: '✈️', gradient: 'from-cyan-500 via-blue-500 to-indigo-600', accentColor: 'cyan', levels: 100, category: 'featured', isFeatured: true, isNew: true },
-  // NEW Multiplayer Games
-  { id: 'sync_mind', title: 'SyncMind', subtitle: 'Think Alike', description: 'Match minds with strangers', icon: '🧠', gradient: 'from-violet-500 to-fuchsia-400', accentColor: 'violet', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
+  { id: 'air_runner', title: 'AIR RUNNER', subtitle: 'Endless Sky', description: 'AI-powered infinite plane runner', icon: '✈️', gradient: 'from-cyan-500 via-blue-500 to-indigo-600', accentColor: 'cyan', levels: 100, category: 'featured', isFeatured: true, isNew: true },
+  { id: 'sync_mind', title: 'SyncMind', subtitle: 'Think Alike', description: 'Match minds with strangers', icon: '🧠', gradient: 'from-violet-500 to-fuchsia-400', accentColor: 'violet', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true, isHot: true },
   { id: 'echo_chain', title: 'EchoChain', subtitle: 'Story Builder', description: 'Build stories together', icon: '🔗', gradient: 'from-emerald-500 to-cyan-400', accentColor: 'emerald', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
-  { id: 'mirror_match', title: 'MirrorMatch', subtitle: 'Real-time Sync', description: 'Mirror moves perfectly', icon: '🪞', gradient: 'from-pink-500 to-red-400', accentColor: 'pink', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
-  { id: 'thought_duel', title: 'ThoughtDuel', subtitle: 'Creative Battle', description: 'Battle of descriptions', icon: '⚔️', gradient: 'from-amber-500 to-orange-400', accentColor: 'amber', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
-  { id: 'vibe_link', title: 'VibeLink', subtitle: 'Emotional Sync', description: 'Feel the same emotion', icon: '💕', gradient: 'from-rose-500 to-purple-400', accentColor: 'rose', levels: 50, category: 'multiplayer', isMultiplayer: true, isNew: true },
-  // Existing Games
-  { id: 'car_racing', title: 'AI Racing', subtitle: 'Speed & Strategy', description: 'Outsmart the AI on every turn', icon: '🏎️', gradient: 'from-blue-500 to-cyan-400', accentColor: 'blue', levels: 50, category: 'arcade' },
-  { id: 'candy_crush', title: 'Candy Match', subtitle: 'Sweet Puzzles', description: 'AI-crafted matching challenges', icon: '🍬', gradient: 'from-pink-500 to-rose-400', accentColor: 'pink', levels: 50, category: 'puzzle' },
-  { id: 'parallel_you', title: 'Parallel You', subtitle: 'AI Twin Battle', description: 'Challenge your digital self', icon: '🧬', gradient: 'from-violet-500 to-purple-400', accentColor: 'violet', levels: 50, category: 'ai' },
-  { id: 'motorcycle_racing', title: 'Moto Rush', subtitle: 'Nitro Powered', description: 'AI adapts to your riding style', icon: '🏍️', gradient: 'from-orange-500 to-amber-400', accentColor: 'orange', levels: 50, category: 'arcade' },
-  { id: 'bubble_shooter', title: 'Bubble Pop', subtitle: 'Strategic Shots', description: 'Pop bubbles with precision', icon: '🫧', gradient: 'from-indigo-500 to-blue-400', accentColor: 'indigo', levels: 50, category: 'puzzle' },
-  { id: 'word_finder', title: 'Word Hunt', subtitle: 'Brain Teaser', description: 'Find hidden words before time runs out', icon: '📚', gradient: 'from-emerald-500 to-teal-400', accentColor: 'emerald', levels: 50, category: 'puzzle' },
+  { id: 'mirror_match', title: 'MirrorMatch', subtitle: 'Real-time Sync', description: 'Mirror moves perfectly', icon: '🪞', gradient: 'from-pink-500 to-red-400', accentColor: 'pink', levels: 50, category: 'multiplayer', isMultiplayer: true },
+  { id: 'thought_duel', title: 'ThoughtDuel', subtitle: 'Creative Battle', description: 'Battle of descriptions', icon: '⚔️', gradient: 'from-amber-500 to-orange-400', accentColor: 'amber', levels: 50, category: 'multiplayer', isMultiplayer: true },
+  { id: 'vibe_link', title: 'VibeLink', subtitle: 'Emotional Sync', description: 'Feel the same emotion', icon: '💕', gradient: 'from-rose-500 to-purple-400', accentColor: 'rose', levels: 50, category: 'multiplayer', isMultiplayer: true },
+  { id: 'car_racing', title: 'AI Racing', subtitle: 'Speed Rush', description: 'Outsmart the AI', icon: '🏎️', gradient: 'from-blue-500 to-cyan-400', accentColor: 'blue', levels: 50, category: 'arcade', isHot: true },
+  { id: 'candy_crush', title: 'Candy Match', subtitle: 'Sweet Puzzles', description: 'AI-crafted matching', icon: '🍬', gradient: 'from-pink-500 to-rose-400', accentColor: 'pink', levels: 50, category: 'puzzle' },
+  { id: 'parallel_you', title: 'Parallel You', subtitle: 'AI Twin', description: 'Challenge your digital self', icon: '🧬', gradient: 'from-violet-500 to-purple-400', accentColor: 'violet', levels: 50, category: 'ai' },
+  { id: 'motorcycle_racing', title: 'Moto Rush', subtitle: 'Nitro Speed', description: 'AI adapts to you', icon: '🏍️', gradient: 'from-orange-500 to-amber-400', accentColor: 'orange', levels: 50, category: 'arcade' },
+  { id: 'bubble_shooter', title: 'Bubble Pop', subtitle: 'Strategic Shots', description: 'Pop with precision', icon: '🫧', gradient: 'from-indigo-500 to-blue-400', accentColor: 'indigo', levels: 50, category: 'puzzle' },
+  { id: 'word_finder', title: 'Word Hunt', subtitle: 'Brain Teaser', description: 'Find hidden words', icon: '📚', gradient: 'from-emerald-500 to-teal-400', accentColor: 'emerald', levels: 50, category: 'puzzle' },
   { id: 'mindmaze', title: 'MindMaze', subtitle: 'Thought Reader', description: 'Can AI read your mind?', icon: '🧠', gradient: 'from-purple-500 to-indigo-400', accentColor: 'purple', levels: 50, category: 'ai' },
-  { id: 'avawars', title: 'AVA Wars', subtitle: 'Personality Clash', description: 'Your AI fights for you', icon: '⚔️', gradient: 'from-red-500 to-rose-400', accentColor: 'red', levels: 50, category: 'ai' },
-  { id: 'dreamforge', title: 'DreamForge', subtitle: 'Dream Explorer', description: 'Play inside your dreams', icon: '🌙', gradient: 'from-slate-500 to-violet-400', accentColor: 'slate', levels: 50, category: 'adventure' },
+  { id: 'avawars', title: 'AVA Wars', subtitle: 'AI Battle', description: 'Your AI fights for you', icon: '⚔️', gradient: 'from-red-500 to-rose-400', accentColor: 'red', levels: 50, category: 'ai' },
+  { id: 'dreamforge', title: 'DreamForge', subtitle: 'Dream Explorer', description: 'Play inside dreams', icon: '🌙', gradient: 'from-slate-500 to-violet-400', accentColor: 'slate', levels: 50, category: 'adventure' },
   { id: 'socialstorm', title: 'SocialStorm', subtitle: 'Trend Predictor', description: 'Predict viral content', icon: '🔥', gradient: 'from-amber-500 to-orange-400', accentColor: 'amber', levels: 50, category: 'ai' },
-  { id: 'shadowverse', title: 'ShadowVerse', subtitle: 'Dark Journey', description: 'Explore your shadow self', icon: '👻', gradient: 'from-zinc-600 to-slate-500', accentColor: 'zinc', levels: 50, category: 'adventure' },
-  { id: 'emotionsync', title: 'EmotionSync', subtitle: 'Feel to Play', description: 'Your emotions control the game', icon: '🎭', gradient: 'from-rose-500 to-pink-400', accentColor: 'rose', levels: 50, category: 'ai' },
+  { id: 'shadowverse', title: 'ShadowVerse', subtitle: 'Dark Journey', description: 'Explore your shadow', icon: '👻', gradient: 'from-zinc-600 to-slate-500', accentColor: 'zinc', levels: 50, category: 'adventure' },
+  { id: 'emotionsync', title: 'EmotionSync', subtitle: 'Feel to Play', description: 'Emotions control game', icon: '🎭', gradient: 'from-rose-500 to-pink-400', accentColor: 'rose', levels: 50, category: 'ai' },
   { id: 'frequencyclash', title: 'Frequency', subtitle: 'Voice Control', description: 'Speak to command', icon: '🎤', gradient: 'from-teal-500 to-cyan-400', accentColor: 'teal', levels: 50, category: 'ai' },
   { id: 'map_hunt', title: 'Map Hunt', subtitle: 'Treasure Quest', description: 'Real-world adventure', icon: '🗺️', gradient: 'from-yellow-500 to-amber-400', accentColor: 'yellow', levels: 50, category: 'adventure' },
-  { id: 'energy_pulse', title: 'Energy Pulse', subtitle: 'Rhythm Flow', description: 'Hypnotic beats await', icon: '⚡', gradient: 'from-cyan-500 to-blue-400', accentColor: 'cyan', levels: 50, category: 'arcade' },
+  { id: 'energy_pulse', title: 'Energy Pulse', subtitle: 'Rhythm Flow', description: 'Hypnotic beats', icon: '⚡', gradient: 'from-cyan-500 to-blue-400', accentColor: 'cyan', levels: 50, category: 'arcade' },
 ];
 
 const categories = [
-  { id: 'all', label: 'All Games', count: 21 },
-  { id: 'featured', label: '⭐ Featured', count: 1 },
-  { id: 'multiplayer', label: 'Multiplayer', count: 5 },
-  { id: 'ai', label: 'AI Powered', count: 7 },
-  { id: 'arcade', label: 'Arcade', count: 4 },
-  { id: 'puzzle', label: 'Puzzle', count: 3 },
-  { id: 'adventure', label: 'Adventure', count: 3 },
+  { id: 'all', label: 'All', icon: '🎮' },
+  { id: 'featured', label: 'Featured', icon: '⭐' },
+  { id: 'multiplayer', label: 'Multiplayer', icon: '👥' },
+  { id: 'ai', label: 'AI Games', icon: '🤖' },
+  { id: 'arcade', label: 'Arcade', icon: '🕹️' },
+  { id: 'puzzle', label: 'Puzzle', icon: '🧩' },
+  { id: 'adventure', label: 'Adventure', icon: '🗺️' },
 ];
+
+// Progress ring component
+const ProgressRing = ({ progress, size = 40, strokeWidth = 3 }: { progress: number; size?: number; strokeWidth?: number }) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+  
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <circle cx={size/2} cy={size/2} r={radius} stroke="rgba(255,255,255,0.1)" strokeWidth={strokeWidth} fill="none" />
+      <circle cx={size/2} cy={size/2} r={radius} stroke="url(#gradient)" strokeWidth={strokeWidth} fill="none" 
+        strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" />
+      <defs>
+        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#06b6d4" />
+          <stop offset="100%" stopColor="#8b5cf6" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+};
 
 export default function ChatrGames() {
   const navigate = useNavigate();
@@ -87,8 +106,9 @@ export default function ChatrGames() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [currentLevel, setCurrentLevel] = useState(1);
   const [totalCoins] = useState(2500);
-  const [hoveredGame, setHoveredGame] = useState<string | null>(null);
-
+  const [dailyStreak] = useState(7);
+  const [xpProgress] = useState(68);
+  
   const handleGameComplete = (score: number) => {
     setCurrentLevel(prev => Math.min(prev + 1, 50));
     setActiveGame('hub');
@@ -98,7 +118,7 @@ export default function ChatrGames() {
     ? games 
     : games.filter(g => g.category === activeCategory);
 
-  const featuredGames = games.slice(0, 3);
+  const quickPlayGames = games.filter(g => g.isHot || g.isNew).slice(0, 4);
 
   const renderGame = () => {
     switch (activeGame) {
@@ -127,8 +147,6 @@ export default function ChatrGames() {
     }
   };
 
-  const featuredGame = games.find(g => g.isFeatured);
-
   if (activeGame !== 'hub') return renderGame();
 
   return (
@@ -137,291 +155,278 @@ export default function ChatrGames() {
         title="CHATR Games - 21 AI & Multiplayer Games"
         description="21 revolutionary games with 1100 levels. AI-powered + real-time multiplayer gaming."
       />
-      <div className="min-h-screen bg-black text-white">
-        {/* Ambient Background */}
+      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0d0d18] to-[#0a0a0f] text-white overflow-x-hidden">
+        {/* Ambient Background - Optimized for mobile */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(88,28,135,0.15),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(6,182,212,0.1),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(244,63,94,0.08),transparent_50%)]" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-purple-600/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/3 right-0 w-[300px] h-[300px] bg-cyan-600/8 rounded-full blur-[100px]" />
         </div>
 
-        {/* Header - Apple Style */}
-        <header className="relative z-10 sticky top-0 bg-black/80 backdrop-blur-2xl border-b border-white/5">
-          <div className="max-w-7xl mx-auto px-6 py-4">
+        {/* Compact Mobile Header */}
+        <header className="relative z-20 sticky top-0 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/5">
+          <div className="px-4 py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <button 
                   onClick={() => navigate('/home')} 
-                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300"
+                  className="w-9 h-9 rounded-full bg-white/5 active:bg-white/10 flex items-center justify-center"
                 >
-                  <ArrowLeft className="w-5 h-5 text-white/70" />
+                  <ArrowLeft className="w-4 h-4 text-white/70" />
                 </button>
                 <div>
-                  <h1 className="text-xl font-semibold tracking-tight">Games</h1>
-                  <p className="text-xs text-white/40">1100 Levels • 21 Games</p>
+                  <h1 className="text-lg font-bold">Games</h1>
+                  <p className="text-[10px] text-white/40">21 Games • 1100 Levels</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full">
-                  <Coins className="h-4 w-4 text-amber-400" />
-                  <span className="text-sm font-medium">{totalCoins.toLocaleString()}</span>
+              
+              {/* Compact Stats */}
+              <div className="flex items-center gap-2">
+                {/* Streak */}
+                <div className="flex items-center gap-1 bg-gradient-to-r from-orange-500/20 to-amber-500/20 px-2.5 py-1.5 rounded-full border border-orange-500/20">
+                  <Flame className="w-3.5 h-3.5 text-orange-400" />
+                  <span className="text-xs font-bold text-orange-300">{dailyStreak}</span>
                 </div>
-                <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full">
-                  <Trophy className="h-4 w-4 text-amber-400" />
-                  <span className="text-sm font-medium">Level {currentLevel}</span>
+                
+                {/* Coins */}
+                <div className="flex items-center gap-1 bg-white/5 px-2.5 py-1.5 rounded-full">
+                  <Coins className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs font-medium">{(totalCoins/1000).toFixed(1)}k</span>
+                </div>
+                
+                {/* Level with progress */}
+                <div className="relative flex items-center justify-center">
+                  <ProgressRing progress={xpProgress} size={36} strokeWidth={2} />
+                  <span className="absolute text-[10px] font-bold">{currentLevel}</span>
                 </div>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-          {/* Featured Main Game - CHATR AIR RUNNER */}
-          {featuredGame && (
-            <motion.section 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-10"
-            >
-              <motion.div
-                onClick={() => setActiveGame('air_runner')}
-                className="group relative cursor-pointer overflow-hidden rounded-[2rem]"
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.3 }}
-              >
-                {/* Main Featured Card */}
-                <div className="relative h-[320px] md:h-[400px] bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 p-[2px]">
-                  <div className="absolute inset-[2px] rounded-[2rem] bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 overflow-hidden">
-                    {/* Animated Background Elements */}
-                    <div className="absolute inset-0">
-                      {/* Flying particles */}
-                      {[...Array(30)].map((_, i) => (
-                        <motion.div
-                          key={i}
-                          className="absolute w-1 h-1 bg-white/30 rounded-full"
-                          style={{ left: `${Math.random() * 100}%` }}
-                          animate={{
-                            y: ['-10%', '110%'],
-                            opacity: [0, 1, 0],
-                          }}
-                          transition={{
-                            duration: 2 + Math.random() * 2,
-                            repeat: Infinity,
-                            delay: Math.random() * 2,
-                          }}
-                        />
-                      ))}
-                      {/* Speed lines */}
-                      {[...Array(8)].map((_, i) => (
-                        <motion.div
-                          key={`line-${i}`}
-                          className="absolute h-[2px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent"
-                          style={{
-                            left: `${10 + Math.random() * 80}%`,
-                            width: `${50 + Math.random() * 100}px`,
-                            top: `${10 + Math.random() * 80}%`,
-                          }}
-                          animate={{
-                            x: [0, -100],
-                            opacity: [0.5, 0],
-                          }}
-                          transition={{
-                            duration: 0.8,
-                            repeat: Infinity,
-                            delay: Math.random() * 0.8,
-                          }}
-                        />
-                      ))}
-                      {/* Glow orbs */}
-                      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px]" />
-                      <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-blue-500/20 rounded-full blur-[60px]" />
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="relative z-10 h-full p-8 flex flex-col md:flex-row items-center justify-between">
-                      {/* Left Side - Text */}
-                      <div className="flex-1 text-center md:text-left mb-6 md:mb-0">
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 }}
-                        >
-                          <Badge className="bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-cyan-300 border-cyan-400/40 px-4 py-1.5 text-xs font-bold mb-4 inline-flex items-center gap-2">
-                            <Sparkles className="w-3 h-3" />
-                            MAIN GAME • NEW
-                          </Badge>
-                          <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-2 bg-gradient-to-b from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent">
-                            CHATR AIR RUNNER
-                          </h2>
-                          <p className="text-xl text-cyan-200/80 font-medium mb-1">Endless Sky Adventure</p>
-                          <p className="text-white/50 text-sm max-w-md mb-6">
-                            AI-powered infinite runner with 7 dynamic worlds, voice commands, plane evolution, and real-time obstacles. The future of mobile gaming.
-                          </p>
-                          <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-6">
-                            <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">7 Sky Worlds</span>
-                            <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">Voice Powers</span>
-                            <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">Plane Evolution</span>
-                            <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">100 Levels</span>
-                          </div>
-                          <Button 
-                            size="lg" 
-                            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-semibold px-8 py-6 text-lg rounded-full shadow-lg shadow-cyan-500/25 group-hover:shadow-cyan-500/40 transition-all"
-                          >
-                            <Play className="w-5 h-5 mr-2 fill-current" />
-                            PLAY NOW
-                          </Button>
-                        </motion.div>
-                      </div>
-                      
-                      {/* Right Side - Animated Plane */}
-                      <div className="flex-1 flex items-center justify-center">
-                        <motion.div
-                          className="relative"
-                          animate={{
-                            y: [0, -10, 0],
-                            rotate: [0, 2, -2, 0],
-                          }}
-                          transition={{
-                            duration: 4,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                        >
-                          {/* Plane with glow */}
-                          <div className="relative">
-                            <Plane 
-                              className="w-32 h-32 md:w-48 md:h-48 text-cyan-400 transform -rotate-45"
-                              style={{ filter: 'drop-shadow(0 0 40px rgba(34,211,238,0.6))' }}
-                            />
-                            {/* Engine trail */}
-                            <motion.div
-                              className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 rounded-full"
-                              style={{
-                                background: 'linear-gradient(to bottom, rgba(34,211,238,0.8), transparent)',
-                              }}
-                              animate={{
-                                height: [40, 60, 40],
-                                opacity: [0.8, 1, 0.8],
-                              }}
-                              transition={{
-                                duration: 0.3,
-                                repeat: Infinity,
-                              }}
-                            />
-                          </div>
-                        </motion.div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.section>
-          )}
-
-          {/* Hero Section */}
+        <main className="relative z-10 px-4 pb-24">
+          {/* Featured Hero - Mobile Optimized */}
           <motion.section 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="py-4"
+          >
+            <motion.div
+              onClick={() => setActiveGame('air_runner')}
+              className="relative cursor-pointer overflow-hidden rounded-2xl active:scale-[0.98] transition-transform"
+              whileTap={{ scale: 0.98 }}
+            >
+              {/* Gradient Border */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 p-[1.5px]">
+                <div className="absolute inset-[1.5px] rounded-2xl bg-gradient-to-br from-[#0c1929] via-[#0a1525] to-[#0d0d1a]" />
+              </div>
+              
+              <div className="relative p-5 h-[200px] flex flex-col justify-between overflow-hidden">
+                {/* Animated particles */}
+                <div className="absolute inset-0 overflow-hidden">
+                  {[...Array(12)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-0.5 h-0.5 bg-cyan-400/40 rounded-full"
+                      style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
+                      animate={{ y: [-20, 100], opacity: [0, 1, 0] }}
+                      transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 2 }}
+                    />
+                  ))}
+                </div>
+                
+                {/* Content */}
+                <div className="relative z-10">
+                  <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/30 px-2 py-0.5 text-[10px] font-bold mb-2">
+                    <Sparkles className="w-2.5 h-2.5 mr-1" />
+                    MAIN GAME
+                  </Badge>
+                  <h2 className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent">
+                    AIR RUNNER
+                  </h2>
+                  <p className="text-xs text-white/50 mt-1">7 Worlds • Voice Powers • Infinite</p>
+                </div>
+                
+                {/* Plane Icon */}
+                <motion.div
+                  className="absolute right-4 top-1/2 -translate-y-1/2"
+                  animate={{ y: [0, -5, 0], rotate: [0, 2, -2, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                >
+                  <Plane className="w-20 h-20 text-cyan-400/80 transform -rotate-45" style={{ filter: 'drop-shadow(0 0 20px rgba(34,211,238,0.5))' }} />
+                </motion.div>
+                
+                {/* Play button */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex gap-1.5">
+                    {['7 Worlds', 'Voice', '100 Lvls'].map(tag => (
+                      <span key={tag} className="px-2 py-1 rounded-full bg-white/10 text-[9px] text-white/60">{tag}</span>
+                    ))}
+                  </div>
+                  <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold px-4 py-2 rounded-full text-xs shadow-lg shadow-cyan-500/30">
+                    <Play className="w-3 h-3 mr-1 fill-current" />
+                    PLAY
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.section>
+
+          {/* Quick Play Row */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mb-12"
+            className="mb-5"
           >
-            <div className="text-center mb-8">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Badge className="bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-300 border-violet-500/30 px-4 py-1.5 text-xs font-medium mb-4">
-                  <Sparkles className="w-3 h-3 mr-1.5 inline" />
-                  AI-Powered Gaming Experience
-                </Badge>
-              </motion.div>
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-3 bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">
-                Play. Compete. Evolve.
-              </h2>
-              <p className="text-white/50 text-lg max-w-md mx-auto">
-                Games that learn, adapt, and challenge you like never before.
-              </p>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm font-semibold">Quick Play</h3>
+              </div>
+              <span className="text-[10px] text-white/40">Trending now</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+              {quickPlayGames.map((game, i) => (
+                <motion.div
+                  key={game.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 + i * 0.05 }}
+                  onClick={() => setActiveGame(game.id)}
+                  className="flex-shrink-0 w-[100px] cursor-pointer active:scale-95 transition-transform"
+                >
+                  <div className="relative">
+                    <div className={`w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br ${game.gradient} flex items-center justify-center text-2xl shadow-lg mb-2`}>
+                      {game.icon}
+                      {game.isHot && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                          <Flame className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-medium text-center text-white/80 truncate">{game.title}</p>
+                    <p className="text-[9px] text-center text-white/40">{game.subtitle}</p>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </motion.section>
 
-          {/* Category Filter - Pill Style */}
+          {/* Daily Challenge Card */}
           <motion.section
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mb-8"
+            transition={{ delay: 0.15 }}
+            className="mb-5"
           >
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="bg-gradient-to-r from-purple-600/20 via-fuchsia-600/15 to-pink-600/20 rounded-2xl p-4 border border-purple-500/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center">
+                    <Gift className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white/90">Daily Challenge</p>
+                    <p className="text-[10px] text-white/50">Win 3 games • 500 coins</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full">
+                    <Clock className="w-3 h-3 text-white/50" />
+                    <span className="text-[10px] text-white/60">12h left</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-white">1/3</p>
+                  </div>
+                </div>
+              </div>
+              {/* Progress bar */}
+              <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: '33%' }}
+                  transition={{ duration: 1, delay: 0.5 }}
+                />
+              </div>
+            </div>
+          </motion.section>
+
+          {/* Category Pills - Scrollable */}
+          <motion.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mb-4"
+          >
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
               {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                     activeCategory === cat.id
                       ? 'bg-white text-black'
-                      : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                      : 'bg-white/5 text-white/60 active:bg-white/10'
                   }`}
                 >
-                  {cat.label}
-                  <span className={`ml-2 ${activeCategory === cat.id ? 'text-black/50' : 'text-white/30'}`}>
-                    {cat.count}
-                  </span>
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
                 </button>
               ))}
             </div>
           </motion.section>
 
-          {/* All Games Grid */}
+          {/* Games Grid - 2 columns on mobile */}
           <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.25 }}
           >
-            <h3 className="text-xl font-semibold mb-6 text-white/90">
-              {activeCategory === 'all' ? 'All Games' : categories.find(c => c.id === activeCategory)?.label}
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white/90">
+                {activeCategory === 'all' ? 'All Games' : categories.find(c => c.id === activeCategory)?.label}
+              </h3>
+              <span className="text-[10px] text-white/40">{filteredGames.length} games</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
               <AnimatePresence mode="popLayout">
                 {filteredGames.map((game, index) => (
                   <motion.div
                     key={game.id}
                     layout
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ delay: index * 0.03 }}
-                    onHoverStart={() => setHoveredGame(game.id)}
-                    onHoverEnd={() => setHoveredGame(null)}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: index * 0.02 }}
                     onClick={() => setActiveGame(game.id)}
-                    className="group cursor-pointer"
+                    className="cursor-pointer active:scale-95 transition-transform"
                   >
-                    <div className="relative rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.05] hover:border-white/10 transition-all duration-300 hover:bg-white/[0.05]">
-                      {/* Game Card */}
-                      <div className="p-5">
-                        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${game.gradient} flex items-center justify-center text-2xl mb-4 shadow-lg`}>
-                          <motion.span
-                            animate={hoveredGame === game.id ? { scale: 1.15 } : { scale: 1 }}
-                            transition={{ type: 'spring', stiffness: 400 }}
-                          >
-                            {game.icon}
-                          </motion.span>
-                        </div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-semibold text-white/90">{game.title}</h4>
-                          {game.isNew && <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px] px-1.5 py-0">NEW</Badge>}
-                          {game.isMultiplayer && <Users className="w-3 h-3 text-blue-400" />}
-                        </div>
-                        <p className="text-xs text-white/40 mb-3">{game.subtitle}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-white/30 uppercase tracking-wider">{game.levels} Levels</span>
-                          <motion.div
-                            animate={hoveredGame === game.id ? { scale: 1.1 } : { scale: 1 }}
-                            className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors"
-                          >
-                            <ChevronRight className="w-3.5 h-3.5 text-white/50" />
-                          </motion.div>
-                        </div>
+                    <div className="relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] p-3">
+                      {/* Game Icon */}
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${game.gradient} flex items-center justify-center text-xl shadow-lg mb-2`}>
+                        {game.icon}
+                      </div>
+                      
+                      {/* Badges */}
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        {game.isNew && (
+                          <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-[8px] font-bold text-green-400">NEW</span>
+                        )}
+                        {game.isMultiplayer && (
+                          <Users className="w-3 h-3 text-blue-400" />
+                        )}
+                      </div>
+                      
+                      {/* Info */}
+                      <h4 className="font-semibold text-xs text-white/90 truncate">{game.title}</h4>
+                      <p className="text-[10px] text-white/40 truncate">{game.subtitle}</p>
+                      
+                      {/* Footer */}
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                        <span className="text-[9px] text-white/30">{game.levels} Lvls</span>
+                        <ChevronRight className="w-3 h-3 text-white/30" />
                       </div>
                     </div>
                   </motion.div>
@@ -430,63 +435,62 @@ export default function ChatrGames() {
             </div>
           </motion.section>
 
-          {/* Stats Section */}
+          {/* Bottom Stats Row */}
           <motion.section
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="mt-16 mb-8"
+            transition={{ delay: 0.4 }}
+            className="mt-6 grid grid-cols-4 gap-2"
           >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Games', value: '15', icon: '🎮' },
-                { label: 'Total Levels', value: '750', icon: '📊' },
-                { label: 'AI Challenges', value: '∞', icon: '🤖' },
-                { label: 'Daily Rewards', value: '500+', icon: '🎁' },
-              ].map((stat, i) => (
-                <div 
-                  key={stat.label}
-                  className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 text-center"
-                >
-                  <span className="text-2xl mb-2 block">{stat.icon}</span>
-                  <p className="text-2xl font-semibold text-white mb-1">{stat.value}</p>
-                  <p className="text-xs text-white/40">{stat.label}</p>
-                </div>
-              ))}
-            </div>
+            {[
+              { icon: '🎮', value: '21', label: 'Games' },
+              { icon: '📊', value: '1.1k', label: 'Levels' },
+              { icon: '🏆', value: `L${currentLevel}`, label: 'Rank' },
+              { icon: '🔥', value: `${dailyStreak}d`, label: 'Streak' },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3 text-center">
+                <span className="text-lg block mb-0.5">{stat.icon}</span>
+                <p className="text-sm font-bold text-white">{stat.value}</p>
+                <p className="text-[9px] text-white/40">{stat.label}</p>
+              </div>
+            ))}
           </motion.section>
 
-          {/* Leaderboard Preview */}
+          {/* Mini Leaderboard */}
           <motion.section
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="mb-24"
+            transition={{ delay: 0.5 }}
+            className="mt-5"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white/90">Leaderboard</h3>
-              <button className="text-sm text-white/40 hover:text-white transition-colors">
-                View All
-              </button>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm font-semibold">Top Players</h3>
+              </div>
+              <button className="text-[10px] text-white/40">View All</button>
             </div>
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl overflow-hidden">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
               {[
-                { rank: 1, name: 'ProGamer', score: 125000, badge: '🥇' },
-                { rank: 2, name: 'AIChallenger', score: 98500, badge: '🥈' },
-                { rank: 3, name: 'PulseKing', score: 87200, badge: '🥉' },
+                { rank: 1, name: 'ProGamer', score: '125K', avatar: '🥇' },
+                { rank: 2, name: 'AIChallenger', score: '98K', avatar: '🥈' },
+                { rank: 3, name: 'PulseKing', score: '87K', avatar: '🥉' },
               ].map((player, i) => (
                 <div 
                   key={player.rank}
-                  className={`flex items-center justify-between p-4 ${i !== 2 ? 'border-b border-white/[0.05]' : ''}`}
+                  className={`flex items-center justify-between px-3 py-2.5 ${i !== 2 ? 'border-b border-white/[0.05]' : ''}`}
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl">{player.badge}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{player.avatar}</span>
                     <div>
-                      <p className="font-medium text-white/90">{player.name}</p>
-                      <p className="text-xs text-white/40">Rank #{player.rank}</p>
+                      <p className="text-xs font-medium text-white/90">{player.name}</p>
+                      <p className="text-[10px] text-white/40">Rank #{player.rank}</p>
                     </div>
                   </div>
-                  <p className="font-semibold text-white/70">{player.score.toLocaleString()}</p>
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-green-400" />
+                    <p className="text-xs font-semibold text-white/70">{player.score}</p>
+                  </div>
                 </div>
               ))}
             </div>
