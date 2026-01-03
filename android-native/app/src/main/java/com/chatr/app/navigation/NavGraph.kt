@@ -109,8 +109,16 @@ fun ChatrNavGraph(
         // Auth Flow
         composable(Screen.Splash.route) {
             SplashScreen(
-                onNavigateToAuth = { navController.navigate(Screen.Auth.route) },
-                onNavigateToChats = { navController.navigate(Screen.Home.route) }
+                onNavigateToAuth = { 
+                    navController.navigate(Screen.Auth.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = { 
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
             )
         }
         
@@ -144,15 +152,14 @@ fun ChatrNavGraph(
         // Main Screens
         composable(Screen.Home.route) {
             HomeScreen(
-                onNavigate = { route ->
-                    when (route) {
-                        "chats" -> navController.navigate(Screen.Chats.route)
-                        "calls" -> navController.navigate(Screen.Calls.route)
-                        "contacts" -> navController.navigate(Screen.Contacts.route)
-                        "settings" -> navController.navigate(Screen.Settings.route)
-                        "profile" -> navController.navigate(Screen.Profile.route)
-                        else -> navController.navigate(route)
-                    }
+                onNavigateToChat = { conversationId ->
+                    navController.navigate(Screen.ChatDetail.createRoute(conversationId))
+                },
+                onNavigateToContacts = {
+                    navController.navigate(Screen.Contacts.route)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
                 }
             )
         }

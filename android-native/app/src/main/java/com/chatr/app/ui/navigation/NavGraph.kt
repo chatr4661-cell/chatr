@@ -26,7 +26,9 @@ fun ChatrNavHost(
         startDestination = startDestination
     ) {
         composable("auth") {
-            AuthScreen(navController)
+            AuthScreen(
+                navController = navController
+            )
         }
         
         composable("chats") {

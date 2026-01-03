@@ -47,7 +47,7 @@ fun AppNavigation(
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 },
-                onNavigateToChats = {
+                onNavigateToHome = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
@@ -63,20 +63,14 @@ fun AppNavigation(
         
         composable(Screen.Home.route) {
             HomeScreen(
-                onNavigate = { route ->
-                    when {
-                        route.startsWith("chat/") -> {
-                            val chatId = route.substringAfter("chat/")
-                            navController.navigate(Screen.Chat.createRoute(chatId, "Chat User"))
-                        }
-                        route == "video-call" -> {
-                            navController.navigate(Screen.VideoCall.createRoute("Contact Name"))
-                        }
-                        route == "voice-call" -> {
-                            navController.navigate(Screen.OngoingCall.createRoute("Contact Name"))
-                        }
-                        else -> navController.navigate(route)
-                    }
+                onNavigateToChat = { chatId ->
+                    navController.navigate(Screen.Chat.createRoute(chatId, "Chat User"))
+                },
+                onNavigateToContacts = {
+                    // Handle contacts
+                },
+                onNavigateToSettings = {
+                    // Handle settings
                 }
             )
         }

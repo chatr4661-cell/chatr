@@ -21,7 +21,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(
     onNavigateToAuth: () -> Unit,
-    onNavigateToChats: () -> Unit
+    onNavigateToHome: () -> Unit
 ) {
     // TODO: Check authentication state and navigate accordingly
     LaunchedEffect(Unit) {
@@ -29,7 +29,7 @@ fun SplashScreen(
         // Check if user is authenticated
         val isAuthenticated = false // TODO: Get from AuthViewModel
         if (isAuthenticated) {
-            onNavigateToChats()
+            onNavigateToHome()
         } else {
             onNavigateToAuth()
         }
