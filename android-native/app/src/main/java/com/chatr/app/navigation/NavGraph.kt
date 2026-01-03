@@ -3,6 +3,9 @@ package com.chatr.app.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -12,9 +15,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.chatr.app.ui.screens.*
-import com.chatr.app.ui.screens.auth.*
 import com.chatr.app.ui.screens.dashboard.*
 import com.chatr.app.viewmodel.AuthViewModel
+import com.chatr.app.webrtc.audio.AudioRoute
 
 /**
  * Navigation Routes
@@ -97,8 +100,7 @@ fun ChatrNavGraph(
     startDestination: String = Screen.Splash.route
 ) {
     val authViewModel: AuthViewModel = hiltViewModel()
-    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
-    val isOnboardingComplete by authViewModel.isOnboardingComplete.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
     
     NavHost(
         navController = navController,
@@ -108,27 +110,20 @@ fun ChatrNavGraph(
         composable(Screen.Splash.route) {
             SplashScreen(
                 onNavigateToAuth = { navController.navigate(Screen.Auth.route) },
-                onNavigateToHome = { navController.navigate(Screen.Home.route) },
-                onNavigateToPin = { navController.navigate(Screen.Pin.route) }
+                onNavigateToChats = { navController.navigate(Screen.Home.route) }
             )
         }
         
         composable(Screen.Auth.route) {
             AuthScreen(
-                onNavigateToHome = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Auth.route) { inclusive = true }
-                    }
-                },
-                onNavigateToOnboarding = {
-                    navController.navigate(Screen.Onboarding.route)
-                }
+                navController = navController
             )
         }
         
         composable(Screen.Pin.route) {
             PinScreen(
-                onSuccess = {
+                navController = navController,
+                onPinSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Pin.route) { inclusive = true }
                     }
@@ -149,7 +144,16 @@ fun ChatrNavGraph(
         // Main Screens
         composable(Screen.Home.route) {
             HomeScreen(
-                navController = navController
+                onNavigate = { route ->
+                    when (route) {
+                        "chats" -> navController.navigate(Screen.Chats.route)
+                        "calls" -> navController.navigate(Screen.Calls.route)
+                        "contacts" -> navController.navigate(Screen.Contacts.route)
+                        "settings" -> navController.navigate(Screen.Settings.route)
+                        "profile" -> navController.navigate(Screen.Profile.route)
+                        else -> navController.navigate(route)
+                    }
+                }
             )
         }
         
@@ -190,32 +194,30 @@ fun ChatrNavGraph(
         
         composable(Screen.Contacts.route) {
             ContactsScreen(
-                onNavigateToChat = { conversationId ->
-                    navController.navigate(Screen.ChatDetail.createRoute(conversationId))
-                },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigate = { route ->
+                    if (route.startsWith("contact/")) {
+                        // Handle contact detail navigation
+                    } else {
+                        navController.navigate(route)
+                    }
+                }
             )
         }
         
         composable(Screen.Calls.route) {
             CallsScreen(
-                onNavigateToCall = { callId, isVideo ->
-                    if (isVideo) {
-                        navController.navigate(Screen.VideoCall.createRoute(callId))
-                    } else {
-                        navController.navigate(Screen.OngoingCall.createRoute(callId))
-                    }
+                onNavigate = { route ->
+                    navController.navigate(route)
                 }
             )
         }
         
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
-                onLogout = {
-                    navController.navigate(Screen.Auth.route) {
-                        popUpTo(0) { inclusive = true }
+                onNavigate = { route ->
+                    when (route) {
+                        "profile" -> navController.navigate(Screen.Profile.route)
+                        else -> { /* Handle other settings routes */ }
                     }
                 }
             )
@@ -239,13 +241,15 @@ fun ChatrNavGraph(
         ) { backStackEntry ->
             val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
             IncomingCallScreen(
-                callId = callId,
-                onAnswer = {
+                callerName = "Incoming Call",
+                callerAvatar = null,
+                isVideo = false,
+                onAccept = {
                     navController.navigate(Screen.OngoingCall.createRoute(callId)) {
                         popUpTo(Screen.IncomingCall.route) { inclusive = true }
                     }
                 },
-                onDecline = { navController.popBackStack() }
+                onReject = { navController.popBackStack() }
             )
         }
         
@@ -256,14 +260,22 @@ fun ChatrNavGraph(
             )
         ) { backStackEntry ->
             val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
+            var isMuted by remember { mutableStateOf(false) }
+            var audioRoute by remember { mutableStateOf(AudioRoute.EARPIECE) }
+            
             OngoingCallScreen(
-                callId = callId,
-                onEndCall = { navController.popBackStack() },
-                onSwitchToVideo = {
-                    navController.navigate(Screen.VideoCall.createRoute(callId)) {
-                        popUpTo(Screen.OngoingCall.route) { inclusive = true }
+                callerName = "Call",
+                isMuted = isMuted,
+                audioRoute = audioRoute,
+                onToggleMute = { isMuted = !isMuted },
+                onToggleAudioRoute = {
+                    audioRoute = when (audioRoute) {
+                        AudioRoute.EARPIECE -> AudioRoute.SPEAKER
+                        AudioRoute.SPEAKER -> AudioRoute.EARPIECE
+                        else -> AudioRoute.EARPIECE
                     }
-                }
+                },
+                onEndCall = { navController.popBackStack() }
             )
         }
         
@@ -274,86 +286,70 @@ fun ChatrNavGraph(
             )
         ) { backStackEntry ->
             val callId = backStackEntry.arguments?.getString("callId") ?: return@composable
+            var isMuted by remember { mutableStateOf(false) }
+            var isVideoEnabled by remember { mutableStateOf(true) }
+            var audioRoute by remember { mutableStateOf(AudioRoute.SPEAKER) }
+            
             VideoCallScreen(
-                callId = callId,
+                callerName = "Video Call",
+                localVideoTrack = null,
+                remoteVideoTrack = null,
+                isMuted = isMuted,
+                isVideoEnabled = isVideoEnabled,
+                audioRoute = audioRoute,
+                onToggleMute = { isMuted = !isMuted },
+                onToggleVideo = { isVideoEnabled = !isVideoEnabled },
+                onSwitchCamera = { /* TODO */ },
+                onToggleAudioRoute = {
+                    audioRoute = when (audioRoute) {
+                        AudioRoute.SPEAKER -> AudioRoute.EARPIECE
+                        AudioRoute.EARPIECE -> AudioRoute.SPEAKER
+                        else -> AudioRoute.SPEAKER
+                    }
+                },
                 onEndCall = { navController.popBackStack() }
             )
         }
         
-        // Feature Screens
-        composable(
-            route = Screen.AIAssistant.route,
-            deepLinks = listOf(
-                navDeepLink { uriPattern = "chatr://ai-assistant" }
-            )
-        ) {
-            AIAssistantScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+        // Feature Screens - Placeholders
+        composable(Screen.AIAssistant.route) {
+            AIAssistantScreen(onNavigateBack = { navController.popBackStack() })
         }
         
-        composable(
-            route = Screen.AIBrowser.route,
-            deepLinks = listOf(
-                navDeepLink { uriPattern = "chatr://ai-browser" }
-            )
-        ) {
-            AIBrowserScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+        composable(Screen.AIBrowser.route) {
+            AIBrowserScreen(onNavigateBack = { navController.popBackStack() })
         }
         
-        composable(
-            route = Screen.ChatrWorld.route,
-            deepLinks = listOf(
-                navDeepLink { uriPattern = "chatr://chatr-world" }
-            )
-        ) {
-            ChatrWorldScreen(
-                navController = navController
-            )
+        composable(Screen.ChatrWorld.route) {
+            ChatrWorldScreen(navController = navController)
         }
         
         composable(Screen.LocalJobs.route) {
-            LocalJobsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            LocalJobsScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.LocalHealthcare.route) {
-            LocalHealthcareScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            LocalHealthcareScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.FoodOrdering.route) {
-            FoodOrderingScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            FoodOrderingScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.LocalDeals.route) {
-            LocalDealsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            LocalDealsScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.HealthHub.route) {
-            HealthHubScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            HealthHubScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.StealthMode.route) {
-            StealthModeScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            StealthModeScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.Studio.route) {
-            StudioScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            StudioScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.Games.route) {
@@ -379,15 +375,11 @@ fun ChatrNavGraph(
         }
         
         composable(Screen.Points.route) {
-            PointsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            PointsScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.Wallet.route) {
-            WalletScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            WalletScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         // Stories
@@ -403,9 +395,7 @@ fun ChatrNavGraph(
         }
         
         composable(Screen.CreateStory.route) {
-            CreateStoryScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            CreateStoryScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(
@@ -448,15 +438,11 @@ fun ChatrNavGraph(
         
         // QR
         composable(Screen.QRScanner.route) {
-            QRScannerScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            QRScannerScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         composable(Screen.QRLogin.route) {
-            QRLoginScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            QRLoginScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         // Referral - Join screen with deep link support

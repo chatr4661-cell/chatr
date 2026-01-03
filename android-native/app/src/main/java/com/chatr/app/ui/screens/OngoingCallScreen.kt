@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chatr.app.ui.theme.*
-import com.chatr.app.webrtc.AudioRoute
+import com.chatr.app.webrtc.audio.AudioRoute
 import kotlinx.coroutines.delay
 
 @Composable

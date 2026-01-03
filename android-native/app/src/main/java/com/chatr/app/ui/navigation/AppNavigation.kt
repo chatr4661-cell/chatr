@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.chatr.app.ui.screens.*
+import com.chatr.app.ui.screens.dashboard.*
 import com.chatr.app.webrtc.audio.AudioRoute
 
 sealed class Screen(val route: String) {
@@ -41,8 +42,13 @@ fun AppNavigation(
     ) {
         composable(Screen.Splash.route) {
             SplashScreen(
-                onSplashComplete = {
+                onNavigateToAuth = {
                     navController.navigate(Screen.Auth.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToChats = {
+                    navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
@@ -51,31 +57,26 @@ fun AppNavigation(
         
         composable(Screen.Auth.route) {
             AuthScreen(
-                onAuthSuccess = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Auth.route) { inclusive = true }
-                    }
-                }
+                navController = navController
             )
         }
         
         composable(Screen.Home.route) {
             HomeScreen(
-                onChatClick = { chatId ->
-                    navController.navigate(Screen.Chat.createRoute(chatId, "Chat User"))
-                },
-                onCallClick = { contactId, isVideo ->
-                    if (isVideo) {
-                        navController.navigate(Screen.VideoCall.createRoute("Contact Name"))
-                    } else {
-                        navController.navigate(Screen.OngoingCall.createRoute("Contact Name"))
+                onNavigate = { route ->
+                    when {
+                        route.startsWith("chat/") -> {
+                            val chatId = route.substringAfter("chat/")
+                            navController.navigate(Screen.Chat.createRoute(chatId, "Chat User"))
+                        }
+                        route == "video-call" -> {
+                            navController.navigate(Screen.VideoCall.createRoute("Contact Name"))
+                        }
+                        route == "voice-call" -> {
+                            navController.navigate(Screen.OngoingCall.createRoute("Contact Name"))
+                        }
+                        else -> navController.navigate(route)
                     }
-                },
-                onContactClick = { contactId ->
-                    // Navigate to contact profile or start chat
-                },
-                onNewChat = {
-                    // Navigate to new chat/contact picker
                 }
             )
         }
@@ -90,16 +91,17 @@ fun AppNavigation(
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             val chatName = backStackEntry.arguments?.getString("chatName") ?: ""
             
-            ChatScreen(
-                chatId = chatId,
-                chatName = chatName,
-                isOnline = true,
-                onBack = { navController.popBackStack() },
-                onVoiceCall = {
-                    navController.navigate(Screen.OngoingCall.createRoute(chatName))
-                },
-                onVideoCall = {
-                    navController.navigate(Screen.VideoCall.createRoute(chatName))
+            // Use ChatDetailScreen with proper signature
+            ChatDetailScreen(
+                conversationId = chatId,
+                contactName = chatName,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToCall = { callId, isVideo ->
+                    if (isVideo) {
+                        navController.navigate(Screen.VideoCall.createRoute(chatName))
+                    } else {
+                        navController.navigate(Screen.OngoingCall.createRoute(chatName))
+                    }
                 }
             )
         }

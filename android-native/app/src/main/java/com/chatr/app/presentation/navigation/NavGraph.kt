@@ -6,13 +6,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.chatr.app.presentation.auth.AuthScreen
-import com.chatr.app.presentation.auth.OtpVerificationScreen
-import com.chatr.app.presentation.chat.ChatDetailScreen
-import com.chatr.app.presentation.chat.ChatListScreen
-import com.chatr.app.presentation.contacts.ContactsScreen
-import com.chatr.app.presentation.home.HomeScreen
-import com.chatr.app.presentation.splash.SplashScreen
+import com.chatr.app.ui.screens.*
+import com.chatr.app.ui.screens.dashboard.*
 
 /**
  * Navigation routes for the app
@@ -50,7 +45,7 @@ fun ChatrNavGraph(
                         popUpTo(Route.Splash.route) { inclusive = true }
                     }
                 },
-                onNavigateToHome = {
+                onNavigateToChats = {
                     navController.navigate(Route.Home.route) {
                         popUpTo(Route.Splash.route) { inclusive = true }
                     }
@@ -60,14 +55,10 @@ fun ChatrNavGraph(
 
         // Authentication
         composable(Route.Auth.route) {
-            AuthScreen(
-                onNavigateToOtp = { phoneNumber ->
-                    navController.navigate(Route.OtpVerification.createRoute(phoneNumber))
-                }
-            )
+            AuthScreen(navController = navController)
         }
 
-        // OTP Verification
+        // OTP Verification - redirect to auth for now
         composable(
             route = Route.OtpVerification.route,
             arguments = listOf(
@@ -75,29 +66,32 @@ fun ChatrNavGraph(
             )
         ) { backStackEntry ->
             val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
-            OtpVerificationScreen(
-                phoneNumber = phoneNumber,
-                onVerificationSuccess = {
-                    navController.navigate(Route.Home.route) {
-                        popUpTo(Route.Auth.route) { inclusive = true }
-                    }
-                },
-                onNavigateBack = { navController.popBackStack() }
-            )
+            // OTP is now handled inline in AuthScreen via Firebase
+            AuthScreen(navController = navController)
         }
 
         // Home (with bottom navigation)
         composable(Route.Home.route) {
-            HomeScreen(navController = navController)
+            HomeScreen(
+                onNavigate = { route ->
+                    when (route) {
+                        "chats" -> navController.navigate(Route.ChatList.route)
+                        "contacts" -> navController.navigate(Route.Contacts.route)
+                        "calls" -> navController.navigate(Route.CallHistory.route)
+                        "settings" -> navController.navigate(Route.Settings.route)
+                        else -> navController.navigate(route)
+                    }
+                }
+            )
         }
 
         // Chat List
         composable(Route.ChatList.route) {
-            ChatListScreen(
-                onChatClick = { conversationId ->
+            ChatsScreen(
+                onNavigateToChat = { conversationId ->
                     navController.navigate(Route.ChatDetail.createRoute(conversationId))
                 },
-                onNewChat = {
+                onNavigateToContacts = {
                     navController.navigate(Route.Contacts.route)
                 }
             )
@@ -113,18 +107,42 @@ fun ChatrNavGraph(
             val conversationId = backStackEntry.arguments?.getString("conversationId") ?: ""
             ChatDetailScreen(
                 conversationId = conversationId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToCall = { callId, isVideo ->
+                    // Handle call navigation
+                }
             )
         }
 
         // Contacts
         composable(Route.Contacts.route) {
             ContactsScreen(
-                onContactClick = { userId ->
-                    // Start new conversation or navigate to existing
-                    navController.navigate(Route.ChatDetail.createRoute(userId))
-                },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigate = { route ->
+                    if (route.startsWith("contact/")) {
+                        val contactId = route.substringAfter("contact/")
+                        navController.navigate(Route.ChatDetail.createRoute(contactId))
+                    } else {
+                        navController.navigate(route)
+                    }
+                }
+            )
+        }
+        
+        // Call History
+        composable(Route.CallHistory.route) {
+            CallsScreen(
+                onNavigate = { route ->
+                    navController.navigate(route)
+                }
+            )
+        }
+        
+        // Settings
+        composable(Route.Settings.route) {
+            SettingsScreen(
+                onNavigate = { route ->
+                    navController.navigate(route)
+                }
             )
         }
     }
