@@ -29,25 +29,25 @@ class SupabaseChatRepository @Inject constructor(
     /**
      * Get conversations for current user
      */
-    suspend fun getConversations(userId: String): Result<List<Conversation>> {
+    suspend fun getConversations(userId: String): Result<List<SupabaseConversation>> {
         return try {
             val conversations = postgrest.from("conversations")
                 .select {
                     filter {
-                        // Get conversations where user is a participant
+                        // TODO: Filter by participant (requires join/RPC). Kept as stub.
                     }
                 }
-                .decodeList<Conversation>()
+                .decodeList<SupabaseConversation>()
             Result.success(conversations)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-    
+
     /**
      * Get messages for a conversation
      */
-    suspend fun getMessages(conversationId: String, limit: Int = 50): Result<List<Message>> {
+    suspend fun getMessages(conversationId: String, limit: Int = 50): Result<List<SupabaseMessage>> {
         return try {
             val messages = postgrest.from("messages")
                 .select {
@@ -57,13 +57,13 @@ class SupabaseChatRepository @Inject constructor(
                     order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
                     limit(limit.toLong())
                 }
-                .decodeList<Message>()
+                .decodeList<SupabaseMessage>()
             Result.success(messages.reversed())
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-    
+
     /**
      * Send a message
      */
@@ -72,9 +72,9 @@ class SupabaseChatRepository @Inject constructor(
         senderId: String,
         content: String,
         messageType: String = "TEXT"
-    ): Result<Message> {
+    ): Result<SupabaseMessage> {
         return try {
-            val message = MessageInsert(
+            val message = SupabaseMessageInsert(
                 conversation_id = conversationId,
                 sender_id = senderId,
                 content = content,
@@ -82,25 +82,25 @@ class SupabaseChatRepository @Inject constructor(
             )
             val result = postgrest.from("messages")
                 .insert(message)
-                .decodeSingle<Message>()
+                .decodeSingle<SupabaseMessage>()
             Result.success(result)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-    
+
     /**
      * Subscribe to real-time messages for a conversation
      */
-    suspend fun subscribeToMessages(conversationId: String): Flow<Message> {
+    suspend fun subscribeToMessages(conversationId: String): Flow<SupabaseMessage> {
         val channel = realtime.channel("messages:$conversationId")
-        
+
         val flow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "messages"
             filter = "conversation_id=eq.$conversationId"
         }.map { change ->
             change.record.let { record ->
-                Message(
+                SupabaseMessage(
                     id = record["id"].toString(),
                     conversation_id = record["conversation_id"].toString(),
                     sender_id = record["sender_id"].toString(),
@@ -110,13 +110,13 @@ class SupabaseChatRepository @Inject constructor(
                 )
             }
         }
-        
+
         channel.subscribe()
         messagesChannel = channel
-        
+
         return flow
     }
-    
+
     /**
      * Unsubscribe from real-time messages
      */
@@ -124,7 +124,7 @@ class SupabaseChatRepository @Inject constructor(
         messagesChannel?.unsubscribe()
         messagesChannel = null
     }
-    
+
     /**
      * Mark messages as read
      */
@@ -135,8 +135,7 @@ class SupabaseChatRepository @Inject constructor(
                     filter {
                         eq("conversation_id", conversationId)
                         neq("sender_id", userId)
-                        // Filter unread messages - read_at is null
-                        // Note: We can't use isNull directly, so we update all and let DB handle
+                        // NOTE: Intentionally not filtering read_at is null (SDK limitation). 
                     }
                 }
             Result.success(Unit)
@@ -144,38 +143,30 @@ class SupabaseChatRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Create or get direct conversation
      */
     suspend fun getOrCreateDirectConversation(userId: String, otherUserId: String): Result<String> {
         return try {
-            // Call RPC function using postgrest
-            val result = postgrest.from("rpc")
-                .select {
-                    // Use function call approach
-                }
-                .decodeAs<String>()
-            Result.success(result)
-        } catch (e: Exception) {
-            // Fallback: create conversation directly
-            try {
-                val conversation = postgrest.from("conversations")
-                    .insert(mapOf(
+            // TODO: Implement via RPC when available.
+            val conversation = postgrest.from("conversations")
+                .insert(
+                    mapOf(
                         "is_group" to false,
                         "created_by" to userId
-                    ))
-                    .decodeSingle<Conversation>()
-                Result.success(conversation.id)
-            } catch (fallbackError: Exception) {
-                Result.failure(fallbackError)
-            }
+                    )
+                )
+                .decodeSingle<SupabaseConversation>()
+            Result.success(conversation.id)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }
 
 @Serializable
-data class Conversation(
+data class SupabaseConversation(
     val id: String,
     val group_name: String? = null,
     val is_group: Boolean = false,
@@ -185,7 +176,7 @@ data class Conversation(
 )
 
 @Serializable
-data class Message(
+data class SupabaseMessage(
     val id: String,
     val conversation_id: String,
     val sender_id: String,
@@ -196,9 +187,10 @@ data class Message(
 )
 
 @Serializable
-data class MessageInsert(
+data class SupabaseMessageInsert(
     val conversation_id: String,
     val sender_id: String,
     val content: String,
     val message_type: String = "TEXT"
 )
+
