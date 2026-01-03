@@ -1,138 +1,187 @@
 package com.chatr.app.viewmodel
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chatr.app.data.models.*
+import com.chatr.app.contacts.ContactDiscoveryService
+import com.chatr.app.contacts.DiscoveryResult
+import com.chatr.app.data.api.ContactInfo
+import com.chatr.app.data.api.ContactResponse
 import com.chatr.app.data.repository.ContactsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ContactsUiState(
     val isLoading: Boolean = false,
-    val contacts: List<Contact> = emptyList(),
-    val registeredContacts: List<Contact> = emptyList(),
-    val unregisteredContacts: List<Contact> = emptyList(),
-    val blockedContacts: List<Contact> = emptyList(),
-    val searchResults: List<User> = emptyList(),
     val isSyncing: Boolean = false,
+    val registeredContacts: List<ContactResponse> = emptyList(),
+    val unregisteredContacts: List<ContactResponse> = emptyList(),
+    val registeredCount: Int = 0,
+    val totalCount: Int = 0,
     val error: String? = null
 )
 
 @HiltViewModel
 class ContactsViewModel @Inject constructor(
-    private val contactsRepository: ContactsRepository
+    @ApplicationContext private val context: Context,
+    private val contactsRepository: ContactsRepository,
+    private val contactDiscoveryService: ContactDiscoveryService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ContactsUiState())
     val uiState: StateFlow<ContactsUiState> = _uiState.asStateFlow()
     
-    fun loadContacts() {
+    init {
+        loadCachedContacts()
+    }
+    
+    fun hasContactPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+    
+    private fun loadCachedContacts() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
             contactsRepository.getContacts().collect { result ->
                 result.onSuccess { contacts ->
                     val registered = contacts.filter { it.isRegistered }
                     val unregistered = contacts.filter { !it.isRegistered }
                     
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        contacts = contacts,
-                        registeredContacts = registered.sortedBy { it.contactName },
-                        unregisteredContacts = unregistered.sortedBy { it.contactName }
-                    )
-                }.onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = exception.message ?: "Failed to load contacts"
-                    )
+                    _uiState.update {
+                        it.copy(
+                            registeredContacts = registered.sortedBy { c -> c.contactName },
+                            unregisteredContacts = unregistered.sortedBy { c -> c.contactName },
+                            registeredCount = registered.size,
+                            totalCount = contacts.size
+                        )
+                    }
                 }
             }
         }
     }
     
-    fun syncContacts(deviceContacts: List<ContactInfo>) {
+    fun discoverContacts() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSyncing = true, error = null)
+            _uiState.update { it.copy(isLoading = true, error = null) }
             
-            contactsRepository.syncContacts(deviceContacts)
-                .onSuccess { matchedUsers ->
-                    _uiState.value = _uiState.value.copy(isSyncing = false)
-                    // Reload contacts to get updated list
-                    loadContacts()
+            when (val result = contactDiscoveryService.discoverContacts()) {
+                is DiscoveryResult.Success -> {
+                    // Convert to ContactResponse for UI
+                    val registered = result.registeredContacts.map { contact ->
+                        ContactResponse(
+                            id = contact.id,
+                            userId = "",
+                            contactUserId = contact.id,
+                            contactName = contact.name,
+                            contactPhone = contact.phoneNumber,
+                            isRegistered = true,
+                            avatarUrl = contact.avatarUrl,
+                            isOnline = contact.isOnline
+                        )
+                    }
+                    val invitable = result.invitableContacts.map { contact ->
+                        ContactResponse(
+                            id = contact.id,
+                            userId = "",
+                            contactUserId = null,
+                            contactName = contact.name,
+                            contactPhone = contact.phoneNumber,
+                            isRegistered = false,
+                            avatarUrl = contact.avatarUrl,
+                            isOnline = false
+                        )
+                    }
+                    
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            registeredContacts = registered,
+                            unregisteredContacts = invitable,
+                            registeredCount = result.registeredCount,
+                            totalCount = result.totalContacts
+                        )
+                    }
                 }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isSyncing = false,
-                        error = exception.message ?: "Failed to sync contacts"
-                    )
+                is DiscoveryResult.NoPermission -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Contact permission required"
+                        )
+                    }
                 }
+                is DiscoveryResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = result.message
+                        )
+                    }
+                }
+            }
         }
     }
     
-    fun searchUsers(query: String) {
+    fun searchContacts(query: String) {
         if (query.isBlank()) {
-            _uiState.value = _uiState.value.copy(searchResults = emptyList())
+            loadCachedContacts()
             return
         }
         
         viewModelScope.launch {
-            contactsRepository.searchUsers(query)
-                .onSuccess { users ->
-                    _uiState.value = _uiState.value.copy(searchResults = users)
-                }
-                .onFailure {
-                    _uiState.value = _uiState.value.copy(searchResults = emptyList())
-                }
-        }
-    }
-    
-    fun blockContact(userId: String) {
-        viewModelScope.launch {
-            contactsRepository.blockContact(userId)
-                .onSuccess {
-                    loadContacts()
-                    loadBlockedContacts()
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        error = exception.message
-                    )
-                }
-        }
-    }
-    
-    fun unblockContact(userId: String) {
-        viewModelScope.launch {
-            contactsRepository.unblockContact(userId)
-                .onSuccess {
-                    loadContacts()
-                    loadBlockedContacts()
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        error = exception.message
-                    )
-                }
-        }
-    }
-    
-    fun loadBlockedContacts() {
-        viewModelScope.launch {
-            contactsRepository.getBlockedContacts()
-                .onSuccess { blocked ->
-                    _uiState.value = _uiState.value.copy(blockedContacts = blocked)
-                }
+            val results = contactDiscoveryService.searchContacts(query)
+            
+            val registered = results.onChatr.map { contact ->
+                ContactResponse(
+                    id = contact.id,
+                    userId = "",
+                    contactUserId = contact.id,
+                    contactName = contact.name,
+                    contactPhone = contact.phoneNumber,
+                    isRegistered = true,
+                    avatarUrl = contact.avatarUrl,
+                    isOnline = contact.isOnline
+                )
+            }
+            val invitable = results.invite.map { contact ->
+                ContactResponse(
+                    id = contact.id,
+                    userId = "",
+                    contactUserId = null,
+                    contactName = contact.name,
+                    contactPhone = contact.phoneNumber,
+                    isRegistered = false,
+                    avatarUrl = contact.avatarUrl,
+                    isOnline = false
+                )
+            }
+            
+            _uiState.update {
+                it.copy(
+                    registeredContacts = registered,
+                    unregisteredContacts = invitable
+                )
+            }
         }
     }
     
     fun clearSearch() {
-        _uiState.value = _uiState.value.copy(searchResults = emptyList())
+        loadCachedContacts()
+    }
+    
+    fun generateInviteMessage(contactName: String): String {
+        return contactDiscoveryService.generateInviteMessage(contactName)
     }
     
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.update { it.copy(error = null) }
     }
 }

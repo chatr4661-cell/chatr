@@ -41,4 +41,15 @@ data class ContactResponse(
     val isOnline: Boolean = false
 )
 
+// Domain Contact model for UI
+data class Contact(
+    val id: String,
+    val name: String,
+    val phoneNumber: String? = null,
+    val avatarUrl: String? = null,
+    val isOnline: Boolean = false,
+    val isRegistered: Boolean = false,
+    val lastSeen: Long? = null
+)
+
 data class BlockContactRequest(val userId: String)

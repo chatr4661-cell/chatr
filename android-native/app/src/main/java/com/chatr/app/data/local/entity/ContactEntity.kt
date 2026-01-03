@@ -2,6 +2,7 @@ package com.chatr.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.chatr.app.data.api.Contact
 import com.chatr.app.data.api.ContactResponse
 
 @Entity(tableName = "contacts")
@@ -14,6 +15,7 @@ data class ContactEntity(
     val isRegistered: Boolean = false,
     val avatarUrl: String? = null,
     val isOnline: Boolean = false,
+    val lastSeen: Long? = null,
     val lastSyncedAt: Long = System.currentTimeMillis()
 ) {
     fun toContactResponse(): ContactResponse {
@@ -26,6 +28,17 @@ data class ContactEntity(
             isRegistered = isRegistered,
             avatarUrl = avatarUrl,
             isOnline = isOnline
+        )
+    }
+    
+    fun toContact(): Contact {
+        return Contact(
+            id = contactUserId ?: id,
+            name = contactName,
+            phoneNumber = contactPhone,
+            avatarUrl = avatarUrl,
+            isOnline = isOnline,
+            isRegistered = isRegistered
         )
     }
     
@@ -43,4 +56,5 @@ data class ContactEntity(
             )
         }
     }
+}
 }
