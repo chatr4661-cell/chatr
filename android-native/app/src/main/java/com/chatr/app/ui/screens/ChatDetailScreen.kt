@@ -1,10 +1,12 @@
 package com.chatr.app.ui.screens
 
+import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,13 +20,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.chatr.app.data.repository.MessageItem
+import com.chatr.app.ui.components.chat.*
 import com.chatr.app.ui.theme.*
 import com.chatr.app.viewmodel.ChatDetailViewModel
 import java.text.SimpleDateFormat
@@ -32,9 +37,7 @@ import java.time.Instant
 import java.util.*
 
 /**
- * ChatDetailScreen - Shows messages for a conversation
- * Uses SupabaseRpcRepository.getMessages() which calls get_conversation_messages() RPC
- * This provides the same data as the web app
+ * ChatDetailScreen - Complete chat experience with all features
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +45,6 @@ fun ChatDetailScreen(
     conversationId: String,
     onNavigateBack: () -> Unit = {},
     onNavigateToCall: (String, Boolean) -> Unit = { _, _ -> },
-    // Legacy params - for backwards compatibility
     contactName: String = "",
     currentUserId: String = "",
     onNavigate: ((String) -> Unit)? = null,
@@ -52,232 +54,346 @@ fun ChatDetailScreen(
     val state by viewModel.state.collectAsState()
     var messageText by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val haptics = LocalHapticFeedback.current
     
     val listState = rememberLazyListState()
     
-    // Get contact name from first message sender that isn't current user, or use provided name
     val displayName = remember(state.messages, contactName) {
-        if (contactName.isNotEmpty()) {
-            contactName
-        } else {
-            state.messages.find { it.sender_id != state.currentUserId }?.sender_name ?: "Chat"
-        }
+        if (contactName.isNotEmpty()) contactName
+        else state.messages.find { it.sender_id != state.currentUserId }?.sender_name ?: "Chat"
     }
     
     val displayAvatar = remember(state.messages) {
         state.messages.find { it.sender_id != state.currentUserId }?.sender_avatar
     }
     
-    // Mark conversation as read when opened
-    LaunchedEffect(conversationId) {
-        viewModel.markAsRead()
+    // Permission launcher for mic
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) viewModel.startVoiceRecording()
     }
     
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
-        // Handle image upload
+        // TODO: Upload and send image
+    }
+    
+    LaunchedEffect(conversationId) {
+        viewModel.markAsRead()
+    }
+    
+    // Auto-scroll on new messages
+    LaunchedEffect(state.messages.size) {
+        if (state.messages.isNotEmpty()) {
+            listState.animateScrollToItem(state.messages.size - 1)
+        }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Avatar
-                        if (!displayAvatar.isNullOrEmpty()) {
-                            AsyncImage(
-                                model = displayAvatar,
-                                contentDescription = "Avatar",
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                Column {
+                    TopAppBar(
+                        title = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!displayAvatar.isNullOrEmpty()) {
+                                    AsyncImage(
+                                        model = displayAvatar,
+                                        contentDescription = "Avatar",
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(Primary),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = displayName.firstOrNull()?.uppercase() ?: "?",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = PrimaryForeground,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.width(12.dp))
+                                
+                                Column {
+                                    Text(
+                                        text = displayName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    if (state.isOtherUserTyping) {
+                                        Text(
+                                            text = "typing...",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Primary
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "Online",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Success
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { 
+                                onNavigateBack()
+                                onBack?.invoke()
+                            }) {
+                                Icon(Icons.Default.ArrowBack, "Back")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { viewModel.toggleSearch() }) {
+                                Icon(Icons.Default.Search, "Search", tint = Foreground)
+                            }
+                            IconButton(onClick = { 
+                                onNavigateToCall(conversationId, false)
+                            }) {
+                                Icon(Icons.Default.Phone, "Voice Call", tint = Primary)
+                            }
+                            IconButton(onClick = { 
+                                onNavigateToCall(conversationId, true)
+                            }) {
+                                Icon(Icons.Default.Videocam, "Video Call", tint = Primary)
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Background)
+                    )
+                    
+                    // Search bar
+                    MessageSearchBar(
+                        isVisible = state.isSearching,
+                        searchQuery = state.searchQuery,
+                        onQueryChange = { viewModel.updateSearchQuery(it) },
+                        onClose = { viewModel.toggleSearch() },
+                        currentMatch = state.currentSearchIndex,
+                        totalMatches = state.searchMatches.size,
+                        onPrevious = { viewModel.previousSearchMatch() },
+                        onNext = { viewModel.nextSearchMatch() }
+                    )
+                }
+            },
+            bottomBar = {
+                Column {
+                    // Reply preview
+                    state.replyingToMessage?.let { replyMessage ->
+                        ReplyPreview(
+                            senderName = replyMessage.sender_name ?: "Unknown",
+                            messageContent = replyMessage.content,
+                            onDismiss = { viewModel.cancelReply() }
+                        )
+                    }
+                    
+                    // Voice recording UI or message input
+                    if (state.isRecording) {
+                        VoiceRecordingUI(
+                            isRecording = state.isRecording,
+                            duration = state.recordingDuration,
+                            amplitude = state.recordingAmplitude,
+                            onCancel = { viewModel.cancelVoiceRecording() },
+                            onSend = { viewModel.stopVoiceRecording() }
+                        )
+                    } else {
+                        MessageInputBar(
+                            messageText = messageText,
+                            onMessageTextChange = { 
+                                messageText = it 
+                                viewModel.onTextChanged(it)
+                            },
+                            onSendMessage = {
+                                if (messageText.isNotBlank()) {
+                                    viewModel.sendMessage(messageText)
+                                    messageText = ""
+                                }
+                            },
+                            onAttachmentClick = { imagePicker.launch("image/*") },
+                            onVoiceNoteClick = {
+                                micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            },
+                            isSending = state.isSending
+                        )
+                    }
+                }
+            }
+        ) { padding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Background)
+                    .padding(padding)
+            ) {
+                state.error?.let { error ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .align(Alignment.TopCenter),
+                        colors = CardDefaults.cardColors(containerColor = Destructive.copy(alpha = 0.1f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = error,
+                                color = Destructive,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
                             )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Primary),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = displayName.firstOrNull()?.uppercase() ?: "?",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = PrimaryForeground,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            TextButton(onClick = { viewModel.loadMessages() }) {
+                                Text("Retry", color = Primary)
                             }
                         }
-                        
-                        Spacer(modifier = Modifier.width(12.dp))
-                        
-                        Column {
-                            Text(
-                                text = displayName,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "Online",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Success
-                            )
-                        }
                     }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { 
-                        onNavigateBack()
-                        onBack?.invoke()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { 
-                        onNavigateToCall(conversationId, false)
-                        onNavigate?.invoke("voice-call/$conversationId") 
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = "Voice Call",
-                            tint = Primary
-                        )
-                    }
-                    IconButton(onClick = { 
-                        onNavigateToCall(conversationId, true)
-                        onNavigate?.invoke("video-call/$conversationId") 
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Videocam,
-                            contentDescription = "Video Call",
-                            tint = Primary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Background
-                )
-            )
-        },
-        bottomBar = {
-            MessageInputBar(
-                messageText = messageText,
-                onMessageTextChange = { messageText = it },
-                onSendMessage = {
-                    if (messageText.isNotBlank()) {
-                        viewModel.sendMessage(messageText)
-                        messageText = ""
-                    }
-                },
-                onAttachmentClick = { imagePicker.launch("image/*") },
-                onVoiceNoteClick = { /* Handle voice note */ },
-                isSending = state.isSending
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Background)
-                .padding(padding)
-        ) {
-            // Error message
-            state.error?.let { error ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .align(Alignment.TopCenter),
-                    colors = CardDefaults.cardColors(containerColor = Destructive.copy(alpha = 0.1f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                }
+                
+                if (state.isLoading && state.messages.isEmpty()) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Primary
+                    )
+                } else if (state.messages.isEmpty() && !state.isLoading) {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = error,
-                            color = Destructive,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
+                            text = "No messages yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MutedForeground
                         )
-                        TextButton(onClick = { viewModel.loadMessages() }) {
-                            Text("Retry", color = Primary)
+                        Text(
+                            text = "Send a message to start the conversation",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MutedForeground
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        reverseLayout = false
+                    ) {
+                        items(
+                            items = state.messages,
+                            key = { it.message_id }
+                        ) { message ->
+                            MessageBubbleComplete(
+                                message = message,
+                                isCurrentUser = viewModel.isOwnMessage(message.sender_id),
+                                isHighlighted = state.searchMatches.contains(message.message_id),
+                                onLongPress = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.showMessageActions(message.message_id)
+                                },
+                                onReplyClick = {
+                                    // Scroll to replied message
+                                },
+                                onMediaClick = { url, type ->
+                                    viewModel.showMediaViewer(url, type)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        
+                        // Typing indicator at bottom
+                        if (state.isOtherUserTyping) {
+                            item {
+                                TypingIndicator()
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
                         }
                     }
                 }
             }
-            
-            // Loading indicator
-            if (state.isLoading && state.messages.isEmpty()) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Primary
-                )
-            } else if (state.messages.isEmpty() && !state.isLoading) {
-                // Empty state
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "No messages yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MutedForeground
-                    )
-                    Text(
-                        text = "Send a message to start the conversation",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MutedForeground
-                    )
-                }
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    reverseLayout = false
-                ) {
-                    items(
-                        items = state.messages,
-                        key = { it.message_id }
-                    ) { message ->
-                        MessageBubbleRpc(
-                            message = message,
-                            isCurrentUser = viewModel.isOwnMessage(message.sender_id)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                }
-            }
         }
+        
+        // Message action sheet
+        val selectedMessage = viewModel.getSelectedMessage()
+        if (state.showActionSheet && selectedMessage != null) {
+            MessageActionSheet(
+                isVisible = true,
+                messageId = selectedMessage.message_id,
+                messageContent = selectedMessage.content,
+                isOwnMessage = viewModel.isOwnMessage(selectedMessage.sender_id),
+                isStarred = selectedMessage.is_starred,
+                onDismiss = { viewModel.hideMessageActions() },
+                onReply = { viewModel.setReplyingTo(selectedMessage) },
+                onForward = { viewModel.showForwardDialog(selectedMessage.content) },
+                onCopy = { viewModel.copyMessage(selectedMessage.message_id) },
+                onStar = { viewModel.starMessage(selectedMessage.message_id) },
+                onDelete = { viewModel.deleteMessage(selectedMessage.message_id) },
+                onReact = { emoji -> viewModel.addReaction(selectedMessage.message_id, emoji) }
+            )
+        }
+        
+        // Forward dialog
+        ForwardMessageDialog(
+            isVisible = state.showForwardDialog,
+            messageContent = state.forwardMessageContent,
+            conversations = state.forwardConversations,
+            onDismiss = { viewModel.hideForwardDialog() },
+            onForward = { targets -> viewModel.forwardMessage(targets) }
+        )
+        
+        // Media viewer
+        MediaViewer(
+            isVisible = state.showMediaViewer,
+            mediaUrl = state.viewerMediaUrl,
+            mediaType = state.viewerMediaType,
+            onDismiss = { viewModel.hideMediaViewer() }
+        )
     }
 }
 
 /**
- * Message bubble for RPC-based messages
+ * Complete message bubble with all features
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MessageBubbleRpc(
+private fun MessageBubbleComplete(
     message: MessageItem,
-    isCurrentUser: Boolean
+    isCurrentUser: Boolean,
+    isHighlighted: Boolean = false,
+    onLongPress: () -> Unit,
+    onReplyClick: () -> Unit,
+    onMediaClick: (String, String) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
     ) {
         Card(
-            modifier = Modifier.widthIn(max = 280.dp),
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .combinedClickable(
+                    onClick = { },
+                    onLongClick = onLongPress
+                ),
             colors = CardDefaults.cardColors(
-                containerColor = if (isCurrentUser) Primary else Card
+                containerColor = when {
+                    isHighlighted -> Primary.copy(alpha = 0.2f)
+                    isCurrentUser -> Primary
+                    else -> Card
+                }
             ),
             shape = RoundedCornerShape(
                 topStart = 16.dp,
@@ -287,7 +403,17 @@ private fun MessageBubbleRpc(
             )
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                // Show sender name for group chats (when not current user)
+                // Reply reference
+                if (!message.reply_to_id.isNullOrEmpty()) {
+                    InlineReplyReference(
+                        senderName = "Reply",
+                        messageContent = "...",
+                        onClick = onReplyClick,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                
+                // Sender name for group chats
                 if (!isCurrentUser && !message.sender_name.isNullOrEmpty()) {
                     Text(
                         text = message.sender_name,
@@ -298,6 +424,24 @@ private fun MessageBubbleRpc(
                     Spacer(modifier = Modifier.height(4.dp))
                 }
                 
+                // Media content
+                if (!message.media_url.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = message.media_url,
+                        contentDescription = "Media",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .combinedClickable(
+                                onClick = { onMediaClick(message.media_url, message.message_type) }
+                            ),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                // Message content
                 if (message.is_deleted) {
                     Text(
                         text = "🗑 This message was deleted",
@@ -315,6 +459,7 @@ private fun MessageBubbleRpc(
                 
                 Spacer(modifier = Modifier.height(4.dp))
                 
+                // Timestamp and status
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -322,11 +467,17 @@ private fun MessageBubbleRpc(
                     Text(
                         text = formatMessageTime(message.created_at),
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isCurrentUser) 
-                            PrimaryForeground.copy(alpha = 0.7f) 
-                        else 
-                            MutedForeground
+                        color = if (isCurrentUser) PrimaryForeground.copy(alpha = 0.7f) else MutedForeground
                     )
+                    
+                    if (message.is_starred) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Starred",
+                            tint = if (isCurrentUser) PrimaryForeground else Primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                     
                     if (isCurrentUser) {
                         Icon(
@@ -337,10 +488,7 @@ private fun MessageBubbleRpc(
                                 else -> Icons.Default.Schedule
                             },
                             contentDescription = message.status,
-                            tint = if (message.status == "read") 
-                                Success 
-                            else 
-                                PrimaryForeground.copy(alpha = 0.7f),
+                            tint = if (message.status == "read") Success else PrimaryForeground.copy(alpha = 0.7f),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -349,10 +497,7 @@ private fun MessageBubbleRpc(
                         Text(
                             text = "edited",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isCurrentUser) 
-                                PrimaryForeground.copy(alpha = 0.7f) 
-                            else 
-                                MutedForeground
+                            color = if (isCurrentUser) PrimaryForeground.copy(alpha = 0.7f) else MutedForeground
                         )
                     }
                 }
@@ -381,11 +526,7 @@ fun MessageInputBar(
             verticalAlignment = Alignment.Bottom
         ) {
             IconButton(onClick = onAttachmentClick, enabled = !isSending) {
-                Icon(
-                    imageVector = Icons.Default.AttachFile,
-                    contentDescription = "Attach",
-                    tint = Primary
-                )
+                Icon(Icons.Default.AttachFile, "Attach", tint = Primary)
             }
             
             OutlinedTextField(
@@ -406,11 +547,7 @@ fun MessageInputBar(
             
             if (messageText.isBlank()) {
                 IconButton(onClick = onVoiceNoteClick, enabled = !isSending) {
-                    Icon(
-                        imageVector = Icons.Default.Mic,
-                        contentDescription = "Voice Note",
-                        tint = Primary
-                    )
+                    Icon(Icons.Default.Mic, "Voice Note", tint = Primary)
                 }
             } else {
                 IconButton(onClick = onSendMessage, enabled = !isSending) {
@@ -421,11 +558,7 @@ fun MessageInputBar(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = "Send",
-                            tint = Primary
-                        )
+                        Icon(Icons.Default.Send, "Send", tint = Primary)
                     }
                 }
             }
@@ -433,42 +566,10 @@ fun MessageInputBar(
     }
 }
 
-@Composable
-fun ReactionMenu(
-    onDismiss: () -> Unit,
-    onReactionSelect: (String) -> Unit
-) {
-    val reactions = listOf("❤️", "👍", "😂", "😮", "😢", "🙏")
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("React") },
-        text = {
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                reactions.forEach { emoji ->
-                    Text(
-                        text = emoji,
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.clickable { onReactionSelect(emoji) }
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-private fun formatMessageTime(isoTimestamp: String?): String {
-    if (isoTimestamp == null) return ""
+private fun formatMessageTime(timestamp: String?): String {
+    if (timestamp.isNullOrEmpty()) return ""
     return try {
-        val instant = Instant.parse(isoTimestamp)
+        val instant = Instant.parse(timestamp)
         val date = Date.from(instant)
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
     } catch (e: Exception) {
