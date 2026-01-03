@@ -1142,6 +1142,22 @@ export class SimpleWebRTCCall {
     return this.zoomLevel;
   }
 
+  /**
+   * Replace the video track with a new track (e.g., for screen sharing)
+   */
+  async replaceTrack(newTrack: MediaStreamTrack): Promise<void> {
+    if (!this.pc) {
+      console.error('❌ [SimpleWebRTC] No peer connection available');
+      return;
+    }
+
+    const sender = this.pc.getSenders().find(s => s.track?.kind === newTrack.kind);
+    if (sender) {
+      await sender.replaceTrack(newTrack);
+      console.log(`✅ [SimpleWebRTC] Replaced ${newTrack.kind} track`);
+    }
+  }
+
   async switchCamera() {
     if (!this.localStream) {
       console.error('❌ [SimpleWebRTC] No local stream available');
