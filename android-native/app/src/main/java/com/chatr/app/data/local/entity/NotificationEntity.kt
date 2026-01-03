@@ -2,7 +2,7 @@ package com.chatr.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.chatr.app.data.api.Notification
+import com.chatr.app.data.api.NotificationResponse
 
 @Entity(tableName = "notifications")
 data class NotificationEntity(
@@ -15,8 +15,8 @@ data class NotificationEntity(
     val read: Boolean = false,
     val createdAt: Long
 ) {
-    fun toNotification(): Notification {
-        return Notification(
+    fun toNotificationResponse(): NotificationResponse {
+        return NotificationResponse(
             id = id,
             userId = userId,
             title = title,
@@ -29,7 +29,7 @@ data class NotificationEntity(
     }
     
     companion object {
-        fun fromNotification(notification: Notification): NotificationEntity {
+        fun fromNotificationResponse(notification: NotificationResponse): NotificationEntity {
             return NotificationEntity(
                 id = notification.id,
                 userId = notification.userId,

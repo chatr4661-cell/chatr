@@ -15,9 +15,10 @@ import com.chatr.app.data.local.entity.*
         ContactEntity::class,
         NotificationEntity::class,
         PendingMessageEntity::class,
-        CallLogEntity::class
+        CallLogEntity::class,
+        CallEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -29,6 +30,7 @@ abstract class ChatrDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun pendingMessageDao(): PendingMessageDao
     abstract fun callLogDao(): CallLogDao
+    abstract fun callDao(): CallDao
     
     companion object {
         @Volatile

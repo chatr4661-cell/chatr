@@ -8,19 +8,25 @@ import com.chatr.app.data.models.User
 @Entity(tableName = "chats")
 data class ChatEntity(
     @PrimaryKey val id: String,
-    val participants: List<String>,
-    val lastMessageContent: String?,
-    val lastMessageTime: Long?,
+    val participantIds: String, // Comma-separated participant IDs
+    val lastMessage: String? = null,
+    val lastMessageTime: Long? = null,
     val unreadCount: Int = 0,
     val updatedAt: Long,
     val isGroup: Boolean = false,
     val groupName: String? = null,
-    val groupIconUrl: String? = null,
+    val groupIcon: String? = null,
     val otherUserId: String? = null,
     val otherUserName: String? = null,
     val otherUserAvatar: String? = null,
     val otherUserOnline: Boolean = false
 ) {
+    /**
+     * Get participants as list
+     */
+    val participants: List<String>
+        get() = participantIds.split(",").filter { it.isNotBlank() }
+    
     fun toChat(): Chat {
         val otherUser = if (otherUserId != null) {
             User(
@@ -41,7 +47,7 @@ data class ChatEntity(
             updatedAt = updatedAt,
             isGroup = isGroup,
             groupName = groupName,
-            groupIconUrl = groupIconUrl,
+            groupIconUrl = groupIcon,
             otherUser = otherUser
         )
     }
@@ -50,14 +56,14 @@ data class ChatEntity(
         fun fromChat(chat: Chat): ChatEntity {
             return ChatEntity(
                 id = chat.id,
-                participants = chat.participants,
-                lastMessageContent = chat.lastMessage?.content,
+                participantIds = chat.participants.joinToString(","),
+                lastMessage = chat.lastMessage?.content,
                 lastMessageTime = chat.lastMessage?.timestamp,
                 unreadCount = chat.unreadCount,
                 updatedAt = chat.updatedAt,
                 isGroup = chat.isGroup,
                 groupName = chat.groupName,
-                groupIconUrl = chat.groupIconUrl,
+                groupIcon = chat.groupIconUrl,
                 otherUserId = chat.otherUser?.id,
                 otherUserName = chat.otherUser?.username,
                 otherUserAvatar = chat.otherUser?.avatarUrl,

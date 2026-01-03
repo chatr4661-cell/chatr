@@ -10,6 +10,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+/**
+ * Database Module for Dependency Injection
+ * 
+ * Provides:
+ * - ChatrDatabase instance
+ * - All DAO interfaces
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -54,5 +61,11 @@ object DatabaseModule {
     @Singleton
     fun provideCallLogDao(database: ChatrDatabase): CallLogDao {
         return database.callLogDao()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideCallDao(database: ChatrDatabase): CallDao {
+        return database.callDao()
     }
 }

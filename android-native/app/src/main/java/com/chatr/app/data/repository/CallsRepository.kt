@@ -11,25 +11,25 @@ class CallsRepository @Inject constructor(
     private val api: CallsApi
 ) {
     
-    suspend fun initiateCall(receiverId: String, type: String): Result<CallData> {
+    suspend fun initiateCall(receiverId: String, type: String): Result<CallDataResponse> {
         return safeApiCall { 
             api.initiateCall(InitiateCallRequest(receiverId, type)) 
         }
     }
     
-    suspend fun acceptCall(callId: String): Result<CallData> {
+    suspend fun acceptCall(callId: String): Result<CallDataResponse> {
         return safeApiCall { api.acceptCall(callId) }
     }
     
-    suspend fun rejectCall(callId: String): Result<CallData> {
+    suspend fun rejectCall(callId: String): Result<CallDataResponse> {
         return safeApiCall { api.rejectCall(callId) }
     }
     
-    suspend fun endCall(callId: String): Result<CallData> {
+    suspend fun endCall(callId: String): Result<CallDataResponse> {
         return safeApiCall { api.endCall(callId) }
     }
     
-    fun getCallHistory(limit: Int = 50): Flow<Result<List<CallData>>> = flow {
+    fun getCallHistory(limit: Int = 50): Flow<Result<List<CallDataResponse>>> = flow {
         emit(safeApiCall { api.getCallHistory(limit) })
     }
     
