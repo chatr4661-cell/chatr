@@ -16,13 +16,20 @@ import com.chatr.app.viewmodel.ConversationsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToChat: (String) -> Unit,
-    onNavigateToContacts: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+    onNavigateToChat: (String) -> Unit = {},
+    onNavigateToContacts: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    // Legacy/compat: some navigation graphs pass a single route-based callback.
+    onNavigate: ((String) -> Unit)? = null,
     viewModel: ConversationsViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    
+
+    val navigateToChat: (String) -> Unit = { conversationId ->
+        onNavigate?.invoke("chat/$conversationId")
+        onNavigateToChat(conversationId)
+    }
+
     val tabs = listOf(
         BottomNavItem("Chats", Icons.Default.Chat),
         BottomNavItem("Calls", Icons.Default.Call),
@@ -38,7 +45,19 @@ fun HomeScreen(
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label) },
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index }
+                        onClick = {
+                            selectedTab = index
+                            // Route-based navigation for legacy graphs
+                            onNavigate?.invoke(
+                                when (index) {
+                                    0 -> "chats"
+                                    1 -> "calls"
+                                    2 -> "contacts"
+                                    3 -> "settings"
+                                    else -> "chats"
+                                }
+                            )
+                        }
                     )
                 }
             }
@@ -51,22 +70,32 @@ fun HomeScreen(
         ) {
             when (selectedTab) {
                 0 -> ChatsScreen(
-                    onNavigateToChat = onNavigateToChat,
-                    onNavigateToContacts = onNavigateToContacts
+                    onNavigateToChat = navigateToChat,
+                    onNavigateToContacts = {
+                        onNavigate?.invoke("contacts")
+                        onNavigateToContacts()
+                    }
                 )
                 1 -> CallsScreen(
-                    onNavigate = { /* Handle navigation */ }
+                    onNavigate = { route ->
+                        onNavigate?.invoke(route)
+                    }
                 )
                 2 -> ContactsScreen(
                     onNavigate = { route ->
+                        onNavigate?.invoke(route)
                         if (route.startsWith("contact/")) {
                             val contactId = route.substringAfter("contact/")
-                            onNavigateToChat(contactId)
+                            navigateToChat(contactId)
                         }
                     }
                 )
                 3 -> SettingsScreen(
-                    onNavigate = { /* Handle navigation */ }
+                    onNavigate = { route ->
+                        onNavigate?.invoke(route)
+                        // If the legacy graph wants to route to settings subpages.
+                        onNavigateToSettings()
+                    }
                 )
             }
         }

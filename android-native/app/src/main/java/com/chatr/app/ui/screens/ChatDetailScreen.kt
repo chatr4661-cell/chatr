@@ -32,6 +32,7 @@ import com.chatr.app.data.repository.MessageItem
 import com.chatr.app.ui.components.chat.*
 import com.chatr.app.ui.theme.*
 import com.chatr.app.viewmodel.ChatDetailViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
@@ -57,7 +58,7 @@ fun ChatDetailScreen(
     val haptics = LocalHapticFeedback.current
     
     val listState = rememberLazyListState()
-    
+    val scope = rememberCoroutineScope()
     val displayName = remember(state.messages, contactName) {
         if (contactName.isNotEmpty()) contactName
         else state.messages.find { it.sender_id != state.currentUserId }?.sender_name ?: "Chat"
@@ -313,12 +314,12 @@ fun ChatDetailScreen(
                                 },
                                 onReplyClick = { replyToId ->
                                     // Scroll to replied message
-                                    val index = state.messages.indexOfFirst { it.message_id == replyToId }
-                                    if (index >= 0) {
-                                        kotlinx.coroutines.MainScope().launch {
-                                            listState.animateScrollToItem(index)
-                                        }
-                                    }
+                                     val index = state.messages.indexOfFirst { it.message_id == replyToId }
+                                     if (index >= 0) {
+                                         scope.launch {
+                                             listState.animateScrollToItem(index)
+                                         }
+                                     }
                                 },
                                 onMediaClick = { url, type ->
                                     viewModel.showMediaViewer(url, type)

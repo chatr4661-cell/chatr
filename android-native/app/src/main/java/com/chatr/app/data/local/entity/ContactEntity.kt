@@ -52,9 +52,7 @@ data class ContactEntity(
                 contactPhone = contact.contactPhone,
                 isRegistered = contact.isRegistered,
                 avatarUrl = contact.avatarUrl,
-                isOnline = contact.isOnline
             )
         }
     }
-}
 }

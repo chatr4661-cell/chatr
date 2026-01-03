@@ -7,7 +7,10 @@ import org.webrtc.*
 
 class PeerConnectionManager(
     private val context: Context,
-    private val signalingClient: CallSignaling
+    // Signaling transport is currently managed by higher-level call managers.
+    // Kept as a dependency for future ICE/SDP message wiring.
+    @Suppress("UNUSED_PARAMETER")
+    private val signalingClient: Any
 ) {
     private var peerConnection: PeerConnection? = null
     private var peerConnectionFactory: PeerConnectionFactory? = null
