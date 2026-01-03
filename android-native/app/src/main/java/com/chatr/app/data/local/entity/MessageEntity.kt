@@ -21,7 +21,11 @@ data class MessageEntity(
     @ColumnInfo(name = "replyTo") val replyTo: String? = null,
     @ColumnInfo(name = "mediaUrl") val mediaUrl: String? = null,
     @ColumnInfo(name = "deliveredAt") val deliveredAt: Long? = null,
-    @ColumnInfo(name = "readAt") val readAt: Long? = null
+    @ColumnInfo(name = "readAt") val readAt: Long? = null,
+    // GSM-grade ordering: monotonic sequence number per conversation
+    @ColumnInfo(name = "sequenceNumber") val sequenceNumber: Long = 0L,
+    // Client-generated ID for deduplication
+    @ColumnInfo(name = "clientId") val clientId: String? = null
 ) {
     fun toMessage(): Message {
         return Message(

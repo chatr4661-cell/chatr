@@ -18,7 +18,7 @@ import com.chatr.app.data.local.entity.*
         CallLogEntity::class,
         CallEntity::class
     ],
-    version = 2,
+    version = 3, // Bumped for GSM-grade columns: sequenceNumber, clientId
     exportSchema = false
 )
 @TypeConverters(Converters::class)
