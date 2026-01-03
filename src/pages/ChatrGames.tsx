@@ -155,75 +155,75 @@ export default function ChatrGames() {
         title="CHATR Games - 21 AI & Multiplayer Games"
         description="21 revolutionary games with 1100 levels. AI-powered + real-time multiplayer gaming."
       />
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0d0d18] to-[#0a0a0f] text-white overflow-x-hidden">
-        {/* Ambient Background - Optimized for mobile */}
+      <div className="min-h-[100dvh] bg-gradient-to-b from-[#0a0a0f] via-[#0d0d18] to-[#0a0a0f] text-white overflow-x-hidden">
+        {/* Ambient Background - Optimized for all displays */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-purple-600/10 rounded-full blur-[120px]" />
-          <div className="absolute bottom-1/3 right-0 w-[300px] h-[300px] bg-cyan-600/8 rounded-full blur-[100px]" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[min(600px,100vw)] h-[min(400px,50vh)] bg-purple-600/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/3 right-0 w-[min(300px,50vw)] h-[min(300px,30vh)] bg-cyan-600/8 rounded-full blur-[100px]" />
         </div>
 
-        {/* Compact Mobile Header */}
-        <header className="relative z-20 sticky top-0 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/5">
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+        {/* Responsive Header - Safe area aware */}
+        <header className="relative z-20 sticky top-0 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/5 pt-[env(safe-area-inset-top)]">
+          <div className="px-3 sm:px-4 py-2 sm:py-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <button 
                   onClick={() => navigate('/home')} 
-                  className="w-9 h-9 rounded-full bg-white/5 active:bg-white/10 flex items-center justify-center"
+                  className="w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0 rounded-full bg-white/5 active:bg-white/10 flex items-center justify-center touch-manipulation"
                 >
                   <ArrowLeft className="w-4 h-4 text-white/70" />
                 </button>
-                <div>
-                  <h1 className="text-lg font-bold">Games</h1>
-                  <p className="text-[10px] text-white/40">21 Games • 1100 Levels</p>
+                <div className="min-w-0">
+                  <h1 className="text-base sm:text-lg font-bold truncate">Games</h1>
+                  <p className="text-[9px] sm:text-[10px] text-white/40">21 Games • 1100 Levels</p>
                 </div>
               </div>
               
-              {/* Compact Stats */}
-              <div className="flex items-center gap-2">
+              {/* Compact Stats - Responsive sizing */}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 {/* Streak */}
-                <div className="flex items-center gap-1 bg-gradient-to-r from-orange-500/20 to-amber-500/20 px-2.5 py-1.5 rounded-full border border-orange-500/20">
-                  <Flame className="w-3.5 h-3.5 text-orange-400" />
-                  <span className="text-xs font-bold text-orange-300">{dailyStreak}</span>
+                <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-orange-500/20 to-amber-500/20 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-orange-500/20">
+                  <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-400" />
+                  <span className="text-[10px] sm:text-xs font-bold text-orange-300">{dailyStreak}</span>
                 </div>
                 
-                {/* Coins */}
-                <div className="flex items-center gap-1 bg-white/5 px-2.5 py-1.5 rounded-full">
-                  <Coins className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-xs font-medium">{(totalCoins/1000).toFixed(1)}k</span>
+                {/* Coins - Hidden on very small screens */}
+                <div className="hidden xs:flex items-center gap-0.5 sm:gap-1 bg-white/5 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full">
+                  <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                  <span className="text-[10px] sm:text-xs font-medium">{(totalCoins/1000).toFixed(1)}k</span>
                 </div>
                 
                 {/* Level with progress */}
-                <div className="relative flex items-center justify-center">
-                  <ProgressRing progress={xpProgress} size={36} strokeWidth={2} />
-                  <span className="absolute text-[10px] font-bold">{currentLevel}</span>
+                <div className="relative flex items-center justify-center flex-shrink-0">
+                  <ProgressRing progress={xpProgress} size={32} strokeWidth={2} />
+                  <span className="absolute text-[9px] sm:text-[10px] font-bold">{currentLevel}</span>
                 </div>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="relative z-10 px-4 pb-24">
-          {/* Featured Hero - Mobile Optimized */}
+        <main className="relative z-10 px-3 sm:px-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+          {/* Featured Hero - All Display Optimized */}
           <motion.section 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="py-4"
+            className="py-3 sm:py-4"
           >
             <motion.div
               onClick={() => setActiveGame('air_runner')}
-              className="relative cursor-pointer overflow-hidden rounded-2xl active:scale-[0.98] transition-transform"
+              className="relative cursor-pointer overflow-hidden rounded-xl sm:rounded-2xl active:scale-[0.98] transition-transform touch-manipulation"
               whileTap={{ scale: 0.98 }}
             >
               {/* Gradient Border */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 p-[1.5px]">
-                <div className="absolute inset-[1.5px] rounded-2xl bg-gradient-to-br from-[#0c1929] via-[#0a1525] to-[#0d0d1a]" />
+              <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 p-[1px] sm:p-[1.5px]">
+                <div className="absolute inset-[1px] sm:inset-[1.5px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#0c1929] via-[#0a1525] to-[#0d0d1a]" />
               </div>
               
-              <div className="relative p-5 h-[200px] flex flex-col justify-between overflow-hidden">
-                {/* Animated particles */}
+              <div className="relative p-3 sm:p-5 h-[160px] sm:h-[200px] flex flex-col justify-between overflow-hidden">
+                {/* Animated particles - fewer on mobile */}
                 <div className="absolute inset-0 overflow-hidden">
-                  {[...Array(12)].map((_, i) => (
+                  {[...Array(8)].map((_, i) => (
                     <motion.div
                       key={i}
                       className="absolute w-0.5 h-0.5 bg-cyan-400/40 rounded-full"
@@ -236,34 +236,34 @@ export default function ChatrGames() {
                 
                 {/* Content */}
                 <div className="relative z-10">
-                  <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/30 px-2 py-0.5 text-[10px] font-bold mb-2">
-                    <Sparkles className="w-2.5 h-2.5 mr-1" />
+                  <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/30 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold mb-1.5 sm:mb-2">
+                    <Sparkles className="w-2 h-2 sm:w-2.5 sm:h-2.5 mr-0.5 sm:mr-1" />
                     MAIN GAME
                   </Badge>
-                  <h2 className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent">
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent">
                     AIR RUNNER
                   </h2>
-                  <p className="text-xs text-white/50 mt-1">7 Worlds • Voice Powers • Infinite</p>
+                  <p className="text-[10px] sm:text-xs text-white/50 mt-0.5 sm:mt-1">7 Worlds • Voice Powers • Infinite</p>
                 </div>
                 
-                {/* Plane Icon */}
+                {/* Plane Icon - Responsive size */}
                 <motion.div
-                  className="absolute right-4 top-1/2 -translate-y-1/2"
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2"
                   animate={{ y: [0, -5, 0], rotate: [0, 2, -2, 0] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 >
-                  <Plane className="w-20 h-20 text-cyan-400/80 transform -rotate-45" style={{ filter: 'drop-shadow(0 0 20px rgba(34,211,238,0.5))' }} />
+                  <Plane className="w-14 h-14 sm:w-20 sm:h-20 text-cyan-400/80 transform -rotate-45" style={{ filter: 'drop-shadow(0 0 20px rgba(34,211,238,0.5))' }} />
                 </motion.div>
                 
                 {/* Play button */}
-                <div className="relative z-10 flex items-center justify-between">
-                  <div className="flex gap-1.5">
+                <div className="relative z-10 flex items-center justify-between gap-2">
+                  <div className="flex gap-1 sm:gap-1.5 flex-wrap">
                     {['7 Worlds', 'Voice', '100 Lvls'].map(tag => (
-                      <span key={tag} className="px-2 py-1 rounded-full bg-white/10 text-[9px] text-white/60">{tag}</span>
+                      <span key={tag} className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-white/10 text-[8px] sm:text-[9px] text-white/60">{tag}</span>
                     ))}
                   </div>
-                  <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold px-4 py-2 rounded-full text-xs shadow-lg shadow-cyan-500/30">
-                    <Play className="w-3 h-3 mr-1 fill-current" />
+                  <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs shadow-lg shadow-cyan-500/30 flex-shrink-0">
+                    <Play className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 fill-current" />
                     PLAY
                   </Button>
                 </div>
@@ -271,21 +271,21 @@ export default function ChatrGames() {
             </motion.div>
           </motion.section>
 
-          {/* Quick Play Row */}
+          {/* Quick Play Row - Responsive */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mb-5"
+            className="mb-4 sm:mb-5"
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-semibold">Quick Play</h3>
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                <h3 className="text-xs sm:text-sm font-semibold">Quick Play</h3>
               </div>
-              <span className="text-[10px] text-white/40">Trending now</span>
+              <span className="text-[9px] sm:text-[10px] text-white/40">Trending now</span>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 scrollbar-hide snap-x snap-mandatory">
               {quickPlayGames.map((game, i) => (
                 <motion.div
                   key={game.id}
@@ -293,55 +293,55 @@ export default function ChatrGames() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.1 + i * 0.05 }}
                   onClick={() => setActiveGame(game.id)}
-                  className="flex-shrink-0 w-[100px] cursor-pointer active:scale-95 transition-transform"
+                  className="flex-shrink-0 w-[80px] sm:w-[100px] cursor-pointer active:scale-95 transition-transform touch-manipulation snap-start"
                 >
                   <div className="relative">
-                    <div className={`w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br ${game.gradient} flex items-center justify-center text-2xl shadow-lg mb-2`}>
+                    <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-xl sm:rounded-2xl bg-gradient-to-br ${game.gradient} flex items-center justify-center text-xl sm:text-2xl shadow-lg mb-1.5 sm:mb-2`}>
                       {game.icon}
                       {game.isHot && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
-                          <Flame className="w-3 h-3 text-white" />
+                        <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                          <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                         </div>
                       )}
                     </div>
-                    <p className="text-[11px] font-medium text-center text-white/80 truncate">{game.title}</p>
-                    <p className="text-[9px] text-center text-white/40">{game.subtitle}</p>
+                    <p className="text-[10px] sm:text-[11px] font-medium text-center text-white/80 truncate px-1">{game.title}</p>
+                    <p className="text-[8px] sm:text-[9px] text-center text-white/40 truncate">{game.subtitle}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
           </motion.section>
 
-          {/* Daily Challenge Card */}
+          {/* Daily Challenge Card - Responsive */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="mb-5"
+            className="mb-4 sm:mb-5"
           >
-            <div className="bg-gradient-to-r from-purple-600/20 via-fuchsia-600/15 to-pink-600/20 rounded-2xl p-4 border border-purple-500/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center">
-                    <Gift className="w-5 h-5 text-white" />
+            <div className="bg-gradient-to-r from-purple-600/20 via-fuchsia-600/15 to-pink-600/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-purple-500/20">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center">
+                    <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-white/90">Daily Challenge</p>
-                    <p className="text-[10px] text-white/50">Win 3 games • 500 coins</p>
+                  <div className="min-w-0">
+                    <p className="text-[11px] sm:text-xs font-bold text-white/90 truncate">Daily Challenge</p>
+                    <p className="text-[9px] sm:text-[10px] text-white/50 truncate">Win 3 games • 500 coins</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full">
-                    <Clock className="w-3 h-3 text-white/50" />
-                    <span className="text-[10px] text-white/60">12h left</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                  <div className="hidden xs:flex items-center gap-0.5 sm:gap-1 bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
+                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white/50" />
+                    <span className="text-[9px] sm:text-[10px] text-white/60">12h</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-white">1/3</p>
+                    <p className="text-base sm:text-lg font-bold text-white">1/3</p>
                   </div>
                 </div>
               </div>
               {/* Progress bar */}
-              <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div className="mt-2 sm:mt-3 h-1 sm:h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <motion.div 
                   className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full"
                   initial={{ width: 0 }}
@@ -352,45 +352,45 @@ export default function ChatrGames() {
             </div>
           </motion.section>
 
-          {/* Category Pills - Scrollable */}
+          {/* Category Pills - Responsive Scrollable */}
           <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="mb-4"
+            className="mb-3 sm:mb-4"
           >
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 scrollbar-hide snap-x">
               {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-medium whitespace-nowrap transition-all touch-manipulation snap-start ${
                     activeCategory === cat.id
                       ? 'bg-white text-black'
                       : 'bg-white/5 text-white/60 active:bg-white/10'
                   }`}
                 >
-                  <span>{cat.icon}</span>
+                  <span className="text-sm sm:text-base">{cat.icon}</span>
                   <span>{cat.label}</span>
                 </button>
               ))}
             </div>
           </motion.section>
 
-          {/* Games Grid - 2 columns on mobile */}
+          {/* Games Grid - Responsive columns */}
           <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.25 }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-white/90">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <h3 className="text-xs sm:text-sm font-semibold text-white/90">
                 {activeCategory === 'all' ? 'All Games' : categories.find(c => c.id === activeCategory)?.label}
               </h3>
-              <span className="text-[10px] text-white/40">{filteredGames.length} games</span>
+              <span className="text-[9px] sm:text-[10px] text-white/40">{filteredGames.length} games</span>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
               <AnimatePresence mode="popLayout">
                 {filteredGames.map((game, index) => (
                   <motion.div
@@ -401,32 +401,32 @@ export default function ChatrGames() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: index * 0.02 }}
                     onClick={() => setActiveGame(game.id)}
-                    className="cursor-pointer active:scale-95 transition-transform"
+                    className="cursor-pointer active:scale-95 transition-transform touch-manipulation"
                   >
-                    <div className="relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] p-3">
+                    <div className="relative rounded-lg sm:rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] p-2 sm:p-3">
                       {/* Game Icon */}
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${game.gradient} flex items-center justify-center text-xl shadow-lg mb-2`}>
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br ${game.gradient} flex items-center justify-center text-lg sm:text-xl shadow-lg mb-1.5 sm:mb-2`}>
                         {game.icon}
                       </div>
                       
                       {/* Badges */}
-                      <div className="absolute top-2 right-2 flex gap-1">
+                      <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 flex gap-0.5 sm:gap-1">
                         {game.isNew && (
-                          <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-[8px] font-bold text-green-400">NEW</span>
+                          <span className="px-1 sm:px-1.5 py-0.5 rounded bg-green-500/20 text-[7px] sm:text-[8px] font-bold text-green-400">NEW</span>
                         )}
                         {game.isMultiplayer && (
-                          <Users className="w-3 h-3 text-blue-400" />
+                          <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-400" />
                         )}
                       </div>
                       
                       {/* Info */}
-                      <h4 className="font-semibold text-xs text-white/90 truncate">{game.title}</h4>
-                      <p className="text-[10px] text-white/40 truncate">{game.subtitle}</p>
+                      <h4 className="font-semibold text-[11px] sm:text-xs text-white/90 truncate">{game.title}</h4>
+                      <p className="text-[9px] sm:text-[10px] text-white/40 truncate">{game.subtitle}</p>
                       
                       {/* Footer */}
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-                        <span className="text-[9px] text-white/30">{game.levels} Lvls</span>
-                        <ChevronRight className="w-3 h-3 text-white/30" />
+                      <div className="flex items-center justify-between mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-white/5">
+                        <span className="text-[8px] sm:text-[9px] text-white/30">{game.levels} Lvls</span>
+                        <ChevronRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white/30" />
                       </div>
                     </div>
                   </motion.div>
@@ -435,12 +435,12 @@ export default function ChatrGames() {
             </div>
           </motion.section>
 
-          {/* Bottom Stats Row */}
+          {/* Bottom Stats Row - Responsive */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="mt-6 grid grid-cols-4 gap-2"
+            className="mt-4 sm:mt-6 grid grid-cols-4 gap-1.5 sm:gap-2"
           >
             {[
               { icon: '🎮', value: '21', label: 'Games' },
@@ -448,29 +448,29 @@ export default function ChatrGames() {
               { icon: '🏆', value: `L${currentLevel}`, label: 'Rank' },
               { icon: '🔥', value: `${dailyStreak}d`, label: 'Streak' },
             ].map((stat) => (
-              <div key={stat.label} className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3 text-center">
-                <span className="text-lg block mb-0.5">{stat.icon}</span>
-                <p className="text-sm font-bold text-white">{stat.value}</p>
-                <p className="text-[9px] text-white/40">{stat.label}</p>
+              <div key={stat.label} className="bg-white/[0.03] border border-white/[0.05] rounded-lg sm:rounded-xl p-2 sm:p-3 text-center">
+                <span className="text-sm sm:text-lg block mb-0.5">{stat.icon}</span>
+                <p className="text-xs sm:text-sm font-bold text-white">{stat.value}</p>
+                <p className="text-[8px] sm:text-[9px] text-white/40">{stat.label}</p>
               </div>
             ))}
           </motion.section>
 
-          {/* Mini Leaderboard */}
+          {/* Mini Leaderboard - Responsive */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-5"
+            className="mt-4 sm:mt-5"
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-semibold">Top Players</h3>
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                <h3 className="text-xs sm:text-sm font-semibold">Top Players</h3>
               </div>
-              <button className="text-[10px] text-white/40">View All</button>
+              <button className="text-[9px] sm:text-[10px] text-white/40 touch-manipulation">View All</button>
             </div>
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg sm:rounded-xl overflow-hidden">
               {[
                 { rank: 1, name: 'ProGamer', score: '125K', avatar: '🥇' },
                 { rank: 2, name: 'AIChallenger', score: '98K', avatar: '🥈' },
@@ -478,18 +478,18 @@ export default function ChatrGames() {
               ].map((player, i) => (
                 <div 
                   key={player.rank}
-                  className={`flex items-center justify-between px-3 py-2.5 ${i !== 2 ? 'border-b border-white/[0.05]' : ''}`}
+                  className={`flex items-center justify-between px-2.5 sm:px-3 py-2 sm:py-2.5 ${i !== 2 ? 'border-b border-white/[0.05]' : ''}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">{player.avatar}</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-base sm:text-lg">{player.avatar}</span>
                     <div>
-                      <p className="text-xs font-medium text-white/90">{player.name}</p>
-                      <p className="text-[10px] text-white/40">Rank #{player.rank}</p>
+                      <p className="text-[11px] sm:text-xs font-medium text-white/90">{player.name}</p>
+                      <p className="text-[9px] sm:text-[10px] text-white/40">Rank #{player.rank}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3 text-green-400" />
-                    <p className="text-xs font-semibold text-white/70">{player.score}</p>
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" />
+                    <p className="text-[11px] sm:text-xs font-semibold text-white/70">{player.score}</p>
                   </div>
                 </div>
               ))}

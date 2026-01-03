@@ -104,102 +104,102 @@ const EchoChainGame = ({ level, onComplete, onBack }: EchoChainGameProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-900 to-cyan-950 p-4">
-      <div className="max-w-lg mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={onBack} className="text-white/70">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-emerald-950 via-teal-900 to-cyan-950 p-3 sm:p-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+      <div className="max-w-lg mx-auto h-full flex flex-col">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <Button variant="ghost" onClick={onBack} className="text-white/70 px-2 sm:px-3 h-8 sm:h-10 text-sm touch-manipulation">
             ← Back
           </Button>
-          <Badge className="bg-emerald-500/30 text-emerald-200">
+          <Badge className="bg-emerald-500/30 text-emerald-200 text-[10px] sm:text-xs px-2 sm:px-3">
             Level {level} • Chain: {chainLength}
           </Badge>
         </div>
 
-        <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-6 rounded-3xl">
-          <div className="text-center mb-6">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
-              <Link2 className="w-10 h-10 text-white" />
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-4 sm:p-6 rounded-2xl sm:rounded-3xl flex-1 flex flex-col">
+          <div className="text-center mb-4 sm:mb-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
+              <Link2 className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">EchoChain</h2>
-            <p className="text-white/60 text-sm">Build a story together - don't break the chain!</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">EchoChain</h2>
+            <p className="text-white/60 text-xs sm:text-sm">Build a story together - don't break the chain!</p>
           </div>
 
           {gameState === 'waiting' && (
-            <div className="text-center space-y-4">
-              <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="text-center space-y-3 sm:space-y-4 flex-1 flex flex-col justify-center">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-4 sm:mb-6">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="w-3 h-3 rounded-full bg-emerald-500/50 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+                  <div key={i} className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500/50 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
                 ))}
               </div>
-              <p className="text-white/70">Take turns adding to a story. Keep it coherent or the chain breaks!</p>
-              <Button onClick={startGame} className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-8 py-6 rounded-2xl">
+              <p className="text-white/70 text-sm sm:text-base px-2">Take turns adding to a story. Keep it coherent or the chain breaks!</p>
+              <Button onClick={startGame} className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl text-sm sm:text-base touch-manipulation">
                 Start Chain
               </Button>
             </div>
           )}
 
           {(gameState === 'yourTurn' || gameState === 'theirTurn') && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4 flex-1 flex flex-col">
               <div className="flex items-center justify-between">
-                <Badge className={isMyTurn ? 'bg-emerald-500' : 'bg-cyan-500'}>
+                <Badge className={`text-[10px] sm:text-xs ${isMyTurn ? 'bg-emerald-500' : 'bg-cyan-500'}`}>
                   {gameState === 'yourTurn' ? 'Your Turn' : "Partner's Turn"}
                 </Badge>
-                <div className="flex items-center gap-2 text-yellow-400">
-                  <Clock className="w-4 h-4" />
-                  <span className="font-bold">{timeLeft}s</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-yellow-400">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="font-bold text-sm sm:text-base">{timeLeft}s</span>
                 </div>
               </div>
 
-              <div className="bg-black/30 rounded-2xl p-4 max-h-48 overflow-y-auto">
+              <div className="bg-black/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex-1 max-h-[30vh] sm:max-h-48 overflow-y-auto">
                 {storyChain.map((line, i) => (
-                  <p key={i} className={`text-sm mb-2 ${i % 2 === 0 ? 'text-emerald-300' : 'text-cyan-300'}`}>
+                  <p key={i} className={`text-xs sm:text-sm mb-1.5 sm:mb-2 ${i % 2 === 0 ? 'text-emerald-300' : 'text-cyan-300'}`}>
                     {line}
                   </p>
                 ))}
                 {gameState === 'theirTurn' && (
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" />
-                    <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-cyan-400 rounded-full animate-bounce" />
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                   </div>
                 )}
               </div>
 
               {gameState === 'yourTurn' && (
-                <>
+                <div className="space-y-2 sm:space-y-3">
                   <Input
                     value={currentInput}
                     onChange={(e) => setCurrentInput(e.target.value)}
                     placeholder="Continue the story..."
-                    className="bg-white/10 border-white/20 text-white rounded-2xl py-6"
+                    className="bg-white/10 border-white/20 text-white rounded-xl sm:rounded-2xl py-4 sm:py-6 text-sm sm:text-base"
                     autoFocus
                   />
                   <Button 
                     onClick={submitLine}
                     disabled={!currentInput.trim()}
-                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 py-6 rounded-2xl"
+                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 py-4 sm:py-6 rounded-xl sm:rounded-2xl text-sm sm:text-base touch-manipulation"
                   >
                     Add to Chain
                   </Button>
-                </>
+                </div>
               )}
             </div>
           )}
 
           {gameState === 'result' && (
-            <div className="text-center space-y-4">
-              <Sparkles className="w-16 h-16 mx-auto text-yellow-400" />
-              <div className="text-4xl font-bold text-white">{chainLength} Links!</div>
-              <div className="bg-black/30 rounded-2xl p-4 max-h-32 overflow-y-auto text-left">
+            <div className="text-center space-y-3 sm:space-y-4 flex-1 flex flex-col justify-center">
+              <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-yellow-400" />
+              <div className="text-3xl sm:text-4xl font-bold text-white">{chainLength} Links!</div>
+              <div className="bg-black/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 max-h-24 sm:max-h-32 overflow-y-auto text-left">
                 {storyChain.map((line, i) => (
-                  <p key={i} className="text-sm text-white/70 mb-1">{line}</p>
+                  <p key={i} className="text-[11px] sm:text-sm text-white/70 mb-1">{line}</p>
                 ))}
               </div>
               <div className="flex items-center justify-center gap-2 text-yellow-400">
-                <Trophy className="w-5 h-5" />
-                <span className="text-xl font-bold">{coherenceScore} pts</span>
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-lg sm:text-xl font-bold">{coherenceScore} pts</span>
               </div>
-              <Button onClick={() => onComplete(coherenceScore)} className="bg-gradient-to-r from-emerald-500 to-cyan-500 px-8 py-6 rounded-2xl">
+              <Button onClick={() => onComplete(coherenceScore)} className="bg-gradient-to-r from-emerald-500 to-cyan-500 px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl text-sm sm:text-base touch-manipulation">
                 Complete Level
               </Button>
             </div>

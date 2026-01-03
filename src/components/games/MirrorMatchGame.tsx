@@ -99,53 +99,53 @@ const MirrorMatchGame = ({ level, onComplete, onBack }: MirrorMatchGameProps) =>
     };
     const Icon = icons[dir];
     return (
-      <div className={`p-4 rounded-2xl transition-all ${active ? 'bg-pink-500 scale-110' : 'bg-white/10'}`}>
-        <Icon className={`w-8 h-8 ${active ? 'text-white' : 'text-white/50'}`} />
+      <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all ${active ? 'bg-pink-500 scale-110' : 'bg-white/10'}`}>
+        <Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${active ? 'text-white' : 'text-white/50'}`} />
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-950 via-rose-900 to-red-950 p-4">
-      <div className="max-w-lg mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={onBack} className="text-white/70">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-pink-950 via-rose-900 to-red-950 p-3 sm:p-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+      <div className="max-w-lg mx-auto h-full flex flex-col">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <Button variant="ghost" onClick={onBack} className="text-white/70 px-2 sm:px-3 h-8 sm:h-10 text-sm touch-manipulation">
             ← Back
           </Button>
-          <Badge className="bg-pink-500/30 text-pink-200">
+          <Badge className="bg-pink-500/30 text-pink-200 text-[10px] sm:text-xs px-2 sm:px-3">
             Level {level} • Round {round}/5
           </Badge>
         </div>
 
-        <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-6 rounded-3xl">
-          <div className="text-center mb-6">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
-              <Copy className="w-10 h-10 text-white" />
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-4 sm:p-6 rounded-2xl sm:rounded-3xl flex-1 flex flex-col">
+          <div className="text-center mb-4 sm:mb-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
+              <Copy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">MirrorMatch</h2>
-            <p className="text-white/60 text-sm">Mirror your partner's moves perfectly!</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">MirrorMatch</h2>
+            <p className="text-white/60 text-xs sm:text-sm">Mirror your partner's moves perfectly!</p>
           </div>
 
           {gameState === 'waiting' && (
-            <div className="text-center space-y-4">
-              <div className="flex items-center justify-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full bg-pink-500/30 animate-pulse" />
-                <Copy className="w-6 h-6 text-pink-400" />
-                <div className="w-16 h-16 rounded-full bg-red-500/30 animate-pulse" />
+            <div className="text-center space-y-3 sm:space-y-4 flex-1 flex flex-col justify-center">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-pink-500/30 animate-pulse" />
+                <Copy className="w-5 h-5 sm:w-6 sm:h-6 text-pink-400" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-red-500/30 animate-pulse" />
               </div>
-              <p className="text-white/70">Watch the pattern, then mirror it together!</p>
-              <Button onClick={startRound} className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-8 py-6 rounded-2xl">
+              <p className="text-white/70 text-sm sm:text-base px-2">Watch the pattern, then mirror it together!</p>
+              <Button onClick={startRound} className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl text-sm sm:text-base touch-manipulation">
                 Start Matching
               </Button>
             </div>
           )}
 
           {gameState === 'watch' && (
-            <div className="text-center space-y-4">
-              <Badge className="bg-yellow-500/30 text-yellow-200 mb-4">
+            <div className="text-center space-y-3 sm:space-y-4 flex-1 flex flex-col justify-center">
+              <Badge className="bg-yellow-500/30 text-yellow-200 mb-3 sm:mb-4 text-[10px] sm:text-xs mx-auto">
                 Watch the Pattern!
               </Badge>
-              <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 max-w-[200px] sm:max-w-xs mx-auto">
                 <div />
                 <DirectionIcon dir="up" active={showingPattern && pattern[currentIndex] === 'up'} />
                 <div />
@@ -156,48 +156,48 @@ const MirrorMatchGame = ({ level, onComplete, onBack }: MirrorMatchGameProps) =>
                 <DirectionIcon dir="down" active={showingPattern && pattern[currentIndex] === 'down'} />
                 <div />
               </div>
-              <p className="text-white/60 text-sm">Pattern: {currentIndex + 1}/{pattern.length}</p>
+              <p className="text-white/60 text-xs sm:text-sm">Pattern: {currentIndex + 1}/{pattern.length}</p>
             </div>
           )}
 
           {gameState === 'mirror' && (
-            <div className="text-center space-y-4">
-              <Badge className="bg-green-500/30 text-green-200 mb-4">
+            <div className="text-center space-y-3 sm:space-y-4 flex-1 flex flex-col justify-center">
+              <Badge className="bg-green-500/30 text-green-200 mb-3 sm:mb-4 text-[10px] sm:text-xs mx-auto">
                 Your Turn! ({playerPattern.length}/{pattern.length})
               </Badge>
-              <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 max-w-[200px] sm:max-w-xs mx-auto">
                 <div />
                 <Button 
                   onClick={() => handleInput('up')}
-                  className="p-4 rounded-2xl bg-white/10 hover:bg-pink-500 transition-all"
+                  className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-pink-500 active:bg-pink-600 transition-all touch-manipulation h-auto"
                 >
-                  <ArrowUp className="w-8 h-8" />
+                  <ArrowUp className="w-6 h-6 sm:w-8 sm:h-8" />
                 </Button>
                 <div />
                 <Button 
                   onClick={() => handleInput('left')}
-                  className="p-4 rounded-2xl bg-white/10 hover:bg-pink-500 transition-all"
+                  className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-pink-500 active:bg-pink-600 transition-all touch-manipulation h-auto"
                 >
-                  <ArrowLeft className="w-8 h-8" />
+                  <ArrowLeft className="w-6 h-6 sm:w-8 sm:h-8" />
                 </Button>
                 <Button 
                   onClick={() => handleInput('tap')}
-                  className="p-4 rounded-2xl bg-white/10 hover:bg-pink-500 transition-all"
+                  className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-pink-500 active:bg-pink-600 transition-all touch-manipulation h-auto"
                 >
-                  <Circle className="w-8 h-8" />
+                  <Circle className="w-6 h-6 sm:w-8 sm:h-8" />
                 </Button>
                 <Button 
                   onClick={() => handleInput('right')}
-                  className="p-4 rounded-2xl bg-white/10 hover:bg-pink-500 transition-all"
+                  className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-pink-500 active:bg-pink-600 transition-all touch-manipulation h-auto"
                 >
-                  <ArrowRight className="w-8 h-8" />
+                  <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8" />
                 </Button>
                 <div />
                 <Button 
                   onClick={() => handleInput('down')}
-                  className="p-4 rounded-2xl bg-white/10 hover:bg-pink-500 transition-all"
+                  className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-pink-500 active:bg-pink-600 transition-all touch-manipulation h-auto"
                 >
-                  <ArrowDown className="w-8 h-8" />
+                  <ArrowDown className="w-6 h-6 sm:w-8 sm:h-8" />
                 </Button>
                 <div />
               </div>
@@ -205,17 +205,17 @@ const MirrorMatchGame = ({ level, onComplete, onBack }: MirrorMatchGameProps) =>
           )}
 
           {gameState === 'result' && (
-            <div className="text-center space-y-4">
-              <div className="text-5xl font-bold text-white mb-2">{score}</div>
-              <p className="text-white/60">Points Earned</p>
-              <div className="bg-white/10 rounded-2xl p-4">
-                <p className="text-white/60 text-sm mb-1">Partner Sync</p>
+            <div className="text-center space-y-3 sm:space-y-4 flex-1 flex flex-col justify-center">
+              <div className="text-4xl sm:text-5xl font-bold text-white mb-1 sm:mb-2">{score}</div>
+              <p className="text-white/60 text-sm sm:text-base">Points Earned</p>
+              <div className="bg-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                <p className="text-white/60 text-xs sm:text-sm mb-1">Partner Sync</p>
                 <div className="flex items-center justify-center gap-2">
-                  <Users className="w-5 h-5 text-pink-400" />
-                  <span className="text-2xl font-bold text-pink-400">{partnerSync}%</span>
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400" />
+                  <span className="text-xl sm:text-2xl font-bold text-pink-400">{partnerSync}%</span>
                 </div>
               </div>
-              <Button onClick={() => onComplete(score)} className="bg-gradient-to-r from-pink-500 to-red-500 px-8 py-6 rounded-2xl">
+              <Button onClick={() => onComplete(score)} className="bg-gradient-to-r from-pink-500 to-red-500 px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl text-sm sm:text-base touch-manipulation">
                 Complete Level
               </Button>
             </div>

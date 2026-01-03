@@ -421,7 +421,7 @@ export function AIAirRunnerGame({ level, onComplete, onExit }: AIAirRunnerGamePr
   return (
     <div 
       ref={gameRef}
-      className="relative w-full h-[600px] overflow-hidden rounded-2xl select-none"
+      className="relative w-full h-[100dvh] sm:h-[600px] overflow-hidden sm:rounded-2xl select-none"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -615,118 +615,118 @@ export function AIAirRunnerGame({ level, onComplete, onExit }: AIAirRunnerGamePr
             </div>
           </motion.div>
 
-          {/* HUD */}
-          <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
+          {/* HUD - Responsive */}
+          <div className="absolute top-[env(safe-area-inset-top)] left-2 right-2 sm:top-4 sm:left-4 sm:right-4 flex justify-between items-start z-10 pt-2 sm:pt-0">
             {/* Score */}
-            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3">
-              <div className="text-3xl font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+            <div className="bg-black/30 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-3">
+              <div className="text-xl sm:text-3xl font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
                 {score.toLocaleString()}
               </div>
-              <div className="text-xs text-white/70">{Math.floor(distance)}m</div>
+              <div className="text-[10px] sm:text-xs text-white/70">{Math.floor(distance)}m</div>
               {comboMultiplier > 1 && (
-                <div className="text-xs text-yellow-400">x{comboMultiplier.toFixed(1)} COMBO</div>
+                <div className="text-[10px] sm:text-xs text-yellow-400">x{comboMultiplier.toFixed(1)} COMBO</div>
               )}
             </div>
 
             {/* Resources */}
-            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-yellow-400">
-                <Coins className="w-4 h-4" /> {coins}
+            <div className="bg-black/30 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-yellow-400">
+                <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="text-xs sm:text-sm">{coins}</span>
               </div>
-              <div className="flex items-center gap-2 text-purple-400">
-                <span>🧠</span> {aiCores}
+              <div className="flex items-center gap-1.5 sm:gap-2 text-purple-400">
+                <span className="text-sm sm:text-base">🧠</span> <span className="text-xs sm:text-sm">{aiCores}</span>
               </div>
             </div>
           </div>
 
-          {/* Lives */}
-          <div className="absolute top-20 left-4 flex gap-1">
+          {/* Lives - Responsive position */}
+          <div className="absolute top-[calc(env(safe-area-inset-top)+3.5rem)] sm:top-20 left-2 sm:left-4 flex gap-0.5 sm:gap-1">
             {[...Array(3)].map((_, i) => (
               <Heart
                 key={i}
-                className={`w-6 h-6 ${i < lives ? 'text-red-500 fill-red-500' : 'text-gray-600'}`}
+                className={`w-5 h-5 sm:w-6 sm:h-6 ${i < lives ? 'text-red-500 fill-red-500' : 'text-gray-600'}`}
               />
             ))}
           </div>
 
-          {/* Boost Meter */}
-          <div className="absolute bottom-4 left-4 right-4 z-10">
-            <div className="bg-black/30 backdrop-blur-sm rounded-full p-2">
-              <div className="flex items-center gap-2 mb-1">
-                <Zap className="w-4 h-4 text-cyan-400" />
-                <Progress value={boostMeter} className="h-2 flex-1" />
+          {/* Boost Meter - Responsive */}
+          <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+5rem)] sm:bottom-4 left-2 right-2 sm:left-4 sm:right-4 z-10">
+            <div className="bg-black/30 backdrop-blur-sm rounded-full p-1.5 sm:p-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+                <Progress value={boostMeter} className="h-1.5 sm:h-2 flex-1" />
               </div>
               {shieldMeter > 0 && (
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-blue-400" />
-                  <Progress value={shieldMeter} className="h-2 flex-1" />
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
+                  <Progress value={shieldMeter} className="h-1.5 sm:h-2 flex-1" />
                 </div>
               )}
             </div>
           </div>
 
-          {/* World Name */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/30 backdrop-blur-sm rounded-full px-4 py-1">
-            <span className="text-white/80 text-sm">{world.name}</span>
+          {/* World Name - Responsive */}
+          <div className="absolute top-[calc(env(safe-area-inset-top)+0.5rem)] sm:top-4 left-1/2 -translate-x-1/2 bg-black/30 backdrop-blur-sm rounded-full px-2.5 sm:px-4 py-0.5 sm:py-1">
+            <span className="text-white/80 text-[10px] sm:text-sm">{world.name}</span>
           </div>
 
-          {/* Control Buttons */}
-          <div className="absolute bottom-20 left-4 right-4 flex justify-between z-10">
+          {/* Control Buttons - Responsive */}
+          <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] sm:bottom-20 left-2 right-2 sm:left-4 sm:right-4 flex justify-between z-10">
             <Button
               variant="ghost"
               size="icon"
-              className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20 touch-manipulation"
               onClick={() => changeLane(-1)}
             >
-              <ChevronLeft className="w-8 h-8 text-white" />
+              <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </Button>
             
             <div className="flex gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-14 h-14 rounded-full bg-cyan-500/30 backdrop-blur-sm"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-cyan-500/30 backdrop-blur-sm active:bg-cyan-500/50 touch-manipulation"
                 onClick={activateBoost}
               >
-                <Zap className="w-8 h-8 text-cyan-400" />
+                <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-400" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-14 h-14 rounded-full bg-blue-500/30 backdrop-blur-sm"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-500/30 backdrop-blur-sm active:bg-blue-500/50 touch-manipulation"
                 onClick={activateShield}
               >
-                <Shield className="w-8 h-8 text-blue-400" />
+                <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" />
               </Button>
             </div>
             
             <Button
               variant="ghost"
               size="icon"
-              className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20 touch-manipulation"
               onClick={() => changeLane(1)}
             >
-              <ChevronRight className="w-8 h-8 text-white" />
+              <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </Button>
           </div>
         </>
       )}
 
-      {/* Menu Screen */}
+      {/* Menu Screen - Responsive */}
       {gameState === 'menu' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-indigo-900 via-purple-900 to-black">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-indigo-900 via-purple-900 to-black px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <motion.div
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="text-center mb-8"
+            className="text-center mb-6 sm:mb-8"
           >
-            <Plane className="w-24 h-24 mx-auto text-cyan-400 mb-4 transform -rotate-45" 
+            <Plane className="w-16 h-16 sm:w-24 sm:h-24 mx-auto text-cyan-400 mb-3 sm:mb-4 transform -rotate-45" 
               style={{ filter: 'drop-shadow(0 0 30px rgba(34,211,238,0.8))' }}
             />
-            <h1 className="text-4xl font-bold text-white mb-2">CHATR AIR RUNNER</h1>
-            <p className="text-white/60">Level {level}</p>
+            <h1 className="text-2xl sm:text-4xl font-bold text-white mb-1 sm:mb-2">CHATR AIR RUNNER</h1>
+            <p className="text-white/60 text-sm sm:text-base">Level {level}</p>
             {highScore > 0 && (
-              <p className="text-yellow-400 mt-2">High Score: {highScore.toLocaleString()}</p>
+              <p className="text-yellow-400 mt-1 sm:mt-2 text-sm sm:text-base">High Score: {highScore.toLocaleString()}</p>
             )}
           </motion.div>
 
@@ -734,88 +734,88 @@ export function AIAirRunnerGame({ level, onComplete, onExit }: AIAirRunnerGamePr
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="space-y-4"
+            className="space-y-3 sm:space-y-4"
           >
             <Button
               size="lg"
-              className="w-48 h-14 text-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400"
+              className="w-40 sm:w-48 h-12 sm:h-14 text-lg sm:text-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 touch-manipulation"
               onClick={startGame}
             >
-              <Play className="w-6 h-6 mr-2" /> FLY
+              <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2" /> FLY
             </Button>
             
-            <div className="flex justify-center gap-4 mt-4">
+            <div className="flex justify-center gap-3 sm:gap-4 mt-3 sm:mt-4">
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full bg-white/10"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 touch-manipulation"
                 onClick={() => setSoundEnabled(!soundEnabled)}
               >
-                {soundEnabled ? <Volume2 className="w-5 h-5 text-white" /> : <VolumeX className="w-5 h-5 text-white" />}
+                {soundEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full bg-white/10"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 touch-manipulation"
                 onClick={() => setVoiceEnabled(!voiceEnabled)}
               >
-                {voiceEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
+                {voiceEnabled ? <Mic className="w-4 h-4 sm:w-5 sm:h-5 text-white" /> : <MicOff className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
               </Button>
             </div>
           </motion.div>
 
           <Button
             variant="ghost"
-            className="absolute top-4 left-4 text-white/70"
+            className="absolute top-[calc(env(safe-area-inset-top)+0.5rem)] sm:top-4 left-2 sm:left-4 text-white/70 touch-manipulation"
             onClick={onExit}
           >
             ← Back
           </Button>
 
           {/* Controls hint */}
-          <div className="absolute bottom-8 text-center text-white/50 text-sm">
+          <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] sm:bottom-8 text-center text-white/50 text-xs sm:text-sm px-4">
             <p>Swipe or Arrow Keys to move • Space to boost</p>
             <p className="mt-1">Collect coins, avoid obstacles, survive!</p>
           </div>
         </div>
       )}
 
-      {/* Game Over Screen */}
+      {/* Game Over Screen - Responsive */}
       {gameState === 'gameover' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             className="text-center"
           >
-            <Trophy className="w-20 h-20 mx-auto text-yellow-400 mb-4" />
-            <h2 className="text-3xl font-bold text-white mb-2">GAME OVER</h2>
-            <p className="text-5xl font-bold text-cyan-400 mb-4">{score.toLocaleString()}</p>
-            <p className="text-white/60 mb-2">Distance: {Math.floor(distance)}m</p>
-            <p className="text-yellow-400 mb-6">Coins: {coins}</p>
+            <Trophy className="w-14 h-14 sm:w-20 sm:h-20 mx-auto text-yellow-400 mb-3 sm:mb-4" />
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">GAME OVER</h2>
+            <p className="text-4xl sm:text-5xl font-bold text-cyan-400 mb-3 sm:mb-4">{score.toLocaleString()}</p>
+            <p className="text-white/60 text-sm sm:text-base mb-1 sm:mb-2">Distance: {Math.floor(distance)}m</p>
+            <p className="text-yellow-400 text-sm sm:text-base mb-4 sm:mb-6">Coins: {coins}</p>
             
             {score >= highScore && (
               <motion.p
                 initial={{ scale: 0 }}
                 animate={{ scale: [1, 1.2, 1] }}
-                className="text-2xl text-yellow-400 mb-4"
+                className="text-xl sm:text-2xl text-yellow-400 mb-3 sm:mb-4"
               >
                 🏆 NEW HIGH SCORE!
               </motion.p>
             )}
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <Button
                 size="lg"
-                className="w-48 bg-gradient-to-r from-cyan-500 to-blue-500"
+                className="w-40 sm:w-48 bg-gradient-to-r from-cyan-500 to-blue-500 touch-manipulation"
                 onClick={startGame}
               >
-                <Play className="w-5 h-5 mr-2" /> Try Again
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Try Again
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="w-48"
+                className="w-40 sm:w-48 touch-manipulation"
                 onClick={() => onComplete(score)}
               >
                 Complete Level
@@ -825,14 +825,14 @@ export function AIAirRunnerGame({ level, onComplete, onExit }: AIAirRunnerGamePr
         </div>
       )}
 
-      {/* Paused Screen */}
+      {/* Paused Screen - Responsive */}
       {gameState === 'paused' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg">
-          <h2 className="text-3xl font-bold text-white mb-8">PAUSED</h2>
-          <div className="space-y-3">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 sm:mb-8">PAUSED</h2>
+          <div className="space-y-2 sm:space-y-3">
             <Button
               size="lg"
-              className="w-48"
+              className="w-40 sm:w-48 touch-manipulation"
               onClick={() => setGameState('playing')}
             >
               Resume
@@ -840,7 +840,7 @@ export function AIAirRunnerGame({ level, onComplete, onExit }: AIAirRunnerGamePr
             <Button
               variant="outline"
               size="lg"
-              className="w-48"
+              className="w-40 sm:w-48 touch-manipulation"
               onClick={() => setGameState('menu')}
             >
               Main Menu
@@ -848,7 +848,7 @@ export function AIAirRunnerGame({ level, onComplete, onExit }: AIAirRunnerGamePr
             <Button
               variant="ghost"
               size="lg"
-              className="w-48 text-white/70"
+              className="w-40 sm:w-48 text-white/70 touch-manipulation"
               onClick={onExit}
             >
               Exit
