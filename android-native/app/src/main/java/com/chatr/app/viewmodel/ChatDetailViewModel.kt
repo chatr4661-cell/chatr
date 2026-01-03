@@ -238,9 +238,60 @@ class ChatDetailViewModel @Inject constructor(
     }
     
     private fun uploadAndSendVoiceMessage(file: File) {
-        // TODO: Upload to Supabase Storage
-        // For now, send as text placeholder
-        sendMessage("[Voice message: ${voiceRecorder.formatDuration(_state.value.recordingDuration)}]", "voice")
+        val accessToken = authRepository.getAccessToken() ?: return
+        
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isSending = true)
+            
+            rpcRepository.uploadMedia(
+                accessToken = accessToken,
+                file = file,
+                bucket = "chat-media",
+                mimeType = "audio/mp4"
+            ).onSuccess { mediaUrl ->
+                // Send message with voice note
+                sendMessage(
+                    content = "🎤 Voice message",
+                    messageType = "voice",
+                    mediaUrl = mediaUrl
+                )
+                // Clean up local file
+                file.delete()
+            }.onFailure { error ->
+                _state.value = _state.value.copy(
+                    isSending = false,
+                    error = "Failed to upload voice message: ${error.message}"
+                )
+            }
+        }
+    }
+    
+    // ==================== IMAGE UPLOAD ====================
+    
+    fun uploadAndSendImage(uri: android.net.Uri) {
+        val accessToken = authRepository.getAccessToken() ?: return
+        
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isSending = true)
+            
+            rpcRepository.uploadImageFromUri(
+                accessToken = accessToken,
+                context = context,
+                uri = uri,
+                bucket = "chat-media"
+            ).onSuccess { mediaUrl ->
+                sendMessage(
+                    content = "📷 Image",
+                    messageType = "image",
+                    mediaUrl = mediaUrl
+                )
+            }.onFailure { error ->
+                _state.value = _state.value.copy(
+                    isSending = false,
+                    error = "Failed to upload image: ${error.message}"
+                )
+            }
+        }
     }
     
     // ==================== TYPING INDICATOR ====================
