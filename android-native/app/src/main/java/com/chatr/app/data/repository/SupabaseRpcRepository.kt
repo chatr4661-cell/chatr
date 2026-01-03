@@ -334,6 +334,88 @@ class SupabaseRpcRepository @Inject constructor(
             }
         }
     }
+    
+    /**
+     * Upload media file to Supabase Storage
+     * Returns the public URL of the uploaded file
+     */
+    suspend fun uploadMedia(
+        accessToken: String,
+        file: java.io.File,
+        bucket: String = "chat-media",
+        mimeType: String = "audio/mp4"
+    ): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val fileName = "${java.util.UUID.randomUUID()}_${file.name}"
+                val fileBytes = file.readBytes()
+                
+                val request = Request.Builder()
+                    .url("$SUPABASE_URL/storage/v1/object/$bucket/$fileName")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .addHeader("apikey", SUPABASE_ANON_KEY)
+                    .addHeader("Content-Type", mimeType)
+                    .post(okhttp3.RequestBody.create(mimeType.toMediaType(), fileBytes))
+                    .build()
+                
+                val response = okHttpClient.newCall(request).execute()
+                
+                if (response.isSuccessful) {
+                    // Return public URL
+                    val publicUrl = "$SUPABASE_URL/storage/v1/object/public/$bucket/$fileName"
+                    Result.success(publicUrl)
+                } else {
+                    val errorBody = response.body?.string() ?: "Unknown error"
+                    Result.failure(Exception("Upload failed ${response.code}: $errorBody"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Upload image from URI (for image picker)
+     */
+    suspend fun uploadImageFromUri(
+        accessToken: String,
+        context: android.content.Context,
+        uri: android.net.Uri,
+        bucket: String = "chat-media"
+    ): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                    ?: return@withContext Result.failure(Exception("Cannot open file"))
+                
+                val fileName = "${java.util.UUID.randomUUID()}.jpg"
+                val fileBytes = inputStream.readBytes()
+                inputStream.close()
+                
+                val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                
+                val request = Request.Builder()
+                    .url("$SUPABASE_URL/storage/v1/object/$bucket/$fileName")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .addHeader("apikey", SUPABASE_ANON_KEY)
+                    .addHeader("Content-Type", mimeType)
+                    .post(okhttp3.RequestBody.create(mimeType.toMediaType(), fileBytes))
+                    .build()
+                
+                val response = okHttpClient.newCall(request).execute()
+                
+                if (response.isSuccessful) {
+                    val publicUrl = "$SUPABASE_URL/storage/v1/object/public/$bucket/$fileName"
+                    Result.success(publicUrl)
+                } else {
+                    val errorBody = response.body?.string() ?: "Unknown error"
+                    Result.failure(Exception("Upload failed ${response.code}: $errorBody"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
 }
 
 /**

@@ -77,8 +77,9 @@ fun ChatDetailScreen(
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        selectedImageUri = uri
-        // TODO: Upload and send image
+        uri?.let {
+            viewModel.uploadAndSendImage(it)
+        }
     }
     
     LaunchedEffect(conversationId) {
@@ -296,16 +297,28 @@ fun ChatDetailScreen(
                             items = state.messages,
                             key = { it.message_id }
                         ) { message ->
+                            // Find replied message content
+                            val repliedMessage = if (!message.reply_to_id.isNullOrEmpty()) {
+                                state.messages.find { it.message_id == message.reply_to_id }
+                            } else null
+                            
                             MessageBubbleComplete(
                                 message = message,
+                                repliedMessage = repliedMessage,
                                 isCurrentUser = viewModel.isOwnMessage(message.sender_id),
                                 isHighlighted = state.searchMatches.contains(message.message_id),
                                 onLongPress = {
                                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.showMessageActions(message.message_id)
                                 },
-                                onReplyClick = {
+                                onReplyClick = { replyToId ->
                                     // Scroll to replied message
+                                    val index = state.messages.indexOfFirst { it.message_id == replyToId }
+                                    if (index >= 0) {
+                                        kotlinx.coroutines.MainScope().launch {
+                                            listState.animateScrollToItem(index)
+                                        }
+                                    }
                                 },
                                 onMediaClick = { url, type ->
                                     viewModel.showMediaViewer(url, type)
@@ -371,10 +384,11 @@ fun ChatDetailScreen(
 @Composable
 private fun MessageBubbleComplete(
     message: MessageItem,
+    repliedMessage: MessageItem? = null,
     isCurrentUser: Boolean,
     isHighlighted: Boolean = false,
     onLongPress: () -> Unit,
-    onReplyClick: () -> Unit,
+    onReplyClick: (String) -> Unit,
     onMediaClick: (String, String) -> Unit
 ) {
     Column(
@@ -404,11 +418,11 @@ private fun MessageBubbleComplete(
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 // Reply reference
-                if (!message.reply_to_id.isNullOrEmpty()) {
+                if (!message.reply_to_id.isNullOrEmpty() && repliedMessage != null) {
                     InlineReplyReference(
-                        senderName = "Reply",
-                        messageContent = "...",
-                        onClick = onReplyClick,
+                        senderName = repliedMessage.sender_name ?: "Unknown",
+                        messageContent = repliedMessage.content.take(50) + if (repliedMessage.content.length > 50) "..." else "",
+                        onClick = { onReplyClick(message.reply_to_id) },
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
@@ -424,8 +438,18 @@ private fun MessageBubbleComplete(
                     Spacer(modifier = Modifier.height(4.dp))
                 }
                 
-                // Media content
-                if (!message.media_url.isNullOrEmpty()) {
+                // Voice message player
+                if (message.message_type == "voice" && !message.media_url.isNullOrEmpty()) {
+                    VoiceMessagePlayer(
+                        audioUrl = message.media_url,
+                        isOwnMessage = isCurrentUser,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                // Image/Video content
+                else if (!message.media_url.isNullOrEmpty() && message.message_type in listOf("image", "video")) {
                     AsyncImage(
                         model = message.media_url,
                         contentDescription = "Media",
@@ -439,6 +463,19 @@ private fun MessageBubbleComplete(
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                // Link preview for URLs in content
+                if (!message.is_deleted && message.message_type == "text") {
+                    val firstUrl = LinkDetector.getFirstUrl(message.content)
+                    if (firstUrl != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinkPreview(
+                            url = firstUrl,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
                 
                 // Message content
@@ -499,6 +536,31 @@ private fun MessageBubbleComplete(
                             style = MaterialTheme.typography.bodySmall,
                             color = if (isCurrentUser) PrimaryForeground.copy(alpha = 0.7f) else MutedForeground
                         )
+                    }
+                }
+                
+                // Reactions display
+                if (!message.reactions.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Parse reactions JSON and display
+                        message.reactions.let { reactionsStr ->
+                            // Simple parsing for common emojis (reactions format: "👍,❤️,😂")
+                            reactionsStr.split(",").filter { it.isNotBlank() }.forEach { emoji ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isCurrentUser) PrimaryForeground.copy(alpha = 0.2f) else Primary.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = emoji.trim(),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
