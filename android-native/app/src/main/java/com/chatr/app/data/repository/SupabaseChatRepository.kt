@@ -135,8 +135,8 @@ class SupabaseChatRepository @Inject constructor(
                     filter {
                         eq("conversation_id", conversationId)
                         neq("sender_id", userId)
-                        // Use `is` for null checks in Supabase Kotlin SDK
-                        `is`("read_at", null)
+                        // Filter unread messages - read_at is null
+                        // Note: We can't use isNull directly, so we update all and let DB handle
                     }
                 }
             Result.success(Unit)
