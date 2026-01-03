@@ -136,17 +136,25 @@ class SupabaseRpcRepository @Inject constructor(
         accessToken: String,
         conversationId: String,
         content: String,
-        messageType: String = "text"
+        messageType: String = "text",
+        replyToId: String? = null,
+        mediaUrl: String? = null
     ): Result<SendMessageResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                val bodyContent = """
-                    {
-                        "conversation_id": "$conversationId",
-                        "content": "$content",
-                        "message_type": "$messageType"
+                val bodyContent = buildString {
+                    append("{")
+                    append("\"conversation_id\":\"$conversationId\"")
+                    append(",\"content\":\"${content.replace("\"", "\\\"")}\"")
+                    append(",\"message_type\":\"$messageType\"")
+                    if (replyToId != null) {
+                        append(",\"reply_to_id\":\"$replyToId\"")
                     }
-                """.trimIndent()
+                    if (mediaUrl != null) {
+                        append(",\"media_url\":\"$mediaUrl\"")
+                    }
+                    append("}")
+                }
                 
                 val request = Request.Builder()
                     .url("$SUPABASE_URL/rest/v1/messages")
@@ -202,6 +210,124 @@ class SupabaseRpcRepository @Inject constructor(
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Failed to mark as read"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Delete a message (soft delete)
+     */
+    suspend fun deleteMessage(
+        accessToken: String,
+        messageId: String
+    ): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val bodyContent = """{"is_deleted": true, "content": "This message was deleted"}"""
+                
+                val request = Request.Builder()
+                    .url("$SUPABASE_URL/rest/v1/messages?id=eq.$messageId")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .addHeader("apikey", SUPABASE_ANON_KEY)
+                    .addHeader("Content-Type", "application/json")
+                    .patch(bodyContent.toRequestBody("application/json".toMediaType()))
+                    .build()
+                
+                val response = okHttpClient.newCall(request).execute()
+                
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Failed to delete message"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Star/unstar a message
+     */
+    suspend fun toggleStarMessage(
+        accessToken: String,
+        messageId: String
+    ): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // First get current star status
+                val getRequest = Request.Builder()
+                    .url("$SUPABASE_URL/rest/v1/messages?id=eq.$messageId&select=is_starred")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .addHeader("apikey", SUPABASE_ANON_KEY)
+                    .get()
+                    .build()
+                
+                val getResponse = okHttpClient.newCall(getRequest).execute()
+                val currentStarred = if (getResponse.isSuccessful) {
+                    val body = getResponse.body?.string() ?: "[]"
+                    body.contains("true")
+                } else false
+                
+                // Toggle star status
+                val bodyContent = """{"is_starred": ${!currentStarred}}"""
+                
+                val request = Request.Builder()
+                    .url("$SUPABASE_URL/rest/v1/messages?id=eq.$messageId")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .addHeader("apikey", SUPABASE_ANON_KEY)
+                    .addHeader("Content-Type", "application/json")
+                    .patch(bodyContent.toRequestBody("application/json".toMediaType()))
+                    .build()
+                
+                val response = okHttpClient.newCall(request).execute()
+                
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Failed to star message"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Add reaction to a message
+     */
+    suspend fun addReaction(
+        accessToken: String,
+        messageId: String,
+        emoji: String
+    ): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val bodyContent = """
+                    {
+                        "message_id": "$messageId",
+                        "emoji": "$emoji"
+                    }
+                """.trimIndent()
+                
+                val request = Request.Builder()
+                    .url("$SUPABASE_URL/rest/v1/message_reactions")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .addHeader("apikey", SUPABASE_ANON_KEY)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Prefer", "resolution=merge-duplicates")
+                    .post(bodyContent.toRequestBody("application/json".toMediaType()))
+                    .build()
+                
+                val response = okHttpClient.newCall(request).execute()
+                
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Failed to add reaction"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
