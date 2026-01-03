@@ -44,6 +44,14 @@ class AuthViewModel @Inject constructor(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
     val authState: StateFlow<AuthState> = _authState
     
+    // Add isAuthenticated convenience flow for NavGraph
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+    
+    // Add isOnboardingComplete flow for NavGraph
+    private val _isOnboardingComplete = MutableStateFlow(true) // Default to true for now
+    val isOnboardingComplete: StateFlow<Boolean> = _isOnboardingComplete.asStateFlow()
+    
     init {
         checkAuthStatus()
     }
@@ -61,6 +69,7 @@ class AuthViewModel @Inject constructor(
                             user = user
                         )
                         _authState.value = AuthState.Authenticated
+                        _isAuthenticated.value = true
                     }
                     .onFailure { 
                         refreshToken()
@@ -68,6 +77,7 @@ class AuthViewModel @Inject constructor(
             } else {
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 _authState.value = AuthState.Unauthenticated
+                _isAuthenticated.value = false
             }
         }
     }
@@ -85,6 +95,7 @@ class AuthViewModel @Inject constructor(
                     user = response.user
                 )
                 _authState.value = AuthState.Authenticated
+                _isAuthenticated.value = true
             }.onFailure { exception ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -108,6 +119,7 @@ class AuthViewModel @Inject constructor(
                     user = response.user
                 )
                 _authState.value = AuthState.Authenticated
+                _isAuthenticated.value = true
             }.onFailure { exception ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -160,6 +172,7 @@ class AuthViewModel @Inject constructor(
                         otpVerified = true
                     )
                     _authState.value = AuthState.Authenticated
+                    _isAuthenticated.value = true
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
@@ -184,6 +197,7 @@ class AuthViewModel @Inject constructor(
                     user = response.user
                 )
                 _authState.value = AuthState.Authenticated
+                _isAuthenticated.value = true
             }.onFailure { exception ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -204,6 +218,7 @@ class AuthViewModel @Inject constructor(
                         user = response.user
                     )
                     _authState.value = AuthState.Authenticated
+                    _isAuthenticated.value = true
                 }
                 .onFailure {
                     authRepository.signOut()
@@ -213,6 +228,7 @@ class AuthViewModel @Inject constructor(
                         user = null
                     )
                     _authState.value = AuthState.Unauthenticated
+                    _isAuthenticated.value = false
                 }
         }
     }
@@ -225,10 +241,12 @@ class AuthViewModel @Inject constructor(
                 .onSuccess {
                     _uiState.value = AuthUiState(isLoading = false)
                     _authState.value = AuthState.Unauthenticated
+                    _isAuthenticated.value = false
                 }
                 .onFailure {
                     _uiState.value = AuthUiState(isLoading = false)
                     _authState.value = AuthState.Unauthenticated
+                    _isAuthenticated.value = false
                 }
         }
     }
@@ -295,6 +313,7 @@ class AuthViewModel @Inject constructor(
                         user = user
                     )
                     _authState.value = AuthState.Authenticated
+                    _isAuthenticated.value = true
                 }
                 .onFailure {
                     // Even if we can't fetch user, we're authenticated
@@ -303,6 +322,7 @@ class AuthViewModel @Inject constructor(
                         isAuthenticated = true
                     )
                     _authState.value = AuthState.Authenticated
+                    _isAuthenticated.value = true
                 }
         }
     }

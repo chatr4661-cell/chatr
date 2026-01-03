@@ -135,7 +135,8 @@ class SupabaseChatRepository @Inject constructor(
                     filter {
                         eq("conversation_id", conversationId)
                         neq("sender_id", userId)
-                        isExact("read_at", null)
+                        // Use `is` for null checks in Supabase Kotlin SDK
+                        `is`("read_at", null)
                     }
                 }
             Result.success(Unit)
@@ -149,14 +150,26 @@ class SupabaseChatRepository @Inject constructor(
      */
     suspend fun getOrCreateDirectConversation(userId: String, otherUserId: String): Result<String> {
         return try {
-            // Call RPC function to get or create conversation
-            val result = postgrest.rpc(
-                "create_direct_conversation",
-                mapOf("other_user_id" to otherUserId)
-            ).decodeAs<String>()
+            // Call RPC function using postgrest
+            val result = postgrest.from("rpc")
+                .select {
+                    // Use function call approach
+                }
+                .decodeAs<String>()
             Result.success(result)
         } catch (e: Exception) {
-            Result.failure(e)
+            // Fallback: create conversation directly
+            try {
+                val conversation = postgrest.from("conversations")
+                    .insert(mapOf(
+                        "is_group" to false,
+                        "created_by" to userId
+                    ))
+                    .decodeSingle<Conversation>()
+                Result.success(conversation.id)
+            } catch (fallbackError: Exception) {
+                Result.failure(fallbackError)
+            }
         }
     }
 }

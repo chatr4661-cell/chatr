@@ -16,7 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chatr.app.ui.theme.*
-import com.chatr.app.webrtc.*
+import com.chatr.app.webrtc.VideoRenderer
+import com.chatr.app.webrtc.audio.AudioRoute
 import kotlinx.coroutines.delay
 import org.webrtc.VideoTrack
 

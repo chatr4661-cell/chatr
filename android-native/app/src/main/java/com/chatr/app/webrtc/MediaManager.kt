@@ -2,6 +2,7 @@ package com.chatr.app.webrtc
 
 import android.content.Context
 import android.media.AudioManager
+import com.chatr.app.webrtc.audio.AudioRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.webrtc.*
@@ -177,9 +178,4 @@ enum class CameraFacing {
     BACK
 }
 
-enum class AudioRoute {
-    SPEAKER,
-    EARPIECE,
-    BLUETOOTH,
-    WIRED_HEADSET
-}
+// AudioRoute is defined in com.chatr.app.webrtc.audio.AudioRoute
