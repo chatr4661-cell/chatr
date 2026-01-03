@@ -376,16 +376,16 @@ class TelecomWebRtcBridge @Inject constructor(
         signalingClient.signalingEvents
             .onEach { event ->
                 when (event) {
-                    is com.chatr.app.websocket.SignalingEvent.Offer -> {
+                    is WebRTCSignalingClient.SignalingEvent.Offer -> {
                         handleRemoteOffer(event.sdp)
                     }
-                    is com.chatr.app.websocket.SignalingEvent.Answer -> {
+                    is WebRTCSignalingClient.SignalingEvent.Answer -> {
                         handleRemoteAnswer(event.sdp)
                     }
-                    is com.chatr.app.websocket.SignalingEvent.IceCandidate -> {
+                    is WebRTCSignalingClient.SignalingEvent.IceCandidate -> {
                         handleRemoteIceCandidate("", 0, event.candidate)
                     }
-                    is com.chatr.app.websocket.SignalingEvent.CallEnded -> {
+                    is WebRTCSignalingClient.SignalingEvent.CallEnded -> {
                         onCallDisconnected()
                     }
                     else -> {}

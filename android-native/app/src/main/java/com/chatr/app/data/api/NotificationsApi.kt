@@ -1,6 +1,5 @@
 package com.chatr.app.data.api
 
-import com.chatr.app.data.models.*
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -10,7 +9,7 @@ interface NotificationsApi {
     suspend fun getNotifications(
         @Query("limit") limit: Int = 50,
         @Query("unread") unread: Boolean = false
-    ): Response<List<Notification>>
+    ): Response<List<NotificationResponse>>
     
     @POST("notifications/read")
     suspend fun markNotificationsRead(@Body request: MarkNotificationsReadRequest): Response<Unit>
@@ -40,8 +39,8 @@ data class SendChatNotificationRequest(
     val message: String
 )
 
-// Response models
-data class Notification(
+// Response model - renamed to avoid conflict with domain Notification
+data class NotificationResponse(
     val id: String,
     val userId: String,
     val title: String,

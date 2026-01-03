@@ -2,7 +2,7 @@ package com.chatr.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.chatr.app.data.api.CallData
+import com.chatr.app.data.api.CallDataResponse
 
 @Entity(tableName = "call_logs")
 data class CallLogEntity(
@@ -19,8 +19,8 @@ data class CallLogEntity(
     val receiverName: String?,
     val receiverAvatar: String?
 ) {
-    fun toCallData(): CallData {
-        return CallData(
+    fun toCallDataResponse(): CallDataResponse {
+        return CallDataResponse(
             id = id,
             callerId = callerId,
             receiverId = receiverId,
@@ -37,7 +37,7 @@ data class CallLogEntity(
     }
     
     companion object {
-        fun fromCallData(call: CallData): CallLogEntity {
+        fun fromCallDataResponse(call: CallDataResponse): CallLogEntity {
             return CallLogEntity(
                 id = call.id,
                 callerId = call.callerId,

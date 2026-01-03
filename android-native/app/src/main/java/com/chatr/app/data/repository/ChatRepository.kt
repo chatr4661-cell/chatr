@@ -170,7 +170,8 @@ class ChatRepository @Inject constructor(
             pendingMessageDao.insert(pendingMessage)
             
             try {
-                val request = SendMessageRequest(
+                // Use API's SendMessageRequest (from ChatrApi.kt)
+                val request = com.chatr.app.data.api.SendMessageRequest(
                     conversationId = conversationId,
                     content = content,
                     type = type.name,
@@ -231,7 +232,7 @@ class ChatRepository @Inject constructor(
             
             for (pending in pendingMessages) {
                 try {
-                    val request = SendMessageRequest(
+                    val request = com.chatr.app.data.api.SendMessageRequest(
                         conversationId = pending.conversationId,
                         content = pending.content,
                         type = pending.messageType,
@@ -454,29 +455,4 @@ class ChatRepository @Inject constructor(
             pendingMessageDao.getPendingCount()
         }
     }
-}
-
-// Extension functions for entity conversion
-private fun ChatEntity.toChat(): Chat {
-    return Chat(
-        id = id,
-        participants = participantIds.split(","),
-        lastMessage = lastMessage?.let { 
-            Message(
-                id = "",
-                conversationId = id,
-                chatId = id,
-                senderId = "",
-                content = it,
-                timestamp = lastMessageTime ?: 0L,
-                type = MessageType.TEXT,
-                status = MessageStatus.SENT
-            )
-        },
-        unreadCount = unreadCount,
-        updatedAt = updatedAt,
-        isGroup = isGroup,
-        groupName = groupName,
-        groupIconUrl = groupIcon
-    )
 }

@@ -1,7 +1,7 @@
 package com.chatr.app.data.repository
 
 import com.chatr.app.data.api.*
-import com.chatr.app.data.models.*
+import com.chatr.app.data.models.Message
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -19,7 +19,7 @@ class MessagesRepository @Inject constructor(
     /**
      * Send message using domain model SendMessageRequest
      */
-    suspend fun sendMessage(request: SendMessageRequest): Result<Message> {
+    suspend fun sendMessage(request: com.chatr.app.data.models.SendMessageRequest): Result<Message> {
         return safeApiCall {
             api.sendMessage(
                 com.chatr.app.data.api.SendMessageRequest(

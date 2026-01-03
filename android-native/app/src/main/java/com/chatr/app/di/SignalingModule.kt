@@ -3,13 +3,13 @@ package com.chatr.app.di
 import com.chatr.app.data.local.dao.CallDao
 import com.chatr.app.webrtc.signaling.CallSignalingClient
 import com.chatr.app.webrtc.signaling.CallSignalingRepository
-import com.chatr.app.webrtc.timeout.CallTimeoutManager
-import com.chatr.app.webrtc.multidevice.MultiDeviceSafetyManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.*
+import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.websocket.*
 import javax.inject.Singleton
 
 /**
@@ -18,6 +18,14 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object SignalingModule {
+
+    @Provides
+    @Singleton
+    fun provideKtorHttpClient(): HttpClient {
+        return HttpClient(OkHttp) {
+            install(WebSockets)
+        }
+    }
 
     @Provides
     @Singleton

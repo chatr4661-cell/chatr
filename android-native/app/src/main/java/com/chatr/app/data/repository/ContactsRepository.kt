@@ -1,7 +1,7 @@
 package com.chatr.app.data.repository
 
 import com.chatr.app.data.api.*
-import com.chatr.app.data.models.*
+import com.chatr.app.data.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -12,7 +12,7 @@ class ContactsRepository @Inject constructor(
     private val api: ContactsApi
 ) {
     
-    fun getContacts(): Flow<Result<List<Contact>>> = flow {
+    fun getContacts(): Flow<Result<List<ContactResponse>>> = flow {
         emit(safeApiCall { api.getContacts() })
     }
     
@@ -30,7 +30,7 @@ class ContactsRepository @Inject constructor(
         return safeApiCall { api.unblockContact(userId) }
     }
     
-    fun getBlockedContacts(): Flow<Result<List<Contact>>> = flow {
+    fun getBlockedContacts(): Flow<Result<List<ContactResponse>>> = flow {
         emit(safeApiCall { api.getBlockedContacts() })
     }
 }

@@ -5,8 +5,11 @@ package com.chatr.app.data.models
  * CHATR+ UNIFIED DATA MODELS
  * =========================================
  * 
- * Single source of truth for all data models used across the app.
- * Ensures consistency between ViewModels, Repositories, and API layers.
+ * Single source of truth for all domain models used across the app.
+ * Ensures consistency between ViewModels, Repositories, and UI layers.
+ * 
+ * NOTE: API response models are defined in their respective API files
+ * with "Response" suffix to avoid conflicts (e.g., CallDataResponse, NotificationResponse)
  */
 
 // ==================== USER ====================

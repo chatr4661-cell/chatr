@@ -2,7 +2,7 @@ package com.chatr.app.data.repository
 
 import android.os.Build
 import com.chatr.app.data.api.*
-import com.chatr.app.data.local.ChatrDatabase
+import com.chatr.app.data.local.dao.NotificationDao
 import com.chatr.app.data.local.entity.NotificationEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -16,23 +16,21 @@ import javax.inject.Singleton
 class NotificationsRepository @Inject constructor(
     private val api: NotificationsApi,
     private val chatrApi: ChatrApi,
-    private val database: ChatrDatabase
+    private val notificationDao: NotificationDao
 ) {
     
-    private val notificationDao get() = database.notificationDao()
-    
-    fun getNotifications(limit: Int = 50, unreadOnly: Boolean = false): Flow<Result<List<Notification>>> = flow {
+    fun getNotifications(limit: Int = 50, unreadOnly: Boolean = false): Flow<Result<List<NotificationResponse>>> = flow {
         // First emit cached
         val cached = notificationDao.getAll(limit)
         if (cached.isNotEmpty()) {
-            emit(Result.success(cached.map { it.toNotification() }))
+            emit(Result.success(cached.map { it.toNotificationResponse() }))
         }
         
         // Then fetch fresh
         val result = safeApiCall { api.getNotifications(limit, unreadOnly) }
         result.onSuccess { notifications ->
             withContext(Dispatchers.IO) {
-                notificationDao.insertAll(notifications.map { NotificationEntity.fromNotification(it) })
+                notificationDao.insertAll(notifications.map { NotificationEntity.fromNotificationResponse(it) })
             }
             emit(Result.success(notifications))
         }.onFailure { error ->

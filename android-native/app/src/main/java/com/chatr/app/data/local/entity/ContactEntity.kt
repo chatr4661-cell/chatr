@@ -2,7 +2,7 @@ package com.chatr.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.chatr.app.data.api.Contact
+import com.chatr.app.data.api.ContactResponse
 
 @Entity(tableName = "contacts")
 data class ContactEntity(
@@ -16,8 +16,8 @@ data class ContactEntity(
     val isOnline: Boolean = false,
     val lastSyncedAt: Long = System.currentTimeMillis()
 ) {
-    fun toContact(): Contact {
-        return Contact(
+    fun toContactResponse(): ContactResponse {
+        return ContactResponse(
             id = id,
             userId = userId,
             contactUserId = contactUserId,
@@ -30,7 +30,7 @@ data class ContactEntity(
     }
     
     companion object {
-        fun fromContact(contact: Contact): ContactEntity {
+        fun fromContactResponse(contact: ContactResponse): ContactEntity {
             return ContactEntity(
                 id = contact.id,
                 userId = contact.userId,
