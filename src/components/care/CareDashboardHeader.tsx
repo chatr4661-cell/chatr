@@ -101,11 +101,11 @@ export function CareDashboardHeader({
             <h1 className="text-2xl font-bold mb-1">
               Hey {userName} 👋
             </h1>
-            <p className="text-blue-100 text-sm">
-              {selectedMember?.relationship === 'self' 
-                ? "Your healthcare OS is ready" 
-                : `Managing care for ${selectedMember?.name}`}
-            </p>
+            {selectedMember?.relationship !== 'self' && (
+              <p className="text-blue-100 text-sm">
+                Managing care for {selectedMember?.name}
+              </p>
+            )}
           </div>
           
           {/* Health Score Circle */}
