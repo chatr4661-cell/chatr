@@ -48,6 +48,16 @@ import ProviderRegister from "./pages/ProviderRegister";
 import AlliedHealthcare from "./pages/AlliedHealthcare";
 import Marketplace from "./pages/Marketplace";
 import ServiceListing from "./pages/ServiceListing";
+
+// Medicine Subscription Pages (lazy loaded)
+const MedicineHubPage = React.lazy(() => import("./pages/care/MedicineHub"));
+const MedicineSubscribePage = React.lazy(() => import("./pages/care/MedicineSubscribe"));
+const MedicineSubscriptionsPage = React.lazy(() => import("./pages/care/MedicineSubscriptions"));
+const MedicineFamilyPage = React.lazy(() => import("./pages/care/MedicineFamily"));
+const MedicineVitalsPage = React.lazy(() => import("./pages/care/MedicineVitals"));
+const MedicinePrescriptionsPage = React.lazy(() => import("./pages/care/MedicinePrescriptions"));
+const MedicineRemindersPage = React.lazy(() => import("./pages/care/MedicineReminders"));
+const MedicineRewardsPage = React.lazy(() => import("./pages/care/MedicineRewards"));
 import ProviderDetails from "./pages/ProviderDetails";
 import BookingTracking from "./pages/BookingTracking";
 import ProviderDashboard from "./pages/ProviderDashboard";
@@ -354,6 +364,16 @@ const App = () => {
             <Route path="/health-risks" element={<HealthRiskPredictions />} />
             <Route path="/emergency" element={<EmergencyButton />} />
             <Route path="/emergency-services" element={<EmergencyServices />} />
+            
+            {/* Medicine Subscription Routes */}
+            <Route path="/care/medicines" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineHubPage /></React.Suspense>} />
+            <Route path="/care/medicines/subscribe" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineSubscribePage /></React.Suspense>} />
+            <Route path="/care/medicines/subscriptions" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineSubscriptionsPage /></React.Suspense>} />
+            <Route path="/care/medicines/family" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineFamilyPage /></React.Suspense>} />
+            <Route path="/care/medicines/vitals" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineVitalsPage /></React.Suspense>} />
+            <Route path="/care/medicines/prescriptions" element={<React.Suspense fallback={<div>Loading...</div>}><MedicinePrescriptionsPage /></React.Suspense>} />
+            <Route path="/care/medicines/reminders" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineRemindersPage /></React.Suspense>} />
+            <Route path="/care/medicines/rewards" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineRewardsPage /></React.Suspense>} />
             
             {/* Provider & Booking Routes */}
             <Route path="/booking" element={<BookingPage />} />
