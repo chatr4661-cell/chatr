@@ -1,23 +1,36 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, Plus, Minus, Camera, Pill, Check, Sparkles, ShoppingCart, X } from 'lucide-react';
+import { Search, Plus, Camera, Sparkles, ShoppingCart, MapPin, ChevronRight, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { MedicineHeroHeader } from '@/components/care/MedicineHeroHeader';
+import { MedicineSearchCard } from '@/components/care/MedicineSearchCard';
 import { PricingCards } from '@/components/care/PricingCards';
+import { AddressForm, DeliveryAddress } from '@/components/care/AddressForm';
+import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
 
-interface CartItem {
+interface Medicine {
   id: string;
   name: string;
   generic_name: string | null;
+  manufacturer: string | null;
+  category: string | null;
+  form: string | null;
   strength: string | null;
+  pack_size: number | null;
   mrp: number;
   discounted_price: number | null;
+  requires_prescription: boolean;
+}
+
+interface CartItem extends Medicine {
   quantity: number;
   frequency: string;
   timing: string[];
@@ -25,38 +38,83 @@ interface CartItem {
 
 const MedicineSubscribe = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedPlan, setSelectedPlan] = useState('care');
-  const [loading, setLoading] = useState(false);
-  const [showCart, setShowCart] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [subscribing, setSubscribing] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [savedAddress, setSavedAddress] = useState<DeliveryAddress | null>(null);
+  const [activeCategory, setActiveCategory] = useState('all');
 
-  const sampleMedicines = [
-    { id: '1', name: 'Metformin 500mg', generic_name: 'Metformin', strength: '500mg', mrp: 120, discounted_price: 95, form: 'tablet' },
-    { id: '2', name: 'Amlodipine 5mg', generic_name: 'Amlodipine', strength: '5mg', mrp: 85, discounted_price: 68, form: 'tablet' },
-    { id: '3', name: 'Thyronorm 50mcg', generic_name: 'Levothyroxine', strength: '50mcg', mrp: 110, discounted_price: 88, form: 'tablet' },
-    { id: '4', name: 'Atorvastatin 10mg', generic_name: 'Atorvastatin', strength: '10mg', mrp: 150, discounted_price: 120, form: 'tablet' },
-    { id: '5', name: 'Telmisartan 40mg', generic_name: 'Telmisartan', strength: '40mg', mrp: 95, discounted_price: 76, form: 'tablet' },
-    { id: '6', name: 'Glimepiride 2mg', generic_name: 'Glimepiride', strength: '2mg', mrp: 130, discounted_price: 104, form: 'tablet' },
-  ];
+  const categories = ['all', 'Diabetes', 'Hypertension', 'Thyroid', 'Cholesterol', 'Supplements'];
 
-  const filteredMedicines = sampleMedicines.filter(m => 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.generic_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    loadMedicines();
+    loadSavedAddress();
+  }, []);
 
-  const addToCart = (medicine: typeof sampleMedicines[0]) => {
+  const loadMedicines = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('medicine_catalog')
+        .select('*')
+        .eq('is_available', true)
+        .order('name');
+
+      if (error) throw error;
+      setMedicines(data || []);
+    } catch (error) {
+      console.error('Error loading medicines:', error);
+      toast.error('Failed to load medicines');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSavedAddress = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('delivery_address')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.delivery_address) {
+        setSavedAddress(profile.delivery_address as unknown as DeliveryAddress);
+      }
+    } catch (error) {
+      console.error('Error loading address:', error);
+    }
+  };
+
+  const filteredMedicines = medicines.filter(m => {
+    const matchesSearch = searchQuery === '' || 
+      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.generic_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = activeCategory === 'all' || m.category === activeCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const addToCart = (medicine: Medicine) => {
     const existing = cart.find(item => item.id === medicine.id);
     if (existing) {
       setCart(cart.map(item => 
         item.id === medicine.id 
-          ? { ...item, quantity: item.quantity + 30 }
+          ? { ...item, quantity: item.quantity + 1 }
           : item
       ));
     } else {
       setCart([...cart, {
         ...medicine,
-        quantity: 30,
+        quantity: 1,
         frequency: 'once_daily',
         timing: ['morning']
       }]);
@@ -64,10 +122,14 @@ const MedicineSubscribe = () => {
     toast.success(`Added ${medicine.name}`);
   };
 
-  const updateCartItem = (id: string, updates: Partial<CartItem>) => {
-    setCart(cart.map(item => 
-      item.id === id ? { ...item, ...updates } : item
-    ));
+  const updateQuantity = (id: string, delta: number) => {
+    setCart(cart.map(item => {
+      if (item.id === id) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : item;
+      }
+      return item;
+    }).filter(item => item.quantity > 0));
   };
 
   const removeFromCart = (id: string) => {
@@ -75,11 +137,30 @@ const MedicineSubscribe = () => {
   };
 
   const calculateTotals = () => {
-    const mrpTotal = cart.reduce((sum, item) => sum + (item.mrp * (item.quantity / 30)), 0);
-    const discountedTotal = cart.reduce((sum, item) => sum + ((item.discounted_price || item.mrp) * (item.quantity / 30)), 0);
+    const mrpTotal = cart.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
+    const discountedTotal = cart.reduce((sum, item) => 
+      sum + ((item.discounted_price || item.mrp) * item.quantity), 0);
     const savings = mrpTotal - discountedTotal;
     const planFee = selectedPlan === 'care' ? 99 : selectedPlan === 'family' ? 199 : 299;
     return { mrpTotal, discountedTotal, savings, planFee, total: discountedTotal + planFee };
+  };
+
+  const handleAddressSubmit = async (address: DeliveryAddress) => {
+    setSavedAddress(address);
+    setShowAddressForm(false);
+    
+    // Save to profile
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ delivery_address: address as any })
+          .eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error saving address:', error);
+    }
   };
 
   const handleSubscribe = async () => {
@@ -88,7 +169,13 @@ const MedicineSubscribe = () => {
       return;
     }
 
-    setLoading(true);
+    if (!savedAddress) {
+      setShowAddressForm(true);
+      toast.error('Please add delivery address');
+      return;
+    }
+
+    setSubscribing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -99,6 +186,7 @@ const MedicineSubscribe = () => {
 
       const totals = calculateTotals();
 
+      // Create subscription
       const { data: subscription, error: subError } = await supabase
         .from('medicine_subscriptions')
         .insert({
@@ -115,15 +203,16 @@ const MedicineSubscribe = () => {
 
       if (subError) throw subError;
 
+      // Create subscription items
       const items = cart.map(item => ({
         subscription_id: subscription.id,
         medicine_name: item.name,
         dosage: item.strength,
         frequency: item.frequency,
         timing: item.timing,
-        quantity_per_month: item.quantity,
+        quantity_per_month: item.quantity * (item.pack_size || 30),
         unit_price: item.discounted_price || item.mrp,
-        total_price: (item.discounted_price || item.mrp) * (item.quantity / 30),
+        total_price: (item.discounted_price || item.mrp) * item.quantity,
         is_generic: item.generic_name !== null
       }));
 
@@ -133,6 +222,31 @@ const MedicineSubscribe = () => {
 
       if (itemsError) throw itemsError;
 
+      // Create first order
+      const { error: orderError } = await supabase
+        .from('medicine_orders')
+        .insert({
+          user_id: user.id,
+          subscription_id: subscription.id,
+          order_number: `ORD${Date.now().toString(36).toUpperCase()}`,
+          items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.discounted_price || item.mrp
+          })),
+          subtotal: totals.discountedTotal,
+          discount: totals.savings,
+          delivery_fee: 0,
+          total: totals.total,
+          status: 'pending',
+          delivery_address: savedAddress as any,
+          expected_delivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          payment_status: 'pending'
+        });
+
+      if (orderError) throw orderError;
+
+      // Create reminders
       for (const item of cart) {
         const times = item.timing.map(t => {
           switch(t) {
@@ -149,7 +263,8 @@ const MedicineSubscribe = () => {
             user_id: user.id,
             medicine_name: item.name,
             scheduled_time: time,
-            reminder_type: 'push'
+            reminder_type: 'push',
+            is_active: true
           });
         }
       }
@@ -160,7 +275,7 @@ const MedicineSubscribe = () => {
       console.error('Error creating subscription:', error);
       toast.error('Failed to create subscription');
     } finally {
-      setLoading(false);
+      setSubscribing(false);
     }
   };
 
@@ -195,6 +310,23 @@ const MedicineSubscribe = () => {
             className="pl-11 h-12 rounded-2xl border-0 bg-muted/50 shadow-sm"
           />
         </motion.div>
+
+        {/* Category Tabs */}
+        <div className="overflow-x-auto -mx-4 px-4">
+          <div className="flex gap-2">
+            {categories.map((cat) => (
+              <Button
+                key={cat}
+                variant={activeCategory === cat ? 'default' : 'outline'}
+                size="sm"
+                className="rounded-full whitespace-nowrap"
+                onClick={() => setActiveCategory(cat)}
+              >
+                {cat === 'all' ? 'All' : cat}
+              </Button>
+            ))}
+          </div>
+        </div>
 
         {/* AI Scan CTA */}
         <motion.div
@@ -239,92 +371,42 @@ const MedicineSubscribe = () => {
 
         {/* Medicine List */}
         <div>
-          <h2 className="text-base font-bold mb-3">Popular Medicines</h2>
-          <div className="space-y-3">
-            {filteredMedicines.map((medicine, idx) => {
-              const inCart = cart.find(item => item.id === medicine.id);
-              const savings = medicine.mrp - (medicine.discounted_price || medicine.mrp);
-              const savingsPercent = Math.round((savings / medicine.mrp) * 100);
-
-              return (
-                <motion.div
-                  key={medicine.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * idx }}
-                >
-                  <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                              <Pill className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold">{medicine.name}</h3>
-                              {medicine.generic_name && (
-                                <p className="text-xs text-muted-foreground">
-                                  Generic: {medicine.generic_name}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 mt-3">
-                            <span className="text-xl font-bold">₹{medicine.discounted_price}</span>
-                            <span className="text-sm text-muted-foreground line-through">₹{medicine.mrp}</span>
-                            <Badge className="bg-green-100 text-green-700 border-0 text-xs">
-                              {savingsPercent}% off
-                            </Badge>
-                          </div>
-                        </div>
-                        <div>
-                          {inCart ? (
-                            <div className="flex items-center gap-1 bg-muted rounded-full p-1">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8 rounded-full"
-                                onClick={() => {
-                                  if (inCart.quantity <= 30) {
-                                    removeFromCart(medicine.id);
-                                  } else {
-                                    updateCartItem(medicine.id, { quantity: inCart.quantity - 30 });
-                                  }
-                                }}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="w-8 text-center text-sm font-medium">{inCart.quantity}</span>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8 rounded-full"
-                                onClick={() => updateCartItem(medicine.id, { quantity: inCart.quantity + 30 })}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button 
-                                size="sm" 
-                                className="rounded-full shadow"
-                                onClick={() => addToCart(medicine)}
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add
-                              </Button>
-                            </motion.div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold">
+              {activeCategory === 'all' ? 'All Medicines' : activeCategory}
+              <span className="text-muted-foreground font-normal ml-2">({filteredMedicines.length})</span>
+            </h2>
           </div>
+          
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : filteredMedicines.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No medicines found</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredMedicines.map((medicine, idx) => {
+                const cartItem = cart.find(item => item.id === medicine.id);
+                return (
+                  <MedicineSearchCard
+                    key={medicine.id}
+                    medicine={medicine}
+                    inCart={!!cartItem}
+                    cartQuantity={cartItem?.quantity || 0}
+                    onAdd={() => addToCart(medicine)}
+                    onIncrement={() => updateQuantity(medicine.id, 1)}
+                    onDecrement={() => updateQuantity(medicine.id, -1)}
+                    delay={idx * 0.03}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Plan Selection */}
@@ -336,13 +418,50 @@ const MedicineSubscribe = () => {
             onSelectPlan={setSelectedPlan}
           />
         </div>
+
+        {/* Delivery Address */}
+        {savedAddress && (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Deliver to: {savedAddress.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {savedAddress.addressLine1}, {savedAddress.city} - {savedAddress.pincode}
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowAddressForm(true)}>
+                  Change
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Address Form Sheet */}
+      <Sheet open={showAddressForm} onOpenChange={setShowAddressForm}>
+        <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
+          <SheetHeader className="pb-4">
+            <SheetTitle>Delivery Address</SheetTitle>
+          </SheetHeader>
+          <AddressForm 
+            onSubmit={handleAddressSubmit}
+            initialAddress={savedAddress || undefined}
+          />
+        </SheetContent>
+      </Sheet>
 
       {/* Cart Summary */}
       <AnimatePresence>
         {cart.length > 0 && (
           <motion.div 
-            className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t shadow-2xl p-4"
+            className="fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur-xl border-t shadow-2xl p-4 z-40"
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
@@ -369,29 +488,42 @@ const MedicineSubscribe = () => {
                 <span>₹{totals.total.toFixed(0)}</span>
               </div>
             </div>
-            <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+            
+            {!savedAddress ? (
               <Button 
-                className="w-full h-12 text-base font-bold shadow-lg" 
-                onClick={handleSubscribe}
-                disabled={loading}
+                className="w-full h-12 text-base font-bold"
+                onClick={() => setShowAddressForm(true)}
               >
-                {loading ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                  />
-                ) : (
-                  <>
-                    <ShoppingCart className="h-5 w-5 mr-2" />
-                    Subscribe - ₹{totals.total.toFixed(0)}/month
-                  </>
-                )}
+                <MapPin className="h-5 w-5 mr-2" />
+                Add Delivery Address
               </Button>
-            </motion.div>
+            ) : (
+              <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                <Button 
+                  className="w-full h-12 text-base font-bold shadow-lg" 
+                  onClick={handleSubscribe}
+                  disabled={subscribing}
+                >
+                  {subscribing ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                    />
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      Subscribe - ₹{totals.total.toFixed(0)}/month
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      <MedicineBottomNav />
     </div>
   );
 };

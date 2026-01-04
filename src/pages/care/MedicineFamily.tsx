@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Bell, AlertTriangle, Heart, Edit, Trash2, Phone } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, Users, Bell, AlertTriangle, Heart, Trash2, Phone, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
+import { MedicineHeroHeader } from '@/components/care/MedicineHeroHeader';
 
 interface FamilyMember {
   id: string;
@@ -134,22 +136,15 @@ const MedicineFamily = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-background pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 pt-safe">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-bold">Family Members</h1>
-              <p className="text-sm opacity-90">Manage family health</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-24">
+      <MedicineHeroHeader
+        title="Family Members"
+        subtitle={`${members.length} member${members.length !== 1 ? 's' : ''} added`}
+        gradient="family"
+        rightAction={
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-white/20 text-white hover:bg-white/30">
+              <Button size="sm" className="bg-white/20 text-white hover:bg-white/30">
                 <Plus className="h-4 w-4 mr-1" />
                 Add
               </Button>
@@ -199,118 +194,152 @@ const MedicineFamily = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-4">
-        {/* Family Control Info */}
-        <Card className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+        }
+      >
+        {/* Info Card */}
+        <Card className="bg-white/15 backdrop-blur-xl border-white/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <Users className="h-6 w-6 mt-1" />
+              <Users className="h-6 w-6 text-white mt-0.5" />
               <div>
-                <h3 className="font-bold">Family Control Mode</h3>
-                <p className="text-sm opacity-90 mt-1">
-                  Manage medicines for your loved ones. Get alerts when they miss doses or have abnormal vitals.
+                <h3 className="font-bold text-white">Family Control Mode</h3>
+                <p className="text-sm text-white/80 mt-1">
+                  Get alerts when family members miss doses or have abnormal vitals
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+      </MedicineHeroHeader>
 
-        {members.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-2">No Family Members Yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Add your parents, spouse, or children to manage their medicines
-              </p>
-              <Button onClick={() => setShowAddDialog(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Family Member
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="p-4 space-y-4">
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2].map(i => (
+              <div key={i} className="h-40 bg-muted rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : members.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <Card className="border-0 shadow-lg">
+              <CardContent className="p-8 text-center">
+                <motion.div 
+                  className="w-20 h-20 rounded-3xl bg-blue-100 flex items-center justify-center mx-auto mb-4"
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Users className="h-10 w-10 text-blue-500" />
+                </motion.div>
+                <h3 className="text-lg font-bold mb-2">No Family Members Yet</h3>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Add your parents, spouse, or children to manage their medicines
+                </p>
+                <Button onClick={() => setShowAddDialog(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Family Member
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
         ) : (
           <div className="space-y-4">
-            {members.map((member) => (
-              <Card key={member.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-14 w-14">
-                      <AvatarImage src={member.avatar_url || undefined} />
-                      <AvatarFallback className="text-2xl">
-                        {getRelationshipIcon(member.relationship)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold">{member.member_name}</h3>
-                          <p className="text-sm text-muted-foreground capitalize">{member.relationship}</p>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => removeMember(member.id)}>
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-
-                      {member.member_phone && (
-                        <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          <span>{member.member_phone}</span>
-                        </div>
-                      )}
-
-                      {member.conditions.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {member.conditions.map((condition, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {condition}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Alert Settings */}
-                      <div className="mt-4 space-y-3 pt-3 border-t">
+            {members.map((member, idx) => (
+              <motion.div
+                key={member.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+              >
+                <Card className="border-0 shadow-lg overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-14 w-14 border-2 border-primary/20">
+                        <AvatarImage src={member.avatar_url || undefined} />
+                        <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-100 to-indigo-100">
+                          {getRelationshipIcon(member.relationship)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Bell className="h-4 w-4 text-amber-500" />
-                            <span className="text-sm">Alert on missed dose</span>
+                          <div>
+                            <h3 className="font-semibold">{member.member_name}</h3>
+                            <p className="text-sm text-muted-foreground capitalize">{member.relationship}</p>
                           </div>
-                          <Switch
-                            checked={member.alert_on_missed_dose}
-                            onCheckedChange={(checked) => toggleAlert(member.id, 'alert_on_missed_dose', checked)}
-                          />
+                          <Button variant="ghost" size="icon" onClick={() => removeMember(member.id)}>
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-red-500" />
-                            <span className="text-sm">Alert on abnormal vitals</span>
-                          </div>
-                          <Switch
-                            checked={member.alert_on_abnormal_vitals}
-                            onCheckedChange={(checked) => toggleAlert(member.id, 'alert_on_abnormal_vitals', checked)}
-                          />
-                        </div>
-                      </div>
 
-                      {/* Quick Actions */}
-                      <div className="flex gap-2 mt-4">
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/care/medicines/subscribe?member=${member.id}`)}>
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add Medicines
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/care/medicines/vitals?member=${member.id}`)}>
-                          <Heart className="h-3 w-3 mr-1" />
-                          Log Vitals
-                        </Button>
+                        {member.member_phone && (
+                          <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            <span>{member.member_phone}</span>
+                          </div>
+                        )}
+
+                        {member.conditions.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {member.conditions.map((condition, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {condition}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Alert Settings */}
+                        <div className="mt-4 space-y-3 pt-3 border-t">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Bell className="h-4 w-4 text-amber-500" />
+                              <span className="text-sm">Alert on missed dose</span>
+                            </div>
+                            <Switch
+                              checked={member.alert_on_missed_dose}
+                              onCheckedChange={(checked) => toggleAlert(member.id, 'alert_on_missed_dose', checked)}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4 text-red-500" />
+                              <span className="text-sm">Alert on abnormal vitals</span>
+                            </div>
+                            <Switch
+                              checked={member.alert_on_abnormal_vitals}
+                              onCheckedChange={(checked) => toggleAlert(member.id, 'alert_on_abnormal_vitals', checked)}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="flex gap-2 mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 rounded-xl" 
+                            onClick={() => navigate(`/care/medicines/subscribe?member=${member.id}`)}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Meds
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 rounded-xl" 
+                            onClick={() => navigate(`/care/medicines/vitals?member=${member.id}`)}
+                          >
+                            <Heart className="h-3 w-3 mr-1" />
+                            Vitals
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         )}
