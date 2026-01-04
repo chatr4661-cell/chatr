@@ -126,6 +126,9 @@ import SymptomCheckerPage from "./pages/SymptomCheckerPage";
 import HealthWalletPage from "./pages/HealthWalletPage";
 import TeleconsultationPage from "./pages/TeleconsultationPage";
 import KYCVerificationPage from "./pages/KYCVerification";
+import MedicationInteractionsPage from "./pages/MedicationInteractionsPage";
+import HealthStreaksPage from "./pages/HealthStreaksPage";
+import ChronicVitalsPage from "./pages/ChronicVitalsPage";
 
 // Admin Pages
 import AdminUsers from "./pages/admin/Users";
@@ -335,6 +338,9 @@ const App = () => {
             <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
             <Route path="/health-wallet" element={<HealthWalletPage />} />
             <Route path="/teleconsultation" element={<TeleconsultationPage />} />
+            <Route path="/medication-interactions" element={<MedicationInteractionsPage />} />
+            <Route path="/health-streaks" element={<HealthStreaksPage />} />
+            <Route path="/chronic-vitals" element={<ChronicVitalsPage />} />
             
             {/* Main App Routes */}
             <Route path="/chat" element={<Chat />} />

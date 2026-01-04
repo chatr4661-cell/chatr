@@ -160,32 +160,41 @@ export default function HealthRiskPredictions() {
   const analyzeHealth = async (userId?: string) => {
     setAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-health-assistant', {
-        body: {
-          message: 'Analyze my health data and provide risk predictions for cardiovascular disease, diabetes, obesity, mental health, and lifestyle factors. Return JSON with risk_type, risk_level (low/moderate/high/critical), risk_score (0-100), contributing_factors array, and recommendations array.'
-        }
+      // Call the health-predictions edge function
+      const { data, error } = await supabase.functions.invoke('health-predictions', {
+        body: {}
       });
 
       if (error) throw error;
 
-      // Parse AI response and create risk predictions
-      const mockRisks: HealthRisk[] = RISK_CATEGORIES.map(cat => {
-        const baseScore = Math.random() * 100;
-        const riskLevel = baseScore < 25 ? 'low' : baseScore < 50 ? 'moderate' : baseScore < 75 ? 'high' : 'critical';
-        
-        return {
+      // Use predictions from the edge function if available
+      if (data?.predictions && Array.isArray(data.predictions)) {
+        const mappedRisks: HealthRisk[] = data.predictions.map((pred: any) => ({
+          id: pred.prediction_type,
+          risk_type: pred.prediction_type,
+          risk_level: pred.confidence_level >= 80 ? 'critical' : pred.confidence_level >= 60 ? 'high' : pred.confidence_level >= 40 ? 'moderate' : 'low',
+          risk_score: pred.confidence_level,
+          contributing_factors: pred.risk_factors || [],
+          recommendations: pred.recommendations || [],
+          last_updated: pred.generated_at || new Date().toISOString()
+        }));
+        setRisks(mappedRisks);
+        calculateOverallScore(mappedRisks);
+      } else {
+        // Fallback to AI assistant for analysis
+        const fallbackRisks: HealthRisk[] = RISK_CATEGORIES.map(cat => ({
           id: cat.id,
           risk_type: cat.id,
-          risk_level: riskLevel,
-          risk_score: Math.round(baseScore),
+          risk_level: 'low',
+          risk_score: 25,
           contributing_factors: getContributingFactors(cat.id, metrics),
           recommendations: getRecommendations(cat.id),
           last_updated: new Date().toISOString()
-        };
-      });
-
-      setRisks(mockRisks);
-      calculateOverallScore(mockRisks);
+        }));
+        setRisks(fallbackRisks);
+        calculateOverallScore(fallbackRisks);
+      }
+      
       toast.success('Health analysis complete!');
     } catch (error) {
       console.error('Error analyzing health:', error);
