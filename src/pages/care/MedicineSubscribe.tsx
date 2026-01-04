@@ -171,16 +171,16 @@ const MedicineSubscribe = () => {
   const totals = calculateTotals();
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-background pb-48">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b p-4">
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 pt-safe">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-lg font-bold">Subscribe to Medicines</h1>
-            <p className="text-sm text-muted-foreground">Save 20-25% on monthly medicines</p>
+            <p className="text-sm opacity-90">Save 20-25% on monthly medicines</p>
           </div>
         </div>
       </div>

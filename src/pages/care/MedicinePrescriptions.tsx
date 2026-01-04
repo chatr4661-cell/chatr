@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
 
 interface Prescription {
   id: string;
@@ -146,16 +147,16 @@ const MedicinePrescriptions = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b p-4">
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4 pt-safe">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-lg font-bold">Prescriptions</h1>
-            <p className="text-sm text-muted-foreground">Upload & manage prescriptions</p>
+            <p className="text-sm opacity-90">AI-powered scanner</p>
           </div>
         </div>
       </div>
@@ -321,6 +322,8 @@ const MedicinePrescriptions = () => {
           )}
         </div>
       </div>
+      
+      <MedicineBottomNav />
     </div>
   );
 };

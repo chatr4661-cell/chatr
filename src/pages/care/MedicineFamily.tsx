@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
 
 interface FamilyMember {
   id: string;
@@ -133,22 +134,22 @@ const MedicineFamily = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b p-4">
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 pt-safe">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
               <h1 className="text-lg font-bold">Family Members</h1>
-              <p className="text-sm text-muted-foreground">Manage family health</p>
+              <p className="text-sm opacity-90">Manage family health</p>
             </div>
           </div>
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-white/20 text-white hover:bg-white/30">
                 <Plus className="h-4 w-4 mr-1" />
                 Add
               </Button>
@@ -314,6 +315,8 @@ const MedicineFamily = () => {
           </div>
         )}
       </div>
+      
+      <MedicineBottomNav />
     </div>
   );
 };

@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pill, Users, Bell, Activity, FileText, Gift, ChevronRight, Heart, Droplet, Wind, Bone } from 'lucide-react';
+import { 
+  ArrowLeft, Plus, Pill, Users, Bell, Activity, FileText, Gift, 
+  ChevronRight, Heart, Droplet, Wind, Bone, Sparkles, Package,
+  Calendar, TrendingUp, Shield, Clock, Star
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
+import { TodayMedicineCard } from '@/components/care/TodayMedicineCard';
+import { DeliveryTracker } from '@/components/care/DeliveryTracker';
+import { format, addDays } from 'date-fns';
 
 interface HealthCondition {
   id: string;
@@ -23,6 +31,15 @@ interface HealthStreak {
   coins_earned: number;
 }
 
+interface Subscription {
+  id: string;
+  subscription_name: string;
+  plan_type: string;
+  status: string;
+  monthly_cost: number;
+  next_delivery_date: string | null;
+}
+
 const conditionIcons: Record<string, any> = {
   'droplet': Droplet,
   'heart-pulse': Heart,
@@ -36,8 +53,10 @@ const MedicineHub = () => {
   const navigate = useNavigate();
   const [conditions, setConditions] = useState<HealthCondition[]>([]);
   const [streak, setStreak] = useState<HealthStreak | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [todayAdherence, setTodayAdherence] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     loadData();
@@ -48,11 +67,23 @@ const MedicineHub = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Get user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, username')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        setUserName(profile.username || profile.full_name?.split(' ')[0] || 'there');
+      }
+
       // Load conditions
       const { data: conditionsData } = await supabase
         .from('health_conditions')
         .select('*')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .limit(6);
       
       if (conditionsData) setConditions(conditionsData);
 
@@ -65,6 +96,18 @@ const MedicineHub = () => {
         .single();
       
       if (streakData) setStreak(streakData);
+
+      // Load active subscription
+      const { data: subData } = await supabase
+        .from('medicine_subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (subData) setSubscription(subData);
 
       // Calculate today's adherence
       const today = new Date().toISOString().split('T')[0];
@@ -88,212 +131,302 @@ const MedicineHub = () => {
   const quickActions = [
     { 
       title: 'My Subscriptions', 
-      description: 'Manage your medicine plans',
-      icon: Pill, 
+      description: 'Manage your plans',
+      icon: Package, 
       route: '/care/medicines/subscriptions',
-      color: 'bg-primary/10 text-primary'
+      gradient: 'from-primary to-primary/70'
     },
     { 
-      title: 'Family Members', 
+      title: 'Family Control', 
       description: 'Manage family health',
       icon: Users, 
       route: '/care/medicines/family',
-      color: 'bg-blue-500/10 text-blue-500'
-    },
-    { 
-      title: 'Reminders', 
-      description: 'Set medicine reminders',
-      icon: Bell, 
-      route: '/care/medicines/reminders',
-      color: 'bg-amber-500/10 text-amber-500'
-    },
-    { 
-      title: 'Track Vitals', 
-      description: 'Log BP, Sugar, Weight',
-      icon: Activity, 
-      route: '/care/medicines/vitals',
-      color: 'bg-green-500/10 text-green-500'
+      gradient: 'from-blue-500 to-cyan-500'
     },
     { 
       title: 'Prescriptions', 
-      description: 'Upload & manage',
+      description: 'AI-powered scanner',
       icon: FileText, 
       route: '/care/medicines/prescriptions',
-      color: 'bg-purple-500/10 text-purple-500'
+      gradient: 'from-purple-500 to-pink-500'
     },
     { 
-      title: 'Health Rewards', 
-      description: 'Earn coins & badges',
-      icon: Gift, 
-      route: '/care/medicines/rewards',
-      color: 'bg-pink-500/10 text-pink-500'
+      title: 'Track Vitals', 
+      description: 'BP, Sugar, Weight',
+      icon: Activity, 
+      route: '/care/medicines/vitals',
+      gradient: 'from-green-500 to-emerald-500'
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-primary-foreground hover:bg-white/20">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold">CHATR Health</h1>
-            <p className="text-sm opacity-90">Smart Medicine Subscription</p>
-          </div>
-        </div>
+  const benefits = [
+    { icon: TrendingUp, text: 'Save 20-25% on medicines' },
+    { icon: Clock, text: 'Auto-delivery every month' },
+    { icon: Bell, text: 'Smart WhatsApp reminders' },
+    { icon: Shield, text: 'Family caregiver alerts' },
+  ];
 
-        {/* Streak Card */}
-        <Card className="bg-white/10 border-white/20 text-primary-foreground">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-80">Current Streak</p>
-                <p className="text-3xl font-bold">{streak?.current_streak || 0} days</p>
-                <p className="text-xs opacity-70">Best: {streak?.longest_streak || 0} days</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm opacity-80">Health Coins</p>
-                <p className="text-2xl font-bold">🪙 {streak?.coins_earned || 0}</p>
-              </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background pb-24">
+      {/* Premium Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iNCIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
+        
+        <div className="relative p-4 pt-safe">
+          <div className="flex items-center justify-between mb-6">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate('/care')} 
+              className="text-white/90 hover:bg-white/10"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-white/20 text-white border-0 gap-1">
+                <Sparkles className="h-3 w-3" />
+                CHATR Health
+              </Badge>
             </div>
-            <div className="mt-3">
-              <div className="flex justify-between text-xs mb-1">
-                <span>Today's Adherence</span>
-                <span>{todayAdherence}%</span>
+          </div>
+
+          {/* Welcome Section */}
+          <div className="mb-6">
+            <p className="text-white/80 text-sm">Welcome back,</p>
+            <h1 className="text-2xl font-bold text-white">{userName} 👋</h1>
+          </div>
+
+          {/* Streak & Coins Card */}
+          <Card className="bg-white/15 backdrop-blur-lg border-white/20 text-white shadow-xl">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg">
+                    <span className="text-2xl">🔥</span>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold">{streak?.current_streak || 0}</p>
+                    <p className="text-sm text-white/80">day streak</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1 justify-end">
+                    <span className="text-2xl">🪙</span>
+                    <span className="text-2xl font-bold">{streak?.coins_earned || 0}</span>
+                  </div>
+                  <p className="text-sm text-white/80">health coins</p>
+                </div>
               </div>
-              <Progress value={todayAdherence} className="h-2 bg-white/20" />
-            </div>
-          </CardContent>
-        </Card>
+              
+              <div className="bg-white/10 rounded-xl p-3">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-white/80">Today's Progress</span>
+                  <span className="font-medium">{todayAdherence}% completed</span>
+                </div>
+                <Progress value={todayAdherence} className="h-2 bg-white/20" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Quick Subscribe CTA */}
-        <Card className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-lg">Start Medicine Subscription</h3>
-                <p className="text-sm opacity-90">Save 20-25% on monthly medicines</p>
-                <p className="text-xs mt-1 opacity-80">Starting at ₹99/month</p>
+      <div className="p-4 space-y-6 -mt-2">
+        {/* Today's Medicines */}
+        <TodayMedicineCard />
+
+        {/* Delivery Tracker (if has subscription) */}
+        {subscription && subscription.next_delivery_date && (
+          <DeliveryTracker 
+            status="shipped"
+            orderDate={format(new Date(), 'dd MMM')}
+            expectedDate={format(new Date(subscription.next_delivery_date), 'dd MMM yyyy')}
+            trackingId={`CHT${subscription.id.slice(0, 8).toUpperCase()}`}
+          />
+        )}
+
+        {/* Quick Subscribe CTA (if no subscription) */}
+        {!subscription && (
+          <Card className="overflow-hidden border-0 shadow-xl">
+            <div className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <Badge className="bg-white/20 text-white border-0 mb-3">
+                    <Star className="h-3 w-3 mr-1" />
+                    Save 20-25%
+                  </Badge>
+                  <h3 className="font-bold text-xl text-white mb-1">
+                    Start Medicine Subscription
+                  </h3>
+                  <p className="text-white/90 text-sm mb-4">
+                    Never run out of medicines. Auto-delivery every month.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {benefits.map((b, i) => (
+                      <div key={i} className="flex items-center gap-1 text-xs text-white/90 bg-white/10 rounded-full px-2 py-1">
+                        <b.icon className="h-3 w-3" />
+                        <span>{b.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Button 
+                    onClick={() => navigate('/care/medicines/subscribe')}
+                    className="bg-white text-green-600 hover:bg-white/90 font-semibold shadow-lg"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Subscribe Now - ₹99/mo
+                  </Button>
+                </div>
               </div>
-              <Button 
-                onClick={() => navigate('/care/medicines/subscribe')}
-                className="bg-white text-green-600 hover:bg-white/90"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Subscribe
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </Card>
+        )}
 
-        {/* Conditions We Cover */}
+        {/* Quick Actions Grid */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Conditions We Cover</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {conditions.slice(0, 6).map((condition) => {
-              const IconComponent = conditionIcons[condition.icon || 'heart'] || Heart;
-              return (
-                <Card key={condition.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                  <CardContent className="p-3 text-center">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                      <IconComponent className="h-5 w-5 text-primary" />
-                    </div>
-                    <p className="text-xs font-medium line-clamp-2">{condition.name}</p>
-                    {condition.name_hindi && (
-                      <p className="text-[10px] text-muted-foreground">{condition.name_hindi}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Quick Actions
+          </h2>
           <div className="grid grid-cols-2 gap-3">
             {quickActions.map((action) => (
               <Card 
                 key={action.title}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className="cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden group"
                 onClick={() => navigate(action.route)}
               >
-                <CardContent className="p-4">
-                  <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center mb-3`}>
-                    <action.icon className="h-5 w-5" />
+                <CardContent className="p-4 relative">
+                  <div className={`absolute -right-6 -top-6 w-20 h-20 rounded-full bg-gradient-to-br ${action.gradient} opacity-10 group-hover:opacity-20 transition-opacity`} />
+                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-3 shadow-lg`}>
+                    <action.icon className="h-5 w-5 text-white" />
                   </div>
-                  <h3 className="font-medium text-sm">{action.title}</h3>
+                  <h3 className="font-semibold text-sm">{action.title}</h3>
                   <p className="text-xs text-muted-foreground">{action.description}</p>
+                  <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
 
+        {/* Conditions We Cover */}
+        {conditions.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Conditions We Support</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {conditions.map((condition) => {
+                const IconComponent = conditionIcons[condition.icon || 'heart'] || Heart;
+                return (
+                  <Card 
+                    key={condition.id} 
+                    className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
+                    onClick={() => navigate('/care/medicines/subscribe')}
+                  >
+                    <CardContent className="p-3 text-center">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mx-auto mb-2">
+                        <IconComponent className="h-5 w-5 text-primary" />
+                      </div>
+                      <p className="text-xs font-medium line-clamp-1">{condition.name}</p>
+                      {condition.name_hindi && (
+                        <p className="text-[10px] text-muted-foreground">{condition.name_hindi}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Pricing Plans */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Subscription Plans</h2>
+          <h2 className="text-lg font-semibold mb-3">Choose Your Plan</h2>
           <div className="space-y-3">
-            <Card className="border-primary">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Badge className="mb-2">Most Popular</Badge>
-                    <h3 className="font-bold">Care Plan</h3>
-                    <p className="text-sm text-muted-foreground">For individuals</p>
+            {[
+              { 
+                id: 'care', 
+                name: 'Care', 
+                price: 99, 
+                desc: 'For individuals',
+                features: ['1 user', 'Auto-delivery', 'Reminders', 'Vitals tracking'],
+                badge: 'Most Popular',
+                gradient: 'from-primary to-primary/70'
+              },
+              { 
+                id: 'family', 
+                name: 'Family', 
+                price: 199, 
+                desc: 'Up to 4 members',
+                features: ['4 users', 'Caregiver alerts', 'Family dashboard', 'Priority support'],
+                badge: 'Best Value',
+                gradient: 'from-blue-500 to-cyan-500'
+              },
+              { 
+                id: 'care_plus', 
+                name: 'Care+', 
+                price: 299, 
+                desc: 'With doctor consults',
+                features: ['Unlimited users', '2 free consults/mo', '24/7 support', 'Lab discounts'],
+                badge: 'Premium',
+                gradient: 'from-purple-500 to-pink-500'
+              },
+            ].map((plan, idx) => (
+              <Card 
+                key={plan.id} 
+                className={`overflow-hidden cursor-pointer hover:shadow-lg transition-shadow ${idx === 0 ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => navigate('/care/medicines/subscribe')}
+              >
+                <CardContent className="p-0">
+                  <div className="flex">
+                    <div className={`w-1.5 bg-gradient-to-b ${plan.gradient}`} />
+                    <div className="flex-1 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <Badge className={`bg-gradient-to-r ${plan.gradient} text-white border-0 mb-1`}>
+                            {plan.badge}
+                          </Badge>
+                          <h3 className="font-bold text-lg">{plan.name}</h3>
+                          <p className="text-sm text-muted-foreground">{plan.desc}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold">₹{plan.price}</p>
+                          <p className="text-xs text-muted-foreground">/month</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {plan.features.map((f) => (
+                          <Badge key={f} variant="secondary" className="text-[10px] font-normal">
+                            {f}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">₹99<span className="text-sm font-normal">/mo</span></p>
-                    <p className="text-xs text-green-600">Save 20-25%</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="text-xs">Auto-delivery</Badge>
-                  <Badge variant="secondary" className="text-xs">Reminders</Badge>
-                  <Badge variant="secondary" className="text-xs">Vitals tracking</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Badge variant="outline" className="mb-2">For Families</Badge>
-                    <h3 className="font-bold">Family Plan</h3>
-                    <p className="text-sm text-muted-foreground">Up to 4 members</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">₹199<span className="text-sm font-normal">/mo</span></p>
-                    <p className="text-xs text-green-600">₹50/member</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="text-xs">Caregiver alerts</Badge>
-                  <Badge variant="secondary" className="text-xs">Emergency escalation</Badge>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
 
         {/* Trust Banner */}
-        <Card className="bg-muted/50">
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">
-              🔒 Your health data is encrypted and secure
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Trusted by 10,000+ families across India
-            </p>
+        <Card className="bg-gradient-to-r from-muted/50 to-muted/30 border-dashed">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <Shield className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Your data is encrypted & secure</p>
+                <p className="text-xs text-muted-foreground">
+                  Trusted by 10,000+ families across India 🇮🇳
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      <MedicineBottomNav />
     </div>
   );
 };
