@@ -797,7 +797,7 @@ const Index = () => {
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                placeholder="Find plumber, order biryani, dentist near me..."
+                placeholder="Search services, jobs, healthcare, food & more..."
                 className="pl-9 pr-10 h-11 bg-background/80 backdrop-blur text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
