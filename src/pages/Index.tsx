@@ -564,9 +564,6 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-blue-500 to-cyan-600',
       route: '/business'
     },
-  ];
-
-  const quickAccessServices = [
     {
       icon: Pill,
       title: 'Medicine',
@@ -574,6 +571,9 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-rose-400 to-pink-600',
       route: '/care/medicines'
     },
+  ];
+
+  const quickAccessServices = [
     {
       icon: Coins,
       title: 'ChatrPay Wallet',
