@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
 
 interface Streak {
   streak_type: string;
@@ -69,11 +70,11 @@ const MedicineRewards = () => {
   const progressToNext = ((medicineStreak?.current_streak || 0) / nextMilestone) * 100;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4">
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 pt-safe">
         <div className="flex items-center gap-3 mb-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -246,6 +247,8 @@ const MedicineRewards = () => {
           </CardContent>
         </Card>
       </div>
+      
+      <MedicineBottomNav />
     </div>
   );
 };

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pause, Play, Trash2, Package, Calendar, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, Pause, Play, Trash2, Package, Calendar, ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
 
 interface Subscription {
   id: string;
@@ -136,20 +137,20 @@ const MedicineSubscriptions = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b p-4">
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-primary to-primary/80 text-white p-4 pt-safe">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
               <h1 className="text-lg font-bold">My Subscriptions</h1>
-              <p className="text-sm text-muted-foreground">{subscriptions.length} active plans</p>
+              <p className="text-sm opacity-90">{subscriptions.length} active plans</p>
             </div>
           </div>
-          <Button onClick={() => navigate('/care/medicines/subscribe')}>
+          <Button onClick={() => navigate('/care/medicines/subscribe')} className="bg-white/20 text-white hover:bg-white/30">
             <Plus className="h-4 w-4 mr-1" />
             New
           </Button>
@@ -261,6 +262,8 @@ const MedicineSubscriptions = () => {
           ))
         )}
       </div>
+      
+      <MedicineBottomNav />
     </div>
   );
 };
