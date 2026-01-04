@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { motion } from 'framer-motion';
 import { 
   Bot, 
   Activity, 
@@ -17,20 +12,24 @@ import {
   TrendingUp,
   Brain,
   Calendar,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  Sparkles
+  Sparkles,
+  ArrowLeft,
+  Bell,
+  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
-import logo from '@/assets/chatr-logo.png';
+import { Button } from '@/components/ui/button';
 import { SEOHead } from '@/components/SEOHead';
-import { Breadcrumbs, CrossModuleNav, RelatedContent } from '@/components/navigation';
-import { ShareDeepLink } from '@/components/sharing';
+import { HealthBottomNav } from '@/components/health/HealthBottomNav';
+import { HealthHeroCard } from '@/components/health/HealthHeroCard';
+import { HealthQuickAction } from '@/components/health/HealthQuickAction';
+import { HealthUrgentBanner } from '@/components/health/HealthUrgentBanner';
+import logo from '@/assets/chatr-logo.png';
 
 export default function HealthHub() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');
   const [healthData, setHealthData] = useState<any>({
     vitals: [],
     reminders: [],
@@ -47,7 +46,21 @@ export default function HealthHub() {
   const loadHealthData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Load profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.username) {
+        setUserName(profile.username);
+      }
 
       // Load medication reminders
       const { data: reminders } = await supabase
@@ -81,10 +94,6 @@ export default function HealthHub() {
     }
   };
 
-  const calculateHealthScore = (data: any) => {
-    return 75; // Base score
-  };
-
   const generateAIInsight = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -113,8 +122,121 @@ export default function HealthHub() {
     });
   });
 
+  const quickActions = [
+    {
+      icon: Bot,
+      label: 'AI Assistant',
+      description: 'Get health advice',
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-50',
+      path: '/ai-assistant'
+    },
+    {
+      icon: Activity,
+      label: 'Wellness',
+      description: 'Track metrics',
+      color: 'text-pink-600',
+      bgColor: 'bg-pink-50',
+      path: '/wellness',
+      badge: healthData.vitals.length || undefined
+    },
+    {
+      icon: TrendingUp,
+      label: 'BMI Calculator',
+      description: 'Body mass index',
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50',
+      path: '/bmi-calculator'
+    },
+    {
+      icon: Activity,
+      label: 'Nutrition',
+      description: 'Track meals',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      path: '/nutrition-tracker'
+    },
+    {
+      icon: Brain,
+      label: 'Mental Health',
+      description: 'Assessments & support',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      path: '/mental-health'
+    },
+    {
+      icon: Pill,
+      label: 'Medications',
+      description: 'Reminders',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      path: '/medicine-reminders',
+      badge: healthData.reminders.length || undefined
+    },
+    {
+      icon: Calendar,
+      label: 'Reminders',
+      description: 'Appointments',
+      color: 'text-amber-600',
+      bgColor: 'bg-amber-50',
+      path: '/health-reminders'
+    },
+    {
+      icon: Shield,
+      label: 'Passport',
+      description: 'Health records',
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50',
+      path: '/health-passport'
+    },
+    {
+      icon: FileText,
+      label: 'Lab Reports',
+      description: 'View reports',
+      color: 'text-cyan-600',
+      bgColor: 'bg-cyan-50',
+      path: '/lab-reports',
+      badge: healthData.reports.length || undefined
+    },
+    {
+      icon: Heart,
+      label: 'Risk Analysis',
+      description: 'AI predictions',
+      color: 'text-rose-600',
+      bgColor: 'bg-rose-50',
+      path: '/health-risks'
+    },
+    {
+      icon: Brain,
+      label: 'Symptom Checker',
+      description: 'AI triage',
+      color: 'text-violet-600',
+      bgColor: 'bg-violet-50',
+      path: '/symptom-checker'
+    },
+    {
+      icon: Sparkles,
+      label: 'Teleconsult',
+      description: 'Talk to doctor',
+      color: 'text-sky-600',
+      bgColor: 'bg-sky-50',
+      path: '/teleconsultation'
+    }
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">Loading your health data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <ErrorBoundary>
+    <>
       <SEOHead
         title="Health Hub - Complete Health Dashboard | Chatr"
         description="Track your wellness, manage medications, store lab reports, and access AI health insights. Your complete digital health companion."
@@ -124,332 +246,104 @@ export default function HealthHub() {
           { name: 'Health Hub', url: '/health' }
         ]}
       />
-      <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-        <div className="max-w-6xl mx-auto px-3 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <img src={logo} alt="Chatr" className="h-6 cursor-pointer" onClick={() => navigate('/')} />
-            <div className="flex items-center gap-2">
-              <ShareDeepLink path="/health" title="Chatr Health Hub" />
-              <Button variant="ghost" size="sm" className="text-white h-8 text-xs" onClick={() => navigate('/')}>
-                Back
-              </Button>
+      
+      <div className="min-h-screen bg-background pb-24">
+        {/* Header */}
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border">
+          <div className="px-4 py-3 max-w-lg mx-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/')}
+                  className="h-9 w-9 rounded-xl"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <img 
+                  src={logo} 
+                  alt="Chatr" 
+                  className="h-6 cursor-pointer" 
+                  onClick={() => navigate('/')} 
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/notifications')}
+                  className="h-9 w-9 rounded-xl relative"
+                >
+                  <Bell className="h-5 w-5" />
+                  {healthData.reminders.length > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/settings')}
+                  className="h-9 w-9 rounded-xl"
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </div>
-          <h1 className="text-lg font-bold mb-1">Health Hub</h1>
-          <p className="text-xs text-emerald-50">Your complete health dashboard</p>
-        </div>
-      </div>
-      
-      <Breadcrumbs />
-
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Health Score & AI Insight */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Heart className="w-5 h-5 text-emerald-600" />
-                Health Score
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-5xl font-bold text-emerald-600 mb-2">
-                {healthData.healthScore}
-              </div>
-              <Progress value={healthData.healthScore} className="h-2 mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {healthData.healthScore >= 80 ? 'Excellent! Keep it up!' :
-                 healthData.healthScore >= 60 ? 'Good! Room for improvement' :
-                 'Focus on wellness activities'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-600" />
-                AI Health Insight
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">
-                {aiInsight || 'Stay active, stay hydrated, and get quality sleep for optimal health!'}
-              </p>
-              <Button 
-                size="sm" 
-                className="mt-3 bg-blue-600"
-                onClick={() => navigate('/ai-assistant')}
-              >
-                Ask AI Assistant
-              </Button>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Urgent Reminders */}
-        {urgentReminders.length > 0 && (
-          <Card className="border-orange-200 bg-orange-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-orange-700">
-                <AlertCircle className="w-5 h-5" />
-                Upcoming Medications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {urgentReminders.map((reminder: any) => (
-                <div key={reminder.id} className="flex items-center justify-between p-2 bg-white rounded">
-                  <div className="flex items-center gap-2">
-                    <Pill className="w-4 h-4 text-orange-600" />
-                    <div>
-                      <p className="font-medium">{reminder.medicine_name}</p>
-                      <p className="text-xs text-muted-foreground">{reminder.dosage}</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-orange-700">Due Soon</Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+        {/* Content */}
+        <div className="px-4 py-4 max-w-lg mx-auto space-y-5">
+          {/* Hero Card */}
+          <HealthHeroCard 
+            healthScore={healthData.healthScore}
+            aiInsight={aiInsight}
+            userName={userName}
+          />
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="vitals">Vitals</TabsTrigger>
-            <TabsTrigger value="reminders">Reminders</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="passport">Passport</TabsTrigger>
-          </TabsList>
+          {/* Urgent Reminders */}
+          {urgentReminders.length > 0 && (
+            <HealthUrgentBanner reminders={urgentReminders} />
+          )}
 
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/ai-assistant')}>
-                <CardHeader>
-                  <Bot className="w-8 h-8 text-teal-600 mb-2" />
-                  <CardTitle>AI Health Assistant</CardTitle>
-                  <CardDescription>Get personalized health advice</CardDescription>
-                </CardHeader>
-              </Card>
+          {/* Section Title */}
+          <div className="flex items-center justify-between pt-2">
+            <h2 className="text-lg font-bold text-foreground">Health Services</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary text-sm h-8"
+              onClick={() => navigate('/care')}
+            >
+              View All
+            </Button>
+          </div>
 
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/wellness')}>
-                <CardHeader>
-                  <Activity className="w-8 h-8 text-pink-600 mb-2" />
-                  <CardTitle>Wellness Tracking</CardTitle>
-                  <CardDescription>{healthData.vitals.length} entries this week</CardDescription>
-                </CardHeader>
-              </Card>
+          {/* Quick Actions Grid */}
+          <div className="grid grid-cols-3 gap-3">
+            {quickActions.map((action, index) => (
+              <HealthQuickAction
+                key={action.path}
+                icon={action.icon}
+                label={action.label}
+                description={action.description}
+                color={action.color}
+                bgColor={action.bgColor}
+                onClick={() => navigate(action.path)}
+                badge={action.badge}
+                index={index}
+              />
+            ))}
+          </div>
 
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/bmi-calculator')}>
-                <CardHeader>
-                  <TrendingUp className="w-8 h-8 text-teal-600 mb-2" />
-                  <CardTitle>BMI Calculator</CardTitle>
-                  <CardDescription>Track your body mass index</CardDescription>
-                </CardHeader>
-              </Card>
+          {/* Bottom spacing for nav */}
+          <div className="h-4" />
+        </div>
 
-              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-orange-50 to-red-50 border-orange-200" onClick={() => navigate('/nutrition-tracker')}>
-                <CardHeader>
-                  <Activity className="w-8 h-8 text-orange-600 mb-2" />
-                  <CardTitle>Nutrition Tracker</CardTitle>
-                  <CardDescription className="text-orange-700">Track meals & macros</CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200" onClick={() => navigate('/mental-health')}>
-                <CardHeader>
-                  <Brain className="w-8 h-8 text-purple-600 mb-2" />
-                  <CardTitle>Mental Health</CardTitle>
-                  <CardDescription className="text-purple-700">Assessments & support</CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/medicine-reminders')}>
-                <CardHeader>
-                  <Pill className="w-8 h-8 text-orange-600 mb-2" />
-                  <CardTitle>Medications</CardTitle>
-                  <CardDescription>{healthData.reminders.length} active reminders</CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/health-reminders')}>
-                <CardHeader>
-                  <Calendar className="w-8 h-8 text-amber-600 mb-2" />
-                  <CardTitle>Health Reminders</CardTitle>
-                  <CardDescription>Never miss appointments</CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/health-passport')}>
-                <CardHeader>
-                  <Shield className="w-8 h-8 text-emerald-600 mb-2" />
-                  <CardTitle>Health Passport</CardTitle>
-                  <CardDescription>Digital health ID & records</CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/lab-reports')}>
-                <CardHeader>
-                  <FileText className="w-8 h-8 text-cyan-600 mb-2" />
-                  <CardTitle>Lab Reports</CardTitle>
-                  <CardDescription>{healthData.reports.length} reports available</CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200" onClick={() => navigate('/health-risks')}>
-                <CardHeader>
-                  <Heart className="w-8 h-8 text-blue-600 mb-2" />
-                  <CardTitle>Health Predictions</CardTitle>
-                  <CardDescription className="text-blue-700">AI-powered risk analysis</CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200" onClick={() => navigate('/symptom-checker')}>
-                <CardHeader>
-                  <Brain className="w-8 h-8 text-purple-600 mb-2" />
-                  <CardTitle>Symptom Checker</CardTitle>
-                  <CardDescription className="text-purple-700">AI-powered triage</CardDescription>
-                </CardHeader>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="vitals">
-            <Card>
-              <CardHeader>
-                <CardTitle>Wellness Tracking</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>Track your daily wellness metrics</p>
-                  <Button className="mt-3" onClick={() => navigate('/wellness')}>
-                    Go to Wellness Tracking
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="reminders">
-            <Card>
-              <CardHeader>
-                <CardTitle>Medication Reminders</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {healthData.reminders.length > 0 ? (
-                  <div className="space-y-3">
-                    {healthData.reminders.map((reminder: any) => (
-                      <div key={reminder.id} className="p-3 border rounded">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-medium">{reminder.medicine_name}</p>
-                            <p className="text-sm text-muted-foreground">{reminder.dosage}</p>
-                          </div>
-                          <Badge>{reminder.frequency}</Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {reminder.time_slots?.map((time: string, idx: number) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {time}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Pill className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No medication reminders set</p>
-                    <Button className="mt-3" onClick={() => navigate('/medicine-reminders')}>
-                      Add Reminder
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="reports">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lab Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {healthData.reports.length > 0 ? (
-                  <div className="space-y-3">
-                    {healthData.reports.map((report: any) => (
-                      <div key={report.id} className="flex items-center justify-between p-3 border rounded hover:bg-accent cursor-pointer">
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-8 h-8 text-cyan-600" />
-                          <div>
-                            <p className="font-medium">{report.report_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {report.test_date ? new Date(report.test_date).toLocaleDateString() : 'No date'}
-                            </p>
-                          </div>
-                        </div>
-                        <Button size="sm" variant="outline">View</Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No lab reports uploaded</p>
-                    <Button className="mt-3" onClick={() => navigate('/lab-reports')}>
-                      Upload Report
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="passport">
-            <Card>
-              <CardHeader>
-                <CardTitle>Health Passport</CardTitle>
-                <CardDescription>Your digital health identity</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button className="w-full" onClick={() => navigate('/health-passport')}>
-                    <Shield className="w-4 h-4 mr-2" />
-                    View Full Health Passport
-                  </Button>
-                  <div className="grid grid-cols-2 gap-3 pt-3">
-                    <div className="p-3 border rounded text-center">
-                      <p className="text-2xl font-bold text-emerald-600">
-                        {healthData.vitals.length}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Vital Records</p>
-                    </div>
-                    <div className="p-3 border rounded text-center">
-                      <p className="text-2xl font-bold text-blue-600">
-                        {healthData.reports.length}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Lab Reports</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Cross-Module Navigation */}
-        <CrossModuleNav variant="footer" />
-        
-        {/* Related Content */}
-        <RelatedContent />
+        {/* Bottom Navigation */}
+        <HealthBottomNav />
       </div>
-    </div>
-    </ErrorBoundary>
+    </>
   );
 }
