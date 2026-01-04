@@ -95,7 +95,7 @@ export function ProviderCard({
       >
         <div 
           className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
-          onClick={() => navigate(`/provider/${provider.id}`)}
+          onClick={() => navigate(`/care/doctor/${provider.id}`)}
         >
           <Avatar className="h-10 w-10">
             <AvatarImage src={provider.image_url} />
@@ -218,7 +218,7 @@ export function ProviderCard({
             <Button 
               size="sm" 
               className="flex-1 bg-primary"
-              onClick={(e) => { e.stopPropagation(); onBook ? onBook(provider) : navigate(`/provider/${provider.id}`); }}
+              onClick={(e) => { e.stopPropagation(); onBook ? onBook(provider) : navigate(`/care/doctor/${provider.id}`); }}
             >
               <Calendar className="h-4 w-4 mr-1" />
               Book

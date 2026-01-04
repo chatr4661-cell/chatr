@@ -122,6 +122,11 @@ import AIBrowserHome from "./pages/AIBrowserHome";
 import AIBrowserView from "./pages/AIBrowserView";
 import CarePathDetail from "./components/care/CarePathDetail";
 
+// Care System Pages (lazy loaded)
+const DoctorDetail = React.lazy(() => import("./pages/care/DoctorDetail"));
+const AddFamilyMember = React.lazy(() => import("./pages/care/AddFamilyMember"));
+const MyAppointments = React.lazy(() => import("./pages/care/MyAppointments"));
+
 // New Feature Pages
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
 import HealthWalletPage from "./pages/HealthWalletPage";
@@ -374,6 +379,9 @@ const App = () => {
             
             {/* Care Path Routes */}
             <Route path="/care/path/:pathId" element={<CarePathDetail />} />
+            <Route path="/care/doctor/:doctorId" element={<React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}><DoctorDetail /></React.Suspense>} />
+            <Route path="/care/family/add" element={<React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}><AddFamilyMember /></React.Suspense>} />
+            <Route path="/care/appointments" element={<React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}><MyAppointments /></React.Suspense>} />
             
             {/* Medicine Subscription Routes */}
             <Route path="/care/medicines" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineHubPage /></React.Suspense>} />
