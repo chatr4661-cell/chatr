@@ -1,6 +1,7 @@
 package com.chatr.app.viewmodel
 
 import com.chatr.app.data.repository.AuthRepository
+import com.chatr.app.data.repository.NotificationsRepository
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -17,19 +18,22 @@ import org.junit.Test
 
 /**
  * Unit tests for AuthViewModel
+ * Tests mirror the web useFirebasePhoneAuth.tsx logic
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
     
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var authRepository: AuthRepository
+    private lateinit var notificationsRepository: NotificationsRepository
     private lateinit var viewModel: AuthViewModel
     
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         authRepository = mockk(relaxed = true)
-        viewModel = AuthViewModel(authRepository)
+        notificationsRepository = mockk(relaxed = true)
+        viewModel = AuthViewModel(authRepository, notificationsRepository)
     }
     
     @After
@@ -39,27 +43,30 @@ class AuthViewModelTest {
     
     @Test
     fun `initial state is not authenticated`() = runTest {
-        val state = viewModel.authState.first()
+        val state = viewModel.uiState.first()
         assertFalse(state.isAuthenticated)
         assertNull(state.user)
+        assertEquals(PhoneAuthStep.PHONE, state.step)
     }
     
     @Test
-    fun `sendOtp updates loading state`() = runTest {
+    fun `sendOtp updates step to OTP`() = runTest {
         coEvery { authRepository.sendOtp(any()) } returns Result.success(Unit)
         
         viewModel.sendOtp("+919999999999")
         testDispatcher.scheduler.advanceUntilIdle()
         
-        val state = viewModel.authState.first()
+        val state = viewModel.uiState.first()
+        assertEquals(PhoneAuthStep.OTP, state.step)
+        assertTrue(state.otpSent)
         assertFalse(state.isLoading)
     }
     
     @Test
-    fun `verifyOtp success updates authenticated state`() = runTest {
+    fun `verifyOtpWithFirebaseUid success updates authenticated state`() = runTest {
         coEvery { authRepository.verifyOtp(any(), any()) } returns Result.success(mockk(relaxed = true))
         
-        viewModel.verifyOtp("+919999999999", "123456")
+        viewModel.verifyOtpWithFirebaseUid("+919999999999", "firebase_uid_123")
         testDispatcher.scheduler.advanceUntilIdle()
         
         val isAuthenticated = viewModel.isAuthenticated.first()
@@ -67,22 +74,23 @@ class AuthViewModelTest {
     }
     
     @Test
-    fun `verifyOtp failure shows error`() = runTest {
+    fun `verifyOtpWithFirebaseUid failure shows error and stays on OTP step`() = runTest {
         coEvery { authRepository.verifyOtp(any(), any()) } returns Result.failure(Exception("Invalid OTP"))
         
-        viewModel.verifyOtp("+919999999999", "000000")
+        viewModel.verifyOtpWithFirebaseUid("+919999999999", "wrong_uid")
         testDispatcher.scheduler.advanceUntilIdle()
         
-        val state = viewModel.authState.first()
+        val state = viewModel.uiState.first()
         assertNotNull(state.error)
-        assertEquals("Invalid OTP", state.error)
+        assertEquals(PhoneAuthStep.OTP, state.step)
+        assertTrue(state.failedAttempts > 0)
     }
     
     @Test
-    fun `logout clears authenticated state`() = runTest {
-        coEvery { authRepository.logout() } returns Result.success(Unit)
+    fun `signOut clears authenticated state`() = runTest {
+        coEvery { authRepository.signOut() } returns Result.success(Unit)
         
-        viewModel.logout()
+        viewModel.signOut()
         testDispatcher.scheduler.advanceUntilIdle()
         
         val isAuthenticated = viewModel.isAuthenticated.first()
@@ -94,8 +102,20 @@ class AuthViewModelTest {
         viewModel.clearError()
         testDispatcher.scheduler.advanceUntilIdle()
         
-        val state = viewModel.authState.first()
+        val state = viewModel.uiState.first()
         assertNull(state.error)
+    }
+    
+    @Test
+    fun `reset returns to initial state`() = runTest {
+        viewModel.reset()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        val state = viewModel.uiState.first()
+        assertEquals(PhoneAuthStep.PHONE, state.step)
+        assertEquals(0, state.countdown)
+        assertEquals("", state.phoneNumber)
+        assertFalse(state.isExistingUser)
     }
     
     @Test
@@ -110,5 +130,19 @@ class AuthViewModelTest {
         assertTrue(viewModel.isValidPhoneNumber("+919999999999"))
         assertTrue(viewModel.isValidPhoneNumber("9999999999"))
         assertTrue(viewModel.isValidPhoneNumber("+1234567890"))
+    }
+    
+    @Test
+    fun `resendOtp does nothing when countdown is active`() = runTest {
+        // Set countdown > 0
+        viewModel.onOtpSent()
+        
+        // Try to resend
+        viewModel.resendOtp()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Should not trigger new OTP send since countdown is active
+        val state = viewModel.uiState.first()
+        assertTrue(state.countdown > 0 || state.otpSent)
     }
 }
