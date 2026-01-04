@@ -120,6 +120,7 @@ import CareAccess from "./pages/CareAccess";
 import CommunitySpace from "./pages/CommunitySpace";
 import AIBrowserHome from "./pages/AIBrowserHome";
 import AIBrowserView from "./pages/AIBrowserView";
+import CarePathDetail from "./components/care/CarePathDetail";
 
 // New Feature Pages
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
@@ -370,6 +371,9 @@ const App = () => {
             <Route path="/health-risks" element={<HealthRiskPredictions />} />
             <Route path="/emergency" element={<EmergencyButton />} />
             <Route path="/emergency-services" element={<EmergencyServices />} />
+            
+            {/* Care Path Routes */}
+            <Route path="/care/path/:pathId" element={<CarePathDetail />} />
             
             {/* Medicine Subscription Routes */}
             <Route path="/care/medicines" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineHubPage /></React.Suspense>} />
