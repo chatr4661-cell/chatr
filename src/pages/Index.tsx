@@ -41,7 +41,8 @@ import {
   Palette,
   Siren,
   IndianRupee,
-  GraduationCap
+  GraduationCap,
+  Pill
 } from 'lucide-react';
 import { PersonalizedSection } from '@/components/home/PersonalizedSection';
 import { useStealthMode, StealthModeType } from '@/hooks/useStealthMode';
@@ -566,6 +567,13 @@ const Index = () => {
   ];
 
   const quickAccessServices = [
+    {
+      icon: Pill,
+      title: 'Medicine',
+      description: 'Subscribe & save 25%',
+      iconColor: 'bg-gradient-to-br from-rose-400 to-pink-600',
+      route: '/care/medicines'
+    },
     {
       icon: Coins,
       title: 'ChatrPay Wallet',
