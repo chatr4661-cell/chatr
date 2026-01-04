@@ -15,7 +15,10 @@ import {
   Sparkles,
   ArrowLeft,
   Bell,
-  Settings
+  Settings,
+  Flame,
+  AlertTriangle,
+  Droplet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -221,6 +224,30 @@ export default function HealthHub() {
       color: 'text-sky-600',
       bgColor: 'bg-sky-50',
       path: '/teleconsultation'
+    },
+    {
+      icon: AlertTriangle,
+      label: 'Drug Interactions',
+      description: 'Check safety',
+      color: 'text-amber-600',
+      bgColor: 'bg-amber-50',
+      path: '/medication-interactions'
+    },
+    {
+      icon: Flame,
+      label: 'Streaks',
+      description: 'Earn rewards',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      path: '/health-streaks'
+    },
+    {
+      icon: Droplet,
+      label: 'Vitals Log',
+      description: 'Track vitals',
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-50',
+      path: '/chronic-vitals'
     }
   ];
 

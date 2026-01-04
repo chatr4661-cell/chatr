@@ -77,11 +77,11 @@ export default function SymptomChecker() {
       if (user) {
         await supabase.from('symptom_checks').insert({
           user_id: user.id,
-          symptoms: symptoms,
+          symptoms: symptoms as unknown as any, // JSONB column
           ai_assessment: data.assessment,
-          severity_level: parsedResult.severity,
-          recommended_actions: parsedResult.actions,
-          specialist_type: parsedResult.specialist
+          severity_level: parsedResult.severity || 'low',
+          recommended_actions: (parsedResult.actions || []) as unknown as any, // JSONB column
+          specialist_type: parsedResult.specialist || 'General Practitioner'
         });
       }
 
