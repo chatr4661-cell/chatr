@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 interface MedicineHeroHeaderProps {
   title: string;
   subtitle?: string;
-  gradient?: 'primary' | 'health' | 'vitals' | 'family' | 'rewards' | 'reminders' | 'prescriptions';
+  gradient?: 'primary' | 'health' | 'vitals' | 'family' | 'rewards' | 'reminders' | 'prescriptions' | 'wallet' | 'orders';
   showBack?: boolean;
   backPath?: string;
   rightAction?: React.ReactNode;
@@ -22,6 +22,8 @@ const gradientClasses = {
   rewards: 'from-amber-500 via-orange-500 to-red-500',
   reminders: 'from-cyan-500 via-sky-500 to-blue-500',
   prescriptions: 'from-violet-500 via-purple-500 to-fuchsia-500',
+  wallet: 'from-violet-600 via-purple-600 to-indigo-600',
+  orders: 'from-cyan-500 via-teal-500 to-emerald-500',
 };
 
 export const MedicineHeroHeader = ({ 

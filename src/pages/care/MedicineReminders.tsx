@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Plus, Clock, Trash2, Volume2, MessageCircle, Smartphone } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, Bell, Clock, Trash2, Volume2, MessageCircle, Smartphone, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
+import { MedicineHeroHeader } from '@/components/care/MedicineHeroHeader';
 
 interface Reminder {
   id: string;
@@ -29,6 +31,7 @@ const MedicineReminders = () => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [newReminder, setNewReminder] = useState({
     medicine_name: '',
     scheduled_time: '08:00',
@@ -145,10 +148,10 @@ const MedicineReminders = () => {
 
   const getReminderIcon = (type: string) => {
     switch (type) {
-      case 'push': return <Smartphone className="h-4 w-4" />;
-      case 'whatsapp': return <MessageCircle className="h-4 w-4" />;
-      case 'sms': return <MessageCircle className="h-4 w-4" />;
-      default: return <Bell className="h-4 w-4" />;
+      case 'push': return Smartphone;
+      case 'whatsapp': return MessageCircle;
+      case 'sms': return MessageCircle;
+      default: return Bell;
     }
   };
 
@@ -160,23 +163,18 @@ const MedicineReminders = () => {
     return acc;
   }, {} as Record<string, Reminder[]>);
 
+  const activeCount = reminders.filter(r => r.is_active).length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-background pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white p-4 pt-safe">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-bold">Reminders</h1>
-              <p className="text-sm opacity-90">Never miss a dose</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-24">
+      <MedicineHeroHeader
+        title="Reminders"
+        subtitle={`${activeCount} active reminder${activeCount !== 1 ? 's' : ''}`}
+        gradient="reminders"
+        rightAction={
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-white/20 text-white hover:bg-white/30">
+              <Button size="sm" className="bg-white/20 text-white hover:bg-white/30">
                 <Plus className="h-4 w-4 mr-1" />
                 Add
               </Button>
@@ -210,7 +208,7 @@ const MedicineReminders = () => {
                         key={day}
                         variant={newReminder.days_of_week.includes(idx) ? 'default' : 'outline'}
                         size="sm"
-                        className="w-10 h-10 p-0"
+                        className="w-10 h-10 p-0 rounded-xl"
                         onClick={() => toggleDay(idx)}
                       >
                         {day.charAt(0)}
@@ -240,100 +238,138 @@ const MedicineReminders = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+        }
+      />
 
       <div className="p-4 space-y-4">
         {/* Quick Settings */}
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Volume2 className="h-5 w-5 text-primary" />
+                {soundEnabled ? (
+                  <Volume2 className="h-5 w-5 text-primary" />
+                ) : (
+                  <VolumeX className="h-5 w-5 text-muted-foreground" />
+                )}
                 <div>
                   <p className="font-medium">Sound Alerts</p>
                   <p className="text-xs text-muted-foreground">Play sound for reminders</p>
                 </div>
               </div>
-              <Switch defaultChecked />
+              <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
             </div>
           </CardContent>
         </Card>
 
         {/* Reminders by Time */}
-        {Object.keys(groupedReminders).length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-2">No Reminders Yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Add reminders to never miss your medicines
-              </p>
-              <Button onClick={() => setShowAddDialog(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Reminder
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          Object.entries(groupedReminders).sort().map(([time, timeReminders]) => (
-            <Card key={time}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  {formatTime(time)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {timeReminders.map((reminder) => (
-                  <div 
-                    key={reminder.id} 
-                    className={`flex items-center justify-between p-3 rounded-lg border ${!reminder.is_active ? 'opacity-50' : ''}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-primary/10">
-                        {getReminderIcon(reminder.reminder_type)}
-                      </div>
-                      <div>
-                        <p className="font-medium">{reminder.medicine_name}</p>
-                        <div className="flex gap-1 mt-1">
-                          {reminder.days_of_week.map((day) => (
-                            <Badge key={day} variant="secondary" className="text-xs px-1">
-                              {dayNames[day].charAt(0)}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={reminder.is_active}
-                        onCheckedChange={() => toggleReminder(reminder.id, reminder.is_active)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteReminder(reminder.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2].map(i => (
+              <div key={i} className="h-32 bg-muted rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : Object.keys(groupedReminders).length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <Card className="border-0 shadow-lg">
+              <CardContent className="p-8 text-center">
+                <motion.div 
+                  className="w-20 h-20 rounded-3xl bg-amber-100 flex items-center justify-center mx-auto mb-4"
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Bell className="h-10 w-10 text-amber-500" />
+                </motion.div>
+                <h3 className="text-lg font-bold mb-2">No Reminders Yet</h3>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Add reminders to never miss your medicines
+                </p>
+                <Button onClick={() => setShowAddDialog(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Reminder
+                </Button>
               </CardContent>
             </Card>
+          </motion.div>
+        ) : (
+          Object.entries(groupedReminders).sort().map(([time, timeReminders], timeIdx) => (
+            <motion.div
+              key={time}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: timeIdx * 0.1 }}
+            >
+              <Card className="border-0 shadow-lg overflow-hidden">
+                <CardHeader className="pb-2 bg-gradient-to-r from-cyan-50 to-sky-50">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-cyan-600" />
+                    {formatTime(time)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {timeReminders.map((reminder, idx) => {
+                    const ReminderIcon = getReminderIcon(reminder.reminder_type);
+                    return (
+                      <motion.div 
+                        key={reminder.id} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className={`flex items-center justify-between p-4 ${!reminder.is_active ? 'opacity-50' : ''} ${idx !== timeReminders.length - 1 ? 'border-b' : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl bg-primary/10">
+                            <ReminderIcon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{reminder.medicine_name}</p>
+                            <div className="flex gap-1 mt-1">
+                              {reminder.days_of_week.map((day) => (
+                                <Badge key={day} variant="secondary" className="text-[10px] px-1.5">
+                                  {dayNames[day].charAt(0)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={reminder.is_active}
+                            onCheckedChange={() => toggleReminder(reminder.id, reminder.is_active)}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => deleteReminder(reminder.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </motion.div>
           ))
         )}
 
         {/* Tips */}
-        <Card className="bg-muted/50">
+        <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200/50">
           <CardContent className="p-4">
-            <h3 className="font-medium mb-2">💡 Tips for Better Adherence</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <span className="text-lg">💡</span>
+              Tips for Better Adherence
+            </h3>
+            <ul className="text-sm text-muted-foreground space-y-1.5">
               <li>• Set reminders at consistent times daily</li>
-              <li>• Take medicines with meals for better habit formation</li>
-              <li>• Keep a 7-day pill organizer handy</li>
+              <li>• Take medicines with meals for habit formation</li>
               <li>• Enable WhatsApp reminders for family members</li>
+              <li>• Keep a 7-day pill organizer handy</li>
             </ul>
           </CardContent>
         </Card>

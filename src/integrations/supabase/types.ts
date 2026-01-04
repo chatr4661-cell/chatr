@@ -11177,6 +11177,7 @@ export type Database = {
           call_ringtone: string | null
           contacts_synced: boolean | null
           created_at: string | null
+          delivery_address: Json | null
           email: string
           firebase_uid: string | null
           full_name: string | null
@@ -11232,6 +11233,7 @@ export type Database = {
           call_ringtone?: string | null
           contacts_synced?: boolean | null
           created_at?: string | null
+          delivery_address?: Json | null
           email: string
           firebase_uid?: string | null
           full_name?: string | null
@@ -11287,6 +11289,7 @@ export type Database = {
           call_ringtone?: string | null
           contacts_synced?: boolean | null
           created_at?: string | null
+          delivery_address?: Json | null
           email?: string
           firebase_uid?: string | null
           full_name?: string | null
