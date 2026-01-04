@@ -2026,6 +2026,53 @@ export type Database = {
           },
         ]
       }
+      caregiver_alerts: {
+        Row: {
+          alert_type: string
+          caregiver_user_id: string
+          created_at: string | null
+          family_member_id: string
+          id: string
+          is_actioned: boolean | null
+          is_read: boolean | null
+          message: string | null
+          severity: string | null
+          title: string
+        }
+        Insert: {
+          alert_type: string
+          caregiver_user_id: string
+          created_at?: string | null
+          family_member_id: string
+          id?: string
+          is_actioned?: boolean | null
+          is_read?: boolean | null
+          message?: string | null
+          severity?: string | null
+          title: string
+        }
+        Update: {
+          alert_type?: string
+          caregiver_user_id?: string
+          created_at?: string | null
+          family_member_id?: string
+          id?: string
+          is_actioned?: boolean | null
+          is_read?: boolean | null
+          message?: string | null
+          severity?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caregiver_alerts_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "health_family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_participants: {
         Row: {
           challenge_id: string
@@ -4184,6 +4231,56 @@ export type Database = {
             columns: ["wallet_id"]
             isOneToOne: false
             referencedRelation: "chatr_wallet"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chronic_vitals: {
+        Row: {
+          created_at: string | null
+          family_member_id: string | null
+          id: string
+          notes: string | null
+          reading_time: string | null
+          recorded_at: string | null
+          source: string | null
+          unit: string | null
+          user_id: string
+          value: number
+          vital_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          family_member_id?: string | null
+          id?: string
+          notes?: string | null
+          reading_time?: string | null
+          recorded_at?: string | null
+          source?: string | null
+          unit?: string | null
+          user_id: string
+          value: number
+          vital_type: string
+        }
+        Update: {
+          created_at?: string | null
+          family_member_id?: string | null
+          id?: string
+          notes?: string | null
+          reading_time?: string | null
+          recorded_at?: string | null
+          source?: string | null
+          unit?: string | null
+          user_id?: string
+          value?: number
+          vital_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chronic_vitals_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "health_family_members"
             referencedColumns: ["id"]
           },
         ]
@@ -6361,6 +6458,90 @@ export type Database = {
         }
         Relationships: []
       }
+      health_conditions: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_hindi: string | null
+          tracking_metrics: Json | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_hindi?: string | null
+          tracking_metrics?: Json | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_hindi?: string | null
+          tracking_metrics?: Json | null
+        }
+        Relationships: []
+      }
+      health_family_members: {
+        Row: {
+          alert_on_abnormal_vitals: boolean | null
+          alert_on_missed_dose: boolean | null
+          avatar_url: string | null
+          caregiver_user_id: string
+          conditions: string[] | null
+          created_at: string | null
+          date_of_birth: string | null
+          id: string
+          is_active: boolean | null
+          member_name: string
+          member_phone: string | null
+          relationship: string
+          updated_at: string | null
+        }
+        Insert: {
+          alert_on_abnormal_vitals?: boolean | null
+          alert_on_missed_dose?: boolean | null
+          avatar_url?: string | null
+          caregiver_user_id: string
+          conditions?: string[] | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_name: string
+          member_phone?: string | null
+          relationship: string
+          updated_at?: string | null
+        }
+        Update: {
+          alert_on_abnormal_vitals?: boolean | null
+          alert_on_missed_dose?: boolean | null
+          avatar_url?: string | null
+          caregiver_user_id?: string
+          conditions?: string[] | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_name?: string
+          member_phone?: string | null
+          relationship?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       health_goals: {
         Row: {
           created_at: string
@@ -6606,6 +6787,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      health_streaks: {
+        Row: {
+          coins_earned: number | null
+          created_at: string | null
+          current_streak: number | null
+          family_member_id: string | null
+          id: string
+          last_activity_date: string | null
+          longest_streak: number | null
+          streak_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coins_earned?: number | null
+          created_at?: string | null
+          current_streak?: number | null
+          family_member_id?: string | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          streak_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coins_earned?: number | null
+          created_at?: string | null
+          current_streak?: number | null
+          family_member_id?: string | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          streak_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_streaks_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "health_family_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       health_vitals: {
         Row: {
@@ -8778,6 +9006,301 @@ export type Database = {
         }
         Relationships: []
       }
+      medicine_catalog: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          discounted_price: number | null
+          for_conditions: string[] | null
+          form: string | null
+          generic_name: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean | null
+          manufacturer: string | null
+          mrp: number
+          name: string
+          pack_size: number | null
+          requires_prescription: boolean | null
+          strength: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          discounted_price?: number | null
+          for_conditions?: string[] | null
+          form?: string | null
+          generic_name?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          manufacturer?: string | null
+          mrp: number
+          name: string
+          pack_size?: number | null
+          requires_prescription?: boolean | null
+          strength?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          discounted_price?: number | null
+          for_conditions?: string[] | null
+          form?: string | null
+          generic_name?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          manufacturer?: string | null
+          mrp?: number
+          name?: string
+          pack_size?: number | null
+          requires_prescription?: boolean | null
+          strength?: string | null
+        }
+        Relationships: []
+      }
+      medicine_intake_log: {
+        Row: {
+          created_at: string | null
+          family_member_id: string | null
+          id: string
+          medicine_name: string
+          notes: string | null
+          scheduled_at: string
+          status: string | null
+          subscription_item_id: string | null
+          taken_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          family_member_id?: string | null
+          id?: string
+          medicine_name: string
+          notes?: string | null
+          scheduled_at: string
+          status?: string | null
+          subscription_item_id?: string | null
+          taken_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          family_member_id?: string | null
+          id?: string
+          medicine_name?: string
+          notes?: string | null
+          scheduled_at?: string
+          status?: string | null
+          subscription_item_id?: string | null
+          taken_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicine_intake_log_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "health_family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicine_intake_log_subscription_item_id_fkey"
+            columns: ["subscription_item_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicine_orders: {
+        Row: {
+          created_at: string | null
+          delivered_at: string | null
+          delivery_address: Json | null
+          delivery_fee: number | null
+          discount: number | null
+          expected_delivery: string | null
+          id: string
+          items: Json
+          notes: string | null
+          order_number: string | null
+          payment_method: string | null
+          payment_status: string | null
+          status: string | null
+          subscription_id: string | null
+          subtotal: number
+          total: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivered_at?: string | null
+          delivery_address?: Json | null
+          delivery_fee?: number | null
+          discount?: number | null
+          expected_delivery?: string | null
+          id?: string
+          items: Json
+          notes?: string | null
+          order_number?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          status?: string | null
+          subscription_id?: string | null
+          subtotal: number
+          total: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          delivered_at?: string | null
+          delivery_address?: Json | null
+          delivery_fee?: number | null
+          discount?: number | null
+          expected_delivery?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_number?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          status?: string | null
+          subscription_id?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicine_orders_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "medicine_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicine_reminders: {
+        Row: {
+          created_at: string | null
+          days_of_week: number[] | null
+          family_member_id: string | null
+          id: string
+          is_active: boolean | null
+          medicine_name: string
+          reminder_type: string | null
+          scheduled_time: string
+          snooze_minutes: number | null
+          subscription_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          days_of_week?: number[] | null
+          family_member_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          medicine_name: string
+          reminder_type?: string | null
+          scheduled_time: string
+          snooze_minutes?: number | null
+          subscription_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          days_of_week?: number[] | null
+          family_member_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          medicine_name?: string
+          reminder_type?: string | null
+          scheduled_time?: string
+          snooze_minutes?: number | null
+          subscription_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicine_reminders_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "health_family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicine_reminders_subscription_item_id_fkey"
+            columns: ["subscription_item_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicine_subscriptions: {
+        Row: {
+          auto_refill: boolean | null
+          created_at: string | null
+          delivery_address: Json | null
+          family_member_id: string | null
+          id: string
+          monthly_cost: number | null
+          next_delivery_date: string | null
+          payment_method: string | null
+          plan_type: string | null
+          savings_amount: number | null
+          status: string | null
+          subscription_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_refill?: boolean | null
+          created_at?: string | null
+          delivery_address?: Json | null
+          family_member_id?: string | null
+          id?: string
+          monthly_cost?: number | null
+          next_delivery_date?: string | null
+          payment_method?: string | null
+          plan_type?: string | null
+          savings_amount?: number | null
+          status?: string | null
+          subscription_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_refill?: boolean | null
+          created_at?: string | null
+          delivery_address?: Json | null
+          family_member_id?: string | null
+          id?: string
+          monthly_cost?: number | null
+          next_delivery_date?: string | null
+          payment_method?: string | null
+          plan_type?: string | null
+          savings_amount?: number | null
+          status?: string | null
+          subscription_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicine_subscriptions_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "health_family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mental_health_assessments: {
         Row: {
           assessed_at: string
@@ -10489,6 +11012,65 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prescription_uploads: {
+        Row: {
+          created_at: string | null
+          doctor_name: string | null
+          family_member_id: string | null
+          hospital_name: string | null
+          id: string
+          image_url: string
+          notes: string | null
+          ocr_parsed_data: Json | null
+          ocr_raw_text: string | null
+          prescription_date: string | null
+          status: string | null
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          doctor_name?: string | null
+          family_member_id?: string | null
+          hospital_name?: string | null
+          id?: string
+          image_url: string
+          notes?: string | null
+          ocr_parsed_data?: Json | null
+          ocr_raw_text?: string | null
+          prescription_date?: string | null
+          status?: string | null
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          doctor_name?: string | null
+          family_member_id?: string | null
+          hospital_name?: string | null
+          id?: string
+          image_url?: string
+          notes?: string | null
+          ocr_parsed_data?: Json | null
+          ocr_raw_text?: string | null
+          prescription_date?: string | null
+          status?: string | null
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescription_uploads_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "health_family_members"
             referencedColumns: ["id"]
           },
         ]
@@ -13248,6 +13830,69 @@ export type Database = {
           },
         ]
       }
+      subscription_items: {
+        Row: {
+          created_at: string | null
+          dosage: string | null
+          frequency: string | null
+          id: string
+          is_generic: boolean | null
+          medicine_id: string | null
+          medicine_name: string
+          notes: string | null
+          quantity_per_month: number | null
+          subscription_id: string
+          timing: string[] | null
+          total_price: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          dosage?: string | null
+          frequency?: string | null
+          id?: string
+          is_generic?: boolean | null
+          medicine_id?: string | null
+          medicine_name: string
+          notes?: string | null
+          quantity_per_month?: number | null
+          subscription_id: string
+          timing?: string[] | null
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          dosage?: string | null
+          frequency?: string | null
+          id?: string
+          is_generic?: boolean | null
+          medicine_id?: string | null
+          medicine_name?: string
+          notes?: string | null
+          quantity_per_month?: number | null
+          subscription_id?: string
+          timing?: string[] | null
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_items_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicine_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "medicine_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -14002,6 +14647,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_health_profiles: {
+        Row: {
+          blood_group: string | null
+          conditions: string[] | null
+          created_at: string | null
+          date_of_birth: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          gender: string | null
+          height_cm: number | null
+          id: string
+          preferred_language: string | null
+          reminder_preferences: Json | null
+          updated_at: string | null
+          user_id: string
+          weight_kg: number | null
+        }
+        Insert: {
+          blood_group?: string | null
+          conditions?: string[] | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          preferred_language?: string | null
+          reminder_preferences?: Json | null
+          updated_at?: string | null
+          user_id: string
+          weight_kg?: number | null
+        }
+        Update: {
+          blood_group?: string | null
+          conditions?: string[] | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          preferred_language?: string | null
+          reminder_preferences?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          weight_kg?: number | null
+        }
+        Relationships: []
       }
       user_installed_apps: {
         Row: {
