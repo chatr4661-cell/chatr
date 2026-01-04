@@ -124,9 +124,9 @@ export default function CareAccess() {
       const familyData: any[] = [];
       try {
         const { data } = await supabase
-          .from('health_family_members' as any)
-          .select('id, name, relationship, alerts_enabled')
-          .eq('user_id', user.id);
+          .from('health_family_members')
+          .select('id, member_name, relationship, alert_on_missed_dose')
+          .eq('caregiver_user_id', user.id);
         if (data) familyData.push(...data);
       } catch (e) {
         console.log('Family members not available');
@@ -136,9 +136,9 @@ export default function CareAccess() {
         { id: user.id, name: name, relationship: 'self' },
         ...familyData.map((m) => ({
           id: m.id,
-          name: m.name,
+          name: m.member_name,
           relationship: m.relationship as FamilyMember['relationship'],
-          hasAlerts: m.alerts_enabled,
+          hasAlerts: m.alert_on_missed_dose,
           alertCount: 0
         }))
       ];
@@ -311,7 +311,7 @@ export default function CareAccess() {
   };
 
   const handleBookProvider = (provider: HealthcareProvider) => {
-    navigate(`/provider/${provider.id}`);
+    navigate(`/care/doctor/${provider.id}`);
   };
 
   if (loading) {
@@ -565,7 +565,7 @@ export default function CareAccess() {
                         )}
                       </div>
                     ))}
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" onClick={() => navigate('/care/family/add')}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Family Member
                     </Button>
