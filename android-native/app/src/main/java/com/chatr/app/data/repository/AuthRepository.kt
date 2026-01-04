@@ -68,6 +68,31 @@ class AuthRepository @Inject constructor(
     }
     
     /**
+     * INSTANT LOGIN - Sign in with email/password directly (for existing users)
+     * Mirrors web checkPhoneAndProceed() instant login flow
+     * Email format: {phone}@chatr.local, Password: phone number
+     */
+    suspend fun signInWithEmailPassword(email: String, password: String): Result<AuthResponse> {
+        return try {
+            val response = api.signIn(SignInRequest(
+                email = email,
+                password = password,
+                phone = null,
+                otp = null
+            ))
+            if (response.isSuccessful && response.body() != null) {
+                val authResponse = response.body()!!
+                saveTokens(authResponse)
+                Result.success(authResponse)
+            } else {
+                Result.failure(Exception("Login failed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
      * Sign in with Google
      */
     suspend fun signInWithGoogle(idToken: String): Result<AuthResponse> {
