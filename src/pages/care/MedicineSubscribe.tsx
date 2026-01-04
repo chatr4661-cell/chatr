@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Plus, Minus, Camera, Pill, Check, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Search, Plus, Minus, Camera, Pill, Check, Sparkles, ShoppingCart, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { MedicineHeroHeader } from '@/components/care/MedicineHeroHeader';
+import { PricingCards } from '@/components/care/PricingCards';
 
 interface CartItem {
   id: string;
@@ -27,11 +27,10 @@ const MedicineSubscribe = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [showScanner, setShowScanner] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('care');
   const [loading, setLoading] = useState(false);
+  const [showCart, setShowCart] = useState(false);
 
-  // Sample medicines (in production, fetch from medicine_catalog)
   const sampleMedicines = [
     { id: '1', name: 'Metformin 500mg', generic_name: 'Metformin', strength: '500mg', mrp: 120, discounted_price: 95, form: 'tablet' },
     { id: '2', name: 'Amlodipine 5mg', generic_name: 'Amlodipine', strength: '5mg', mrp: 85, discounted_price: 68, form: 'tablet' },
@@ -62,7 +61,7 @@ const MedicineSubscribe = () => {
         timing: ['morning']
       }]);
     }
-    toast.success(`Added ${medicine.name} to cart`);
+    toast.success(`Added ${medicine.name}`);
   };
 
   const updateCartItem = (id: string, updates: Partial<CartItem>) => {
@@ -100,7 +99,6 @@ const MedicineSubscribe = () => {
 
       const totals = calculateTotals();
 
-      // Create subscription
       const { data: subscription, error: subError } = await supabase
         .from('medicine_subscriptions')
         .insert({
@@ -117,7 +115,6 @@ const MedicineSubscribe = () => {
 
       if (subError) throw subError;
 
-      // Add subscription items
       const items = cart.map(item => ({
         subscription_id: subscription.id,
         medicine_name: item.name,
@@ -136,7 +133,6 @@ const MedicineSubscribe = () => {
 
       if (itemsError) throw itemsError;
 
-      // Create reminders for each medicine
       for (const item of cart) {
         const times = item.timing.map(t => {
           switch(t) {
@@ -170,118 +166,162 @@ const MedicineSubscribe = () => {
 
   const totals = calculateTotals();
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-background pb-48">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 pt-safe">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold">Subscribe to Medicines</h1>
-            <p className="text-sm opacity-90">Save 20-25% on monthly medicines</p>
-          </div>
-        </div>
-      </div>
+  const pricingPlans = [
+    { id: 'care', name: 'Care', price: 99, description: 'Individual', features: ['1 user', 'Auto-delivery', 'Reminders'], badge: 'Popular', popular: true, gradient: 'from-primary to-primary/70' },
+    { id: 'family', name: 'Family', price: 199, description: '4 members', features: ['4 users', 'Family alerts', 'Dashboard'], gradient: 'from-blue-500 to-cyan-500' },
+    { id: 'care_plus', name: 'Care+', price: 299, description: '+ Consults', features: ['Unlimited', '2 consults/mo', '24/7 support'], badge: 'Premium', gradient: 'from-purple-500 to-pink-500' },
+  ];
 
-      <div className="p-4 space-y-4">
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-48">
+      <MedicineHeroHeader
+        title="Subscribe to Medicines"
+        subtitle="Save 20-25% with monthly delivery"
+        gradient="health"
+      />
+
+      <div className="p-4 space-y-5">
         {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <motion.div 
+          className="relative"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search medicines..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-11 h-12 rounded-2xl border-0 bg-muted/50 shadow-sm"
           />
-        </div>
+        </motion.div>
 
-        {/* Scan Prescription CTA */}
-        <Card className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  Scan Prescription
-                </h3>
-                <p className="text-sm opacity-90">AI will auto-detect medicines</p>
+        {/* AI Scan CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="relative bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 p-5">
+              <div className="absolute inset-0 opacity-20">
+                <motion.div
+                  className="absolute w-32 h-32 rounded-full bg-white/30 -top-16 -right-16"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                />
               </div>
-              <Button 
-                onClick={() => navigate('/care/medicines/prescriptions')}
-                className="bg-white text-purple-600 hover:bg-white/90"
-              >
-                <Camera className="h-4 w-4 mr-1" />
-                Scan
-              </Button>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <motion.div 
+                    className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center"
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Sparkles className="h-6 w-6 text-white" />
+                  </motion.div>
+                  <div>
+                    <h3 className="font-bold text-white">AI Prescription Scanner</h3>
+                    <p className="text-sm text-white/80">Auto-detect medicines instantly</p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => navigate('/care/medicines/prescriptions')}
+                  className="bg-white text-purple-600 hover:bg-white/90 shadow-lg"
+                >
+                  <Camera className="h-4 w-4 mr-1.5" />
+                  Scan
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </motion.div>
 
         {/* Medicine List */}
         <div>
-          <h2 className="text-sm font-semibold mb-3">Popular Medicines</h2>
+          <h2 className="text-base font-bold mb-3">Popular Medicines</h2>
           <div className="space-y-3">
-            {filteredMedicines.map((medicine) => {
+            {filteredMedicines.map((medicine, idx) => {
               const inCart = cart.find(item => item.id === medicine.id);
               const savings = medicine.mrp - (medicine.discounted_price || medicine.mrp);
               const savingsPercent = Math.round((savings / medicine.mrp) * 100);
 
               return (
-                <Card key={medicine.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Pill className="h-4 w-4 text-primary" />
-                          <h3 className="font-medium">{medicine.name}</h3>
-                        </div>
-                        {medicine.generic_name && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Generic: {medicine.generic_name}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-lg font-bold">₹{medicine.discounted_price}</span>
-                          <span className="text-sm text-muted-foreground line-through">₹{medicine.mrp}</span>
-                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                            {savingsPercent}% off
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">per strip of 10</p>
-                      </div>
-                      <div>
-                        {inCart ? (
+                <motion.div
+                  key={medicine.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * idx }}
+                >
+                  <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateCartItem(medicine.id, { quantity: Math.max(30, inCart.quantity - 30) })}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-8 text-center text-sm">{inCart.quantity}</span>
-                            <Button 
-                              variant="outline" 
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateCartItem(medicine.id, { quantity: inCart.quantity + 30 })}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
+                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                              <Pill className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold">{medicine.name}</h3>
+                              {medicine.generic_name && (
+                                <p className="text-xs text-muted-foreground">
+                                  Generic: {medicine.generic_name}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        ) : (
-                          <Button size="sm" onClick={() => addToCart(medicine)}>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add
-                          </Button>
-                        )}
+                          <div className="flex items-center gap-2 mt-3">
+                            <span className="text-xl font-bold">₹{medicine.discounted_price}</span>
+                            <span className="text-sm text-muted-foreground line-through">₹{medicine.mrp}</span>
+                            <Badge className="bg-green-100 text-green-700 border-0 text-xs">
+                              {savingsPercent}% off
+                            </Badge>
+                          </div>
+                        </div>
+                        <div>
+                          {inCart ? (
+                            <div className="flex items-center gap-1 bg-muted rounded-full p-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8 rounded-full"
+                                onClick={() => {
+                                  if (inCart.quantity <= 30) {
+                                    removeFromCart(medicine.id);
+                                  } else {
+                                    updateCartItem(medicine.id, { quantity: inCart.quantity - 30 });
+                                  }
+                                }}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-8 text-center text-sm font-medium">{inCart.quantity}</span>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8 rounded-full"
+                                onClick={() => updateCartItem(medicine.id, { quantity: inCart.quantity + 30 })}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button 
+                                size="sm" 
+                                className="rounded-full shadow"
+                                onClick={() => addToCart(medicine)}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add
+                              </Button>
+                            </motion.div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
           </div>
@@ -289,67 +329,69 @@ const MedicineSubscribe = () => {
 
         {/* Plan Selection */}
         <div>
-          <h2 className="text-sm font-semibold mb-3">Select Plan</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { id: 'care', name: 'Care', price: 99, desc: 'Individual' },
-              { id: 'family', name: 'Family', price: 199, desc: '4 members' },
-              { id: 'care_plus', name: 'Care+', price: 299, desc: '+ Consults' },
-            ].map((plan) => (
-              <Card 
-                key={plan.id}
-                className={`cursor-pointer transition-all ${selectedPlan === plan.id ? 'border-primary ring-2 ring-primary/20' : ''}`}
-                onClick={() => setSelectedPlan(plan.id)}
-              >
-                <CardContent className="p-3 text-center">
-                  {selectedPlan === plan.id && (
-                    <Check className="h-4 w-4 text-primary absolute top-2 right-2" />
-                  )}
-                  <p className="font-bold">{plan.name}</p>
-                  <p className="text-lg font-bold text-primary">₹{plan.price}</p>
-                  <p className="text-xs text-muted-foreground">{plan.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <h2 className="text-base font-bold mb-3">Select Plan</h2>
+          <PricingCards 
+            plans={pricingPlans}
+            selectedPlan={selectedPlan}
+            onSelectPlan={setSelectedPlan}
+          />
         </div>
       </div>
 
-      {/* Cart Summary Fixed Bottom */}
-      {cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 shadow-lg">
-          <div className="space-y-2 mb-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Medicine Total (MRP)</span>
-              <span className="line-through text-muted-foreground">₹{totals.mrpTotal.toFixed(0)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Discounted Price</span>
-              <span>₹{totals.discountedTotal.toFixed(0)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Plan Fee</span>
-              <span>₹{totals.planFee}</span>
-            </div>
-            <div className="flex justify-between text-sm text-green-600">
-              <span>Your Savings</span>
-              <span>₹{totals.savings.toFixed(0)}</span>
-            </div>
-            <div className="flex justify-between font-bold pt-2 border-t">
-              <span>Monthly Total</span>
-              <span>₹{totals.total.toFixed(0)}</span>
-            </div>
-          </div>
-          <Button 
-            className="w-full" 
-            size="lg"
-            onClick={handleSubscribe}
-            disabled={loading}
+      {/* Cart Summary */}
+      <AnimatePresence>
+        {cart.length > 0 && (
+          <motion.div 
+            className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t shadow-2xl p-4"
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
           >
-            {loading ? 'Creating Subscription...' : `Subscribe - ₹${totals.total.toFixed(0)}/month`}
-          </Button>
-        </div>
-      )}
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Medicines ({cart.length} items)</span>
+                <span className="line-through text-muted-foreground">₹{totals.mrpTotal.toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Discounted Price</span>
+                <span>₹{totals.discountedTotal.toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{pricingPlans.find(p => p.id === selectedPlan)?.name} Plan</span>
+                <span>₹{totals.planFee}</span>
+              </div>
+              <div className="flex justify-between text-sm text-green-600 font-medium">
+                <span>Your Savings</span>
+                <span>₹{totals.savings.toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                <span>Monthly Total</span>
+                <span>₹{totals.total.toFixed(0)}</span>
+              </div>
+            </div>
+            <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+              <Button 
+                className="w-full h-12 text-base font-bold shadow-lg" 
+                onClick={handleSubscribe}
+                disabled={loading}
+              >
+                {loading ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                  />
+                ) : (
+                  <>
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    Subscribe - ₹{totals.total.toFixed(0)}/month
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

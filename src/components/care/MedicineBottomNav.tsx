@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Home, Pill, Activity, Bell, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,29 +16,75 @@ export const MedicineBottomNav = () => {
   const location = useLocation();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t z-50 pb-safe">
-      <div className="flex items-center justify-around py-2">
-        {navItems.map((item) => {
+    <motion.div 
+      className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-xl border-t z-50 pb-safe"
+      initial={{ y: 100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+    >
+      <div className="flex items-center justify-around py-2 px-2">
+        {navItems.map((item, index) => {
           const isActive = location.pathname === item.path || 
             (item.path === '/care/medicines' && location.pathname === '/care/medicines');
           
           return (
-            <button
+            <motion.button
               key={item.path}
               onClick={() => navigate(item.path)}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all",
+                "relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-2xl transition-all min-w-[60px]",
                 isActive 
-                  ? "text-primary bg-primary/10" 
+                  ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
+              whileTap={{ scale: 0.9 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
             >
-              <item.icon className={cn("h-5 w-5", isActive && "scale-110")} />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </button>
+              {/* Active Background */}
+              {isActive && (
+                <motion.div
+                  className="absolute inset-0 bg-primary/10 rounded-2xl"
+                  layoutId="activeNavBg"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+              
+              {/* Icon */}
+              <motion.div
+                className="relative z-10"
+                animate={isActive ? { scale: 1.1 } : { scale: 1 }}
+                transition={{ type: "spring", stiffness: 400 }}
+              >
+                <item.icon className={cn(
+                  "h-5 w-5 transition-colors",
+                  isActive && "text-primary"
+                )} />
+              </motion.div>
+              
+              {/* Label */}
+              <span className={cn(
+                "text-[10px] font-medium relative z-10 transition-colors",
+                isActive && "text-primary font-semibold"
+              )}>
+                {item.label}
+              </span>
+
+              {/* Active Dot */}
+              {isActive && (
+                <motion.div
+                  className="absolute -top-0.5 left-1/2 w-1 h-1 bg-primary rounded-full"
+                  layoutId="activeNavDot"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  style={{ marginLeft: -2 }}
+                />
+              )}
+            </motion.button>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 };

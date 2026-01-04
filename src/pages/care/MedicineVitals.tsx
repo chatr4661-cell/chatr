@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Droplet, Heart, Activity, Scale, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, Droplet, Heart, Activity, Scale, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { MedicineBottomNav } from '@/components/care/MedicineBottomNav';
+import { MedicineHeroHeader } from '@/components/care/MedicineHeroHeader';
 import { VitalsChart } from '@/components/care/VitalsChart';
 
 interface VitalReading {
@@ -131,19 +133,12 @@ const MedicineVitals = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-background pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 pt-safe">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/care/medicines')} className="text-white hover:bg-white/20">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-bold">Track Vitals</h1>
-              <p className="text-sm opacity-90">Monitor your health metrics</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-24">
+      <MedicineHeroHeader
+        title="Track Vitals"
+        subtitle="Monitor your health metrics"
+        gradient="vitals"
+        rightAction={
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
               <Button className="bg-white/20 text-white hover:bg-white/30">
@@ -215,8 +210,8 @@ const MedicineVitals = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+        }
+      />
 
       <div className="p-4 space-y-4">
         {/* Quick Stats */}
@@ -226,14 +221,20 @@ const MedicineVitals = () => {
             { type: 'bp_systolic', label: 'Blood Pressure' },
             { type: 'weight', label: 'Weight' },
             { type: 'tsh', label: 'TSH' }
-          ].map(({ type, label }) => {
+          ].map(({ type, label }, idx) => {
             const reading = getLatestReading(type);
             const config = vitalTypes.find(v => v.id === type);
             const status = reading ? getVitalStatus(type, reading.value) : null;
             const Icon = config?.icon || Activity;
 
             return (
-              <Card key={type}>
+              <motion.div
+                key={type}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+              >
+              <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Icon className={`h-4 w-4 ${config?.color}`} />
@@ -267,16 +268,17 @@ const MedicineVitals = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(reading.recorded_at), 'dd MMM, h:mm a')}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No readings yet</p>
-                  )}
-                </CardContent>
-              </Card>
-            );
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(new Date(reading.recorded_at), 'dd MMM, h:mm a')}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No readings yet</p>
+                )}
+              </CardContent>
+            </Card>
+            </motion.div>
+          );
           })}
         </div>
 
