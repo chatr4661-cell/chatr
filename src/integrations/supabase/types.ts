@@ -1132,38 +1132,47 @@ export type Database = {
       bmi_records: {
         Row: {
           bmi_category: string
+          bmi_encrypted: string | null
           bmi_value: number
           body_fat_percent: number | null
           created_at: string
           height_cm: number
+          height_encrypted: string | null
           id: string
           recorded_at: string
           user_id: string
           waist_cm: number | null
+          weight_encrypted: string | null
           weight_kg: number
         }
         Insert: {
           bmi_category: string
+          bmi_encrypted?: string | null
           bmi_value: number
           body_fat_percent?: number | null
           created_at?: string
           height_cm: number
+          height_encrypted?: string | null
           id?: string
           recorded_at?: string
           user_id: string
           waist_cm?: number | null
+          weight_encrypted?: string | null
           weight_kg: number
         }
         Update: {
           bmi_category?: string
+          bmi_encrypted?: string | null
           bmi_value?: number
           body_fat_percent?: number | null
           created_at?: string
           height_cm?: number
+          height_encrypted?: string | null
           id?: string
           recorded_at?: string
           user_id?: string
           waist_cm?: number | null
+          weight_encrypted?: string | null
           weight_kg?: number
         }
         Relationships: []
@@ -8157,6 +8166,7 @@ export type Database = {
         Row: {
           created_at: string | null
           document_number: string | null
+          document_number_encrypted: string | null
           document_type: string
           document_url: string
           id: string
@@ -8170,6 +8180,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           document_number?: string | null
+          document_number_encrypted?: string | null
           document_type: string
           document_url: string
           id?: string
@@ -8183,6 +8194,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           document_number?: string | null
+          document_number_encrypted?: string | null
           document_type?: string
           document_url?: string
           id?: string
@@ -16497,6 +16509,22 @@ export type Database = {
       create_mutual_contact: {
         Args: { user1_email: string; user2_email: string }
         Returns: undefined
+      }
+      decrypt_health_value: {
+        Args: { encrypted_value: string; user_id: string }
+        Returns: number
+      }
+      decrypt_kyc_value: {
+        Args: { encrypted_value: string; user_id: string }
+        Returns: string
+      }
+      encrypt_health_value: {
+        Args: { user_id: string; value: number }
+        Returns: string
+      }
+      encrypt_kyc_value: {
+        Args: { user_id: string; value: string }
+        Returns: string
       }
       expire_old_inter_app_messages: { Args: never; Returns: undefined }
       find_emotion_matches: {
