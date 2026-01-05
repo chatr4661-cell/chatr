@@ -12608,6 +12608,54 @@ export type Database = {
           },
         ]
       }
+      scheduled_notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          id: string
+          message: string
+          recurring_end_date: string | null
+          recurring_frequency: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message: string
+          recurring_end_date?: string | null
+          recurring_frequency?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message?: string
+          recurring_end_date?: string | null
+          recurring_frequency?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       search_alerts: {
         Row: {
           alert_data: Json | null
