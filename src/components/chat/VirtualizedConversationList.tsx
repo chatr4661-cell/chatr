@@ -720,7 +720,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                         onConversationSelect(conv.id, conv.other_user);
                         setSearchQuery(''); // Clear search after selection
                       }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-all duration-200 border-b active:bg-accent/60"
+                      className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 border-b conversation-item"
                     >
                       <div className="relative">
                         <Avatar className="w-12 h-12 ring-2 ring-transparent hover:ring-primary/20 transition-all">
@@ -730,7 +730,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                           </AvatarFallback>
                         </Avatar>
                         {!conv.is_group && isOnline && (
-                          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background shadow-sm" />
+                          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background shadow-sm online-indicator" />
                         )}
                         {/* Unread Badge */}
                         <UnreadBadge count={conv.unread_count || 0} />

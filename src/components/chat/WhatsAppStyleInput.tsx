@@ -1,4 +1,5 @@
 import React, { useState, KeyboardEvent, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Paperclip, Mic, WifiOff, X, Plus, Camera, Image as ImageIcon, FileText, Mic2, MapPin, User, Zap } from 'lucide-react';
@@ -558,24 +559,36 @@ export const WhatsAppStyleInput: React.FC<WhatsAppStyleInputProps> = ({
 
             {/* Send / Voice Button */}
             {message.trim() ? (
-              <Button
-                onClick={handleSend}
-                disabled={!message.trim() || sending || disabled}
-                size="icon"
-                className="rounded-full shrink-0 h-11 w-11 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/25"
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
               >
-                <Send className="w-5 h-5 text-white" />
-              </Button>
+                <Button
+                  onClick={handleSend}
+                  disabled={!message.trim() || sending || disabled}
+                  size="icon"
+                  className="rounded-full shrink-0 h-11 w-11 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/25 premium-button glow-pulse"
+                >
+                  <Send className="w-5 h-5 text-white" />
+                </Button>
+              </motion.div>
             ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full shrink-0 h-10 w-10 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                disabled={disabled}
-                onClick={() => setShowVoiceRecorder(true)}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
               >
-                <Mic className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full shrink-0 h-10 w-10 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors premium-button"
+                  disabled={disabled}
+                  onClick={() => setShowVoiceRecorder(true)}
+                >
+                  <Mic className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </Button>
+              </motion.div>
             )}
           </div>
         </>

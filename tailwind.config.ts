@@ -149,6 +149,96 @@ export default {
             opacity: "1"
           }
         },
+        // Premium message animations
+        "message-in": {
+          "0%": { 
+            opacity: "0", 
+            transform: "translateY(8px) scale(0.96)"
+          },
+          "100%": { 
+            opacity: "1", 
+            transform: "translateY(0) scale(1)"
+          }
+        },
+        "message-out": {
+          "0%": { 
+            opacity: "0", 
+            transform: "translateY(8px) scale(0.96)"
+          },
+          "100%": { 
+            opacity: "1", 
+            transform: "translateY(0) scale(1)"
+          }
+        },
+        // Premium typing dots
+        "typing-dot": {
+          "0%, 60%, 100%": { 
+            transform: "translateY(0)",
+            opacity: "0.4"
+          },
+          "30%": { 
+            transform: "translateY(-6px)",
+            opacity: "1"
+          }
+        },
+        // Premium pulse glow
+        "pulse-glow": {
+          "0%, 100%": { 
+            boxShadow: "0 0 0 0 hsl(var(--primary) / 0.4)"
+          },
+          "50%": { 
+            boxShadow: "0 0 0 8px hsl(var(--primary) / 0)"
+          }
+        },
+        // Premium skeleton wave
+        "skeleton-wave": {
+          "0%": { 
+            backgroundPosition: "-200% 0"
+          },
+          "100%": { 
+            backgroundPosition: "200% 0"
+          }
+        },
+        // Checkmark animation
+        "checkmark-draw": {
+          "0%": { 
+            strokeDashoffset: "20"
+          },
+          "100%": { 
+            strokeDashoffset: "0"
+          }
+        },
+        // Floating date header
+        "float-in": {
+          "0%": { 
+            opacity: "0",
+            transform: "translateY(-8px) scale(0.9)"
+          },
+          "100%": { 
+            opacity: "1",
+            transform: "translateY(0) scale(1)"
+          }
+        },
+        // Button press
+        "button-press": {
+          "0%, 100%": { 
+            transform: "scale(1)"
+          },
+          "50%": { 
+            transform: "scale(0.95)"
+          }
+        },
+        // Ripple effect
+        "ripple": {
+          "0%": { 
+            transform: "scale(0)",
+            opacity: "0.5"
+          },
+          "100%": { 
+            transform: "scale(4)",
+            opacity: "0"
+          }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.3s ease-out",
@@ -157,6 +247,16 @@ export default {
         "slide-in": "slide-in 0.3s ease-out",
         "slide-in-bottom": "slide-in-bottom 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
         "shimmer": "shimmer 2s infinite",
+        // Premium animations
+        "message-in": "message-in 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
+        "message-out": "message-out 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
+        "typing-dot": "typing-dot 1.4s ease-in-out infinite",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "skeleton-wave": "skeleton-wave 1.5s ease-in-out infinite",
+        "checkmark": "checkmark-draw 0.3s ease-out forwards",
+        "float-in": "float-in 0.2s ease-out",
+        "button-press": "button-press 0.15s ease-out",
+        "ripple": "ripple 0.6s ease-out",
       },
     },
   },

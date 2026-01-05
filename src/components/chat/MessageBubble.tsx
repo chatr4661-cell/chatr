@@ -292,8 +292,11 @@ const MessageBubbleComponent = ({
   });
 
   return (
-    <div
-      className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end flex-row-reverse' : 'justify-start'} ${selectionMode ? 'items-center' : ''}`}
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+      className={`flex gap-2 mb-1 px-3 relative w-full ${isOwn ? 'justify-end flex-row-reverse' : 'justify-start'} ${selectionMode ? 'items-center' : ''} ${isOwn ? 'message-send-animation' : 'message-receive-animation'}`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -687,7 +690,7 @@ const MessageBubbleComponent = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   );
 };
 
