@@ -32,7 +32,7 @@ interface GamesApi {
     ): Response<GameProgressResponse>
     
     @POST("games/{gameId}/complete-level")
-    suspend fun completeLavel(
+    suspend fun completeLevel(
         @Path("gameId") gameId: String,
         @Body request: CompleteLevelRequest
     ): Response<LevelCompleteResponse>
