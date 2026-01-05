@@ -71,7 +71,7 @@ export default function LocalJobs() {
         if (saved) setSavedJobs(saved.map(s => s.job_id));
 
         const { data: applied } = await supabase
-          .from('job_applications')
+          .from('chatr_job_applications')
           .select('job_id')
           .eq('user_id', user.id);
         if (applied) setAppliedJobs(applied.map(a => a.job_id));
@@ -228,7 +228,8 @@ export default function LocalJobs() {
 
     try {
       if (!appliedJobs.includes(jobId)) {
-        await supabase.from('job_applications').insert({
+        // Save to chatr_job_applications table (correct table)
+        await supabase.from('chatr_job_applications').insert({
           user_id: userId,
           job_id: jobId,
           status: 'applied'

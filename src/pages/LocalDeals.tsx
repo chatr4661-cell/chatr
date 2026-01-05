@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Search, MapPin, Star, Phone, Clock, ChevronRight, Shield, CheckCircle, BadgeCheck, Navigation, Percent, Timer, Users, Sparkles, ArrowRight, Play, Award, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -130,14 +131,48 @@ export default function LocalDeals() {
     setSearchParams({ category: selectedCategoryId, sub: subcategory });
   };
 
-  const handleBookService = () => {
+  const handleBookService = async () => {
     if (!bookingData.address) {
       toast.error('Please enter your address');
       return;
     }
-    toast.success('Booking confirmed! You will receive a call shortly.');
-    setShowBooking(false);
-    setSelectedProvider(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please login to book');
+        return;
+      }
+
+      // Save booking to service_bookings table with correct schema
+      const scheduledDate = bookingData.date || new Date().toISOString().split('T')[0];
+      const scheduledTime = bookingData.time || '10:00';
+      const price = selectedProvider?.price || 500;
+
+      const { error } = await supabase.from('service_bookings').insert({
+        customer_id: user.id,
+        provider_id: selectedProvider?.id || '00000000-0000-0000-0000-000000000000',
+        service_id: '00000000-0000-0000-0000-000000000000', // Default service ID
+        category_id: '00000000-0000-0000-0000-000000000000', // Default category ID
+        scheduled_date: scheduledDate,
+        scheduled_time: scheduledTime,
+        service_address: bookingData.address,
+        subtotal: price,
+        total_amount: price,
+        status: 'pending',
+        payment_status: 'pending'
+      });
+
+      if (error) throw error;
+
+      toast.success('Booking confirmed! You will receive a call shortly.');
+      setShowBooking(false);
+      setSelectedProvider(null);
+      setBookingData({ date: '', time: '', address: '' });
+    } catch (error) {
+      console.error('Error booking service:', error);
+      toast.error('Failed to book service. Please try again.');
+    }
   };
 
   const handleSetLocation = () => {
