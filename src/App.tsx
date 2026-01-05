@@ -235,6 +235,10 @@ import FoodCheckout from "./pages/food/FoodCheckout";
 import OrderTracking from "./pages/food/OrderTracking";
 import OrderHistory from "./pages/food/OrderHistory";
 
+// Marketplace Pages
+const MarketplaceCheckout = React.lazy(() => import("./pages/marketplace/MarketplaceCheckout"));
+const OrderSuccessPage = React.lazy(() => import("./pages/marketplace/OrderSuccess"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -419,11 +423,13 @@ const App = () => {
             <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
             
             {/* Marketplace & Engagement */}
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/service/:categoryId" element={<ServiceListing />} />
-          <Route path="/provider/:providerId" element={<ProviderDetails />} />
-          <Route path="/booking/track/:bookingId" element={<BookingTracking />} />
-          <Route path="/provider/dashboard" element={<ProviderDashboard />} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/marketplace/checkout" element={<React.Suspense fallback={<div>Loading...</div>}><MarketplaceCheckout /></React.Suspense>} />
+            <Route path="/marketplace/order-success" element={<React.Suspense fallback={<div>Loading...</div>}><OrderSuccessPage /></React.Suspense>} />
+            <Route path="/service/:categoryId" element={<ServiceListing />} />
+            <Route path="/provider/:providerId" element={<ProviderDetails />} />
+            <Route path="/booking/track/:bookingId" element={<BookingTracking />} />
+            <Route path="/provider/dashboard" element={<ProviderDashboard />} />
             <Route path="/youth-engagement" element={<YouthEngagement />} />
             <Route path="/youth-feed" element={<YouthFeed />} />
             <Route path="/app-statistics" element={<AppStatistics />} />

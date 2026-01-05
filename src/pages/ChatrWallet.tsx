@@ -12,6 +12,7 @@ import { UPIPaymentModal } from '@/components/payment/UPIPaymentModal';
 import { SEOHead } from '@/components/SEOHead';
 import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
 import { ShareDeepLink } from '@/components/sharing';
+import { WithdrawalDialog } from '@/components/wallet/WithdrawalDialog';
 import { 
   Wallet, 
   ArrowLeft, 
@@ -187,14 +188,15 @@ const ChatrWallet = () => {
               </div>
             </div>
 
-            {/* Add Money Button */}
-            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-              <DialogTrigger asChild>
-                <Button className="w-full bg-primary">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Money
-                </Button>
-              </DialogTrigger>
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                <DialogTrigger asChild>
+                  <Button className="flex-1 bg-primary">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Money
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-sm">
                 <DialogHeader>
                   <DialogTitle>Add Money to Wallet</DialogTitle>
@@ -244,6 +246,13 @@ const ChatrWallet = () => {
                 </div>
               </DialogContent>
             </Dialog>
+            
+            {/* Withdrawal Button */}
+            <WithdrawalDialog 
+              walletBalance={wallet?.balance || 0} 
+              onWithdrawComplete={loadWalletData} 
+            />
+            </div>
           </div>
         </Card>
 
