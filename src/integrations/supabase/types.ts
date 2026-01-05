@@ -5014,27 +5014,92 @@ export type Database = {
           },
         ]
       }
+      deal_merchant_details: {
+        Row: {
+          business_category: string | null
+          created_at: string | null
+          id: string
+          max_active_deals: number | null
+          social_media: Json | null
+          terms_accepted: boolean | null
+          updated_at: string | null
+          vendor_id: string
+          website_url: string | null
+        }
+        Insert: {
+          business_category?: string | null
+          created_at?: string | null
+          id?: string
+          max_active_deals?: number | null
+          social_media?: Json | null
+          terms_accepted?: boolean | null
+          updated_at?: string | null
+          vendor_id: string
+          website_url?: string | null
+        }
+        Update: {
+          business_category?: string | null
+          created_at?: string | null
+          id?: string
+          max_active_deals?: number | null
+          social_media?: Json | null
+          terms_accepted?: boolean | null
+          updated_at?: string | null
+          vendor_id?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_merchant_details_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_redemptions: {
         Row: {
+          amount_saved: number | null
+          claimed_at: string | null
+          created_at: string | null
           deal_id: string
+          expired_at: string | null
           id: string
           qr_code: string | null
           redeemed_at: string | null
+          redemption_code: string | null
+          status: string | null
           user_id: string
+          vendor_id: string | null
         }
         Insert: {
+          amount_saved?: number | null
+          claimed_at?: string | null
+          created_at?: string | null
           deal_id: string
+          expired_at?: string | null
           id?: string
           qr_code?: string | null
           redeemed_at?: string | null
+          redemption_code?: string | null
+          status?: string | null
           user_id: string
+          vendor_id?: string | null
         }
         Update: {
+          amount_saved?: number | null
+          claimed_at?: string | null
+          created_at?: string | null
           deal_id?: string
+          expired_at?: string | null
           id?: string
           qr_code?: string | null
           redeemed_at?: string | null
+          redemption_code?: string | null
+          status?: string | null
           user_id?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -5985,34 +6050,94 @@ export type Database = {
       }
       food_orders: {
         Row: {
+          actual_delivery_time: string | null
+          cancellation_reason: string | null
+          cancelled_by: string | null
           created_at: string | null
+          customer_rating: number | null
+          customer_review: string | null
           delivery_address: string
+          delivery_charge: number | null
+          delivery_instructions: string | null
+          discount: number | null
+          estimated_delivery_time: string | null
           id: string
           items: Json
+          order_number: string | null
+          order_status: string | null
+          packaging_charge: number | null
+          payment_method: string | null
+          payment_status: string | null
+          refund_amount: number | null
+          refund_status: string | null
           status: string | null
+          subtotal: number | null
+          taxes: number | null
           total_amount: number
+          updated_at: string | null
           user_id: string
           vendor_id: string
+          vendor_notes: string | null
         }
         Insert: {
+          actual_delivery_time?: string | null
+          cancellation_reason?: string | null
+          cancelled_by?: string | null
           created_at?: string | null
+          customer_rating?: number | null
+          customer_review?: string | null
           delivery_address: string
+          delivery_charge?: number | null
+          delivery_instructions?: string | null
+          discount?: number | null
+          estimated_delivery_time?: string | null
           id?: string
           items: Json
+          order_number?: string | null
+          order_status?: string | null
+          packaging_charge?: number | null
+          payment_method?: string | null
+          payment_status?: string | null
+          refund_amount?: number | null
+          refund_status?: string | null
           status?: string | null
+          subtotal?: number | null
+          taxes?: number | null
           total_amount: number
+          updated_at?: string | null
           user_id: string
           vendor_id: string
+          vendor_notes?: string | null
         }
         Update: {
+          actual_delivery_time?: string | null
+          cancellation_reason?: string | null
+          cancelled_by?: string | null
           created_at?: string | null
+          customer_rating?: number | null
+          customer_review?: string | null
           delivery_address?: string
+          delivery_charge?: number | null
+          delivery_instructions?: string | null
+          discount?: number | null
+          estimated_delivery_time?: string | null
           id?: string
           items?: Json
+          order_number?: string | null
+          order_status?: string | null
+          packaging_charge?: number | null
+          payment_method?: string | null
+          payment_status?: string | null
+          refund_amount?: number | null
+          refund_status?: string | null
           status?: string | null
+          subtotal?: number | null
+          taxes?: number | null
           total_amount?: number
+          updated_at?: string | null
           user_id?: string
           vendor_id?: string
+          vendor_notes?: string | null
         }
         Relationships: [
           {
@@ -9337,6 +9462,208 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_categories_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          allergens: string[] | null
+          calories: number | null
+          category_id: string | null
+          created_at: string | null
+          customizations: Json | null
+          description: string | null
+          discounted_price: number | null
+          display_order: number | null
+          id: string
+          image_url: string | null
+          is_available: boolean | null
+          is_bestseller: boolean | null
+          is_veg: boolean | null
+          name: string
+          preparation_time: number | null
+          price: number
+          serves: number | null
+          spice_level: number | null
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          calories?: number | null
+          category_id?: string | null
+          created_at?: string | null
+          customizations?: Json | null
+          description?: string | null
+          discounted_price?: number | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          is_bestseller?: boolean | null
+          is_veg?: boolean | null
+          name: string
+          preparation_time?: number | null
+          price: number
+          serves?: number | null
+          spice_level?: number | null
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          allergens?: string[] | null
+          calories?: number | null
+          category_id?: string | null
+          created_at?: string | null
+          customizations?: Json | null
+          description?: string | null
+          discounted_price?: number | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          is_bestseller?: boolean | null
+          is_veg?: boolean | null
+          name?: string
+          preparation_time?: number | null
+          price?: number
+          serves?: number | null
+          spice_level?: number | null
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_deals: {
+        Row: {
+          category: string | null
+          coupon_code: string | null
+          created_at: string | null
+          current_redemptions: number | null
+          deal_price: number
+          description: string | null
+          discount_percent: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          max_redemptions: number | null
+          original_price: number
+          per_user_limit: number | null
+          redemption_type: string | null
+          terms_conditions: string | null
+          title: string
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+          vendor_id: string
+        }
+        Insert: {
+          category?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          current_redemptions?: number | null
+          deal_price: number
+          description?: string | null
+          discount_percent?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          max_redemptions?: number | null
+          original_price: number
+          per_user_limit?: number | null
+          redemption_type?: string | null
+          terms_conditions?: string | null
+          title: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          vendor_id: string
+        }
+        Update: {
+          category?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          current_redemptions?: number | null
+          deal_price?: number
+          description?: string | null
+          discount_percent?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          max_redemptions?: number | null
+          original_price?: number
+          per_user_limit?: number | null
+          redemption_type?: string | null
+          terms_conditions?: string | null
+          title?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_deals_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_delivery_status: {
         Row: {
           created_at: string | null
@@ -11832,6 +12159,68 @@ export type Database = {
             columns: ["review_id"]
             isOneToOne: false
             referencedRelation: "home_service_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_details: {
+        Row: {
+          avg_delivery_time: number | null
+          closing_time: string | null
+          created_at: string | null
+          cuisine_types: string[] | null
+          delivery_charge: number | null
+          delivery_radius_km: number | null
+          fssai_license: string | null
+          id: string
+          is_accepting_orders: boolean | null
+          is_pure_veg: boolean | null
+          min_order_amount: number | null
+          opening_time: string | null
+          packaging_charge: number | null
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          avg_delivery_time?: number | null
+          closing_time?: string | null
+          created_at?: string | null
+          cuisine_types?: string[] | null
+          delivery_charge?: number | null
+          delivery_radius_km?: number | null
+          fssai_license?: string | null
+          id?: string
+          is_accepting_orders?: boolean | null
+          is_pure_veg?: boolean | null
+          min_order_amount?: number | null
+          opening_time?: string | null
+          packaging_charge?: number | null
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          avg_delivery_time?: number | null
+          closing_time?: string | null
+          created_at?: string | null
+          cuisine_types?: string[] | null
+          delivery_charge?: number | null
+          delivery_radius_km?: number | null
+          fssai_license?: string | null
+          id?: string
+          is_accepting_orders?: boolean | null
+          is_pure_veg?: boolean | null
+          min_order_amount?: number | null
+          opening_time?: string | null
+          packaging_charge?: number | null
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_details_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -15226,6 +15615,208 @@ export type Database = {
           },
         ]
       }
+      vendor_notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string | null
+          vendor_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          type?: string | null
+          vendor_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_notifications_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_settlements: {
+        Row: {
+          commission_amount: number
+          created_at: string | null
+          gross_amount: number
+          id: string
+          net_amount: number
+          notes: string | null
+          order_count: number | null
+          paid_at: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          status: string | null
+          vendor_id: string
+        }
+        Insert: {
+          commission_amount: number
+          created_at?: string | null
+          gross_amount: number
+          id?: string
+          net_amount: number
+          notes?: string | null
+          order_count?: number | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          period_end: string
+          period_start: string
+          status?: string | null
+          vendor_id: string
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string | null
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          order_count?: number | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_settlements_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_ifsc: string | null
+          business_email: string | null
+          business_name: string
+          business_phone: string | null
+          city: string | null
+          commission_rate: number | null
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          gst_number: string | null
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          pan_number: string | null
+          pincode: string | null
+          rating: number | null
+          state: string | null
+          total_orders: number | null
+          total_revenue: number | null
+          total_reviews: number | null
+          updated_at: string | null
+          user_id: string
+          vendor_type: Database["public"]["Enums"]["vendor_type"]
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_ifsc?: string | null
+          business_email?: string | null
+          business_name: string
+          business_phone?: string | null
+          city?: string | null
+          commission_rate?: number | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          gst_number?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          pan_number?: string | null
+          pincode?: string | null
+          rating?: number | null
+          state?: string | null
+          total_orders?: number | null
+          total_revenue?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+          user_id: string
+          vendor_type: Database["public"]["Enums"]["vendor_type"]
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_ifsc?: string | null
+          business_email?: string | null
+          business_name?: string
+          business_phone?: string | null
+          city?: string | null
+          commission_rate?: number | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          gst_number?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          pan_number?: string | null
+          pincode?: string | null
+          rating?: number | null
+          state?: string | null
+          total_orders?: number | null
+          total_revenue?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vendor_type?: Database["public"]["Enums"]["vendor_type"]
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       visual_search_cache: {
         Row: {
           created_at: string | null
@@ -15739,6 +16330,7 @@ export type Database = {
     }
     Enums: {
       app_role: "consumer" | "doctor" | "nurse" | "pharmacy" | "admin"
+      vendor_type: "restaurant" | "deal_merchant" | "healthcare_provider"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -15867,6 +16459,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["consumer", "doctor", "nurse", "pharmacy", "admin"],
+      vendor_type: ["restaurant", "deal_merchant", "healthcare_provider"],
     },
   },
 } as const
