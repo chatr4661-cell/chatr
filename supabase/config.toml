@@ -131,3 +131,9 @@ verify_jwt = true
 
 [functions.send-push]
 verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = true
+
+[functions.pstn-call]
+verify_jwt = true
