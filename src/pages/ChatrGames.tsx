@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, Trophy, Coins, ChevronRight, Sparkles, Users, Plane, Flame, Zap, Star, Clock, Gift, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -109,9 +110,52 @@ export default function ChatrGames() {
   const [dailyStreak] = useState(7);
   const [xpProgress] = useState(68);
   
-  const handleGameComplete = (score: number) => {
-    setCurrentLevel(prev => Math.min(prev + 1, 50));
+  const handleGameComplete = async (score: number) => {
+    const newLevel = Math.min(currentLevel + 1, 50);
+    setCurrentLevel(newLevel);
     setActiveGame('hub');
+
+    // Sync score to database leaderboard
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Update or insert leaderboard entry using correct schema
+        const { data: existing } = await supabase
+          .from('chatr_leaderboards')
+          .select('id, score, metadata')
+          .eq('user_id', user.id)
+          .eq('leaderboard_type', 'games')
+          .eq('period', 'all_time')
+          .maybeSingle();
+
+        const currentMetadata = (existing?.metadata as any) || { games_played: 0, highest_level: 0 };
+
+        if (existing) {
+          await supabase.from('chatr_leaderboards').update({
+            score: (existing.score || 0) + score,
+            metadata: {
+              games_played: (currentMetadata.games_played || 0) + 1,
+              highest_level: Math.max(currentMetadata.highest_level || 0, newLevel),
+              last_played_at: new Date().toISOString()
+            }
+          }).eq('id', existing.id);
+        } else {
+          await supabase.from('chatr_leaderboards').insert({
+            user_id: user.id,
+            leaderboard_type: 'games',
+            score: score,
+            period: 'all_time',
+            metadata: {
+              games_played: 1,
+              highest_level: newLevel,
+              last_played_at: new Date().toISOString()
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing game score:', error);
+    }
   };
 
   const filteredGames = activeCategory === 'all' 

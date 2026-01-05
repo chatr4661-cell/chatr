@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,9 +105,35 @@ const HomeServices = () => {
   const handleBooking = async () => {
     if (!bookingProvider) return;
 
-    toast({ title: "Booking confirmed!", description: "The provider will contact you soon." });
-    setBookingProvider(null);
-    setBookingData({ scheduled_date: "", address: "", description: "", duration_hours: 2 });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Please login to book", variant: "destructive" });
+        return;
+      }
+
+      // Save to home_service_bookings table with correct schema
+      const { error } = await supabase.from('home_service_bookings').insert({
+        customer_id: user.id,
+        provider_id: bookingProvider.id,
+        service_type: selectedCategory !== 'all' ? selectedCategory : 'general',
+        scheduled_date: bookingData.scheduled_date || new Date().toISOString(),
+        address: bookingData.address,
+        description: bookingData.description,
+        duration_hours: bookingData.duration_hours,
+        total_cost: bookingProvider.hourly_rate * bookingData.duration_hours,
+        status: 'pending'
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Booking confirmed!", description: "The provider will contact you soon." });
+      setBookingProvider(null);
+      setBookingData({ scheduled_date: "", address: "", description: "", duration_hours: 2 });
+    } catch (error) {
+      console.error('Error booking:', error);
+      toast({ title: "Booking failed", description: "Please try again", variant: "destructive" });
+    }
   };
 
   const filteredProviders = providers.filter(provider =>
