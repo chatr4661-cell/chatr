@@ -5,6 +5,7 @@ import android.util.Log
 import com.chatr.app.webrtc.audio.AudioRouteManager
 import com.chatr.app.webrtc.e2ee.EndToEndEncryption
 import com.chatr.app.webrtc.emergency.EmergencyCallHandler
+import com.chatr.app.webrtc.emergency.E911LocationService
 import com.chatr.app.webrtc.forwarding.CallForwardingManager
 import com.chatr.app.webrtc.group.GroupCallManager
 import com.chatr.app.webrtc.handoff.NetworkHandoffManager
@@ -17,6 +18,8 @@ import com.chatr.app.webrtc.timeout.CallTimeoutManager
 import com.chatr.app.webrtc.voicemail.VoicemailManager
 import com.chatr.app.copilot.CopilotDecisionEngine
 import com.chatr.app.oem.BatteryOptimizationHelper
+import com.chatr.app.services.pstn.PSTNCallingService
+import com.chatr.app.services.sms.SMSGatewayService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +45,7 @@ import javax.inject.Singleton
  * ║  ├── CallStateMachine      → Explicit state transitions              ║
  * ║  ├── EndToEndEncryption    → Signal-grade E2EE                       ║
  * ║  ├── EmergencyCallHandler  → E911/E112 GSM fallback                  ║
+ * ║  ├── E911LocationService   → Emergency location reporting            ║
  * ║  ├── NetworkHandoffManager → WiFi↔LTE seamless switching             ║
  * ║  ├── VoicemailManager      → Visual voicemail + transcription        ║
  * ║  ├── GroupCallManager      → Multi-party mesh/SFU calls              ║
@@ -51,6 +55,8 @@ import javax.inject.Singleton
  * ║  ├── AudioRouteManager     → Bluetooth/earpiece/speaker              ║
  * ║  ├── MultiDeviceSafetyManager → Call collision handling              ║
  * ║  ├── CallTimeoutManager    → Ring timeouts + missed calls            ║
+ * ║  ├── PSTNCallingService    → Landline/mobile outbound calls          ║
+ * ║  ├── SMSGatewayService     → SMS/RCS fallback messaging              ║
  * ║  └── OemSurvivalKit        → Battery optimization handling           ║
  * ║                                                                       ║
  * ╚══════════════════════════════════════════════════════════════════════╝
@@ -63,6 +69,7 @@ class GsmReplacementEngine @Inject constructor(
     private val audioRouteManager: AudioRouteManager,
     private val e2ee: EndToEndEncryption,
     private val emergencyHandler: EmergencyCallHandler,
+    private val e911LocationService: E911LocationService,
     private val networkHandoff: NetworkHandoffManager,
     private val voicemailManager: VoicemailManager,
     private val groupCallManager: GroupCallManager,
@@ -71,7 +78,9 @@ class GsmReplacementEngine @Inject constructor(
     private val copilotEngine: CopilotDecisionEngine,
     private val multiDeviceSafety: MultiDeviceSafetyManager,
     private val timeoutManager: CallTimeoutManager,
-    private val batteryHelper: BatteryOptimizationHelper
+    private val batteryHelper: BatteryOptimizationHelper,
+    private val pstnService: PSTNCallingService,
+    private val smsGateway: SMSGatewayService
 ) {
     companion object {
         private const val TAG = "GsmReplacement"
@@ -526,6 +535,7 @@ data class ActiveCall(
 sealed class CallResult {
     data class Success(val callId: String, val e2eePublicKey: String) : CallResult()
     data class EmergencyFallback(val number: String) : CallResult()
+    data class PstnCall(val callId: String, val rate: Double) : CallResult()
     object Busy : CallResult()
     data class Error(val message: String) : CallResult()
 }
@@ -561,4 +571,32 @@ enum class SubsystemStatus {
     READY,
     FAILED,
     DISABLED
+}
+
+/**
+ * GSM Parity Features Status
+ */
+data class GsmParityStatus(
+    val voipCalling: Boolean = true,
+    val videoCalling: Boolean = true,
+    val e2eeEncryption: Boolean = true,
+    val emergencyE911: Boolean = true,
+    val pstnOutbound: Boolean = true,
+    val smsFallback: Boolean = true,
+    val rcsSupport: Boolean = true,
+    val voicemail: Boolean = true,
+    val callForwarding: Boolean = true,
+    val callWaiting: Boolean = true,
+    val conferencing: Boolean = true,
+    val networkHandoff: Boolean = true
+) {
+    val completionPercent: Int
+        get() {
+            val features = listOf(
+                voipCalling, videoCalling, e2eeEncryption, emergencyE911,
+                pstnOutbound, smsFallback, rcsSupport, voicemail,
+                callForwarding, callWaiting, conferencing, networkHandoff
+            )
+            return (features.count { it } * 100) / features.size
+        }
 }
