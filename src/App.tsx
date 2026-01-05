@@ -216,6 +216,15 @@ import DesktopChat from "./pages/desktop/DesktopChat";
 import DesktopContacts from "./pages/desktop/DesktopContacts";
 import DesktopCalls from "./pages/desktop/DesktopCalls";
 
+// Vendor Portal Pages
+import VendorLogin from "./pages/vendor/VendorLogin";
+import VendorRegister from "./pages/vendor/VendorRegister";
+import VendorDashboard from "./pages/vendor/VendorDashboard";
+import VendorSettings from "./pages/vendor/VendorSettings";
+import RestaurantMenu from "./pages/vendor/restaurant/RestaurantMenu";
+import RestaurantOrders from "./pages/vendor/restaurant/RestaurantOrders";
+import DealsManagement from "./pages/vendor/deals/DealsManagement";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -539,6 +548,16 @@ const App = () => {
             <Route path="/business/catalog" element={<BusinessCatalog />} />
             <Route path="/business/broadcasts" element={<BusinessBroadcasts />} />
             <Route path="/business/groups" element={<BusinessGroups />} />
+            
+            {/* Vendor Portal Routes */}
+            <Route path="/vendor/login" element={<VendorLogin />} />
+            <Route path="/vendor/register" element={<VendorRegister />} />
+            <Route path="/vendor/dashboard" element={<ProtectedRoute><VendorDashboard /></ProtectedRoute>} />
+            <Route path="/vendor/menu" element={<ProtectedRoute><RestaurantMenu /></ProtectedRoute>} />
+            <Route path="/vendor/orders" element={<ProtectedRoute><RestaurantOrders /></ProtectedRoute>} />
+            <Route path="/vendor/deals" element={<ProtectedRoute><DealsManagement /></ProtectedRoute>} />
+            <Route path="/vendor/deals/new" element={<ProtectedRoute><DealsManagement /></ProtectedRoute>} />
+            <Route path="/vendor/settings" element={<ProtectedRoute><VendorSettings /></ProtectedRoute>} />
             
             {/* Ecosystem Routes */}
             <Route path="/chatr-studio" element={<ProtectedRoute><ChatrStudio /></ProtectedRoute>} />

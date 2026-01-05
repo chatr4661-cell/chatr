@@ -28,12 +28,12 @@ import {
   Search,
   Sparkles,
   Zap,
+  Store,
   Briefcase,
   Crown,
   Gamepad2,
   Ghost,
   ChevronRight,
-  Store,
   Gift,
   Globe,
   Brain,
@@ -570,6 +570,13 @@ const Index = () => {
       description: 'Subscribe & save 25%',
       iconColor: 'bg-gradient-to-br from-rose-400 to-pink-600',
       route: '/care/medicines'
+    },
+    {
+      icon: Store,
+      title: 'Vendor Portal',
+      description: 'Sell food, deals & services',
+      iconColor: 'bg-gradient-to-br from-orange-400 to-amber-600',
+      route: '/vendor/login'
     },
   ];
 
