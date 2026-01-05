@@ -48,8 +48,14 @@ import ProviderRegister from "./pages/ProviderRegister";
 import AlliedHealthcare from "./pages/AlliedHealthcare";
 import Marketplace from "./pages/Marketplace";
 import ServiceListing from "./pages/ServiceListing";
-
-// Medicine Subscription Pages (lazy loaded)
+import LocalDeals from "./pages/services/LocalDeals";
+import ProviderDetail from "./pages/services/ProviderDetail";
+import ServiceTracking from "./pages/services/ServiceTracking";
+import ServiceHistory from "./pages/services/ServiceHistory";
+import ServiceReview from "./pages/services/ServiceReview";
+import ServiceProviderDashboard from "./pages/vendor/ServiceProviderDashboard";
+import ServiceProviderRegister from "./pages/vendor/ServiceProviderRegister";
+import ProviderEarnings from "./pages/vendor/ProviderEarnings";
 const MedicineHubPage = React.lazy(() => import("./pages/care/MedicineHub"));
 const MedicineSubscribePage = React.lazy(() => import("./pages/care/MedicineSubscribe"));
 const MedicineSubscriptionsPage = React.lazy(() => import("./pages/care/MedicineSubscriptions"));
@@ -170,7 +176,7 @@ import BluetoothTest from "./pages/BluetoothTest";
 import Launcher from "./pages/Launcher";
 import ChatrStudio from "./pages/ChatrStudio";
 import FoodOrdering from "./pages/FoodOrdering";
-import LocalDeals from "./pages/LocalDeals";
+// LocalDeals imported from services folder above
 import Referrals from "./pages/Referrals";
 import FameCam from "./pages/FameCam";
 import FameLeaderboard from "./pages/FameLeaderboard";
@@ -436,6 +442,13 @@ const App = () => {
             <Route path="/order-tracking/:orderId" element={<OrderTracking />} />
             <Route path="/order-history" element={<OrderHistory />} />
             <Route path="/local-deals" element={<LocalDeals />} />
+            <Route path="/services/provider/:providerId" element={<ProviderDetail />} />
+            <Route path="/services/tracking/:bookingId" element={<ServiceTracking />} />
+            <Route path="/services/history" element={<ServiceHistory />} />
+            <Route path="/services/review/:bookingId" element={<ServiceReview />} />
+            <Route path="/vendor/provider-dashboard" element={<ServiceProviderDashboard />} />
+            <Route path="/vendor/provider-register" element={<ServiceProviderRegister />} />
+            <Route path="/vendor/earnings" element={<ProviderEarnings />} />
             
           {/* Points & Payment Routes */}
           <Route path="/chatr-points" element={<ChatrPoints />} />
