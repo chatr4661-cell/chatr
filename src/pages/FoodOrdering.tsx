@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Star, Search, MapPin, ChevronRight, Navigation, Phone, ExternalLink, Filter, Flame, Leaf, Award } from 'lucide-react';
+import { ArrowLeft, Clock, Star, Search, MapPin, ChevronRight, Navigation, Filter, Flame, Leaf, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Helmet } from 'react-helmet-async';
+import { supabase } from '@/integrations/supabase/client';
 
 const cuisineFilters = [
   { id: 'all', name: 'All', emoji: '🍽️' },
@@ -50,33 +51,57 @@ export default function FoodOrdering() {
   }, [activeLocation?.lat, activeLocation?.lon]);
 
   const loadVendors = async () => {
-    if (!activeLocation?.lat || !activeLocation?.lon) return;
-    
     setLoading(true);
     try {
-      const results = await chatrLocalSearch('restaurant food', activeLocation.lat, activeLocation.lon);
-      
-      if (results && results.length > 0) {
-        const mappedVendors = results.map((item: any) => ({
-          id: item.id || Math.random().toString(),
-          name: item.name,
-          description: item.description || 'Local restaurant',
-          avatar_url: item.image_url,
-          rating: item.rating || (4 + Math.random() * 0.8),
-          reviews: item.rating_count || Math.floor(Math.random() * 2000) + 100,
-          delivery_time: Math.floor(Math.random() * 20) + 20,
-          cuisine_type: item.category || 'Multi-cuisine',
-          distance: item.distance,
-          price: item.price || Math.floor(Math.random() * 200) + 150,
-          url: item.url,
-          address: item.address || '',
-          phone: item.phone || '',
-          isVeg: Math.random() > 0.7,
-          isBestseller: Math.random() > 0.7,
-          offer: Math.random() > 0.5 ? `${Math.floor(Math.random() * 30) + 10}% OFF` : null,
-        }));
-        setVendors(mappedVendors);
+      // First load vendors from database (with menu items)
+      const { data: dbVendors } = await supabase
+        .from('food_vendors')
+        .select('*')
+        .eq('is_open', true);
+
+      const dbMappedVendors = (dbVendors || []).map((vendor: any) => ({
+        id: vendor.id,
+        name: vendor.name,
+        description: vendor.description || 'Local restaurant',
+        avatar_url: vendor.avatar_url || vendor.cover_image_url,
+        rating: Number(vendor.rating_average) || 4.2,
+        reviews: vendor.rating_count || 100,
+        delivery_time: vendor.delivery_time_max || 35,
+        cuisine_type: vendor.cuisine_type || 'Multi-cuisine',
+        distance: null,
+        price: vendor.min_order_amount || 200,
+        isVeg: false,
+        isBestseller: true,
+        offer: '20% OFF',
+        isFromDb: true
+      }));
+
+      // Then load from external search if location available
+      let externalVendors: any[] = [];
+      if (activeLocation?.lat && activeLocation?.lon) {
+        const results = await chatrLocalSearch('restaurant food', activeLocation.lat, activeLocation.lon);
+        if (results && results.length > 0) {
+          externalVendors = results.map((item: any) => ({
+            id: item.id || Math.random().toString(),
+            name: item.name,
+            description: item.description || 'Local restaurant',
+            avatar_url: item.image_url,
+            rating: item.rating || (4 + Math.random() * 0.8),
+            reviews: item.rating_count || Math.floor(Math.random() * 2000) + 100,
+            delivery_time: Math.floor(Math.random() * 20) + 20,
+            cuisine_type: item.category || 'Multi-cuisine',
+            distance: item.distance,
+            price: item.price || Math.floor(Math.random() * 200) + 150,
+            isVeg: Math.random() > 0.7,
+            isBestseller: Math.random() > 0.7,
+            offer: Math.random() > 0.5 ? `${Math.floor(Math.random() * 30) + 10}% OFF` : null,
+            isFromDb: false
+          }));
+        }
       }
+
+      // Combine both - db vendors first (they have menu items)
+      setVendors([...dbMappedVendors, ...externalVendors]);
     } catch (error) {
       console.error('Error loading vendors:', error);
       toast.error('Failed to load restaurants');
@@ -84,6 +109,11 @@ export default function FoodOrdering() {
       setLoading(false);
     }
   };
+
+  // Load on mount and when location changes
+  useEffect(() => {
+    loadVendors();
+  }, [activeLocation?.lat, activeLocation?.lon]);
 
   const handleSetLocation = () => {
     if (!locationInput.trim()) return;
@@ -121,6 +151,9 @@ export default function FoodOrdering() {
             <div className="flex-1">
               <h1 className="text-lg font-bold">Food Delivery</h1>
             </div>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/order-history')}>
+              <ShoppingBag className="w-5 h-5" />
+            </Button>
           </div>
           
           {/* Location Picker */}
@@ -262,7 +295,11 @@ export default function FoodOrdering() {
               </Card>
             ) : (
               filteredVendors.map((vendor) => (
-                <Card key={vendor.id} className="overflow-hidden hover:shadow-lg transition-all">
+                <Card 
+                  key={vendor.id} 
+                  className="overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                  onClick={() => navigate(`/restaurant/${vendor.id}`)}
+                >
                   <div className="flex gap-3 p-3">
                     {/* Restaurant Image */}
                     <div className="relative w-28 h-28 shrink-0">
@@ -303,18 +340,18 @@ export default function FoodOrdering() {
                         </Badge>
                       )}
 
-                      {/* Actions */}
+                      {/* Quick Action */}
                       <div className="flex gap-2 mt-2">
-                        {vendor.phone && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => window.open(`tel:${vendor.phone}`)}>
-                            <Phone className="w-3 h-3 mr-1" />Call
-                          </Button>
-                        )}
-                        {vendor.url && (
-                          <Button size="sm" className="h-7 text-xs px-3" onClick={() => window.open(vendor.url, '_blank')}>
-                            <ExternalLink className="w-3 h-3 mr-1" />View Menu
-                          </Button>
-                        )}
+                        <Button 
+                          size="sm" 
+                          className="h-7 text-xs px-3" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/restaurant/${vendor.id}`);
+                          }}
+                        >
+                          View Menu <ChevronRight className="w-3 h-3 ml-1" />
+                        </Button>
                       </div>
                     </div>
                   </div>

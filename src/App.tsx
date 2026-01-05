@@ -229,6 +229,12 @@ import DoctorPatients from "./pages/vendor/healthcare/DoctorPatients";
 import DoctorAnalytics from "./pages/vendor/healthcare/DoctorAnalytics";
 import DoctorAvailability from "./pages/vendor/healthcare/DoctorAvailability";
 
+// Food Ordering Pages
+import RestaurantDetail from "./pages/food/RestaurantDetail";
+import FoodCheckout from "./pages/food/FoodCheckout";
+import OrderTracking from "./pages/food/OrderTracking";
+import OrderHistory from "./pages/food/OrderHistory";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -425,6 +431,10 @@ const App = () => {
             <Route path="/official-accounts" element={<OfficialAccounts />} />
             <Route path="/chatr-studio" element={<ChatrStudio />} />
             <Route path="/food-ordering" element={<FoodOrdering />} />
+            <Route path="/restaurant/:id" element={<RestaurantDetail />} />
+            <Route path="/food-checkout/:id" element={<FoodCheckout />} />
+            <Route path="/order-tracking/:orderId" element={<OrderTracking />} />
+            <Route path="/order-history" element={<OrderHistory />} />
             <Route path="/local-deals" element={<LocalDeals />} />
             
           {/* Points & Payment Routes */}
