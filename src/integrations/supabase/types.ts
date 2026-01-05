@@ -14622,6 +14622,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_devices: {
+        Row: {
+          browser: string | null
+          created_at: string | null
+          device_fingerprint: string
+          device_name: string
+          device_type: string
+          id: string
+          ip_address: string | null
+          last_active: string | null
+          os: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string | null
+          device_fingerprint: string
+          device_name: string
+          device_type?: string
+          id?: string
+          ip_address?: string | null
+          last_active?: string | null
+          os?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string | null
+          device_fingerprint?: string
+          device_name?: string
+          device_type?: string
+          id?: string
+          ip_address?: string | null
+          last_active?: string | null
+          os?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_fame_achievements: {
         Row: {
           achievement_id: string | null

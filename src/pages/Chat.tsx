@@ -55,6 +55,10 @@ import { QuickReplyPanel } from '@/components/chat/QuickReplyPanel';
 import { AIStickerPicker } from '@/components/chat/AIStickerPicker';
 import { DocumentPreviewModal } from '@/components/chat/DocumentPreviewModal';
 import { VoicemailList } from '@/components/calls/VoicemailList';
+import { BackupRestoreSheet } from '@/components/chat/BackupRestoreSheet';
+import { LinkedDevicesSheet } from '@/components/chat/LinkedDevicesSheet';
+import { MessageSearchSheet } from '@/components/chat/MessageSearchSheet';
+import { FormattedText } from '@/hooks/useMessageFormatting';
 
 const ChatEnhancedContent = () => {
   const { user, session, isAuthReady } = useChatContext();
@@ -109,6 +113,11 @@ const ChatEnhancedContent = () => {
   
   const [showAddParticipant, setShowAddParticipant] = React.useState(false);
   const [conversationParticipants, setConversationParticipants] = React.useState<string[]>([]);
+  
+  // New features state
+  const [showBackupSheet, setShowBackupSheet] = React.useState(false);
+  const [showDevicesSheet, setShowDevicesSheet] = React.useState(false);
+  const [showFullSearch, setShowFullSearch] = React.useState(false);
   
   // Error boundary for chat to prevent crashes
   const [chatError, setChatError] = React.useState<Error | null>(null);
@@ -1411,6 +1420,29 @@ const ChatEnhancedContent = () => {
           userId={user.id}
         />
       )}
+      
+      {/* Backup & Restore Sheet */}
+      <BackupRestoreSheet
+        open={showBackupSheet}
+        onOpenChange={setShowBackupSheet}
+      />
+      
+      {/* Linked Devices Sheet */}
+      <LinkedDevicesSheet
+        open={showDevicesSheet}
+        onOpenChange={setShowDevicesSheet}
+      />
+      
+      {/* Full-Text Message Search */}
+      <MessageSearchSheet
+        open={showFullSearch}
+        onOpenChange={setShowFullSearch}
+        conversationId={activeConversationId || undefined}
+        onMessageSelect={(messageId, conversationId) => {
+          setActiveConversationId(conversationId);
+          setSearchResultMessageId(messageId);
+        }}
+      />
       </div>
     </>
   );
