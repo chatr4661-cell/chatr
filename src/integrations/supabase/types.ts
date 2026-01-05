@@ -4376,6 +4376,48 @@ export type Database = {
           },
         ]
       }
+      communities: {
+        Row: {
+          category: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          icon_url: string | null
+          id: string
+          is_public: boolean | null
+          member_count: number | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_public?: boolean | null
+          member_count?: number | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_public?: boolean | null
+          member_count?: number | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       community_events_db: {
         Row: {
           address: string
@@ -4461,6 +4503,38 @@ export type Database = {
             columns: ["organizer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_members: {
+        Row: {
+          community_id: string
+          id: string
+          joined_at: string | null
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          id?: string
+          joined_at?: string | null
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          id?: string
+          joined_at?: string | null
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
             referencedColumns: ["id"]
           },
         ]
@@ -11990,6 +12064,39 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string | null
+          created_at: string | null
+          endpoint: string
+          id: string
+          is_active: boolean | null
+          p256dh: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auth?: string | null
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          is_active?: boolean | null
+          p256dh?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string | null
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          is_active?: boolean | null
+          p256dh?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       qr_login_sessions: {
         Row: {
           authenticated_at: string | null
@@ -14127,6 +14234,48 @@ export type Database = {
           },
         ]
       }
+      statuses: {
+        Row: {
+          background_color: string | null
+          caption: string | null
+          created_at: string | null
+          expires_at: string | null
+          font_style: string | null
+          id: string
+          is_active: boolean | null
+          media_type: string | null
+          media_url: string | null
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          background_color?: string | null
+          caption?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          font_style?: string | null
+          id?: string
+          is_active?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          background_color?: string | null
+          caption?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          font_style?: string | null
+          id?: string
+          is_active?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       stealth_mode_subscriptions: {
         Row: {
           amount_paid: number | null
@@ -15507,6 +15656,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_rewards: {
+        Row: {
+          coins_spent: number | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          redeemed_at: string | null
+          reward_name: string
+          reward_type: string
+          reward_value: number | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          coins_spent?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          redeemed_at?: string | null
+          reward_name: string
+          reward_type: string
+          reward_value?: number | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          coins_spent?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          redeemed_at?: string | null
+          reward_name?: string
+          reward_type?: string
+          reward_value?: number | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
