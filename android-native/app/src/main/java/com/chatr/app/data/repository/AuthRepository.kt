@@ -3,9 +3,19 @@ package com.chatr.app.data.repository
 import com.chatr.app.data.api.*
 import com.chatr.app.data.models.User
 import com.chatr.app.security.SecureStore
+import com.chatr.app.config.SupabaseConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import io.github.jan.supabase.gotrue.Auth
+import io.github.jan.supabase.gotrue.providers.builtin.Email
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,10 +23,13 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     private val api: ChatrApi,
     private val secureStore: SecureStore,
-    private val firebaseAuth: FirebaseAuth
+    private val firebaseAuth: FirebaseAuth,
+    private val supabaseAuth: Auth
 ) {
     
     val currentFirebaseUser get() = firebaseAuth.currentUser
+    
+    private val httpClient = OkHttpClient()
     
     /**
      * Sign up with email and password
@@ -68,24 +81,38 @@ class AuthRepository @Inject constructor(
     }
     
     /**
-     * INSTANT LOGIN - Sign in with email/password directly (for existing users)
-     * Mirrors web checkPhoneAndProceed() instant login flow
-     * Email format: {phone}@chatr.local, Password: phone number
+     * INSTANT LOGIN - Mirrors web supabase.auth.signInWithPassword()
+     * Directly calls Supabase Auth for existing user check
+     * Email format: {phone}@chatr.local, Password: phone number with +
      */
     suspend fun signInWithEmailPassword(email: String, password: String): Result<AuthResponse> {
         return try {
-            val response = api.signIn(SignInRequest(
-                email = email,
-                password = password,
-                phone = null,
-                otp = null
-            ))
-            if (response.isSuccessful && response.body() != null) {
-                val authResponse = response.body()!!
+            // Use Supabase Auth directly - matches web exactly
+            supabaseAuth.signInWith(Email) {
+                this.email = email
+                this.password = password
+            }
+            
+            // Get session from Supabase
+            val session = supabaseAuth.currentSessionOrNull()
+            if (session != null) {
+                val authResponse = AuthResponse(
+                    accessToken = session.accessToken,
+                    refreshToken = session.refreshToken,
+                    user = User(
+                        id = session.user?.id ?: "",
+                        email = session.user?.email,
+                        phoneNumber = session.user?.phone,
+                        username = session.user?.userMetadata?.get("username")?.toString(),
+                        avatarUrl = session.user?.userMetadata?.get("avatar_url")?.toString(),
+                        createdAt = session.user?.createdAt?.toString() ?: ""
+                    ),
+                    expiresIn = session.expiresIn
+                )
                 saveTokens(authResponse)
                 Result.success(authResponse)
             } else {
-                Result.failure(Exception("Login failed"))
+                Result.failure(Exception("No session"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -143,24 +170,64 @@ class AuthRepository @Inject constructor(
     
     /**
      * Verify OTP and get Supabase session
-     * After Firebase verifies OTP, call this with Firebase UID
+     * After Firebase verifies OTP, call firebase-phone-auth edge function
+     * Mirrors web: fetch(`${SUPABASE_URL}/functions/v1/firebase-phone-auth`)
      */
     suspend fun verifyOtp(phoneNumber: String, firebaseUid: String): Result<AuthResponse> {
-        return try {
-            val response = api.verifyOtp(OtpVerifyRequest(
-                phoneNumber = phoneNumber,
-                firebaseUid = firebaseUid,
-                action = "verify"
-            ))
-            if (response.isSuccessful && response.body() != null) {
-                val authResponse = response.body()!!
-                saveTokens(authResponse)
-                Result.success(authResponse)
-            } else {
-                Result.failure(Exception(response.errorBody()?.string() ?: "Verification failed"))
+        return withContext(Dispatchers.IO) {
+            try {
+                val json = JSONObject().apply {
+                    put("phone_number", phoneNumber)
+                    put("firebase_uid", firebaseUid)
+                }
+                
+                val request = Request.Builder()
+                    .url("${SupabaseConfig.SUPABASE_URL}/functions/v1/firebase-phone-auth")
+                    .post(json.toString().toRequestBody("application/json".toMediaType()))
+                    .addHeader("Authorization", "Bearer ${SupabaseConfig.SUPABASE_ANON_KEY}")
+                    .addHeader("Content-Type", "application/json")
+                    .build()
+                
+                val response = httpClient.newCall(request).execute()
+                val body = response.body?.string()
+                
+                if (response.isSuccessful && body != null) {
+                    val data = JSONObject(body)
+                    
+                    if (data.has("error")) {
+                        return@withContext Result.failure(Exception(data.getString("error")))
+                    }
+                    
+                    val session = data.optJSONObject("session")
+                    val user = data.optJSONObject("user")
+                    
+                    if (session != null && user != null) {
+                        val authResponse = AuthResponse(
+                            accessToken = session.getString("access_token"),
+                            refreshToken = session.optString("refresh_token", ""),
+                            user = User(
+                                id = user.getString("id"),
+                                email = user.optString("email"),
+                                phoneNumber = user.optJSONObject("user_metadata")?.optString("phone_number"),
+                                username = user.optJSONObject("user_metadata")?.optString("username"),
+                                avatarUrl = user.optJSONObject("user_metadata")?.optString("avatar_url"),
+                                createdAt = user.optString("created_at", "")
+                            ),
+                            expiresIn = session.optLong("expires_in", 3600)
+                        )
+                        saveTokens(authResponse)
+                        
+                        Result.success(authResponse)
+                    } else {
+                        Result.failure(Exception("Invalid response from server"))
+                    }
+                } else {
+                    val error = body?.let { JSONObject(it).optString("error", "Verification failed") } ?: "Verification failed"
+                    Result.failure(Exception(error))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
     

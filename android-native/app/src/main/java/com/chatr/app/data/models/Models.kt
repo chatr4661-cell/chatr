@@ -23,7 +23,8 @@ data class User(
     val photoUrl: String? = null,
     val isOnline: Boolean = false,
     val lastSeen: Long? = null,
-    val bio: String? = null
+    val bio: String? = null,
+    val createdAt: String? = null
 )
 
 // ==================== CHAT ====================
