@@ -6208,6 +6208,90 @@ export type Database = {
           },
         ]
       }
+      game_achievements: {
+        Row: {
+          coin_reward: number
+          created_at: string
+          description: string
+          game_type: string | null
+          icon: string | null
+          id: string
+          name: string
+          rarity: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number
+        }
+        Insert: {
+          coin_reward?: number
+          created_at?: string
+          description: string
+          game_type?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          rarity?: string
+          requirement_type: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Update: {
+          coin_reward?: number
+          created_at?: string
+          description?: string
+          game_type?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          rarity?: string
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      game_daily_challenges: {
+        Row: {
+          challenge_type: string
+          coin_reward: number
+          created_at: string
+          description: string
+          expires_at: string
+          game_type: string | null
+          id: string
+          is_active: boolean
+          target_value: number
+          title: string
+          xp_reward: number
+        }
+        Insert: {
+          challenge_type?: string
+          coin_reward?: number
+          created_at?: string
+          description: string
+          expires_at: string
+          game_type?: string | null
+          id?: string
+          is_active?: boolean
+          target_value?: number
+          title: string
+          xp_reward?: number
+        }
+        Update: {
+          challenge_type?: string
+          coin_reward?: number
+          created_at?: string
+          description?: string
+          expires_at?: string
+          game_type?: string | null
+          id?: string
+          is_active?: boolean
+          target_value?: number
+          title?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       game_leaderboards: {
         Row: {
           game_type: string
@@ -6276,6 +6360,35 @@ export type Database = {
           xp_reward?: number
         }
         Relationships: []
+      }
+      game_user_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "game_achievements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       game_user_profiles: {
         Row: {

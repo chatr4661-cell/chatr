@@ -54,7 +54,7 @@ class GamesRepository @Inject constructor(
     
     suspend fun completeLevel(gameId: String, level: Int, score: Int, timeSpent: Long, stars: Int): Result<LevelCompleteResponse> {
         return safeApiCall {
-            api.completeLavel(gameId, CompleteLevelRequest(level, score, timeSpent, stars))
+            api.completeLevel(gameId, CompleteLevelRequest(level, score, timeSpent, stars))
         }
     }
     
