@@ -27,6 +27,7 @@ export const UnreadBadge: React.FC<UnreadBadgeProps> = ({ count, className = '' 
           bg-gradient-to-br from-red-500 to-red-600 
           text-white text-[11px] font-bold 
           rounded-full shadow-lg shadow-red-500/30
+          unread-badge-pulse
           ${className}`}
       >
         {displayCount}
