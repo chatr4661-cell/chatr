@@ -224,6 +224,10 @@ import VendorSettings from "./pages/vendor/VendorSettings";
 import RestaurantMenu from "./pages/vendor/restaurant/RestaurantMenu";
 import RestaurantOrders from "./pages/vendor/restaurant/RestaurantOrders";
 import DealsManagement from "./pages/vendor/deals/DealsManagement";
+import DoctorAppointments from "./pages/vendor/healthcare/DoctorAppointments";
+import DoctorPatients from "./pages/vendor/healthcare/DoctorPatients";
+import DoctorAnalytics from "./pages/vendor/healthcare/DoctorAnalytics";
+import DoctorAvailability from "./pages/vendor/healthcare/DoctorAvailability";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -558,6 +562,10 @@ const App = () => {
             <Route path="/vendor/deals" element={<ProtectedRoute><DealsManagement /></ProtectedRoute>} />
             <Route path="/vendor/deals/new" element={<ProtectedRoute><DealsManagement /></ProtectedRoute>} />
             <Route path="/vendor/settings" element={<ProtectedRoute><VendorSettings /></ProtectedRoute>} />
+            <Route path="/vendor/appointments" element={<ProtectedRoute><DoctorAppointments /></ProtectedRoute>} />
+            <Route path="/vendor/patients" element={<ProtectedRoute><DoctorPatients /></ProtectedRoute>} />
+            <Route path="/vendor/analytics" element={<ProtectedRoute><DoctorAnalytics /></ProtectedRoute>} />
+            <Route path="/vendor/availability" element={<ProtectedRoute><DoctorAvailability /></ProtectedRoute>} />
             
             {/* Ecosystem Routes */}
             <Route path="/chatr-studio" element={<ProtectedRoute><ChatrStudio /></ProtectedRoute>} />

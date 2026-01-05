@@ -160,8 +160,8 @@ export default function VendorDashboard() {
   ] : [
     { icon: Stethoscope, label: 'Appointments', route: '/vendor/appointments' },
     { icon: Users, label: 'Patients', route: '/vendor/patients' },
+    { icon: Clock, label: 'Availability', route: '/vendor/availability' },
     { icon: TrendingUp, label: 'Analytics', route: '/vendor/analytics' },
-    { icon: Settings, label: 'Settings', route: '/vendor/settings' },
   ];
 
   return (
