@@ -196,6 +196,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
 
       // Load contacts from multiple sources
       let loadedContacts: Contact[] = [];
+      const addedIds = new Set<string>();
 
       // 1. Load from user_contacts table
       const { data: userContactsData } = await supabase
@@ -211,16 +212,18 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             .select('id, username, avatar_url, phone_number')
             .in('id', contactIds);
           
-          const merged = (profiles || []).map(p => {
-            const contact = userContactsData.find(c => c.contact_user_id === p.id);
-            return {
-              id: p.id,
-              username: contact?.display_name || p.username || 'Unknown',
-              avatar_url: p.avatar_url || undefined,
-              phone: p.phone_number || undefined,
-            };
+          (profiles || []).forEach(p => {
+            if (!addedIds.has(p.id)) {
+              const contact = userContactsData.find(c => c.contact_user_id === p.id);
+              loadedContacts.push({
+                id: p.id,
+                username: contact?.display_name || p.username || 'Unknown',
+                avatar_url: p.avatar_url || undefined,
+                phone: p.phone_number || undefined,
+              });
+              addedIds.add(p.id);
+            }
           });
-          loadedContacts = merged;
         }
       }
 
@@ -229,7 +232,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         .from('contacts')
         .select('contact_user_id, contact_name, contact_phone')
         .eq('user_id', user.id)
-        .eq('is_registered', true);
+        .eq('is_registered', true)
+        .not('contact_user_id', 'is', null);
 
       if (deviceContacts && deviceContacts.length > 0) {
         const contactUserIds = deviceContacts.map(c => c.contact_user_id).filter(Boolean) as string[];
@@ -239,20 +243,46 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             .select('id, username, avatar_url, phone_number')
             .in('id', contactUserIds);
           
-          const deviceContactsFormatted = (profiles || []).map(p => {
-            const dc = deviceContacts.find(c => c.contact_user_id === p.id);
-            return {
-              id: p.id,
-              username: dc?.contact_name || p.username || 'Unknown',
-              avatar_url: p.avatar_url || undefined,
-              phone: dc?.contact_phone || p.phone_number || undefined,
-            };
+          (profiles || []).forEach(p => {
+            if (!addedIds.has(p.id)) {
+              const dc = deviceContacts.find(c => c.contact_user_id === p.id);
+              loadedContacts.push({
+                id: p.id,
+                username: dc?.contact_name || p.username || 'Unknown',
+                avatar_url: p.avatar_url || undefined,
+                phone: dc?.contact_phone || p.phone_number || undefined,
+              });
+              addedIds.add(p.id);
+            }
           });
-          
-          // Merge, avoiding duplicates
-          deviceContactsFormatted.forEach(dc => {
-            if (!loadedContacts.find(c => c.id === dc.id)) {
-              loadedContacts.push(dc);
+        }
+      }
+
+      // 3. Load from existing conversations (people you've chatted with)
+      const { data: convParticipants } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', user.id);
+
+      if (convParticipants && convParticipants.length > 0) {
+        const convIds = convParticipants.map(p => p.conversation_id);
+        const { data: otherParticipants } = await supabase
+          .from('conversation_participants')
+          .select('user_id, profiles!inner(id, username, avatar_url, phone_number)')
+          .in('conversation_id', convIds)
+          .neq('user_id', user.id);
+
+        if (otherParticipants) {
+          otherParticipants.forEach((p: any) => {
+            const profile = p.profiles;
+            if (profile && !addedIds.has(profile.id)) {
+              loadedContacts.push({
+                id: profile.id,
+                username: profile.username || 'Unknown',
+                avatar_url: profile.avatar_url || undefined,
+                phone: profile.phone_number || undefined,
+              });
+              addedIds.add(profile.id);
             }
           });
         }
@@ -498,8 +528,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <TabsList className="mx-4 mt-3 grid grid-cols-4 bg-muted/50 p-1 rounded-xl flex-shrink-0">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col min-h-0">
+        <TabsList className="mx-4 mt-3 grid grid-cols-4 bg-muted/50 p-1 rounded-xl shrink-0">
           <TabsTrigger value="keypad" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <Hash className="h-4 w-4" />
             <span className="hidden sm:inline text-xs">Keypad</span>
@@ -519,7 +549,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsList>
 
         {/* Keypad Tab */}
-        <TabsContent value="keypad" className="flex-1 flex flex-col mt-0">
+        <TabsContent value="keypad" className="flex-1 flex flex-col mt-0 min-h-0">
           {/* Dialed input & matching */}
           <div className="flex-1 flex flex-col items-center justify-center px-4 min-h-[140px]">
             <AnimatePresence mode="wait">
@@ -679,9 +709,9 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Recents Tab */}
-        <TabsContent value="recents" className="flex-1 mt-0 overflow-auto">
+        <TabsContent value="recents" className="flex-1 mt-0 min-h-0 overflow-auto">
           <div className="px-4 py-2 space-y-1">
-              {loading ? (
+            {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : recentCalls.length === 0 ? (
                 <div className="py-12 text-center">
@@ -758,8 +788,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Contacts Tab */}
-        <TabsContent value="contacts" className="flex-1 mt-0 overflow-auto">
-          <div className="px-4 py-2">
+        <TabsContent value="contacts" className="flex-1 mt-0 min-h-0 overflow-auto">
+          <div className="px-4 py-2 pb-4">
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -862,8 +892,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Favorites Tab */}
-        <TabsContent value="favorites" className="flex-1 mt-0 overflow-auto">
-          <div className="px-4 py-2">
+        <TabsContent value="favorites" className="flex-1 mt-0 min-h-0 overflow-auto">
+          <div className="px-4 py-2 pb-4">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : favorites.length === 0 ? (
