@@ -181,18 +181,29 @@ export function GlobalCallListener() {
           const call = payload.new as any;
           console.log("📤 [GlobalCallListener] Outgoing call created:", call.id, "status:", call.status);
 
-          if (call.status === "ringing") {
+          // CRITICAL FIX: Start WebRTC IMMEDIATELY when caller initiates
+          // Don't wait for receiver to accept - send OFFER right away
+          if (call.status === "ringing" && !activeCallRef.current) {
             const { data: receiverProfile } = await supabase
               .from("profiles")
-              .select("username, avatar_url")
+              .select("username, avatar_url, phone_number")
               .eq("id", call.receiver_id)
               .maybeSingle();
 
-            setOutgoingCall({
+            console.log("🚀 [GlobalCallListener] Starting WebRTC immediately as INITIATOR");
+            
+            // Set activeCall directly with isInitiator=true to start WebRTC NOW
+            setActiveCall({
               ...call,
-              receiverName: receiverProfile?.username || call.receiver_name || "Unknown",
-              receiverAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
+              isInitiator: true, // CALLER sends OFFER immediately
+              partnerId: call.receiver_id,
+              callerName: receiverProfile?.username || call.receiver_name || "Unknown",
+              callerAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
+              contactPhone: receiverProfile?.phone_number || call.receiver_phone,
             });
+            
+            // Clear any outgoing call state
+            setOutgoingCall(null);
           }
         }
       )
@@ -214,40 +225,25 @@ export function GlobalCallListener() {
         async (payload) => {
           const call = payload.new as any;
           const currentOutgoing = outgoingCallRef.current;
+          const currentActive = activeCallRef.current;
 
           console.log("📤 [GlobalCallListener] Outgoing call UPDATE:", call.id, "status:", call.status);
 
-          if (!currentOutgoing || call.id !== currentOutgoing.id) return;
-
-          // CRITICAL: Receiver accepted the call - start WebRTC as initiator!
-          if (call.status === "active") {
-            console.log("🎉 [GlobalCallListener] Call accepted by receiver! Starting WebRTC...");
-            
-            const { data: receiverProfile } = await supabase
-              .from("profiles")
-              .select("username, avatar_url")
-              .eq("id", call.receiver_id)
-              .maybeSingle();
-
-            setActiveCall({
-              ...call,
-              isInitiator: true, // Caller is the initiator
-              partnerId: call.receiver_id,
-              callerName: receiverProfile?.username || call.receiver_name || "Unknown",
-              callerAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
-            });
-            setOutgoingCall(null);
-            
-            toast({
-              title: "Call Connected",
-              description: `Connected with ${receiverProfile?.username || "Unknown"}`,
-            });
+          // If we already have an activeCall for this call, no need to reinitialize
+          if (currentActive && call.id === currentActive.id) {
+            console.log("📤 [GlobalCallListener] Call already active, ignoring update");
+            return;
           }
 
           // Receiver rejected, missed, or call ended
           if (call.status === "ended" || call.status === "rejected" || call.status === "missed") {
-            console.log("📵 [GlobalCallListener] Outgoing call ended/rejected/missed, missed:", call.missed);
+            console.log("📵 [GlobalCallListener] Outgoing call ended/rejected/missed");
             setOutgoingCall(null);
+            
+            // Also clear activeCall if it matches
+            if (currentActive && call.id === currentActive.id) {
+              setActiveCall(null);
+            }
             
             // Show appropriate message based on the actual outcome
             let title = "Call Ended";
