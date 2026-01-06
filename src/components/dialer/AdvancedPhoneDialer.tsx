@@ -709,8 +709,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Recents Tab */}
-        <TabsContent value="recents" className="flex-1 mt-0 min-h-0 overflow-auto">
-          <div className="px-4 py-2 space-y-1">
+        <TabsContent value="recents" className="flex-1 mt-0 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-auto px-4 py-2 space-y-1">
             {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : recentCalls.length === 0 ? (
@@ -788,9 +788,9 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Contacts Tab */}
-        <TabsContent value="contacts" className="flex-1 mt-0 min-h-0 overflow-auto">
-          <div className="px-4 py-2 pb-4">
-            <div className="relative mb-2">
+        <TabsContent value="contacts" className="flex-1 mt-0 min-h-0 flex flex-col">
+          <div className="px-4 py-2 shrink-0">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
@@ -799,6 +799,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                 className="pl-9 rounded-xl bg-muted/50 border-0 focus-visible:ring-1"
               />
             </div>
+          </div>
+          <div className="flex-1 min-h-0 overflow-auto px-4 pb-4">
             <div className="space-y-1">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
@@ -892,8 +894,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Favorites Tab */}
-        <TabsContent value="favorites" className="flex-1 mt-0 min-h-0 overflow-auto">
-          <div className="px-4 py-2 pb-4">
+        <TabsContent value="favorites" className="flex-1 mt-0 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-auto px-4 py-2 pb-4">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : favorites.length === 0 ? (
