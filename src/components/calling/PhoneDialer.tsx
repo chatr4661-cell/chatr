@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Phone, Video, X, Delete, UserPlus, Search } from 'lucide-react';
+import { Phone, X, Delete, UserPlus, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,12 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Contact {
   id: string;
@@ -272,34 +278,43 @@ export function PhoneDialer({ open, onClose, onCall }: PhoneDialerProps) {
             </div>
           </div>
 
-          {/* Call buttons */}
+          {/* Call button - single phone icon with menu for call type */}
           <div className="flex items-center justify-center gap-8 pb-8">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleVideoCall}
-              disabled={dialedNumber.length < 3}
-              className="w-16 h-16 rounded-full bg-blue-500 disabled:opacity-50 flex items-center justify-center shadow-lg"
-            >
-              <Video className="h-6 w-6 text-white" />
-            </motion.button>
-            
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleVoiceCall}
-              disabled={dialedNumber.length < 3}
-              className="w-20 h-20 rounded-full bg-green-500 disabled:opacity-50 flex items-center justify-center shadow-xl"
-            >
-              <Phone className="h-8 w-8 text-white" />
-            </motion.button>
-
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleDelete}
               disabled={!dialedNumber}
-              className="w-16 h-16 rounded-full bg-muted disabled:opacity-30 flex items-center justify-center"
+              className="w-14 h-14 rounded-full bg-muted disabled:opacity-30 flex items-center justify-center"
             >
-              <Delete className="h-6 w-6" />
+              <Delete className="h-5 w-5" />
             </motion.button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  disabled={filteredContacts.length === 0 && dialedNumber.length < 3}
+                  className="w-18 h-18 rounded-full bg-green-500 disabled:opacity-50 flex items-center justify-center shadow-xl p-5"
+                >
+                  <Phone className="h-7 w-7 text-white" />
+                </motion.button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-40">
+                <DropdownMenuItem onClick={handleVoiceCall} className="gap-2">
+                  <Phone className="h-4 w-4" />
+                  Voice Call
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleVideoCall} className="gap-2">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="5" width="14" height="14" rx="2" />
+                    <path d="m22 7-4 3 4 3V7Z" />
+                  </svg>
+                  Video Call
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="w-14 h-14" /> {/* Spacer for balance */}
           </div>
         </TabsContent>
 
@@ -335,24 +350,30 @@ export function PhoneDialer({ open, onClose, onCall }: PhoneDialerProps) {
                       </Avatar>
                       <p className="font-medium">{contact.username}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onCall(contact.id, contact.username, 'voice')}
-                        className="rounded-full h-10 w-10 hover:bg-green-500/10 hover:text-green-500"
-                      >
-                        <Phone className="h-5 w-5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onCall(contact.id, contact.username, 'video')}
-                        className="rounded-full h-10 w-10 hover:bg-blue-500/10 hover:text-blue-500"
-                      >
-                        <Video className="h-5 w-5" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-full h-10 w-10 hover:bg-green-500/10 hover:text-green-500"
+                        >
+                          <Phone className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onCall(contact.id, contact.username, 'voice')} className="gap-2">
+                          <Phone className="h-4 w-4" />
+                          Voice
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onCall(contact.id, contact.username, 'video')} className="gap-2">
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="5" width="14" height="14" rx="2" />
+                            <path d="m22 7-4 3 4 3V7Z" />
+                          </svg>
+                          Video
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ))
               )}
