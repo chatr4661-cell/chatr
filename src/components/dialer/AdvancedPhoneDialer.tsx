@@ -134,25 +134,46 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
       return;
     }
 
+    // Check if query looks like a phone number (digits, +, spaces, dashes)
+    const isPhoneQuery = /^[\d\s+\-()]+$/.test(query.replace(/\s/g, ''));
+    const cleanedPhone = query.replace(/[\s\-()]/g, '');
+
     // Debounce search
     searchTimeoutRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        // Search in ALL profiles (global CHATR user search)
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url')
-          .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
-          .neq('id', currentUserId || '')
-          .limit(10);
+        let profiles: any[] = [];
+        
+        if (isPhoneQuery && cleanedPhone.length >= 3) {
+          // Search by phone number
+          const { data } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, phone')
+            .ilike('phone', `%${cleanedPhone}%`)
+            .neq('id', currentUserId || '')
+            .limit(10);
+          profiles = data || [];
+        } else {
+          // Search by username/name
+          const { data } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, phone')
+            .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+            .neq('id', currentUserId || '')
+            .limit(10);
+          profiles = data || [];
+        }
 
-        if (profiles) {
+        if (profiles.length > 0) {
           const users = profiles.map(p => ({
             id: p.id,
             username: p.username || 'Unknown',
             avatar_url: p.avatar_url || undefined,
+            phone: p.phone || undefined,
           }));
           setMatchingUsers(users);
+        } else {
+          setMatchingUsers([]);
         }
       } catch (error) {
         console.error('Search failed:', error);
@@ -309,9 +330,15 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
     if (matchingUsers.length > 0) {
       initiateCall(matchingUsers[0], type);
     } else if (dialedNumber.length === 0) {
-      toast.error('Enter a username to call');
+      toast.error('Enter a number or username to call');
     } else {
-      toast.error('No CHATR user found');
+      // Check if it's a valid phone number for PSTN call
+      const cleanedNumber = dialedNumber.replace(/[\s\-()]/g, '');
+      if (/^\+?\d{10,15}$/.test(cleanedNumber)) {
+        toast.info('PSTN calling coming soon - try a CHATR username');
+      } else {
+        toast.error('No CHATR user found with this number');
+      }
     }
   };
 
@@ -468,8 +495,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                     }
                   }}
                 >
-                  {dialedNumber || (
-                    <span className="text-muted-foreground/50 text-xl">Search by username</span>
+                  {formatPhoneNumber(dialedNumber) || (
+                    <span className="text-muted-foreground/50 text-xl">Enter number or username</span>
                   )}
                 </p>
               </motion.div>
