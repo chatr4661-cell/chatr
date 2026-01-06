@@ -239,11 +239,71 @@ export function GlobalCallListener() {
         console.log("📡 outgoing-updates channel status:", status);
       });
 
+    // NEW: Listen for video upgrade signals via webrtc_signals table
+    const videoUpgradeChannel = supabase
+      .channel(`video-upgrade:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "webrtc_signals",
+          filter: `to_user=eq.${userId}`,
+        },
+        (payload) => {
+          const signal = payload.new as any;
+          const signalData = signal.signal_data;
+          
+          console.log("📡 [GlobalCallListener] Received signal:", signalData);
+          
+          // Handle video upgrade request
+          if (signalData?.videoUpgradeRequest) {
+            console.log("📹 [GlobalCallListener] Video upgrade request received!");
+            setActiveCall((prev: any) => prev ? { ...prev, incomingVideoRequest: true, videoRequestFrom: signal.from_user } : prev);
+            
+            toast({
+              title: "📹 Video Request",
+              description: "Partner wants to switch to video call",
+              duration: 10000,
+            });
+          }
+          
+          // Handle video upgrade accepted
+          if (signalData?.videoUpgradeAccepted) {
+            console.log("✅ [GlobalCallListener] Video upgrade accepted!");
+            setActiveCall((prev: any) => prev ? { ...prev, call_type: 'video', pendingVideoUpgrade: false } : prev);
+            
+            // Update database
+            supabase.from("calls").update({ call_type: 'video' }).eq("id", signal.call_id);
+            
+            toast({
+              title: "Video Enabled",
+              description: "Video call is now active",
+            });
+          }
+          
+          // Handle video upgrade declined
+          if (signalData?.videoUpgradeDeclined) {
+            console.log("❌ [GlobalCallListener] Video upgrade declined");
+            setActiveCall((prev: any) => prev ? { ...prev, pendingVideoUpgrade: false } : prev);
+            
+            toast({
+              title: "Video Declined",
+              description: "Partner declined video request",
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("📡 video-upgrade channel status:", status);
+      });
+
     return () => {
       supabase.removeChannel(incomingChannel);
       supabase.removeChannel(updatesChannel);
       supabase.removeChannel(outgoingChannel);
       supabase.removeChannel(outgoingUpdatesChannel);
+      supabase.removeChannel(videoUpgradeChannel);
     };
   }, [userId, toast]);
 
@@ -386,14 +446,46 @@ export function GlobalCallListener() {
     );
   }
 
-  // Handle voice to video upgrade
+  // Handle voice to video upgrade - send request to partner
   const handleUpgradeToVideo = async () => {
     if (!activeCall) {
       console.warn("⚠️ No active call to upgrade");
       return;
     }
     
-    console.log("📹 Upgrading call to video:", activeCall.id);
+    console.log("📹 Requesting video upgrade for call:", activeCall.id);
+    
+    // Send upgrade request signal to partner
+    try {
+      await sendSignal({
+        type: "answer" as any, // Using answer type for signaling
+        callId: activeCall.id,
+        data: { videoUpgradeRequest: true, requestedBy: userId },
+        to: activeCall.partnerId,
+      });
+      
+      toast({
+        title: "Video Request Sent",
+        description: `Waiting for ${activeCall.callerName} to accept video...`,
+      });
+      
+      // Store pending upgrade request
+      setActiveCall({ ...activeCall, pendingVideoUpgrade: true });
+    } catch (error) {
+      console.error("Failed to send video upgrade request:", error);
+      toast({
+        title: "Failed",
+        description: "Could not send video request",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Accept video upgrade from partner
+  const handleAcceptVideoUpgrade = async () => {
+    if (!activeCall) return;
+    
+    console.log("✅ Accepting video upgrade for call:", activeCall.id);
     
     // Update call type in database
     const { error } = await supabase
@@ -406,8 +498,45 @@ export function GlobalCallListener() {
       return;
     }
     
-    // Update local state to trigger video call UI
-    setActiveCall({ ...activeCall, call_type: 'video' });
+    // Send acceptance signal
+    try {
+      await sendSignal({
+        type: "answer" as any,
+        callId: activeCall.id,
+        data: { videoUpgradeAccepted: true },
+        to: activeCall.partnerId,
+      });
+    } catch (e) {
+      console.error("Failed to send upgrade acceptance:", e);
+    }
+    
+    // Update local state - switch to video UI
+    setActiveCall({ ...activeCall, call_type: 'video', pendingVideoUpgrade: false, incomingVideoRequest: false });
+  };
+
+  // Decline video upgrade
+  const handleDeclineVideoUpgrade = async () => {
+    if (!activeCall) return;
+    
+    console.log("❌ Declining video upgrade for call:", activeCall.id);
+    
+    try {
+      await sendSignal({
+        type: "answer" as any,
+        callId: activeCall.id,
+        data: { videoUpgradeDeclined: true },
+        to: activeCall.partnerId,
+      });
+    } catch (e) {
+      console.error("Failed to send decline signal:", e);
+    }
+    
+    setActiveCall({ ...activeCall, incomingVideoRequest: false });
+    
+    toast({
+      title: "Video Declined",
+      description: "Continuing with voice call",
+    });
   };
 
   // Show active call (both caller and receiver)
@@ -437,7 +566,11 @@ export function GlobalCallListener() {
         partnerId={activeCall.partnerId}
         onEnd={handleEndCall}
         onSwitchToVideo={handleUpgradeToVideo}
+        onAcceptVideoUpgrade={handleAcceptVideoUpgrade}
+        onDeclineVideoUpgrade={handleDeclineVideoUpgrade}
         isIncoming={!activeCall.isInitiator}
+        incomingVideoRequest={activeCall.incomingVideoRequest}
+        pendingVideoUpgrade={activeCall.pendingVideoUpgrade}
       />
     );
   }
