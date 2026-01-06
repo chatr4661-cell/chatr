@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Mic, MicOff, PhoneOff, Volume2, Video, MoreHorizontal, 
   Plus, Users, Bluetooth, Headphones, Car, Grid3X3,
-  ArrowLeftRight, Pause, Play
+  ArrowLeftRight, Pause, Play, Minimize2, Signal, SignalLow, SignalMedium, SignalHigh
 } from 'lucide-react';
 import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,9 +38,11 @@ interface GSMStyleVoiceCallProps {
   callId: string;
   contactName: string;
   contactAvatar?: string;
+  contactPhone?: string;
   isInitiator: boolean;
   partnerId: string;
   onEnd: () => void;
+  onMinimize?: () => void;
   onSwitchToVideo?: () => void;
   onAcceptVideoUpgrade?: () => void;
   onDeclineVideoUpgrade?: () => void;
@@ -54,9 +56,11 @@ export default function GSMStyleVoiceCall({
   callId,
   contactName,
   contactAvatar,
+  contactPhone,
   isInitiator,
   partnerId,
   onEnd,
+  onMinimize,
   onSwitchToVideo,
   onAcceptVideoUpgrade,
   onDeclineVideoUpgrade,
@@ -65,7 +69,7 @@ export default function GSMStyleVoiceCall({
   pendingVideoUpgrade = false,
   videoEnabled = false,
 }: GSMStyleVoiceCallProps) {
-  const [callState, setCallState] = useState<'connecting' | 'connected' | 'failed' | 'onhold'>('connecting');
+  const [callState, setCallState] = useState<'connecting' | 'connected' | 'failed' | 'onhold' | 'reconnecting'>('connecting');
   const [isMuted, setIsMuted] = useState(false);
   const [audioRoute, setAudioRoute] = useState<AudioRoute>('earpiece');
   const [availableDevices, setAvailableDevices] = useState<AudioDevice[]>([]);
@@ -75,6 +79,7 @@ export default function GSMStyleVoiceCall({
   const [dtmfInput, setDtmfInput] = useState('');
   const [localVideoActive, setLocalVideoActive] = useState(false);
   const [remoteVideoActive, setRemoteVideoActive] = useState(false);
+  const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
   
   // Conference call state
   const [isConference, setIsConference] = useState(false);
@@ -256,6 +261,16 @@ export default function GSMStyleVoiceCall({
         
         call.on('recoveryStatus', (status: any) => {
           console.log('🔄 [GSMStyleVoiceCall] Recovery status:', status.message);
+          if (callState !== 'connected') {
+            setCallState('reconnecting');
+          }
+        });
+        
+        call.on('networkQuality', (quality: string) => {
+          console.log('📶 [GSMStyleVoiceCall] Network quality:', quality);
+          if (quality === 'excellent' || quality === 'good' || quality === 'fair' || quality === 'poor') {
+            setNetworkQuality(quality);
+          }
         });
 
         call.on('ended', () => {
@@ -498,10 +513,40 @@ export default function GSMStyleVoiceCall({
     }
   };
 
+  const getSignalIcon = () => {
+    switch (networkQuality) {
+      case 'excellent': return <SignalHigh className="h-4 w-4 text-green-400" />;
+      case 'good': return <SignalMedium className="h-4 w-4 text-green-400" />;
+      case 'fair': return <SignalLow className="h-4 w-4 text-yellow-400" />;
+      case 'poor': return <Signal className="h-4 w-4 text-red-400" />;
+    }
+  };
+
   const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-b from-slate-800/95 via-slate-900/98 to-black flex flex-col">
+    <div className="fixed inset-0 z-50 bg-gradient-to-br from-slate-800 via-slate-900 to-black flex flex-col overflow-hidden">
+      {/* Premium animated background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+      </div>
+
+      {/* Top bar with minimize and signal */}
+      <div className="relative z-10 flex items-center justify-between px-4 pt-4 pb-2">
+        {onMinimize ? (
+          <button onClick={onMinimize} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+            <Minimize2 className="h-5 w-5 text-white" />
+          </button>
+        ) : <div className="w-9" />}
+        
+        <div className="flex items-center gap-2 bg-white/10 rounded-full px-3 py-1.5">
+          {getSignalIcon()}
+          <span className="text-xs text-white/70 capitalize">{networkQuality}</span>
+        </div>
+        
+        <div className="w-9" />
+      </div>
       {/* Video display when enabled */}
       {(videoEnabled || localVideoActive) && (
         <div className="absolute inset-0 z-0">
@@ -525,47 +570,107 @@ export default function GSMStyleVoiceCall({
       )}
 
       {/* Top section - Avatar and Name only */}
-      <div className={`flex-1 flex flex-col items-center justify-center pt-16 pb-8 ${(videoEnabled || localVideoActive) ? 'hidden' : ''}`}>
-        {/* Avatar */}
-        {contactAvatar ? (
-          <motion.img
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            src={contactAvatar}
-            alt={contactName}
-            className="w-28 h-28 rounded-full object-cover mb-6 ring-4 ring-white/10"
-          />
-        ) : (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-28 h-28 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center mb-6 ring-4 ring-white/10"
-          >
-            <span className="text-4xl font-semibold text-white">
-              {contactName.charAt(0).toUpperCase()}
-            </span>
-          </motion.div>
-        )}
+      <div className={`relative z-10 flex-1 flex flex-col items-center justify-center pt-8 pb-8 ${(videoEnabled || localVideoActive) ? 'hidden' : ''}`}>
+        {/* Avatar with pulsing ring animation during connecting */}
+        <div className="relative">
+          {callState === 'connecting' && (
+            <>
+              <motion.div
+                className="absolute inset-0 rounded-full bg-primary/30"
+                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                style={{ margin: '-12px' }}
+              />
+              <motion.div
+                className="absolute inset-0 rounded-full bg-primary/20"
+                animate={{ scale: [1, 1.6, 1], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                style={{ margin: '-12px' }}
+              />
+            </>
+          )}
+          
+          {contactAvatar ? (
+            <motion.img
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              src={contactAvatar}
+              alt={contactName}
+              className="w-32 h-32 rounded-full object-cover ring-4 ring-white/20 shadow-2xl"
+            />
+          ) : (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/60 to-primary/30 flex items-center justify-center ring-4 ring-white/20 shadow-2xl"
+            >
+              <span className="text-5xl font-semibold text-white">
+                {contactName.charAt(0).toUpperCase()}
+              </span>
+            </motion.div>
+          )}
+        </div>
         
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-semibold text-white mb-2"
+          className="text-3xl font-bold text-white mt-6 mb-1"
         >
           {contactName}
         </motion.h1>
         
+        {/* Phone number */}
+        {contactPhone && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-slate-400 text-sm mb-2"
+          >
+            {contactPhone}
+          </motion.p>
+        )}
+        
         {/* Call status/duration */}
-        <motion.p 
+        <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-slate-400 text-lg"
+          className="flex items-center gap-2"
         >
-          {callState === 'connecting' ? 'Calling...' : 
-           callState === 'onhold' ? 'On Hold' :
-           callState === 'connected' ? formatDuration(duration) :
-           isConference ? `${conferenceParticipants.length} participants` : ''}
-        </motion.p>
+          {callState === 'connecting' && (
+            <div className="flex items-center gap-2">
+              <motion.div
+                className="w-2 h-2 rounded-full bg-green-400"
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              <span className="text-slate-300 text-lg">Calling...</span>
+            </div>
+          )}
+          {callState === 'reconnecting' && (
+            <div className="flex items-center gap-2">
+              <motion.div
+                className="w-2 h-2 rounded-full bg-yellow-400"
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              />
+              <span className="text-yellow-400 text-lg">Reconnecting...</span>
+            </div>
+          )}
+          {callState === 'onhold' && (
+            <span className="text-orange-400 text-lg font-medium">On Hold</span>
+          )}
+          {callState === 'connected' && (
+            <span className="text-green-400 text-2xl font-mono font-bold tracking-wider">
+              {formatDuration(duration)}
+            </span>
+          )}
+          {callState === 'failed' && (
+            <span className="text-red-400 text-lg">Connection Issue</span>
+          )}
+          {isConference && (
+            <span className="text-slate-300 text-lg">{conferenceParticipants.length} participants</span>
+          )}
+        </motion.div>
 
         {/* Conference participants */}
         {isConference && (
@@ -675,57 +780,77 @@ export default function GSMStyleVoiceCall({
       {/* Bottom section - Controls */}
       <div className="pb-12 px-6">
         {/* Top row - Speaker, Video, Mute */}
-        <div className="grid grid-cols-3 gap-8 mb-8 max-w-sm mx-auto">
+        <div className="relative z-10 grid grid-cols-3 gap-8 mb-8 max-w-sm mx-auto">
           <button
             onClick={cycleSpeaker}
-            className={`flex flex-col items-center gap-2 ${
-              audioRoute !== 'earpiece' ? 'opacity-100' : 'opacity-60'
-            }`}
+            className="flex flex-col items-center gap-2"
           >
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
-              audioRoute !== 'earpiece' 
-                ? 'bg-white text-slate-900' 
-                : 'bg-slate-700/70 text-white'
-            }`}>
+            <motion.div 
+              whileTap={{ scale: 0.9 }}
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                audioRoute !== 'earpiece' 
+                  ? 'bg-white text-slate-900 shadow-white/20' 
+                  : 'bg-slate-700/70 text-white hover:bg-slate-600/70'
+              }`}
+            >
               {getAudioRouteIcon()}
-            </div>
-            <span className="text-white text-xs capitalize">{audioRoute}</span>
+            </motion.div>
+            <span className={`text-xs capitalize ${audioRoute !== 'earpiece' ? 'text-white font-medium' : 'text-slate-400'}`}>
+              {audioRoute}
+            </span>
           </button>
 
           <button
             onClick={handleUpgradeToVideo}
-            className="flex flex-col items-center gap-2 opacity-60 hover:opacity-100"
+            className="flex flex-col items-center gap-2"
           >
-            <div className="w-16 h-16 rounded-full bg-slate-700/70 flex items-center justify-center">
-              <Video className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-white text-xs">Video</span>
+            <motion.div 
+              whileTap={{ scale: 0.9 }}
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                (videoEnabled || localVideoActive)
+                  ? 'bg-green-500 text-white shadow-green-500/30'
+                  : 'bg-slate-700/70 text-white hover:bg-slate-600/70'
+              }`}
+            >
+              <Video className="h-6 w-6" />
+            </motion.div>
+            <span className={`text-xs ${(videoEnabled || localVideoActive) ? 'text-green-400 font-medium' : 'text-slate-400'}`}>
+              Video
+            </span>
           </button>
 
           <button
             onClick={toggleMute}
             className="flex flex-col items-center gap-2"
           >
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
-              isMuted 
-                ? 'bg-white text-slate-900' 
-                : 'bg-slate-700/70 text-white'
-            }`}>
+            <motion.div 
+              whileTap={{ scale: 0.9 }}
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                isMuted 
+                  ? 'bg-red-500 text-white shadow-red-500/30' 
+                  : 'bg-slate-700/70 text-white hover:bg-slate-600/70'
+              }`}
+            >
               {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-            </div>
-            <span className="text-white text-xs">Mute</span>
+            </motion.div>
+            <span className={`text-xs ${isMuted ? 'text-red-400 font-medium' : 'text-slate-400'}`}>
+              {isMuted ? 'Muted' : 'Mute'}
+            </span>
           </button>
         </div>
 
         {/* Bottom row - More, End, Keypad */}
-        <div className="grid grid-cols-3 gap-8 max-w-sm mx-auto">
+        <div className="relative z-10 grid grid-cols-3 gap-8 max-w-sm mx-auto">
           <Sheet open={showMoreOptions} onOpenChange={setShowMoreOptions}>
             <SheetTrigger asChild>
-              <button className="flex flex-col items-center gap-2 opacity-60 hover:opacity-100">
-                <div className="w-16 h-16 rounded-full bg-slate-700/70 flex items-center justify-center">
+              <button className="flex flex-col items-center gap-2">
+                <motion.div 
+                  whileTap={{ scale: 0.9 }}
+                  className="w-16 h-16 rounded-full bg-slate-700/70 flex items-center justify-center hover:bg-slate-600/70 transition-all shadow-lg"
+                >
                   <MoreHorizontal className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-white text-xs">More</span>
+                </motion.div>
+                <span className="text-slate-400 text-xs">More</span>
               </button>
             </SheetTrigger>
             <SheetContent side="bottom" className="bg-slate-900/95 backdrop-blur-xl border-slate-700">
@@ -797,22 +922,31 @@ export default function GSMStyleVoiceCall({
             onClick={handleEndCall}
             className="flex flex-col items-center gap-2"
           >
-            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/30">
+            <motion.div 
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
+              className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/40"
+            >
               <PhoneOff className="h-7 w-7 text-white" />
-            </div>
-            <span className="text-white text-xs">End</span>
+            </motion.div>
+            <span className="text-red-400 text-xs font-medium">End</span>
           </button>
 
           <button
             onClick={() => setShowKeypad(!showKeypad)}
-            className="flex flex-col items-center gap-2 opacity-60 hover:opacity-100"
+            className="flex flex-col items-center gap-2"
           >
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-              showKeypad ? 'bg-white text-slate-900' : 'bg-slate-700/70 text-white'
-            }`}>
+            <motion.div 
+              whileTap={{ scale: 0.9 }}
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                showKeypad 
+                  ? 'bg-white text-slate-900 shadow-white/20' 
+                  : 'bg-slate-700/70 text-white hover:bg-slate-600/70'
+              }`}
+            >
               <Grid3X3 className="h-6 w-6" />
-            </div>
-            <span className="text-white text-xs">Keypad</span>
+            </motion.div>
+            <span className={`text-xs ${showKeypad ? 'text-white font-medium' : 'text-slate-400'}`}>Keypad</span>
           </button>
         </div>
       </div>
