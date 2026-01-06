@@ -679,9 +679,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Recents Tab */}
-        <TabsContent value="recents" className="flex-1 flex flex-col mt-0 overflow-hidden">
-          <ScrollArea className="flex-1 px-4">
-            <div className="py-3 space-y-1">
+        <TabsContent value="recents" className="flex-1 mt-0 overflow-auto">
+          <div className="px-4 py-2 space-y-1">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : recentCalls.length === 0 ? (
@@ -756,13 +755,12 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                 })
               )}
             </div>
-          </ScrollArea>
         </TabsContent>
 
         {/* Contacts Tab */}
-        <TabsContent value="contacts" className="flex-1 flex flex-col mt-0 overflow-hidden min-h-0">
-          <div className="px-4 py-2 flex-shrink-0">
-            <div className="relative">
+        <TabsContent value="contacts" className="flex-1 mt-0 overflow-auto">
+          <div className="px-4 py-2">
+            <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
@@ -771,9 +769,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                 className="pl-9 rounded-xl bg-muted/50 border-0 focus-visible:ring-1"
               />
             </div>
-          </div>
-          <ScrollArea className="flex-1 px-4 min-h-0">
-            <div className="pb-4 space-y-1">
+            <div className="space-y-1">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : filteredContacts.length === 0 ? (
@@ -862,13 +858,12 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                 ))
               )}
             </div>
-          </ScrollArea>
+          </div>
         </TabsContent>
 
         {/* Favorites Tab */}
-        <TabsContent value="favorites" className="flex-1 flex flex-col mt-0 overflow-hidden">
-          <ScrollArea className="flex-1 px-4">
-            <div className="py-4">
+        <TabsContent value="favorites" className="flex-1 mt-0 overflow-auto">
+          <div className="px-4 py-2">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : favorites.length === 0 ? (
@@ -926,7 +921,6 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                 </div>
               )}
             </div>
-          </ScrollArea>
         </TabsContent>
       </Tabs>
 
