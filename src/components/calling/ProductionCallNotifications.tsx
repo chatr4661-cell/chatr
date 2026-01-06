@@ -287,6 +287,22 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
     };
   }, [userId, activeCall, incomingCall]);
 
+  // Handle voice to video upgrade
+  const handleUpgradeToVideo = async () => {
+    if (!activeCall) return;
+    
+    console.log("📹 Upgrading call to video:", activeCall.id);
+    
+    // Update call type in database
+    await supabase
+      .from("calls")
+      .update({ call_type: 'video' })
+      .eq("id", activeCall.id);
+    
+    // Update local state to trigger video call UI
+    setActiveCall({ ...activeCall, call_type: 'video' });
+  };
+
   return (
     <>
       {/* Incoming Call Screen */}
@@ -310,6 +326,8 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
           isInitiator={activeCall.caller_id === userId}
           partnerId={activeCall.caller_id === userId ? activeCall.receiver_id : activeCall.caller_id}
           onEnd={endActiveCall}
+          onSwitchToVideo={handleUpgradeToVideo}
+          isIncoming={activeCall.caller_id !== userId}
         />
       )}
 

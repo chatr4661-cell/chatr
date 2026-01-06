@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, Trash2, Search, UserPlus } from "lucide-react";
+import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, Trash2, Search, UserPlus, Grid3X3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CallHistoryEmptyState, CallListSkeleton } from "@/components/ui/PremiumEmptyStates";
+import { PhoneDialer } from "@/components/calling/PhoneDialer";
 
 interface Call {
   id: string;
@@ -34,6 +35,7 @@ export default function CallHistory() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewCall, setShowNewCall] = useState(false);
+  const [showDialer, setShowDialer] = useState(false);
 
   useEffect(() => {
     loadCalls();
@@ -208,11 +210,16 @@ export default function CallHistory() {
 
       toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
       setShowNewCall(false);
+      setShowDialer(false);
       loadCalls();
     } catch (error) {
       console.error('Error starting call:', error);
       toast.error('Failed to start call');
     }
+  };
+
+  const handleDialerCall = (contactId: string, contactName: string, callType: 'voice' | 'video') => {
+    startCall(contactId, callType);
   };
 
   const formatDuration = (seconds: number | null) => {
@@ -256,12 +263,16 @@ export default function CallHistory() {
       <div className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-2xl font-bold">Calls</h1>
-          <Dialog open={showNewCall} onOpenChange={setShowNewCall}>
-            <DialogTrigger asChild>
-              <Button size="icon" variant="ghost">
-                <UserPlus className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button size="icon" variant="ghost" onClick={() => setShowDialer(true)}>
+              <Grid3X3 className="h-5 w-5" />
+            </Button>
+            <Dialog open={showNewCall} onOpenChange={setShowNewCall}>
+              <DialogTrigger asChild>
+                <Button size="icon" variant="ghost">
+                  <UserPlus className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>New Call</DialogTitle>
@@ -318,6 +329,7 @@ export default function CallHistory() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as 'all' | 'missed')} className="w-full px-4">
@@ -378,6 +390,13 @@ export default function CallHistory() {
           )}
         </div>
       </ScrollArea>
+      
+      {/* Phone Dialer */}
+      <PhoneDialer
+        open={showDialer}
+        onClose={() => setShowDialer(false)}
+        onCall={handleDialerCall}
+      />
     </div>
   );
 }

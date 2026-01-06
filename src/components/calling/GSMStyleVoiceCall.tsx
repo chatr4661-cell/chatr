@@ -41,6 +41,7 @@ interface GSMStyleVoiceCallProps {
   partnerId: string;
   onEnd: () => void;
   onSwitchToVideo?: () => void;
+  isIncoming?: boolean;
 }
 
 export default function GSMStyleVoiceCall({
@@ -51,6 +52,7 @@ export default function GSMStyleVoiceCall({
   partnerId,
   onEnd,
   onSwitchToVideo,
+  isIncoming = false,
 }: GSMStyleVoiceCallProps) {
   const [callState, setCallState] = useState<'connecting' | 'connected' | 'failed' | 'onhold'>('connecting');
   const [isMuted, setIsMuted] = useState(false);
@@ -363,6 +365,13 @@ export default function GSMStyleVoiceCall({
     toast.success('Call resumed');
   };
 
+  const handleUpgradeToVideo = () => {
+    if (callState === 'connected' && onSwitchToVideo) {
+      toast.info('Upgrading to video call...');
+      onSwitchToVideo();
+    }
+  };
+
   const addCall = () => {
     toast.info('Add call feature - select a contact to add');
     // This would open a contact picker in a full implementation
@@ -412,7 +421,7 @@ export default function GSMStyleVoiceCall({
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-slate-400 text-sm mb-2"
+          className="text-slate-400 text-sm mb-2 flex items-center gap-2"
         >
           {callState === 'connecting' ? 'Calling mobile...' : 
            callState === 'onhold' ? 'On Hold' :
@@ -514,13 +523,14 @@ export default function GSMStyleVoiceCall({
           </button>
 
           <button
-            onClick={onSwitchToVideo}
-            className="flex flex-col items-center gap-2 opacity-60 hover:opacity-100"
+            onClick={handleUpgradeToVideo}
+            disabled={callState !== 'connected'}
+            className={`flex flex-col items-center gap-2 ${callState === 'connected' ? 'opacity-60 hover:opacity-100' : 'opacity-30'}`}
           >
             <div className="w-16 h-16 rounded-full bg-slate-700/70 flex items-center justify-center">
               <Video className="h-6 w-6 text-white" />
             </div>
-            <span className="text-white text-xs">FaceTime</span>
+            <span className="text-white text-xs">Video</span>
           </button>
 
           <button
