@@ -187,38 +187,32 @@ export default function ProductionVideoCall({
         call.on('connected', () => {
           console.log('🎉 [ProductionVideoCall] Call connected!');
           setCallState('connected');
-          toast.success('Call connected');
           startDurationTimer();
           updateCallStatus('active');
         });
 
+        // CRITICAL: 'failed' event is for warnings only - NEVER auto-end calls
         call.on('failed', (error: Error) => {
           console.error('⚠️ [ProductionVideoCall] Connection issue:', error);
           
-          // CRITICAL: Do NOT auto-end - let user decide to hang up
-          let warningMessage = 'Connection unstable - recovering...';
-          
+          // Camera/mic errors - show error state but DON'T auto-end
           if (error.message.includes('camera') || error.message.includes('microphone') || error.message.includes('Could not access')) {
-            // Camera/mic errors - show error but DON'T auto-end
-            // The user should manually hang up so it doesn't end the call for both parties
-            toast.error('Camera/Microphone access denied', {
-              description: 'Please allow camera and microphone access and try again',
-              duration: 10000
-            });
+            console.warn('⚠️ Camera/Microphone access issue');
             setCallState('failed');
-            // DON'T auto-end the call - let user manually hang up
-            // This prevents ending the call for the other participant who may not have issues
+            // DON'T auto-end - let user manually hang up
             return;
           }
           
-          // Network errors - keep trying, don't auto-end
-          toast.warning(warningMessage, {
-            duration: 5000,
-          });
+          // Network errors - just log, recovery is automatic
+          console.warn('⚠️ Connection unstable - automatic recovery in progress...');
+        });
+        
+        call.on('recoveryStatus', (status: any) => {
+          console.log('🔄 [ProductionVideoCall] Recovery status:', status.message);
         });
 
         call.on('ended', () => {
-          console.log('👋 [ProductionVideoCall] Call ended');
+          console.log('👋 [ProductionVideoCall] Call ended by remote');
           handleEndCall();
         });
 

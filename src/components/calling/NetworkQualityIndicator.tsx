@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface NetworkQualityIndicatorProps {
@@ -7,7 +7,7 @@ interface NetworkQualityIndicatorProps {
 }
 
 export const NetworkQualityIndicator = ({ peerConnection }: NetworkQualityIndicatorProps) => {
-  const [quality, setQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>('excellent');
+  const [quality, setQuality] = useState<'excellent' | 'good' | 'poor' | 'reconnecting'>('excellent');
   const [stats, setStats] = useState({ packetLoss: 0, rtt: 0 });
 
   useEffect(() => {
@@ -15,6 +15,22 @@ export const NetworkQualityIndicator = ({ peerConnection }: NetworkQualityIndica
 
     const interval = setInterval(async () => {
       try {
+        const iceState = peerConnection.iceConnectionState;
+        const connState = peerConnection.connectionState;
+        
+        // Check connection state first
+        if (iceState === 'disconnected' || iceState === 'failed' || 
+            connState === 'disconnected' || connState === 'failed') {
+          // Show "Reconnecting" instead of "Disconnected" - less alarming
+          setQuality('reconnecting');
+          return;
+        }
+        
+        if (iceState === 'checking' || iceState === 'new' || connState === 'connecting') {
+          setQuality('reconnecting');
+          return;
+        }
+
         const stats = await peerConnection.getStats();
         let packetsLost = 0;
         let packetsReceived = 0;
@@ -35,11 +51,8 @@ export const NetworkQualityIndicator = ({ peerConnection }: NetworkQualityIndica
 
         setStats({ packetLoss: packetLossRate, rtt: roundTripTime * 1000 });
 
-        // Determine quality
-        if (peerConnection.iceConnectionState === 'disconnected' || 
-            peerConnection.iceConnectionState === 'failed') {
-          setQuality('disconnected');
-        } else if (packetLossRate > 5 || roundTripTime > 0.3) {
+        // Determine quality based on stats
+        if (packetLossRate > 5 || roundTripTime > 0.3) {
           setQuality('poor');
         } else if (packetLossRate > 2 || roundTripTime > 0.15) {
           setQuality('good');
@@ -47,7 +60,7 @@ export const NetworkQualityIndicator = ({ peerConnection }: NetworkQualityIndica
           setQuality('excellent');
         }
       } catch (error) {
-        console.error('Failed to get network stats:', error);
+        // Don't spam console, just continue
       }
     }, 2000);
 
@@ -59,7 +72,7 @@ export const NetworkQualityIndicator = ({ peerConnection }: NetworkQualityIndica
       case 'excellent': return 'text-green-500';
       case 'good': return 'text-yellow-500';
       case 'poor': return 'text-orange-500';
-      case 'disconnected': return 'text-red-500';
+      case 'reconnecting': return 'text-blue-400';
     }
   };
 
@@ -68,7 +81,7 @@ export const NetworkQualityIndicator = ({ peerConnection }: NetworkQualityIndica
       case 'excellent': return 'Excellent';
       case 'good': return 'Good';
       case 'poor': return 'Poor';
-      case 'disconnected': return 'Disconnected';
+      case 'reconnecting': return 'Reconnecting...';
     }
   };
 
@@ -78,8 +91,13 @@ export const NetworkQualityIndicator = ({ peerConnection }: NetworkQualityIndica
       animate={{ opacity: 1, y: 0 }}
       className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full"
     >
-      {quality === 'disconnected' ? (
-        <WifiOff className={`w-4 h-4 ${getColor()}`} />
+      {quality === 'reconnecting' ? (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
+          <RefreshCw className={`w-4 h-4 ${getColor()}`} />
+        </motion.div>
       ) : (
         <Wifi className={`w-4 h-4 ${getColor()}`} />
       )}

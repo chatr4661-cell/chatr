@@ -182,18 +182,27 @@ export default function GSMStyleVoiceCall({
           updateCallStatus('active');
         });
 
+        // CRITICAL: 'failed' event is for warnings only - NEVER auto-end calls
         call.on('failed', (error: Error) => {
           console.error('⚠️ [GSMStyleVoiceCall] Connection issue:', error);
-          if (error.message.includes('microphone')) {
-            console.warn('Microphone access denied');
+          // Only show warning UI, don't end the call
+          // User must manually hang up
+          if (error.message.includes('microphone') || error.message.includes('Could not access')) {
+            console.warn('⚠️ Microphone access issue - user should grant permission');
+            // Show error state but DON'T end call
             setCallState('failed');
-            return;
+          } else {
+            // Network issues - just log, recovery is automatic
+            console.warn('⚠️ Connection unstable - automatic recovery in progress...');
           }
-          console.warn('Connection unstable - recovering...');
+        });
+        
+        call.on('recoveryStatus', (status: any) => {
+          console.log('🔄 [GSMStyleVoiceCall] Recovery status:', status.message);
         });
 
         call.on('ended', () => {
-          console.log('👋 [GSMStyleVoiceCall] Call ended');
+          console.log('👋 [GSMStyleVoiceCall] Call ended by remote');
           handleEndCall();
         });
 
