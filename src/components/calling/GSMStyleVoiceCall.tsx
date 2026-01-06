@@ -47,6 +47,7 @@ interface GSMStyleVoiceCallProps {
   isIncoming?: boolean;
   incomingVideoRequest?: boolean;
   pendingVideoUpgrade?: boolean;
+  videoEnabled?: boolean;
 }
 
 export default function GSMStyleVoiceCall({
@@ -62,6 +63,7 @@ export default function GSMStyleVoiceCall({
   isIncoming = false,
   incomingVideoRequest = false,
   pendingVideoUpgrade = false,
+  videoEnabled = false,
 }: GSMStyleVoiceCallProps) {
   const [callState, setCallState] = useState<'connecting' | 'connected' | 'failed' | 'onhold'>('connecting');
   const [isMuted, setIsMuted] = useState(false);
@@ -71,6 +73,8 @@ export default function GSMStyleVoiceCall({
   const [showKeypad, setShowKeypad] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [dtmfInput, setDtmfInput] = useState('');
+  const [localVideoActive, setLocalVideoActive] = useState(false);
+  const [remoteVideoActive, setRemoteVideoActive] = useState(false);
   
   // Conference call state
   const [isConference, setIsConference] = useState(false);
@@ -79,6 +83,8 @@ export default function GSMStyleVoiceCall({
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
   
@@ -191,6 +197,7 @@ export default function GSMStyleVoiceCall({
         call.on('remoteStream', (stream: MediaStream) => {
           console.log('🔊 [GSMStyleVoiceCall] Remote stream received');
           
+          // Handle audio
           if (!remoteAudioRef.current) {
             remoteAudioRef.current = new Audio();
             remoteAudioRef.current.autoplay = true;
@@ -199,7 +206,7 @@ export default function GSMStyleVoiceCall({
           
           remoteAudioRef.current.srcObject = stream;
           
-          // Force play with retries
+          // Force play audio with retries
           const forcePlay = async (attempt = 1) => {
             try {
               if (remoteAudioRef.current) {
@@ -214,6 +221,15 @@ export default function GSMStyleVoiceCall({
           };
           
           forcePlay(1);
+          
+          // Handle video if present
+          const videoTracks = stream.getVideoTracks();
+          if (videoTracks.length > 0 && remoteVideoRef.current) {
+            console.log('📹 [GSMStyleVoiceCall] Remote video track detected');
+            remoteVideoRef.current.srcObject = stream;
+            remoteVideoRef.current.play().catch(e => console.log('Remote video play:', e));
+            setRemoteVideoActive(true);
+          }
         });
 
         call.on('connected', () => {
@@ -261,6 +277,25 @@ export default function GSMStyleVoiceCall({
     initCall();
     return () => cleanup();
   }, []);
+
+  // Handle video upgrade - add video to existing call
+  useEffect(() => {
+    if (!videoEnabled || !webrtcRef.current || localVideoActive) return;
+    
+    const addVideo = async () => {
+      console.log('📹 [GSMStyleVoiceCall] Adding video to call...');
+      const videoStream = await webrtcRef.current?.addVideoToCall();
+      
+      if (videoStream && localVideoRef.current) {
+        localVideoRef.current.srcObject = videoStream;
+        localVideoRef.current.muted = true;
+        localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+        setLocalVideoActive(true);
+      }
+    };
+    
+    addVideo();
+  }, [videoEnabled, localVideoActive]);
 
   const startDurationTimer = () => {
     durationIntervalRef.current = setInterval(() => {
@@ -467,8 +502,30 @@ export default function GSMStyleVoiceCall({
 
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-b from-slate-800/95 via-slate-900/98 to-black flex flex-col">
+      {/* Video display when enabled */}
+      {(videoEnabled || localVideoActive) && (
+        <div className="absolute inset-0 z-0">
+          {/* Remote video (full screen) */}
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          {/* Local video (picture-in-picture) */}
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute top-20 right-4 w-32 h-44 rounded-xl object-cover border-2 border-white/20 shadow-lg"
+            style={{ transform: 'scaleX(-1)' }}
+          />
+        </div>
+      )}
+
       {/* Top section - Avatar and Name only */}
-      <div className="flex-1 flex flex-col items-center justify-center pt-16 pb-8">
+      <div className={`flex-1 flex flex-col items-center justify-center pt-16 pb-8 ${(videoEnabled || localVideoActive) ? 'hidden' : ''}`}>
         {/* Avatar */}
         {contactAvatar ? (
           <motion.img
