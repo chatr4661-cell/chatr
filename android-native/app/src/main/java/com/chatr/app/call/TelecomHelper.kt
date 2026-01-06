@@ -26,7 +26,13 @@ object TelecomHelper {
     
     /**
      * Registers Chatr+ PhoneAccount with the system TelecomManager
-     * This makes calls appear as "ChatrPlus" in the system call log and Phone app
+     * 
+     * CRITICAL: Self-managed ConnectionServices CANNOT have:
+     * - CAPABILITY_CALL_PROVIDER (conflicts with self-managed)
+     * - CAPABILITY_CONNECTION_MANAGER
+     * - CAPABILITY_SIM_SUBSCRIPTION
+     * 
+     * Must use custom URI scheme for self-managed apps (not tel: or sip:).
      */
     @RequiresApi(Build.VERSION_CODES.O)
     fun registerPhoneAccount(context: Context) {
@@ -36,23 +42,24 @@ object TelecomHelper {
             val componentName = ComponentName(context, ChatrConnectionService::class.java)
             phoneAccountHandle = PhoneAccountHandle(componentName, PHONE_ACCOUNT_ID)
             
+            // Self-managed ONLY - NO CAPABILITY_CALL_PROVIDER (causes SecurityException)
             val phoneAccount = PhoneAccount.builder(phoneAccountHandle, "ChatrPlus")
                 .setCapabilities(
-                    PhoneAccount.CAPABILITY_CALL_PROVIDER or
-                    PhoneAccount.CAPABILITY_VIDEO_CALLING or
-                    PhoneAccount.CAPABILITY_SELF_MANAGED
+                    PhoneAccount.CAPABILITY_SELF_MANAGED or
+                    PhoneAccount.CAPABILITY_VIDEO_CALLING
                 )
                 .setIcon(Icon.createWithResource(context, R.mipmap.ic_launcher))
                 .setShortDescription("ChatrPlus Voice & Video")
-                // CRITICAL: Only use tel: scheme for proper call log integration
-                // NEVER use sip:, uuid:, or custom schemes like @chatr.local
-                .addSupportedUriScheme(PhoneAccount.SCHEME_TEL)
-                .setHighlightColor(0xFF6366F1.toInt()) // ChatrPrimary color
+                // CRITICAL: Use custom scheme for self-managed apps (not tel:)
+                .addSupportedUriScheme("chatr")
+                .setHighlightColor(0xFF6366F1.toInt())
                 .build()
             
             telecomManager.registerPhoneAccount(phoneAccount)
-            Log.d(TAG, "✅ ChatrPlus PhoneAccount registered successfully")
+            Log.i(TAG, "✅ ChatrPlus PhoneAccount registered (self-managed mode)")
             
+        } catch (e: SecurityException) {
+            Log.e(TAG, "❌ SecurityException: Check capabilities - cannot combine SELF_MANAGED with CALL_PROVIDER", e)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to register PhoneAccount: ${e.message}", e)
         }
@@ -80,11 +87,11 @@ object TelecomHelper {
                 putBoolean(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE, isVideo)
             }
             
-            // CRITICAL: Use tel: URI with phone number only
-            val uri = Uri.fromParts(PhoneAccount.SCHEME_TEL, recipientPhone, null)
+            // CRITICAL: Use chatr: URI for self-managed apps
+            val uri = Uri.parse("chatr:$recipientPhone")
             telecomManager.placeCall(uri, extras)
             
-            Log.d(TAG, "✅ Outgoing call placed with tel: URI: $recipientPhone (video: $isVideo)")
+            Log.i(TAG, "✅ Outgoing call placed: $recipientPhone (video: $isVideo)")
             
         } catch (e: SecurityException) {
             Log.e(TAG, "❌ Permission denied for placing call: ${e.message}", e)
@@ -113,18 +120,13 @@ object TelecomHelper {
         try {
             val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
             
-            // CRITICAL: Parse phone number as tel: URI
-            // This ensures proper call log integration and contact name resolution
-            val handle = Uri.parse("tel:$callerPhone")
+            // CRITICAL: Use chatr: URI for self-managed apps
+            val handle = Uri.parse("chatr:$callerPhone")
             
             val extras = Bundle().apply {
                 putString("CALL_ID", callId)
                 putString("CALLER_NAME", callerName)
-                
-                // Use tel: URI for incoming call address
                 putParcelable(TelecomManager.EXTRA_INCOMING_CALL_ADDRESS, handle)
-                
-                // Set caller display name (Android uses this if number not in contacts)
                 putString(TelecomManager.EXTRA_CALL_SUBJECT, callerName)
                 
                 putInt(
@@ -135,7 +137,7 @@ object TelecomHelper {
             }
             
             telecomManager.addNewIncomingCall(phoneAccountHandle, extras)
-            Log.d(TAG, "✅ Incoming call reported with tel: URI: $callerPhone - Name: $callerName - video: $isVideo")
+            Log.i(TAG, "✅ Incoming call reported: $callerPhone - $callerName - video: $isVideo")
             
         } catch (e: SecurityException) {
             Log.e(TAG, "❌ Permission denied for incoming call: ${e.message}", e)
