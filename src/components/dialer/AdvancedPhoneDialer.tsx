@@ -450,9 +450,9 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
     : contacts;
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-background to-muted/30">
+    <div className="flex flex-col h-full bg-gradient-to-b from-background to-muted/30 overflow-hidden">
       {/* Header with CHATR branding */}
-      <div className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
@@ -498,8 +498,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col flex-1">
-        <TabsList className="mx-4 mt-3 grid grid-cols-4 bg-muted/50 p-1 rounded-xl">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <TabsList className="mx-4 mt-3 grid grid-cols-4 bg-muted/50 p-1 rounded-xl flex-shrink-0">
           <TabsTrigger value="keypad" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <Hash className="h-4 w-4" />
             <span className="hidden sm:inline text-xs">Keypad</span>
