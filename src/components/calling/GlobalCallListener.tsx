@@ -386,6 +386,27 @@ export function GlobalCallListener() {
     );
   }
 
+  // Handle voice to video upgrade
+  const handleUpgradeToVideo = async () => {
+    if (!activeCall) return;
+    
+    console.log("📹 Upgrading call to video:", activeCall.id);
+    
+    // Update call type in database
+    await supabase
+      .from("calls")
+      .update({ call_type: 'video' })
+      .eq("id", activeCall.id);
+    
+    // Update local state to trigger video call UI
+    setActiveCall({ ...activeCall, call_type: 'video' });
+    
+    toast({
+      title: "Video enabled",
+      description: "Call upgraded to video",
+    });
+  };
+
   // Show active call (both caller and receiver)
   if (activeCall) {
     const contactName = activeCall.isInitiator 
@@ -411,6 +432,8 @@ export function GlobalCallListener() {
         isInitiator={activeCall.isInitiator}
         partnerId={activeCall.partnerId}
         onEnd={handleEndCall}
+        onSwitchToVideo={handleUpgradeToVideo}
+        isIncoming={!activeCall.isInitiator}
       />
     );
   }
