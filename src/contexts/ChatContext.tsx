@@ -2,6 +2,7 @@ import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Session, User } from '@supabase/supabase-js';
 import { syncAuthToNative } from '@/utils/androidBridge';
+import { usePresenceTracking } from '@/hooks/usePresenceTracking';
 
 interface ChatContextType {
   activeConversationId: string | null;
@@ -10,6 +11,8 @@ interface ChatContextType {
   user: User | null;
   isOnline: boolean;
   isAuthReady: boolean;
+  isUserOnline: (userId: string) => boolean;
+  onlineUsers: Set<string>;
 }
 
 const ChatContext = React.createContext<ChatContextType | null>(null);
@@ -28,6 +31,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = React.useState<User | null>(null);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [isAuthReady, setIsAuthReady] = React.useState(false);
+
+  // Real-time presence tracking
+  const { onlineUsers, isUserOnline } = usePresenceTracking(user?.id);
 
   // Network status monitoring
   React.useEffect(() => {
@@ -108,8 +114,6 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Removed localStorage persistence to ensure conversation list is always default view
-
   const value: ChatContextType = {
     activeConversationId,
     setActiveConversationId,
@@ -117,6 +121,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     isOnline,
     isAuthReady,
+    isUserOnline,
+    onlineUsers,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
