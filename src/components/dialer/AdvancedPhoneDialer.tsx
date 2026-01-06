@@ -194,39 +194,82 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
       if (!user) return;
       setCurrentUserId(user.id);
 
-      // Load user's contacts
-      const { data: contactsData } = await supabase
+      // Load contacts from multiple sources
+      let loadedContacts: Contact[] = [];
+
+      // 1. Load from user_contacts table
+      const { data: userContactsData } = await supabase
         .from('user_contacts')
         .select('contact_user_id, display_name')
         .eq('user_id', user.id);
 
-      if (contactsData && contactsData.length > 0) {
-        const contactIds = contactsData.map(c => c.contact_user_id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url')
-          .in('id', contactIds);
-        
-        const merged = (profiles || []).map(p => {
-          const contact = contactsData.find(c => c.contact_user_id === p.id);
-          return {
-            id: p.id,
-            username: contact?.display_name || p.username || 'Unknown',
-            avatar_url: p.avatar_url || undefined,
-          };
-        });
-        
-        setContacts(merged);
-        setAllUsers(merged);
+      if (userContactsData && userContactsData.length > 0) {
+        const contactIds = userContactsData.map(c => c.contact_user_id).filter(Boolean);
+        if (contactIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, phone_number')
+            .in('id', contactIds);
+          
+          const merged = (profiles || []).map(p => {
+            const contact = userContactsData.find(c => c.contact_user_id === p.id);
+            return {
+              id: p.id,
+              username: contact?.display_name || p.username || 'Unknown',
+              avatar_url: p.avatar_url || undefined,
+              phone: p.phone_number || undefined,
+            };
+          });
+          loadedContacts = merged;
+        }
       }
 
-      // Load favorites from localStorage
+      // 2. Load synced device contacts that are registered users
+      const { data: deviceContacts } = await supabase
+        .from('contacts')
+        .select('contact_user_id, contact_name, contact_phone')
+        .eq('user_id', user.id)
+        .eq('is_registered', true);
+
+      if (deviceContacts && deviceContacts.length > 0) {
+        const contactUserIds = deviceContacts.map(c => c.contact_user_id).filter(Boolean) as string[];
+        if (contactUserIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, phone_number')
+            .in('id', contactUserIds);
+          
+          const deviceContactsFormatted = (profiles || []).map(p => {
+            const dc = deviceContacts.find(c => c.contact_user_id === p.id);
+            return {
+              id: p.id,
+              username: dc?.contact_name || p.username || 'Unknown',
+              avatar_url: p.avatar_url || undefined,
+              phone: dc?.contact_phone || p.phone_number || undefined,
+            };
+          });
+          
+          // Merge, avoiding duplicates
+          deviceContactsFormatted.forEach(dc => {
+            if (!loadedContacts.find(c => c.id === dc.id)) {
+              loadedContacts.push(dc);
+            }
+          });
+        }
+      }
+
+      // Sort alphabetically
+      loadedContacts.sort((a, b) => a.username.localeCompare(b.username));
+      setContacts(loadedContacts);
+      setAllUsers(loadedContacts);
+
+      // Load favorites from localStorage with loaded contacts
       const savedFavorites = JSON.parse(localStorage.getItem('chatr_favorites') || '[]');
-      if (savedFavorites.length > 0 && contacts.length > 0) {
-        setFavorites(contacts.filter(c => savedFavorites.includes(c.id)));
+      if (savedFavorites.length > 0 && loadedContacts.length > 0) {
+        setFavorites(loadedContacts.filter(c => savedFavorites.includes(c.id)));
       }
 
-      // Load recent calls
+      // Load recent calls with profile data
       const { data: callsData } = await supabase
         .from('calls')
         .select('*')
@@ -741,10 +784,13 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                   <p className="text-muted-foreground font-medium">
                     {searchQuery ? 'No contacts found' : 'No contacts yet'}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sync your device contacts to see them here
+                  </p>
                   <Button 
-                    variant="outline" 
+                    variant="default" 
                     className="mt-4 rounded-full gap-2"
-                    onClick={() => navigate('/contacts')}
+                    onClick={() => navigate('/chat')}
                   >
                     <UserPlus className="h-4 w-4" />
                     Add Contacts
@@ -765,10 +811,14 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                       </Avatar>
                       <div>
                         <p className="font-medium">{contact.username}</p>
-                        <p className="text-xs text-green-500 flex items-center gap-1">
-                          <Shield className="h-3 w-3" />
-                          CHATR User
-                        </p>
+                        {contact.phone ? (
+                          <p className="text-xs text-muted-foreground">{contact.phone}</p>
+                        ) : (
+                          <p className="text-xs text-green-500 flex items-center gap-1">
+                            <Shield className="h-3 w-3" />
+                            CHATR User
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -782,6 +832,14 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                           "h-4 w-4 transition-colors",
                           favorites.some(f => f.id === contact.id) && "fill-yellow-400 text-yellow-400"
                         )} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full hover:bg-primary/10"
+                        onClick={() => openChat(contact.id)}
+                      >
+                        <MessageCircle className="h-4 w-4 text-primary" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -824,18 +882,46 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
               ) : (
                 <div className="grid grid-cols-3 gap-3">
                   {favorites.map(contact => (
-                    <motion.button
+                    <motion.div
                       key={contact.id}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => onCall(contact.id, contact.username, 'voice')}
-                      className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors"
+                      className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors relative group"
                     >
-                      <Avatar className="h-14 w-14 ring-2 ring-yellow-400/30">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => toggleFavorite(contact)}
+                      >
+                        <X className="h-3 w-3 text-destructive" />
+                      </Button>
+                      <Avatar 
+                        className="h-14 w-14 ring-2 ring-yellow-400/30 cursor-pointer"
+                        onClick={() => onCall(contact.id, contact.username, 'voice')}
+                      >
                         <AvatarImage src={contact.avatar_url} />
                         <AvatarFallback className="text-lg bg-primary/10">{contact.username[0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <p className="text-sm font-medium truncate max-w-full">{contact.username}</p>
-                    </motion.button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-full hover:bg-green-500/10"
+                          onClick={() => onCall(contact.id, contact.username, 'voice')}
+                        >
+                          <Phone className="h-4 w-4 text-green-500" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-full hover:bg-primary/10"
+                          onClick={() => openChat(contact.id)}
+                        >
+                          <MessageCircle className="h-4 w-4 text-primary" />
+                        </Button>
+                      </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
