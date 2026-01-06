@@ -145,11 +145,11 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         let profiles: any[] = [];
         
         if (isPhoneQuery && cleanedPhone.length >= 3) {
-          // Search by phone number
+          // Search by phone number (normalized column)
           const { data } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, phone')
-            .ilike('phone', `%${cleanedPhone}%`)
+            .select('id, username, avatar_url, phone_number, phone_search')
+            .or(`phone_search.ilike.%${cleanedPhone}%,phone_number.ilike.%${cleanedPhone}%`)
             .neq('id', currentUserId || '')
             .limit(10);
           profiles = data || [];
@@ -157,7 +157,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
           // Search by username/name
           const { data } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, phone')
+            .select('id, username, avatar_url, phone_number, phone_search')
             .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
             .neq('id', currentUserId || '')
             .limit(10);
@@ -169,7 +169,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             id: p.id,
             username: p.username || 'Unknown',
             avatar_url: p.avatar_url || undefined,
-            phone: p.phone || undefined,
+            phone: p.phone_search || p.phone_number || undefined,
           }));
           setMatchingUsers(users);
         } else {
