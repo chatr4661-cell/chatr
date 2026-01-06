@@ -255,7 +255,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
           status: updatedCall.status 
         });
         
-        if (updatedCall.status === 'ended') {
+        if (updatedCall.status === 'ended' || updatedCall.status === 'missed') {
           // Check if this is our active call or incoming call
           if (activeCall?.id === updatedCall.id) {
             console.log('🔚 Active call ended by other party');
@@ -266,11 +266,11 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
             });
           }
           if (incomingCall?.id === updatedCall.id) {
-            console.log('🔚 Incoming call cancelled');
+            console.log('🔚 Incoming call cancelled by caller');
             setIncomingCall(null);
             toast({
               title: "Call cancelled",
-              description: "The caller ended the call",
+              description: "The caller cancelled the call",
             });
           }
         }
