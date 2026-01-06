@@ -388,23 +388,26 @@ export function GlobalCallListener() {
 
   // Handle voice to video upgrade
   const handleUpgradeToVideo = async () => {
-    if (!activeCall) return;
+    if (!activeCall) {
+      console.warn("⚠️ No active call to upgrade");
+      return;
+    }
     
     console.log("📹 Upgrading call to video:", activeCall.id);
     
     // Update call type in database
-    await supabase
+    const { error } = await supabase
       .from("calls")
       .update({ call_type: 'video' })
       .eq("id", activeCall.id);
     
+    if (error) {
+      console.error("Failed to upgrade call:", error);
+      return;
+    }
+    
     // Update local state to trigger video call UI
     setActiveCall({ ...activeCall, call_type: 'video' });
-    
-    toast({
-      title: "Video enabled",
-      description: "Call upgraded to video",
-    });
   };
 
   // Show active call (both caller and receiver)
@@ -429,6 +432,7 @@ export function GlobalCallListener() {
       <GSMStyleVoiceCall
         callId={activeCall.id}
         contactName={contactName}
+        contactAvatar={activeCall.callerAvatar}
         isInitiator={activeCall.isInitiator}
         partnerId={activeCall.partnerId}
         onEnd={handleEndCall}

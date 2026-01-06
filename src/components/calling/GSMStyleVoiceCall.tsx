@@ -364,9 +364,11 @@ export default function GSMStyleVoiceCall({
   };
 
   const handleUpgradeToVideo = () => {
-    if (callState === 'connected' && onSwitchToVideo) {
-      toast.info('Upgrading to video call...');
+    if (onSwitchToVideo) {
+      console.log('📹 Upgrading to video call...');
       onSwitchToVideo();
+    } else {
+      console.warn('⚠️ onSwitchToVideo callback not provided');
     }
   };
 

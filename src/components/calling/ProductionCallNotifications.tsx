@@ -241,7 +241,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         console.log('📞 Outgoing channel status:', status);
       });
 
-    // Listen for call updates (ended by other party)
+    // Listen for call updates (ended by other party, or call_type changed)
     const updatesChannel = supabase
       .channel(`production-updates-${userId}`)
       .on('postgres_changes', {
@@ -252,7 +252,8 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         const updatedCall = payload.new as any;
         console.log('🔄 [ProductionCallNotifications] CALL UPDATE:', { 
           id: updatedCall.id, 
-          status: updatedCall.status 
+          status: updatedCall.status,
+          call_type: updatedCall.call_type
         });
         
         if (updatedCall.status === 'ended' || updatedCall.status === 'missed') {
@@ -260,19 +261,17 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
           if (activeCall?.id === updatedCall.id) {
             console.log('🔚 Active call ended by other party');
             setActiveCall(null);
-            toast({
-              title: "Call ended",
-              description: "The call has ended",
-            });
           }
           if (incomingCall?.id === updatedCall.id) {
             console.log('🔚 Incoming call cancelled by caller');
             setIncomingCall(null);
-            toast({
-              title: "Call cancelled",
-              description: "The caller cancelled the call",
-            });
           }
+        }
+        
+        // Handle call type upgrade (voice to video)
+        if (activeCall?.id === updatedCall.id && updatedCall.call_type !== activeCall.call_type) {
+          console.log('📹 Call type changed to:', updatedCall.call_type);
+          setActiveCall({ ...activeCall, call_type: updatedCall.call_type });
         }
       })
       .subscribe((status) => {
@@ -323,6 +322,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         <GSMStyleVoiceCall
           callId={activeCall.id}
           contactName={activeCall.caller_id === userId ? activeCall.receiver_name : activeCall.caller_name}
+          contactAvatar={activeCall.caller_id === userId ? activeCall.receiver_avatar : activeCall.caller_avatar}
           isInitiator={activeCall.caller_id === userId}
           partnerId={activeCall.caller_id === userId ? activeCall.receiver_id : activeCall.caller_id}
           onEnd={endActiveCall}
