@@ -528,8 +528,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="mx-4 mt-3 grid grid-cols-4 bg-muted/50 p-1 rounded-xl shrink-0">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <TabsList className="mx-4 mt-3 mb-2 grid grid-cols-4 bg-muted/50 p-1 rounded-xl shrink-0">
           <TabsTrigger value="keypad" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <Hash className="h-4 w-4" />
             <span className="hidden sm:inline text-xs">Keypad</span>
@@ -709,8 +709,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Recents Tab */}
-        <TabsContent value="recents" className="flex-1 mt-0 min-h-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-auto px-4 py-2 space-y-1">
+        <TabsContent value="recents" className="flex-1 mt-0 data-[state=active]:flex data-[state=active]:flex-col min-h-0">
+          <div className="flex-1 overflow-auto px-4 py-2 space-y-1">
             {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : recentCalls.length === 0 ? (
@@ -788,7 +788,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Contacts Tab */}
-        <TabsContent value="contacts" className="flex-1 mt-0 min-h-0 flex flex-col">
+        <TabsContent value="contacts" className="flex-1 mt-0 data-[state=active]:flex data-[state=active]:flex-col min-h-0">
           <div className="px-4 py-2 shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -800,7 +800,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
               />
             </div>
           </div>
-          <div className="flex-1 min-h-0 overflow-auto px-4 pb-4">
+          <div className="flex-1 overflow-auto px-4 pb-4">
             <div className="space-y-1">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
@@ -894,8 +894,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Favorites Tab */}
-        <TabsContent value="favorites" className="flex-1 mt-0 min-h-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-auto px-4 py-2 pb-4">
+        <TabsContent value="favorites" className="flex-1 mt-0 data-[state=active]:flex data-[state=active]:flex-col min-h-0">
+          <div className="flex-1 overflow-auto px-4 py-2 pb-4">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : favorites.length === 0 ? (
