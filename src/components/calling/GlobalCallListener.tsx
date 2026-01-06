@@ -605,6 +605,7 @@ export function GlobalCallListener() {
         callId={activeCall.id}
         contactName={contactName}
         contactAvatar={activeCall.callerAvatar}
+        contactPhone={activeCall.caller_phone || activeCall.receiver_phone}
         isInitiator={activeCall.isInitiator}
         partnerId={activeCall.partnerId}
         onEnd={handleEndCall}
