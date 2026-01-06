@@ -760,8 +760,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         </TabsContent>
 
         {/* Contacts Tab */}
-        <TabsContent value="contacts" className="flex-1 flex flex-col mt-0 overflow-hidden">
-          <div className="px-4 py-3">
+        <TabsContent value="contacts" className="flex-1 flex flex-col mt-0 overflow-hidden min-h-0">
+          <div className="px-4 py-2 flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -772,7 +772,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
               />
             </div>
           </div>
-          <ScrollArea className="flex-1 px-4">
+          <ScrollArea className="flex-1 px-4 min-h-0">
             <div className="pb-4 space-y-1">
               {loading ? (
                 <div className="py-8 text-center text-muted-foreground">Loading...</div>
