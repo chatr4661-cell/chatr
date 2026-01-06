@@ -271,14 +271,26 @@ export function GlobalCallListener() {
           // Handle video upgrade accepted
           if (signalData?.videoUpgradeAccepted) {
             console.log("✅ [GlobalCallListener] Video upgrade accepted!");
-            setActiveCall((prev: any) => prev ? { ...prev, call_type: 'video', pendingVideoUpgrade: false } : prev);
-            
-            // Update database
+
+            // IMPORTANT: do NOT switch call components by changing call_type in local state.
+            // Keep the existing RTCPeerConnection alive and let GSMStyleVoiceCall add a video track.
+            setActiveCall((prev: any) =>
+              prev
+                ? {
+                    ...prev,
+                    videoEnabled: true,
+                    pendingVideoUpgrade: false,
+                    incomingVideoRequest: false,
+                  }
+                : prev
+            );
+
+            // Update database for record-keeping only
             supabase.from("calls").update({ call_type: 'video' }).eq("id", signal.call_id);
-            
+
             toast({
               title: "Video Enabled",
-              description: "Video call is now active",
+              description: "Video is now active",
             });
           }
           
