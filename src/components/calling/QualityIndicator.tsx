@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Signal, SignalHigh, SignalLow, SignalMedium } from "lucide-react";
+import { Signal, SignalHigh, SignalLow, SignalMedium, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QualityIndicatorProps {
@@ -29,10 +29,10 @@ export function QualityIndicator({ quality, className, showLabel = false }: Qual
       label: 'Poor'
     },
     reconnecting: {
-      icon: Signal,
-      color: 'text-red-500',
+      icon: RefreshCw,
+      color: 'text-blue-400',
       bars: 1,
-      label: 'Reconnecting'
+      label: 'Reconnecting...'
     }
   };
 
