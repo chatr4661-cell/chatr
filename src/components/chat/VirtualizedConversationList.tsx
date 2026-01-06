@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ConversationListSkeleton } from './ConversationListSkeleton';
 import { ConversationContextMenu } from './ConversationContextMenu';
 import { UnreadBadge } from './UnreadBadge';
+import { useChatContext } from '@/contexts/ChatContext';
 
 interface Contact {
   id: string;
@@ -90,6 +91,9 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const [searchingPlatform, setSearchingPlatform] = useState(false);
   const { getCachedConversations, setCachedConversations } = useConversationCache();
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Real-time presence from context
+  const { isUserOnline } = useChatContext();
 
   // Detect search mode from query prefix
   const searchMode = useMemo(() => {
@@ -644,7 +648,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                         {user.username?.[0]?.toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
-                    {user.is_online && (
+                    {isUserOnline(user.id) && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
                     )}
                   </div>
@@ -702,7 +706,8 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                 const isRead = lastMessage?.read_at != null;
                 const isSent = lastMessage?.sender_id === userId;
                 const messagePreview = lastMessage?.content ? formatMessageContent(lastMessage.content) : 'Start chatting';
-                const isOnline = conv.other_user?.is_online;
+                // Use real-time presence instead of stale database value
+                const isOnline = conv.other_user?.id ? isUserOnline(conv.other_user.id) : false;
                 const isPinned = pinnedConversations.includes(conv.id);
 
                 return (

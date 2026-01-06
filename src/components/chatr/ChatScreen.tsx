@@ -11,6 +11,7 @@ import { useReliableMessages, Message } from '@/hooks/useReliableMessages';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useChatContext } from '@/contexts/ChatContext';
 
 interface ChatScreenProps {
   chatId: string;
@@ -20,6 +21,7 @@ interface ChatScreenProps {
 
 export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
   const navigate = useNavigate();
+  const { isUserOnline } = useChatContext();
   const { 
     messages, 
     isLoading, 
@@ -39,6 +41,9 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
   const [otherUser, setOtherUser] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Compute online status from real-time presence
+  const isOnline = otherUser?.id ? isUserOnline(otherUser.id) : false;
 
   // Load other participant info
   useEffect(() => {
@@ -126,14 +131,14 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
                     {(otherUser?.username || chatName)?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {otherUser?.is_online && (
+                {isOnline && (
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-primary" />
                 )}
               </div>
               <div>
                 <h2 className="font-semibold">{otherUser?.username || chatName}</h2>
                 <p className="text-xs opacity-90">
-                  {otherUser?.is_online ? 'Online' : otherUser?.last_seen 
+                  {isOnline ? 'Online' : otherUser?.last_seen 
                     ? `Last seen ${formatDistanceToNow(new Date(otherUser.last_seen), { addSuffix: true })}`
                     : 'Offline'}
                 </p>
