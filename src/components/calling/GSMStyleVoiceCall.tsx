@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
+import { useRingbackTone } from '@/hooks/useRingbackTone';
 import {
   Sheet,
   SheetContent,
@@ -72,6 +73,9 @@ export default function GSMStyleVoiceCall({
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
+  
+  // GSM-style ringback tone for outgoing calls
+  const { startRingback, stopRingback } = useRingbackTone();
   
   // CRITICAL: Keep call alive with heartbeat mechanism
   useCallKeepAlive(callId, callState === 'connected');
@@ -144,6 +148,13 @@ export default function GSMStyleVoiceCall({
         userIdRef.current = user.id;
 
         console.log('🎬 [GSMStyleVoiceCall] Initializing voice call...');
+        
+        // Start ringback tone for outgoing calls (caller hears this while waiting)
+        if (isInitiator) {
+          console.log('🔔 [GSMStyleVoiceCall] Starting ringback tone for outgoing call');
+          startRingback();
+        }
+        
         const call = new SimpleWebRTCCall(callId, partnerId, false, isInitiator, user.id);
         webrtcRef.current = call;
 
@@ -177,6 +188,10 @@ export default function GSMStyleVoiceCall({
 
         call.on('connected', () => {
           console.log('🎉 [GSMStyleVoiceCall] Call connected!');
+          
+          // CRITICAL: Stop ringback tone when call connects
+          stopRingback();
+          
           setCallState('connected');
           startDurationTimer();
           updateCallStatus('active');
@@ -263,6 +278,9 @@ export default function GSMStyleVoiceCall({
   };
 
   const cleanup = () => {
+    // Stop ringback tone
+    stopRingback();
+    
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
     }

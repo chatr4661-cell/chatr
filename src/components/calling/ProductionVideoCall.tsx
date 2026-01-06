@@ -10,6 +10,7 @@ import { NetworkQualityIndicator } from './NetworkQualityIndicator';
 import { Capacitor } from '@capacitor/core';
 import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
 import { useVideoZoom } from '@/hooks/useVideoZoom';
+import { useRingbackTone } from '@/hooks/useRingbackTone';
 
 // Browser detection utilities
 const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -50,6 +51,9 @@ export default function ProductionVideoCall({
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
   
+  // GSM-style ringback tone for outgoing calls
+  const { startRingback, stopRingback } = useRingbackTone();
+  
   // CRITICAL: Keep call alive with heartbeat mechanism
   useCallKeepAlive(callId, callState === 'connected');
 
@@ -70,6 +74,13 @@ export default function ProductionVideoCall({
         userIdRef.current = user.id;
 
         console.log('🎬 [ProductionVideoCall] Initializing video call...');
+        
+        // Start ringback tone for outgoing calls (caller hears this while waiting)
+        if (isInitiator) {
+          console.log('🔔 [ProductionVideoCall] Starting ringback tone for outgoing call');
+          startRingback();
+        }
+        
         const call = new SimpleWebRTCCall(callId, partnerId, true, isInitiator, user.id);
         webrtcRef.current = call;
 
@@ -186,6 +197,10 @@ export default function ProductionVideoCall({
 
         call.on('connected', () => {
           console.log('🎉 [ProductionVideoCall] Call connected!');
+          
+          // CRITICAL: Stop ringback tone when call connects
+          stopRingback();
+          
           setCallState('connected');
           startDurationTimer();
           updateCallStatus('active');
@@ -277,6 +292,9 @@ export default function ProductionVideoCall({
   };
 
   const cleanup = () => {
+    // Stop ringback tone
+    stopRingback();
+    
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
     }
