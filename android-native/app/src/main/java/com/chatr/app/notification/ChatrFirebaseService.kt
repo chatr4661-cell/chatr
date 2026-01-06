@@ -63,7 +63,7 @@ class ChatrFirebaseService : FirebaseMessagingService() {
 
     /**
      * Handle incoming call notification
-     * Uses TelecomManager for native call UI
+     * Uses TelecomManager for native call UI with fallback
      */
     private fun handleCallNotification(data: Map<String, String>) {
         val callId = data["call_id"] ?: data["callId"] ?: return
@@ -74,18 +74,24 @@ class ChatrFirebaseService : FirebaseMessagingService() {
         val callType = data["call_type"] ?: data["callType"] ?: "audio"
         val isVideo = callType == "video"
 
-        Log.d(TAG, "Incoming call from $callerName ($callerPhone)")
+        Log.d(TAG, "📞 Incoming call from $callerName ($callerPhone), callId: $callId")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Use TelecomManager for native call UI
-            TelecomHelper.reportIncomingCall(
-                context = this,
-                callId = callId,
-                callerPhone = callerPhone,
-                callerName = callerName,
-                callerAvatar = callerAvatar,
-                isVideo = isVideo
-            )
+            try {
+                // Use TelecomManager for native call UI
+                TelecomHelper.reportIncomingCall(
+                    context = this,
+                    callId = callId,
+                    callerPhone = callerPhone,
+                    callerName = callerName,
+                    callerAvatar = callerAvatar,
+                    isVideo = isVideo
+                )
+                Log.d(TAG, "✅ Reported call to TelecomManager")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ TelecomManager failed, using fallback", e)
+                showFallbackCallNotification(callId, callerName, callerPhone, isVideo)
+            }
         } else {
             // Fallback for older devices
             showFallbackCallNotification(callId, callerName, callerPhone, isVideo)

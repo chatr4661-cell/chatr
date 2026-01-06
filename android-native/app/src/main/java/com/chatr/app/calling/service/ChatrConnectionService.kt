@@ -68,6 +68,8 @@ class ChatrConnectionService : ConnectionService() {
         val callerAvatar = extras.getString(EXTRA_CALLER_AVATAR)
         val isVideo = extras.getBoolean(EXTRA_IS_VIDEO, false)
 
+        Log.d(TAG, "Incoming call: $callId from $callerName ($callerPhone)")
+
         val connection = ChatrConnection(
             context = this,
             callId = callId,
@@ -81,15 +83,45 @@ class ChatrConnectionService : ConnectionService() {
             }
         )
 
-        // Use tel: URI for proper system integration
+        // Use custom chatr: URI for self-managed apps (must match PhoneAccount scheme)
         connection.setAddress(
-            Uri.parse("tel:$callerPhone"),
+            Uri.parse("chatr:$callerPhone"),
             TelecomManager.PRESENTATION_ALLOWED
         )
         connection.setCallerDisplayName(callerName, TelecomManager.PRESENTATION_ALLOWED)
         connection.setRinging()
 
+        // CRITICAL: Self-managed calls must show their own UI immediately!
+        // System UI is NOT shown for self-managed connections
+        launchIncomingCallActivity(callId, callerName, callerPhone, callerAvatar, isVideo)
+
         return connection
+    }
+    
+    /**
+     * Launch full-screen incoming call activity
+     * Self-managed connections require app to show its own UI
+     */
+    private fun launchIncomingCallActivity(
+        callId: String,
+        callerName: String,
+        callerPhone: String,
+        callerAvatar: String?,
+        isVideo: Boolean
+    ) {
+        val intent = Intent(this, com.chatr.app.presentation.calling.CallActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or 
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(EXTRA_CALL_ID, callId)
+            putExtra(EXTRA_CALLER_NAME, callerName)
+            putExtra(EXTRA_CALLER_PHONE, callerPhone)
+            putExtra(EXTRA_CALLER_AVATAR, callerAvatar)
+            putExtra(EXTRA_IS_VIDEO, isVideo)
+            putExtra("is_incoming", true)
+        }
+        startActivity(intent)
+        Log.d(TAG, "Launched incoming call activity for $callerName")
     }
 
     override fun onCreateOutgoingConnection(
@@ -117,8 +149,9 @@ class ChatrConnectionService : ConnectionService() {
             }
         )
 
+        // Use custom chatr: URI for self-managed apps (must match PhoneAccount scheme)
         connection.setAddress(
-            Uri.parse("tel:$receiverPhone"),
+            Uri.parse("chatr:$receiverPhone"),
             TelecomManager.PRESENTATION_ALLOWED
         )
         connection.setCallerDisplayName(receiverName, TelecomManager.PRESENTATION_ALLOWED)
