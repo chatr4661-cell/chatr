@@ -48,31 +48,66 @@ export default function Calls() {
         .eq('id', currentUserId)
         .single();
 
-      // Find or create conversation
-      let conversationId: string;
-      
-      const { data: existingConv } = await supabase
-        .from('conversations')
-        .select('id')
-        .contains('participant_ids', [currentUserId, contactId])
-        .maybeSingle();
+      // Find or create a 1:1 conversation (uses conversation_participants join table)
+      let conversationId: string | null = null;
 
-      if (existingConv?.id) {
-        conversationId = existingConv.id;
-      } else {
+      const { data: myParticipantRows, error: myPartErr } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', currentUserId);
+
+      if (myPartErr) {
+        console.error('Failed to load conversation participants:', myPartErr);
+      }
+
+      const myConversationIds = (myParticipantRows || [])
+        .map((r: any) => r.conversation_id)
+        .filter(Boolean);
+
+      if (myConversationIds.length > 0) {
+        const { data: sharedConv, error: sharedErr } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', contactId)
+          .in('conversation_id', myConversationIds)
+          .limit(1)
+          .maybeSingle();
+
+        if (sharedErr) {
+          console.error('Failed to find shared conversation:', sharedErr);
+        }
+
+        if (sharedConv?.conversation_id) {
+          conversationId = sharedConv.conversation_id;
+        }
+      }
+
+      if (!conversationId) {
         const { data: newConv, error: convError } = await supabase
           .from('conversations')
-          .insert({
-            participant_ids: [currentUserId, contactId],
-            is_group: false
-          })
+          .insert({ created_by: currentUserId, is_group: false })
           .select('id')
           .single();
 
-        if (convError) {
+        if (convError || !newConv?.id) {
+          console.error('Could not create conversation:', convError);
           toast.error('Could not create conversation');
           return;
         }
+
+        const { error: participantsError } = await supabase
+          .from('conversation_participants')
+          .insert([
+            { conversation_id: newConv.id, user_id: currentUserId },
+            { conversation_id: newConv.id, user_id: contactId },
+          ]);
+
+        if (participantsError) {
+          console.error('Could not add participants:', participantsError);
+          toast.error('Could not create conversation');
+          return;
+        }
+
         conversationId = newConv.id;
       }
 
@@ -80,7 +115,7 @@ export default function Calls() {
       const { data: callData, error: callError } = await supabase
         .from('calls')
         .insert({
-          conversation_id: conversationId,
+          conversation_id: conversationId!,
           caller_id: currentUserId,
           caller_name: profile?.username || 'Unknown',
           caller_avatar: profile?.avatar_url,
