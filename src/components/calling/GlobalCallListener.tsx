@@ -20,6 +20,7 @@ export function GlobalCallListener() {
 
   const incomingCallRef = useRef<any>(null);
   const outgoingCallRef = useRef<any>(null);
+  const activeCallRef = useRef<any>(null);
   
   useEffect(() => {
     incomingCallRef.current = incomingCall;
@@ -28,6 +29,10 @@ export function GlobalCallListener() {
   useEffect(() => {
     outgoingCallRef.current = outgoingCall;
   }, [outgoingCall]);
+  
+  useEffect(() => {
+    activeCallRef.current = activeCall;
+  }, [activeCall]);
 
   // Track auth state (so this works on ALL screens and after refresh)
   useEffect(() => {
@@ -51,55 +56,58 @@ export function GlobalCallListener() {
     };
   }, []);
 
+  // Track if running in native shell
+  const isNative = isNativeShell();
+  
   // Subscribe once per logged-in user
-  // CRITICAL: Skip subscription in native shell - native handles calls via TelecomManager/CallKit
+  // CRITICAL: In native shell, skip INCOMING call notifications (handled by TelecomManager/CallKit)
+  // But STILL subscribe to call STATUS updates for WebRTC signaling to work!
   useEffect(() => {
     if (!userId) return;
     
-    // Native shell uses FCM → TelecomManager/CallKit for incoming calls
-    // Web listener would cause duplicate notifications
-    if (isNativeShell()) {
-      console.log("📱 [GlobalCallListener] Native shell detected - deferring to native call handling");
-      return;
+    console.log(`🔔 GlobalCallListener active for user: ${userId} (native: ${isNative})`);
+    
+    // Native shell: Skip incoming call INSERT listener (native TelecomManager shows incoming UI)
+    // Web: Listen for incoming calls normally
+
+    // Incoming calls (receiver side) - SKIP UI in native shell (TelecomManager shows it)
+    let incomingChannel: any = null;
+    if (!isNative) {
+      incomingChannel = supabase
+        .channel(`incoming-calls:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "calls",
+            filter: `receiver_id=eq.${userId}`,
+          },
+          async (payload) => {
+            const call = payload.new as any;
+            console.log("📞 New call INSERT (receiver match):", call);
+
+            if (call.status !== "ringing") return;
+
+            const { data: callerProfile } = await supabase
+              .from("profiles")
+              .select("username, avatar_url")
+              .eq("id", call.caller_id)
+              .maybeSingle();
+
+            setIncomingCall({
+              ...call,
+              callerName: callerProfile?.username || call.caller_name || "Unknown",
+              callerAvatar: callerProfile?.avatar_url || call.caller_avatar,
+            });
+          }
+        )
+        .subscribe((status) => {
+          console.log("📡 incoming-calls channel status:", status);
+        });
     }
 
-    console.log("🔔 GlobalCallListener active for user:", userId);
-
-    // Incoming calls (receiver side)
-    const incomingChannel = supabase
-      .channel(`incoming-calls:${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "calls",
-          filter: `receiver_id=eq.${userId}`,
-        },
-        async (payload) => {
-          const call = payload.new as any;
-          console.log("📞 New call INSERT (receiver match):", call);
-
-          if (call.status !== "ringing") return;
-
-          const { data: callerProfile } = await supabase
-            .from("profiles")
-            .select("username, avatar_url")
-            .eq("id", call.caller_id)
-            .maybeSingle();
-
-          setIncomingCall({
-            ...call,
-            callerName: callerProfile?.username || call.caller_name || "Unknown",
-            callerAvatar: callerProfile?.avatar_url || call.caller_avatar,
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log("📡 incoming-calls channel status:", status);
-      });
-
-    // Call updates relevant to this receiver (ended/answered elsewhere)
+    // Call updates relevant to this receiver (ended/answered elsewhere, OR native accepted)
     const updatesChannel = supabase
       .channel(`call-updates:${userId}`)
       .on(
@@ -110,10 +118,32 @@ export function GlobalCallListener() {
           table: "calls",
           filter: `receiver_id=eq.${userId}`,
         },
-        (payload) => {
+        async (payload) => {
           const call = payload.new as any;
-          const currentIncoming = incomingCallRef.current;
+          console.log("📱 [GlobalCallListener] Receiver call UPDATE:", call.id, "status:", call.status);
 
+          // If running in native shell and call becomes active, START WebRTC as receiver!
+          if (isNative && call.status === "active" && !activeCallRef.current) {
+            console.log("📱 [GlobalCallListener] Native accepted call - starting WebRTC as receiver");
+            
+            const { data: callerProfile } = await supabase
+              .from("profiles")
+              .select("username, avatar_url")
+              .eq("id", call.caller_id)
+              .maybeSingle();
+
+            setActiveCall({
+              ...call,
+              isInitiator: false, // Receiver is NOT initiator - will wait for offer
+              partnerId: call.caller_id,
+              callerName: callerProfile?.username || call.caller_name || "Unknown",
+              callerAvatar: callerProfile?.avatar_url || call.caller_avatar,
+            });
+            return;
+          }
+
+          // Web mode: handle incoming call updates
+          const currentIncoming = incomingCallRef.current;
           if (!currentIncoming) return;
           if (call.id !== currentIncoming.id) return;
 
@@ -311,13 +341,13 @@ export function GlobalCallListener() {
       });
 
     return () => {
-      supabase.removeChannel(incomingChannel);
+      if (incomingChannel) supabase.removeChannel(incomingChannel);
       supabase.removeChannel(updatesChannel);
       supabase.removeChannel(outgoingChannel);
       supabase.removeChannel(outgoingUpdatesChannel);
       supabase.removeChannel(videoUpgradeChannel);
     };
-  }, [userId, toast]);
+  }, [userId, toast, isNative]);
 
   const handleAnswer = async () => {
     if (!incomingCall) return;
