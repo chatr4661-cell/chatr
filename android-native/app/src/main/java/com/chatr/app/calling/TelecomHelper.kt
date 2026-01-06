@@ -38,28 +38,40 @@ object TelecomHelper {
     /**
      * Register ChatrPlus PhoneAccount with the system
      */
+    /**
+     * Register ChatrPlus PhoneAccount with the system
+     * 
+     * CRITICAL: Self-managed ConnectionServices CANNOT have:
+     * - CAPABILITY_CALL_PROVIDER (conflicts with self-managed)
+     * - CAPABILITY_CONNECTION_MANAGER
+     * - CAPABILITY_SIM_SUBSCRIPTION
+     * - tel: or sip: URI schemes (reserved for system telephony)
+     * 
+     * Must use custom URI scheme for self-managed apps.
+     */
     fun registerPhoneAccount(context: Context) {
         try {
             val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
             val phoneAccountHandle = getPhoneAccountHandle(context)
 
+            // Self-managed only - NO CAPABILITY_CALL_PROVIDER (causes SecurityException)
             val phoneAccount = PhoneAccount.builder(phoneAccountHandle, "ChatrPlus")
                 .setCapabilities(
-                    PhoneAccount.CAPABILITY_CALL_PROVIDER or
-                    PhoneAccount.CAPABILITY_VIDEO_CALLING or
-                    PhoneAccount.CAPABILITY_SELF_MANAGED
+                    PhoneAccount.CAPABILITY_SELF_MANAGED or
+                    PhoneAccount.CAPABILITY_VIDEO_CALLING
                 )
                 .setIcon(android.graphics.drawable.Icon.createWithResource(context, R.drawable.ic_notification))
                 .setShortDescription("ChatrPlus Voice & Video Calling")
-                .addSupportedUriScheme("tel")
-                .addSupportedUriScheme("sip")
+                .addSupportedUriScheme("chatr") // Custom scheme for self-managed
                 .setHighlightColor(context.getColor(R.color.notification_accent))
                 .build()
 
             telecomManager.registerPhoneAccount(phoneAccount)
-            Log.d(TAG, "PhoneAccount registered successfully")
+            Log.i(TAG, "✅ PhoneAccount registered successfully (self-managed mode)")
+        } catch (e: SecurityException) {
+            Log.e(TAG, "❌ SecurityException registering PhoneAccount - check capabilities", e)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to register PhoneAccount", e)
+            Log.e(TAG, "❌ Failed to register PhoneAccount", e)
         }
     }
 
@@ -100,8 +112,10 @@ object TelecomHelper {
                 putBoolean(ChatrConnectionService.EXTRA_IS_VIDEO, isVideo)
             }
 
-            val uri = Uri.parse("tel:$phoneNumber")
+            // Use custom chatr: scheme for self-managed apps
+            val uri = Uri.parse("chatr:$phoneNumber")
             telecomManager.placeCall(uri, extras)
+            Log.i(TAG, "📞 Placing self-managed call to $phoneNumber")
             Log.d(TAG, "Placing call to $phoneNumber (video: $isVideo)")
         } catch (e: SecurityException) {
             Log.e(TAG, "Permission denied for placing call", e)
@@ -132,7 +146,8 @@ object TelecomHelper {
                 putString(ChatrConnectionService.EXTRA_CALLER_PHONE, callerPhone)
                 putString(ChatrConnectionService.EXTRA_CALLER_AVATAR, callerAvatar)
                 putBoolean(ChatrConnectionService.EXTRA_IS_VIDEO, isVideo)
-                putParcelable(TelecomManager.EXTRA_INCOMING_CALL_ADDRESS, Uri.parse("tel:$callerPhone"))
+                // Use custom chatr: scheme for self-managed apps
+                putParcelable(TelecomManager.EXTRA_INCOMING_CALL_ADDRESS, Uri.parse("chatr:$callerPhone"))
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
