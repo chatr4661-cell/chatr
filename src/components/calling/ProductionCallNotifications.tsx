@@ -286,7 +286,7 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
     };
   }, [userId, activeCall, incomingCall]);
 
-  // Handle voice to video upgrade
+  // Handle voice to video upgrade - this version doesn't have signaling, keeping simple for now
   const handleUpgradeToVideo = async () => {
     if (!activeCall) return;
     
@@ -328,6 +328,8 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
           onEnd={endActiveCall}
           onSwitchToVideo={handleUpgradeToVideo}
           isIncoming={activeCall.caller_id !== userId}
+          incomingVideoRequest={activeCall.incomingVideoRequest}
+          pendingVideoUpgrade={activeCall.pendingVideoUpgrade}
         />
       )}
 

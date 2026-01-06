@@ -42,7 +42,11 @@ interface GSMStyleVoiceCallProps {
   partnerId: string;
   onEnd: () => void;
   onSwitchToVideo?: () => void;
+  onAcceptVideoUpgrade?: () => void;
+  onDeclineVideoUpgrade?: () => void;
   isIncoming?: boolean;
+  incomingVideoRequest?: boolean;
+  pendingVideoUpgrade?: boolean;
 }
 
 export default function GSMStyleVoiceCall({
@@ -53,7 +57,11 @@ export default function GSMStyleVoiceCall({
   partnerId,
   onEnd,
   onSwitchToVideo,
+  onAcceptVideoUpgrade,
+  onDeclineVideoUpgrade,
   isIncoming = false,
+  incomingVideoRequest = false,
+  pendingVideoUpgrade = false,
 }: GSMStyleVoiceCallProps) {
   const [callState, setCallState] = useState<'connecting' | 'connected' | 'failed' | 'onhold'>('connecting');
   const [isMuted, setIsMuted] = useState(false);
@@ -536,6 +544,55 @@ export default function GSMStyleVoiceCall({
             <p className="text-sm text-slate-400">On hold:</p>
             <p className="text-white font-medium">{secondCall.name}</p>
           </div>
+        )}
+
+        {/* Video upgrade request prompt */}
+        <AnimatePresence>
+          {incomingVideoRequest && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="absolute top-32 inset-x-4 bg-blue-600/95 backdrop-blur-lg rounded-2xl p-6 shadow-2xl"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                  <Video className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-lg">Video Request</h3>
+                  <p className="text-white/80 text-sm">{contactName} wants to switch to video</p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={onDeclineVideoUpgrade}
+                  className="flex-1 py-3 rounded-xl bg-white/20 text-white font-medium hover:bg-white/30 transition-colors"
+                >
+                  Decline
+                </button>
+                <button
+                  onClick={onAcceptVideoUpgrade}
+                  className="flex-1 py-3 rounded-xl bg-white text-blue-600 font-medium hover:bg-white/90 transition-colors"
+                >
+                  Accept Video
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Pending video upgrade indicator */}
+        {pendingVideoUpgrade && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4 bg-blue-500/20 rounded-lg px-4 py-2 mx-8"
+          >
+            <p className="text-blue-400 text-sm text-center animate-pulse">
+              📹 Waiting for video acceptance...
+            </p>
+          </motion.div>
         )}
       </div>
 
