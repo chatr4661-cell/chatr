@@ -28,6 +28,7 @@ import Profile from "./pages/Profile";
 import Contacts from "./pages/Contacts";
 import GlobalContacts from "./pages/GlobalContacts";
 import CallHistory from "./pages/CallHistory";
+import Calls from "./pages/Calls";
 import ContactsPage from "./pages/ContactsPage";
 import SmartInbox from "./pages/SmartInbox";
 import Stories from "./pages/Stories";
@@ -382,6 +383,7 @@ const App = () => {
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/global-contacts" element={<GlobalContacts />} />
             <Route path="/call-history" element={<CallHistory />} />
+            <Route path="/calls" element={<Calls />} />
             <Route path="/smart-inbox" element={<SmartInbox />} />
             <Route path="/stories" element={<Stories />} />
             <Route path="/communities" element={<Communities />} />

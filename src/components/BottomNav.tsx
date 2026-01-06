@@ -8,7 +8,7 @@ import { Capacitor } from '@capacitor/core';
 
 const navItems = [
   { name: 'Contacts', path: '/contacts', icon: Users, highlight: false },
-  { name: 'Calls', path: '/call-history', icon: Phone, highlight: false },
+  { name: 'Calls', path: '/calls', icon: Phone, highlight: false },
   { name: 'Chats', path: '/chat', icon: MessageCircle, highlight: true },
   { name: 'Settings', path: '/settings', icon: User, highlight: false },
 ];
