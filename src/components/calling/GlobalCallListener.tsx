@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { IncomingCallScreen } from "./IncomingCallScreen";
 import ProductionVideoCall from "./ProductionVideoCall";
-import ProductionVoiceCall from "./ProductionVoiceCall";
+import GSMStyleVoiceCall from "./GSMStyleVoiceCall";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
@@ -405,7 +405,7 @@ export function GlobalCallListener() {
     }
 
     return (
-      <ProductionVoiceCall
+      <GSMStyleVoiceCall
         callId={activeCall.id}
         contactName={contactName}
         isInitiator={activeCall.isInitiator}

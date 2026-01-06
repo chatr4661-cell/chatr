@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { IncomingCallScreen } from './IncomingCallScreen';
-import ProductionVoiceCall from './ProductionVoiceCall';
+import GSMStyleVoiceCall from './GSMStyleVoiceCall';
 import ProductionVideoCall from './ProductionVideoCall';
 import { GroupVideoCall } from './GroupVideoCall';
 import { GroupVoiceCall } from './GroupVoiceCall';
@@ -302,9 +302,9 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
         />
       )}
 
-      {/* Active Voice Call */}
+      {/* Active Voice Call - GSM Style */}
       {activeCall && activeCall.call_type === 'voice' && !activeCall.is_group && (
-        <ProductionVoiceCall
+        <GSMStyleVoiceCall
           callId={activeCall.id}
           contactName={activeCall.caller_id === userId ? activeCall.receiver_name : activeCall.caller_name}
           isInitiator={activeCall.caller_id === userId}
