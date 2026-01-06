@@ -125,7 +125,17 @@ export default function ProductionVoiceCall({
 
         call.on('failed', (error: Error) => {
           console.error('⚠️ [ProductionVoiceCall] Connection issue:', error);
+          
           // CRITICAL: Do NOT auto-end - let user decide to hang up
+          if (error.message.includes('microphone') || error.message.includes('Could not access')) {
+            toast.error('Microphone access denied', {
+              description: 'Please allow microphone access and try again',
+              duration: 10000
+            });
+            setCallState('failed');
+            return;
+          }
+          
           // Show warning but keep call alive for recovery
           toast.warning('Connection unstable - attempting recovery...', {
             duration: 5000,
