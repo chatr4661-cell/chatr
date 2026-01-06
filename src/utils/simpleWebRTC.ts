@@ -947,6 +947,21 @@ export class SimpleWebRTCCall {
     }
   }
 
+  /**
+   * Send DTMF tone (for IVR systems, phone menus, etc.)
+   */
+  sendDTMF(digit: string) {
+    if (!this.pc) return;
+    
+    const sender = this.pc.getSenders().find(s => s.track?.kind === 'audio');
+    if (sender && sender.dtmf) {
+      sender.dtmf.insertDTMF(digit, 100, 70);
+      console.log(`📱 [SimpleWebRTC] DTMF sent: ${digit}`);
+    } else {
+      console.warn('⚠️ [SimpleWebRTC] DTMF not supported on this connection');
+    }
+  }
+
   getState(): CallState {
     return this.callState;
   }
