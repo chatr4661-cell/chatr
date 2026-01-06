@@ -135,7 +135,39 @@ export default function GSMStyleVoiceCall({
     };
   }, []);
 
-  // Initialize call
+  // CRITICAL: Monitor call status changes via realtime to stop ringback when answered
+  useEffect(() => {
+    if (!isInitiator) return; // Only initiator needs to listen for answer
+    
+    const channel = supabase
+      .channel(`call-status-${callId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'calls',
+        filter: `id=eq.${callId}`
+      }, (payload: any) => {
+        const newStatus = payload.new?.status;
+        console.log('📞 [GSMStyleVoiceCall] Call status changed:', newStatus);
+        
+        // Stop ringback when call is answered (status becomes 'active')
+        if (newStatus === 'active' || newStatus === 'connected') {
+          console.log('🔔 [GSMStyleVoiceCall] Call answered - stopping ringback');
+          stopRingback();
+          
+          // Also update local state if WebRTC hasn't connected yet
+          if (callState === 'connecting') {
+            setCallState('connected');
+            startDurationTimer();
+          }
+        }
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [callId, isInitiator, callState, stopRingback]);
   useEffect(() => {
     const initCall = async () => {
       try {
