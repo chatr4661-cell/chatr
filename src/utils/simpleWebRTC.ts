@@ -120,29 +120,11 @@ export class SimpleWebRTCCall {
         facingMode: 'user'
       }) : false;
       
-      // HD Audio Quality - Studio-grade audio to match 1080p video
+      // Simplified audio constraints - avoid experimental options that may cause failures
       const audioConstraints: MediaTrackConstraints = {
-        // Core audio processing
-        echoCancellation: { ideal: true },
-        noiseSuppression: { ideal: true },
-        autoGainControl: { ideal: true },
-        
-        // HD Audio settings - 48kHz stereo for crystal clear voice
-        sampleRate: { ideal: 48000, min: 44100 },
-        sampleSize: { ideal: 24, min: 16 }, // 24-bit audio depth
-        channelCount: { ideal: 2, min: 1 }, // Stereo for spatial audio
-        
-        // Advanced noise cancellation (Chrome/Edge specific)
-        // @ts-ignore - experimental constraints
-        googEchoCancellation: true,
-        googAutoGainControl: true,
-        googNoiseSuppression: true,
-        googHighpassFilter: true,
-        googTypingNoiseDetection: true,
-        googNoiseReduction: true,
-        
-        // Latency optimization for real-time calls
-        latency: { ideal: 0.01, max: 0.05 }, // 10-50ms latency
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
       };
 
       const constraints = {
@@ -1017,6 +999,72 @@ export class SimpleWebRTCCall {
       });
       console.log(`📹 [SimpleWebRTC] Video ${enabled ? 'enabled' : 'disabled'}`);
     }
+  }
+
+  /**
+   * Upgrade voice call to video by adding video track
+   * Returns the local video stream for display
+   */
+  async addVideoToCall(): Promise<MediaStream | null> {
+    if (!this.pc || !this.localStream) {
+      console.error('❌ [SimpleWebRTC] Cannot add video - no active connection');
+      return null;
+    }
+
+    try {
+      console.log('📹 [SimpleWebRTC] Adding video to existing call...');
+      
+      // Get video stream
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
+      });
+      
+      const videoTrack = videoStream.getVideoTracks()[0];
+      
+      // Add to local stream
+      this.localStream.addTrack(videoTrack);
+      
+      // Add to peer connection
+      const sender = this.pc.addTrack(videoTrack, this.localStream);
+      console.log('✅ [SimpleWebRTC] Video track added to connection');
+      
+      // Mark as video call
+      this.isVideo = true;
+      
+      // Emit updated local stream
+      this.emit('localStream', this.localStream);
+      
+      return videoStream;
+    } catch (error) {
+      console.error('❌ [SimpleWebRTC] Failed to add video:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Remove video from call (downgrade to voice)
+   */
+  removeVideoFromCall() {
+    if (!this.pc || !this.localStream) return;
+    
+    const videoTracks = this.localStream.getVideoTracks();
+    videoTracks.forEach(track => {
+      track.stop();
+      this.localStream?.removeTrack(track);
+      
+      // Remove from peer connection
+      const sender = this.pc?.getSenders().find(s => s.track === track);
+      if (sender) {
+        this.pc?.removeTrack(sender);
+      }
+    });
+    
+    this.isVideo = false;
+    console.log('📹 [SimpleWebRTC] Video removed from call');
   }
 
   /**

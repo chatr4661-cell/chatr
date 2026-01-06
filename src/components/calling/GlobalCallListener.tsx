@@ -487,16 +487,11 @@ export function GlobalCallListener() {
     
     console.log("✅ Accepting video upgrade for call:", activeCall.id);
     
-    // Update call type in database
-    const { error } = await supabase
+    // Update call type in database (for record keeping only)
+    await supabase
       .from("calls")
       .update({ call_type: 'video' })
       .eq("id", activeCall.id);
-    
-    if (error) {
-      console.error("Failed to upgrade call:", error);
-      return;
-    }
     
     // Send acceptance signal
     try {
@@ -510,8 +505,14 @@ export function GlobalCallListener() {
       console.error("Failed to send upgrade acceptance:", e);
     }
     
-    // Update local state - switch to video UI
-    setActiveCall({ ...activeCall, call_type: 'video', pendingVideoUpgrade: false, incomingVideoRequest: false });
+    // CRITICAL: Set videoEnabled flag instead of changing call_type
+    // This tells GSMStyleVoiceCall to add video WITHOUT switching components
+    setActiveCall({ 
+      ...activeCall, 
+      videoEnabled: true, 
+      pendingVideoUpgrade: false, 
+      incomingVideoRequest: false 
+    });
   };
 
   // Decline video upgrade
@@ -571,6 +572,7 @@ export function GlobalCallListener() {
         isIncoming={!activeCall.isInitiator}
         incomingVideoRequest={activeCall.incomingVideoRequest}
         pendingVideoUpgrade={activeCall.pendingVideoUpgrade}
+        videoEnabled={activeCall.videoEnabled}
       />
     );
   }
