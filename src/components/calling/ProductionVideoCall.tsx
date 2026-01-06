@@ -10,7 +10,7 @@ import { NetworkQualityIndicator } from './NetworkQualityIndicator';
 import { Capacitor } from '@capacitor/core';
 import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
 import { useVideoZoom } from '@/hooks/useVideoZoom';
-import { useRingbackTone } from '@/hooks/useRingbackTone';
+
 
 // Browser detection utilities
 const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -51,8 +51,6 @@ export default function ProductionVideoCall({
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
   
-  // GSM-style ringback tone for outgoing calls
-  const { startRingback, stopRingback } = useRingbackTone();
   
   // CRITICAL: Keep call alive with heartbeat mechanism
   useCallKeepAlive(callId, callState === 'connected');
@@ -75,11 +73,7 @@ export default function ProductionVideoCall({
 
         console.log('🎬 [ProductionVideoCall] Initializing video call...');
         
-        // Start ringback tone for outgoing calls (caller hears this while waiting)
-        if (isInitiator) {
-          console.log('🔔 [ProductionVideoCall] Starting ringback tone for outgoing call');
-          startRingback();
-        }
+        console.log('🎬 [ProductionVideoCall] Call mode:', isInitiator ? 'outgoing' : 'incoming');
         
         const call = new SimpleWebRTCCall(callId, partnerId, true, isInitiator, user.id);
         webrtcRef.current = call;
@@ -197,10 +191,6 @@ export default function ProductionVideoCall({
 
         call.on('connected', () => {
           console.log('🎉 [ProductionVideoCall] Call connected!');
-          
-          // CRITICAL: Stop ringback tone when call connects
-          stopRingback();
-          
           setCallState('connected');
           startDurationTimer();
           updateCallStatus('active');
@@ -265,12 +255,9 @@ export default function ProductionVideoCall({
         const newStatus = payload.new?.status;
         console.log('📞 [ProductionVideoCall] Call status changed:', newStatus);
         
-        // Stop ringback when call is answered (status becomes 'active')
+        // Update local state when call is answered
         if (newStatus === 'active' || newStatus === 'connected') {
-          console.log('🔔 [ProductionVideoCall] Call answered - stopping ringback');
-          stopRingback();
-          
-          // Also update local state if WebRTC hasn't connected yet
+          console.log('📞 [ProductionVideoCall] Call answered');
           if (callState === 'connecting') {
             setCallState('connected');
             startDurationTimer();
@@ -282,7 +269,7 @@ export default function ProductionVideoCall({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [callId, isInitiator, callState, stopRingback]);
+  }, [callId, isInitiator, callState]);
 
   const startDurationTimer = () => {
     durationIntervalRef.current = setInterval(() => {
@@ -326,8 +313,6 @@ export default function ProductionVideoCall({
   };
 
   const cleanup = () => {
-    // Stop ringback tone
-    stopRingback();
     
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
