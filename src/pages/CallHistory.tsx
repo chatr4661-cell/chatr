@@ -129,28 +129,22 @@ export default function CallHistory() {
   const startCall = async (contactId: string, callType: 'voice' | 'video') => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        toast.error('Please sign in to make calls');
+        return;
+      }
 
-      const { data: conversation } = await supabase
-        .from('conversations')
-        .select('id')
-        .contains('participant_ids', [user.id, contactId])
+      // Get receiver profile first to validate they exist
+      const { data: receiverProfile, error: receiverError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .eq('id', contactId)
         .single();
 
-      let conversationId = conversation?.id;
-
-      if (!conversationId) {
-        const { data: newConv, error: convError } = await supabase
-          .from('conversations')
-          .insert({
-            participant_ids: [user.id, contactId],
-            is_group: false
-          })
-          .select()
-          .single();
-
-        if (convError) throw convError;
-        conversationId = newConv.id;
+      if (receiverError || !receiverProfile) {
+        console.error('Receiver not found:', receiverError);
+        toast.error('Contact not found');
+        return;
       }
 
       // Get caller profile
@@ -160,13 +154,36 @@ export default function CallHistory() {
         .eq('id', user.id)
         .single();
 
-      // Get receiver profile
-      const { data: receiverProfile } = await supabase
-        .from('profiles')
-        .select('username, avatar_url')
-        .eq('id', contactId)
-        .single();
+      // Find or create conversation
+      let conversationId: string;
+      
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select('id')
+        .contains('participant_ids', [user.id, contactId])
+        .maybeSingle();
 
+      if (existingConv?.id) {
+        conversationId = existingConv.id;
+      } else {
+        const { data: newConv, error: convError } = await supabase
+          .from('conversations')
+          .insert({
+            participant_ids: [user.id, contactId],
+            is_group: false
+          })
+          .select('id')
+          .single();
+
+        if (convError) {
+          console.error('Conversation creation failed:', convError);
+          toast.error('Could not create conversation');
+          return;
+        }
+        conversationId = newConv.id;
+      }
+
+      // Create the call record
       const { data: callData, error: callError } = await supabase
         .from('calls')
         .insert({
@@ -175,15 +192,19 @@ export default function CallHistory() {
           caller_name: profile?.username || 'Unknown',
           caller_avatar: profile?.avatar_url,
           receiver_id: contactId,
-          receiver_name: receiverProfile?.username || 'Unknown',
-          receiver_avatar: receiverProfile?.avatar_url,
+          receiver_name: receiverProfile.username || 'Unknown',
+          receiver_avatar: receiverProfile.avatar_url,
           call_type: callType,
           status: 'ringing'
         })
         .select()
         .single();
 
-      if (callError) throw callError;
+      if (callError) {
+        console.error('Call creation failed:', callError);
+        toast.error('Could not start call');
+        return;
+      }
 
       // Send FCM push notification to receiver
       try {
