@@ -64,27 +64,23 @@ export default function CallHistory() {
       
       setCurrentUserId(user.id);
 
+      // Single optimized query - no N+1 problem
+      // Use caller_name/receiver_name/avatar stored directly in calls table
       const { data, error } = await supabase
         .from('calls')
-        .select('*')
+        .select('id, call_type, status, started_at, ended_at, duration, caller_id, receiver_id, caller_name, caller_avatar, receiver_name, receiver_avatar')
         .or(`caller_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('started_at', { ascending: false })
-        .limit(100);
+        .limit(50);
 
       if (error) throw error;
       
-      const callsWithProfiles = await Promise.all((data || []).map(async (call) => {
-        const [callerProfile, receiverProfile] = await Promise.all([
-          supabase.from('profiles').select('username, avatar_url').eq('id', call.caller_id).single(),
-          supabase.from('profiles').select('username, avatar_url').eq('id', call.receiver_id).single()
-        ]);
-        
-        return {
-          ...call,
-          caller: callerProfile.data,
-          receiver: receiverProfile.data
-        } as Call;
-      }));
+      // Map to expected format using stored names/avatars
+      const callsWithProfiles = (data || []).map(call => ({
+        ...call,
+        caller: { username: call.caller_name || 'Unknown', avatar_url: call.caller_avatar },
+        receiver: { username: call.receiver_name || 'Unknown', avatar_url: call.receiver_avatar }
+      })) as Call[];
       
       setCalls(callsWithProfiles);
     } catch (error) {
