@@ -196,17 +196,18 @@ export default function ProductionVideoCall({
           console.error('⚠️ [ProductionVideoCall] Connection issue:', error);
           
           // CRITICAL: Do NOT auto-end - let user decide to hang up
-          // Only show warning for recoverable errors
           let warningMessage = 'Connection unstable - recovering...';
           
-          if (error.message.includes('camera') || error.message.includes('microphone')) {
-            // Camera/mic errors ARE terminal - end immediately
+          if (error.message.includes('camera') || error.message.includes('microphone') || error.message.includes('Could not access')) {
+            // Camera/mic errors - show error but DON'T auto-end
+            // The user should manually hang up so it doesn't end the call for both parties
             toast.error('Camera/Microphone access denied', {
-              description: 'Please allow camera and microphone access',
-              duration: 5000
+              description: 'Please allow camera and microphone access and try again',
+              duration: 10000
             });
             setCallState('failed');
-            setTimeout(() => handleEndCall(), 3000);
+            // DON'T auto-end the call - let user manually hang up
+            // This prevents ending the call for the other participant who may not have issues
             return;
           }
           
