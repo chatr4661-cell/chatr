@@ -178,7 +178,6 @@ export default function GSMStyleVoiceCall({
         call.on('connected', () => {
           console.log('🎉 [GSMStyleVoiceCall] Call connected!');
           setCallState('connected');
-          toast.success('Call connected');
           startDurationTimer();
           updateCallStatus('active');
         });
@@ -186,11 +185,11 @@ export default function GSMStyleVoiceCall({
         call.on('failed', (error: Error) => {
           console.error('⚠️ [GSMStyleVoiceCall] Connection issue:', error);
           if (error.message.includes('microphone')) {
-            toast.error('Microphone access denied');
+            console.warn('Microphone access denied');
             setCallState('failed');
             return;
           }
-          toast.warning('Connection unstable - recovering...');
+          console.warn('Connection unstable - recovering...');
         });
 
         call.on('ended', () => {
@@ -205,7 +204,6 @@ export default function GSMStyleVoiceCall({
 
       } catch (error) {
         console.error('❌ [GSMStyleVoiceCall] Init error:', error);
-        toast.error('Failed to initialize call');
         onEnd();
       }
     };
@@ -416,35 +414,48 @@ export default function GSMStyleVoiceCall({
 
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-b from-slate-800/95 via-slate-900/98 to-black flex flex-col">
-      {/* Top section - Contact info */}
+      {/* Top section - Avatar and Name only */}
       <div className="flex-1 flex flex-col items-center justify-center pt-16 pb-8">
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-slate-400 text-sm mb-2 flex items-center gap-2"
-        >
-          {callState === 'connecting' ? 'Calling mobile...' : 
-           callState === 'onhold' ? 'On Hold' :
-           isConference ? `Conference • ${conferenceParticipants.length} participants` : 'ChatrPlus'}
-        </motion.p>
+        {/* Avatar */}
+        {contactAvatar ? (
+          <motion.img
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            src={contactAvatar}
+            alt={contactName}
+            className="w-28 h-28 rounded-full object-cover mb-6 ring-4 ring-white/10"
+          />
+        ) : (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-28 h-28 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center mb-6 ring-4 ring-white/10"
+          >
+            <span className="text-4xl font-semibold text-white">
+              {contactName.charAt(0).toUpperCase()}
+            </span>
+          </motion.div>
+        )}
         
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-semibold text-white mb-4"
+          className="text-3xl font-semibold text-white mb-2"
         >
           {contactName}
         </motion.h1>
         
-        {callState === 'connected' && (
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-slate-400 text-lg"
-          >
-            {formatDuration(duration)}
-          </motion.p>
-        )}
+        {/* Call status/duration */}
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-slate-400 text-lg"
+        >
+          {callState === 'connecting' ? 'Calling...' : 
+           callState === 'onhold' ? 'On Hold' :
+           callState === 'connected' ? formatDuration(duration) :
+           isConference ? `${conferenceParticipants.length} participants` : ''}
+        </motion.p>
 
         {/* Conference participants */}
         {isConference && (
@@ -524,8 +535,7 @@ export default function GSMStyleVoiceCall({
 
           <button
             onClick={handleUpgradeToVideo}
-            disabled={callState !== 'connected'}
-            className={`flex flex-col items-center gap-2 ${callState === 'connected' ? 'opacity-60 hover:opacity-100' : 'opacity-30'}`}
+            className="flex flex-col items-center gap-2 opacity-60 hover:opacity-100"
           >
             <div className="w-16 h-16 rounded-full bg-slate-700/70 flex items-center justify-center">
               <Video className="h-6 w-6 text-white" />
