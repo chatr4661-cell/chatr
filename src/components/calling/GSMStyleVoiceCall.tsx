@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
-import { useRingbackTone } from '@/hooks/useRingbackTone';
+
 import {
   Sheet,
   SheetContent,
@@ -81,9 +81,6 @@ export default function GSMStyleVoiceCall({
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
-  
-  // GSM-style ringback tone for outgoing calls
-  const { startRingback, stopRingback } = useRingbackTone();
   
   // CRITICAL: Keep call alive with heartbeat mechanism
   useCallKeepAlive(callId, callState === 'connected');
@@ -158,12 +155,9 @@ export default function GSMStyleVoiceCall({
         const newStatus = payload.new?.status;
         console.log('📞 [GSMStyleVoiceCall] Call status changed:', newStatus);
         
-        // Stop ringback when call is answered (status becomes 'active')
+        // Update local state when call is answered
         if (newStatus === 'active' || newStatus === 'connected') {
-          console.log('🔔 [GSMStyleVoiceCall] Call answered - stopping ringback');
-          stopRingback();
-          
-          // Also update local state if WebRTC hasn't connected yet
+          console.log('📞 [GSMStyleVoiceCall] Call answered');
           if (callState === 'connecting') {
             setCallState('connected');
             startDurationTimer();
@@ -175,7 +169,7 @@ export default function GSMStyleVoiceCall({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [callId, isInitiator, callState, stopRingback]);
+  }, [callId, isInitiator, callState]);
   useEffect(() => {
     const initCall = async () => {
       try {
@@ -189,11 +183,7 @@ export default function GSMStyleVoiceCall({
 
         console.log('🎬 [GSMStyleVoiceCall] Initializing voice call...');
         
-        // Start ringback tone for outgoing calls (caller hears this while waiting)
-        if (isInitiator) {
-          console.log('🔔 [GSMStyleVoiceCall] Starting ringback tone for outgoing call');
-          startRingback();
-        }
+        console.log('🎬 [GSMStyleVoiceCall] Call mode:', isInitiator ? 'outgoing' : 'incoming');
         
         const call = new SimpleWebRTCCall(callId, partnerId, false, isInitiator, user.id);
         webrtcRef.current = call;
@@ -228,10 +218,6 @@ export default function GSMStyleVoiceCall({
 
         call.on('connected', () => {
           console.log('🎉 [GSMStyleVoiceCall] Call connected!');
-          
-          // CRITICAL: Stop ringback tone when call connects
-          stopRingback();
-          
           setCallState('connected');
           startDurationTimer();
           updateCallStatus('active');
@@ -318,8 +304,6 @@ export default function GSMStyleVoiceCall({
   };
 
   const cleanup = () => {
-    // Stop ringback tone
-    stopRingback();
     
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
