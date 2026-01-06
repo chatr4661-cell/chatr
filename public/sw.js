@@ -2,9 +2,9 @@
 // Handles offline functionality, caching, background sync, and push notifications
 
 // Cache version - increment to force update
-const CACHE_NAME = 'chatr-cache-v4';
-const RUNTIME_CACHE = 'chatr-runtime-v4';
-const IMAGE_CACHE = 'chatr-images-v4';
+const CACHE_NAME = 'chatr-cache-v5';
+const RUNTIME_CACHE = 'chatr-runtime-v5';
+const IMAGE_CACHE = 'chatr-images-v5';
 
 const STATIC_ASSETS = [
   '/',
