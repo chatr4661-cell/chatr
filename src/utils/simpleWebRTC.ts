@@ -721,10 +721,11 @@ export class SimpleWebRTCCall {
       this.recoveryAttempts++;
       console.log(`🔄 [SimpleWebRTC] Recovery attempt ${this.recoveryAttempts}/${this.maxRecoveryAttempts}...`);
       
-      // Attempt ICE restart with different strategies
+      // Attempt ICE restart - but ONLY if we're the initiator
+      // CRITICAL: Non-initiators should NEVER send offers
       try {
-        if (this.recoveryAttempts % 3 === 0) {
-          // Every 3rd attempt, also trigger renegotiation
+        if (this.isInitiator && this.recoveryAttempts % 3 === 0) {
+          // Every 3rd attempt, also trigger renegotiation (initiator only)
           console.log('🔄 [SimpleWebRTC] Triggering full renegotiation...');
           const offer = await this.pc.createOffer({ iceRestart: true });
           await this.pc.setLocalDescription(offer);
@@ -734,7 +735,7 @@ export class SimpleWebRTCCall {
             from: this.userId
           });
         } else {
-          // Normal ICE restart
+          // Normal ICE restart (both sides can do this)
           this.pc.restartIce();
         }
       } catch (e) {
