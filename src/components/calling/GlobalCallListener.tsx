@@ -117,12 +117,12 @@ export function GlobalCallListener() {
           if (!currentIncoming) return;
           if (call.id !== currentIncoming.id) return;
 
-          if (call.status === "ended") {
-            console.log("📵 Incoming call ended by caller");
+          if (call.status === "ended" || call.status === "missed") {
+            console.log("📵 Incoming call cancelled by caller");
             setIncomingCall(null);
             toast({
-              title: "Call Ended",
-              description: "The caller ended the call",
+              title: "Call Cancelled",
+              description: "The caller cancelled the call",
             });
           }
 
@@ -214,14 +214,24 @@ export function GlobalCallListener() {
             });
           }
 
-          // Receiver rejected or call ended
-          if (call.status === "ended" || call.status === "rejected") {
-            console.log("📵 [GlobalCallListener] Outgoing call ended/rejected");
+          // Receiver rejected, missed, or call ended
+          if (call.status === "ended" || call.status === "rejected" || call.status === "missed") {
+            console.log("📵 [GlobalCallListener] Outgoing call ended/rejected/missed, missed:", call.missed);
             setOutgoingCall(null);
-            toast({
-              title: "Call Ended",
-              description: call.status === "rejected" ? "Call was declined" : "Call ended",
-            });
+            
+            // Show appropriate message based on the actual outcome
+            let title = "Call Ended";
+            let description = "Call ended";
+            
+            if (call.status === "rejected" || call.missed === false) {
+              title = "Call Declined";
+              description = "The call was declined";
+            } else if (call.missed === true) {
+              title = "No Answer";
+              description = "The call was not answered";
+            }
+            
+            toast({ title, description });
           }
         }
       )
