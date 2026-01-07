@@ -130,6 +130,16 @@ class ChatrApplication : Application() {
             vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500, 1000)
             setBypassDnd(true)
             lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+
+            // Ensure this channel is treated as "interruptive" (required for heads-up/fullscreen)
+            val ringtoneUri = Uri.parse("android.resource://${packageName}/raw/ringtone")
+            setSound(
+                ringtoneUri,
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
         }
 
         // MESSAGES CHANNEL

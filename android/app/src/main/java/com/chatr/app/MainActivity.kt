@@ -1,13 +1,19 @@
 package com.chatr.app
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
 import android.webkit.WebView
-import com.getcapacitor.BridgeActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.chatr.app.services.CallForegroundService
+import com.getcapacitor.BridgeActivity
 
 /**
  * CHATR+ MAIN ACTIVITY
@@ -29,7 +35,11 @@ class MainActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i(TAG, "🚀 MainActivity onCreate")
-        
+
+        // Required for Android 13+: without this, call notifications (and fullscreen intents) will not show.
+        ensureNotificationPermission()
+        logFullScreenIntentStatus()
+
         // Handle intent that launched the activity
         handleIntent(intent)
     }
@@ -193,6 +203,44 @@ class MainActivity : BridgeActivity() {
             } catch (e: Exception) {
                 Log.e(TAG, "JavaScript execution failed", e)
             }
+        }
+    }
+
+    /**
+     * Ensure notification permission is granted (Android 13+).
+     * Without this, call notifications cannot display a fullscreen UI.
+     */
+    private fun ensureNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!granted) {
+            Log.w(TAG, "🔔 POST_NOTIFICATIONS not granted — requesting permission")
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                10001
+            )
+        }
+    }
+
+    /**
+     * Android 14+ may require the user to allow Full-screen intents for the app.
+     * We only log here to avoid hijacking navigation.
+     */
+    private fun logFullScreenIntentStatus() {
+        if (Build.VERSION.SDK_INT < 34) return
+        try {
+            val nm = getSystemService(NotificationManager::class.java)
+            if (nm != null && !nm.canUseFullScreenIntent()) {
+                Log.w(TAG, "📵 Full-screen intents are DISABLED for this app in system settings")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read full-screen intent setting", e)
         }
     }
 
