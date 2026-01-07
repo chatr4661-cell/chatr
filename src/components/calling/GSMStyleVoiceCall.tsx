@@ -240,31 +240,31 @@ export default function GSMStyleVoiceCall({
 
         call.on('connected', () => {
           console.log('🎉 [GSMStyleVoiceCall] Call connected!');
+          // CRITICAL: Always transition to connected, even from failed state
           setCallState('connected');
           startDurationTimer();
           updateCallStatus('active');
         });
 
-        // CRITICAL: 'failed' event is for warnings only - NEVER auto-end calls
+        // CRITICAL: 'failed' event is for PERMISSION errors only - not network issues
         call.on('failed', (error: Error) => {
           console.error('⚠️ [GSMStyleVoiceCall] Connection issue:', error);
-          // Only show warning UI, don't end the call
-          // User must manually hang up
-          if (error.message.includes('microphone') || error.message.includes('Could not access')) {
-            console.warn('⚠️ Microphone access issue - user should grant permission');
-            // Show error state but DON'T end call
+          // ONLY show failed state for actual permission/access errors
+          // Network issues are handled by recovery mechanism
+          if (error.message.includes('microphone') || error.message.includes('Could not access') || error.message.includes('camera')) {
+            console.warn('⚠️ Media access issue - user should grant permission');
             setCallState('failed');
           } else {
-            // Network issues - just log, recovery is automatic
-            console.warn('⚠️ Connection unstable - automatic recovery in progress...');
+            // Network/ICE issues - show reconnecting, NOT failed
+            console.warn('⚠️ Connection unstable - showing reconnecting state...');
+            setCallState('reconnecting');
           }
         });
         
         call.on('recoveryStatus', (status: any) => {
           console.log('🔄 [GSMStyleVoiceCall] Recovery status:', status.message);
-          if (callState !== 'connected') {
-            setCallState('reconnecting');
-          }
+          // Show reconnecting for any recovery attempt
+          setCallState((prev) => prev === 'connected' ? prev : 'reconnecting');
         });
         
         call.on('networkQuality', (quality: string) => {
@@ -685,7 +685,10 @@ export default function GSMStyleVoiceCall({
             </span>
           )}
           {callState === 'failed' && (
-            <span className="text-red-400 text-lg font-medium">Connection Issue</span>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-red-400 text-lg font-medium">Permission Required</span>
+              <span className="text-white/50 text-sm">Allow microphone access to continue</span>
+            </div>
           )}
           {isConference && (
             <span className="text-white/70 text-lg">{conferenceParticipants.length} participants</span>

@@ -117,6 +117,7 @@ export default function ProductionVoiceCall({
 
         call.on('connected', () => {
           console.log('🎉 [ProductionVoiceCall] Call connected!');
+          // CRITICAL: Always transition to connected, even from failed state
           setCallState('connected');
           toast.success('Call connected');
           startDurationTimer();
@@ -126,8 +127,8 @@ export default function ProductionVoiceCall({
         call.on('failed', (error: Error) => {
           console.error('⚠️ [ProductionVoiceCall] Connection issue:', error);
           
-          // CRITICAL: Do NOT auto-end - let user decide to hang up
-          if (error.message.includes('microphone') || error.message.includes('Could not access')) {
+          // CRITICAL: Only set failed for permission errors, not network issues
+          if (error.message.includes('microphone') || error.message.includes('camera') || error.message.includes('Could not access')) {
             toast.error('Microphone access denied', {
               description: 'Please allow microphone access and try again',
               duration: 10000
@@ -136,9 +137,9 @@ export default function ProductionVoiceCall({
             return;
           }
           
-          // Show warning but keep call alive for recovery
-          toast.warning('Connection unstable - attempting recovery...', {
-            duration: 5000,
+          // Network issues - don't change state, recovery will handle it
+          toast.warning('Connection unstable - reconnecting...', {
+            duration: 3000,
           });
         });
 
@@ -295,7 +296,7 @@ export default function ProductionVoiceCall({
           <p className="text-muted-foreground">
             {callState === 'connecting' && 'Connecting...'}
             {callState === 'connected' && formatDuration(duration)}
-            {callState === 'failed' && 'Connection failed'}
+            {callState === 'failed' && 'Microphone access required'}
           </p>
         </div>
 
