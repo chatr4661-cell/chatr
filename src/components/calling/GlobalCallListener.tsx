@@ -454,7 +454,16 @@ export function GlobalCallListener() {
   // NEW: Show outgoing call screen (caller side - waiting for receiver to accept)
   if (outgoingCall && !activeCall) {
     return (
-      <div className="fixed inset-0 z-50 bg-gradient-to-b from-primary/20 to-background flex items-center justify-center">
+      <div 
+        className="fixed inset-0 z-[99999] bg-gradient-to-b from-primary/20 to-background flex items-center justify-center select-none touch-none"
+        style={{ 
+          height: '100dvh', 
+          width: '100vw',
+          minHeight: '-webkit-fill-available',
+          isolation: 'isolate',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex flex-col items-center gap-6 p-8 animate-pulse">
           <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center shadow-2xl">
             {outgoingCall.receiverAvatar ? (

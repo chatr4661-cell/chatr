@@ -527,16 +527,20 @@ export default function GSMStyleVoiceCall({
 
   const callUI = (
     <div 
-      className="fixed inset-0 z-[9999] bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f0f23] flex flex-col overflow-hidden overscroll-none touch-none"
+      className="fixed inset-0 z-[99999] bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f0f23] flex flex-col overflow-hidden overscroll-none touch-none select-none"
       style={{ 
         height: '100dvh', 
         width: '100vw',
+        minHeight: '-webkit-fill-available',
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
+        WebkitOverflowScrolling: 'touch',
+        isolation: 'isolate',
       }}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Subtle gradient orbs for depth */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
