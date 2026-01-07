@@ -267,7 +267,16 @@ export default function ProductionVoiceCall({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-b from-primary/20 to-background flex items-center justify-center">
+    <div 
+      className="fixed inset-0 z-[99999] bg-gradient-to-b from-primary/20 to-background flex items-center justify-center select-none touch-none"
+      style={{ 
+        height: '100dvh', 
+        width: '100vw',
+        minHeight: '-webkit-fill-available',
+        isolation: 'isolate',
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

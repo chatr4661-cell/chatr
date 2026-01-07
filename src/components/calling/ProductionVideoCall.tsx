@@ -468,16 +468,18 @@ export default function ProductionVideoCall({
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black"
+      className="fixed inset-0 z-[99999] bg-black select-none"
       style={{ 
         width: '100vw', 
         height: '100dvh',
+        minHeight: '-webkit-fill-available',
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0
+        bottom: 0,
+        isolation: 'isolate',
       }}
-      onClick={showControls}
+      onClick={(e) => { e.stopPropagation(); showControls(); }}
     >
       {/* Main video with zoom support */}
       <div 
