@@ -282,10 +282,19 @@ export default function GSMStyleVoiceCall({
               }
             })();
 
+            // CRITICAL: Do NOT call onEnd() here - just show the error state
+            // The user can retry or end manually
             return;
           }
 
-          // Anything else (device busy, constraints, transient) should show reconnecting.
+          // Device busy (NotReadableError) - show reconnecting, don't end the call
+          if (name === 'NotReadableError') {
+            console.log('⏳ [GSMStyleVoiceCall] Device busy - showing reconnecting state');
+            setCallState('reconnecting');
+            return;
+          }
+
+          // Anything else (constraints, transient) should show reconnecting.
           setCallState('reconnecting');
         });
         

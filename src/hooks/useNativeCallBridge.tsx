@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { setPreCallMediaStream } from '@/utils/preCallMedia';
 
 /**
  * Native Call Bridge Handler
@@ -28,6 +29,31 @@ export const useNativeCallBridge = () => {
       if (action === 'answer') {
         console.log('✅ [NativeCallBridge] Processing answer from native');
         
+        // CRITICAL: Acquire media permission FIRST under the native gesture context
+        // This ensures the WebView has permission before WebRTC starts
+        try {
+          console.log('🎤 [NativeCallBridge] Acquiring media permission...');
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: callType === 'video',
+          });
+          console.log('✅ [NativeCallBridge] Media acquired successfully');
+          
+          // Store the stream for WebRTC to use
+          setPreCallMediaStream(callId, stream);
+        } catch (mediaErr: any) {
+          console.error('❌ [NativeCallBridge] Failed to acquire media:', mediaErr);
+          // Show error but don't block - WebRTC will try again
+          toast({
+            title: 'Microphone Access',
+            description: mediaErr?.name === 'NotReadableError' 
+              ? 'Microphone is busy. Close other apps and try again.'
+              : 'Please allow microphone access',
+            variant: 'destructive',
+          });
+          // Continue anyway - let WebRTC handle the retry
+        }
+
         // Update call status to active in database
         const { error } = await supabase
           .from('calls')
