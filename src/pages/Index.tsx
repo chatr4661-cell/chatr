@@ -45,6 +45,10 @@ import {
   Pill
 } from 'lucide-react';
 import { PersonalizedSection } from '@/components/home/PersonalizedSection';
+import { PersonalizedGreeting } from '@/components/home/PersonalizedGreeting';
+import { ActivityWidgets } from '@/components/home/ActivityWidgets';
+import { QuickActions } from '@/components/home/QuickActions';
+import { RecentActivity } from '@/components/home/RecentActivity';
 import { useStealthMode, StealthModeType } from '@/hooks/useStealthMode';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -52,7 +56,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Share } from 'lucide-react';
 import { SEOHead } from '@/components/SEOHead';
-
+import { BottomNav } from '@/components/BottomNav';
 
 // Import ServiceCard directly (small component, no need for lazy loading)
 import ServiceCard from '@/components/ServiceCard';
@@ -789,7 +793,19 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 space-y-4 mt-4">
+      <div className="max-w-2xl mx-auto px-4 space-y-5 mt-4 pb-24">
+
+        {/* Personalized Greeting */}
+        <PersonalizedGreeting />
+
+        {/* Activity Widgets - Dynamic Content */}
+        <ActivityWidgets />
+
+        {/* Quick Actions Row */}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">Quick Actions</h2>
+          <QuickActions />
+        </div>
 
         {/* Search Bar - Compact */}
         <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-3 relative">
@@ -824,36 +840,39 @@ const Index = () => {
               <Search className="w-4 h-4" />
             </Button>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">
-            AI-powered search across services, jobs, healthcare, food & more
-          </p>
         </div>
 
-        {/* Personalized Section */}
-        <PersonalizedSection />
+        {/* Recent Activity */}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">Recent Activity</h2>
+          <RecentActivity />
+        </div>
 
         {/* Main Category Grid */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          {mainHubs.map((category, index) => (
-            <button
-              key={category.title}
-              onClick={() => {
-                if ('external' in category && category.external) {
-                  window.open(category.route, '_blank', 'noopener,noreferrer');
-                } else {
-                  navigate(category.route);
-                }
-              }}
-              className="group flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
-            >
-              <div className={`w-9 h-9 rounded-lg ${category.iconColor} flex items-center justify-center shadow-md`}>
-                <category.icon className="w-4 h-4 text-white" strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold text-center leading-tight">
-                {category.title}
-              </span>
-            </button>
-          ))}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">All Services</h2>
+          <div className="grid grid-cols-4 gap-3">
+            {mainHubs.map((category, index) => (
+              <button
+                key={category.title}
+                onClick={() => {
+                  if ('external' in category && category.external) {
+                    window.open(category.route, '_blank', 'noopener,noreferrer');
+                  } else {
+                    navigate(category.route);
+                  }
+                }}
+                className="group flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
+              >
+                <div className={`w-9 h-9 rounded-lg ${category.iconColor} flex items-center justify-center shadow-md`}>
+                  <category.icon className="w-4 h-4 text-white" strokeWidth={2.5} />
+                </div>
+                <span className="text-[10px] font-semibold text-center leading-tight">
+                  {category.title}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Programs Section - Apple-style pills */}
@@ -1033,6 +1052,9 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Bottom Navigation for Native Apps */}
+      <BottomNav />
     </div>
     </>
   );
