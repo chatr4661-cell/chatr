@@ -190,34 +190,30 @@ export function GlobalCallListener() {
           const call = payload.new as any;
           console.log("📤 [GlobalCallListener] Outgoing call created:", call.id, "status:", call.status);
 
-           // CRITICAL FIX: Start WebRTC IMMEDIATELY when caller initiates
-           // Don't wait for receiver to accept - send OFFER right away
-           if (call.status === "ringing" && !activeCallRef.current) {
-             const { data: receiverProfile } = await supabase
-               .from("profiles")
-               .select("username, avatar_url, phone_number")
-               .eq("id", call.receiver_id)
-               .maybeSingle();
+          // Start WebRTC immediately when caller initiates
+          if (call.status === "ringing" && !activeCallRef.current) {
+            const { data: receiverProfile } = await supabase
+              .from("profiles")
+              .select("username, avatar_url, phone_number")
+              .eq("id", call.receiver_id)
+              .maybeSingle();
 
-             console.log("🚀 [GlobalCallListener] Starting WebRTC immediately as INITIATOR");
+            console.log("🚀 [GlobalCallListener] Starting WebRTC as INITIATOR");
 
-             // If the user started the call with a click/gesture, we may have a pre-acquired stream.
-             const preAcquiredStream = takePreCallMediaStream(call.id);
+            const preAcquiredStream = takePreCallMediaStream(call.id);
 
-             // Set activeCall directly with isInitiator=true to start WebRTC NOW
-             setActiveCall({
-               ...call,
-               isInitiator: true, // CALLER sends OFFER immediately
-               partnerId: call.receiver_id,
-               callerName: receiverProfile?.username || call.receiver_name || "Unknown",
-               callerAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
-               contactPhone: receiverProfile?.phone_number || call.receiver_phone,
-               preAcquiredStream,
-             });
+            setActiveCall({
+              ...call,
+              isInitiator: true,
+              partnerId: call.receiver_id,
+              callerName: receiverProfile?.username || call.receiver_name || "Unknown",
+              callerAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
+              contactPhone: receiverProfile?.phone_number || call.receiver_phone,
+              preAcquiredStream,
+            });
 
-             // Clear any outgoing call state
-             setOutgoingCall(null);
-           }
+            setOutgoingCall(null);
+          }
         }
       )
       .subscribe((status) => {

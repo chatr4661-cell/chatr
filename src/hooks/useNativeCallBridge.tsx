@@ -7,10 +7,9 @@ import { setPreCallMediaStream } from '@/utils/preCallMedia';
 /**
  * Native Call Bridge Handler
  * 
- * Listens for events from the native Android layer when the user
- * answers/rejects calls from the native UI or notifications.
- * 
- * This bridges the native TelecomManager/IncomingCallActivity to WebRTC.
+ * Bridges native Android/iOS call actions to WebRTC.
+ * When user answers/rejects from native UI, this updates the database
+ * and acquires media permissions.
  */
 export const useNativeCallBridge = () => {
   const { toast } = useToast();
@@ -18,43 +17,35 @@ export const useNativeCallBridge = () => {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    console.log('📱 [NativeCallBridge] Initializing native call bridge');
+    console.log('📱 [NativeCallBridge] Active');
 
-    // Handle native call actions (answer/reject from native UI)
     const handleNativeCallAction = async (event: CustomEvent) => {
-      const { action, callId, callerId, callerName, callerAvatar, callType, conversationId } = event.detail;
+      const { action, callId, callerName, callType } = event.detail;
 
-      console.log(`📱 [NativeCallBridge] Received action: ${action} for call ${callId}`);
+      console.log(`📱 [NativeCallBridge] Action: ${action} for call ${callId?.slice(0, 8)}`);
 
       if (action === 'answer') {
-        console.log('✅ [NativeCallBridge] Processing answer from native');
-        
-        // CRITICAL: Acquire media permission FIRST under the native gesture context
-        // This ensures the WebView has permission before WebRTC starts
+        // Acquire media permission immediately
         try {
-          console.log('🎤 [NativeCallBridge] Acquiring media permission...');
+          console.log('🎤 [NativeCallBridge] Acquiring media...');
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: true,
             video: callType === 'video',
           });
-          console.log('✅ [NativeCallBridge] Media acquired successfully');
-          
-          // Store the stream for WebRTC to use
+          console.log('✅ [NativeCallBridge] Media acquired');
           setPreCallMediaStream(callId, stream);
         } catch (mediaErr: any) {
-          console.error('❌ [NativeCallBridge] Failed to acquire media:', mediaErr);
-          // Show error but don't block - WebRTC will try again
+          console.error('❌ [NativeCallBridge] Media failed:', mediaErr);
           toast({
             title: 'Microphone Access',
             description: mediaErr?.name === 'NotReadableError' 
-              ? 'Microphone is busy. Close other apps and try again.'
+              ? 'Microphone busy - close other apps'
               : 'Please allow microphone access',
             variant: 'destructive',
           });
-          // Continue anyway - let WebRTC handle the retry
         }
 
-        // Update call status to active in database
+        // Update call status to active
         const { error } = await supabase
           .from('calls')
           .update({ 
@@ -64,19 +55,16 @@ export const useNativeCallBridge = () => {
           .eq('id', callId);
 
         if (error) {
-          console.error('❌ [NativeCallBridge] Failed to update call status:', error);
+          console.error('❌ [NativeCallBridge] Status update failed:', error);
           toast({
             title: 'Call Error',
-            description: 'Failed to connect the call',
+            description: 'Failed to connect',
             variant: 'destructive',
           });
         } else {
-          console.log('✅ [NativeCallBridge] Call status updated to active');
-          // GlobalCallListener will pick up the status change and start WebRTC
+          console.log('✅ [NativeCallBridge] Call status: active');
         }
       } else if (action === 'reject') {
-        console.log('❌ [NativeCallBridge] Processing reject from native');
-        
         await supabase
           .from('calls')
           .update({ 
@@ -93,20 +81,13 @@ export const useNativeCallBridge = () => {
       }
     };
 
-    // Handle direct reply from notifications
     const handleNativeReply = async (event: CustomEvent) => {
       const { conversationId, message } = event.detail;
 
-      console.log(`💬 [NativeCallBridge] Sending reply to ${conversationId}: ${message}`);
-
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          console.error('❌ [NativeCallBridge] No user logged in');
-          return;
-        }
+        if (!user) return;
 
-        // Send the message
         const { error } = await supabase
           .from('messages')
           .insert({
@@ -116,26 +97,14 @@ export const useNativeCallBridge = () => {
             message_type: 'text',
           });
 
-        if (error) {
-          console.error('❌ [NativeCallBridge] Failed to send reply:', error);
-          toast({
-            title: 'Failed to send',
-            description: 'Could not send your reply',
-            variant: 'destructive',
-          });
-        } else {
-          console.log('✅ [NativeCallBridge] Reply sent successfully');
-          toast({
-            title: 'Message sent',
-            description: 'Your reply has been sent',
-          });
+        if (!error) {
+          toast({ title: 'Message sent' });
         }
       } catch (err) {
-        console.error('❌ [NativeCallBridge] Error sending reply:', err);
+        console.error('❌ [NativeCallBridge] Reply error:', err);
       }
     };
 
-    // Add event listeners
     window.addEventListener('nativeCallAction', handleNativeCallAction as EventListener);
     window.addEventListener('nativeReply', handleNativeReply as EventListener);
 
