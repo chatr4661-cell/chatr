@@ -4,16 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AdvancedPhoneDialer } from "@/components/dialer/AdvancedPhoneDialer";
 import { BottomNav } from "@/components/BottomNav";
-import { PermissionPrompt } from "@/components/calling/PermissionPrompt";
 
 export default function Calls() {
   const navigate = useNavigate();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [pendingCall, setPendingCall] = useState<{
-    contactId: string;
-    contactName: string;
-    callType: 'voice' | 'video';
-  } | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -28,22 +22,37 @@ export default function Calls() {
     setCurrentUserId(user.id);
   };
 
-  // Wrapper to check permissions before making a call
-  const handleCallRequest = (contactId: string, contactName: string, callType: 'voice' | 'video') => {
-    // Show permission prompt first
-    setPendingCall({ contactId, contactName, callType });
-  };
-
-  const handlePermissionGranted = () => {
-    if (pendingCall) {
-      handleCall(pendingCall.contactId, pendingCall.contactName, pendingCall.callType);
+  // Auto-request permissions silently before making the call
+  const requestPermissionsAndCall = async (contactId: string, contactName: string, callType: 'voice' | 'video') => {
+    try {
+      // Auto-request permission - browser shows native prompt
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: callType === 'video'
+      });
+      // Stop tracks immediately (just needed to trigger permission)
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Permission granted, proceed with call
+      await handleCall(contactId, contactName, callType);
+    } catch (error: any) {
+      console.error('Permission request failed:', error);
+      
+      // Simple, friendly messages for non-technical users
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        toast.error(callType === 'video' 
+          ? 'Please allow camera and microphone to make video calls' 
+          : 'Please allow microphone to make voice calls'
+        );
+      } else if (error.name === 'NotFoundError') {
+        toast.error(callType === 'video'
+          ? 'No camera or microphone found on this device'
+          : 'No microphone found on this device'
+        );
+      } else {
+        toast.error('Could not access device. Please try again.');
+      }
     }
-    setPendingCall(null);
-  };
-
-  const handlePermissionCancelled = () => {
-    setPendingCall(null);
-    toast.error('Call cancelled - microphone access needed');
   };
 
   const handleCall = async (contactId: string, contactName: string, callType: 'voice' | 'video') => {
@@ -194,15 +203,7 @@ export default function Calls() {
 
   return (
     <div className="flex flex-col h-screen bg-background pb-16">
-      {/* Permission prompt for outgoing calls */}
-      {pendingCall && (
-        <PermissionPrompt
-          type={pendingCall.callType}
-          onPermissionGranted={handlePermissionGranted}
-          onCancel={handlePermissionCancelled}
-        />
-      )}
-      <AdvancedPhoneDialer onCall={handleCallRequest} />
+      <AdvancedPhoneDialer onCall={requestPermissionsAndCall} />
       <BottomNav />
     </div>
   );
