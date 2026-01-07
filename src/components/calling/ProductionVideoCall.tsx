@@ -200,15 +200,29 @@ export default function ProductionVideoCall({
         // CRITICAL: 'failed' event is for PERMISSION errors only
         call.on('failed', (error: Error) => {
           console.error('⚠️ [ProductionVideoCall] Connection issue:', error);
-          
-          // Camera/mic errors - show error state but DON'T auto-end
-          if (error.message.includes('camera') || error.message.includes('microphone') || error.message.includes('Could not access')) {
-            console.warn('⚠️ Camera/Microphone access issue');
+
+          const name = (error as any)?.name as string | undefined;
+
+          // Permission denied
+          if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+            console.warn('⚠️ Camera/Microphone permission denied');
             setCallState('failed');
-            // DON'T auto-end - let user manually hang up
             return;
           }
-          
+
+          // No devices
+          if (name === 'NotFoundError') {
+            toast.error('No camera or microphone found on this device', { duration: 8000 });
+            setCallState('failed');
+            return;
+          }
+
+          // Device busy
+          if (name === 'NotReadableError') {
+            toast.error('Camera/microphone is busy. Close other apps and try again.', { duration: 8000 });
+            return;
+          }
+
           // Network errors - don't change state, recovery handles it
           console.warn('⚠️ Connection unstable - automatic recovery in progress...');
         });

@@ -126,17 +126,30 @@ export default function ProductionVoiceCall({
 
         call.on('failed', (error: Error) => {
           console.error('⚠️ [ProductionVoiceCall] Connection issue:', error);
-          
-          // CRITICAL: Only set failed for permission errors, not network issues
-          if (error.message.includes('microphone') || error.message.includes('camera') || error.message.includes('Could not access')) {
-            toast.error('Microphone access denied', {
+
+          const name = (error as any)?.name as string | undefined;
+
+          // CRITICAL: Only set failed for permission errors
+          if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+            toast.error('Microphone permission needed', {
               description: 'Please allow microphone access and try again',
-              duration: 10000
+              duration: 10000,
             });
             setCallState('failed');
             return;
           }
-          
+
+          if (name === 'NotFoundError') {
+            toast.error('No microphone found on this device', { duration: 8000 });
+            setCallState('failed');
+            return;
+          }
+
+          if (name === 'NotReadableError') {
+            toast.error('Microphone is busy. Close other apps and try again.', { duration: 8000 });
+            return;
+          }
+
           // Network issues - don't change state, recovery will handle it
           toast.warning('Connection unstable - reconnecting...', {
             duration: 3000,
