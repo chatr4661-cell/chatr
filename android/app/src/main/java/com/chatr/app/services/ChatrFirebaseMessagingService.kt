@@ -141,12 +141,17 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
             fullScreenPendingIntent, callIntent
         )
 
-        // Start the activity
-        try {
-            startActivity(callIntent)
-            Log.i(TAG, "✅ Launched IncomingCallActivity")
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to launch IncomingCallActivity", e)
+        // Starting an Activity directly from a background service is blocked on Android 10+.
+        // Rely on the notification's fullScreenIntent instead.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            try {
+                startActivity(callIntent)
+                Log.i(TAG, "✅ Launched IncomingCallActivity")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to launch IncomingCallActivity", e)
+            }
+        } else {
+            Log.i(TAG, "ℹ️ Skipping direct startActivity on Android 10+; using fullScreenIntent")
         }
     }
 
