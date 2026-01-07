@@ -189,7 +189,7 @@ export class SimpleWebRTCCall {
 
       // Preserve permission-denied errors so UI can show the right message
       if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errName === 'SecurityError') {
-        throw makeError('Permission denied', errName);
+        throw makeError(error?.message || 'Permission denied', errName);
       }
 
       // No input devices available

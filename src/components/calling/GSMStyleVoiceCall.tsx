@@ -81,6 +81,7 @@ export default function GSMStyleVoiceCall({
   const [localVideoActive, setLocalVideoActive] = useState(false);
   const [remoteVideoActive, setRemoteVideoActive] = useState(false);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
+  const [mediaAccessIssue, setMediaAccessIssue] = useState<'permission' | 'blocked' | null>(null);
   
   // Conference call state
   const [isConference, setIsConference] = useState(false);
@@ -251,14 +252,34 @@ export default function GSMStyleVoiceCall({
           console.error('⚠️ [GSMStyleVoiceCall] Call setup failed:', error);
 
           const name = (error as any)?.name as string | undefined;
-          const isPermission =
+          const isPermissionClassError =
             name === 'NotAllowedError' ||
             name === 'PermissionDeniedError' ||
             name === 'SecurityError';
 
-          // Only show "Permission Required" when it is truly a permission denial.
-          if (isPermission) {
+          // IMPORTANT: On Android WebView, NotAllowedError can also mean "WebView blocked" even when OS permission is granted.
+          // So we diagnose using navigator.permissions when available to avoid showing a misleading message.
+          if (isPermissionClassError) {
             setCallState('failed');
+            setMediaAccessIssue('blocked');
+
+            (async () => {
+              try {
+                const navAny = navigator as any;
+                const permissions = navAny?.permissions;
+                if (!permissions?.query) return;
+
+                const res = await permissions.query({ name: 'microphone' });
+                console.log('🎤 [GSMStyleVoiceCall] mic permission state:', res?.state, 'err:', error);
+
+                if (res?.state === 'denied') {
+                  setMediaAccessIssue('permission');
+                }
+              } catch (e) {
+                console.log('🎤 [GSMStyleVoiceCall] mic permission diagnose failed:', e);
+              }
+            })();
+
             return;
           }
 
@@ -691,8 +712,17 @@ export default function GSMStyleVoiceCall({
           )}
           {callState === 'failed' && (
             <div className="flex flex-col items-center gap-1">
-              <span className="text-red-400 text-lg font-medium">Permission Required</span>
-              <span className="text-white/50 text-sm">Allow microphone access to continue</span>
+              {mediaAccessIssue === 'permission' ? (
+                <>
+                  <span className="text-red-400 text-lg font-medium">Permission Required</span>
+                  <span className="text-white/50 text-sm">Allow microphone access to continue</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-red-400 text-lg font-medium">Microphone unavailable</span>
+                  <span className="text-white/50 text-sm">Close other apps or restart and try again</span>
+                </>
+              )}
             </div>
           )}
           {isConference && (
