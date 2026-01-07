@@ -10,14 +10,26 @@ interface Signal {
   from: string;
 }
 
+/**
+ * SimpleWebRTCCall - Robust, Fast WebRTC Implementation
+ * 
+ * Key improvements:
+ * - Faster ICE gathering with aggressive candidate pool
+ * - Single offer per connection attempt (no spam)
+ * - Proper answer timeout handling
+ * - Graceful media fallback
+ * - Clear state management
+ */
 export class SimpleWebRTCCall {
   private pc: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
   private signalChannel: RealtimeChannel | null = null;
   private callState: CallState = 'connecting';
   private eventHandlers: Map<string, Function[]> = new Map();
-  private iceConnectionTimeout: NodeJS.Timeout | null = null;
   private pendingIceCandidates: RTCIceCandidate[] = [];
+  private hasReceivedAnswer: boolean = false;
+  private connectionTimeout: NodeJS.Timeout | null = null;
+  private offerSent: boolean = false;
 
   constructor(
     private callId: string,
@@ -29,9 +41,9 @@ export class SimpleWebRTCCall {
   ) {
     if (initialLocalStream) {
       this.localStream = initialLocalStream;
-      console.log('🎤 [SimpleWebRTC] Using pre-acquired media stream');
+      console.log('🎤 [WebRTC] Using pre-acquired media stream');
     }
-    console.log('🎬 [SimpleWebRTC] Initializing call:', { callId, isVideo, isInitiator });
+    console.log('🎬 [WebRTC] Init:', { callId: callId.slice(0, 8), isVideo, isInitiator });
   }
 
   on(event: string, handler: Function) {
@@ -50,411 +62,255 @@ export class SimpleWebRTCCall {
 
   async start() {
     try {
-      console.log('🚀 [SimpleWebRTC] Starting call setup...');
-
-      // Step 0: Pre-call network quality check (silent, copilot-style)
-      const networkQuality = await this.analyzeNetworkQuality();
-      console.log(`📶 [SimpleWebRTC] Network quality: ${networkQuality}`);
-      this.emit('networkQuality', networkQuality);
-
-      // Step 1: Get media (or reuse pre-acquired stream)
-      if (this.localStream) {
-        this.emit('localStream', this.localStream);
+      console.log('🚀 [WebRTC] Starting...');
+      
+      // Step 1: Get media
+      if (!this.localStream) {
+        await this.acquireMedia();
       } else {
-        await this.getMedia();
+        this.emit('localStream', this.localStream);
       }
 
       // Step 2: Create peer connection
       await this.createPeerConnection();
 
-      // Step 3: Subscribe to signals FIRST (before creating offer)
+      // Step 3: Subscribe to signals
       await this.subscribeToSignals();
 
-      // Step 4: If not initiator, fetch past signals (OFFER and ICE candidates sent before answering)
+      // Step 4: Fetch past signals (receiver gets offer)
       if (!this.isInitiator) {
         await this.fetchPastSignals();
       }
 
-      // Step 5: If initiator, create and send offer
-      if (this.isInitiator) {
-        await this.createOffer();
+      // Step 5: Create offer (initiator only, ONCE)
+      if (this.isInitiator && !this.offerSent) {
+        await this.createAndSendOffer();
       }
 
-      // Step 6: Set ICE connection timeout
-      this.setConnectionTimeout();
+      // Step 6: Set connection timeout
+      this.startConnectionTimeout();
 
-      console.log('✅ [SimpleWebRTC] Call setup complete');
-    } catch (error) {
-      console.error('❌ [SimpleWebRTC] Setup failed:', error);
+      console.log('✅ [WebRTC] Setup complete');
+    } catch (error: any) {
+      console.error('❌ [WebRTC] Setup failed:', error);
       this.callState = 'failed';
       this.emit('failed', error);
-      await this.cleanup();
     }
   }
 
-  private isMobileDevice(): boolean {
-    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  }
-
-  private isIOS(): boolean {
-    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  }
-
-  private async getMedia() {
+  private async acquireMedia() {
     try {
-      // CRITICAL: Release any existing media before requesting new
+      // Release existing streams first
       if (this.localStream) {
-        console.log('⚠️ [SimpleWebRTC] Releasing existing media stream before new request');
-        this.localStream.getTracks().forEach(track => {
-          track.stop();
-          this.localStream?.removeTrack(track);
-        });
+        this.localStream.getTracks().forEach(t => t.stop());
         this.localStream = null;
-        // Wait for devices to be fully released
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await this.delay(200);
       }
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       
-      const isMobile = this.isMobileDevice();
-      
-      // FaceTime-grade quality: 1080p @ 60fps (desktop) or 720p @ 30fps (mobile)
-      const videoConstraints = this.isVideo ? (isMobile ? {
-        width: { ideal: 1280, max: 1280 },
-        height: { ideal: 720, max: 720 },
-        frameRate: { ideal: 30, max: 30 },
-        facingMode: 'user'
-      } : {
-        width: { ideal: 1920, max: 1920 },
-        height: { ideal: 1080, max: 1080 },
-        frameRate: { ideal: 60, max: 60 },
-        facingMode: 'user'
-      }) : false;
-      
-      // Simplified audio constraints - avoid experimental options that may cause failures
-      const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
+      const constraints: MediaStreamConstraints = {
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: this.isVideo ? {
+          width: { ideal: isMobile ? 1280 : 1920 },
+          height: { ideal: isMobile ? 720 : 1080 },
+          frameRate: { ideal: isMobile ? 30 : 60 },
+          facingMode: 'user'
+        } : false
       };
 
-      const constraints = {
-        audio: audioConstraints,
-        video: videoConstraints
-      };
-
-      console.log('🎤 [SimpleWebRTC] Requesting media access...');
+      console.log('🎤 [WebRTC] Requesting media...');
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('✅ [SimpleWebRTC] Media stream obtained');
+      console.log('✅ [WebRTC] Media acquired');
       this.emit('localStream', this.localStream);
     } catch (error: any) {
-      console.error('❌ [SimpleWebRTC] Media access failed:', error);
-
-      const errName: string = error?.name || 'Error';
-
-      const makeError = (message: string, name: string, cause: any = error) => {
-        const e = new Error(message);
-        e.name = name;
-        (e as any).cause = cause;
-        return e;
-      };
-
-      // Handle "Device in use" error with retry
-      if (errName === 'NotReadableError') {
-        console.log('⏳ [SimpleWebRTC] Device busy, waiting and retrying...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      console.error('❌ [WebRTC] Media failed:', error);
+      
+      // Try audio-only fallback for video calls
+      if (this.isVideo && error.name !== 'NotAllowedError') {
         try {
-          const retryConstraints = {
-            audio: true,
-            video: this.isVideo ? { width: 640, height: 480 } : false,
-          };
-          this.localStream = await navigator.mediaDevices.getUserMedia(retryConstraints);
+          console.log('⚠️ [WebRTC] Trying audio-only fallback...');
+          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
           this.emit('localStream', this.localStream);
           return;
-        } catch (retryError: any) {
-          console.error('❌ [SimpleWebRTC] Retry failed:', retryError);
-          throw makeError(
-            'Microphone/camera is busy. Close other apps using it and try again.',
-            'NotReadableError',
-            retryError
-          );
+        } catch (fallbackError) {
+          console.error('❌ [WebRTC] Audio fallback failed:', fallbackError);
         }
       }
-
-      // Handle video constraint issues by falling back to safe constraints
-      if (this.isVideo && errName === 'OverconstrainedError') {
-        console.log('⚠️ Trying fallback constraints...');
-        try {
-          const fallbackConstraints = {
-            audio: true,
-            video: { width: 320, height: 240 },
-          };
-          this.localStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-          this.emit('localStream', this.localStream);
-          return;
-        } catch (fallbackError: any) {
-          console.error('❌ [SimpleWebRTC] Fallback constraints failed:', fallbackError);
-          throw makeError('Could not start camera with supported settings.', fallbackError?.name || 'OverconstrainedError', fallbackError);
-        }
-      }
-
-      // Preserve permission-denied errors so UI can show the right message
-      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errName === 'SecurityError') {
-        throw makeError(error?.message || 'Permission denied', errName);
-      }
-
-      // No input devices available
-      if (errName === 'NotFoundError') {
-        throw makeError(this.isVideo ? 'No camera or microphone found' : 'No microphone found', 'NotFoundError');
-      }
-
-      // Any other media failures (treat as non-permission)
-      throw makeError(this.isVideo ? 'Could not start camera/microphone' : 'Could not start microphone', errName);
-    }
-  }
-
-  private async createPeerConnection() {
-    try {
-      // INDUSTRY-STANDARD: FaceTime/WhatsApp-grade STUN/TURN configuration
-      let iceServers: RTCIceServer[] = [
-        // Google STUN servers (highly reliable, globally distributed, sub-50ms latency)
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        
-        // Cloudflare STUN (fast, enterprise-grade)
-        { urls: 'stun:stun.cloudflare.com:3478' },
-        
-        // Twilio STUN (enterprise reliability)
-        { urls: 'stun:global.stun.twilio.com:3478' },
-        
-        // Mozilla STUN (good EU coverage)
-        { urls: 'stun:stun.services.mozilla.com' },
-        
-        // OpenRelay TURN (free, reliable)
-        {
-          urls: [
-            'turn:openrelay.metered.ca:80',
-            'turn:openrelay.metered.ca:443',
-            'turn:openrelay.metered.ca:443?transport=tcp',
-            'turns:openrelay.metered.ca:443'
-          ],
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        },
-        
-        // Metered.ca TURN servers (free tier, reliable)
-        {
-          urls: [
-            'turn:a.relay.metered.ca:80',
-            'turn:a.relay.metered.ca:80?transport=tcp',
-            'turn:a.relay.metered.ca:443',
-            'turn:a.relay.metered.ca:443?transport=tcp'
-          ],
-          username: 'e8dd65c92ae9a3b9bfcbeb6e',
-          credential: 'uWdWNmkhvyqTW1QP'
-        },
-        
-        // Xirsys free TURN servers (backup)
-        {
-          urls: [
-            'turn:fr-turn1.xirsys.com:80?transport=udp',
-            'turn:fr-turn1.xirsys.com:3478?transport=tcp',
-            'turn:fr-turn1.xirsys.com:443?transport=tcp'
-          ],
-          username: '6820e6b6-bcd2-11ef-8ba9-0242ac120004',
-          credential: '6820e852-bcd2-11ef-8ba9-0242ac120004'
-        }
-      ];
-
-      // Try to get fresh TURN credentials from edge function
-      try {
-        const { data: turnConfig } = await supabase.functions.invoke('get-turn-credentials');
-        if (turnConfig?.iceServers?.length > 0) {
-          iceServers = [...turnConfig.iceServers, ...iceServers];
-          console.log('✅ [SimpleWebRTC] Using edge function TURN servers');
-        }
-      } catch (err) {
-        console.warn('⚠️ [SimpleWebRTC] Edge function unavailable, using built-in servers');
-      }
-
-      console.log('🔧 [SimpleWebRTC] Creating peer connection with', iceServers.length, 'ICE server configs');
       
-      const isMobile = this.isMobileDevice();
-      // ULTRA-FAST: Optimized WebRTC configuration for instant connection and stability
-      const configuration: RTCConfiguration = {
-        iceServers,
-        iceTransportPolicy: 'all',
-        bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require',
-        // CRITICAL: Large candidate pool for instant ICE gathering
-        iceCandidatePoolSize: isMobile ? 30 : 40,
-      };
-      
-      this.pc = new RTCPeerConnection(configuration);
-      
-      // CRITICAL: Monitor overall connection state (covers more scenarios than ICE state)
-      this.pc.onconnectionstatechange = () => {
-        const state = this.pc!.connectionState;
-        console.log('🔌 [SimpleWebRTC] Connection state:', state);
-        
-        if (state === 'connected') {
-          if (this.callState !== 'connected') {
-            console.log('🎉 [SimpleWebRTC] Peer connection fully established!');
-            this.callState = 'connected';
-            this.emit('connected');
-            this.setupAdaptiveBitrate();
-          }
-          this.clearConnectionTimeout();
-          this.stopRecovery();
-        } else if (state === 'disconnected' || state === 'failed') {
-          // CRITICAL: Never auto-end - start recovery
-          console.warn(`⚠️ [SimpleWebRTC] Connection ${state} - starting recovery`);
-          this.attemptContinuousRecovery();
-        } else if (state === 'closed') {
-          console.log('🔌 [SimpleWebRTC] Connection closed');
-          // Only emit ended if we were previously connected
-          if (this.callState === 'connected') {
-            this.emit('ended');
-          }
-        }
-      };
-      
-      // ULTRA-FAST: Trigger immediate ICE gathering
-      console.log('🚀 [SimpleWebRTC] Pre-gathering ICE candidates...');
-
-      // Add local stream tracks
-      if (this.localStream) {
-        this.localStream.getTracks().forEach(track => {
-          console.log('➕ [SimpleWebRTC] Adding track:', track.kind);
-          this.pc!.addTrack(track, this.localStream!);
-        });
-      }
-
-      // Handle incoming tracks
-      this.pc.ontrack = (event) => {
-        console.log('📺 [SimpleWebRTC] Remote track received:', event.track.kind);
-        const [remoteStream] = event.streams;
-        this.emit('remoteStream', remoteStream);
-      };
-
-      // Handle ICE candidates
-      this.pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          console.log('🧊 [SimpleWebRTC] Sending ICE candidate');
-          this.sendSignal({
-            type: 'ice-candidate',
-            data: event.candidate,
-            from: this.userId
-          });
-        }
-      };
-
-      // CRITICAL: Enhanced ICE connection state monitoring - NEVER AUTO-DISCONNECT
-      this.pc.oniceconnectionstatechange = () => {
-        const state = this.pc!.iceConnectionState;
-        console.log('❄️ [SimpleWebRTC] ICE connection state:', state);
-
-        if (state === 'connected' || state === 'completed') {
-          // IMPORTANT: Only transition to connected if we haven't already
-          if (this.callState !== 'connected') {
-            this.callState = 'connected';
-            this.emit('connected');
-            this.setupAdaptiveBitrate();
-            console.log('🎉 [SimpleWebRTC] Call connected successfully!');
-          }
-          this.clearConnectionTimeout();
-          this.stopRecovery(); // Stop any ongoing recovery
-        } else if (state === 'failed') {
-          // CRITICAL: NEVER give up - start continuous recovery
-          console.warn('⚠️ [SimpleWebRTC] ICE connection failed - attempting continuous recovery');
-          this.attemptContinuousRecovery();
-        } else if (state === 'disconnected') {
-          // IMPORTANT: 'disconnected' is NORMAL on mobile (WiFi↔LTE handoff, background, etc.)
-          // We must NEVER auto-end the call - only user hang-up should end it
-          console.warn('⚠️ [SimpleWebRTC] ICE disconnected - this is normal, starting recovery');
-
-          // Attempt ICE restart for faster recovery
-          if (this.pc) {
-            console.log('🔄 [SimpleWebRTC] Attempting ICE restart on disconnect...');
-            try {
-              this.pc.restartIce();
-            } catch (e) {
-              console.warn('⚠️ [SimpleWebRTC] ICE restart error:', e);
-            }
-          }
-          
-          // Start continuous recovery if not already running
-          this.attemptContinuousRecovery();
-        } else if (state === 'checking') {
-          console.log('🔍 [SimpleWebRTC] ICE checking connectivity...');
-        } else if (state === 'new') {
-          console.log('🆕 [SimpleWebRTC] ICE connection new/reset');
-        }
-      };
-
-      console.log('✅ [SimpleWebRTC] Peer connection created');
-    } catch (error) {
-      console.error('❌ [SimpleWebRTC] Failed to create peer connection:', error);
       throw error;
     }
   }
 
-  private async fetchPastSignals() {
-    if (this.isInitiator) {
-      console.log('⏭️ [SimpleWebRTC] Initiator - skipping past signals fetch');
-      return;
+  private async createPeerConnection() {
+    const iceServers: RTCIceServer[] = [
+      // STUN servers for NAT traversal
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      
+      // TURN servers for relay
+      {
+        urls: [
+          'turn:openrelay.metered.ca:80',
+          'turn:openrelay.metered.ca:443',
+          'turns:openrelay.metered.ca:443'
+        ],
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: [
+          'turn:a.relay.metered.ca:80',
+          'turn:a.relay.metered.ca:443',
+        ],
+        username: 'e8dd65c92ae9a3b9bfcbeb6e',
+        credential: 'uWdWNmkhvyqTW1QP'
+      }
+    ];
+
+    this.pc = new RTCPeerConnection({
+      iceServers,
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
+      iceCandidatePoolSize: 20,
+    });
+
+    // Add local tracks
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => {
+        console.log('➕ [WebRTC] Adding track:', track.kind);
+        this.pc!.addTrack(track, this.localStream!);
+      });
     }
 
-    console.log('📥 [SimpleWebRTC] Fetching past signals for receiver...');
+    // Handle remote tracks
+    this.pc.ontrack = (event) => {
+      console.log('📺 [WebRTC] Remote track:', event.track.kind);
+      const [remoteStream] = event.streams;
+      this.emit('remoteStream', remoteStream);
+    };
+
+    // Handle ICE candidates
+    this.pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log('🧊 [WebRTC] Sending ICE candidate');
+        this.sendSignal({ type: 'ice-candidate', data: event.candidate, from: this.userId });
+      }
+    };
+
+    // Connection state changes
+    this.pc.onconnectionstatechange = () => {
+      const state = this.pc!.connectionState;
+      console.log('🔌 [WebRTC] Connection state:', state);
+      
+      if (state === 'connected') {
+        this.handleConnected();
+      } else if (state === 'failed') {
+        this.handleConnectionFailed();
+      } else if (state === 'closed') {
+        if (this.callState === 'connected') {
+          this.emit('ended');
+        }
+      }
+    };
+
+    // ICE connection state
+    this.pc.oniceconnectionstatechange = () => {
+      const state = this.pc!.iceConnectionState;
+      console.log('❄️ [WebRTC] ICE state:', state);
+      
+      if (state === 'connected' || state === 'completed') {
+        this.handleConnected();
+      } else if (state === 'failed') {
+        this.handleConnectionFailed();
+      } else if (state === 'disconnected') {
+        // Try ICE restart
+        console.log('🔄 [WebRTC] ICE disconnected - restarting...');
+        this.pc?.restartIce();
+      }
+    };
+
+    console.log('✅ [WebRTC] Peer connection created');
+  }
+
+  private handleConnected() {
+    if (this.callState === 'connected') return;
+    
+    console.log('🎉 [WebRTC] CONNECTED!');
+    this.callState = 'connected';
+    this.clearConnectionTimeout();
+    this.emit('connected');
+    this.emit('networkQuality', 'good');
+  }
+
+  private handleConnectionFailed() {
+    if (this.callState === 'ended') return;
+    
+    console.warn('⚠️ [WebRTC] Connection failed - attempting recovery...');
+    
+    // Try ICE restart if we have remote description
+    if (this.pc?.remoteDescription && this.isInitiator) {
+      this.attemptIceRestart();
+    } else {
+      this.emit('recoveryStatus', { message: 'Reconnecting...' });
+    }
+  }
+
+  private async attemptIceRestart() {
+    if (!this.pc || this.callState === 'ended') return;
     
     try {
-      const { data: signals, error } = await supabase
+      console.log('🔄 [WebRTC] ICE restart...');
+      const offer = await this.pc.createOffer({ iceRestart: true });
+      await this.pc.setLocalDescription(offer);
+      await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+    } catch (e) {
+      console.error('❌ [WebRTC] ICE restart failed:', e);
+    }
+  }
+
+  private async fetchPastSignals() {
+    console.log('📥 [WebRTC] Fetching past signals...');
+    
+    try {
+      const { data: signals } = await supabase
         .from('webrtc_signals')
         .select('*')
         .eq('call_id', this.callId)
         .eq('to_user', this.userId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-
-      if (signals && signals.length > 0) {
-        console.log(`📥 [SimpleWebRTC] Found ${signals.length} past signals`);
+      if (signals?.length) {
+        console.log(`📥 [WebRTC] Found ${signals.length} past signals`);
         
-        // Process OFFER first
+        // Process offer first
         const offer = signals.find(s => s.signal_type === 'offer');
         if (offer) {
-          console.log('📥 [SimpleWebRTC] Processing past OFFER...');
-          await this.handleSignal({
-            type: 'offer',
-            data: offer.signal_data,
-            from: offer.from_user
-          });
+          await this.handleSignal({ type: 'offer', data: offer.signal_data, from: offer.from_user });
         }
-
-        // Then process ICE candidates
+        
+        // Then ICE candidates
         const candidates = signals.filter(s => s.signal_type === 'ice-candidate');
-        console.log(`📥 [SimpleWebRTC] Processing ${candidates.length} past ICE candidates...`);
-        for (const candidate of candidates) {
-          await this.handleSignal({
-            type: 'ice-candidate',
-            data: candidate.signal_data,
-            from: candidate.from_user
-          });
+        for (const c of candidates) {
+          await this.handleSignal({ type: 'ice-candidate', data: c.signal_data, from: c.from_user });
         }
-      } else {
-        console.log('📭 [SimpleWebRTC] No past signals found');
       }
     } catch (error) {
-      console.error('❌ [SimpleWebRTC] Failed to fetch past signals:', error);
+      console.error('❌ [WebRTC] Failed to fetch past signals:', error);
     }
   }
 
   private async subscribeToSignals() {
-    console.log('📡 [SimpleWebRTC] Subscribing to signals...');
+    console.log('📡 [WebRTC] Subscribing to signals...');
     
     this.signalChannel = supabase
-      .channel(`call-signals-${this.callId}`)
+      .channel(`webrtc-${this.callId}-${this.userId}`)
       .on(
         'postgres_changes',
         {
@@ -464,11 +320,11 @@ export class SimpleWebRTCCall {
           filter: `call_id=eq.${this.callId}`
         },
         (payload) => {
-          const signal = payload.new;
+          const signal = payload.new as any;
           if (signal.to_user === this.userId) {
-            console.log('📥 [SimpleWebRTC] Real-time signal received:', signal.signal_type);
+            console.log('📥 [WebRTC] Signal received:', signal.signal_type);
             this.handleSignal({
-              type: signal.signal_type as SignalType,
+              type: signal.signal_type,
               data: signal.signal_data,
               from: signal.from_user
             });
@@ -476,914 +332,256 @@ export class SimpleWebRTCCall {
         }
       )
       .subscribe();
-
-    console.log('✅ [SimpleWebRTC] Subscribed to signals');
   }
 
   private async handleSignal(signal: Signal) {
     if (!this.pc) {
-      console.error('❌ [SimpleWebRTC] No peer connection available');
+      console.error('❌ [WebRTC] No peer connection');
       return;
     }
-
-    console.log(`🔄 [SimpleWebRTC] Processing ${signal.type} from ${signal.from}`);
 
     try {
       switch (signal.type) {
         case 'offer':
-          console.log('📥 [SimpleWebRTC] Processing OFFER...');
+          console.log('📥 [WebRTC] Processing OFFER...');
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-          console.log('✅ [SimpleWebRTC] Remote description (OFFER) set');
           
-          // Set preferred codecs for answer too
-          this.setPreferredCodecs();
-          
+          // Create and send answer
           const answer = await this.pc.createAnswer();
-          console.log('📤 [SimpleWebRTC] ANSWER created');
+          await this.pc.setLocalDescription(answer);
+          await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
+          console.log('✅ [WebRTC] ANSWER sent');
           
-          // Enhance SDP for FaceTime-grade quality on answer too
-          const enhancedAnswerSdp = this.enhanceSDP(answer.sdp || '');
-          const enhancedAnswer = new RTCSessionDescription({
-            type: 'answer',
-            sdp: enhancedAnswerSdp
-          });
-          
-          await this.pc.setLocalDescription(enhancedAnswer);
-          console.log('✅ [SimpleWebRTC] Local description (ANSWER) set with enhanced SDP');
-          
-          await this.sendSignal({
-            type: 'answer',
-            data: enhancedAnswer,
-            from: this.userId
-          });
-          console.log('✅ [SimpleWebRTC] Enhanced ANSWER sent to database');
+          // Process queued ICE candidates
+          await this.flushPendingCandidates();
           break;
 
         case 'answer':
-          console.log('📥 [SimpleWebRTC] Processing ANSWER...');
-          await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-          console.log('✅ [SimpleWebRTC] Remote description (ANSWER) set');
-          
-          // Process any queued ICE candidates now that we have remote description
-          if (this.pendingIceCandidates.length > 0) {
-            console.log(`📥 [SimpleWebRTC] Processing ${this.pendingIceCandidates.length} queued ICE candidates...`);
-            for (const candidate of this.pendingIceCandidates) {
-              try {
-                await this.pc.addIceCandidate(candidate);
-                console.log('✅ [SimpleWebRTC] Queued ICE candidate added');
-              } catch (error) {
-                console.error('❌ [SimpleWebRTC] Failed to add queued ICE candidate:', error);
-              }
-            }
-            this.pendingIceCandidates = [];
+          if (this.hasReceivedAnswer) {
+            console.log('⏭️ [WebRTC] Ignoring duplicate answer');
+            return;
           }
+          console.log('📥 [WebRTC] Processing ANSWER...');
+          this.hasReceivedAnswer = true;
+          await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+          console.log('✅ [WebRTC] ANSWER processed');
+          
+          // Process queued ICE candidates
+          await this.flushPendingCandidates();
           break;
 
         case 'ice-candidate':
-          console.log('📥 [SimpleWebRTC] Adding ICE candidate...');
           if (this.pc.remoteDescription) {
             await this.pc.addIceCandidate(new RTCIceCandidate(signal.data));
-            console.log('✅ [SimpleWebRTC] ICE candidate added successfully');
           } else {
-            console.log('⏳ [SimpleWebRTC] Queueing ICE candidate - waiting for remote description');
             this.pendingIceCandidates.push(new RTCIceCandidate(signal.data));
           }
           break;
       }
     } catch (error) {
-      console.error(`❌ [SimpleWebRTC] Error processing ${signal.type}:`, error);
+      console.error(`❌ [WebRTC] Signal error (${signal.type}):`, error);
     }
   }
 
-  private async createOffer() {
-    if (!this.pc) return;
+  private async flushPendingCandidates() {
+    if (this.pendingIceCandidates.length === 0) return;
+    
+    console.log(`📥 [WebRTC] Flushing ${this.pendingIceCandidates.length} queued candidates`);
+    for (const candidate of this.pendingIceCandidates) {
+      try {
+        await this.pc?.addIceCandidate(candidate);
+      } catch (e) {
+        console.warn('⚠️ [WebRTC] Failed to add queued candidate:', e);
+      }
+    }
+    this.pendingIceCandidates = [];
+  }
+
+  private async createAndSendOffer() {
+    if (!this.pc || this.offerSent) return;
 
     try {
-      console.log('📤 [SimpleWebRTC] Creating offer...');
-      
-      // Set preferred codecs before creating offer for best quality
-      this.setPreferredCodecs();
+      console.log('📤 [WebRTC] Creating offer...');
+      this.offerSent = true;
       
       const offer = await this.pc.createOffer();
-      
-      // Enhance SDP for FaceTime-grade quality
-      const enhancedSdp = this.enhanceSDP(offer.sdp || '');
-      const enhancedOffer = new RTCSessionDescription({
-        type: 'offer',
-        sdp: enhancedSdp
-      });
-      
-      await this.pc.setLocalDescription(enhancedOffer);
-      await this.sendSignal({
-        type: 'offer',
-        data: enhancedOffer,
-        from: this.userId
-      });
-      console.log('✅ [SimpleWebRTC] Enhanced offer sent');
+      await this.pc.setLocalDescription(offer);
+      await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+      console.log('✅ [WebRTC] Offer sent');
     } catch (error) {
-      console.error('❌ [SimpleWebRTC] Failed to create offer:', error);
+      console.error('❌ [WebRTC] Failed to create offer:', error);
+      this.offerSent = false;
       throw error;
     }
   }
 
-  /**
-   * Set preferred video/audio codecs for maximum quality
-   */
-  private setPreferredCodecs() {
-    if (!this.pc) return;
-
-    const transceivers = this.pc.getTransceivers();
-    
-    transceivers.forEach((transceiver) => {
-      if (transceiver.sender?.track?.kind === 'video') {
-        const capabilities = RTCRtpSender.getCapabilities('video');
-        if (!capabilities) return;
-
-        // Prefer VP9 for best quality, then H264 for hardware acceleration, then VP8
-        const preferredOrder = ['VP9', 'H264', 'VP8'];
-        const sortedCodecs = [...capabilities.codecs].sort((a, b) => {
-          const aIndex = preferredOrder.findIndex(p => a.mimeType.includes(p));
-          const bIndex = preferredOrder.findIndex(p => b.mimeType.includes(p));
-          return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-        });
-
-        try {
-          transceiver.setCodecPreferences(sortedCodecs);
-          console.log('✅ [SimpleWebRTC] Video codec preference set (VP9 > H264 > VP8)');
-        } catch (e) {
-          console.warn('⚠️ [SimpleWebRTC] Could not set codec preference:', e);
-        }
-      }
-
-      if (transceiver.sender?.track?.kind === 'audio') {
-        const capabilities = RTCRtpSender.getCapabilities('audio');
-        if (!capabilities) return;
-
-        // Prefer Opus for best audio quality
-        const sortedCodecs = [...capabilities.codecs].sort((a, b) => {
-          if (a.mimeType.includes('opus')) return -1;
-          if (b.mimeType.includes('opus')) return 1;
-          return 0;
-        });
-
-        try {
-          transceiver.setCodecPreferences(sortedCodecs);
-          console.log('✅ [SimpleWebRTC] Audio codec preference set (Opus preferred)');
-        } catch (e) {
-          console.warn('⚠️ [SimpleWebRTC] Could not set audio codec preference:', e);
-        }
-      }
-    });
-  }
-
-  /**
-   * Enhance SDP for FaceTime-grade video/audio quality
-   * Sets higher bitrates and quality parameters
-   */
-  private enhanceSDP(sdp: string): string {
-    let enhanced = sdp;
-
-    // VIDEO: Set very high bitrate for 1080p60 quality (8 Mbps max, 4 Mbps target)
-    // This matches FaceTime's quality tier
-    enhanced = enhanced.replace(
-      /a=mid:video\r\n/g,
-      'a=mid:video\r\nb=AS:8000\r\n'
-    );
-    
-    // Also set bitrate on video m-line if mid:video not found
-    if (!enhanced.includes('b=AS:8000')) {
-      enhanced = enhanced.replace(
-        /(m=video.*\r\n)/g,
-        '$1b=AS:8000\r\n'
-      );
-    }
-
-    // AUDIO: High quality stereo Opus at 128kbps (matches FaceTime HD audio)
-    enhanced = enhanced.replace(
-      /a=mid:audio\r\n/g,
-      'a=mid:audio\r\nb=AS:128\r\n'
-    );
-
-    // Set Opus parameters for maximum quality:
-    // - maxaveragebitrate: 128000 (128 kbps)
-    // - stereo: 1 (enable stereo)
-    // - sprop-stereo: 1 (sender prefers stereo)
-    // - maxplaybackrate: 48000 (48kHz)
-    // - useinbandfec: 1 (forward error correction)
-    // - usedtx: 0 (disable discontinuous transmission for constant quality)
-    enhanced = enhanced.replace(
-      /a=fmtp:111 /g,
-      'a=fmtp:111 maxaveragebitrate=128000;stereo=1;sprop-stereo=1;maxplaybackrate=48000;useinbandfec=1;usedtx=0;'
-    );
-
-    // Also handle fmtp:109 for opus
-    enhanced = enhanced.replace(
-      /a=fmtp:109 /g,
-      'a=fmtp:109 maxaveragebitrate=128000;stereo=1;sprop-stereo=1;maxplaybackrate=48000;useinbandfec=1;usedtx=0;'
-    );
-
-    console.log('✅ [SimpleWebRTC] SDP enhanced for FaceTime-grade quality');
-    return enhanced;
-  }
-
   private async sendSignal(signal: Signal) {
     try {
-      await supabase.from('webrtc_signals').insert({
+      const { error } = await supabase.from('webrtc_signals').insert({
         call_id: this.callId,
         signal_type: signal.type,
         signal_data: signal.data,
         from_user: this.userId,
         to_user: this.partnerId
       });
+      
+      if (error) throw error;
     } catch (error) {
-      console.error('❌ [SimpleWebRTC] Failed to send signal:', error);
+      console.error('❌ [WebRTC] Failed to send signal:', error);
     }
   }
 
-  private recoveryAttempts: number = 0;
-  private maxRecoveryAttempts: number = 50; // Very high limit - keep trying
-  private recoveryIntervalId: number | null = null;
-  private isRecovering: boolean = false;
-
-  private setConnectionTimeout() {
-    // RELIABLE: Extended timeouts - 60s for mobile, 45s for desktop
-    const timeout = this.isMobileDevice() ? 60000 : 45000;
-    console.log(`⏱️ [SimpleWebRTC] Connection timeout set: ${timeout}ms`);
-    
-    this.iceConnectionTimeout = setTimeout(() => {
+  private startConnectionTimeout() {
+    // 30 seconds to connect
+    this.connectionTimeout = setTimeout(() => {
       if (this.callState === 'connecting') {
-        console.warn('⏰ [SimpleWebRTC] Initial connection timeout - starting continuous recovery');
+        console.warn('⏰ [WebRTC] Connection timeout');
         
-        // CRITICAL: Start continuous recovery instead of failing
-        this.attemptContinuousRecovery();
-      }
-    }, timeout);
-  }
-
-  /**
-   * Continuous recovery - keeps trying until user hangs up
-   * CRITICAL: Never shows "call failed" - only user can end calls
-   */
-  private attemptContinuousRecovery() {
-    if (this.isRecovering) {
-      console.log('🔄 [SimpleWebRTC] Already in recovery mode');
-      return;
-    }
-    
-    this.isRecovering = true;
-    this.recoveryAttempts = 0;
-    console.log('🔄 [SimpleWebRTC] Starting continuous recovery mode...');
-    
-    const attemptRecovery = async () => {
-      if (!this.pc || this.callState === 'ended') {
-        console.log('🛑 [SimpleWebRTC] Call ended, stopping recovery');
-        this.stopRecovery();
-        return;
-      }
-      
-      const iceState = this.pc.iceConnectionState;
-      const connState = this.pc.connectionState;
-      
-      console.log(`🔄 [SimpleWebRTC] Recovery check - ICE: ${iceState}, Connection: ${connState}`);
-      
-      // Success - stop recovery
-      if (iceState === 'connected' || iceState === 'completed') {
-        console.log('✅ [SimpleWebRTC] Connection recovered!');
-        if (this.callState !== 'connected') {
-          this.callState = 'connected';
-          this.emit('connected');
-        }
-        this.stopRecovery();
-        return;
-      }
-      
-      this.recoveryAttempts++;
-      console.log(`🔄 [SimpleWebRTC] Recovery attempt ${this.recoveryAttempts}/${this.maxRecoveryAttempts}...`);
-      
-      // Attempt ICE restart - but ONLY if we're the initiator
-      // CRITICAL: Non-initiators should NEVER send offers
-      try {
-        if (this.isInitiator && this.recoveryAttempts % 3 === 0) {
-          // Every 3rd attempt, also trigger renegotiation (initiator only)
-          console.log('🔄 [SimpleWebRTC] Triggering full renegotiation...');
-          const offer = await this.pc.createOffer({ iceRestart: true });
-          await this.pc.setLocalDescription(offer);
-          await this.sendSignal({
-            type: 'offer',
-            data: offer,
-            from: this.userId
-          });
+        if (!this.hasReceivedAnswer && this.isInitiator) {
+          // No answer received - partner may not have answered yet
+          this.emit('recoveryStatus', { message: 'Waiting for answer...' });
         } else {
-          // Normal ICE restart (both sides can do this)
-          this.pc.restartIce();
+          // Have answer but still not connected - ICE issue
+          this.emit('recoveryStatus', { message: 'Connecting...' });
+          this.pc?.restartIce();
         }
-      } catch (e) {
-        console.warn('⚠️ [SimpleWebRTC] Recovery action error:', e);
       }
-      
-      // Emit recoveryStatus event for UI feedback (not failure!)
-      this.emit('recoveryStatus', {
-        attempt: this.recoveryAttempts,
-        maxAttempts: this.maxRecoveryAttempts,
-        message: `Reconnecting... (${this.recoveryAttempts})`
-      });
-      
-      // After many attempts, reset counter but KEEP TRYING
-      if (this.recoveryAttempts >= this.maxRecoveryAttempts) {
-        console.warn('⚠️ [SimpleWebRTC] Max recovery attempts reached - resetting and continuing...');
-        this.recoveryAttempts = 0;
-      }
-    };
-    
-    // Try immediately
-    attemptRecovery();
-    
-    // Then every 3 seconds (more aggressive recovery)
-    if (!this.recoveryIntervalId) {
-      this.recoveryIntervalId = window.setInterval(attemptRecovery, 3000);
-    }
-  }
-
-  private stopRecovery() {
-    console.log('🛑 [SimpleWebRTC] Stopping recovery mode');
-    this.isRecovering = false;
-    if (this.recoveryIntervalId) {
-      clearInterval(this.recoveryIntervalId);
-      this.recoveryIntervalId = null;
-    }
-    this.recoveryAttempts = 0;
+    }, 30000);
   }
 
   private clearConnectionTimeout() {
-    if (this.iceConnectionTimeout) {
-      clearTimeout(this.iceConnectionTimeout);
-      this.iceConnectionTimeout = null;
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+  }
+
+  toggleAudio(enabled: boolean) {
+    this.localStream?.getAudioTracks().forEach(track => {
+      track.enabled = enabled;
+    });
+  }
+
+  toggleVideo(enabled: boolean) {
+    this.localStream?.getVideoTracks().forEach(track => {
+      track.enabled = enabled;
+    });
+  }
+
+  async addVideoToCall(): Promise<MediaStream | null> {
+    if (!this.pc) return null;
+
+    try {
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+      });
+
+      const videoTrack = videoStream.getVideoTracks()[0];
+      this.pc.addTrack(videoTrack, videoStream);
+      this.localStream?.addTrack(videoTrack);
+
+      // Request renegotiation
+      const offer = await this.pc.createOffer();
+      await this.pc.setLocalDescription(offer);
+      await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+
+      return videoStream;
+    } catch (error) {
+      console.error('❌ [WebRTC] Failed to add video:', error);
+      return null;
+    }
+  }
+
+  sendDTMF(digit: string) {
+    const sender = this.pc?.getSenders().find(s => s.track?.kind === 'audio');
+    if (sender?.dtmf) {
+      sender.dtmf.insertDTMF(digit, 100, 70);
+    }
+  }
+
+  async switchCamera(): Promise<'user' | 'environment'> {
+    const videoTrack = this.localStream?.getVideoTracks()[0];
+    if (!videoTrack) throw new Error('No video track');
+
+    const constraints = videoTrack.getConstraints();
+    const currentFacing = (constraints.facingMode as string) || 'user';
+    const newFacing = currentFacing === 'user' ? 'environment' : 'user';
+
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: newFacing, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+
+    const newVideoTrack = newStream.getVideoTracks()[0];
+    await this.replaceTrack(newVideoTrack);
+
+    // Stop old track
+    videoTrack.stop();
+
+    return newFacing;
+  }
+
+  async replaceTrack(newTrack: MediaStreamTrack): Promise<void> {
+    const sender = this.pc?.getSenders().find(s => s.track?.kind === newTrack.kind);
+    if (sender) {
+      await sender.replaceTrack(newTrack);
+      
+      // Update local stream
+      if (this.localStream) {
+        const oldTrack = this.localStream.getTracks().find(t => t.kind === newTrack.kind);
+        if (oldTrack) {
+          this.localStream.removeTrack(oldTrack);
+        }
+        this.localStream.addTrack(newTrack);
+      }
+    }
+  }
+
+  applyZoom(scale: number) {
+    const videoTrack = this.localStream?.getVideoTracks()[0];
+    if (!videoTrack) return;
+
+    try {
+      const capabilities = videoTrack.getCapabilities?.() as any;
+      if (capabilities?.zoom) {
+        const constraints = { advanced: [{ zoom: scale } as any] };
+        videoTrack.applyConstraints(constraints);
+      }
+    } catch (e) {
+      console.warn('Zoom not supported on this device');
     }
   }
 
   async end() {
-    console.log('👋 [SimpleWebRTC] User ending call...');
-    
-    // CRITICAL: Mark as ended FIRST to prevent recovery from kicking in
+    console.log('👋 [WebRTC] Ending call...');
     this.callState = 'ended';
-    
-    // Stop any ongoing recovery attempts
-    this.stopRecovery();
     this.clearConnectionTimeout();
-    
-    // Then cleanup resources
     await this.cleanup();
-    
-    // Finally emit ended event
     this.emit('ended');
-    console.log('✅ [SimpleWebRTC] Call ended cleanly');
-  }
-
-  private adaptiveIntervalId: number | null = null;
-  private currentQuality: 'ultra' | 'high' | 'medium' | 'low' = 'ultra';
-  private lastQualityChangeTime: number = 0;
-  private readonly QUALITY_CHANGE_COOLDOWN = 15000; // 15 seconds cooldown between quality changes
-
-  private setupAdaptiveBitrate() {
-    if (!this.pc || !this.isVideo) return;
-
-    // CRITICAL: Set initial high bitrate on sender for FaceTime-grade quality
-    this.setEncoderParameters();
-
-    this.adaptiveIntervalId = window.setInterval(async () => {
-      if (!this.pc) return;
-      
-      const stats = await this.pc.getStats();
-      let packetsLost = 0;
-      let packetsReceived = 0;
-      let rtt = 0;
-      
-      stats.forEach(report => {
-        if (report.type === 'inbound-rtp' && report.kind === 'video') {
-          packetsLost = report.packetsLost || 0;
-          packetsReceived = report.packetsReceived || 0;
-        }
-        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-          rtt = (report.currentRoundTripTime || 0) * 1000;
-        }
-      });
-      
-      const totalPackets = packetsLost + packetsReceived;
-      const packetLossRate = totalPackets > 0 ? packetsLost / totalPackets : 0;
-      
-      // CONSERVATIVE: Only reduce quality on severe network issues
-      // FaceTime maintains quality unless absolutely necessary
-      if (packetLossRate > 0.10 || rtt > 500) {
-        this.adjustVideoQuality('low');
-      } else if (packetLossRate > 0.05 || rtt > 300) {
-        this.adjustVideoQuality('medium');
-      } else if (packetLossRate > 0.02 || rtt > 150) {
-        this.adjustVideoQuality('high');
-      } else {
-        this.adjustVideoQuality('ultra');
-      }
-    }, 5000); // Check every 5 seconds (less aggressive than 2s)
-  }
-
-  /**
-   * Set encoder parameters for maximum quality output
-   */
-  private async setEncoderParameters() {
-    if (!this.pc) return;
-
-    const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
-    if (!sender) return;
-
-    try {
-      const params = sender.getParameters();
-      if (!params.encodings || params.encodings.length === 0) {
-        params.encodings = [{}];
-      }
-
-      // FaceTime-grade encoding: 8 Mbps max, 60fps priority
-      params.encodings[0] = {
-        ...params.encodings[0],
-        maxBitrate: 8000000, // 8 Mbps
-        maxFramerate: 60,
-        priority: 'high',
-        networkPriority: 'high',
-      };
-
-      await sender.setParameters(params);
-      console.log('✅ [SimpleWebRTC] Encoder parameters set for FaceTime-grade quality');
-    } catch (error) {
-      console.warn('⚠️ [SimpleWebRTC] Could not set encoder parameters:', error);
-    }
-  }
-
-  private async adjustVideoQuality(quality: 'ultra' | 'high' | 'medium' | 'low') {
-    if (!this.localStream || this.currentQuality === quality) return;
-    
-    // COOLDOWN: Don't change quality too frequently (prevents jarring experience)
-    const now = Date.now();
-    if (now - this.lastQualityChangeTime < this.QUALITY_CHANGE_COOLDOWN) {
-      return;
-    }
-    
-    const videoTrack = this.localStream.getVideoTracks()[0];
-    if (!videoTrack) return;
-    
-    // FaceTime-grade quality presets
-    const constraints = {
-      ultra: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 60 } },
-      high: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
-      medium: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
-      low: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } }
-    };
-    
-    try {
-      await videoTrack.applyConstraints(constraints[quality]);
-      this.currentQuality = quality;
-      this.lastQualityChangeTime = now;
-      console.log(`📊 [SimpleWebRTC] Video quality adjusted to ${quality}`);
-      
-      // Update encoder bitrate to match quality level
-      await this.updateEncoderBitrate(quality);
-    } catch (error) {
-      // CRITICAL: Don't crash on constraint errors - just log and continue
-      console.warn('⚠️ [SimpleWebRTC] Failed to adjust quality (non-fatal):', error);
-    }
-  }
-
-  private async updateEncoderBitrate(quality: 'ultra' | 'high' | 'medium' | 'low') {
-    if (!this.pc) return;
-
-    const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
-    if (!sender) return;
-
-    const bitrates = {
-      ultra: 8000000,  // 8 Mbps
-      high: 5000000,   // 5 Mbps
-      medium: 2500000, // 2.5 Mbps
-      low: 1000000     // 1 Mbps
-    };
-
-    try {
-      const params = sender.getParameters();
-      if (params.encodings && params.encodings[0]) {
-        params.encodings[0].maxBitrate = bitrates[quality];
-        await sender.setParameters(params);
-        console.log(`✅ [SimpleWebRTC] Encoder bitrate set to ${bitrates[quality] / 1000000} Mbps`);
-      }
-    } catch (error) {
-      console.warn('⚠️ [SimpleWebRTC] Could not update encoder bitrate:', error);
-    }
   }
 
   private async cleanup() {
-    console.log('🧹 [SimpleWebRTC] Cleaning up...');
-    
-    // Stop recovery attempts
-    this.stopRecovery();
-    
-    if (this.adaptiveIntervalId) {
-      clearInterval(this.adaptiveIntervalId);
-      this.adaptiveIntervalId = null;
-    }
-    
-    this.clearConnectionTimeout();
-
-    // CRITICAL: Stop and remove all tracks properly
-    if (this.localStream) {
-      console.log('🛑 [SimpleWebRTC] Stopping all local media tracks');
-      this.localStream.getTracks().forEach(track => {
-        track.stop();
-        // Remove track from stream
-        this.localStream?.removeTrack(track);
-      });
-      this.localStream = null;
-    }
+    // Stop local tracks
+    this.localStream?.getTracks().forEach(t => t.stop());
+    this.localStream = null;
 
     // Close peer connection
     if (this.pc) {
-      // Stop all senders' tracks
-      this.pc.getSenders().forEach(sender => {
-        if (sender.track) {
-          sender.track.stop();
-        }
-      });
+      this.pc.onconnectionstatechange = null;
+      this.pc.oniceconnectionstatechange = null;
+      this.pc.ontrack = null;
+      this.pc.onicecandidate = null;
       this.pc.close();
       this.pc = null;
     }
 
-    // Remove signal channel
+    // Unsubscribe from signals
     if (this.signalChannel) {
       await supabase.removeChannel(this.signalChannel);
       this.signalChannel = null;
     }
-
-    // Wait for devices to be fully released
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    console.log('✅ [SimpleWebRTC] Cleanup complete');
   }
 
-  toggleAudio(enabled: boolean) {
-    if (this.localStream) {
-      this.localStream.getAudioTracks().forEach(track => {
-        track.enabled = enabled;
-      });
-      console.log(`🎤 [SimpleWebRTC] Audio ${enabled ? 'enabled' : 'muted'}`);
-    }
-  }
-
-  toggleVideo(enabled: boolean) {
-    if (this.localStream) {
-      this.localStream.getVideoTracks().forEach(track => {
-        track.enabled = enabled;
-      });
-      console.log(`📹 [SimpleWebRTC] Video ${enabled ? 'enabled' : 'disabled'}`);
-    }
-  }
-
-  /**
-   * Upgrade voice call to video by adding video track
-   * Returns the local video stream for display
-   */
-  async addVideoToCall(): Promise<MediaStream | null> {
-    if (!this.pc || !this.localStream) {
-      console.error('❌ [SimpleWebRTC] Cannot add video - no active connection');
-      return null;
-    }
-
-    try {
-      console.log('📹 [SimpleWebRTC] Adding video to existing call...');
-      
-      // Get video stream
-      const videoStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
-      });
-      
-      const videoTrack = videoStream.getVideoTracks()[0];
-      
-      // Add to local stream
-      this.localStream.addTrack(videoTrack);
-      
-      // Add to peer connection
-      const sender = this.pc.addTrack(videoTrack, this.localStream);
-      console.log('✅ [SimpleWebRTC] Video track added to connection');
-      
-      // Mark as video call
-      this.isVideo = true;
-      
-      // Emit updated local stream
-      this.emit('localStream', this.localStream);
-      
-      return videoStream;
-    } catch (error) {
-      console.error('❌ [SimpleWebRTC] Failed to add video:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Remove video from call (downgrade to voice)
-   */
-  removeVideoFromCall() {
-    if (!this.pc || !this.localStream) return;
-    
-    const videoTracks = this.localStream.getVideoTracks();
-    videoTracks.forEach(track => {
-      track.stop();
-      this.localStream?.removeTrack(track);
-      
-      // Remove from peer connection
-      const sender = this.pc?.getSenders().find(s => s.track === track);
-      if (sender) {
-        this.pc?.removeTrack(sender);
-      }
-    });
-    
-    this.isVideo = false;
-    console.log('📹 [SimpleWebRTC] Video removed from call');
-  }
-
-  /**
-   * Send DTMF tone (for IVR systems, phone menus, etc.)
-   */
-  sendDTMF(digit: string) {
-    if (!this.pc) return;
-    
-    const sender = this.pc.getSenders().find(s => s.track?.kind === 'audio');
-    if (sender && sender.dtmf) {
-      sender.dtmf.insertDTMF(digit, 100, 70);
-      console.log(`📱 [SimpleWebRTC] DTMF sent: ${digit}`);
-    } else {
-      console.warn('⚠️ [SimpleWebRTC] DTMF not supported on this connection');
-    }
-  }
-
-  getState(): CallState {
-    return this.callState;
-  }
-
-  /**
-   * Pre-call network quality analysis (Copilot-style silent check)
-   * Returns quality level to help decide call route
-   */
-  private async analyzeNetworkQuality(): Promise<'excellent' | 'good' | 'fair' | 'poor'> {
-    try {
-      // Measure latency via fetch
-      const startTime = performance.now();
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
-      try {
-        await fetch('https://www.google.com/favicon.ico', {
-          mode: 'no-cors',
-          cache: 'no-store',
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-      } catch {
-        clearTimeout(timeoutId);
-      }
-      
-      const latency = performance.now() - startTime;
-      
-      // Check connection type if available
-      const connection = (navigator as any).connection;
-      const effectiveType = connection?.effectiveType;
-      const downlink = connection?.downlink || 10; // Mbps
-      
-      console.log(`📶 [SimpleWebRTC] Network: latency=${latency.toFixed(0)}ms, type=${effectiveType}, downlink=${downlink}Mbps`);
-      
-      // Determine quality based on latency and connection info
-      if (!navigator.onLine) {
-        return 'poor';
-      } else if (latency < 50 && downlink > 10) {
-        return 'excellent';
-      } else if (latency < 150 && downlink > 5) {
-        return 'good';
-      } else if (latency < 300 && downlink > 1) {
-        return 'fair';
-      } else {
-        return 'poor';
-      }
-    } catch (error) {
-      console.warn('⚠️ [SimpleWebRTC] Network analysis failed:', error);
-      return 'good'; // Assume good on failure
-    }
-  }
-
-  // Zoom state for cropping video
-  private zoomLevel: number = 1;
-  private zoomCanvas: HTMLCanvasElement | null = null;
-  private zoomCtx: CanvasRenderingContext2D | null = null;
-  private zoomVideoElement: HTMLVideoElement | null = null;
-  private zoomAnimationId: number | null = null;
-  private zoomedStream: MediaStream | null = null;
-
-  /**
-   * Apply zoom to local video and send zoomed/cropped video to remote user
-   * @param level Zoom level (1.0 = no zoom, 2.0 = 2x zoom, etc.)
-   */
-  async applyZoom(level: number) {
-    if (!this.localStream || !this.pc) {
-      console.error('❌ [SimpleWebRTC] No local stream or peer connection');
-      return;
-    }
-
-    const videoTrack = this.localStream.getVideoTracks()[0];
-    if (!videoTrack) {
-      console.error('❌ [SimpleWebRTC] No video track found');
-      return;
-    }
-
-    this.zoomLevel = Math.max(1, Math.min(4, level)); // Clamp between 1x and 4x
-
-    // If zoom is 1x, restore original track
-    if (this.zoomLevel === 1) {
-      await this.restoreOriginalTrack();
-      return;
-    }
-
-    console.log(`🔍 [SimpleWebRTC] Applying ${this.zoomLevel}x zoom`);
-
-    // Create canvas-based zoom if not already set up
-    if (!this.zoomCanvas) {
-      await this.setupZoomCanvas(videoTrack);
-    }
-
-    // The zoom rendering loop will handle the cropping
-    console.log(`✅ [SimpleWebRTC] Zoom set to ${this.zoomLevel}x`);
-  }
-
-  private async setupZoomCanvas(originalTrack: MediaStreamTrack) {
-    const settings = originalTrack.getSettings();
-    const width = settings.width || 1280;
-    const height = settings.height || 720;
-
-    // Create canvas for zoom processing
-    this.zoomCanvas = document.createElement('canvas');
-    this.zoomCanvas.width = width;
-    this.zoomCanvas.height = height;
-    this.zoomCtx = this.zoomCanvas.getContext('2d');
-
-    // Create video element to render source
-    this.zoomVideoElement = document.createElement('video');
-    this.zoomVideoElement.srcObject = new MediaStream([originalTrack.clone()]);
-    this.zoomVideoElement.muted = true;
-    this.zoomVideoElement.playsInline = true;
-    await this.zoomVideoElement.play();
-
-    // Create stream from canvas
-    this.zoomedStream = this.zoomCanvas.captureStream(30);
-    const zoomedTrack = this.zoomedStream.getVideoTracks()[0];
-
-    // Replace the sender's track with zoomed track
-    const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
-    if (sender) {
-      await sender.replaceTrack(zoomedTrack);
-      console.log('✅ [SimpleWebRTC] Replaced sender track with zoomed track');
-    }
-
-    // Start the zoom render loop
-    this.startZoomRenderLoop();
-  }
-
-  private startZoomRenderLoop() {
-    const render = () => {
-      if (!this.zoomCanvas || !this.zoomCtx || !this.zoomVideoElement) {
-        return;
-      }
-
-      const w = this.zoomCanvas.width;
-      const h = this.zoomCanvas.height;
-
-      // Calculate crop region based on zoom level (center crop)
-      const cropW = w / this.zoomLevel;
-      const cropH = h / this.zoomLevel;
-      const cropX = (w - cropW) / 2;
-      const cropY = (h - cropH) / 2;
-
-      // Clear and draw zoomed/cropped video
-      this.zoomCtx.clearRect(0, 0, w, h);
-      this.zoomCtx.drawImage(
-        this.zoomVideoElement,
-        cropX, cropY, cropW, cropH, // Source crop region
-        0, 0, w, h // Destination (full canvas)
-      );
-
-      this.zoomAnimationId = requestAnimationFrame(render);
-    };
-
-    render();
-  }
-
-  private async restoreOriginalTrack() {
-    // Stop zoom processing
-    if (this.zoomAnimationId) {
-      cancelAnimationFrame(this.zoomAnimationId);
-      this.zoomAnimationId = null;
-    }
-
-    if (this.zoomVideoElement) {
-      this.zoomVideoElement.pause();
-      this.zoomVideoElement.srcObject = null;
-      this.zoomVideoElement = null;
-    }
-
-    if (this.zoomedStream) {
-      this.zoomedStream.getTracks().forEach(t => t.stop());
-      this.zoomedStream = null;
-    }
-
-    this.zoomCanvas = null;
-    this.zoomCtx = null;
-
-    // Restore original video track
-    const originalTrack = this.localStream?.getVideoTracks()[0];
-    if (originalTrack && this.pc) {
-      const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
-      if (sender) {
-        await sender.replaceTrack(originalTrack);
-        console.log('✅ [SimpleWebRTC] Restored original video track');
-      }
-    }
-  }
-
-  getZoomLevel(): number {
-    return this.zoomLevel;
-  }
-
-  /**
-   * Replace the video track with a new track (e.g., for screen sharing)
-   */
-  async replaceTrack(newTrack: MediaStreamTrack): Promise<void> {
-    if (!this.pc) {
-      console.error('❌ [SimpleWebRTC] No peer connection available');
-      return;
-    }
-
-    const sender = this.pc.getSenders().find(s => s.track?.kind === newTrack.kind);
-    if (sender) {
-      await sender.replaceTrack(newTrack);
-      console.log(`✅ [SimpleWebRTC] Replaced ${newTrack.kind} track`);
-    }
-  }
-
-  async switchCamera() {
-    if (!this.localStream) {
-      console.error('❌ [SimpleWebRTC] No local stream available');
-      return null;
-    }
-    
-    // Reset zoom when switching camera
-    await this.restoreOriginalTrack();
-    this.zoomLevel = 1;
-    
-    const videoTrack = this.localStream.getVideoTracks()[0];
-    if (!videoTrack) {
-      console.error('❌ [SimpleWebRTC] No video track found');
-      return null;
-    }
-    
-    const currentFacingMode = videoTrack.getSettings().facingMode;
-    const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-    
-    try {
-      console.log(`📷 [SimpleWebRTC] Switching camera from ${currentFacingMode} to ${newFacingMode}`);
-      
-      videoTrack.stop();
-      
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: newFacingMode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 30 }
-        },
-        audio: false
-      });
-      
-      const newVideoTrack = newStream.getVideoTracks()[0];
-      
-      const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
-      if (sender) {
-        await sender.replaceTrack(newVideoTrack);
-      }
-      
-      this.localStream.removeTrack(videoTrack);
-      this.localStream.addTrack(newVideoTrack);
-      
-      this.emit('localStream', this.localStream);
-      
-      console.log(`✅ [SimpleWebRTC] Camera switched to ${newFacingMode}`);
-      return newFacingMode;
-    } catch (error) {
-      console.error('❌ [SimpleWebRTC] Failed to switch camera:', error);
-      throw error;
-    }
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

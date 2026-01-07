@@ -196,17 +196,14 @@ export default function GSMStyleVoiceCall({
         }
         userIdRef.current = user.id;
 
-         console.log('🎬 [GSMStyleVoiceCall] Initializing voice call...');
-         
-         console.log('🎬 [GSMStyleVoiceCall] Call mode:', isInitiator ? 'outgoing' : 'incoming');
-         
-         const call = new SimpleWebRTCCall(callId, partnerId, false, isInitiator, user.id, preAcquiredStream);
-         webrtcRef.current = call;
+        console.log('🎬 [VoiceCall] Starting', isInitiator ? 'outgoing' : 'incoming', 'call');
+        
+        const call = new SimpleWebRTCCall(callId, partnerId, false, isInitiator, user.id, preAcquiredStream);
+        webrtcRef.current = call;
 
         call.on('remoteStream', (stream: MediaStream) => {
-          console.log('🔊 [GSMStyleVoiceCall] Remote stream received');
+          console.log('🔊 [VoiceCall] Remote stream received');
           
-          // Handle audio
           if (!remoteAudioRef.current) {
             remoteAudioRef.current = new Audio();
             remoteAudioRef.current.autoplay = true;
@@ -214,115 +211,66 @@ export default function GSMStyleVoiceCall({
           }
           
           remoteAudioRef.current.srcObject = stream;
-          
-          // Force play audio with retries
-          const forcePlay = async (attempt = 1) => {
-            try {
-              if (remoteAudioRef.current) {
-                await remoteAudioRef.current.play();
-                console.log(`✅ Audio playing (attempt ${attempt})`);
-              }
-            } catch (e) {
-              if (attempt <= 3) {
-                setTimeout(() => forcePlay(attempt + 1), 500);
-              }
-            }
-          };
-          
-          forcePlay(1);
+          remoteAudioRef.current.play().catch(e => console.log('Audio play:', e));
           
           // Handle video if present
           const videoTracks = stream.getVideoTracks();
           if (videoTracks.length > 0 && remoteVideoRef.current) {
-            console.log('📹 [GSMStyleVoiceCall] Remote video track detected');
             remoteVideoRef.current.srcObject = stream;
-            remoteVideoRef.current.play().catch(e => console.log('Remote video play:', e));
+            remoteVideoRef.current.play().catch(e => console.log('Video play:', e));
             setRemoteVideoActive(true);
           }
         });
 
         call.on('connected', () => {
-          console.log('🎉 [GSMStyleVoiceCall] Call connected!');
-          // CRITICAL: Always transition to connected, even from failed state
+          console.log('🎉 [VoiceCall] Connected!');
           setCallState('connected');
+          setMediaAccessIssue(null);
           startDurationTimer();
           updateCallStatus('active');
         });
 
-        // CRITICAL: 'failed' event is for PERMISSION errors only - not network/device issues
         call.on('failed', (error: Error) => {
-          console.error('⚠️ [GSMStyleVoiceCall] Call setup failed:', error);
-
-          const name = (error as any)?.name as string | undefined;
-          const isPermissionClassError =
-            name === 'NotAllowedError' ||
-            name === 'PermissionDeniedError' ||
-            name === 'SecurityError';
-
-          // IMPORTANT: On Android WebView, NotAllowedError can also mean "WebView blocked" even when OS permission is granted.
-          // So we diagnose using navigator.permissions when available to avoid showing a misleading message.
-          if (isPermissionClassError) {
+          console.error('⚠️ [VoiceCall] Failed:', error);
+          const name = error?.name;
+          
+          if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+            setCallState('failed');
+            setMediaAccessIssue('permission');
+          } else if (name === 'NotReadableError') {
             setCallState('failed');
             setMediaAccessIssue('blocked');
-
-            (async () => {
-              try {
-                const navAny = navigator as any;
-                const permissions = navAny?.permissions;
-                if (!permissions?.query) return;
-
-                const res = await permissions.query({ name: 'microphone' });
-                console.log('🎤 [GSMStyleVoiceCall] mic permission state:', res?.state, 'err:', error);
-
-                if (res?.state === 'denied') {
-                  setMediaAccessIssue('permission');
-                }
-              } catch (e) {
-                console.log('🎤 [GSMStyleVoiceCall] mic permission diagnose failed:', e);
-              }
-            })();
-
-            // CRITICAL: Do NOT call onEnd() here - just show the error state
-            // The user can retry or end manually
-            return;
-          }
-
-          // Device busy (NotReadableError) - show reconnecting, don't end the call
-          if (name === 'NotReadableError') {
-            console.log('⏳ [GSMStyleVoiceCall] Device busy - showing reconnecting state');
+          } else {
             setCallState('reconnecting');
-            return;
           }
-
-          // Anything else (constraints, transient) should show reconnecting.
-          setCallState('reconnecting');
         });
         
         call.on('recoveryStatus', (status: any) => {
-          console.log('🔄 [GSMStyleVoiceCall] Recovery status:', status.message);
-          // Show reconnecting for any recovery attempt
-          setCallState((prev) => prev === 'connected' ? prev : 'reconnecting');
+          console.log('🔄 [VoiceCall] Recovery:', status.message);
+          if (callState !== 'connected') {
+            setCallState('reconnecting');
+          }
         });
         
         call.on('networkQuality', (quality: string) => {
-          console.log('📶 [GSMStyleVoiceCall] Network quality:', quality);
-          if (quality === 'excellent' || quality === 'good' || quality === 'fair' || quality === 'poor') {
-            setNetworkQuality(quality);
+          if (['excellent', 'good', 'fair', 'poor'].includes(quality)) {
+            setNetworkQuality(quality as any);
           }
         });
 
         call.on('ended', () => {
-          console.log('👋 [GSMStyleVoiceCall] Call ended by remote');
+          console.log('👋 [VoiceCall] Ended by remote');
           handleEndCall();
         });
 
         await call.start();
+        
         if (isInitiator) {
           await updateCallStatus('ringing');
         }
 
       } catch (error) {
-        console.error('❌ [GSMStyleVoiceCall] Init error:', error);
+        console.error('❌ [VoiceCall] Init error:', error);
         onEnd();
       }
     };
