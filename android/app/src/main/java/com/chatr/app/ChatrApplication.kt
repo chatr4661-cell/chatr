@@ -29,7 +29,7 @@ class ChatrApplication : Application() {
         
         // Notification Channel IDs
         const val CHANNEL_CALLS = "calls"
-        const val CHANNEL_CALLS_HIGH = "calls_high"
+        const val CHANNEL_CALLS_HIGH = "calls_high_v2"
         const val CHANNEL_MESSAGES = "messages"
         const val CHANNEL_URGENT = "urgent"
         const val CHANNEL_LOCATION = "location"
