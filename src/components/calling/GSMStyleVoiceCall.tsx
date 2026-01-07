@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Mic, MicOff, PhoneOff, Volume2, Video, MoreHorizontal, 
   Plus, Users, Bluetooth, Headphones, Car, Grid3X3,
@@ -524,28 +525,42 @@ export default function GSMStyleVoiceCall({
 
   const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
 
-  return (
-    <div className="fixed inset-0 z-50 h-[100dvh] bg-gradient-to-br from-slate-800 via-slate-900 to-black flex flex-col overflow-hidden overscroll-none">
-      {/* Premium animated background */}
+  const callUI = (
+    <div 
+      className="fixed inset-0 z-[9999] bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f0f23] flex flex-col overflow-hidden overscroll-none touch-none"
+      style={{ 
+        height: '100dvh', 
+        width: '100vw',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}
+    >
+      {/* Subtle gradient orbs for depth */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-emerald-500/8 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-500/6 rounded-full blur-[100px]" />
       </div>
 
-      {/* Top bar with minimize and signal */}
-      <div className="relative z-10 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-2">
+      {/* Top bar with signal quality */}
+      <div 
+        className="relative z-10 flex items-center justify-between px-5"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 12px), 12px)' }}
+      >
         {onMinimize ? (
-          <button onClick={onMinimize} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
-            <Minimize2 className="h-5 w-5 text-white" />
+          <button onClick={onMinimize} className="p-2.5 rounded-full bg-white/10 backdrop-blur-sm active:scale-95 transition-transform">
+            <Minimize2 className="h-5 w-5 text-white/90" />
           </button>
-        ) : <div className="w-9" />}
+        ) : <div className="w-10" />}
         
-        <div className="flex items-center gap-2 bg-white/10 rounded-full px-3 py-1.5">
+        <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5">
           {getSignalIcon()}
-          <span className="text-xs text-white/70 capitalize">{networkQuality}</span>
+          <span className="text-[11px] text-white/60 capitalize font-medium">{networkQuality}</span>
         </div>
         
-        <div className="w-9" />
+        <div className="w-10" />
       </div>
       {/* Video display when enabled */}
       {(videoEnabled || localVideoActive) && (
@@ -569,42 +584,42 @@ export default function GSMStyleVoiceCall({
         </div>
       )}
 
-      {/* Top section - Avatar and Name only */}
-      <div className={`relative z-10 flex-1 flex flex-col items-center justify-center pt-4 pb-6 ${(videoEnabled || localVideoActive) ? 'hidden' : ''}`}>
-        {/* Avatar with pulsing ring animation during connecting */}
-        <div className="relative">
+      {/* Main content - Avatar and info */}
+      <div className={`relative z-10 flex-1 flex flex-col items-center justify-center px-6 ${(videoEnabled || localVideoActive) ? 'hidden' : ''}`}>
+        {/* Avatar with elegant pulsing animation */}
+        <div className="relative mb-6">
           {callState === 'connecting' && (
             <>
               <motion.div
-                className="absolute inset-0 rounded-full bg-primary/30"
-                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                style={{ margin: '-12px' }}
+                className="absolute inset-[-16px] rounded-full border-2 border-emerald-400/40"
+                animate={{ scale: [1, 1.3], opacity: [0.6, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
               />
               <motion.div
-                className="absolute inset-0 rounded-full bg-primary/20"
-                animate={{ scale: [1, 1.6, 1], opacity: [0.3, 0, 0.3] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                style={{ margin: '-12px' }}
+                className="absolute inset-[-16px] rounded-full border-2 border-emerald-400/30"
+                animate={{ scale: [1, 1.5], opacity: [0.4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut", delay: 0.4 }}
               />
             </>
           )}
           
           {contactAvatar ? (
             <motion.img
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", damping: 20 }}
               src={contactAvatar}
               alt={contactName}
-              className="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover ring-4 ring-white/20 shadow-2xl"
+              className="w-32 h-32 rounded-full object-cover ring-[3px] ring-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
             />
           ) : (
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-primary/60 to-primary/30 flex items-center justify-center ring-4 ring-white/20 shadow-2xl"
+              transition={{ type: "spring", damping: 20 }}
+              className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-500/80 to-teal-600/60 flex items-center justify-center ring-[3px] ring-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
             >
-              <span className="text-4xl sm:text-5xl font-semibold text-white">
+              <span className="text-5xl font-semibold text-white">
                 {contactName.charAt(0).toUpperCase()}
               </span>
             </motion.div>
@@ -612,9 +627,9 @@ export default function GSMStyleVoiceCall({
         </div>
         
         <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl sm:text-3xl font-bold text-white mt-5 mb-1 text-center px-6"
+          className="text-[26px] font-semibold text-white tracking-tight text-center"
         >
           {contactName}
         </motion.h1>
@@ -624,51 +639,53 @@ export default function GSMStyleVoiceCall({
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-slate-400 text-sm mb-2"
+            className="text-white/50 text-[15px] mt-1 font-medium"
           >
             {contactPhone}
           </motion.p>
         )}
         
-        {/* Call status/duration */}
+        {/* Call status/duration - prominent display */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex items-center gap-2"
+          className="mt-3"
         >
           {callState === 'connecting' && (
             <div className="flex items-center gap-2">
-              <motion.div
-                className="w-2 h-2 rounded-full bg-green-400"
-                animate={{ opacity: [1, 0.3, 1] }}
+              <motion.span
+                className="text-emerald-400 text-lg font-medium"
+                animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
-              />
-              <span className="text-slate-300 text-base sm:text-lg">Calling...</span>
+              >
+                Calling...
+              </motion.span>
             </div>
           )}
           {callState === 'reconnecting' && (
             <div className="flex items-center gap-2">
-              <motion.div
-                className="w-2 h-2 rounded-full bg-yellow-400"
-                animate={{ opacity: [1, 0.3, 1] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
-              />
-              <span className="text-yellow-400 text-base sm:text-lg">Reconnecting...</span>
+              <motion.span
+                className="text-amber-400 text-lg font-medium"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              >
+                Reconnecting...
+              </motion.span>
             </div>
           )}
           {callState === 'onhold' && (
-            <span className="text-orange-400 text-base sm:text-lg font-medium">On Hold</span>
+            <span className="text-orange-400 text-lg font-semibold">On Hold</span>
           )}
           {callState === 'connected' && (
-            <span className="text-green-400 text-xl sm:text-2xl font-mono font-bold tracking-wider">
+            <span className="text-emerald-400 text-2xl font-mono font-bold tracking-[0.15em]">
               {formatDuration(duration)}
             </span>
           )}
           {callState === 'failed' && (
-            <span className="text-red-400 text-base sm:text-lg">Connection Issue</span>
+            <span className="text-red-400 text-lg font-medium">Connection Issue</span>
           )}
           {isConference && (
-            <span className="text-slate-300 text-base sm:text-lg">{conferenceParticipants.length} participants</span>
+            <span className="text-white/70 text-lg">{conferenceParticipants.length} participants</span>
           )}
         </motion.div>
 
@@ -746,21 +763,21 @@ export default function GSMStyleVoiceCall({
       <AnimatePresence>
         {showKeypad && (
           <motion.div
-            initial={{ opacity: 0, y: 100 }}
+            initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+10rem)] bg-slate-800/95 backdrop-blur-xl rounded-t-3xl p-5 sm:p-6"
+            exit={{ opacity: 0, y: 50 }}
+            className="absolute inset-x-0 bottom-[200px] mx-4 bg-black/80 backdrop-blur-xl rounded-3xl p-5"
           >
             <div className="text-center mb-4">
-              <p className="text-white text-xl sm:text-2xl font-mono tracking-widest">{dtmfInput || '—'}</p>
+              <p className="text-white text-2xl font-mono tracking-[0.2em]">{dtmfInput || '—'}</p>
             </div>
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-xs mx-auto">
+            <div className="grid grid-cols-3 gap-3 max-w-[260px] mx-auto">
               {keypadDigits.map(digit => (
                 <button
                   key={digit}
                   onClick={() => handleDTMF(digit)}
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-700/70 text-white text-xl sm:text-2xl font-semibold 
-                           hover:bg-slate-600 active:scale-95 transition-all mx-auto
+                  className="w-[60px] h-[60px] rounded-full bg-white/15 text-white text-2xl font-semibold 
+                           active:bg-white/25 active:scale-95 transition-all mx-auto
                            flex items-center justify-center"
                 >
                   {digit}
@@ -769,7 +786,7 @@ export default function GSMStyleVoiceCall({
             </div>
             <button 
               onClick={() => setShowKeypad(false)}
-              className="w-full mt-4 py-2 text-blue-400 text-sm"
+              className="w-full mt-4 py-2 text-emerald-400 text-sm font-medium"
             >
               Hide Keypad
             </button>
@@ -778,24 +795,27 @@ export default function GSMStyleVoiceCall({
       </AnimatePresence>
 
       {/* Bottom section - Controls */}
-      <div className="pb-[calc(env(safe-area-inset-bottom,0px)+16px)] px-5">
+      <div 
+        className="relative z-10 px-6"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
+      >
         {/* Top row - Speaker, Video, Mute */}
-        <div className="relative z-10 grid grid-cols-3 gap-6 mb-6 max-w-sm mx-auto">
+        <div className="grid grid-cols-3 gap-4 mb-5 max-w-[320px] mx-auto">
           <button
             onClick={cycleSpeaker}
             className="flex flex-col items-center gap-2"
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+              className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
                 audioRoute !== 'earpiece' 
-                  ? 'bg-white text-slate-900 shadow-white/20' 
-                  : 'bg-slate-700/70 text-white hover:bg-slate-600/70'
+                  ? 'bg-white/95 text-gray-900' 
+                  : 'bg-white/15 text-white'
               }`}
             >
               {getAudioRouteIcon()}
             </motion.div>
-            <span className={`text-[11px] sm:text-xs capitalize ${audioRoute !== 'earpiece' ? 'text-white font-medium' : 'text-slate-400'}`}>
+            <span className={`text-[11px] capitalize ${audioRoute !== 'earpiece' ? 'text-white font-medium' : 'text-white/60'}`}>
               {audioRoute}
             </span>
           </button>
@@ -806,15 +826,15 @@ export default function GSMStyleVoiceCall({
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+              className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
                 (videoEnabled || localVideoActive)
-                  ? 'bg-green-500 text-white shadow-green-500/30'
-                  : 'bg-slate-700/70 text-white hover:bg-slate-600/70'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-white/15 text-white'
               }`}
             >
-              <Video className="h-5 w-5 sm:h-6 sm:w-6" />
+              <Video className="h-6 w-6" />
             </motion.div>
-            <span className={`text-[11px] sm:text-xs ${(videoEnabled || localVideoActive) ? 'text-green-400 font-medium' : 'text-slate-400'}`}>
+            <span className={`text-[11px] ${(videoEnabled || localVideoActive) ? 'text-emerald-400 font-medium' : 'text-white/60'}`}>
               Video
             </span>
           </button>
@@ -825,32 +845,32 @@ export default function GSMStyleVoiceCall({
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+              className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
                 isMuted 
-                  ? 'bg-red-500 text-white shadow-red-500/30' 
-                  : 'bg-slate-700/70 text-white hover:bg-slate-600/70'
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-white/15 text-white'
               }`}
             >
-              {isMuted ? <MicOff className="h-5 w-5 sm:h-6 sm:w-6" /> : <Mic className="h-5 w-5 sm:h-6 sm:w-6" />}
+              {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
             </motion.div>
-            <span className={`text-[11px] sm:text-xs ${isMuted ? 'text-red-400 font-medium' : 'text-slate-400'}`}>
+            <span className={`text-[11px] ${isMuted ? 'text-red-400 font-medium' : 'text-white/60'}`}>
               {isMuted ? 'Muted' : 'Mute'}
             </span>
           </button>
         </div>
 
         {/* Bottom row - More, End, Keypad */}
-        <div className="relative z-10 grid grid-cols-3 gap-6 max-w-sm mx-auto">
+        <div className="grid grid-cols-3 gap-4 max-w-[320px] mx-auto">
           <Sheet open={showMoreOptions} onOpenChange={setShowMoreOptions}>
             <SheetTrigger asChild>
               <button className="flex flex-col items-center gap-2">
                 <motion.div 
                   whileTap={{ scale: 0.9 }}
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-700/70 flex items-center justify-center hover:bg-slate-600/70 transition-all shadow-lg"
+                  className="w-[60px] h-[60px] rounded-full bg-white/15 flex items-center justify-center"
                 >
-                  <MoreHorizontal className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  <MoreHorizontal className="h-6 w-6 text-white" />
                 </motion.div>
-                <span className="text-slate-400 text-[11px] sm:text-xs">More</span>
+                <span className="text-white/60 text-[11px]">More</span>
               </button>
             </SheetTrigger>
             <SheetContent side="bottom" className="bg-slate-900/95 backdrop-blur-xl border-slate-700">
@@ -924,12 +944,11 @@ export default function GSMStyleVoiceCall({
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.05 }}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/40"
+              className="w-[68px] h-[68px] rounded-full bg-red-500 flex items-center justify-center shadow-[0_4px_20px_rgba(239,68,68,0.5)]"
             >
-              <PhoneOff className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+              <PhoneOff className="h-7 w-7 text-white" />
             </motion.div>
-            <span className="text-red-400 text-[11px] sm:text-xs font-medium">End</span>
+            <span className="text-red-400 text-[11px] font-medium">End</span>
           </button>
 
           <button
@@ -938,18 +957,21 @@ export default function GSMStyleVoiceCall({
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
+              className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
                 showKeypad 
-                  ? 'bg-white text-slate-900 shadow-white/20' 
-                  : 'bg-slate-700/70 text-white hover:bg-slate-600/70'
+                  ? 'bg-white/95 text-gray-900' 
+                  : 'bg-white/15 text-white'
               }`}
             >
-              <Grid3X3 className="h-5 w-5 sm:h-6 sm:w-6" />
+              <Grid3X3 className="h-6 w-6" />
             </motion.div>
-            <span className={`text-[11px] sm:text-xs ${showKeypad ? 'text-white font-medium' : 'text-slate-400'}`}>Keypad</span>
+            <span className={`text-[11px] ${showKeypad ? 'text-white font-medium' : 'text-white/60'}`}>Keypad</span>
           </button>
         </div>
       </div>
     </div>
   );
+
+  // Render via portal to ensure it's above everything
+  return createPortal(callUI, document.body);
 }
