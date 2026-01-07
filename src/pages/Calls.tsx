@@ -4,10 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AdvancedPhoneDialer } from "@/components/dialer/AdvancedPhoneDialer";
 import { BottomNav } from "@/components/BottomNav";
+import { PermissionPrompt } from "@/components/calling/PermissionPrompt";
 
 export default function Calls() {
   const navigate = useNavigate();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [pendingCall, setPendingCall] = useState<{
+    contactId: string;
+    contactName: string;
+    callType: 'voice' | 'video';
+  } | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -20,6 +26,24 @@ export default function Calls() {
       return;
     }
     setCurrentUserId(user.id);
+  };
+
+  // Wrapper to check permissions before making a call
+  const handleCallRequest = (contactId: string, contactName: string, callType: 'voice' | 'video') => {
+    // Show permission prompt first
+    setPendingCall({ contactId, contactName, callType });
+  };
+
+  const handlePermissionGranted = () => {
+    if (pendingCall) {
+      handleCall(pendingCall.contactId, pendingCall.contactName, pendingCall.callType);
+    }
+    setPendingCall(null);
+  };
+
+  const handlePermissionCancelled = () => {
+    setPendingCall(null);
+    toast.error('Call cancelled - microphone access needed');
   };
 
   const handleCall = async (contactId: string, contactName: string, callType: 'voice' | 'video') => {
@@ -170,7 +194,15 @@ export default function Calls() {
 
   return (
     <div className="flex flex-col h-screen bg-background pb-16">
-      <AdvancedPhoneDialer onCall={handleCall} />
+      {/* Permission prompt for outgoing calls */}
+      {pendingCall && (
+        <PermissionPrompt
+          type={pendingCall.callType}
+          onPermissionGranted={handlePermissionGranted}
+          onCancel={handlePermissionCancelled}
+        />
+      )}
+      <AdvancedPhoneDialer onCall={handleCallRequest} />
       <BottomNav />
     </div>
   );
