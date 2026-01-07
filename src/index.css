@@ -767,3 +767,402 @@ a:focus-visible {
     box-shadow: 0 0 0 4px hsl(142 76% 36% / 0);
   }
 }
+
+/* ===== GLOBAL RESPONSIVE UTILITIES ===== */
+
+/* Auto-adjusting container that works on all displays */
+.responsive-container {
+  width: 100%;
+  max-width: 100vw;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (min-width: 640px) {
+  .responsive-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Fluid typography - auto-scales based on viewport */
+.text-fluid-xs {
+  font-size: clamp(0.625rem, 2vw, 0.75rem);
+  line-height: 1.5;
+}
+
+.text-fluid-sm {
+  font-size: clamp(0.75rem, 2.5vw, 0.875rem);
+  line-height: 1.5;
+}
+
+.text-fluid-base {
+  font-size: clamp(0.875rem, 3vw, 1rem);
+  line-height: 1.6;
+}
+
+.text-fluid-lg {
+  font-size: clamp(1rem, 3.5vw, 1.25rem);
+  line-height: 1.5;
+}
+
+.text-fluid-xl {
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  line-height: 1.4;
+}
+
+.text-fluid-2xl {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  line-height: 1.3;
+}
+
+.text-fluid-3xl {
+  font-size: clamp(1.875rem, 6vw, 2.5rem);
+  line-height: 1.2;
+}
+
+/* Responsive spacing utilities */
+.space-fluid-sm {
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.space-fluid-md {
+  gap: clamp(0.75rem, 3vw, 1rem);
+}
+
+.space-fluid-lg {
+  gap: clamp(1rem, 4vw, 1.5rem);
+}
+
+/* Responsive padding */
+.p-fluid {
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+.px-fluid {
+  padding-left: clamp(0.75rem, 3vw, 1.5rem);
+  padding-right: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+.py-fluid {
+  padding-top: clamp(0.75rem, 3vw, 1.5rem);
+  padding-bottom: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+/* ===== UNIVERSAL SMOOTHNESS & PERFORMANCE ===== */
+
+/* GPU-accelerated smooth scrolling for all scrollable elements */
+[data-scroll],
+.scroll-smooth {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Native momentum scrolling on iOS */
+.momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* Optimize all interactive elements */
+button,
+a,
+[role="button"],
+[tabindex="0"],
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Smooth color transitions for theme changes */
+* {
+  transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Exclude transform from global transitions (for performance) */
+*:not(.animate-in):not(.animate-out):not([data-state]) {
+  transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow;
+}
+
+/* ===== DISPLAY ADAPTIVE LAYOUTS ===== */
+
+/* Full viewport height that works everywhere */
+.h-screen-safe {
+  height: 100vh;
+  height: 100dvh;
+  height: -webkit-fill-available;
+}
+
+.min-h-screen-safe {
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+.max-h-screen-safe {
+  max-height: 100vh;
+  max-height: 100dvh;
+}
+
+/* Responsive grid that auto-adjusts columns */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.grid-auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: clamp(0.5rem, 2vw, 1rem);
+}
+
+/* Responsive flex containers */
+.flex-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 2vw, 1rem);
+}
+
+@media (min-width: 640px) {
+  .flex-responsive {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== UNIVERSAL TOUCH OPTIMIZATION ===== */
+
+/* Minimum touch target size (WCAG compliant) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Large touch targets for accessibility */
+.touch-target-lg {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Active state feedback */
+.touch-feedback {
+  transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+}
+
+.touch-feedback:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/* ===== UNIVERSAL IMAGE HANDLING ===== */
+
+/* Responsive images that maintain aspect ratio */
+.img-responsive {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Lazy loading placeholder */
+.img-lazy {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.1) 100%
+  );
+  transition: opacity 0.3s ease-out;
+}
+
+.img-lazy[data-loaded="true"] {
+  opacity: 1;
+}
+
+/* ===== REDUCED MOTION SUPPORT ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .shimmer,
+  .pulse-glow,
+  .glow-pulse,
+  .animate-ripple,
+  .unread-badge-pulse,
+  .online-indicator {
+    animation: none !important;
+  }
+}
+
+/* ===== HIGH CONTRAST SUPPORT ===== */
+
+@media (prefers-contrast: high) {
+  :root {
+    --border: 220 13% 50%;
+  }
+  
+  .dark {
+    --border: 220 15% 50%;
+  }
+  
+  button,
+  a,
+  [role="button"] {
+    outline: 2px solid transparent;
+  }
+  
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+/* ===== PRINT STYLES ===== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  * {
+    box-shadow: none !important;
+  }
+}
+
+/* ===== LANDSCAPE MODE OPTIMIZATION ===== */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Reduce vertical spacing in landscape */
+  .landscape-compact {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+  
+  .landscape-compact-header {
+    min-height: 48px !important;
+    max-height: 56px !important;
+  }
+}
+
+/* ===== NOTCH & CUTOUT SAFE AREAS ===== */
+
+/* Respect device notches and cutouts */
+.safe-inset-top {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+.safe-inset-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-inset-left {
+  padding-left: max(1rem, env(safe-area-inset-left));
+}
+
+.safe-inset-right {
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+.safe-inset-all {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+}
+
+/* ===== DARK MODE SMOOTH TRANSITION ===== */
+
+html.transitioning,
+html.transitioning * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* ===== PERFORMANCE CONTAINMENT ===== */
+
+/* Contain paint/layout for better performance */
+.contain-paint {
+  contain: paint;
+}
+
+.contain-layout {
+  contain: layout;
+}
+
+.contain-strict {
+  contain: strict;
+}
+
+/* Content visibility for off-screen optimization */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+/* ===== SCROLLBAR STYLING (CROSS-BROWSER) ===== */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
