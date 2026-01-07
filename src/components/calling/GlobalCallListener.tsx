@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { IncomingCallScreen } from "./IncomingCallScreen";
 import ProductionVideoCall from "./ProductionVideoCall";
 import GSMStyleVoiceCall from "./GSMStyleVoiceCall";
+import { PermissionPrompt } from "./PermissionPrompt";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
@@ -16,6 +17,7 @@ export function GlobalCallListener() {
   const [activeCall, setActiveCall] = useState<any>(null);
   const [outgoingCall, setOutgoingCall] = useState<any>(null); // NEW: Track outgoing calls (caller side)
   const [userId, setUserId] = useState<string | null>(null);
+  const [pendingCallNeedsPermission, setPendingCallNeedsPermission] = useState<any>(null);
   const { toast } = useToast();
 
   const incomingCallRef = useRef<any>(null);
@@ -345,7 +347,34 @@ export function GlobalCallListener() {
     };
   }, [userId, toast, isNative]);
 
+  // Check if we already have permissions before answering
+  const checkPermissionsAndAnswer = async () => {
+    if (!incomingCall) return;
+    
+    // Check if we can access media without prompting
+    try {
+      const permissions = await navigator.permissions?.query({ name: 'microphone' as PermissionName });
+      if (permissions?.state === 'granted') {
+        // Already have permission, proceed directly
+        await handleAnswerDirect();
+        return;
+      }
+    } catch (e) {
+      // permissions.query not supported, show prompt anyway
+    }
+    
+    // Show permission prompt
+    setPendingCallNeedsPermission({
+      ...incomingCall,
+      isAnswering: true
+    });
+  };
+
   const handleAnswer = async () => {
+    await checkPermissionsAndAnswer();
+  };
+
+  const handleAnswerDirect = async () => {
     if (!incomingCall) return;
 
     console.log("✅ Answering call:", incomingCall.id);
@@ -356,6 +385,7 @@ export function GlobalCallListener() {
       partnerId: incomingCall.caller_id,
     });
     setIncomingCall(null);
+    setPendingCallNeedsPermission(null);
 
     const { error } = await supabase
       .from("calls")
@@ -586,6 +616,33 @@ export function GlobalCallListener() {
       description: "Continuing with voice call",
     });
   };
+
+  // Handle permission prompt callbacks
+  const handlePermissionGranted = () => {
+    if (pendingCallNeedsPermission?.isAnswering) {
+      handleAnswerDirect();
+    }
+    setPendingCallNeedsPermission(null);
+  };
+
+  const handlePermissionCancelled = async () => {
+    // If user cancels permission prompt, reject the incoming call
+    if (pendingCallNeedsPermission && incomingCall) {
+      await handleReject();
+    }
+    setPendingCallNeedsPermission(null);
+  };
+
+  // Show permission prompt before call
+  if (pendingCallNeedsPermission) {
+    return (
+      <PermissionPrompt
+        type={pendingCallNeedsPermission.call_type === 'video' ? 'video' : 'voice'}
+        onPermissionGranted={handlePermissionGranted}
+        onCancel={handlePermissionCancelled}
+      />
+    );
+  }
 
   // Show active call (both caller and receiver)
   if (activeCall) {
