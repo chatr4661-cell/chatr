@@ -7,6 +7,7 @@ import GSMStyleVoiceCall from "./GSMStyleVoiceCall";
 import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
+import { clearPreCallMediaStream, setPreCallMediaStream, takePreCallMediaStream } from "@/utils/preCallMedia";
 
 // ARCHITECTURE: Skip web-based call handling when running inside native Android/iOS shell
 // Native shell uses TelecomManager (Android) / CallKit (iOS) for incoming calls
@@ -178,30 +179,34 @@ export function GlobalCallListener() {
           const call = payload.new as any;
           console.log("📤 [GlobalCallListener] Outgoing call created:", call.id, "status:", call.status);
 
-          // CRITICAL FIX: Start WebRTC IMMEDIATELY when caller initiates
-          // Don't wait for receiver to accept - send OFFER right away
-          if (call.status === "ringing" && !activeCallRef.current) {
-            const { data: receiverProfile } = await supabase
-              .from("profiles")
-              .select("username, avatar_url, phone_number")
-              .eq("id", call.receiver_id)
-              .maybeSingle();
+           // CRITICAL FIX: Start WebRTC IMMEDIATELY when caller initiates
+           // Don't wait for receiver to accept - send OFFER right away
+           if (call.status === "ringing" && !activeCallRef.current) {
+             const { data: receiverProfile } = await supabase
+               .from("profiles")
+               .select("username, avatar_url, phone_number")
+               .eq("id", call.receiver_id)
+               .maybeSingle();
 
-            console.log("🚀 [GlobalCallListener] Starting WebRTC immediately as INITIATOR");
-            
-            // Set activeCall directly with isInitiator=true to start WebRTC NOW
-            setActiveCall({
-              ...call,
-              isInitiator: true, // CALLER sends OFFER immediately
-              partnerId: call.receiver_id,
-              callerName: receiverProfile?.username || call.receiver_name || "Unknown",
-              callerAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
-              contactPhone: receiverProfile?.phone_number || call.receiver_phone,
-            });
-            
-            // Clear any outgoing call state
-            setOutgoingCall(null);
-          }
+             console.log("🚀 [GlobalCallListener] Starting WebRTC immediately as INITIATOR");
+
+             // If the user started the call with a click/gesture, we may have a pre-acquired stream.
+             const preAcquiredStream = takePreCallMediaStream(call.id);
+
+             // Set activeCall directly with isInitiator=true to start WebRTC NOW
+             setActiveCall({
+               ...call,
+               isInitiator: true, // CALLER sends OFFER immediately
+               partnerId: call.receiver_id,
+               callerName: receiverProfile?.username || call.receiver_name || "Unknown",
+               callerAvatar: receiverProfile?.avatar_url || call.receiver_avatar,
+               contactPhone: receiverProfile?.phone_number || call.receiver_phone,
+               preAcquiredStream,
+             });
+
+             // Clear any outgoing call state
+             setOutgoingCall(null);
+           }
         }
       )
       .subscribe((status) => {
@@ -337,24 +342,21 @@ export function GlobalCallListener() {
     if (!incomingCall) return;
 
     try {
-      // Auto-request permission - browser shows native prompt
+      // Acquire media under the user's gesture and hand it to the call UI.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: incomingCall.call_type === 'video'
+        video: incomingCall.call_type === 'video',
       });
-      // Stop tracks immediately (WebRTC will create new ones)
-      stream.getTracks().forEach(track => track.stop());
 
-      // Give the OS/WebView a moment to fully release devices before WebRTC requests again
-      await new Promise(resolve => setTimeout(resolve, 250));
+      setPreCallMediaStream(incomingCall.id, stream);
 
-      // Permission granted, proceed with answering
       await handleAnswerDirect();
     } catch (error: any) {
       console.error('Permission request failed:', error);
+      if (incomingCall?.id) clearPreCallMediaStream(incomingCall.id);
 
       // Device busy: let user retry (do NOT auto-reject)
-      if (error.name === 'NotReadableError') {
+      if (error?.name === 'NotReadableError') {
         toast.error(incomingCall.call_type === 'video'
           ? 'Camera/microphone is busy. Close other apps and try again.'
           : 'Microphone is busy. Close other apps and try again.'
@@ -363,12 +365,12 @@ export function GlobalCallListener() {
       }
 
       // Simple, friendly messages for non-technical users
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        toast.error(incomingCall.call_type === 'video' 
-          ? 'Please allow camera and microphone to answer video calls' 
+      if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError') {
+        toast.error(incomingCall.call_type === 'video'
+          ? 'Please allow camera and microphone to answer video calls'
           : 'Please allow microphone to answer calls'
         );
-      } else if (error.name === 'NotFoundError') {
+      } else if (error?.name === 'NotFoundError') {
         toast.error(incomingCall.call_type === 'video'
           ? 'No camera or microphone found'
           : 'No microphone found'
@@ -387,10 +389,13 @@ export function GlobalCallListener() {
 
     console.log("✅ Answering call:", incomingCall.id);
 
+    const preAcquiredStream = takePreCallMediaStream(incomingCall.id);
+
     setActiveCall({
       ...incomingCall,
       isInitiator: false,
       partnerId: incomingCall.caller_id,
+      preAcquiredStream,
     });
     setIncomingCall(null);
 
@@ -633,6 +638,7 @@ export function GlobalCallListener() {
         contactPhone={activeCall.caller_phone || activeCall.receiver_phone}
         isInitiator={activeCall.isInitiator}
         partnerId={activeCall.partnerId}
+        preAcquiredStream={activeCall.preAcquiredStream}
         onEnd={handleEndCall}
         onSwitchToVideo={handleUpgradeToVideo}
         onAcceptVideoUpgrade={handleAcceptVideoUpgrade}
