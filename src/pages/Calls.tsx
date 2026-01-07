@@ -32,17 +32,25 @@ export default function Calls() {
       });
       // Stop tracks immediately (just needed to trigger permission)
       stream.getTracks().forEach(track => track.stop());
-      
+
+      // Give the OS/WebView a moment to fully release devices before WebRTC requests again
+      await new Promise(resolve => setTimeout(resolve, 250));
+
       // Permission granted, proceed with call
       await handleCall(contactId, contactName, callType);
     } catch (error: any) {
       console.error('Permission request failed:', error);
-      
+
       // Simple, friendly messages for non-technical users
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        toast.error(callType === 'video' 
-          ? 'Please allow camera and microphone to make video calls' 
+        toast.error(callType === 'video'
+          ? 'Please allow camera and microphone to make video calls'
           : 'Please allow microphone to make voice calls'
+        );
+      } else if (error.name === 'NotReadableError') {
+        toast.error(callType === 'video'
+          ? 'Camera/microphone is busy. Close other apps and try again.'
+          : 'Microphone is busy. Close other apps and try again.'
         );
       } else if (error.name === 'NotFoundError') {
         toast.error(callType === 'video'

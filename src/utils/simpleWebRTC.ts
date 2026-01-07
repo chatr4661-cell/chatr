@@ -137,38 +137,68 @@ export class SimpleWebRTCCall {
       console.log('✅ [SimpleWebRTC] Media stream obtained');
       this.emit('localStream', this.localStream);
     } catch (error: any) {
-      console.error('❌ [SimpleWebRTC] Media access denied:', error);
-      
+      console.error('❌ [SimpleWebRTC] Media access failed:', error);
+
+      const errName: string = error?.name || 'Error';
+
+      const makeError = (message: string, name: string, cause: any = error) => {
+        const e = new Error(message);
+        e.name = name;
+        (e as any).cause = cause;
+        return e;
+      };
+
       // Handle "Device in use" error with retry
-      if (error.name === 'NotReadableError') {
-        console.log('⏳ [SimpleWebRTC] Device in use, waiting and retrying...');
+      if (errName === 'NotReadableError') {
+        console.log('⏳ [SimpleWebRTC] Device busy, waiting and retrying...');
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
           const retryConstraints = {
             audio: true,
-            video: this.isVideo ? { width: 640, height: 480 } : false
+            video: this.isVideo ? { width: 640, height: 480 } : false,
           };
           this.localStream = await navigator.mediaDevices.getUserMedia(retryConstraints);
           this.emit('localStream', this.localStream);
           return;
-        } catch (retryError) {
+        } catch (retryError: any) {
           console.error('❌ [SimpleWebRTC] Retry failed:', retryError);
-          throw new Error('Camera/microphone still in use. Please wait a moment and try again.');
+          throw makeError(
+            'Microphone/camera is busy. Close other apps using it and try again.',
+            'NotReadableError',
+            retryError
+          );
         }
       }
-      
-      if (this.isVideo && error.name === 'OverconstrainedError') {
+
+      // Handle video constraint issues by falling back to safe constraints
+      if (this.isVideo && errName === 'OverconstrainedError') {
         console.log('⚠️ Trying fallback constraints...');
-        const fallbackConstraints = {
-          audio: true,
-          video: { width: 320, height: 240 }
-        };
-        this.localStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-        this.emit('localStream', this.localStream);
-        return;
+        try {
+          const fallbackConstraints = {
+            audio: true,
+            video: { width: 320, height: 240 },
+          };
+          this.localStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+          this.emit('localStream', this.localStream);
+          return;
+        } catch (fallbackError: any) {
+          console.error('❌ [SimpleWebRTC] Fallback constraints failed:', fallbackError);
+          throw makeError('Could not start camera with supported settings.', fallbackError?.name || 'OverconstrainedError', fallbackError);
+        }
       }
-      
-      throw new Error('Could not access camera/microphone');
+
+      // Preserve permission-denied errors so UI can show the right message
+      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errName === 'SecurityError') {
+        throw makeError('Permission denied', errName);
+      }
+
+      // No input devices available
+      if (errName === 'NotFoundError') {
+        throw makeError(this.isVideo ? 'No camera or microphone found' : 'No microphone found', 'NotFoundError');
+      }
+
+      // Any other media failures (treat as non-permission)
+      throw makeError(this.isVideo ? 'Could not start camera/microphone' : 'Could not start microphone', errName);
     }
   }
 

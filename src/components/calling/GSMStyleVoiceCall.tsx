@@ -246,19 +246,24 @@ export default function GSMStyleVoiceCall({
           updateCallStatus('active');
         });
 
-        // CRITICAL: 'failed' event is for PERMISSION errors only - not network issues
+        // CRITICAL: 'failed' event is for PERMISSION errors only - not network/device issues
         call.on('failed', (error: Error) => {
-          console.error('⚠️ [GSMStyleVoiceCall] Connection issue:', error);
-          // ONLY show failed state for actual permission/access errors
-          // Network issues are handled by recovery mechanism
-          if (error.message.includes('microphone') || error.message.includes('Could not access') || error.message.includes('camera')) {
-            console.warn('⚠️ Media access issue - user should grant permission');
+          console.error('⚠️ [GSMStyleVoiceCall] Call setup failed:', error);
+
+          const name = (error as any)?.name as string | undefined;
+          const isPermission =
+            name === 'NotAllowedError' ||
+            name === 'PermissionDeniedError' ||
+            name === 'SecurityError';
+
+          // Only show "Permission Required" when it is truly a permission denial.
+          if (isPermission) {
             setCallState('failed');
-          } else {
-            // Network/ICE issues - show reconnecting, NOT failed
-            console.warn('⚠️ Connection unstable - showing reconnecting state...');
-            setCallState('reconnecting');
+            return;
           }
+
+          // Anything else (device busy, constraints, transient) should show reconnecting.
+          setCallState('reconnecting');
         });
         
         call.on('recoveryStatus', (status: any) => {

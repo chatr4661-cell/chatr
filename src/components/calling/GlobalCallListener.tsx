@@ -344,12 +344,24 @@ export function GlobalCallListener() {
       });
       // Stop tracks immediately (WebRTC will create new ones)
       stream.getTracks().forEach(track => track.stop());
-      
+
+      // Give the OS/WebView a moment to fully release devices before WebRTC requests again
+      await new Promise(resolve => setTimeout(resolve, 250));
+
       // Permission granted, proceed with answering
       await handleAnswerDirect();
     } catch (error: any) {
       console.error('Permission request failed:', error);
-      
+
+      // Device busy: let user retry (do NOT auto-reject)
+      if (error.name === 'NotReadableError') {
+        toast.error(incomingCall.call_type === 'video'
+          ? 'Camera/microphone is busy. Close other apps and try again.'
+          : 'Microphone is busy. Close other apps and try again.'
+        );
+        return;
+      }
+
       // Simple, friendly messages for non-technical users
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         toast.error(incomingCall.call_type === 'video' 
@@ -364,7 +376,8 @@ export function GlobalCallListener() {
       } else {
         toast.error('Could not access device. Please try again.');
       }
-      // Reject the call if permission denied
+
+      // Reject only for permission/other hard errors
       await handleReject();
     }
   };
