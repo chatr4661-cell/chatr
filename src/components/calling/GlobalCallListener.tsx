@@ -3,10 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { IncomingCallScreen } from "./IncomingCallScreen";
 import ProductionVideoCall from "./ProductionVideoCall";
 import GSMStyleVoiceCall from "./GSMStyleVoiceCall";
-import { PermissionPrompt } from "./PermissionPrompt";
-import { useToast } from "@/hooks/use-toast";
+
 import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
+import { toast } from "sonner";
 
 // ARCHITECTURE: Skip web-based call handling when running inside native Android/iOS shell
 // Native shell uses TelecomManager (Android) / CallKit (iOS) for incoming calls
@@ -17,8 +17,6 @@ export function GlobalCallListener() {
   const [activeCall, setActiveCall] = useState<any>(null);
   const [outgoingCall, setOutgoingCall] = useState<any>(null); // NEW: Track outgoing calls (caller side)
   const [userId, setUserId] = useState<string | null>(null);
-  const [pendingCallNeedsPermission, setPendingCallNeedsPermission] = useState<any>(null);
-  const { toast } = useToast();
 
   const incomingCallRef = useRef<any>(null);
   const outgoingCallRef = useRef<any>(null);
@@ -152,10 +150,7 @@ export function GlobalCallListener() {
           if (call.status === "ended" || call.status === "missed") {
             console.log("📵 Incoming call cancelled by caller");
             setIncomingCall(null);
-            toast({
-              title: "Call Cancelled",
-              description: "The caller cancelled the call",
-            });
+            toast.info("Call cancelled by caller");
           }
 
           if (call.status === "active") {
@@ -259,7 +254,7 @@ export function GlobalCallListener() {
               description = "The call was not answered";
             }
             
-            toast({ title, description });
+            toast.info(description);
           }
         }
       )
@@ -289,11 +284,7 @@ export function GlobalCallListener() {
             console.log("📹 [GlobalCallListener] Video upgrade request received!");
             setActiveCall((prev: any) => prev ? { ...prev, incomingVideoRequest: true, videoRequestFrom: signal.from_user } : prev);
             
-            toast({
-              title: "📹 Video Request",
-              description: "Partner wants to switch to video call",
-              duration: 10000,
-            });
+            toast.info("📹 Partner wants to switch to video call");
           }
           
           // Handle video upgrade accepted
@@ -316,10 +307,7 @@ export function GlobalCallListener() {
             // Update database for record-keeping only
             supabase.from("calls").update({ call_type: 'video' }).eq("id", signal.call_id);
 
-            toast({
-              title: "Video Enabled",
-              description: "Video is now active",
-            });
+            toast.success("Video is now active");
           }
           
           // Handle video upgrade declined
@@ -327,10 +315,7 @@ export function GlobalCallListener() {
             console.log("❌ [GlobalCallListener] Video upgrade declined");
             setActiveCall((prev: any) => prev ? { ...prev, pendingVideoUpgrade: false } : prev);
             
-            toast({
-              title: "Video Declined",
-              description: "Partner declined video request",
-            });
+            toast.info("Partner declined video request");
           }
         }
       )
@@ -347,31 +332,41 @@ export function GlobalCallListener() {
     };
   }, [userId, toast, isNative]);
 
-  // Check if we already have permissions before answering
-  const checkPermissionsAndAnswer = async () => {
-    if (!incomingCall) return;
-    
-    // Check if we can access media without prompting
-    try {
-      const permissions = await navigator.permissions?.query({ name: 'microphone' as PermissionName });
-      if (permissions?.state === 'granted') {
-        // Already have permission, proceed directly
-        await handleAnswerDirect();
-        return;
-      }
-    } catch (e) {
-      // permissions.query not supported, show prompt anyway
-    }
-    
-    // Show permission prompt
-    setPendingCallNeedsPermission({
-      ...incomingCall,
-      isAnswering: true
-    });
-  };
-
+  // Auto-request permissions silently when answering a call
   const handleAnswer = async () => {
-    await checkPermissionsAndAnswer();
+    if (!incomingCall) return;
+
+    try {
+      // Auto-request permission - browser shows native prompt
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: incomingCall.call_type === 'video'
+      });
+      // Stop tracks immediately (WebRTC will create new ones)
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Permission granted, proceed with answering
+      await handleAnswerDirect();
+    } catch (error: any) {
+      console.error('Permission request failed:', error);
+      
+      // Simple, friendly messages for non-technical users
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        toast.error(incomingCall.call_type === 'video' 
+          ? 'Please allow camera and microphone to answer video calls' 
+          : 'Please allow microphone to answer calls'
+        );
+      } else if (error.name === 'NotFoundError') {
+        toast.error(incomingCall.call_type === 'video'
+          ? 'No camera or microphone found'
+          : 'No microphone found'
+        );
+      } else {
+        toast.error('Could not access device. Please try again.');
+      }
+      // Reject the call if permission denied
+      await handleReject();
+    }
   };
 
   const handleAnswerDirect = async () => {
@@ -385,7 +380,6 @@ export function GlobalCallListener() {
       partnerId: incomingCall.caller_id,
     });
     setIncomingCall(null);
-    setPendingCallNeedsPermission(null);
 
     const { error } = await supabase
       .from("calls")
@@ -418,10 +412,7 @@ export function GlobalCallListener() {
 
     setIncomingCall(null);
 
-    toast({
-      title: "Call Declined",
-      description: `Call from ${incomingCall.callerName} declined`,
-    });
+    toast.info(`Call from ${incomingCall.callerName} declined`);
   };
 
   // NEW: Cancel outgoing call
@@ -437,10 +428,7 @@ export function GlobalCallListener() {
 
     setOutgoingCall(null);
 
-    toast({
-      title: "Call Cancelled",
-      description: "Call was cancelled",
-    });
+    toast.info("Call was cancelled");
   };
 
   const handleEndCall = async () => {
@@ -541,20 +529,13 @@ export function GlobalCallListener() {
         to: activeCall.partnerId,
       });
       
-      toast({
-        title: "Video Request Sent",
-        description: `Waiting for ${activeCall.callerName} to accept video...`,
-      });
+      toast.info(`Waiting for ${activeCall.callerName} to accept video...`);
       
       // Store pending upgrade request
       setActiveCall({ ...activeCall, pendingVideoUpgrade: true });
     } catch (error) {
       console.error("Failed to send video upgrade request:", error);
-      toast({
-        title: "Failed",
-        description: "Could not send video request",
-        variant: "destructive",
-      });
+      toast.error("Could not send video request");
     }
   };
 
@@ -611,39 +592,8 @@ export function GlobalCallListener() {
     
     setActiveCall({ ...activeCall, incomingVideoRequest: false });
     
-    toast({
-      title: "Video Declined",
-      description: "Continuing with voice call",
-    });
+    toast.info("Continuing with voice call");
   };
-
-  // Handle permission prompt callbacks
-  const handlePermissionGranted = () => {
-    if (pendingCallNeedsPermission?.isAnswering) {
-      handleAnswerDirect();
-    }
-    setPendingCallNeedsPermission(null);
-  };
-
-  const handlePermissionCancelled = async () => {
-    // If user cancels permission prompt, reject the incoming call
-    if (pendingCallNeedsPermission && incomingCall) {
-      await handleReject();
-    }
-    setPendingCallNeedsPermission(null);
-  };
-
-  // Show permission prompt before call
-  if (pendingCallNeedsPermission) {
-    return (
-      <PermissionPrompt
-        type={pendingCallNeedsPermission.call_type === 'video' ? 'video' : 'voice'}
-        onPermissionGranted={handlePermissionGranted}
-        onCancel={handlePermissionCancelled}
-      />
-    );
-  }
-
   // Show active call (both caller and receiver)
   if (activeCall) {
     const contactName = activeCall.isInitiator 
