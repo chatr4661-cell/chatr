@@ -129,15 +129,18 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
             putExtra("conversation_id", conversationId)
         }
 
-        // Create fullscreen pending intent
+        // Create fullscreen pending intent (use stable, per-call requestCode to avoid PendingIntent collisions)
+        val requestCodeBase = if (callId.isNotBlank()) (callId.hashCode() and 0x7fffffff) else ((System.currentTimeMillis() and 0x7fffffffL).toInt())
         val fullScreenPendingIntent = PendingIntent.getActivity(
-            this, 0, callIntent,
+            this,
+            requestCodeBase,
+            callIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // Also show heads-up notification as fallback
         showCallNotification(
-            callId, callerName, callerAvatar, callType, 
+            callId, callerName, callerAvatar, callType,
             fullScreenPendingIntent, callIntent
         )
 
@@ -165,13 +168,18 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
     ) {
         val notificationManager = getSystemService(NotificationManager::class.java) ?: return
 
+        // Use stable request codes per call to avoid action PendingIntent collisions
+        val requestCodeBase = if (callId.isNotBlank()) (callId.hashCode() and 0x7fffffff) else ((System.currentTimeMillis() and 0x7fffffffL).toInt())
+
         // Answer action
         val answerIntent = Intent(this, NotificationActionReceiver::class.java).apply {
             action = "ACTION_ANSWER_CALL"
             putExtra("call_id", callId)
         }
         val answerPendingIntent = PendingIntent.getBroadcast(
-            this, 1, answerIntent,
+            this,
+            requestCodeBase + 1,
+            answerIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -181,12 +189,14 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
             putExtra("call_id", callId)
         }
         val rejectPendingIntent = PendingIntent.getBroadcast(
-            this, 2, rejectIntent,
+            this,
+            requestCodeBase + 2,
+            rejectIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val callTypeEmoji = if (callType == "video") "📹" else "📞"
-        
+
         val notification = NotificationCompat.Builder(this, ChatrApplication.CHANNEL_CALLS_HIGH)
             .setSmallIcon(R.drawable.ic_call)
             .setContentTitle("$callTypeEmoji Incoming ${if (callType == "video") "Video" else "Voice"} Call")
@@ -196,6 +206,7 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setContentIntent(fullScreenIntent)
             .setFullScreenIntent(fullScreenIntent, true)
             .addAction(R.drawable.ic_call_end, "Reject", rejectPendingIntent)
             .addAction(R.drawable.ic_call, "Answer", answerPendingIntent)
