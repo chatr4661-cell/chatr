@@ -225,17 +225,8 @@ export const RecentActivity = () => {
         
         toast.success(`Calling ${otherUserName}...`);
         
-        // Navigate to call screen
-        navigate(`/call/${newCall.id}`, {
-          state: {
-            callId: newCall.id,
-            callType,
-            receiverId: otherUserId,
-            receiverName: otherUserName,
-            conversationId: convId,
-            isInitiator: true
-          }
-        });
+        // GlobalCallListener will automatically detect the new call and show the UI
+        // No navigation needed - the call overlay is rendered via React Portal
       } catch (error) {
         console.error('Error initiating call:', error);
         toast.error('Failed to initiate call');
