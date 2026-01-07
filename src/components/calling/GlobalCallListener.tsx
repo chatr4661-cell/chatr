@@ -133,12 +133,23 @@ export function GlobalCallListener() {
               .eq("id", call.caller_id)
               .maybeSingle();
 
+            // CRITICAL: On native, we need to acquire media permission here
+            // The native shell may have already granted permission, but WebView needs it too
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              setPreCallMediaStream(call.id, stream);
+            } catch (mediaErr) {
+              console.warn('📱 [GlobalCallListener] Could not pre-acquire media for native call:', mediaErr);
+              // Continue anyway - WebRTC will try again
+            }
+
             setActiveCall({
               ...call,
               isInitiator: false, // Receiver is NOT initiator - will wait for offer
               partnerId: call.caller_id,
               callerName: callerProfile?.username || call.caller_name || "Unknown",
               callerAvatar: callerProfile?.avatar_url || call.caller_avatar,
+              preAcquiredStream: takePreCallMediaStream(call.id),
             });
             return;
           }
@@ -379,8 +390,12 @@ export function GlobalCallListener() {
         toast.error('Could not access device. Please try again.');
       }
 
-      // Reject only for permission/other hard errors
-      await handleReject();
+      // CRITICAL: Do NOT auto-reject for permission errors
+      // The user should be able to retry or manually end the call
+      // Only reject if it's a hard "not found" error
+      if (error?.name === 'NotFoundError') {
+        await handleReject();
+      }
     }
   };
 
