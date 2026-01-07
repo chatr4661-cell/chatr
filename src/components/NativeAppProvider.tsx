@@ -10,6 +10,7 @@ import { useContactSync } from '@/hooks/useContactSync';
 import { useOfflineUploadQueue } from '@/hooks/useOfflineUploadQueue';
 import { useGeofencing } from '@/hooks/useGeofencing';
 import { useNativeAuthSync } from '@/hooks/useNativeAuthSync';
+import { useNativeCallBridge } from '@/hooks/useNativeCallBridge';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsProvider } from './AnalyticsProvider';
 import { ChatrOSProvider } from './ChatrOSProvider';
@@ -93,6 +94,9 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   
   // Sync auth to native Android app (WebAuthBridge)
   useNativeAuthSync();
+  
+  // Native call bridge (handles answer/reject from native UI)
+  useNativeCallBridge();
 
   // Monitor online status
   useEffect(() => {
