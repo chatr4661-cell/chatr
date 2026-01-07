@@ -1,103 +1,189 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
+import { 
+  Search, Mic, MessageCircle, Phone, Stethoscope, Utensils,
+  Briefcase, Percent, Heart, Brain, Sparkles, Gamepad2,
+  Users, Wallet, Bell, Settings, ChevronRight, Zap, Shield,
+  TrendingUp, Calendar, ArrowRight, Store, Building2, Crown
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { 
-  Search, Mic, Navigation, Heart, Briefcase, UtensilsCrossed, Tag, 
-  Sparkles, Globe, Bot, Shield, MapPin, TrendingUp, Camera, Bell,
-  Users, MessageCircle, Wallet, ChevronRight, ArrowRight
-} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { getCurrentLocation } from '@/utils/locationService';
-import { useAnonymousSearchLimit } from '@/hooks/useAnonymousSearchLimit';
-import { LoginPromptModal } from '@/components/LoginPromptModal';
+import { cn } from '@/lib/utils';
+import { BottomNav } from '@/components/BottomNav';
 import { SEOHead } from '@/components/SEOHead';
-import chatrLogo from '@/assets/chatr-logo.png';
+import chatrIconLogo from '@/assets/chatr-icon-logo.png';
+
+// Quick Actions - Circular buttons
+const quickActions = [
+  { icon: MessageCircle, label: 'Chat', color: 'from-green-500 to-emerald-600', route: '/chat' },
+  { icon: Phone, label: 'Call', color: 'from-blue-500 to-indigo-600', route: '/calls' },
+  { icon: Stethoscope, label: 'Doctor', color: 'from-red-500 to-rose-600', route: '/local-healthcare' },
+  { icon: Utensils, label: 'Food', color: 'from-orange-500 to-amber-600', route: '/food-ordering' },
+  { icon: Briefcase, label: 'Jobs', color: 'from-emerald-500 to-teal-600', route: '/jobs' },
+  { icon: Percent, label: 'Deals', color: 'from-purple-500 to-pink-600', route: '/local-deals' },
+];
+
+// Main Services Grid
+const mainServices = [
+  { icon: Brain, label: 'AI Brain', desc: 'Unified AI Assistant', color: 'from-cyan-500 to-blue-600', route: '/chat-ai' },
+  { icon: Sparkles, label: 'AI Agents', desc: 'Create your AI self', color: 'from-violet-500 to-purple-600', route: '/ai-agents' },
+  { icon: Heart, label: 'Health Hub', desc: 'Vitals & Reports', color: 'from-rose-500 to-pink-600', route: '/health' },
+  { icon: Stethoscope, label: 'Care Access', desc: 'Book doctors', color: 'from-blue-500 to-indigo-600', route: '/care' },
+  { icon: Gamepad2, label: 'Games', desc: 'AI-native games', color: 'from-indigo-500 to-purple-600', route: '/chatr-games' },
+  { icon: Users, label: 'Community', desc: 'Groups & Stories', color: 'from-blue-500 to-cyan-600', route: '/community' },
+  { icon: Zap, label: 'Chatr World', desc: 'AI Search Engine', color: 'from-yellow-500 to-orange-600', route: '/chatr-world' },
+  { icon: Store, label: 'Marketplace', desc: 'Buy & Sell', color: 'from-teal-500 to-emerald-600', route: '/marketplace' },
+  { icon: Wallet, label: 'ChatrPay', desc: 'UPI & Rewards', color: 'from-amber-500 to-orange-600', route: '/chatr-wallet' },
+  { icon: Building2, label: 'Business', desc: 'CRM & Analytics', color: 'from-slate-500 to-gray-600', route: '/business' },
+  { icon: Crown, label: 'Premium', desc: 'Unlock all features', color: 'from-amber-400 to-yellow-500', route: '/chatr-plus-subscribe' },
+  { icon: Settings, label: 'Settings', desc: 'Account & Prefs', color: 'from-gray-500 to-slate-600', route: '/settings' },
+];
+
+// Trending searches
+const trendingSearches = [
+  'plumber near me', 'doctor now', 'biryani delivery', 
+  'AC repair', 'job openings', 'yoga classes'
+];
 
 const Home = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [gpsEnabled, setGpsEnabled] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
-  
-  const {
-    canSearch,
-    searchCount,
-    remainingSearches,
-    isAuthenticated,
-    showLoginPrompt,
-    incrementSearch,
-    closeLoginPrompt,
-    loading,
-    maxSearches,
-  } = useAnonymousSearchLimit();
+  const [query, setQuery] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [greeting, setGreeting] = useState('Welcome');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [activityData, setActivityData] = useState({
+    unreadChats: 0,
+    appointments: 0,
+    walletBalance: 0,
+    notifications: 0
+  });
+  const [recentChats, setRecentChats] = useState<any[]>([]);
 
-  const activateGPS = async () => {
-    setIsLocating(true);
-    try {
-      const coords = await getCurrentLocation();
-      if (coords) {
-        setGpsEnabled(true);
-        toast.success('Location enabled');
+  // Time-based greeting
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) setGreeting('Good morning');
+    else if (hour >= 12 && hour < 17) setGreeting('Good afternoon');
+    else if (hour >= 17 && hour < 21) setGreeting('Good evening');
+    else setGreeting('Good night');
+  }, []);
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          setIsAuthenticated(true);
+          
+          // Fetch profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, username')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (profile) {
+            const firstName = profile.full_name?.split(' ')[0] || profile.username || 'there';
+            setUserName(firstName);
+          }
+
+          // Fetch activity counts in parallel
+          const [notifRes, apptRes, walletRes, chatsRes] = await Promise.all([
+            supabase
+              .from('notifications')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', user.id)
+              .eq('read', false),
+            supabase
+              .from('appointments')
+              .select('*', { count: 'exact', head: true })
+              .eq('patient_id', user.id)
+              .gte('appointment_date', new Date().toISOString()),
+            supabase
+              .from('chatr_coin_balances')
+              .select('total_coins')
+              .eq('user_id', user.id)
+              .maybeSingle(),
+            supabase
+              .from('conversation_participants')
+              .select(`
+                conversation_id,
+                conversations!inner(id, updated_at, is_group, group_name)
+              `)
+              .eq('user_id', user.id)
+              .order('conversations(updated_at)', { ascending: false })
+              .limit(3)
+          ]);
+
+          setActivityData({
+            unreadChats: 0,
+            appointments: notifRes.count || 0,
+            walletBalance: walletRes.data?.total_coins || 0,
+            notifications: notifRes.count || 0
+          });
+
+          if (chatsRes.data) {
+            setRecentChats(chatsRes.data.map((c: any) => ({
+              id: c.conversations.id,
+              title: c.conversations.is_group ? (c.conversations.group_name || 'Group Chat') : 'Conversation',
+              route: `/chat/${c.conversations.id}`
+            })));
+          }
+        } else {
+          setUserName('there');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      toast.error('Failed to get location');
-    } finally {
-      setIsLocating(false);
+    };
+
+    fetchData();
+  }, []);
+
+  const handleSearch = useCallback((searchQuery?: string) => {
+    const q = searchQuery || query;
+    if (!q.trim()) {
+      toast.error('Please enter a search query');
+      return;
     }
-  };
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  }, [query, navigate]);
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-    if (!canSearch) return;
-    const allowed = incrementSearch();
-    if (allowed) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      if (!isAuthenticated && remainingSearches > 0 && remainingSearches <= 2) {
-        toast.info(`${remainingSearches} free search${remainingSearches === 1 ? '' : 'es'} remaining`);
-      }
+  const startVoiceSearch = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('Voice search not supported');
+      return;
     }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript;
+      setQuery(transcript);
+      setIsListening(false);
+      setTimeout(() => handleSearch(transcript), 300);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
   };
-
-  const handleQuickSearch = (query: string) => {
-    if (!canSearch) return;
-    const allowed = incrementSearch();
-    if (allowed) {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
-    }
-  };
-
-  const quickAccessItems = [
-    { icon: Heart, title: 'Healthcare', desc: 'Find doctors', route: '/local-healthcare', gradient: 'from-rose-500 to-pink-600' },
-    { icon: Briefcase, title: 'Jobs', desc: 'Find work', route: '/jobs', gradient: 'from-emerald-500 to-teal-600' },
-    { icon: UtensilsCrossed, title: 'Food', desc: 'Order now', route: '/food-ordering', gradient: 'from-orange-500 to-amber-600' },
-    { icon: Tag, title: 'Deals', desc: 'Save money', route: '/local-deals', gradient: 'from-violet-500 to-purple-600' },
-  ];
-
-  const features = [
-    { icon: Globe, title: 'AI Browser', desc: 'Smart web search with AI summaries', route: '/ai-browser-home' },
-    { icon: Bot, title: 'AI Assistant', desc: 'Get instant help for anything', route: '/ai-assistant' },
-    { icon: Camera, title: 'Visual Search', desc: 'Search with images & photos', route: '/search' },
-    { icon: Bell, title: 'Smart Alerts', desc: 'Stay updated with notifications', route: '/notifications' },
-  ];
-
-  const moreServices = [
-    { icon: Users, title: 'Community', desc: 'Connect with people', route: '/community' },
-    { icon: MessageCircle, title: 'Messages', desc: 'Chat with friends', route: '/chat' },
-    { icon: Wallet, title: 'Wallet', desc: 'Manage payments', route: '/wallet' },
-    { icon: Shield, title: 'Care Access', desc: 'Health services', route: '/care' },
-  ];
-
-  const trendingSearches = [
-    'plumber near me', 'biryani delivery', 'doctor available now',
-    'AC repair', 'yoga classes', 'job openings'
-  ];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <img src={chatrIconLogo} alt="CHATR" className="w-16 h-16 animate-pulse" />
+          <span className="text-sm text-muted-foreground">Loading...</span>
+        </div>
       </div>
     );
   }
@@ -105,283 +191,236 @@ const Home = () => {
   return (
     <>
       <SEOHead
-        title="Chatr - Universal Search | AI-Powered Multi-Source Search"
-        description="Find anything instantly with Chatr's Universal Search. Search across web, local services, jobs, healthcare, and marketplace with AI-powered intelligence."
-        keywords="universal search, AI search engine, multi-source search, local search, GPS search"
+        title="Chatr+ - The AI Superapp for India"
+        description="Chat, healthcare, jobs, food delivery, and 100+ AI-powered services in one app."
+        keywords="chatr, superapp, india, AI, healthcare, jobs, messaging"
       />
       
-      <LoginPromptModal
-        isOpen={showLoginPrompt}
-        onClose={closeLoginPrompt}
-        searchCount={searchCount}
-        maxSearches={maxSearches}
-      />
-      
-      <div className="min-h-screen bg-background">
-        {/* Hero Section with Logo */}
-        <header className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10" />
-          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Navigation */}
-            <nav className="flex items-center justify-between py-4">
-              <img 
-                src={chatrLogo} 
-                alt="Chatr" 
-                className="h-14 sm:h-16 object-contain" 
-                width={64}
-                height={64}
-                loading="eager"
-              />
-              <div className="flex items-center gap-3">
-                {!isAuthenticated && (
-                  <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
-                    Sign In
-                  </Button>
-                )}
-                <Button size="sm" onClick={() => navigate('/')}>
-                  Explore
-                </Button>
+      <div className="min-h-screen bg-background pb-24">
+        {/* Header */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/50">
+          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={chatrIconLogo} alt="CHATR" className="w-10 h-10" />
+              <div>
+                <p className="text-base font-bold text-foreground">
+                  {greeting}, {userName}!
+                </p>
+                <p className="text-xs text-muted-foreground">What would you like to do?</p>
               </div>
-            </nav>
-
-            {/* Large Chat Icon */}
-            <div 
-              onClick={() => navigate('/chat')}
-              className="flex flex-col items-center justify-center py-8 cursor-pointer group"
-            >
-              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform">
-                <MessageCircle className="w-16 h-16 sm:w-20 sm:h-20 text-white" strokeWidth={1.5} />
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mt-6">Chat</h2>
             </div>
-
-            {/* Hero Content */}
-            <div className="py-12 sm:py-16 lg:py-20 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-                <Sparkles className="w-4 h-4" />
-                AI-Powered Universal Search
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
-                Find Anything.<br className="sm:hidden" /> Instantly.
-              </h1>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto mb-8">
-                Search jobs, healthcare, food, deals, and more — all powered by AI.
-              </p>
-
-              {/* Search Card */}
-              <Card className="max-w-2xl mx-auto p-4 sm:p-6 shadow-elevated border-border/50">
-                {!isAuthenticated && remainingSearches !== Infinity && (
-                  <div className="mb-4 flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {remainingSearches} free searches left
+            <div className="flex items-center gap-2">
+              {!isAuthenticated && (
+                <Button size="sm" onClick={() => navigate('/auth')}>
+                  Sign In
+                </Button>
+              )}
+              {isAuthenticated && (
+                <button 
+                  onClick={() => navigate('/notifications')}
+                  className="relative p-2 rounded-full hover:bg-muted transition-colors"
+                >
+                  <Bell className="w-5 h-5 text-muted-foreground" />
+                  {activityData.notifications > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {activityData.notifications > 9 ? '9+' : activityData.notifications}
                     </span>
-                    {remainingSearches <= 2 && (
-                      <Button 
-                        size="sm" 
-                        variant="link"
-                        onClick={() => navigate('/auth')}
-                        className="text-primary p-0 h-auto"
-                      >
-                        Sign in for unlimited <ArrowRight className="w-3 h-3 ml-1" />
-                      </Button>
-                    )}
-                  </div>
-                )}
-                
-                <div className="flex gap-2 sm:gap-3">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      placeholder="Search jobs, doctors, food, services..."
-                      className="pl-12 pr-12 h-12 sm:h-14 text-base bg-secondary/30 border-border/50 rounded-xl focus:ring-2 focus:ring-primary/20"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-primary/10"
-                    >
-                      <Mic className="w-5 h-5 text-muted-foreground" />
-                    </Button>
-                  </div>
-                  <Button 
-                    onClick={handleSearch}
-                    size="lg"
-                    className="h-12 sm:h-14 px-6 sm:px-8 rounded-xl font-semibold"
-                  >
-                    <Search className="w-4 h-4 sm:hidden" />
-                    <span className="hidden sm:inline">Search</span>
-                  </Button>
-                </div>
-
-                {gpsEnabled && (
-                  <div className="mt-4 flex items-center justify-center gap-2">
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-4 h-4 text-primary" /> Finding nearby results
-                    </span>
-                  </div>
-                )}
-              </Card>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </header>
 
-        {/* Quick Access Section */}
-        <section className="py-12 bg-secondary/20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-xl font-bold text-foreground mb-6 text-center sm:text-left">
-              Quick Access
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {quickAccessItems.map((item) => (
-                <Card
-                  key={item.title}
-                  onClick={() => navigate(item.route)}
-                  className="p-6 cursor-pointer hover:shadow-lg transition-all group border-border/50 hover:border-primary/30"
+        <div className="max-w-lg mx-auto px-4 space-y-5 mt-4">
+          {/* Activity Widgets - Only for authenticated users */}
+          {isAuthenticated && (
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={() => navigate('/chat')}
+                className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-green-500/10 border border-green-500/20 hover:border-green-500/40 transition-all active:scale-95"
+              >
+                <MessageCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <span className="text-[11px] font-medium text-muted-foreground">Chats</span>
+                <span className="text-sm font-bold text-green-600 dark:text-green-400">Open</span>
+              </button>
+              <button
+                onClick={() => navigate('/care')}
+                className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/40 transition-all active:scale-95"
+              >
+                <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <span className="text-[11px] font-medium text-muted-foreground">Appointments</span>
+                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{activityData.appointments}</span>
+              </button>
+              <button
+                onClick={() => navigate('/chatr-wallet')}
+                className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-all active:scale-95"
+              >
+                <Wallet className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                <span className="text-[11px] font-medium text-muted-foreground">Balance</span>
+                <span className="text-sm font-bold text-amber-600 dark:text-amber-400">₹{activityData.walletBalance.toLocaleString()}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">Quick Actions</h2>
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+              {quickActions.map((action) => (
+                <button
+                  key={action.label}
+                  onClick={() => navigate(action.route)}
+                  className="flex flex-col items-center gap-1.5 min-w-[52px] group"
                 >
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform`}>
-                    <item.icon className="w-7 h-7 text-white" />
+                  <div className={cn(
+                    "w-14 h-14 rounded-full flex items-center justify-center transition-all",
+                    "bg-gradient-to-br shadow-lg group-hover:shadow-xl group-hover:scale-110 group-active:scale-95",
+                    action.color
+                  )}>
+                    <action.icon className="w-6 h-6 text-white" strokeWidth={2} />
                   </div>
-                  <h3 className="font-semibold text-foreground text-lg">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground mt-3 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                </Card>
+                  <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                    {action.label}
+                  </span>
+                </button>
               ))}
             </div>
           </div>
-        </section>
 
-        {/* AI Features Section */}
-        <section className="py-12">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-foreground">AI-Powered Features</h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/chatr-world')} className="text-primary">
-                View All <ChevronRight className="w-4 h-4 ml-1" />
+          {/* Search Bar */}
+          <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-4">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  placeholder="Search jobs, doctors, food, services..."
+                  className="pl-11 pr-11 h-12 bg-background/80 backdrop-blur text-base rounded-xl"
+                />
+                <button
+                  onClick={startVoiceSearch}
+                  disabled={isListening}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-muted/50 transition-colors"
+                >
+                  <Mic className={cn("w-5 h-5", isListening ? "text-red-500 animate-pulse" : "text-muted-foreground")} />
+                </button>
+              </div>
+              <Button onClick={() => handleSearch()} size="lg" className="h-12 px-5 rounded-xl">
+                <Search className="w-5 h-5" />
               </Button>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {features.map((feature) => (
-                <Card
-                  key={feature.title}
-                  onClick={() => navigate(feature.route)}
-                  className="p-5 flex items-center gap-4 cursor-pointer hover:bg-accent/30 transition-colors group"
+            
+            {/* Trending inline */}
+            <div className="flex items-center gap-2 mt-3 overflow-x-auto scrollbar-hide">
+              <TrendingUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              {trendingSearches.map((term) => (
+                <button
+                  key={term}
+                  onClick={() => handleSearch(term)}
+                  className="text-xs px-2.5 py-1 rounded-full bg-background/60 hover:bg-background text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                    <feature.icon className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground truncate">{feature.desc}</p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary shrink-0" />
-                </Card>
+                  {term}
+                </button>
               ))}
             </div>
           </div>
-        </section>
 
-        {/* More Services */}
-        <section className="py-12 bg-secondary/20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-xl font-bold text-foreground mb-6">More Services</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {moreServices.map((service) => (
-                <Card
-                  key={service.title}
+          {/* Recent Chats - Only if authenticated and has chats */}
+          {isAuthenticated && recentChats.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">Continue Chatting</h2>
+                <button onClick={() => navigate('/chat')} className="text-xs text-primary hover:underline flex items-center gap-1">
+                  View all <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {recentChats.map((chat) => (
+                  <button
+                    key={chat.id}
+                    onClick={() => navigate(chat.route)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-card hover:bg-muted/50 border border-border/50 transition-all active:scale-[0.98]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-medium truncate">{chat.title}</p>
+                      <p className="text-xs text-muted-foreground">Tap to continue</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* All Services Grid */}
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">All Services</h2>
+            <div className="grid grid-cols-4 gap-3">
+              {mainServices.map((service) => (
+                <button
+                  key={service.label}
                   onClick={() => navigate(service.route)}
-                  className="p-5 cursor-pointer hover:shadow-md transition-all text-center group"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/20 transition-colors">
-                    <service.icon className="w-6 h-6 text-primary" />
+                  <div className={cn(
+                    "w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-md",
+                    service.color
+                  )}>
+                    <service.icon className="w-5 h-5 text-white" strokeWidth={2} />
                   </div>
-                  <h3 className="font-medium text-foreground text-sm">{service.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">{service.desc}</p>
-                </Card>
+                  <span className="text-[10px] font-semibold text-center leading-tight line-clamp-1">{service.label}</span>
+                </button>
               ))}
             </div>
           </div>
-        </section>
 
-        {/* Trending Searches */}
-        <section className="py-12">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2 mb-6">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-bold text-foreground">Trending Searches</h2>
+          {/* Trust Banner */}
+          <div className="bg-gradient-to-r from-primary/5 via-purple-500/5 to-blue-500/5 rounded-2xl border border-primary/10 p-4 flex items-center gap-4">
+            <Shield className="w-10 h-10 text-primary flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Secure & Private</p>
+              <p className="text-xs text-muted-foreground">Your data stays with you. Always.</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              {trendingSearches.map((query) => (
-                <Button
-                  key={query}
-                  variant="outline"
-                  onClick={() => handleQuickSearch(query)}
-                  className="rounded-full hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
-                >
-                  {query}
+            <div className="flex gap-4 text-xs text-muted-foreground">
+              <div className="text-center">
+                <div className="font-bold text-primary text-sm">AI</div>
+                <div>Powered</div>
+              </div>
+              <div className="text-center">
+                <div className="font-bold text-primary text-sm">24/7</div>
+                <div>Available</div>
+              </div>
+              <div className="text-center">
+                <div className="font-bold text-primary text-sm">100+</div>
+                <div>Services</div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA for non-authenticated users */}
+          {!isAuthenticated && (
+            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-2xl border border-green-500/20 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">Join Chatr+ for Free</p>
+                  <p className="text-xs text-muted-foreground">Unlock unlimited searches & all features</p>
+                </div>
+                <Button onClick={() => navigate('/auth')} className="bg-green-600 hover:bg-green-700">
+                  Sign Up <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Stats/Trust Section */}
-        <section className="py-12 bg-gradient-to-br from-primary/5 to-accent/10">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Card className="p-6 sm:p-8 border-primary/10">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Shield className="w-7 h-7 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">Secure & Private</h3>
-                    <p className="text-muted-foreground">Your searches stay with you. Always.</p>
-                  </div>
-                </div>
-                <div className="flex gap-8 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-primary">AI</p>
-                    <p className="text-sm text-muted-foreground">Powered</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">24/7</p>
-                    <p className="text-sm text-muted-foreground">Available</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">100+</p>
-                    <p className="text-sm text-muted-foreground">Services</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="py-8 border-t border-border/50">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <img 
-                src={chatrLogo} 
-                alt="Chatr" 
-                className="h-8 object-contain"
-                width={32}
-                height={32}
-                loading="lazy"
-              />
-              <p className="text-sm text-muted-foreground text-center">
-                Say It. Share It. Live It. • Multi-source AI Search
-              </p>
-              <div className="flex gap-4">
-                <Button variant="ghost" size="sm" onClick={() => navigate('/about')}>About</Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/contact')}>Contact</Button>
               </div>
             </div>
-          </div>
-        </footer>
+          )}
+        </div>
+
+        {/* Bottom Navigation */}
+        <BottomNav />
       </div>
     </>
   );
