@@ -42,6 +42,7 @@ interface GSMStyleVoiceCallProps {
   contactPhone?: string;
   isInitiator: boolean;
   partnerId: string;
+  preAcquiredStream?: MediaStream | null;
   onEnd: () => void;
   onMinimize?: () => void;
   onSwitchToVideo?: () => void;
@@ -60,6 +61,7 @@ export default function GSMStyleVoiceCall({
   contactPhone,
   isInitiator,
   partnerId,
+  preAcquiredStream = null,
   onEnd,
   onMinimize,
   onSwitchToVideo,
@@ -194,12 +196,12 @@ export default function GSMStyleVoiceCall({
         }
         userIdRef.current = user.id;
 
-        console.log('🎬 [GSMStyleVoiceCall] Initializing voice call...');
-        
-        console.log('🎬 [GSMStyleVoiceCall] Call mode:', isInitiator ? 'outgoing' : 'incoming');
-        
-        const call = new SimpleWebRTCCall(callId, partnerId, false, isInitiator, user.id);
-        webrtcRef.current = call;
+         console.log('🎬 [GSMStyleVoiceCall] Initializing voice call...');
+         
+         console.log('🎬 [GSMStyleVoiceCall] Call mode:', isInitiator ? 'outgoing' : 'incoming');
+         
+         const call = new SimpleWebRTCCall(callId, partnerId, false, isInitiator, user.id, preAcquiredStream);
+         webrtcRef.current = call;
 
         call.on('remoteStream', (stream: MediaStream) => {
           console.log('🔊 [GSMStyleVoiceCall] Remote stream received');

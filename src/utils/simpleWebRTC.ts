@@ -24,8 +24,13 @@ export class SimpleWebRTCCall {
     private partnerId: string,
     private isVideo: boolean,
     private isInitiator: boolean,
-    private userId: string
+    private userId: string,
+    initialLocalStream: MediaStream | null = null
   ) {
+    if (initialLocalStream) {
+      this.localStream = initialLocalStream;
+      console.log('🎤 [SimpleWebRTC] Using pre-acquired media stream');
+    }
     console.log('🎬 [SimpleWebRTC] Initializing call:', { callId, isVideo, isInitiator });
   }
 
@@ -46,34 +51,38 @@ export class SimpleWebRTCCall {
   async start() {
     try {
       console.log('🚀 [SimpleWebRTC] Starting call setup...');
-      
+
       // Step 0: Pre-call network quality check (silent, copilot-style)
       const networkQuality = await this.analyzeNetworkQuality();
       console.log(`📶 [SimpleWebRTC] Network quality: ${networkQuality}`);
       this.emit('networkQuality', networkQuality);
-      
-      // Step 1: Get media
-      await this.getMedia();
-      
+
+      // Step 1: Get media (or reuse pre-acquired stream)
+      if (this.localStream) {
+        this.emit('localStream', this.localStream);
+      } else {
+        await this.getMedia();
+      }
+
       // Step 2: Create peer connection
       await this.createPeerConnection();
-      
+
       // Step 3: Subscribe to signals FIRST (before creating offer)
       await this.subscribeToSignals();
-      
+
       // Step 4: If not initiator, fetch past signals (OFFER and ICE candidates sent before answering)
       if (!this.isInitiator) {
         await this.fetchPastSignals();
       }
-      
+
       // Step 5: If initiator, create and send offer
       if (this.isInitiator) {
         await this.createOffer();
       }
-      
+
       // Step 6: Set ICE connection timeout
       this.setConnectionTimeout();
-      
+
       console.log('✅ [SimpleWebRTC] Call setup complete');
     } catch (error) {
       console.error('❌ [SimpleWebRTC] Setup failed:', error);
