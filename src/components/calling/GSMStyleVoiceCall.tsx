@@ -529,15 +529,14 @@ export default function GSMStyleVoiceCall({
     <div 
       className="fixed inset-0 z-[99999] bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f0f23] flex flex-col overflow-hidden overscroll-none touch-none select-none"
       style={{ 
-        height: '100dvh', 
-        width: '100vw',
-        minHeight: '-webkit-fill-available',
+        height: '100%',
+        width: '100%',
+        maxHeight: '100dvh',
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        WebkitOverflowScrolling: 'touch',
         isolation: 'isolate',
       }}
       onClick={(e) => e.stopPropagation()}
@@ -589,18 +588,18 @@ export default function GSMStyleVoiceCall({
       )}
 
       {/* Main content - Avatar and info */}
-      <div className={`relative z-10 flex-1 flex flex-col items-center justify-center px-6 ${(videoEnabled || localVideoActive) ? 'hidden' : ''}`}>
+      <div className={`relative z-10 flex-1 flex flex-col items-center justify-center px-6 min-h-0 ${(videoEnabled || localVideoActive) ? 'hidden' : ''}`}>
         {/* Avatar with elegant pulsing animation */}
-        <div className="relative mb-6">
+        <div className="relative mb-4 sm:mb-6">
           {callState === 'connecting' && (
             <>
               <motion.div
-                className="absolute inset-[-16px] rounded-full border-2 border-emerald-400/40"
+                className="absolute inset-[-12px] sm:inset-[-16px] rounded-full border-2 border-emerald-400/40"
                 animate={{ scale: [1, 1.3], opacity: [0.6, 0] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
               />
               <motion.div
-                className="absolute inset-[-16px] rounded-full border-2 border-emerald-400/30"
+                className="absolute inset-[-12px] sm:inset-[-16px] rounded-full border-2 border-emerald-400/30"
                 animate={{ scale: [1, 1.5], opacity: [0.4, 0] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut", delay: 0.4 }}
               />
@@ -614,16 +613,16 @@ export default function GSMStyleVoiceCall({
               transition={{ type: "spring", damping: 20 }}
               src={contactAvatar}
               alt={contactName}
-              className="w-32 h-32 rounded-full object-cover ring-[3px] ring-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-[3px] ring-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
             />
           ) : (
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", damping: 20 }}
-              className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-500/80 to-teal-600/60 flex items-center justify-center ring-[3px] ring-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-emerald-500/80 to-teal-600/60 flex items-center justify-center ring-[3px] ring-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
             >
-              <span className="text-5xl font-semibold text-white">
+              <span className="text-4xl sm:text-5xl font-semibold text-white">
                 {contactName.charAt(0).toUpperCase()}
               </span>
             </motion.div>
@@ -800,18 +799,18 @@ export default function GSMStyleVoiceCall({
 
       {/* Bottom section - Controls */}
       <div 
-        className="relative z-10 px-6"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
+        className="relative z-10 px-4 sm:px-6 flex-shrink-0 pb-safe"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)' }}
       >
         {/* Top row - Speaker, Video, Mute */}
-        <div className="grid grid-cols-3 gap-4 mb-5 max-w-[320px] mx-auto">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-5 max-w-[280px] sm:max-w-[320px] mx-auto">
           <button
             onClick={cycleSpeaker}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center gap-1.5 sm:gap-2"
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
+              className={`w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-full flex items-center justify-center transition-all ${
                 audioRoute !== 'earpiece' 
                   ? 'bg-white/95 text-gray-900' 
                   : 'bg-white/15 text-white'
@@ -819,62 +818,62 @@ export default function GSMStyleVoiceCall({
             >
               {getAudioRouteIcon()}
             </motion.div>
-            <span className={`text-[11px] capitalize ${audioRoute !== 'earpiece' ? 'text-white font-medium' : 'text-white/60'}`}>
+            <span className={`text-[10px] sm:text-[11px] capitalize ${audioRoute !== 'earpiece' ? 'text-white font-medium' : 'text-white/60'}`}>
               {audioRoute}
             </span>
           </button>
 
           <button
             onClick={handleUpgradeToVideo}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center gap-1.5 sm:gap-2"
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
+              className={`w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-full flex items-center justify-center transition-all ${
                 (videoEnabled || localVideoActive)
                   ? 'bg-emerald-500 text-white'
                   : 'bg-white/15 text-white'
               }`}
             >
-              <Video className="h-6 w-6" />
+              <Video className="h-5 w-5 sm:h-6 sm:w-6" />
             </motion.div>
-            <span className={`text-[11px] ${(videoEnabled || localVideoActive) ? 'text-emerald-400 font-medium' : 'text-white/60'}`}>
+            <span className={`text-[10px] sm:text-[11px] ${(videoEnabled || localVideoActive) ? 'text-emerald-400 font-medium' : 'text-white/60'}`}>
               Video
             </span>
           </button>
 
           <button
             onClick={toggleMute}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center gap-1.5 sm:gap-2"
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
+              className={`w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-full flex items-center justify-center transition-all ${
                 isMuted 
                   ? 'bg-red-500 text-white' 
                   : 'bg-white/15 text-white'
               }`}
             >
-              {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+              {isMuted ? <MicOff className="h-5 w-5 sm:h-6 sm:w-6" /> : <Mic className="h-5 w-5 sm:h-6 sm:w-6" />}
             </motion.div>
-            <span className={`text-[11px] ${isMuted ? 'text-red-400 font-medium' : 'text-white/60'}`}>
+            <span className={`text-[10px] sm:text-[11px] ${isMuted ? 'text-red-400 font-medium' : 'text-white/60'}`}>
               {isMuted ? 'Muted' : 'Mute'}
             </span>
           </button>
         </div>
 
         {/* Bottom row - More, End, Keypad */}
-        <div className="grid grid-cols-3 gap-4 max-w-[320px] mx-auto">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-[280px] sm:max-w-[320px] mx-auto">
           <Sheet open={showMoreOptions} onOpenChange={setShowMoreOptions}>
             <SheetTrigger asChild>
-              <button className="flex flex-col items-center gap-2">
+              <button className="flex flex-col items-center gap-1.5 sm:gap-2">
                 <motion.div 
                   whileTap={{ scale: 0.9 }}
-                  className="w-[60px] h-[60px] rounded-full bg-white/15 flex items-center justify-center"
+                  className="w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-full bg-white/15 flex items-center justify-center"
                 >
-                  <MoreHorizontal className="h-6 w-6 text-white" />
+                  <MoreHorizontal className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </motion.div>
-                <span className="text-white/60 text-[11px]">More</span>
+                <span className="text-white/60 text-[10px] sm:text-[11px]">More</span>
               </button>
             </SheetTrigger>
             <SheetContent side="bottom" className="bg-slate-900/95 backdrop-blur-xl border-slate-700">
@@ -944,32 +943,32 @@ export default function GSMStyleVoiceCall({
 
           <button
             onClick={handleEndCall}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center gap-1.5 sm:gap-2"
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className="w-[68px] h-[68px] rounded-full bg-red-500 flex items-center justify-center shadow-[0_4px_20px_rgba(239,68,68,0.5)]"
+              className="w-[56px] h-[56px] sm:w-[68px] sm:h-[68px] rounded-full bg-red-500 flex items-center justify-center shadow-[0_4px_20px_rgba(239,68,68,0.5)]"
             >
-              <PhoneOff className="h-7 w-7 text-white" />
+              <PhoneOff className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
             </motion.div>
-            <span className="text-red-400 text-[11px] font-medium">End</span>
+            <span className="text-red-400 text-[10px] sm:text-[11px] font-medium">End</span>
           </button>
 
           <button
             onClick={() => setShowKeypad(!showKeypad)}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center gap-1.5 sm:gap-2"
           >
             <motion.div 
               whileTap={{ scale: 0.9 }}
-              className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
+              className={`w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-full flex items-center justify-center transition-all ${
                 showKeypad 
                   ? 'bg-white/95 text-gray-900' 
                   : 'bg-white/15 text-white'
               }`}
             >
-              <Grid3X3 className="h-6 w-6" />
+              <Grid3X3 className="h-5 w-5 sm:h-6 sm:w-6" />
             </motion.div>
-            <span className={`text-[11px] ${showKeypad ? 'text-white font-medium' : 'text-white/60'}`}>Keypad</span>
+            <span className={`text-[10px] sm:text-[11px] ${showKeypad ? 'text-white font-medium' : 'text-white/60'}`}>Keypad</span>
           </button>
         </div>
       </div>
