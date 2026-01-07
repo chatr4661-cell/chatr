@@ -191,12 +191,13 @@ export default function ProductionVideoCall({
 
         call.on('connected', () => {
           console.log('🎉 [ProductionVideoCall] Call connected!');
+          // CRITICAL: Always transition to connected, even from failed state
           setCallState('connected');
           startDurationTimer();
           updateCallStatus('active');
         });
 
-        // CRITICAL: 'failed' event is for warnings only - NEVER auto-end calls
+        // CRITICAL: 'failed' event is for PERMISSION errors only
         call.on('failed', (error: Error) => {
           console.error('⚠️ [ProductionVideoCall] Connection issue:', error);
           
@@ -208,7 +209,7 @@ export default function ProductionVideoCall({
             return;
           }
           
-          // Network errors - just log, recovery is automatic
+          // Network errors - don't change state, recovery handles it
           console.warn('⚠️ Connection unstable - automatic recovery in progress...');
         });
         
@@ -586,7 +587,7 @@ export default function ProductionVideoCall({
             <p className="text-xs text-white/70 text-center">
               {callState === 'connecting' && 'Connecting...'}
               {callState === 'connected' && formatDuration(duration)}
-              {callState === 'failed' && 'Connection failed'}
+              {callState === 'failed' && 'Camera/mic access required'}
             </p>
           </div>
         </motion.div>
