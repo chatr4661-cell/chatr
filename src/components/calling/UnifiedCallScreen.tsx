@@ -359,14 +359,18 @@ export default function UnifiedCallScreen({
       onClick={() => resetControlsTimer()}
     >
       {/* Background - Remote Video or Avatar */}
-      {isVideo && remoteVideoActive ? (
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          className="absolute inset-0 w-full h-full object-contain bg-black"
-        />
-      ) : (
+      {/* Always render video element, show when video active */}
+      <video
+        ref={remoteVideoRef}
+        autoPlay
+        playsInline
+        className={`absolute inset-0 w-full h-full object-contain bg-black ${
+          remoteVideoActive ? 'block' : 'hidden'
+        }`}
+      />
+      
+      {/* Show avatar when no remote video */}
+      {!remoteVideoActive && (
         <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center">
           {contactAvatar ? (
             <img src={contactAvatar} alt={contactName} className="w-28 h-28 rounded-full object-cover ring-4 ring-white/10 shadow-2xl" />
@@ -375,14 +379,11 @@ export default function UnifiedCallScreen({
               <span className="text-5xl font-bold text-white">{contactName.charAt(0).toUpperCase()}</span>
             </div>
           )}
-          {isVideo && !remoteVideoActive && (
-            <video ref={remoteVideoRef} autoPlay playsInline className="hidden" />
-          )}
         </div>
       )}
 
-      {/* Local Video PIP */}
-      {isVideo && localVideoActive && (
+      {/* Local Video PIP - show when local video is active */}
+      {localVideoActive && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
