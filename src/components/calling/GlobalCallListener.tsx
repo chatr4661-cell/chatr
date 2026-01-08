@@ -301,43 +301,11 @@ export function GlobalCallListener() {
           
           console.log("📡 [GlobalCallListener] Received signal:", signalData);
           
-          // Handle video upgrade request
-          if (signalData?.videoUpgradeRequest) {
-            console.log("📹 [GlobalCallListener] Video upgrade request received!");
-            setActiveCall((prev: any) => prev ? { ...prev, incomingVideoRequest: true, videoRequestFrom: signal.from_user } : prev);
-            
-            toast.info("📹 Partner wants to switch to video call");
-          }
-          
-          // Handle video upgrade accepted
-          if (signalData?.videoUpgradeAccepted) {
-            console.log("✅ [GlobalCallListener] Video upgrade accepted!");
-
-            // IMPORTANT: do NOT switch call components by changing call_type in local state.
-            // Keep the existing RTCPeerConnection alive and let GSMStyleVoiceCall add a video track.
-            setActiveCall((prev: any) =>
-              prev
-                ? {
-                    ...prev,
-                    videoEnabled: true,
-                    pendingVideoUpgrade: false,
-                    incomingVideoRequest: false,
-                  }
-                : prev
-            );
-
-            // Update database for record-keeping only
-            supabase.from("calls").update({ call_type: 'video' }).eq("id", signal.call_id);
-
-            toast.success("Video is now active");
-          }
-          
-          // Handle video upgrade declined
-          if (signalData?.videoUpgradeDeclined) {
-            console.log("❌ [GlobalCallListener] Video upgrade declined");
-            setActiveCall((prev: any) => prev ? { ...prev, pendingVideoUpgrade: false } : prev);
-            
-            toast.info("Partner declined video request");
+          // FaceTime-style: Video signals no longer require acceptance dialog
+          // WebRTC renegotiation handles video track exchange automatically
+          // Legacy: Keep backward compatibility for old signals but don't show toasts
+          if (signalData?.videoUpgradeRequest || signalData?.videoUpgradeAccepted) {
+            console.log("📹 [GlobalCallListener] Partner enabled video via renegotiation");
           }
         }
       )
@@ -550,89 +518,29 @@ export function GlobalCallListener() {
     );
   }
 
-  // Handle voice to video upgrade - send request to partner
+  // Handle voice to video upgrade - FaceTime style (no acceptance needed)
+  // The WebRTC renegotiation handles video automatically on both sides
   const handleUpgradeToVideo = async () => {
     if (!activeCall) {
       console.warn("⚠️ No active call to upgrade");
       return;
     }
     
-    console.log("📹 Requesting video upgrade for call:", activeCall.id);
+    console.log("📹 FaceTime-style video upgrade for call:", activeCall.id);
     
-    // Send upgrade request signal to partner
+    // Simply enable video flag - UnifiedCallScreen handles the rest via WebRTC renegotiation
+    setActiveCall({ ...activeCall, videoEnabled: true });
+    
+    // Update database for record-keeping
     try {
-      await sendSignal({
-        type: "answer" as any, // Using answer type for signaling
-        callId: activeCall.id,
-        data: { videoUpgradeRequest: true, requestedBy: userId },
-        to: activeCall.partnerId,
-      });
-      
-      toast.info(`Waiting for ${activeCall.callerName} to accept video...`);
-      
-      // Store pending upgrade request
-      setActiveCall({ ...activeCall, pendingVideoUpgrade: true });
-    } catch (error) {
-      console.error("Failed to send video upgrade request:", error);
-      toast.error("Could not send video request");
+      await supabase.from("calls").update({ call_type: 'video' }).eq("id", activeCall.id);
+    } catch (e) {
+      console.error("Failed to update call type:", e);
     }
   };
 
-  // Accept video upgrade from partner
-  const handleAcceptVideoUpgrade = async () => {
-    if (!activeCall) return;
-    
-    console.log("✅ Accepting video upgrade for call:", activeCall.id);
-    
-    // Update call type in database (for record keeping only)
-    await supabase
-      .from("calls")
-      .update({ call_type: 'video' })
-      .eq("id", activeCall.id);
-    
-    // Send acceptance signal
-    try {
-      await sendSignal({
-        type: "answer" as any,
-        callId: activeCall.id,
-        data: { videoUpgradeAccepted: true },
-        to: activeCall.partnerId,
-      });
-    } catch (e) {
-      console.error("Failed to send upgrade acceptance:", e);
-    }
-    
-    // CRITICAL: Set videoEnabled flag instead of changing call_type
-    // This tells GSMStyleVoiceCall to add video WITHOUT switching components
-    setActiveCall({ 
-      ...activeCall, 
-      videoEnabled: true, 
-      pendingVideoUpgrade: false, 
-      incomingVideoRequest: false 
-    });
-  };
+  // FaceTime-style: Accept/Decline no longer needed - video just works via WebRTC renegotiation
 
-  // Decline video upgrade
-  const handleDeclineVideoUpgrade = async () => {
-    if (!activeCall) return;
-    
-    console.log("❌ Declining video upgrade for call:", activeCall.id);
-    
-    try {
-      await sendSignal({
-        type: "answer" as any,
-        callId: activeCall.id,
-        data: { videoUpgradeDeclined: true },
-        to: activeCall.partnerId,
-      });
-    } catch (e) {
-      console.error("Failed to send decline signal:", e);
-    }
-    
-    setActiveCall({ ...activeCall, incomingVideoRequest: false });
-    
-    toast.info("Continuing with voice call");
-  };
   // Show active call (both caller and receiver) - UNIFIED for voice and video
   if (activeCall) {
     const contactName = activeCall.isInitiator 

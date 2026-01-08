@@ -274,14 +274,34 @@ export default function UnifiedCallScreen({
     webrtcRef.current?.toggleAudio(!newState);
   };
 
+  // FaceTime-style: One tap → video appears for both parties
   const toggleVideo = async () => {
-    if (!isVideoOn && onSwitchToVideo) {
-      onSwitchToVideo();
-      return;
+    if (!isVideoOn) {
+      // Add video directly - no confirmation needed (FaceTime style)
+      console.log('📹 [UnifiedCall] Adding video (FaceTime-style)...');
+      setIsVideoOn(true);
+      
+      const videoStream = await webrtcRef.current?.addVideoToCall();
+      if (videoStream && localVideoRef.current) {
+        localVideoRef.current.srcObject = videoStream;
+        localVideoRef.current.muted = true;
+        await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+        setLocalVideoActive(true);
+        toast.success('Video enabled');
+      } else {
+        setIsVideoOn(false);
+        toast.error('Could not enable video');
+      }
+    } else {
+      // Turn off video
+      setIsVideoOn(false);
+      webrtcRef.current?.toggleVideo(false);
+      setLocalVideoActive(false);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null;
+      }
+      toast.info('Video disabled');
     }
-    const newState = !isVideoOn;
-    setIsVideoOn(newState);
-    webrtcRef.current?.toggleVideo(newState);
   };
 
   const switchCamera = async () => {
