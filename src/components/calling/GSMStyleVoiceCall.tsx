@@ -198,7 +198,7 @@ export default function GSMStyleVoiceCall({
 
         console.log('🎬 [VoiceCall] Starting', isInitiator ? 'outgoing' : 'incoming', 'call');
         
-        const call = new SimpleWebRTCCall(callId, partnerId, false, isInitiator, user.id, preAcquiredStream);
+        const call = SimpleWebRTCCall.create(callId, partnerId, false, isInitiator, user.id, preAcquiredStream);
         webrtcRef.current = call;
 
         call.on('remoteStream', (stream: MediaStream) => {

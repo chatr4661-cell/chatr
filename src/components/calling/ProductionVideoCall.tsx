@@ -75,7 +75,7 @@ export default function ProductionVideoCall({
         
         console.log('🎬 [ProductionVideoCall] Call mode:', isInitiator ? 'outgoing' : 'incoming');
         
-        const call = new SimpleWebRTCCall(callId, partnerId, true, isInitiator, user.id);
+        const call = SimpleWebRTCCall.create(callId, partnerId, true, isInitiator, user.id);
         webrtcRef.current = call;
 
         call.on('localStream', (stream: MediaStream) => {

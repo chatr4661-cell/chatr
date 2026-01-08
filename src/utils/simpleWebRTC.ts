@@ -13,11 +13,25 @@ interface Signal {
 // GLOBAL: Prevent duplicate WebRTC instances for same call
 const activeCallInstances = new Map<string, SimpleWebRTCCall>();
 
+// Get existing instance (TRUE singleton pattern)
+export function getExistingCall(callId: string): SimpleWebRTCCall | undefined {
+  return activeCallInstances.get(callId);
+}
+
+// Clear existing instance for a call
+export function clearCallInstance(callId: string): void {
+  const existing = activeCallInstances.get(callId);
+  if (existing) {
+    existing.end();
+  }
+  activeCallInstances.delete(callId);
+}
+
 /**
  * SimpleWebRTCCall - Robust, Fast WebRTC Implementation
  * 
  * Key improvements:
- * - SINGLETON per call ID (no duplicates)
+ * - TRUE SINGLETON per call ID (factory pattern)
  * - Faster ICE gathering with aggressive candidate pool
  * - Single offer per connection attempt (no spam)
  * - Proper answer timeout handling
@@ -36,8 +50,30 @@ export class SimpleWebRTCCall {
   private offerSent: boolean = false;
   private answerSent: boolean = false;
   private processedSignalIds: Set<string> = new Set();
+  private started: boolean = false;
 
-  constructor(
+  // Factory method - use this instead of constructor
+  static create(
+    callId: string,
+    partnerId: string,
+    isVideo: boolean,
+    isInitiator: boolean,
+    userId: string,
+    initialLocalStream: MediaStream | null = null
+  ): SimpleWebRTCCall {
+    // STRICT SINGLETON: Return existing instance
+    const existing = activeCallInstances.get(callId);
+    if (existing) {
+      console.log('⚠️ [WebRTC] Returning existing instance for call:', callId.slice(0, 8));
+      return existing;
+    }
+    
+    const instance = new SimpleWebRTCCall(callId, partnerId, isVideo, isInitiator, userId, initialLocalStream);
+    activeCallInstances.set(callId, instance);
+    return instance;
+  }
+
+  private constructor(
     private callId: string,
     private partnerId: string,
     private isVideo: boolean,
@@ -45,20 +81,11 @@ export class SimpleWebRTCCall {
     private userId: string,
     initialLocalStream: MediaStream | null = null
   ) {
-    // SINGLETON: Return existing instance if already exists for this call
-    const existingInstance = activeCallInstances.get(callId);
-    if (existingInstance && existingInstance !== this) {
-      console.log('⚠️ [WebRTC] Returning existing instance for call:', callId.slice(0, 8));
-      return existingInstance;
-    }
-    
-    activeCallInstances.set(callId, this);
-    
     if (initialLocalStream) {
       this.localStream = initialLocalStream;
       console.log('🎤 [WebRTC] Using pre-acquired media stream');
     }
-    console.log('🎬 [WebRTC] Init:', { callId: callId.slice(0, 8), isVideo, isInitiator });
+    console.log('🎬 [WebRTC] Init:', { callId: callId.slice(0, 8), isVideo, isInitiator, userId: userId.slice(0, 8) });
   }
 
   on(event: string, handler: Function) {
@@ -77,10 +104,11 @@ export class SimpleWebRTCCall {
 
   async start() {
     // Prevent double-start
-    if (this.pc) {
+    if (this.started || this.pc) {
       console.log('⚠️ [WebRTC] Already started, skipping');
       return;
     }
+    this.started = true;
     
     try {
       console.log('🚀 [WebRTC] Starting...');
@@ -98,13 +126,15 @@ export class SimpleWebRTCCall {
       // Step 3: Subscribe to signals
       await this.subscribeToSignals();
 
-      // Step 4: Fetch past signals (receiver gets offer)
-      if (!this.isInitiator) {
-        await this.fetchPastSignals();
-      }
+      // Step 4: Fetch past signals
+      // - Receiver fetches offer
+      // - Initiator fetches answer (in case receiver replied faster)
+      await this.fetchPastSignals();
 
       // Step 5: Create offer (initiator only, ONCE)
+      // Add small delay to allow receiver to setup signaling subscription first
       if (this.isInitiator && !this.offerSent) {
+        await this.delay(300); // Allow receiver to subscribe
         await this.createAndSendOffer();
       }
 
@@ -313,7 +343,7 @@ export class SimpleWebRTCCall {
         .select('*')
         .eq('call_id', this.callId)
         .eq('to_user', this.userId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false }); // Get NEWEST first
 
       if (signals?.length) {
         console.log(`📥 [WebRTC] Found ${signals.length} past signals`);
@@ -321,14 +351,27 @@ export class SimpleWebRTCCall {
         // Mark all as processed to prevent duplicates
         signals.forEach(s => this.processedSignalIds.add(s.id));
         
-        // Process offer first (only first one)
-        const offer = signals.find(s => s.signal_type === 'offer');
-        if (offer) {
-          await this.handleSignal({ type: 'offer', data: offer.signal_data, from: offer.from_user });
+        if (!this.isInitiator) {
+          // RECEIVER: Process ONLY the LATEST offer
+          const latestOffer = signals.find(s => s.signal_type === 'offer');
+          if (latestOffer) {
+            console.log(`📥 [WebRTC] Processing LATEST offer from ${latestOffer.from_user.slice(0, 8)}`);
+            await this.handleSignal({ type: 'offer', data: latestOffer.signal_data, from: latestOffer.from_user });
+          }
+        } else {
+          // INITIATOR: Check if receiver already sent an answer
+          const latestAnswer = signals.find(s => s.signal_type === 'answer');
+          if (latestAnswer) {
+            console.log(`📥 [WebRTC] Found answer from ${latestAnswer.from_user.slice(0, 8)}`);
+            await this.handleSignal({ type: 'answer', data: latestAnswer.signal_data, from: latestAnswer.from_user });
+          }
         }
         
-        // Then ICE candidates
-        const candidates = signals.filter(s => s.signal_type === 'ice-candidate');
+        // Process ICE candidates for both roles (in ascending order for proper sequencing)
+        const candidates = signals
+          .filter(s => s.signal_type === 'ice-candidate')
+          .reverse(); // Reverse to process oldest first
+          
         for (const c of candidates) {
           await this.handleSignal({ type: 'ice-candidate', data: c.signal_data, from: c.from_user });
         }
