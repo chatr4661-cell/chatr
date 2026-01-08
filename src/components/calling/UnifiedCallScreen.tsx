@@ -137,43 +137,80 @@ export default function UnifiedCallScreen({
         });
 
         call.on('remoteStream', (stream: MediaStream) => {
-          console.log('🔊 [UnifiedCall] Remote stream received, tracks:', 
-            stream.getTracks().map(t => `${t.kind}:${t.enabled}`).join(', '));
+          console.log('📺 [UnifiedCall] Remote stream received');
+          const audioTracks = stream.getAudioTracks();
+          const videoTracks = stream.getVideoTracks();
+          console.log(`  → Audio tracks: ${audioTracks.length}, Video tracks: ${videoTracks.length}`);
+          audioTracks.forEach(t => console.log(`    🔊 Audio: ${t.label}, enabled: ${t.enabled}`));
+          videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}`));
           
-          // Always setup audio
+          // CRITICAL: Always setup audio via Audio element
           if (!remoteAudioRef.current) {
             remoteAudioRef.current = new Audio();
             remoteAudioRef.current.autoplay = true;
             remoteAudioRef.current.volume = 1.0;
           }
           remoteAudioRef.current.srcObject = stream;
-          remoteAudioRef.current.play().catch(e => console.log('Audio play:', e));
+          remoteAudioRef.current.play().catch(e => console.log('Audio autoplay:', e));
           
-          // Handle video tracks (could come mid-call)
-          const videoTracks = stream.getVideoTracks();
-          if (videoTracks.length > 0 && remoteVideoRef.current) {
-            console.log('📺 [UnifiedCall] Setting remote video, track:', videoTracks[0].label);
+          // CRITICAL: Always assign stream to video element for bidirectional video
+          // Both caller AND receiver need to see each other's video
+          if (remoteVideoRef.current) {
+            console.log('📺 [UnifiedCall] Assigning remote stream to video element');
             remoteVideoRef.current.srcObject = stream;
-            remoteVideoRef.current.muted = false;
-            remoteVideoRef.current.volume = 1.0;
-            remoteVideoRef.current.play()
-              .then(() => {
-                console.log('✅ [UnifiedCall] Remote video playing');
-                setRemoteVideoActive(true);
-              })
-              .catch(e => console.log('Remote video play:', e));
+            
+            // Check if there are video tracks NOW
+            if (videoTracks.length > 0) {
+              const track = videoTracks[0];
+              console.log(`📺 [UnifiedCall] Remote video track found: ${track.label}, ready: ${track.readyState}`);
+              
+              // Unmute for video playback with audio
+              remoteVideoRef.current.muted = false;
+              remoteVideoRef.current.volume = 1.0;
+              
+              remoteVideoRef.current.play()
+                .then(() => {
+                  console.log('✅ [UnifiedCall] Remote video PLAYING');
+                  setRemoteVideoActive(true);
+                })
+                .catch(e => {
+                  console.warn('⚠️ Remote video play blocked:', e);
+                  // Try muted first then unmute
+                  remoteVideoRef.current!.muted = true;
+                  remoteVideoRef.current!.play()
+                    .then(() => {
+                      remoteVideoRef.current!.muted = false;
+                      setRemoteVideoActive(true);
+                    })
+                    .catch(e2 => console.error('Video play failed:', e2));
+                });
+            }
           }
           
-          // Listen for track additions (FaceTime-style mid-call video)
+          // BIDIRECTIONAL: Listen for tracks added AFTER initial stream
+          // This handles FaceTime-style video upgrade AND delayed video from receiver
           stream.onaddtrack = (event) => {
-            console.log('➕ [UnifiedCall] Track added mid-call:', event.track.kind);
+            console.log('➕ [UnifiedCall] Track added:', event.track.kind, event.track.label);
             if (event.track.kind === 'video' && remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = stream;
+              console.log('📺 [UnifiedCall] Video track added - enabling remote video');
+              // Stream already assigned, just play
               remoteVideoRef.current.muted = false;
-              remoteVideoRef.current.play().catch(e => console.log('Dynamic video play:', e));
-              setRemoteVideoActive(true);
+              remoteVideoRef.current.play()
+                .then(() => setRemoteVideoActive(true))
+                .catch(e => console.log('Dynamic video play:', e));
             }
           };
+          
+          // Also handle track enabled changes (receiver toggling video on)
+          videoTracks.forEach(track => {
+            track.onunmute = () => {
+              console.log('📺 [UnifiedCall] Video track unmuted');
+              setRemoteVideoActive(true);
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.play().catch(() => {});
+              }
+            };
+          });
         });
 
         call.on('connected', () => {

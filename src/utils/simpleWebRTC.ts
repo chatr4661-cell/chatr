@@ -160,20 +160,21 @@ export class SimpleWebRTCCall {
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       
+      // HIGH QUALITY constraints like FaceTime/WhatsApp
       const constraints: MediaStreamConstraints = {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          // Advanced noise reduction for cleaner audio
           sampleRate: 48000,
-          channelCount: 1,
+          channelCount: 2, // Stereo for quality
         } as MediaTrackConstraints,
         video: this.isVideo ? {
-          width: { ideal: isMobile ? 1280 : 1920 },
-          height: { ideal: isMobile ? 720 : 1080 },
-          frameRate: { ideal: isMobile ? 30 : 60 },
-          facingMode: 'user'
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          frameRate: { ideal: 60, min: 30 },
+          facingMode: 'user',
+          aspectRatio: { ideal: 16/9 }
         } : false
       };
 
@@ -243,11 +244,19 @@ export class SimpleWebRTCCall {
       });
     }
 
-    // Handle remote tracks
+    // Handle remote tracks - CRITICAL for bidirectional video
     this.pc.ontrack = (event) => {
-      console.log('📺 [WebRTC] Remote track:', event.track.kind);
+      const track = event.track;
       const [remoteStream] = event.streams;
+      console.log(`📺 [WebRTC] Remote track received: ${track.kind}, id: ${track.id.slice(0,8)}, stream tracks: ${remoteStream.getTracks().length}`);
+      
+      // Emit stream for EVERY track to ensure UI updates for both audio AND video
       this.emit('remoteStream', remoteStream);
+      
+      // Log track details for debugging bidirectional video
+      if (track.kind === 'video') {
+        console.log(`📹 [WebRTC] VIDEO track settings:`, track.getSettings());
+      }
     };
 
     // Handle ICE candidates
