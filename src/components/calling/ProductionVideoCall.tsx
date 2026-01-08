@@ -499,7 +499,7 @@ export default function ProductionVideoCall({
       {/* Main video with zoom support */}
       <div 
         ref={zoomContainerRef}
-        className="w-full h-full overflow-hidden"
+        className="w-full h-full overflow-hidden flex items-center justify-center bg-black"
         style={zoomStyle}
       >
         <video
@@ -507,7 +507,7 @@ export default function ProductionVideoCall({
           autoPlay
           playsInline
           muted={videoLayout === 'local-main'}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           style={{ WebkitPlaysinline: 'true' } as any}
           onDoubleClick={() => {
             if (isZoomed) {
