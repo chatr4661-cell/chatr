@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { HelmetProvider } from 'react-helmet-async';
 import ProtectedRoute from "./components/ProtectedRoute";
 import { NativeAppProvider } from "./components/NativeAppProvider";
@@ -15,251 +15,64 @@ import { OfflineIndicator } from "./components/OfflineIndicator";
 import { GlobalCallListener } from "./components/calling/GlobalCallListener";
 import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
 import { CallProvider } from "./contexts/CallContext";
-import { GlobalCallUI } from "./components/calling/GlobalCallUI";
 import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
-
-// Pages
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Home from "./pages/Home";
-import GeoDiscovery from "./pages/GeoDiscovery";
-import StarredMessages from "./pages/StarredMessages";
-import Chat from "./pages/Chat";
-import Profile from "./pages/Profile";
-import Contacts from "./pages/Contacts";
-import GlobalContacts from "./pages/GlobalContacts";
-import CallHistory from "./pages/CallHistory";
-import Calls from "./pages/Calls";
-import ContactsPage from "./pages/ContactsPage";
-import SmartInbox from "./pages/SmartInbox";
-import Stories from "./pages/Stories";
-import Communities from "./pages/Communities";
-import CreateCommunity from "./pages/CreateCommunity";
-import WellnessTracking from "./pages/WellnessTracking";
-import HealthPassport from "./pages/HealthPassport";
-import LabReports from "./pages/LabReports";
-import MedicineReminders from "./pages/MedicineReminders";
-import BMICalculator from "./pages/BMICalculator";
-import NutritionTracker from "./pages/NutritionTracker";
-import MentalHealth from "./pages/MentalHealth";
-import HealthReminders from "./pages/HealthReminders";
-import HealthRiskPredictions from "./pages/HealthRiskPredictions";
-import BookingPage from "./pages/BookingPage";
-import ProviderPortal from "./pages/ProviderPortal";
-import ProviderRegister from "./pages/ProviderRegister";
-import AlliedHealthcare from "./pages/AlliedHealthcare";
-import Marketplace from "./pages/Marketplace";
-import AIAgentsHub from "./pages/AIAgentsHub";
-import AIAgentCreate from "./pages/AIAgentCreate";
-import AIAgentChatNew from "./pages/AIAgentChatNew";
-import ServiceListing from "./pages/ServiceListing";
-
-// Medicine Subscription Pages (lazy loaded)
-const MedicineHubPage = React.lazy(() => import("./pages/care/MedicineHub"));
-const MedicineSubscribePage = React.lazy(() => import("./pages/care/MedicineSubscribe"));
-const MedicineSubscriptionsPage = React.lazy(() => import("./pages/care/MedicineSubscriptions"));
-const MedicineFamilyPage = React.lazy(() => import("./pages/care/MedicineFamily"));
-const MedicineVitalsPage = React.lazy(() => import("./pages/care/MedicineVitals"));
-const MedicinePrescriptionsPage = React.lazy(() => import("./pages/care/MedicinePrescriptions"));
-const MedicineRemindersPage = React.lazy(() => import("./pages/care/MedicineReminders"));
-const MedicineRewardsPage = React.lazy(() => import("./pages/care/MedicineRewards"));
-import ProviderDetails from "./pages/ProviderDetails";
-import BookingTracking from "./pages/BookingTracking";
-import ProviderDashboard from "./pages/ProviderDashboard";
-import YouthEngagement from "./pages/YouthEngagement";
-import YouthFeed from "./pages/YouthFeed";
-import MiniAppsStore from "./pages/MiniAppsStore";
-import AppStatistics from "./pages/AppStatistics";
-import DeveloperPortal from "./pages/DeveloperPortal";
-import OfficialAccounts from "./pages/OfficialAccounts";
-import OfficialAccountsManager from "./pages/admin/OfficialAccountsManager";
-import BroadcastManager from "./pages/admin/BroadcastManager";
-import ChatrTutors from "./pages/ChatrTutors";
-import ChatrPoints from "./pages/ChatrPoints";
-import RewardShop from "./pages/RewardShop";
-import ChatrGrowth from "./pages/ChatrGrowth";
-import AmbassadorProgram from "./pages/AmbassadorProgram";
-import DoctorOnboarding from "./pages/DoctorOnboarding";
-import QRPayment from "./pages/QRPayment";
-import HomeServices from "./pages/HomeServices";
-import QRLogin from "./pages/QRLogin";
-import AIAgents from "./pages/AIAgents";
-import AIAgentChat from "./pages/AIAgentChat";
-import AIAssistant from "./pages/AIAssistant";
-import LocalJobs from "./pages/LocalJobs";
-import LocalHealthcare from "./pages/LocalHealthcare";
-import Geofences from "./pages/Geofences";
-import GeofenceHistory from "./pages/GeofenceHistory";
-import ChatrApp from "./pages/ChatrApp";
-import PrechuAI from "./pages/PrechuAI";
-import Account from "./pages/Account";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Refund from "./pages/Refund";
-import Disclaimer from "./pages/Disclaimer";
-import NotificationSettings from "./pages/NotificationSettings";
-import Notifications from "./pages/Notifications";
-import Settings from "./pages/Settings";
-import DeviceManagement from "./pages/DeviceManagement";
-import Download from "./pages/Download";
-import Install from "./pages/Install";
-import Onboarding from "./pages/Onboarding";
-import EmergencyButton from "./pages/EmergencyButton";
-import EmergencyServices from "./pages/EmergencyServices";
-import WellnessCircles from "./pages/WellnessCircles";
-import ExpertSessions from "./pages/ExpertSessions";
-import AdminDashboard from "./pages/AdminDashboard";
-import About from "./pages/About";
-import Help from "./pages/Help";
-import Contact from "./pages/Contact";
-import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/AdminLayout";
-import BrandPartnerships from "./pages/admin/BrandPartnerships";
-import AppApprovals from "./pages/admin/AppApprovals";
-import ChatrWorldAdmin from "./pages/ChatrWorldAdmin";
+import DesktopLayout from "./layouts/DesktopLayout";
 
-// Consolidated Hub Pages
-import HealthHub from "./pages/HealthHub";
-import CareAccess from "./pages/CareAccess";
-import CommunitySpace from "./pages/CommunitySpace";
-import AIBrowserHome from "./pages/AIBrowserHome";
-import AIBrowserView from "./pages/AIBrowserView";
-import CarePathDetail from "./components/care/CarePathDetail";
-
-// Care System Pages (lazy loaded)
-const DoctorDetail = React.lazy(() => import("./pages/care/DoctorDetail"));
-const AddFamilyMember = React.lazy(() => import("./pages/care/AddFamilyMember"));
-const MyAppointments = React.lazy(() => import("./pages/care/MyAppointments"));
-
-// New Feature Pages
-import SymptomCheckerPage from "./pages/SymptomCheckerPage";
-import HealthWalletPage from "./pages/HealthWalletPage";
-import TeleconsultationPage from "./pages/TeleconsultationPage";
-import KYCVerificationPage from "./pages/KYCVerification";
-import MedicationInteractionsPage from "./pages/MedicationInteractionsPage";
-import HealthStreaksPage from "./pages/HealthStreaksPage";
-import ChronicVitalsPage from "./pages/ChronicVitalsPage";
-
-// Admin Pages
-import AdminUsers from "./pages/admin/Users";
-import AdminProviders from "./pages/admin/Providers";
-import AdminAnalytics from "./pages/admin/Analytics";
-import AdminPayments from "./pages/admin/Payments";
-import AdminPoints from "./pages/admin/Points";
-import AdminSettings from "./pages/admin/Settings";
-import AdminAnnouncements from "./pages/admin/Announcements";
-import AdminDocuments from "./pages/admin/Documents";
-import AdminDoctorApplications from "./pages/admin/DoctorApplications";
-import FeatureBuilder from "./pages/admin/FeatureBuilder";
-import SchemaManager from "./pages/admin/SchemaManager";
-import KYCApprovals from "./pages/admin/KYCApprovals";
-
-// Provider Pages
-import ProviderAppointments from "./pages/provider/Appointments";
-import ProviderServices from "./pages/provider/Services";
-import ProviderPayments from "./pages/provider/Payments";
-
-// Business Pages
-import BusinessDashboard from "./pages/business/Dashboard";
-import BusinessOnboarding from "./pages/business/Onboarding";
-import BusinessInbox from "./pages/business/Inbox";
-import CRMPage from "./pages/business/CRM";
-import BusinessAnalytics from "./pages/business/Analytics";
-import BusinessTeam from "./pages/business/Team";
-import BusinessSettings from "./pages/business/Settings";
-import BusinessCatalog from "./pages/business/Catalog";
-import BusinessBroadcasts from "./pages/business/Broadcasts";
-import BusinessGroups from "./pages/business/Groups";
-import BluetoothTest from "./pages/BluetoothTest";
-import Launcher from "./pages/Launcher";
-import ChatrStudio from "./pages/ChatrStudio";
-import FoodOrdering from "./pages/FoodOrdering";
-import LocalDeals from "./pages/LocalDeals";
-import Referrals from "./pages/Referrals";
-import FameCam from "./pages/FameCam";
-import FameLeaderboard from "./pages/FameLeaderboard";
-import AIBrowser from "./pages/AIBrowser";
-import AIChat from "./pages/AIChat";
-import Capture from "./pages/Capture";
-import ChatrWorld from "./pages/ChatrWorld";
-import Community from "./pages/Community";
-import ChatrPlus from "./pages/ChatrPlus";
-import JobDetail from "./pages/JobDetail";
-import ChatrPlusSearch from "./pages/ChatrPlusSearch";
-import ChatrPlusSubscribe from "./pages/ChatrPlusSubscribe";
-import ChatrPlusServiceDetail from "./pages/ChatrPlusServiceDetail";
-import ChatrPlusSellerRegistration from "./pages/ChatrPlusSellerRegistration";
-import ChatrPlusSellerDashboard from "./pages/ChatrPlusSellerDashboard";
-import ChatrPlusCategoryPage from "./pages/ChatrPlusCategoryPage";
-import ChatrPlusWallet from "./pages/ChatrPlusWallet";
-import SellerPortal from "./pages/SellerPortal";
-import SellerBookings from "./pages/SellerBookings";
-import SellerServices from "./pages/SellerServices";
-import SellerAnalytics from "./pages/SellerAnalytics";
-import SellerMessages from "./pages/SellerMessages";
-import SellerSettings from "./pages/SellerSettings";
-import SellerReviews from "./pages/SellerReviews";
-import SellerPayouts from "./pages/SellerPayouts";
-import SellerSubscription from "./pages/SellerSubscription";
-import SellerSettlements from "./pages/seller/SellerSettlements";
-import PaymentVerification from "./pages/admin/PaymentVerification";
-import UniversalSearch from "./pages/UniversalSearch";
-import UserSubscription from "./pages/UserSubscription";
-import ChatrWallet from "./pages/ChatrWallet";
-import MiniApps from "./pages/MiniApps"; // Native app launcher
-import ChatrOS from "./pages/ChatrOS"; // Chatr OS Desktop Interface
-import OSDetection from "./pages/OSDetection"; // OS Detection Page
-import ChatrHome from "./pages/ChatrHome"; // CHATR Search Home
-import ChatrResults from "./pages/ChatrResults"; // CHATR Search Results
-import StealthMode from "./pages/StealthMode"; // Stealth Mode Settings
-import ChatrGames from "./pages/ChatrGames"; // CHATR Games Hub
-import JoinInvite from "./pages/JoinInvite"; // Invite Join Page
-import ChatrWeb from "./pages/ChatrWeb"; // QR Login Web Page
-import DesktopLayout from "./layouts/DesktopLayout"; // Desktop Layout for web.chatr.chat
-import DesktopChat from "./pages/desktop/DesktopChat";
-import DesktopContacts from "./pages/desktop/DesktopContacts";
-import DesktopCalls from "./pages/desktop/DesktopCalls";
-
-// Vendor Portal Pages
-import VendorLogin from "./pages/vendor/VendorLogin";
-import VendorRegister from "./pages/vendor/VendorRegister";
-import VendorDashboard from "./pages/vendor/VendorDashboard";
-import VendorSettings from "./pages/vendor/VendorSettings";
-import RestaurantMenu from "./pages/vendor/restaurant/RestaurantMenu";
-import RestaurantOrders from "./pages/vendor/restaurant/RestaurantOrders";
-import DealsManagement from "./pages/vendor/deals/DealsManagement";
-import DoctorAppointments from "./pages/vendor/healthcare/DoctorAppointments";
-import DoctorPatients from "./pages/vendor/healthcare/DoctorPatients";
-import DoctorAnalytics from "./pages/vendor/healthcare/DoctorAnalytics";
-import DoctorAvailability from "./pages/vendor/healthcare/DoctorAvailability";
-
-// Food Ordering Pages
-import RestaurantDetail from "./pages/food/RestaurantDetail";
-import FoodCheckout from "./pages/food/FoodCheckout";
-import OrderTracking from "./pages/food/OrderTracking";
-import OrderHistory from "./pages/food/OrderHistory";
-
-// Marketplace Pages
-const MarketplaceCheckout = React.lazy(() => import("./pages/marketplace/MarketplaceCheckout"));
-const OrderSuccessPage = React.lazy(() => import("./pages/marketplace/OrderSuccess"));
+// Import all lazy-loaded pages
+import {
+  PageLoader,
+  Index, Auth, Home, Chat, Profile, Contacts, Calls, CallHistory, Notifications, Settings,
+  GeoDiscovery, StarredMessages, GlobalContacts, ContactsPage, SmartInbox, Stories, Communities, CreateCommunity,
+  WellnessTracking, HealthPassport, LabReports, MedicineReminders, BMICalculator, NutritionTracker, MentalHealth,
+  HealthReminders, HealthRiskPredictions, SymptomCheckerPage, HealthWalletPage, TeleconsultationPage,
+  MedicationInteractionsPage, HealthStreaksPage, ChronicVitalsPage, EmergencyButton, EmergencyServices,
+  WellnessCircles, ExpertSessions, HealthHub, CareAccess, CommunitySpace,
+  DoctorDetail, AddFamilyMember, MyAppointments, MedicineHubPage, MedicineSubscribePage, MedicineSubscriptionsPage,
+  MedicineFamilyPage, MedicineVitalsPage, MedicinePrescriptionsPage, MedicineRemindersPage, MedicineRewardsPage,
+  BookingPage, ProviderPortal, ProviderRegister, AlliedHealthcare, ProviderDetails, BookingTracking, ProviderDashboard, DoctorOnboarding,
+  Marketplace, MarketplaceCheckout, OrderSuccessPage, ServiceListing,
+  AIAgentsHub, AIAgentCreate, AIAgentChatNew, AIAgents, AIAgentChat, AIAssistant, AIBrowser, AIBrowserHome, AIBrowserView, AIChat, PrechuAI,
+  YouthEngagement, YouthFeed, FameCam, FameLeaderboard, ChatrTutors,
+  ChatrPoints, RewardShop, ChatrGrowth, AmbassadorProgram, Referrals, ChatrWallet, UserSubscription,
+  ChatrPlus, ChatrPlusSearch, ChatrPlusSubscribe, ChatrPlusServiceDetail, ChatrPlusSellerRegistration,
+  ChatrPlusSellerDashboard, ChatrPlusCategoryPage, ChatrPlusWallet,
+  SellerPortal, SellerBookings, SellerServices, SellerAnalytics, SellerMessages, SellerSettings, SellerReviews, SellerPayouts, SellerSubscription, SellerSettlements,
+  MiniAppsStore, AppStatistics, DeveloperPortal, MiniApps, ChatrOS, OSDetection, Launcher,
+  ChatrWorld, ChatrGames, ChatrStudio, Capture,
+  UniversalSearch, ChatrHome, ChatrResults,
+  LocalJobs, JobDetail, LocalHealthcare, Geofences, GeofenceHistory, HomeServices, FoodOrdering, LocalDeals,
+  RestaurantDetail, FoodCheckout, OrderTracking, OrderHistory,
+  OfficialAccounts, QRPayment, QRLogin, KYCVerificationPage,
+  Account, NotificationSettings, DeviceManagement, StealthMode, BluetoothTest, ChatrApp,
+  About, Help, Contact, Privacy, Terms, PrivacyPolicy, Refund, Disclaimer, Download, Install, Onboarding, NotFound, JoinInvite, ChatrWeb, Community,
+  DesktopChat, DesktopContacts, DesktopCalls,
+  AdminDashboard, AdminUsers, AdminProviders, AdminAnalytics, AdminPayments, AdminPoints, AdminSettings, AdminAnnouncements,
+  AdminDocuments, AdminDoctorApplications, FeatureBuilder, SchemaManager, KYCApprovals, OfficialAccountsManager, BroadcastManager,
+  BrandPartnerships, AppApprovals, ChatrWorldAdmin, PaymentVerification,
+  ProviderAppointments, ProviderServices, ProviderPayments,
+  BusinessDashboard, BusinessOnboarding, BusinessInbox, CRMPage, BusinessAnalytics, BusinessTeam, BusinessSettings, BusinessCatalog, BusinessBroadcasts, BusinessGroups,
+  VendorLogin, VendorRegister, VendorDashboard, VendorSettings, RestaurantMenu, RestaurantOrders, DealsManagement,
+  DoctorAppointments, DoctorPatients, DoctorAnalytics, DoctorAvailability,
+  CarePathDetail
+} from './routes/lazyPages';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 10, // 10 minutes
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
       retry: 2,
-      refetchOnWindowFocus: false, // Reduced battery drain
+      refetchOnWindowFocus: false,
       refetchOnMount: true,
       refetchOnReconnect: true,
-      refetchInterval: false, // Removed aggressive polling
+      refetchInterval: false,
     },
   },
 });
 
-// Check if on web subdomain (web.chatr.chat)
+// Check if on web subdomain
 const isWebSubdomain = () => {
   const hostname = window.location.hostname;
   return hostname === 'web.chatr.chat' || 
@@ -267,9 +80,8 @@ const isWebSubdomain = () => {
          new URLSearchParams(window.location.search).get('subdomain') === 'web';
 };
 
-// Component to handle subdomain redirect
+// Subdomain redirect component
 const SubdomainRedirect = () => {
-  // Check once on mount using useMemo to prevent re-renders
   const redirectInfo = React.useMemo(() => {
     const hostname = window.location.hostname;
     if (hostname.startsWith('seller.') && window.location.pathname === '/') {
@@ -285,43 +97,52 @@ const SubdomainRedirect = () => {
     return <Navigate to={redirectInfo.to} replace />;
   }
 
-  return <Index />;
+  return <Suspense fallback={<PageLoader />}><Index /></Suspense>;
+};
+
+// Preload critical routes after initial render
+const preloadCriticalRoutes = () => {
+  setTimeout(() => {
+    import('@/pages/Home');
+    import('@/pages/Chat');
+    import('@/pages/Calls');
+  }, 1000);
 };
 
 const App = () => {
-  // Register service worker once on mount
   useEffect(() => {
     let registered = false;
     
     const initServiceWorker = async () => {
       if (registered) return;
-      
-      // Check if already registered
       if ('serviceWorker' in navigator) {
         const existing = await navigator.serviceWorker.getRegistration();
         if (existing) {
-          console.log('✅ Service Worker already registered');
           registered = true;
           return;
         }
       }
-      
       const registration = await registerServiceWorker();
-      if (registration) {
-        console.log('✅ Service Worker initialized for push notifications');
-        registered = true;
-      }
+      if (registration) registered = true;
     };
     
     initServiceWorker();
+    preloadCriticalRoutes();
   }, []);
 
-  // Initialize native call UI (CallKit/ConnectionService)
   useEffect(() => {
-    setupNativeCallUI().catch(err => {
-      console.log('Native call UI not available:', err);
-    });
+    setupNativeCallUI().catch(() => {});
   }, []);
+
+  // Wrapper for Suspense
+  const S = ({ children }: { children: React.ReactNode }) => (
+    <Suspense fallback={<PageLoader />}>{children}</Suspense>
+  );
+
+  // Protected route with Suspense
+  const PS = ({ children }: { children: React.ReactNode }) => (
+    <ProtectedRoute><S>{children}</S></ProtectedRoute>
+  );
 
   return (
     <CrashlyticsErrorBoundary>
@@ -335,286 +156,279 @@ const App = () => {
             <CallProvider>
             <OfflineIndicator />
             <GlobalCallListener />
-            {/* GlobalCallUI disabled - using GlobalCallListener for now */}
             <GlobalNotificationListener />
             <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<SubdomainRedirect />} />
-            
-            <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/download" element={<Download />} />
-            <Route path="/install" element={<Install />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/refund" element={<Refund />} />
-            <Route path="/disclaimer" element={<Disclaimer />} />
-            <Route path="/join" element={<JoinInvite />} />
-            <Route path="/web" element={<ChatrWeb />} />
-            
-            {/* Desktop Layout Routes (web.chatr.chat) */}
-            <Route path="/desktop" element={<DesktopLayout />}>
-              <Route index element={<Navigate to="/desktop/chat" replace />} />
-              <Route path="chat" element={<DesktopChat />} />
-              <Route path="contacts" element={<DesktopContacts />} />
-              <Route path="calls" element={<DesktopCalls />} />
-              <Route path="notifications" element={<Notifications />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-            
-            {/* Consolidated Hub Routes */}
-            <Route path="/health" element={<HealthHub />} />
-            <Route path="/care" element={<CareAccess />} />
-            <Route path="/community" element={<CommunitySpace />} />
-            
-            {/* New Feature Routes */}
-            <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
-            <Route path="/health-wallet" element={<HealthWalletPage />} />
-            <Route path="/teleconsultation" element={<TeleconsultationPage />} />
-            <Route path="/medication-interactions" element={<MedicationInteractionsPage />} />
-            <Route path="/health-streaks" element={<HealthStreaksPage />} />
-            <Route path="/chronic-vitals" element={<ChronicVitalsPage />} />
-            
-            {/* Main App Routes */}
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/chat/:conversationId" element={<Chat />} />
-            <Route path="/starred-messages" element={<StarredMessages />} />
-            <Route path="/chat/:conversationId/media" 
-              Component={React.lazy(() => import('@/components/chat/MediaViewer').then(m => ({ default: m.MediaViewer })))} 
-            />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/contacts" element={<Contacts />} />
-            <Route path="/global-contacts" element={<GlobalContacts />} />
-            <Route path="/call-history" element={<CallHistory />} />
-            <Route path="/calls" element={<Calls />} />
-            <Route path="/smart-inbox" element={<SmartInbox />} />
-            <Route path="/stories" element={<Stories />} />
-            <Route path="/communities" element={<Communities />} />
-            <Route path="/create-community" element={<CreateCommunity />} />
-            
-            {/* Health & Wellness Routes */}
-            <Route path="/wellness" element={<WellnessTracking />} />
-            <Route path="/health-passport" element={<HealthPassport />} />
-            <Route path="/lab-reports" element={<LabReports />} />
-            <Route path="/medicine-reminders" element={<MedicineReminders />} />
-            <Route path="/bmi-calculator" element={<BMICalculator />} />
-            <Route path="/nutrition-tracker" element={<NutritionTracker />} />
-            <Route path="/mental-health" element={<MentalHealth />} />
-            <Route path="/health-reminders" element={<HealthReminders />} />
-            <Route path="/health-risks" element={<HealthRiskPredictions />} />
-            <Route path="/emergency" element={<EmergencyButton />} />
-            <Route path="/emergency-services" element={<EmergencyServices />} />
-            
-            {/* Care Path Routes */}
-            <Route path="/care/path/:pathId" element={<CarePathDetail />} />
-            <Route path="/care/doctor/:doctorId" element={<React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}><DoctorDetail /></React.Suspense>} />
-            <Route path="/care/family/add" element={<React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}><AddFamilyMember /></React.Suspense>} />
-            <Route path="/care/appointments" element={<React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}><MyAppointments /></React.Suspense>} />
-            
-            {/* Medicine Subscription Routes */}
-            <Route path="/care/medicines" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineHubPage /></React.Suspense>} />
-            <Route path="/care/medicines/subscribe" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineSubscribePage /></React.Suspense>} />
-            <Route path="/care/medicines/subscriptions" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineSubscriptionsPage /></React.Suspense>} />
-            <Route path="/care/medicines/family" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineFamilyPage /></React.Suspense>} />
-            <Route path="/care/medicines/vitals" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineVitalsPage /></React.Suspense>} />
-            <Route path="/care/medicines/prescriptions" element={<React.Suspense fallback={<div>Loading...</div>}><MedicinePrescriptionsPage /></React.Suspense>} />
-            <Route path="/care/medicines/reminders" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineRemindersPage /></React.Suspense>} />
-            <Route path="/care/medicines/rewards" element={<React.Suspense fallback={<div>Loading...</div>}><MedicineRewardsPage /></React.Suspense>} />
-            
-            {/* Provider & Booking Routes */}
-            <Route path="/booking" element={<BookingPage />} />
-            <Route path="/provider-portal" element={<ProviderPortal />} />
-            <Route path="/provider-register" element={<ProviderRegister />} />
-            <Route path="/allied-healthcare" element={<AlliedHealthcare />} />
-            
-            {/* Marketplace & Engagement */}
-            <Route path="/marketplace" element={<Marketplace />} />
-            <Route path="/marketplace/checkout" element={<React.Suspense fallback={<div>Loading...</div>}><MarketplaceCheckout /></React.Suspense>} />
-            <Route path="/marketplace/order-success" element={<React.Suspense fallback={<div>Loading...</div>}><OrderSuccessPage /></React.Suspense>} />
-            <Route path="/service/:categoryId" element={<ServiceListing />} />
-            <Route path="/provider/:providerId" element={<ProviderDetails />} />
-            <Route path="/booking/track/:bookingId" element={<BookingTracking />} />
-            <Route path="/provider/dashboard" element={<ProviderDashboard />} />
-            <Route path="/youth-engagement" element={<YouthEngagement />} />
-            <Route path="/youth-feed" element={<YouthFeed />} />
-            <Route path="/app-statistics" element={<AppStatistics />} />
-            <Route path="/developer-portal" element={<DeveloperPortal />} />
-            <Route path="/official-accounts" element={<OfficialAccounts />} />
-            <Route path="/chatr-studio" element={<ChatrStudio />} />
-            <Route path="/food-ordering" element={<FoodOrdering />} />
-            <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-            <Route path="/food-checkout/:id" element={<FoodCheckout />} />
-            <Route path="/order-tracking/:orderId" element={<OrderTracking />} />
-            <Route path="/order-history" element={<OrderHistory />} />
-            <Route path="/local-deals" element={<LocalDeals />} />
-            
-          {/* Points & Payment Routes */}
-          <Route path="/chatr-points" element={<ChatrPoints />} />
-          <Route path="/reward-shop" element={<RewardShop />} />
-          <Route path="/stealth-mode" element={<ProtectedRoute><StealthMode /></ProtectedRoute>} />
-          <Route path="/growth" element={<ChatrGrowth />} />
-          <Route path="/chatr-growth" element={<ChatrGrowth />} />
-          <Route path="/chatr-wallet" element={<ChatrWallet />} />
-          <Route path="/chatr-plus-subscribe" element={<ChatrPlusSubscribe />} />
-          <Route path="/ambassador-program" element={<AmbassadorProgram />} />
-          <Route path="/doctor-onboarding" element={<DoctorOnboarding />} />
-          <Route path="/qr-payment" element={<QRPayment />} />
-          <Route path="/kyc-verification" element={<ProtectedRoute><KYCVerificationPage /></ProtectedRoute>} />
-            
-            {/* AI & Settings Routes */}
-            <Route path="/chatr-world" element={<ChatrWorld />} />
-            <Route path="/chatr-games" element={<ChatrGames />} />
-            <Route path="/native-apps" element={<MiniApps />} />
-            <Route path="/chatr-os" element={<ChatrOS />} />
-            <Route path="/os-detection" element={<OSDetection />} />
-          <Route path="/ai-agents" element={<AIAgentsHub />} />
-          <Route path="/ai-agents/create" element={<AIAgentCreate />} />
-          <Route path="/ai-agents/chat/:agentId" element={<AIAgentChatNew />} />
-          <Route path="/ai-agents/settings/:agentId" element={<AIAgents />} />
-          <Route path="/ai-assistant" element={<AIAssistant />} />
-          <Route path="/jobs" element={<LocalJobs />} />
-          <Route path="/local-jobs" element={<Navigate to="/jobs" replace />} />
-          <Route path="/local-healthcare" element={<LocalHealthcare />} />
-            <Route path="/geofences" element={<Geofences />} />
-            <Route path="/geofence-history" element={<GeofenceHistory />} />
-            {/* Public browser - no auth required */}
-            <Route path="/home" element={<Home />} />
-            <Route path="/geo" element={<GeoDiscovery />} />
-            <Route path="/search" element={<UniversalSearch />} />
-            <Route path="/universal-search" element={<UniversalSearch />} />
-            <Route path="/chatr-home" element={<ChatrHome />} />
-            <Route path="/chatr-results" element={<ChatrResults />} />
-            <Route path="/ai-browser-home" element={<AIBrowserHome />} />
-            <Route path="/ai-search" element={<AIBrowserHome />} />
-            <Route path="/ai-browser" element={<AIBrowserView />} />
-            <Route path="/chat-ai" element={<AIChat />} />
-            <Route path="/capture" element={<Capture />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/chat" element={<Navigate to="/chat/a2fc2820-9f46-41ad-8cd7-b8b2943a20d7" replace />} />
-          <Route path="/prechu-ai" element={<ProtectedRoute><PrechuAI /></ProtectedRoute>} />
-          <Route path="/job/:id" element={<ProtectedRoute><JobDetail /></ProtectedRoute>} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/notification-settings" element={<NotificationSettings />} />
-            <Route path="/notifications/settings" element={<NotificationSettings />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/device-management" element={<DeviceManagement />} />
-            <Route path="/bluetooth-test" element={<BluetoothTest />} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="feature-builder" element={<FeatureBuilder />} />
-              <Route path="schema-manager" element={<SchemaManager />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="providers" element={<AdminProviders />} />
-              <Route path="analytics" element={<AdminAnalytics />} />
-              <Route path="payments" element={<AdminPayments />} />
-              <Route path="points" element={<AdminPoints />} />
-              <Route path="settings" element={<AdminSettings />} />
-              <Route path="announcements" element={<AdminAnnouncements />} />
-              <Route path="documents" element={<AdminDocuments />} />
-              <Route path="doctor-applications" element={<AdminDoctorApplications />} />
-              <Route path="official-accounts" element={<OfficialAccountsManager />} />
-              <Route path="broadcast" element={<BroadcastManager />} />
-              <Route path="brand-partnerships" element={<BrandPartnerships />} />
-              <Route path="app-approvals" element={<AppApprovals />} />
-              <Route path="kyc-approvals" element={<KYCApprovals />} />
-              <Route path="chatr-world" element={<ChatrWorldAdmin />} />
-              <Route path="payment-verification" element={<PaymentVerification />} />
-            </Route>
-            <Route path="/chatr-tutors" element={<ChatrTutors />} />
-            <Route path="/tutors" element={<ChatrTutors />} />
-            <Route path="/home-services" element={<HomeServices />} />
-            <Route path="/wellness-circles" element={<WellnessCircles />} />
-            <Route path="/wellness-circles/:circleId" element={<WellnessCircles />} />
-            <Route path="/expert-sessions" element={<ExpertSessions />} />
-            <Route path="/community" element={<Community />} />
-            
-            {/* Chatr+ Routes */}
-            <Route path="/chatr-plus" element={<ChatrPlus />} />
-            <Route path="/chatr-plus/search" element={<ChatrPlusSearch />} />
-            <Route path="/chatr-plus/subscribe" element={<ChatrPlusSubscribe />} />
-            <Route path="/search" element={<UniversalSearch />} />
-            <Route path="/subscription" element={<UserSubscription />} />
-            <Route path="/wallet" element={<ChatrWallet />} />
-            <Route path="/chatr-plus/service/:id" element={<ChatrPlusServiceDetail />} />
-            <Route path="/chatr-plus/seller-registration" element={<ChatrPlusSellerRegistration />} />
-            <Route path="/chatr-plus/seller/dashboard" element={<ChatrPlusSellerDashboard />} />
-            <Route path="/chatr-plus/category/:slug" element={<ChatrPlusCategoryPage />} />
-            <Route path="/chatr-plus/wallet" element={<ChatrPlusWallet />} />
-            <Route path="/seller" element={<SellerPortal />} />
-            <Route path="/seller/portal" element={<SellerPortal />} />
-            <Route path="/seller/bookings" element={<SellerBookings />} />
-            <Route path="/seller/services" element={<SellerServices />} />
-            <Route path="/seller/analytics" element={<SellerAnalytics />} />
-            <Route path="/seller/messages" element={<SellerMessages />} />
-            <Route path="/seller/settings" element={<SellerSettings />} />
-            <Route path="/seller/reviews" element={<SellerReviews />} />
-            <Route path="/seller/payouts" element={<SellerPayouts />} />
-            <Route path="/seller/subscription" element={<SellerSubscription />} />
-            <Route path="/seller/settlements" element={<SellerSettlements />} />
-            <Route path="/chatr-plus/seller/bookings" element={<SellerBookings />} />
-            <Route path="/chatr-plus/seller/services" element={<SellerServices />} />
-            <Route path="/chatr-plus/seller/analytics" element={<SellerAnalytics />} />
-            <Route path="/chatr-plus/seller/messages" element={<SellerMessages />} />
-            <Route path="/chatr-plus/seller/settings" element={<SellerSettings />} />
-            
-            {/* Provider Dashboard Routes */}
-            <Route path="/provider/appointments" element={<ProviderAppointments />} />
-            <Route path="/provider/services" element={<ProviderServices />} />
-            <Route path="/provider/payments" element={<ProviderPayments />} />
-            
-            {/* Business Routes */}
-            <Route path="/business" element={<BusinessDashboard />} />
-            <Route path="/business/onboard" element={<BusinessOnboarding />} />
-            <Route path="/business/inbox" element={<BusinessInbox />} />
-            <Route path="/business/crm" element={<CRMPage />} />
-            <Route path="/business/analytics" element={<BusinessAnalytics />} />
-            <Route path="/business/team" element={<BusinessTeam />} />
-            <Route path="/business/settings" element={<BusinessSettings />} />
-            <Route path="/business/catalog" element={<BusinessCatalog />} />
-            <Route path="/business/broadcasts" element={<BusinessBroadcasts />} />
-            <Route path="/business/groups" element={<BusinessGroups />} />
-            
-            {/* Vendor Portal Routes */}
-            <Route path="/vendor/login" element={<VendorLogin />} />
-            <Route path="/vendor/register" element={<VendorRegister />} />
-            <Route path="/vendor/dashboard" element={<ProtectedRoute><VendorDashboard /></ProtectedRoute>} />
-            <Route path="/vendor/menu" element={<ProtectedRoute><RestaurantMenu /></ProtectedRoute>} />
-            <Route path="/vendor/orders" element={<ProtectedRoute><RestaurantOrders /></ProtectedRoute>} />
-            <Route path="/vendor/deals" element={<ProtectedRoute><DealsManagement /></ProtectedRoute>} />
-            <Route path="/vendor/deals/new" element={<ProtectedRoute><DealsManagement /></ProtectedRoute>} />
-            <Route path="/vendor/settings" element={<ProtectedRoute><VendorSettings /></ProtectedRoute>} />
-            <Route path="/vendor/appointments" element={<ProtectedRoute><DoctorAppointments /></ProtectedRoute>} />
-            <Route path="/vendor/patients" element={<ProtectedRoute><DoctorPatients /></ProtectedRoute>} />
-            <Route path="/vendor/analytics" element={<ProtectedRoute><DoctorAnalytics /></ProtectedRoute>} />
-            <Route path="/vendor/availability" element={<ProtectedRoute><DoctorAvailability /></ProtectedRoute>} />
-            
-            {/* Ecosystem Routes */}
-            <Route path="/chatr-studio" element={<ProtectedRoute><ChatrStudio /></ProtectedRoute>} />
-            <Route path="/food-ordering" element={<ProtectedRoute><FoodOrdering /></ProtectedRoute>} />
-            <Route path="/local-deals" element={<ProtectedRoute><LocalDeals /></ProtectedRoute>} />
-            <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
-            
-            {/* Growth System Routes */}
-            <Route path="/leaderboard" element={<ChatrPoints />} />
-            
-            {/* FameCam Routes */}
-            <Route path="/fame-cam" element={<ProtectedRoute><FameCam /></ProtectedRoute>} />
-            <Route path="/fame-leaderboard" element={<ProtectedRoute><FameLeaderboard /></ProtectedRoute>} />
-            
-            {/* 404 Route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-          <Sonner />
-          </CallProvider>
-          </NativeAppProvider>
-        </BrowserRouter>
+              {/* Public Routes */}
+              <Route path="/" element={<SubdomainRedirect />} />
+              <Route path="/launcher" element={<PS><Launcher /></PS>} />
+              <Route path="/auth" element={<S><Auth /></S>} />
+              <Route path="/download" element={<S><Download /></S>} />
+              <Route path="/install" element={<S><Install /></S>} />
+              <Route path="/onboarding" element={<S><Onboarding /></S>} />
+              <Route path="/about" element={<S><About /></S>} />
+              <Route path="/help" element={<S><Help /></S>} />
+              <Route path="/contact" element={<S><Contact /></S>} />
+              <Route path="/privacy" element={<S><PrivacyPolicy /></S>} />
+              <Route path="/terms" element={<S><Terms /></S>} />
+              <Route path="/refund" element={<S><Refund /></S>} />
+              <Route path="/disclaimer" element={<S><Disclaimer /></S>} />
+              <Route path="/join" element={<S><JoinInvite /></S>} />
+              <Route path="/web" element={<S><ChatrWeb /></S>} />
+              
+              {/* Desktop Layout Routes */}
+              <Route path="/desktop" element={<DesktopLayout />}>
+                <Route index element={<Navigate to="/desktop/chat" replace />} />
+                <Route path="chat" element={<S><DesktopChat /></S>} />
+                <Route path="contacts" element={<S><DesktopContacts /></S>} />
+                <Route path="calls" element={<S><DesktopCalls /></S>} />
+                <Route path="notifications" element={<S><Notifications /></S>} />
+                <Route path="settings" element={<S><Settings /></S>} />
+              </Route>
+              
+              {/* Consolidated Hub Routes */}
+              <Route path="/health" element={<S><HealthHub /></S>} />
+              <Route path="/care" element={<S><CareAccess /></S>} />
+              <Route path="/community" element={<S><CommunitySpace /></S>} />
+              
+              {/* New Feature Routes */}
+              <Route path="/symptom-checker" element={<S><SymptomCheckerPage /></S>} />
+              <Route path="/health-wallet" element={<S><HealthWalletPage /></S>} />
+              <Route path="/teleconsultation" element={<S><TeleconsultationPage /></S>} />
+              <Route path="/medication-interactions" element={<S><MedicationInteractionsPage /></S>} />
+              <Route path="/health-streaks" element={<S><HealthStreaksPage /></S>} />
+              <Route path="/chronic-vitals" element={<S><ChronicVitalsPage /></S>} />
+              
+              {/* Main App Routes */}
+              <Route path="/chat" element={<S><Chat /></S>} />
+              <Route path="/chat/:conversationId" element={<S><Chat /></S>} />
+              <Route path="/starred-messages" element={<S><StarredMessages /></S>} />
+              <Route path="/chat/:conversationId/media" element={<S>{React.createElement(React.lazy(() => import('@/components/chat/MediaViewer').then(m => ({ default: m.MediaViewer }))))}</S>} />
+              <Route path="/profile" element={<S><Profile /></S>} />
+              <Route path="/contacts" element={<S><Contacts /></S>} />
+              <Route path="/global-contacts" element={<S><GlobalContacts /></S>} />
+              <Route path="/call-history" element={<S><CallHistory /></S>} />
+              <Route path="/calls" element={<S><Calls /></S>} />
+              <Route path="/smart-inbox" element={<S><SmartInbox /></S>} />
+              <Route path="/stories" element={<S><Stories /></S>} />
+              <Route path="/communities" element={<S><Communities /></S>} />
+              <Route path="/create-community" element={<S><CreateCommunity /></S>} />
+              
+              {/* Health & Wellness Routes */}
+              <Route path="/wellness" element={<S><WellnessTracking /></S>} />
+              <Route path="/health-passport" element={<S><HealthPassport /></S>} />
+              <Route path="/lab-reports" element={<S><LabReports /></S>} />
+              <Route path="/medicine-reminders" element={<S><MedicineReminders /></S>} />
+              <Route path="/bmi-calculator" element={<S><BMICalculator /></S>} />
+              <Route path="/nutrition-tracker" element={<S><NutritionTracker /></S>} />
+              <Route path="/mental-health" element={<S><MentalHealth /></S>} />
+              <Route path="/health-reminders" element={<S><HealthReminders /></S>} />
+              <Route path="/health-risks" element={<S><HealthRiskPredictions /></S>} />
+              <Route path="/emergency" element={<S><EmergencyButton /></S>} />
+              <Route path="/emergency-services" element={<S><EmergencyServices /></S>} />
+              
+              {/* Care Path Routes */}
+              <Route path="/care/path/:pathId" element={<S><CarePathDetail /></S>} />
+              <Route path="/care/doctor/:doctorId" element={<S><DoctorDetail /></S>} />
+              <Route path="/care/family/add" element={<S><AddFamilyMember /></S>} />
+              <Route path="/care/appointments" element={<S><MyAppointments /></S>} />
+              
+              {/* Medicine Subscription Routes */}
+              <Route path="/care/medicines" element={<S><MedicineHubPage /></S>} />
+              <Route path="/care/medicines/subscribe" element={<S><MedicineSubscribePage /></S>} />
+              <Route path="/care/medicines/subscriptions" element={<S><MedicineSubscriptionsPage /></S>} />
+              <Route path="/care/medicines/family" element={<S><MedicineFamilyPage /></S>} />
+              <Route path="/care/medicines/vitals" element={<S><MedicineVitalsPage /></S>} />
+              <Route path="/care/medicines/prescriptions" element={<S><MedicinePrescriptionsPage /></S>} />
+              <Route path="/care/medicines/reminders" element={<S><MedicineRemindersPage /></S>} />
+              <Route path="/care/medicines/rewards" element={<S><MedicineRewardsPage /></S>} />
+              
+              {/* Provider & Booking Routes */}
+              <Route path="/booking" element={<S><BookingPage /></S>} />
+              <Route path="/provider-portal" element={<S><ProviderPortal /></S>} />
+              <Route path="/provider-register" element={<S><ProviderRegister /></S>} />
+              <Route path="/allied-healthcare" element={<S><AlliedHealthcare /></S>} />
+              
+              {/* Marketplace & Engagement */}
+              <Route path="/marketplace" element={<S><Marketplace /></S>} />
+              <Route path="/marketplace/checkout" element={<S><MarketplaceCheckout /></S>} />
+              <Route path="/marketplace/order-success" element={<S><OrderSuccessPage /></S>} />
+              <Route path="/service/:categoryId" element={<S><ServiceListing /></S>} />
+              <Route path="/provider/:providerId" element={<S><ProviderDetails /></S>} />
+              <Route path="/booking/track/:bookingId" element={<S><BookingTracking /></S>} />
+              <Route path="/provider/dashboard" element={<S><ProviderDashboard /></S>} />
+              <Route path="/youth-engagement" element={<S><YouthEngagement /></S>} />
+              <Route path="/youth-feed" element={<S><YouthFeed /></S>} />
+              <Route path="/app-statistics" element={<S><AppStatistics /></S>} />
+              <Route path="/developer-portal" element={<S><DeveloperPortal /></S>} />
+              <Route path="/official-accounts" element={<S><OfficialAccounts /></S>} />
+              <Route path="/chatr-studio" element={<S><ChatrStudio /></S>} />
+              <Route path="/food-ordering" element={<S><FoodOrdering /></S>} />
+              <Route path="/restaurant/:id" element={<S><RestaurantDetail /></S>} />
+              <Route path="/food-checkout/:id" element={<S><FoodCheckout /></S>} />
+              <Route path="/order-tracking/:orderId" element={<S><OrderTracking /></S>} />
+              <Route path="/order-history" element={<S><OrderHistory /></S>} />
+              <Route path="/local-deals" element={<S><LocalDeals /></S>} />
+              
+              {/* Points & Payment Routes */}
+              <Route path="/chatr-points" element={<S><ChatrPoints /></S>} />
+              <Route path="/reward-shop" element={<S><RewardShop /></S>} />
+              <Route path="/stealth-mode" element={<PS><StealthMode /></PS>} />
+              <Route path="/growth" element={<S><ChatrGrowth /></S>} />
+              <Route path="/chatr-growth" element={<S><ChatrGrowth /></S>} />
+              <Route path="/chatr-wallet" element={<S><ChatrWallet /></S>} />
+              <Route path="/chatr-plus-subscribe" element={<S><ChatrPlusSubscribe /></S>} />
+              <Route path="/ambassador-program" element={<S><AmbassadorProgram /></S>} />
+              <Route path="/doctor-onboarding" element={<S><DoctorOnboarding /></S>} />
+              <Route path="/qr-payment" element={<S><QRPayment /></S>} />
+              <Route path="/kyc-verification" element={<PS><KYCVerificationPage /></PS>} />
+              
+              {/* AI & Settings Routes */}
+              <Route path="/chatr-world" element={<S><ChatrWorld /></S>} />
+              <Route path="/chatr-games" element={<S><ChatrGames /></S>} />
+              <Route path="/native-apps" element={<S><MiniApps /></S>} />
+              <Route path="/chatr-os" element={<S><ChatrOS /></S>} />
+              <Route path="/os-detection" element={<S><OSDetection /></S>} />
+              <Route path="/ai-agents" element={<S><AIAgentsHub /></S>} />
+              <Route path="/ai-agents/create" element={<S><AIAgentCreate /></S>} />
+              <Route path="/ai-agents/chat/:agentId" element={<S><AIAgentChatNew /></S>} />
+              <Route path="/ai-agents/settings/:agentId" element={<S><AIAgents /></S>} />
+              <Route path="/ai-assistant" element={<S><AIAssistant /></S>} />
+              <Route path="/jobs" element={<S><LocalJobs /></S>} />
+              <Route path="/local-jobs" element={<Navigate to="/jobs" replace />} />
+              <Route path="/local-healthcare" element={<S><LocalHealthcare /></S>} />
+              <Route path="/geofences" element={<S><Geofences /></S>} />
+              <Route path="/geofence-history" element={<S><GeofenceHistory /></S>} />
+              <Route path="/home" element={<S><Home /></S>} />
+              <Route path="/geo" element={<S><GeoDiscovery /></S>} />
+              <Route path="/search" element={<S><UniversalSearch /></S>} />
+              <Route path="/universal-search" element={<S><UniversalSearch /></S>} />
+              <Route path="/chatr-home" element={<S><ChatrHome /></S>} />
+              <Route path="/chatr-results" element={<S><ChatrResults /></S>} />
+              <Route path="/ai-browser-home" element={<S><AIBrowserHome /></S>} />
+              <Route path="/ai-search" element={<S><AIBrowserHome /></S>} />
+              <Route path="/ai-browser" element={<S><AIBrowserView /></S>} />
+              <Route path="/chat-ai" element={<S><AIChat /></S>} />
+              <Route path="/capture" element={<S><Capture /></S>} />
+              <Route path="/account" element={<S><Account /></S>} />
+              <Route path="/prechu-ai" element={<PS><PrechuAI /></PS>} />
+              <Route path="/job/:id" element={<PS><JobDetail /></PS>} />
+              <Route path="/notifications" element={<S><Notifications /></S>} />
+              <Route path="/notification-settings" element={<S><NotificationSettings /></S>} />
+              <Route path="/notifications/settings" element={<S><NotificationSettings /></S>} />
+              <Route path="/settings" element={<S><Settings /></S>} />
+              <Route path="/device-management" element={<S><DeviceManagement /></S>} />
+              <Route path="/bluetooth-test" element={<S><BluetoothTest /></S>} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<S><AdminDashboard /></S>} />
+                <Route path="feature-builder" element={<S><FeatureBuilder /></S>} />
+                <Route path="schema-manager" element={<S><SchemaManager /></S>} />
+                <Route path="users" element={<S><AdminUsers /></S>} />
+                <Route path="providers" element={<S><AdminProviders /></S>} />
+                <Route path="analytics" element={<S><AdminAnalytics /></S>} />
+                <Route path="payments" element={<S><AdminPayments /></S>} />
+                <Route path="points" element={<S><AdminPoints /></S>} />
+                <Route path="settings" element={<S><AdminSettings /></S>} />
+                <Route path="announcements" element={<S><AdminAnnouncements /></S>} />
+                <Route path="documents" element={<S><AdminDocuments /></S>} />
+                <Route path="doctor-applications" element={<S><AdminDoctorApplications /></S>} />
+                <Route path="official-accounts" element={<S><OfficialAccountsManager /></S>} />
+                <Route path="broadcast" element={<S><BroadcastManager /></S>} />
+                <Route path="brand-partnerships" element={<S><BrandPartnerships /></S>} />
+                <Route path="app-approvals" element={<S><AppApprovals /></S>} />
+                <Route path="kyc-approvals" element={<S><KYCApprovals /></S>} />
+                <Route path="chatr-world" element={<S><ChatrWorldAdmin /></S>} />
+                <Route path="payment-verification" element={<S><PaymentVerification /></S>} />
+              </Route>
+              <Route path="/chatr-tutors" element={<S><ChatrTutors /></S>} />
+              <Route path="/tutors" element={<S><ChatrTutors /></S>} />
+              <Route path="/home-services" element={<S><HomeServices /></S>} />
+              <Route path="/wellness-circles" element={<S><WellnessCircles /></S>} />
+              <Route path="/wellness-circles/:circleId" element={<S><WellnessCircles /></S>} />
+              <Route path="/expert-sessions" element={<S><ExpertSessions /></S>} />
+              <Route path="/community" element={<S><Community /></S>} />
+              
+              {/* Chatr+ Routes */}
+              <Route path="/chatr-plus" element={<S><ChatrPlus /></S>} />
+              <Route path="/chatr-plus/search" element={<S><ChatrPlusSearch /></S>} />
+              <Route path="/chatr-plus/subscribe" element={<S><ChatrPlusSubscribe /></S>} />
+              <Route path="/subscription" element={<S><UserSubscription /></S>} />
+              <Route path="/wallet" element={<S><ChatrWallet /></S>} />
+              <Route path="/chatr-plus/service/:id" element={<S><ChatrPlusServiceDetail /></S>} />
+              <Route path="/chatr-plus/seller-registration" element={<S><ChatrPlusSellerRegistration /></S>} />
+              <Route path="/chatr-plus/seller/dashboard" element={<S><ChatrPlusSellerDashboard /></S>} />
+              <Route path="/chatr-plus/category/:slug" element={<S><ChatrPlusCategoryPage /></S>} />
+              <Route path="/chatr-plus/wallet" element={<S><ChatrPlusWallet /></S>} />
+              <Route path="/seller" element={<S><SellerPortal /></S>} />
+              <Route path="/seller/portal" element={<S><SellerPortal /></S>} />
+              <Route path="/seller/bookings" element={<S><SellerBookings /></S>} />
+              <Route path="/seller/services" element={<S><SellerServices /></S>} />
+              <Route path="/seller/analytics" element={<S><SellerAnalytics /></S>} />
+              <Route path="/seller/messages" element={<S><SellerMessages /></S>} />
+              <Route path="/seller/settings" element={<S><SellerSettings /></S>} />
+              <Route path="/seller/reviews" element={<S><SellerReviews /></S>} />
+              <Route path="/seller/payouts" element={<S><SellerPayouts /></S>} />
+              <Route path="/seller/subscription" element={<S><SellerSubscription /></S>} />
+              <Route path="/seller/settlements" element={<S><SellerSettlements /></S>} />
+              <Route path="/chatr-plus/seller/bookings" element={<S><SellerBookings /></S>} />
+              <Route path="/chatr-plus/seller/services" element={<S><SellerServices /></S>} />
+              <Route path="/chatr-plus/seller/analytics" element={<S><SellerAnalytics /></S>} />
+              <Route path="/chatr-plus/seller/messages" element={<S><SellerMessages /></S>} />
+              <Route path="/chatr-plus/seller/settings" element={<S><SellerSettings /></S>} />
+              
+              {/* Provider Dashboard Routes */}
+              <Route path="/provider/appointments" element={<S><ProviderAppointments /></S>} />
+              <Route path="/provider/services" element={<S><ProviderServices /></S>} />
+              <Route path="/provider/payments" element={<S><ProviderPayments /></S>} />
+              
+              {/* Business Routes */}
+              <Route path="/business" element={<S><BusinessDashboard /></S>} />
+              <Route path="/business/onboard" element={<S><BusinessOnboarding /></S>} />
+              <Route path="/business/inbox" element={<S><BusinessInbox /></S>} />
+              <Route path="/business/crm" element={<S><CRMPage /></S>} />
+              <Route path="/business/analytics" element={<S><BusinessAnalytics /></S>} />
+              <Route path="/business/team" element={<S><BusinessTeam /></S>} />
+              <Route path="/business/settings" element={<S><BusinessSettings /></S>} />
+              <Route path="/business/catalog" element={<S><BusinessCatalog /></S>} />
+              <Route path="/business/broadcasts" element={<S><BusinessBroadcasts /></S>} />
+              <Route path="/business/groups" element={<S><BusinessGroups /></S>} />
+              
+              {/* Vendor Portal Routes */}
+              <Route path="/vendor/login" element={<S><VendorLogin /></S>} />
+              <Route path="/vendor/register" element={<S><VendorRegister /></S>} />
+              <Route path="/vendor/dashboard" element={<PS><VendorDashboard /></PS>} />
+              <Route path="/vendor/menu" element={<PS><RestaurantMenu /></PS>} />
+              <Route path="/vendor/orders" element={<PS><RestaurantOrders /></PS>} />
+              <Route path="/vendor/deals" element={<PS><DealsManagement /></PS>} />
+              <Route path="/vendor/deals/new" element={<PS><DealsManagement /></PS>} />
+              <Route path="/vendor/settings" element={<PS><VendorSettings /></PS>} />
+              <Route path="/vendor/appointments" element={<PS><DoctorAppointments /></PS>} />
+              <Route path="/vendor/patients" element={<PS><DoctorPatients /></PS>} />
+              <Route path="/vendor/analytics" element={<PS><DoctorAnalytics /></PS>} />
+              <Route path="/vendor/availability" element={<PS><DoctorAvailability /></PS>} />
+              
+              {/* Ecosystem Routes */}
+              <Route path="/chatr-studio" element={<PS><ChatrStudio /></PS>} />
+              <Route path="/food-ordering" element={<PS><FoodOrdering /></PS>} />
+              <Route path="/local-deals" element={<PS><LocalDeals /></PS>} />
+              <Route path="/referrals" element={<PS><Referrals /></PS>} />
+              
+              {/* Growth System Routes */}
+              <Route path="/leaderboard" element={<S><ChatrPoints /></S>} />
+              
+              {/* FameCam Routes */}
+              <Route path="/fame-cam" element={<PS><FameCam /></PS>} />
+              <Route path="/fame-leaderboard" element={<PS><FameLeaderboard /></PS>} />
+              
+              {/* 404 Route */}
+              <Route path="*" element={<S><NotFound /></S>} />
+            </Routes>
+            <Toaster />
+            <Sonner />
+            </CallProvider>
+            </NativeAppProvider>
+          </BrowserRouter>
         </LocationProvider>
       </ThemeProvider>
     </QueryClientProvider>
