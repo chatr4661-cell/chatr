@@ -15,6 +15,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { useAutoReply } from '@/services/agentAutoReply';
+import { toast } from 'sonner';
 import {
   Bot,
   Plus,
@@ -43,7 +45,7 @@ import {
   Play,
   Settings,
 } from 'lucide-react';
-import { toast } from 'sonner';
+
 
 // Agent categories for marketplace
 const AGENT_CATEGORIES = [
@@ -115,11 +117,16 @@ export default function AIAgentsHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [myAgents, setMyAgents] = useState<UserAgent[]>([]);
+  const [publicAgents, setPublicAgents] = useState<any[]>([]);
+  const [trendingAgents, setTrendingAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [autoReplyGlobal, setAutoReplyGlobal] = useState(false);
+  
+  // Real auto-reply hook
+  const autoReply = useAutoReply();
 
   useEffect(() => {
     loadMyAgents();
+    loadPublicAgents();
   }, []);
 
   const loadMyAgents = async () => {
@@ -142,6 +149,42 @@ export default function AIAgentsHub() {
       console.error('Error loading agents:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPublicAgents = async () => {
+    try {
+      // Load all public agents (is_active = true) for discover/marketplace
+      const { data, error } = await supabase
+        .from('ai_agents' as any)
+        .select('*')
+        .eq('is_active', true)
+        .order('total_messages', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      
+      const agents = (data as any) || [];
+      setPublicAgents(agents);
+      
+      // Top 5 by messages = trending
+      setTrendingAgents(agents.slice(0, 5));
+    } catch (error) {
+      console.error('Error loading public agents:', error);
+    }
+  };
+
+  const handleAutoReplyToggle = (enabled: boolean) => {
+    if (enabled && myAgents.length > 0) {
+      // Enable with first agent
+      autoReply.enable(myAgents[0].id);
+      toast.success('Auto-reply enabled with ' + myAgents[0].agent_name);
+    } else if (enabled && myAgents.length === 0) {
+      toast.error('Create an agent first to enable auto-reply');
+      return;
+    } else {
+      autoReply.disable();
+      toast.info('Auto-reply disabled');
     }
   };
 
@@ -232,8 +275,8 @@ export default function AIAgentsHub() {
                 </div>
               </div>
               <Switch 
-                checked={autoReplyGlobal} 
-                onCheckedChange={setAutoReplyGlobal}
+                checked={autoReply.config.enabled} 
+                onCheckedChange={handleAutoReplyToggle}
                 className="data-[state=checked]:bg-primary"
               />
             </CardContent>
@@ -368,42 +411,42 @@ export default function AIAgentsHub() {
             </div>
             <ScrollArea className="w-full">
               <div className="flex gap-3 pb-2">
-                {FEATURED_AGENTS.map((agent) => (
+                {(publicAgents.length > 0 ? publicAgents.slice(0, 5) : FEATURED_AGENTS).map((agent) => (
                   <Card 
                     key={agent.id}
                     className="min-w-[280px] cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => navigate(`/ai-agents/preview/${agent.id}`)}
+                    onClick={() => navigate(`/ai-agents/chat/${agent.id}`)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3 mb-3">
                         <Avatar className="h-14 w-14">
-                          <AvatarImage src={agent.avatar} />
+                          <AvatarImage src={agent.agent_avatar_url || agent.avatar} />
                           <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600">
                             <Bot className="h-6 w-6 text-white" />
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold">{agent.name}</h3>
-                            {agent.isOfficial && (
+                            <h3 className="font-bold">{agent.agent_name || agent.name}</h3>
+                            {agent.is_active && (
                               <Shield className="h-4 w-4 text-primary" />
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">{agent.tagline}</p>
+                          <p className="text-xs text-muted-foreground">{agent.agent_description || agent.tagline}</p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                          {agent.rating}
+                          <MessageSquare className="h-3 w-3" />
+                          {formatNumber(agent.total_messages || agent.conversations || 0)}
                         </span>
                         <span className="flex items-center gap-1">
-                          <MessageSquare className="h-3 w-3" />
-                          {formatNumber(agent.conversations)}
+                          <Users className="h-3 w-3" />
+                          {formatNumber(agent.total_conversations || 0)}
                         </span>
                         <Button size="sm" className="h-7 text-xs gap-1">
                           <Play className="h-3 w-3" />
-                          Try Now
+                          Chat
                         </Button>
                       </div>
                     </CardContent>
@@ -423,24 +466,28 @@ export default function AIAgentsHub() {
               <Button variant="ghost" size="sm">See all</Button>
             </div>
             <div className="grid gap-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="cursor-pointer hover:bg-muted/50 transition-colors">
+              {(trendingAgents.length > 0 ? trendingAgents : [1, 2, 3].map(i => ({ id: i, agent_name: `Study Buddy ${i}`, agent_description: 'Helps with homework & learning', total_messages: (50 - i * 10) * 1000 }))).map((agent, idx) => (
+                <Card 
+                  key={agent.id} 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => typeof agent.id === 'string' && navigate(`/ai-agents/chat/${agent.id}`)}
+                >
                   <CardContent className="flex items-center gap-4 p-4">
-                    <div className="font-bold text-xl text-muted-foreground w-6">#{i}</div>
+                    <div className="font-bold text-xl text-muted-foreground w-6">#{idx + 1}</div>
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=trend${i}`} />
+                      <AvatarImage src={agent.agent_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=trend${agent.id}`} />
                       <AvatarFallback>AI</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="font-semibold">Study Buddy {i}</h3>
-                      <p className="text-xs text-muted-foreground">Helps with homework & learning</p>
+                      <h3 className="font-semibold">{agent.agent_name}</h3>
+                      <p className="text-xs text-muted-foreground">{agent.agent_description || agent.agent_purpose}</p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1 text-green-500 text-xs">
                         <TrendingUp className="h-3 w-3" />
-                        +{25 + i * 10}%
+                        Active
                       </div>
-                      <p className="text-xs text-muted-foreground">{(50 - i * 10)}k users</p>
+                      <p className="text-xs text-muted-foreground">{formatNumber(agent.total_messages || 0)} msgs</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -498,35 +545,38 @@ export default function AIAgentsHub() {
 
           {/* Agent Grid */}
           <div className="grid sm:grid-cols-2 gap-4">
-            {FEATURED_AGENTS.map((agent) => (
+            {(publicAgents.length > 0 ? publicAgents : FEATURED_AGENTS)
+              .filter(agent => selectedCategory === 'all' || agent.category === selectedCategory)
+              .map((agent) => (
               <Card 
                 key={agent.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden"
+                onClick={() => navigate(`/ai-agents/chat/${agent.id}`)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3 mb-4">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage src={agent.avatar} />
+                      <AvatarImage src={agent.agent_avatar_url || agent.avatar} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600">
                         <Bot className="h-8 w-8 text-white" />
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold">{agent.name}</h3>
-                        {agent.isOfficial && (
-                          <Badge variant="secondary" className="text-xs">Official</Badge>
+                        <h3 className="font-bold">{agent.agent_name || agent.name}</h3>
+                        {agent.is_active && (
+                          <Badge variant="secondary" className="text-xs">Active</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{agent.tagline}</p>
+                      <p className="text-sm text-muted-foreground">{agent.agent_description || agent.tagline}</p>
                       <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                          {agent.rating}
+                          <MessageSquare className="h-3 w-3" />
+                          {formatNumber(agent.total_messages || agent.conversations || 0)}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Download className="h-3 w-3" />
-                          {formatNumber(agent.conversations)}
+                          <Users className="h-3 w-3" />
+                          {formatNumber(agent.total_conversations || 0)}
                         </span>
                       </div>
                     </div>
