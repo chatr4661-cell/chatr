@@ -119,6 +119,7 @@ export default function AIAgentsHub() {
   const [myAgents, setMyAgents] = useState<UserAgent[]>([]);
   const [publicAgents, setPublicAgents] = useState<any[]>([]);
   const [trendingAgents, setTrendingAgents] = useState<any[]>([]);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   
   // Real auto-reply hook
@@ -160,7 +161,7 @@ export default function AIAgentsHub() {
         .select('*')
         .eq('is_active', true)
         .order('total_messages', { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) throw error;
       
@@ -169,6 +170,24 @@ export default function AIAgentsHub() {
       
       // Top 5 by messages = trending
       setTrendingAgents(agents.slice(0, 5));
+      
+      // Calculate category counts from agent_purpose field
+      const counts: Record<string, number> = {};
+      agents.forEach((agent: any) => {
+        const purpose = (agent.agent_purpose || '').toLowerCase();
+        if (purpose.includes('personal') || purpose.includes('habit') || purpose.includes('friend')) {
+          counts['personal'] = (counts['personal'] || 0) + 1;
+        } else if (purpose.includes('business') || purpose.includes('work') || purpose.includes('support')) {
+          counts['business'] = (counts['business'] || 0) + 1;
+        } else if (purpose.includes('health') || purpose.includes('doctor') || purpose.includes('wellness')) {
+          counts['health'] = (counts['health'] || 0) + 1;
+        } else if (purpose.includes('local') || purpose.includes('service') || purpose.includes('near')) {
+          counts['local'] = (counts['local'] || 0) + 1;
+        } else {
+          counts['fun'] = (counts['fun'] || 0) + 1;
+        }
+      });
+      setCategoryCounts(counts);
     } catch (error) {
       console.error('Error loading public agents:', error);
     }
@@ -514,7 +533,7 @@ export default function AIAgentsHub() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">{cat.label}</p>
-                      <p className="text-xs text-muted-foreground">12 agents</p>
+                      <p className="text-xs text-muted-foreground">{categoryCounts[cat.id] || 0} agents</p>
                     </div>
                   </CardContent>
                 </Card>
