@@ -78,6 +78,36 @@ export default function UnifiedCallScreen({
     return () => { if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current); };
   }, [resetControlsTimer]);
 
+  // Listen for call ended in database (when partner ends call from app)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`call-status-${callId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'calls',
+          filter: `id=eq.${callId}`,
+        },
+        (payload) => {
+          const updatedCall = payload.new as any;
+          console.log('📡 [UnifiedCall] Call status update:', updatedCall.status);
+          
+          if (updatedCall.status === 'ended' || updatedCall.status === 'missed') {
+            console.log('📵 [UnifiedCall] Call ended by partner');
+            cleanup();
+            onEnd();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [callId, onEnd]);
+
   // Initialize WebRTC
   useEffect(() => {
     const initCall = async () => {

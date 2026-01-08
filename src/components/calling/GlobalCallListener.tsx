@@ -153,6 +153,17 @@ export function GlobalCallListener() {
             return;
           }
 
+          // Handle call ended for receiver's active call
+          const currentActive = activeCallRef.current;
+          if (currentActive && call.id === currentActive.id) {
+            if (call.status === "ended" || call.status === "missed") {
+              console.log("📵 [GlobalCallListener] Active call ended by partner (receiver side)");
+              setActiveCall(null);
+              toast.info("Call ended");
+              return;
+            }
+          }
+
           // Web mode: handle incoming call updates
           const currentIncoming = incomingCallRef.current;
           if (!currentIncoming) return;
