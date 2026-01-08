@@ -8,11 +8,15 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.webkit.JavascriptInterface
+import android.webkit.PermissionRequest
+import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.chatr.app.services.CallForegroundService
+import com.chatr.app.services.VoIPBridgeService
+import com.chatr.app.services.CallBlockingManager
 import com.getcapacitor.BridgeActivity
 
 /**
@@ -25,12 +29,15 @@ import com.getcapacitor.BridgeActivity
  * - Direct reply from notifications
  * - Deep link navigation
  * - WebView JavaScript bridge for native features
+ * - Full VoIP feature bridge (transfer, forwarding, parking, etc.)
  */
 class MainActivity : BridgeActivity() {
 
     companion object {
         private const val TAG = "ChatrMainActivity"
     }
+
+    private var voipBridge: VoIPBridgeService? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,8 +47,51 @@ class MainActivity : BridgeActivity() {
         ensureNotificationPermission()
         logFullScreenIntentStatus()
 
+        // Initialize VoIP services
+        initializeVoIPServices()
+
+        // Setup WebView with enhanced features
+        setupWebView()
+
         // Handle intent that launched the activity
         handleIntent(intent)
+    }
+
+    /**
+     * Initialize all VoIP services
+     */
+    private fun initializeVoIPServices() {
+        try {
+            // Initialize call blocking manager to load saved settings
+            CallBlockingManager.getInstance(this)
+            
+            Log.i(TAG, "✅ VoIP services initialized")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to initialize VoIP services", e)
+        }
+    }
+
+    /**
+     * Setup WebView with VoIP bridge and media permissions
+     */
+    private fun setupWebView() {
+        bridge?.webView?.let { webView ->
+            // Add VoIP JavaScript interface
+            voipBridge = VoIPBridgeService(this, webView)
+            webView.addJavascriptInterface(voipBridge!!, VoIPBridgeService.BRIDGE_NAME)
+            
+            // Grant media permissions for WebRTC
+            webView.webChromeClient = object : WebChromeClient() {
+                override fun onPermissionRequest(request: PermissionRequest?) {
+                    Log.i(TAG, "🎥 WebView permission request: ${request?.resources?.joinToString()}")
+                    runOnUiThread {
+                        request?.grant(request.resources)
+                    }
+                }
+            }
+            
+            Log.i(TAG, "✅ WebView configured with VoIP bridge")
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {
