@@ -14,6 +14,8 @@ import { initPerformanceOptimizations } from './utils/performanceOptimizations';
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { GlobalCallListener } from "./components/calling/GlobalCallListener";
 import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
+import { CallProvider } from "./contexts/CallContext";
+import { GlobalCallUI } from "./components/calling/GlobalCallUI";
 import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 
@@ -330,8 +332,10 @@ const App = () => {
         <LocationProvider>
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <NativeAppProvider>
+            <CallProvider>
             <OfflineIndicator />
             <GlobalCallListener />
+            <GlobalCallUI />
             <GlobalNotificationListener />
             <Routes>
             {/* Public Routes */}
@@ -608,6 +612,7 @@ const App = () => {
           </Routes>
           <Toaster />
           <Sonner />
+          </CallProvider>
           </NativeAppProvider>
         </BrowserRouter>
         </LocationProvider>
