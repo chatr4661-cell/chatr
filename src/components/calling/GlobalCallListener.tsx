@@ -463,6 +463,7 @@ export function GlobalCallListener() {
   };
 
   // Show incoming call screen (receiver side)
+  // CRITICAL: Only render when incoming AND no active call to ensure clean ringtone stop
   if (incomingCall && !activeCall) {
     return (
       <IncomingCallScreen

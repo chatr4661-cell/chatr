@@ -328,26 +328,36 @@ export default function UnifiedCallScreen({
     webrtcRef.current?.toggleAudio(!newState);
   };
 
-  // FaceTime-style: One tap → video appears for both parties
+  // FaceTime-style: One tap → video appears for both parties instantly
   const toggleVideo = async () => {
     if (!isVideoOn) {
       // Add video directly - no confirmation needed (FaceTime style)
       console.log('📹 [UnifiedCall] Adding video (FaceTime-style)...');
       setIsVideoOn(true);
       
-      const videoStream = await webrtcRef.current?.addVideoToCall();
-      if (videoStream && localVideoRef.current) {
-        localVideoRef.current.srcObject = videoStream;
-        localVideoRef.current.muted = true;
-        await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-        setLocalVideoActive(true);
-        toast.success('Video enabled');
-      } else {
+      try {
+        const videoStream = await webrtcRef.current?.addVideoToCall();
+        if (videoStream && localVideoRef.current) {
+          localVideoRef.current.srcObject = videoStream;
+          localVideoRef.current.muted = true;
+          await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+          setLocalVideoActive(true);
+          
+          // CRITICAL: Also update remoteVideoRef in case partner already has video enabled
+          // The renegotiation will trigger remoteStream event with updated tracks
+          toast.success('Video enabled - partner will see you');
+        } else {
+          setIsVideoOn(false);
+          toast.error('Could not enable video');
+        }
+      } catch (e) {
+        console.error('📹 [UnifiedCall] Video toggle failed:', e);
         setIsVideoOn(false);
-        toast.error('Could not enable video');
+        toast.error('Camera access failed');
       }
     } else {
       // Turn off video
+      console.log('📹 [UnifiedCall] Disabling video...');
       setIsVideoOn(false);
       webrtcRef.current?.toggleVideo(false);
       setLocalVideoActive(false);
