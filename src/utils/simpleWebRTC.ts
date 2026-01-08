@@ -230,9 +230,17 @@ export class SimpleWebRTCCall {
       } else if (state === 'failed') {
         this.handleConnectionFailed();
       } else if (state === 'disconnected') {
-        // Try ICE restart
-        console.log('🔄 [WebRTC] ICE disconnected - restarting...');
-        this.pc?.restartIce();
+        // Wait before restarting ICE - 'disconnected' is often transient
+        console.log('⚠️ [WebRTC] ICE disconnected - waiting before restart...');
+        this.emit('recoveryStatus', { message: 'Reconnecting...' });
+        
+        // Only restart if still disconnected after delay
+        setTimeout(() => {
+          if (this.pc?.iceConnectionState === 'disconnected' && this.callState !== 'ended') {
+            console.log('🔄 [WebRTC] ICE still disconnected - restarting...');
+            this.pc?.restartIce();
+          }
+        }, 3000);
       }
     };
 
