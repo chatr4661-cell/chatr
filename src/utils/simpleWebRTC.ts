@@ -10,10 +10,14 @@ interface Signal {
   from: string;
 }
 
+// GLOBAL: Prevent duplicate WebRTC instances for same call
+const activeCallInstances = new Map<string, SimpleWebRTCCall>();
+
 /**
  * SimpleWebRTCCall - Robust, Fast WebRTC Implementation
  * 
  * Key improvements:
+ * - SINGLETON per call ID (no duplicates)
  * - Faster ICE gathering with aggressive candidate pool
  * - Single offer per connection attempt (no spam)
  * - Proper answer timeout handling
@@ -30,6 +34,8 @@ export class SimpleWebRTCCall {
   private hasReceivedAnswer: boolean = false;
   private connectionTimeout: NodeJS.Timeout | null = null;
   private offerSent: boolean = false;
+  private answerSent: boolean = false;
+  private processedSignalIds: Set<string> = new Set();
 
   constructor(
     private callId: string,
@@ -39,6 +45,15 @@ export class SimpleWebRTCCall {
     private userId: string,
     initialLocalStream: MediaStream | null = null
   ) {
+    // SINGLETON: Return existing instance if already exists for this call
+    const existingInstance = activeCallInstances.get(callId);
+    if (existingInstance && existingInstance !== this) {
+      console.log('⚠️ [WebRTC] Returning existing instance for call:', callId.slice(0, 8));
+      return existingInstance;
+    }
+    
+    activeCallInstances.set(callId, this);
+    
     if (initialLocalStream) {
       this.localStream = initialLocalStream;
       console.log('🎤 [WebRTC] Using pre-acquired media stream');
@@ -61,6 +76,12 @@ export class SimpleWebRTCCall {
   }
 
   async start() {
+    // Prevent double-start
+    if (this.pc) {
+      console.log('⚠️ [WebRTC] Already started, skipping');
+      return;
+    }
+    
     try {
       console.log('🚀 [WebRTC] Starting...');
       
@@ -297,7 +318,10 @@ export class SimpleWebRTCCall {
       if (signals?.length) {
         console.log(`📥 [WebRTC] Found ${signals.length} past signals`);
         
-        // Process offer first
+        // Mark all as processed to prevent duplicates
+        signals.forEach(s => this.processedSignalIds.add(s.id));
+        
+        // Process offer first (only first one)
         const offer = signals.find(s => s.signal_type === 'offer');
         if (offer) {
           await this.handleSignal({ type: 'offer', data: offer.signal_data, from: offer.from_user });
@@ -330,6 +354,13 @@ export class SimpleWebRTCCall {
         (payload) => {
           const signal = payload.new as any;
           if (signal.to_user === this.userId) {
+            // DEDUPE: Skip already processed signals
+            if (this.processedSignalIds.has(signal.id)) {
+              console.log('⏭️ [WebRTC] Skipping duplicate signal:', signal.id.slice(0, 8));
+              return;
+            }
+            this.processedSignalIds.add(signal.id);
+            
             console.log('📥 [WebRTC] Signal received:', signal.signal_type);
             this.handleSignal({
               type: signal.signal_type,
@@ -351,20 +382,35 @@ export class SimpleWebRTCCall {
     try {
       switch (signal.type) {
         case 'offer':
+          // CRITICAL: Ignore offer if we're the initiator (we send offers, not receive)
+          if (this.isInitiator) {
+            console.log('⏭️ [WebRTC] Ignoring offer (I am initiator)');
+            return;
+          }
           console.log('📥 [WebRTC] Processing OFFER...');
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
           
-          // Create and send answer
-          const answer = await this.pc.createAnswer();
-          await this.pc.setLocalDescription(answer);
-          await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
-          console.log('✅ [WebRTC] ANSWER sent');
+          // Create and send answer ONLY ONCE
+          if (!this.answerSent) {
+            this.answerSent = true;
+            const answer = await this.pc.createAnswer();
+            await this.pc.setLocalDescription(answer);
+            await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
+            console.log('✅ [WebRTC] ANSWER sent');
+          } else {
+            console.log('⏭️ [WebRTC] Answer already sent, skipping');
+          }
           
           // Process queued ICE candidates
           await this.flushPendingCandidates();
           break;
 
         case 'answer':
+          // CRITICAL: Ignore answer if we're NOT the initiator
+          if (!this.isInitiator) {
+            console.log('⏭️ [WebRTC] Ignoring answer (I am not initiator)');
+            return;
+          }
           if (this.hasReceivedAnswer) {
             console.log('⏭️ [WebRTC] Ignoring duplicate answer');
             return;
@@ -563,6 +609,10 @@ export class SimpleWebRTCCall {
     console.log('👋 [WebRTC] Ending call...');
     this.callState = 'ended';
     this.clearConnectionTimeout();
+    
+    // Remove from active instances
+    activeCallInstances.delete(this.callId);
+    
     await this.cleanup();
     this.emit('ended');
   }
