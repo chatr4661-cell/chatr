@@ -11716,6 +11716,7 @@ export type Database = {
           is_online: boolean | null
           is_phone_verified: boolean | null
           is_verified: boolean | null
+          ivr_settings: Json | null
           last_backup_at: string | null
           last_contact_sync: string | null
           last_seen: string | null
@@ -11746,6 +11747,7 @@ export type Database = {
           public_key: string | null
           qr_code_token: string | null
           referral_code: string | null
+          speed_dial_settings: Json | null
           status: string | null
           status_message: string | null
           streak_count: number | null
@@ -11774,6 +11776,7 @@ export type Database = {
           is_online?: boolean | null
           is_phone_verified?: boolean | null
           is_verified?: boolean | null
+          ivr_settings?: Json | null
           last_backup_at?: string | null
           last_contact_sync?: string | null
           last_seen?: string | null
@@ -11804,6 +11807,7 @@ export type Database = {
           public_key?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
+          speed_dial_settings?: Json | null
           status?: string | null
           status_message?: string | null
           streak_count?: number | null
@@ -11832,6 +11836,7 @@ export type Database = {
           is_online?: boolean | null
           is_phone_verified?: boolean | null
           is_verified?: boolean | null
+          ivr_settings?: Json | null
           last_backup_at?: string | null
           last_contact_sync?: string | null
           last_seen?: string | null
@@ -11862,6 +11867,7 @@ export type Database = {
           public_key?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
+          speed_dial_settings?: Json | null
           status?: string | null
           status_message?: string | null
           streak_count?: number | null
