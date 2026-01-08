@@ -553,20 +553,67 @@ export default function GSMStyleVoiceCall({
       {/* Video display when enabled */}
       {(videoEnabled || localVideoActive) && (
         <div className="absolute inset-0 z-0">
-          {/* Remote video (full screen) */}
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-          />
+          {/* Remote video (full screen) or placeholder */}
+          {remoteVideoActive ? (
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f0f23] flex flex-col items-center justify-center">
+              {/* Show avatar while waiting for remote video */}
+              {contactAvatar ? (
+                <img
+                  src={contactAvatar}
+                  alt={contactName}
+                  className="w-28 h-28 rounded-full object-cover ring-2 ring-white/20 shadow-xl"
+                />
+              ) : (
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-500/80 to-teal-600/60 flex items-center justify-center ring-2 ring-white/20">
+                  <span className="text-4xl font-semibold text-white">
+                    {contactName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <p className="text-white font-semibold text-xl mt-4">{contactName}</p>
+              <p className="text-white/50 text-sm mt-1">
+                {callState === 'connected' ? 'Camera starting...' : 'Connecting video...'}
+              </p>
+            </div>
+          )}
+          {/* Hidden video element to receive remote stream */}
+          {!remoteVideoActive && (
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="hidden"
+            />
+          )}
+          
+          {/* Overlay: Name and duration for video call */}
+          <div className="absolute top-[calc(env(safe-area-inset-top,0px)+50px)] left-0 right-0 flex flex-col items-center pointer-events-none">
+            <p className="text-white font-semibold text-lg drop-shadow-lg">{contactName}</p>
+            {callState === 'connected' && (
+              <p className="text-emerald-400 font-mono text-sm drop-shadow-lg">{formatDuration(duration)}</p>
+            )}
+            {callState === 'connecting' && (
+              <p className="text-white/70 text-sm animate-pulse">Connecting...</p>
+            )}
+            {callState === 'reconnecting' && (
+              <p className="text-amber-400 text-sm animate-pulse">Reconnecting...</p>
+            )}
+          </div>
+          
           {/* Local video (picture-in-picture) */}
           <video
             ref={localVideoRef}
             autoPlay
             playsInline
             muted
-            className="absolute top-[calc(env(safe-area-inset-top,0px)+80px)] right-3 w-28 h-40 sm:w-32 sm:h-44 rounded-xl object-cover border-2 border-white/20 shadow-lg"
+            className="absolute top-[calc(env(safe-area-inset-top,0px)+100px)] right-3 w-24 h-32 sm:w-28 sm:h-40 rounded-xl object-cover border-2 border-white/30 shadow-xl"
             style={{ transform: 'scaleX(-1)' }}
           />
         </div>
