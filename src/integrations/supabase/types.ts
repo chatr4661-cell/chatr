@@ -11700,6 +11700,8 @@ export type Database = {
           auto_backup_frequency: string | null
           auto_translate_enabled: boolean | null
           avatar_url: string | null
+          call_blocking_settings: Json | null
+          call_forwarding_settings: Json | null
           call_ringtone: string | null
           contacts_synced: boolean | null
           created_at: string | null
@@ -11756,6 +11758,8 @@ export type Database = {
           auto_backup_frequency?: string | null
           auto_translate_enabled?: boolean | null
           avatar_url?: string | null
+          call_blocking_settings?: Json | null
+          call_forwarding_settings?: Json | null
           call_ringtone?: string | null
           contacts_synced?: boolean | null
           created_at?: string | null
@@ -11812,6 +11816,8 @@ export type Database = {
           auto_backup_frequency?: string | null
           auto_translate_enabled?: boolean | null
           avatar_url?: string | null
+          call_blocking_settings?: Json | null
+          call_forwarding_settings?: Json | null
           call_ringtone?: string | null
           contacts_synced?: boolean | null
           created_at?: string | null
@@ -15335,6 +15341,7 @@ export type Database = {
       }
       user_devices: {
         Row: {
+          active_call_id: string | null
           browser: string | null
           created_at: string | null
           device_fingerprint: string
@@ -15342,11 +15349,14 @@ export type Database = {
           device_type: string
           id: string
           ip_address: string | null
+          is_online: boolean | null
           last_active: string | null
+          last_seen: string | null
           os: string | null
           user_id: string
         }
         Insert: {
+          active_call_id?: string | null
           browser?: string | null
           created_at?: string | null
           device_fingerprint: string
@@ -15354,11 +15364,14 @@ export type Database = {
           device_type?: string
           id?: string
           ip_address?: string | null
+          is_online?: boolean | null
           last_active?: string | null
+          last_seen?: string | null
           os?: string | null
           user_id: string
         }
         Update: {
+          active_call_id?: string | null
           browser?: string | null
           created_at?: string | null
           device_fingerprint?: string
@@ -15366,11 +15379,28 @@ export type Database = {
           device_type?: string
           id?: string
           ip_address?: string | null
+          is_online?: boolean | null
           last_active?: string | null
+          last_seen?: string | null
           os?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_devices_active_call_id_fkey"
+            columns: ["active_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_devices_active_call_id_fkey"
+            columns: ["active_call_id"]
+            isOneToOne: false
+            referencedRelation: "missed_calls_view"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_fame_achievements: {
         Row: {
