@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { IncomingCallScreen } from "./IncomingCallScreen";
-import ProductionVideoCall from "./ProductionVideoCall";
-import GSMStyleVoiceCall from "./GSMStyleVoiceCall";
+import UnifiedCallScreen from "./UnifiedCallScreen";
 
 import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
@@ -623,40 +622,24 @@ export function GlobalCallListener() {
     
     toast.info("Continuing with voice call");
   };
-  // Show active call (both caller and receiver)
+  // Show active call (both caller and receiver) - UNIFIED for voice and video
   if (activeCall) {
     const contactName = activeCall.isInitiator 
       ? activeCall.callerName 
       : activeCall.callerName;
-      
-    if (activeCall.call_type === "video") {
-      return (
-        <ProductionVideoCall
-          callId={activeCall.id}
-          contactName={contactName}
-          isInitiator={activeCall.isInitiator}
-          partnerId={activeCall.partnerId}
-          onEnd={handleEndCall}
-        />
-      );
-    }
 
     return (
-      <GSMStyleVoiceCall
+      <UnifiedCallScreen
         callId={activeCall.id}
         contactName={contactName}
         contactAvatar={activeCall.callerAvatar}
         contactPhone={activeCall.caller_phone || activeCall.receiver_phone}
         isInitiator={activeCall.isInitiator}
         partnerId={activeCall.partnerId}
+        callType={activeCall.call_type === 'video' ? 'video' : 'voice'}
         preAcquiredStream={activeCall.preAcquiredStream}
         onEnd={handleEndCall}
         onSwitchToVideo={handleUpgradeToVideo}
-        onAcceptVideoUpgrade={handleAcceptVideoUpgrade}
-        onDeclineVideoUpgrade={handleDeclineVideoUpgrade}
-        isIncoming={!activeCall.isInitiator}
-        incomingVideoRequest={activeCall.incomingVideoRequest}
-        pendingVideoUpgrade={activeCall.pendingVideoUpgrade}
         videoEnabled={activeCall.videoEnabled}
       />
     );
