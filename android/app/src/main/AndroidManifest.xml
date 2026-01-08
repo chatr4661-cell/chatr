@@ -180,6 +180,19 @@
             android:foregroundServiceType="dataSync" />
 
         <!-- ============================================================ -->
+        <!-- CALL SCREENING SERVICE (SPAM/BLOCK)                          -->
+        <!-- Intelligent call screening and blocking                      -->
+        <!-- ============================================================ -->
+        <service
+            android:name=".services.ChatrCallScreeningService"
+            android:permission="android.permission.BIND_SCREENING_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
+
+        <!-- ============================================================ -->
         <!-- BOOT RECEIVER                                                -->
         <!-- Restores services after device restart                       -->
         <!-- ============================================================ -->
