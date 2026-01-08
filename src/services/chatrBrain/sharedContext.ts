@@ -162,10 +162,17 @@ class SharedContextService {
 
     const parts: string[] = [];
 
-    // Location context
+    // Location context - PRIORITY for local/weather queries
     if (this.context.location.city) {
-      parts.push(`Location: ${this.context.location.city}, ${this.context.location.state || this.context.location.country || ''}`);
+      parts.push(`USER LOCATION: ${this.context.location.city}, ${this.context.location.state || ''} ${this.context.location.country || ''}`.trim());
+      if (this.context.location.lat && this.context.location.lon) {
+        parts.push(`Coordinates: ${this.context.location.lat.toFixed(2)}, ${this.context.location.lon.toFixed(2)}`);
+      }
     }
+
+    // Current date/time for real-time context
+    const now = new Date();
+    parts.push(`Current Date/Time: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`);
 
     // Interests
     if (this.context.memory.interests.length > 0) {
@@ -181,9 +188,6 @@ class SharedContextService {
     if (this.context.memory.healthHistory?.length) {
       parts.push(`Health context: ${this.context.memory.healthHistory.slice(0, 2).join('; ')}`);
     }
-
-    // Response style
-    parts.push(`Response style: ${this.context.preferences.responseStyle}`);
 
     return parts.join('\n');
   }
