@@ -42,6 +42,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { VoiceConversation } from '@/components/ai-agents/VoiceConversation';
+import { AgentActionCard, useAgentActions, parseActionsFromResponse, AgentAction } from '@/components/ai-agents/AgentActions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,8 +89,12 @@ export default function AIAgentChatNew() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Agent actions hook
+  const { actions, addAction, confirmAction, cancelAction } = useAgentActions();
 
   useEffect(() => {
     if (agentId) {
@@ -189,6 +195,14 @@ export default function AIAgentChatNew() {
           ? { ...m, content: data.reply, isStreaming: false }
           : m
       ));
+
+      // Parse and add any actions from the response
+      const detectedActions = parseActionsFromResponse(data.reply);
+      detectedActions.forEach(actionData => {
+        if (actionData.type && actionData.title) {
+          addAction(actionData as any);
+        }
+      });
 
       // Speak response if voice enabled
       if (voiceEnabled && data.reply) {
@@ -343,6 +357,16 @@ export default function AIAgentChatNew() {
               {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
             </Button>
             
+            {/* Voice Call Button */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setShowVoiceCall(true)}
+              className="text-green-500 hover:text-green-600"
+            >
+              <Phone className="h-5 w-5" />
+            </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -467,6 +491,17 @@ export default function AIAgentChatNew() {
               </div>
             </motion.div>
           ))}
+          
+          {/* Agent Actions */}
+          {actions.filter(a => a.status === 'pending').map(action => (
+            <AgentActionCard
+              key={action.id}
+              action={action}
+              onConfirm={confirmAction}
+              onCancel={cancelAction}
+            />
+          ))}
+          
           <div ref={scrollRef} />
         </div>
       </ScrollArea>
@@ -518,6 +553,26 @@ export default function AIAgentChatNew() {
           </p>
         )}
       </div>
+
+      {/* Voice Call Modal */}
+      <AnimatePresence>
+        {showVoiceCall && agent && (
+          <VoiceConversation
+            agentId={agent.id}
+            agentName={agent.agent_name}
+            agentPersonality={agent.agent_personality}
+            onTranscript={(text, role) => {
+              setMessages(prev => [...prev, {
+                id: `${role}-${Date.now()}`,
+                role,
+                content: text,
+                created_at: new Date().toISOString()
+              }]);
+            }}
+            onClose={() => setShowVoiceCall(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
