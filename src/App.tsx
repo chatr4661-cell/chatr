@@ -335,7 +335,7 @@ const App = () => {
             <CallProvider>
             <OfflineIndicator />
             <GlobalCallListener />
-            <GlobalCallUI />
+            {/* GlobalCallUI disabled - using GlobalCallListener for now */}
             <GlobalNotificationListener />
             <Routes>
             {/* Public Routes */}
