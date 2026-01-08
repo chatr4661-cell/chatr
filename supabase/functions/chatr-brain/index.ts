@@ -1,14 +1,13 @@
 /**
  * CHATR BRAIN - Unified AI Routing Edge Function
  * Routes queries to appropriate agents and returns intelligent responses
+ * Uses Lovable AI Gateway for streaming responses
  */
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 interface BrainRequest {
   query: string;
@@ -26,6 +25,8 @@ interface BrainRequest {
     locality?: string;
     jobRole?: string;
   };
+  conversationHistory?: Array<{ role: string; content: string }>;
+  stream?: boolean;
 }
 
 // Master CHATR Intelligence System Prompt
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { query, systemPrompt, agents, intent, context, userMemory }: BrainRequest = await req.json();
+    const { query, systemPrompt, agents, intent, context, userMemory, conversationHistory, stream }: BrainRequest = await req.json();
 
     if (!query) {
       return new Response(
@@ -135,9 +136,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
-    if (!OPENROUTER_API_KEY) {
-      throw new Error('OPENROUTER_API_KEY not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     // Build enhanced prompt with multi-agent awareness
@@ -146,21 +147,29 @@ Deno.serve(async (req) => {
     console.log(`🧠 [CHATR Intelligence] Processing for agents: ${agents.join(', ')}`);
     console.log(`🎯 [CHATR Intelligence] Intent: ${intent.primary}, Action: ${intent.actionRequired}`);
 
-    // Call OpenRouter AI
-    const aiResponse = await fetch(OPENROUTER_API_URL, {
+    // Build messages array with conversation history
+    const messages: Array<{ role: string; content: string }> = [
+      { role: 'system', content: enhancedPrompt }
+    ];
+    
+    // Add conversation history if provided
+    if (conversationHistory && conversationHistory.length > 0) {
+      messages.push(...conversationHistory.slice(-10)); // Last 10 messages for context
+    }
+    
+    messages.push({ role: 'user', content: query });
+
+    // Call Lovable AI Gateway
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://chatr.chat',
-        'X-Title': 'Chatr Brain',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview',
-        messages: [
-          { role: 'system', content: enhancedPrompt },
-          { role: 'user', content: query }
-        ],
+        model: 'google/gemini-2.5-flash',
+        messages,
+        stream: stream === true,
         temperature: 0.7,
       }),
     });
@@ -174,11 +183,20 @@ Deno.serve(async (req) => {
       }
       if (aiResponse.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'AI credits depleted.' }),
+          JSON.stringify({ error: 'AI credits depleted. Please add credits.' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      const errorText = await aiResponse.text();
+      console.error('AI gateway error:', aiResponse.status, errorText);
       throw new Error(`AI API error: ${aiResponse.status}`);
+    }
+
+    // If streaming, pass through the response
+    if (stream) {
+      return new Response(aiResponse.body, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+      });
     }
 
     const aiData = await aiResponse.json();
