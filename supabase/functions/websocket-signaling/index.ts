@@ -24,6 +24,12 @@ const makeAuthedClient = (token: string) =>
     },
   });
 
+const makeServiceClient = () =>
+  createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  );
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -177,15 +183,80 @@ serve(async (req) => {
         }
 
         const supabaseClient = makeAuthedClient(userToken);
+        const supabaseAdmin = makeServiceClient();
+
+        const messageType = (data?.type ?? "") as string;
+
+        // Bridge native hangup/end → DB update so web call UI closes immediately
+        if (
+          messageType === "call:end" ||
+          messageType === "call_end" ||
+          messageType === "call:hangup" ||
+          messageType === "call_hangup"
+        ) {
+          const callId = data.callId || data.call_id;
+          console.log("[WS-Signaling] 📵 call:end", { callId, from: userId });
+
+          if (!callId) {
+            socket.send(JSON.stringify({ type: "call_end_ack", success: false, error: "missing_call_id" }));
+            return;
+          }
+
+          // Verify participant + update using service role (avoids RLS surprises)
+          const { data: callRow, error: callErr } = await supabaseAdmin
+            .from("calls")
+            .select("id, caller_id, receiver_id")
+            .eq("id", callId)
+            .maybeSingle();
+
+          if (callErr || !callRow) {
+            console.error("[WS-Signaling] ❌ call:end call not found", callErr);
+            socket.send(JSON.stringify({ type: "call_end_ack", callId, success: false, error: "call_not_found" }));
+            return;
+          }
+
+          if (userId !== callRow.caller_id && userId !== callRow.receiver_id) {
+            console.error("[WS-Signaling] ❌ call:end user not participant", { userId, callRow });
+            socket.send(JSON.stringify({ type: "call_end_ack", callId, success: false, error: "not_participant" }));
+            return;
+          }
+
+          const endedAt = new Date().toISOString();
+          const { error: updateError } = await supabaseAdmin
+            .from("calls")
+            .update({
+              status: "ended",
+              ended_at: endedAt,
+              webrtc_state: "ended",
+              missed: false,
+            })
+            .eq("id", callId);
+
+          if (updateError) {
+            console.error("[WS-Signaling] ❌ call:end update failed", updateError);
+            socket.send(JSON.stringify({ type: "call_end_ack", callId, success: false }));
+            return;
+          }
+
+          // Best-effort notify the other party via WS if they're connected
+          const otherUserId = userId === callRow.caller_id ? callRow.receiver_id : callRow.caller_id;
+          const otherSocket = connections.get(otherUserId);
+          if (otherSocket && otherSocket.readyState === WebSocket.OPEN) {
+            otherSocket.send(JSON.stringify({ type: "call_ended", callId, endedBy: userId, endedAt }));
+          }
+
+          socket.send(JSON.stringify({ type: "call_end_ack", callId, success: true }));
+          return;
+        }
 
         // Forward signaling messages (best-effort)
-        if (data.type === "call_offer" || data.type === "call_answer" || data.type === "ice_candidate" || data.type === "call_end") {
+        if (messageType === "call_offer" || messageType === "call_answer" || messageType === "ice_candidate") {
           const targetSocket = connections.get(data.targetUserId);
           if (targetSocket && targetSocket.readyState === WebSocket.OPEN) {
             targetSocket.send(JSON.stringify({ ...data, fromUserId: userId }));
-            console.log("[WS-Signaling] Forwarded", { type: data.type, to: data.targetUserId });
+            console.log("[WS-Signaling] Forwarded", { type: messageType, to: data.targetUserId });
           } else {
-            console.log("[WS-Signaling] Target not connected", { type: data.type, to: data.targetUserId });
+            console.log("[WS-Signaling] Target not connected", { type: messageType, to: data.targetUserId });
           }
           return;
         }
