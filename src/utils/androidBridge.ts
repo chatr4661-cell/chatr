@@ -18,6 +18,11 @@ declare global {
       getAuthToken: () => string | null;
       getUserId: () => string | null;
     };
+    ChatrCall?: {
+      onCallStateChanged: (callId: string, state: string) => void;
+      onCallConnected: (callId: string) => void;
+      onCallEnded: (callId: string) => void;
+    };
   }
 }
 
@@ -136,4 +141,60 @@ export const isNativeApp = (): boolean => {
  */
 export const hasNativeAuthBridge = (): boolean => {
   return typeof window !== "undefined" && !!window.NativeAuth;
+};
+
+/**
+ * Notify native shell when WebRTC call state changes
+ * This syncs connection status to Android TelecomManager UI
+ */
+export const syncCallStateToNative = (
+  callId: string,
+  state: 'connecting' | 'connected' | 'ended' | 'failed'
+): boolean => {
+  console.log(`[NativeCall] Syncing call state: ${callId.slice(0, 8)} -> ${state}`);
+
+  // Try ChatrCall bridge first (direct native bridge)
+  if (typeof window !== "undefined" && window.ChatrCall) {
+    try {
+      if (state === 'connected') {
+        window.ChatrCall.onCallConnected(callId);
+      } else if (state === 'ended') {
+        window.ChatrCall.onCallEnded(callId);
+      } else {
+        window.ChatrCall.onCallStateChanged(callId, state);
+      }
+      console.log('[NativeCall] Call state synced via ChatrCall bridge');
+      return true;
+    } catch (e) {
+      console.error('[NativeCall] ChatrCall bridge error:', e);
+    }
+  }
+
+  // Fallback: NativeBridge.sendEvent
+  if (typeof window !== "undefined" && window.NativeBridge?.sendEvent) {
+    try {
+      window.NativeBridge.sendEvent('call_state_changed', JSON.stringify({ callId, state }));
+      console.log('[NativeCall] Call state synced via NativeBridge.sendEvent');
+      return true;
+    } catch (e) {
+      console.error('[NativeCall] NativeBridge.sendEvent error:', e);
+    }
+  }
+
+  // Fallback: ChatrNative.postMessage
+  if (typeof window !== "undefined" && window.ChatrNative?.postMessage) {
+    try {
+      window.ChatrNative.postMessage(JSON.stringify({
+        type: 'call_state_changed',
+        data: { callId, state }
+      }));
+      console.log('[NativeCall] Call state synced via ChatrNative.postMessage');
+      return true;
+    } catch (e) {
+      console.error('[NativeCall] ChatrNative.postMessage error:', e);
+    }
+  }
+
+  console.log('[NativeCall] No native call bridge available');
+  return false;
 };

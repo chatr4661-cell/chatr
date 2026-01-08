@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
 import { Capacitor } from '@capacitor/core';
+import { syncCallStateToNative } from '@/utils/androidBridge';
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
 
@@ -171,6 +172,9 @@ export default function UnifiedCallScreen({
           setCallState('connected');
           startDurationTimer();
           updateCallStatus('active');
+          
+          // CRITICAL: Notify native shell about connection
+          syncCallStateToNative(callId, 'connected');
         });
 
         call.on('failed', (error: Error) => {
@@ -247,6 +251,10 @@ export default function UnifiedCallScreen({
 
   const handleEndCall = async () => {
     cleanup();
+    
+    // Notify native shell
+    syncCallStateToNative(callId, 'ended');
+    
     try {
       await supabase.from('calls').update({ 
         status: 'ended', webrtc_state: 'ended', ended_at: new Date().toISOString(), duration 
