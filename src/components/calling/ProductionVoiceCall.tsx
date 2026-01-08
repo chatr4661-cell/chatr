@@ -51,7 +51,7 @@ export default function ProductionVoiceCall({
         userIdRef.current = user.id;
 
         console.log('🎬 [ProductionVoiceCall] Initializing voice call...');
-        const call = new SimpleWebRTCCall(callId, partnerId, false, isInitiator, user.id);
+        const call = SimpleWebRTCCall.create(callId, partnerId, false, isInitiator, user.id);
         webrtcRef.current = call;
 
         call.on('remoteStream', (stream: MediaStream) => {

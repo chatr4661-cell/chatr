@@ -122,7 +122,7 @@ export default function UnifiedCallScreen({
 
         console.log('🎬 [UnifiedCall] Starting', isInitiator ? 'outgoing' : 'incoming', callType, 'call');
         
-        const call = new SimpleWebRTCCall(callId, partnerId, isVideo, isInitiator, user.id, preAcquiredStream);
+        const call = SimpleWebRTCCall.create(callId, partnerId, isVideo, isInitiator, user.id, preAcquiredStream);
         webrtcRef.current = call;
 
         call.on('localStream', (stream: MediaStream) => {
