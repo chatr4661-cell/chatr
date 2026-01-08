@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
 import { Capacitor } from '@capacitor/core';
 import { syncCallStateToNative } from '@/utils/androidBridge';
+import CallMoreMenu from './CallMoreMenu';
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
 
@@ -47,10 +48,12 @@ export default function UnifiedCallScreen({
   const [audioRoute, setAudioRoute] = useState<AudioRoute>('earpiece');
   const [duration, setDuration] = useState(0);
   const [showKeypad, setShowKeypad] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [remoteVideoActive, setRemoteVideoActive] = useState(false);
   const [localVideoActive, setLocalVideoActive] = useState(false);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -128,6 +131,7 @@ export default function UnifiedCallScreen({
 
         call.on('localStream', (stream: MediaStream) => {
           console.log('📹 [UnifiedCall] Local stream received');
+          setLocalStream(stream); // Store for recording and other features
           if (localVideoRef.current && stream.getVideoTracks().length > 0) {
             localVideoRef.current.srcObject = stream;
             localVideoRef.current.muted = true;
@@ -550,14 +554,24 @@ export default function UnifiedCallScreen({
               </button>
             </div>
 
-            {/* Row 2: More, End, Keypad/Flip */}
+            {/* Row 2: Keypad/More, End, Flip/More */}
             <div className="flex justify-center gap-6">
-              <button onClick={() => setShowKeypad(!showKeypad)} className="flex flex-col items-center gap-1">
-                <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
-                  <Grid3X3 className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-[10px] text-white/60">Keypad</span>
-              </button>
+              {/* Keypad for voice, More for video */}
+              {!isVideo ? (
+                <button onClick={() => setShowKeypad(!showKeypad)} className="flex flex-col items-center gap-1">
+                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
+                    <Grid3X3 className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-[10px] text-white/60">Keypad</span>
+                </button>
+              ) : (
+                <button onClick={switchCamera} className="flex flex-col items-center gap-1">
+                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
+                    <SwitchCamera className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-[10px] text-white/60">Flip</span>
+                </button>
+              )}
 
               <button onClick={handleEndCall} className="flex flex-col items-center gap-1">
                 <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
@@ -566,25 +580,30 @@ export default function UnifiedCallScreen({
                 <span className="text-[10px] text-red-400">End</span>
               </button>
 
-              {isVideo ? (
-                <button onClick={switchCamera} className="flex flex-col items-center gap-1">
-                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
-                    <SwitchCamera className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-[10px] text-white/60">Flip</span>
-                </button>
-              ) : (
-                <button className="flex flex-col items-center gap-1">
-                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
-                    <MoreHorizontal className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-[10px] text-white/60">More</span>
-                </button>
-              )}
+              {/* More button always visible */}
+              <button onClick={() => setShowMoreMenu(true)} className="flex flex-col items-center gap-1">
+                <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
+                  <MoreHorizontal className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-[10px] text-white/60">More</span>
+              </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* VoIP Features Menu */}
+      <CallMoreMenu
+        isOpen={showMoreMenu}
+        onClose={() => setShowMoreMenu(false)}
+        callId={callId}
+        localStream={localStream}
+        onHoldChange={(held) => {
+          if (webrtcRef.current) {
+            webrtcRef.current.toggleAudio(!held);
+          }
+        }}
+      />
     </div>
   );
 
