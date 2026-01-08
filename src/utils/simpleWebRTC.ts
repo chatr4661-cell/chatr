@@ -382,39 +382,42 @@ export class SimpleWebRTCCall {
     try {
       switch (signal.type) {
         case 'offer':
-          // CRITICAL: Ignore offer if we're the initiator (we send offers, not receive)
-          if (this.isInitiator) {
-            console.log('⏭️ [WebRTC] Ignoring offer (I am initiator)');
+          // For initial offers: initiators ignore (they send offers)
+          // For renegotiation: ALLOW if call is already connected (e.g., adding video)
+          const isRenegotiation = this.callState === 'connected';
+          
+          if (this.isInitiator && !isRenegotiation) {
+            console.log('⏭️ [WebRTC] Ignoring initial offer (I am initiator)');
             return;
           }
-          console.log('📥 [WebRTC] Processing OFFER...');
+          
+          console.log(`📥 [WebRTC] Processing ${isRenegotiation ? 'RENEGOTIATION' : 'INITIAL'} OFFER...`);
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
           
-          // Create and send answer ONLY ONCE
-          if (!this.answerSent) {
-            this.answerSent = true;
-            const answer = await this.pc.createAnswer();
-            await this.pc.setLocalDescription(answer);
-            await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
-            console.log('✅ [WebRTC] ANSWER sent');
-          } else {
-            console.log('⏭️ [WebRTC] Answer already sent, skipping');
-          }
+          // Always send answer for offers (including renegotiation)
+          const answer = await this.pc.createAnswer();
+          await this.pc.setLocalDescription(answer);
+          await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
+          console.log('✅ [WebRTC] ANSWER sent');
+          this.answerSent = true;
           
           // Process queued ICE candidates
           await this.flushPendingCandidates();
+          
+          // Emit event so UI knows video was added
+          if (isRenegotiation) {
+            this.emit('renegotiationComplete');
+          }
           break;
 
         case 'answer':
-          // CRITICAL: Ignore answer if we're NOT the initiator
-          if (!this.isInitiator) {
-            console.log('⏭️ [WebRTC] Ignoring answer (I am not initiator)');
+          // Process answers for this side
+          // During renegotiation, both sides can receive answers
+          if (!this.offerSent && !this.hasReceivedAnswer) {
+            console.log('⏭️ [WebRTC] Ignoring unsolicited answer');
             return;
           }
-          if (this.hasReceivedAnswer) {
-            console.log('⏭️ [WebRTC] Ignoring duplicate answer');
-            return;
-          }
+          
           console.log('📥 [WebRTC] Processing ANSWER...');
           this.hasReceivedAnswer = true;
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
@@ -526,18 +529,51 @@ export class SimpleWebRTCCall {
     if (!this.pc) return null;
 
     try {
+      console.log('📹 [WebRTC] Adding video to call (FaceTime-style)...');
+      
       const videoStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+        video: { 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 }, 
+          facingMode: 'user' 
+        }
       });
 
       const videoTrack = videoStream.getVideoTracks()[0];
-      this.pc.addTrack(videoTrack, videoStream);
-      this.localStream?.addTrack(videoTrack);
+      
+      // Check if we already have a video sender (might need to replace track)
+      const existingVideoSender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+      
+      if (existingVideoSender) {
+        // Replace existing video track
+        await existingVideoSender.replaceTrack(videoTrack);
+        console.log('📹 [WebRTC] Replaced existing video track');
+      } else {
+        // Add new video track
+        this.pc.addTrack(videoTrack, this.localStream || videoStream);
+        console.log('📹 [WebRTC] Added new video track');
+      }
+      
+      // Update local stream
+      if (this.localStream) {
+        const oldVideoTrack = this.localStream.getVideoTracks()[0];
+        if (oldVideoTrack) {
+          this.localStream.removeTrack(oldVideoTrack);
+          oldVideoTrack.stop();
+        }
+        this.localStream.addTrack(videoTrack);
+      } else {
+        this.localStream = videoStream;
+      }
 
-      // Request renegotiation
+      // CRITICAL: Renegotiate to inform partner about video
+      // Reset answer flag to allow new answer for renegotiation
+      this.hasReceivedAnswer = false;
+      
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+      console.log('📤 [WebRTC] Sent renegotiation offer with video');
 
       return videoStream;
     } catch (error) {
