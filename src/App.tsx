@@ -48,6 +48,9 @@ import ProviderPortal from "./pages/ProviderPortal";
 import ProviderRegister from "./pages/ProviderRegister";
 import AlliedHealthcare from "./pages/AlliedHealthcare";
 import Marketplace from "./pages/Marketplace";
+import AIAgentsHub from "./pages/AIAgentsHub";
+import AIAgentCreate from "./pages/AIAgentCreate";
+import AIAgentChatNew from "./pages/AIAgentChatNew";
 import ServiceListing from "./pages/ServiceListing";
 
 // Medicine Subscription Pages (lazy loaded)
@@ -464,8 +467,10 @@ const App = () => {
             <Route path="/native-apps" element={<MiniApps />} />
             <Route path="/chatr-os" element={<ChatrOS />} />
             <Route path="/os-detection" element={<OSDetection />} />
-          <Route path="/ai-agents" element={<AIAgents />} />
-          <Route path="/ai-agents/chat/:agentId" element={<AIAgentChat />} />
+          <Route path="/ai-agents" element={<AIAgentsHub />} />
+          <Route path="/ai-agents/create" element={<AIAgentCreate />} />
+          <Route path="/ai-agents/chat/:agentId" element={<AIAgentChatNew />} />
+          <Route path="/ai-agents/settings/:agentId" element={<AIAgents />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/jobs" element={<LocalJobs />} />
           <Route path="/local-jobs" element={<Navigate to="/jobs" replace />} />
