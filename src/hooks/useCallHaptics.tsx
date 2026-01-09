@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { Haptics } from '@/utils/haptics';
 
 type HapticEvent = 
   | 'answer' 
@@ -19,43 +19,38 @@ export function useCallHaptics() {
   const trigger = useCallback(async (event: HapticEvent) => {
     if (!isNative) return;
 
-    try {
-      switch (event) {
-        case 'answer':
-        case 'success':
-          await Haptics.notification({ type: NotificationType.Success });
-          break;
-        
-        case 'reject':
-        case 'end':
-          await Haptics.notification({ type: NotificationType.Warning });
-          break;
-        
-        case 'error':
-          await Haptics.notification({ type: NotificationType.Error });
-          break;
-        
-        case 'mute':
-          await Haptics.impact({ style: ImpactStyle.Medium });
-          break;
-        
-        case 'unmute':
-          await Haptics.impact({ style: ImpactStyle.Light });
-          break;
-        
-        case 'cameraSwitch':
-          // Double tap pattern
-          await Haptics.impact({ style: ImpactStyle.Light });
-          await new Promise(resolve => setTimeout(resolve, 50));
-          await Haptics.impact({ style: ImpactStyle.Light });
-          break;
-        
-        case 'qualityChange':
-          await Haptics.impact({ style: ImpactStyle.Heavy });
-          break;
-      }
-    } catch (error) {
-      console.error('Haptic feedback failed:', error);
+    switch (event) {
+      case 'answer':
+      case 'success':
+        await Haptics.notification('Success');
+        break;
+      
+      case 'reject':
+      case 'end':
+        await Haptics.notification('Warning');
+        break;
+      
+      case 'error':
+        await Haptics.notification('Error');
+        break;
+      
+      case 'mute':
+        await Haptics.impact('Medium');
+        break;
+      
+      case 'unmute':
+        await Haptics.impact('Light');
+        break;
+      
+      case 'cameraSwitch':
+        await Haptics.impact('Light');
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await Haptics.impact('Light');
+        break;
+      
+      case 'qualityChange':
+        await Haptics.impact('Heavy');
+        break;
     }
   }, [isNative]);
 
