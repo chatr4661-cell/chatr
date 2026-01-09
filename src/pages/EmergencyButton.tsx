@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, AlertTriangle, Phone, MapPin, Heart } from 'lucide-react';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Haptics } from '@/utils/haptics';
 import { useLocation } from '@/contexts/LocationContext';
+import { Capacitor } from '@capacitor/core';
 
 const EmergencyButton = () => {
   const [isActivating, setIsActivating] = useState(false);
@@ -19,10 +20,8 @@ const EmergencyButton = () => {
     setCountdown(3);
 
     // Haptic feedback
-    try {
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-    } catch (e) {
-      console.log('Haptics not available');
+    if (Capacitor.isNativePlatform()) {
+      await Haptics.impact('Heavy');
     }
 
     const timer = setInterval(async () => {
@@ -33,10 +32,8 @@ const EmergencyButton = () => {
           return null;
         }
         // Haptic feedback on each count
-        try {
-          Haptics.impact({ style: ImpactStyle.Medium });
-        } catch (e) {
-          console.log('Haptics not available');
+        if (Capacitor.isNativePlatform()) {
+          Haptics.impact('Medium');
         }
         return prev - 1;
       });
@@ -56,10 +53,8 @@ const EmergencyButton = () => {
     setIsActivating(false);
     
     // Haptic feedback
-    try {
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-    } catch (e) {
-      console.log('Haptics not available');
+    if (Capacitor.isNativePlatform()) {
+      await Haptics.impact('Heavy');
     }
 
     const locationText = location 
