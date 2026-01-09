@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
-import { Haptics } from "@/utils/haptics";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 // Native ringtone plugin (will use Capacitor's local notifications)
 interface UseNativeRingtoneOptions {
@@ -23,11 +23,11 @@ export function useNativeRingtone({
     if (!Capacitor.isNativePlatform()) return;
 
     const pattern = async () => {
-      await Haptics.impact('Heavy');
+      await Haptics.impact({ style: ImpactStyle.Heavy });
       await new Promise(resolve => setTimeout(resolve, 200));
-      await Haptics.impact('Medium');
+      await Haptics.impact({ style: ImpactStyle.Medium });
       await new Promise(resolve => setTimeout(resolve, 200));
-      await Haptics.impact('Heavy');
+      await Haptics.impact({ style: ImpactStyle.Heavy });
     };
 
     pattern();

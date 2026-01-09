@@ -1,7 +1,7 @@
 // PWA Utility Functions
 
 // Register service worker
-export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
+export const registerServiceWorker = async () => {
   if (!('serviceWorker' in navigator)) {
     console.log('Service Worker not supported');
     return null;
@@ -15,27 +15,21 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       return existing;
     }
     
-    // Use AbortController with timeout to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
     const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/',
-      updateViaCache: 'none'
+      scope: '/'
     });
     
-    clearTimeout(timeoutId);
     console.log('✅ Service Worker registered:', registration.scope);
     
-    // Check for updates periodically (every 5 mins, not 1 min)
+    // Check for updates periodically
     setInterval(() => {
       registration.update().catch(() => {});
-    }, 300000);
+    }, 60000);
     
     return registration;
   } catch (error) {
-    // Silently fail - SW is optional, app works fine without it
-    console.log('SW skipped (non-critical):', (error as Error).message?.slice(0, 50));
+    // Silently fail - SW is optional, app works without it
+    console.warn('Service Worker registration skipped:', (error as Error).message);
     return null;
   }
 };

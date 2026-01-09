@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
-import { Haptics, ImpactStyle, NotificationType } from '@/utils/haptics';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { supabase } from '@/integrations/supabase/client';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { toast } from 'sonner';
@@ -73,32 +73,32 @@ export const useGeofencing = (userId?: string) => {
   const getNotificationPattern = (type: string, eventType: 'enter' | 'exit') => {
     const patterns = {
       hospital: {
-        haptic: 'Light' as const,
-        notificationType: 'Success' as const,
+        haptic: ImpactStyle.Light,
+        notificationType: NotificationType.Success,
         iconColor: '#EF4444',
         priority: 'high' as const,
       },
       job: {
-        haptic: 'Heavy' as const,
-        notificationType: 'Warning' as const,
+        haptic: ImpactStyle.Heavy,
+        notificationType: NotificationType.Warning,
         iconColor: '#3B82F6',
         priority: 'max' as const,
       },
       event: {
-        haptic: 'Medium' as const,
-        notificationType: 'Success' as const,
+        haptic: ImpactStyle.Medium,
+        notificationType: NotificationType.Success,
         iconColor: '#A855F7',
         priority: 'default' as const,
       },
       community: {
-        haptic: 'Medium' as const,
-        notificationType: 'Success' as const,
+        haptic: ImpactStyle.Medium,
+        notificationType: NotificationType.Success,
         iconColor: '#10B981',
         priority: 'default' as const,
       },
       custom: {
-        haptic: 'Light' as const,
-        notificationType: 'Success' as const,
+        haptic: ImpactStyle.Light,
+        notificationType: NotificationType.Success,
         iconColor: '#6B7280',
         priority: 'default' as const,
       },
@@ -128,22 +128,22 @@ export const useGeofencing = (userId?: string) => {
       if (Capacitor.isNativePlatform()) {
         try {
           // Primary haptic impact based on type
-          await Haptics.impact(pattern.haptic);
+          await Haptics.impact({ style: pattern.haptic });
           
           // Additional notification haptic for important types
           if (geofence.type === 'job' || geofence.type === 'hospital') {
             setTimeout(async () => {
-              await Haptics.notification(pattern.notificationType);
+              await Haptics.notification({ type: pattern.notificationType });
             }, 100);
           }
           
           // Triple vibration for urgent job sites on enter
           if (geofence.type === 'job' && eventType === 'enter') {
             setTimeout(async () => {
-              await Haptics.impact('Heavy');
+              await Haptics.impact({ style: ImpactStyle.Heavy });
             }, 200);
             setTimeout(async () => {
-              await Haptics.impact('Heavy');
+              await Haptics.impact({ style: ImpactStyle.Heavy });
             }, 400);
           }
         } catch (error) {

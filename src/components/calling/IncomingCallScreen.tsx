@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Phone, MessageSquare, Bell } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
-import { Haptics } from "@/utils/haptics";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { useNativeRingtone } from "@/hooks/useNativeRingtone";
 import { motion } from "framer-motion";
 
@@ -49,11 +49,11 @@ export function IncomingCallScreen({
     // iOS-style haptic pattern
     if (Capacitor.isNativePlatform()) {
       const hapticPattern = async () => {
-        await Haptics.impact('Heavy');
+        await Haptics.impact({ style: ImpactStyle.Heavy });
         await new Promise(resolve => setTimeout(resolve, 150));
-        await Haptics.impact('Medium');
+        await Haptics.impact({ style: ImpactStyle.Medium });
         await new Promise(resolve => setTimeout(resolve, 150));
-        await Haptics.impact('Heavy');
+        await Haptics.impact({ style: ImpactStyle.Heavy });
       };
 
       hapticPattern();
@@ -71,7 +71,7 @@ export function IncomingCallScreen({
     console.log('🔕 Stopping ringtone - call answered');
     setRingtoneEnabled(false);
     if (Capacitor.isNativePlatform()) {
-      await Haptics.impact('Medium');
+      await Haptics.impact({ style: ImpactStyle.Medium });
     }
     setTimeout(() => onAnswer(), 100);
   };
@@ -80,14 +80,14 @@ export function IncomingCallScreen({
     console.log('🔕 Stopping ringtone - call rejected');
     setRingtoneEnabled(false);
     if (Capacitor.isNativePlatform()) {
-      await Haptics.impact('Light');
+      await Haptics.impact({ style: ImpactStyle.Light });
     }
     setTimeout(() => onReject(), 100);
   };
 
   const handleMessage = async () => {
     if (Capacitor.isNativePlatform()) {
-      await Haptics.impact('Light');
+      await Haptics.impact({ style: ImpactStyle.Light });
     }
     onSendMessage?.();
   };

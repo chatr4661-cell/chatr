@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
-import { Haptics } from "@/utils/haptics";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 interface UseRingtoneOptions {
   enabled: boolean;
@@ -67,11 +67,11 @@ export function useRingtone({
 
     // iOS-style vibration pattern: long-short-long
     const pattern = async () => {
-      await Haptics.impact('Heavy');
+      await Haptics.impact({ style: ImpactStyle.Heavy });
       await new Promise(resolve => setTimeout(resolve, 200));
-      await Haptics.impact('Medium');
+      await Haptics.impact({ style: ImpactStyle.Medium });
       await new Promise(resolve => setTimeout(resolve, 200));
-      await Haptics.impact('Heavy');
+      await Haptics.impact({ style: ImpactStyle.Heavy });
     };
 
     pattern();

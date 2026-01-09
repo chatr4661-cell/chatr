@@ -1,5 +1,5 @@
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
-import { Haptics, ImpactStyle, NotificationType } from '@/utils/haptics';
 
 /**
  * Native Haptic Feedback Hook
@@ -10,37 +10,65 @@ export const useNativeHaptics = () => {
 
   const light = async () => {
     if (!isAvailable) return;
-    await Haptics.impact('Light');
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (e) {
+      // Silently fail
+    }
   };
 
   const medium = async () => {
     if (!isAvailable) return;
-    await Haptics.impact('Medium');
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+    } catch (e) {
+      // Silently fail
+    }
   };
 
   const heavy = async () => {
     if (!isAvailable) return;
-    await Haptics.impact('Heavy');
+    try {
+      await Haptics.impact({ style: ImpactStyle.Heavy });
+    } catch (e) {
+      // Silently fail
+    }
   };
 
   const success = async () => {
     if (!isAvailable) return;
-    await Haptics.notification('Success');
+    try {
+      await Haptics.notification({ type: NotificationType.Success });
+    } catch (e) {
+      // Silently fail
+    }
   };
 
   const warning = async () => {
     if (!isAvailable) return;
-    await Haptics.notification('Warning');
+    try {
+      await Haptics.notification({ type: NotificationType.Warning });
+    } catch (e) {
+      // Silently fail
+    }
   };
 
   const error = async () => {
     if (!isAvailable) return;
-    await Haptics.notification('Error');
+    try {
+      await Haptics.notification({ type: NotificationType.Error });
+    } catch (e) {
+      // Silently fail
+    }
   };
 
   const selectionChanged = async () => {
     if (!isAvailable) return;
-    await Haptics.selectionStart();
+    try {
+      await Haptics.selectionStart();
+    } catch (e) {
+      // Silently fail
+    }
   };
 
   return {
