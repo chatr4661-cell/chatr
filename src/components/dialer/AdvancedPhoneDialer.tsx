@@ -6,6 +6,7 @@ import {
   Zap, Signal, Lock, UserPlus, MessageCircle, Settings2,
   CheckCircle2, Send, ExternalLink
 } from 'lucide-react';
+import chatrLogo from '@/assets/chatr-logo.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -531,14 +532,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
       {/* Header with CHATR branding */}
       <div className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-              <Phone className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              CHATR
-            </span>
-          </div>
+          <img src={chatrLogo} alt="Chatr" className="h-8 object-contain" />
         </div>
         
         <div className="flex items-center gap-2">
