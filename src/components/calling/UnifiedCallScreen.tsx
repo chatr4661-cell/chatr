@@ -4,7 +4,7 @@ import {
   Mic, MicOff, PhoneOff, Volume2, Video, VideoOff, 
   SwitchCamera, Grid3X3, MoreHorizontal
 } from 'lucide-react';
-import { SimpleWebRTCCall } from '@/utils/simpleWebRTC';
+import { SimpleWebRTCCall, hasActiveCall, getExistingCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,14 +115,34 @@ export default function UnifiedCallScreen({
     };
   }, [callId, onEnd]);
 
-  // Initialize WebRTC
+  // Initialize WebRTC - STRICT SINGLETON
   useEffect(() => {
+    let isMounted = true;
+    
     const initCall = async () => {
       try {
+        // CRITICAL: Prevent duplicate initialization
+        if (webrtcRef.current) {
+          console.log('⚠️ [UnifiedCall] Already initialized, skipping');
+          return;
+        }
+        
+        // CRITICAL: Check if another instance is already handling this call
+        if (hasActiveCall(callId)) {
+          const existing = getExistingCall(callId);
+          if (existing) {
+            console.log('⚠️ [UnifiedCall] Reusing existing WebRTC instance');
+            webrtcRef.current = existing;
+            // Re-attach event handlers
+            attachEventHandlers(existing);
+            return;
+          }
+        }
+        
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          toast.error('Not authenticated');
-          onEnd();
+        if (!user || !isMounted) {
+          if (!user) toast.error('Not authenticated');
+          if (isMounted) onEnd();
           return;
         }
         userIdRef.current = user.id;
@@ -130,164 +150,176 @@ export default function UnifiedCallScreen({
         console.log('🎬 [UnifiedCall] Starting', isInitiator ? 'outgoing' : 'incoming', callType, 'call');
         
         const call = SimpleWebRTCCall.create(callId, partnerId, isVideo, isInitiator, user.id, preAcquiredStream);
+        if (!isMounted) {
+          call.end();
+          return;
+        }
         webrtcRef.current = call;
 
-        call.on('localStream', (stream: MediaStream) => {
-          console.log('📹 [UnifiedCall] Local stream received');
-          setLocalStream(stream); // Store for recording and other features
-          if (localVideoRef.current && stream.getVideoTracks().length > 0) {
-            localVideoRef.current.srcObject = stream;
-            localVideoRef.current.muted = true;
-            localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-            setLocalVideoActive(true);
-          }
-        });
+        attachEventHandlers(call);
 
-        call.on('remoteStream', (stream: MediaStream) => {
-          console.log('📺 [UnifiedCall] Remote stream received');
-          const audioTracks = stream.getAudioTracks();
-          const videoTracks = stream.getVideoTracks();
-          console.log(`  → Audio tracks: ${audioTracks.length}, Video tracks: ${videoTracks.length}`);
-          audioTracks.forEach(t => console.log(`    🔊 Audio: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
-          videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
+        await call.start();
+        if (isInitiator && isMounted) await updateCallStatus('ringing');
+
+      } catch (error) {
+        console.error('❌ [UnifiedCall] Init error:', error);
+        if (isMounted) onEnd();
+      }
+    };
+    
+    const attachEventHandlers = (call: SimpleWebRTCCall) => {
+      call.on('localStream', (stream: MediaStream) => {
+        console.log('📹 [UnifiedCall] Local stream received');
+        setLocalStream(stream); // Store for recording and other features
+        if (localVideoRef.current && stream.getVideoTracks().length > 0) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.muted = true;
+          localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+          setLocalVideoActive(true);
+        }
+      });
+
+      call.on('remoteStream', (stream: MediaStream) => {
+        console.log('📺 [UnifiedCall] Remote stream received');
+        const audioTracks = stream.getAudioTracks();
+        const videoTracks = stream.getVideoTracks();
+        console.log(`  → Audio tracks: ${audioTracks.length}, Video tracks: ${videoTracks.length}`);
+        audioTracks.forEach(t => console.log(`    🔊 Audio: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
+        videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
+        
+        // CRITICAL: Always setup audio via Audio element
+        if (!remoteAudioRef.current) {
+          remoteAudioRef.current = new Audio();
+          remoteAudioRef.current.autoplay = true;
+          remoteAudioRef.current.volume = 1.0;
+        }
+        remoteAudioRef.current.srcObject = stream;
+        remoteAudioRef.current.play().catch(e => console.log('Audio autoplay:', e));
+        
+        // ANDROID WEBVIEW FIX: Use aggressive video playback helper
+        // This handles muted tracks, srcObject re-assignment, and retry loops
+        if (remoteVideoRef.current && videoTracks.length > 0) {
+          console.log('📺 [UnifiedCall] Starting aggressive video playback for Android');
           
-          // CRITICAL: Always setup audio via Audio element
-          if (!remoteAudioRef.current) {
-            remoteAudioRef.current = new Audio();
-            remoteAudioRef.current.autoplay = true;
-            remoteAudioRef.current.volume = 1.0;
+          // Cleanup previous playback attempt
+          if (videoPlaybackCleanupRef.current) {
+            videoPlaybackCleanupRef.current();
           }
-          remoteAudioRef.current.srcObject = stream;
-          remoteAudioRef.current.play().catch(e => console.log('Audio autoplay:', e));
           
-          // ANDROID WEBVIEW FIX: Use aggressive video playback helper
-          // This handles muted tracks, srcObject re-assignment, and retry loops
-          if (remoteVideoRef.current && videoTracks.length > 0) {
-            console.log('📺 [UnifiedCall] Starting aggressive video playback for Android');
+          // Start aggressive playback with retry loop
+          videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
+            remoteVideoRef.current,
+            stream,
+            {
+              maxRetries: 15, // More retries for Android WebView
+              retryIntervalMs: 400,
+              onPlaybackStarted: () => {
+                console.log('✅ [UnifiedCall] Remote video PLAYING (aggressive)');
+                setRemoteVideoActive(true);
+              },
+              onPlaybackFailed: () => {
+                console.warn('⚠️ [UnifiedCall] Video playback failed after all retries');
+                // Keep trying with track recovery handlers
+              }
+            }
+          );
+        } else if (remoteVideoRef.current) {
+          // No video tracks yet, but assign stream for later
+          console.log('📺 [UnifiedCall] Assigning stream (no video tracks yet)');
+          remoteVideoRef.current.srcObject = stream;
+        }
+        
+        // ANDROID WEBVIEW FIX: Attach comprehensive track recovery handlers
+        // This handles onunmute, onended, onmute, and track additions
+        if (trackRecoveryCleanupRef.current) {
+          trackRecoveryCleanupRef.current();
+        }
+        
+        trackRecoveryCleanupRef.current = attachVideoTrackRecoveryHandlers(
+          stream,
+          remoteVideoRef.current!,
+          (active) => {
+            console.log(`📺 [UnifiedCall] Video active state: ${active}`);
+            setRemoteVideoActive(active);
             
-            // Cleanup previous playback attempt
+            // If video became active, ensure we're playing
+            if (active && remoteVideoRef.current) {
+              remoteVideoRef.current.play().catch(() => {});
+            }
+          }
+        );
+        
+        // BIDIRECTIONAL: Listen for tracks added AFTER initial stream
+        // This handles FaceTime-style video upgrade AND delayed video from receiver
+        stream.onaddtrack = (event) => {
+          console.log('➕ [UnifiedCall] Track added:', event.track.kind, event.track.label);
+          if (event.track.kind === 'video' && remoteVideoRef.current) {
+            console.log('📺 [UnifiedCall] Video track added - starting aggressive playback');
+            
+            // Cleanup and restart aggressive playback
             if (videoPlaybackCleanupRef.current) {
               videoPlaybackCleanupRef.current();
             }
             
-            // Start aggressive playback with retry loop
             videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
               remoteVideoRef.current,
               stream,
               {
-                maxRetries: 15, // More retries for Android WebView
+                maxRetries: 15,
                 retryIntervalMs: 400,
-                onPlaybackStarted: () => {
-                  console.log('✅ [UnifiedCall] Remote video PLAYING (aggressive)');
-                  setRemoteVideoActive(true);
-                },
-                onPlaybackFailed: () => {
-                  console.warn('⚠️ [UnifiedCall] Video playback failed after all retries');
-                  // Keep trying with track recovery handlers
-                }
+                onPlaybackStarted: () => setRemoteVideoActive(true),
+                onPlaybackFailed: () => console.warn('Dynamic video playback failed')
               }
             );
-          } else if (remoteVideoRef.current) {
-            // No video tracks yet, but assign stream for later
-            console.log('📺 [UnifiedCall] Assigning stream (no video tracks yet)');
-            remoteVideoRef.current.srcObject = stream;
           }
-          
-          // ANDROID WEBVIEW FIX: Attach comprehensive track recovery handlers
-          // This handles onunmute, onended, onmute, and track additions
-          if (trackRecoveryCleanupRef.current) {
-            trackRecoveryCleanupRef.current();
-          }
-          
-          trackRecoveryCleanupRef.current = attachVideoTrackRecoveryHandlers(
-            stream,
-            remoteVideoRef.current!,
-            (active) => {
-              console.log(`📺 [UnifiedCall] Video active state: ${active}`);
-              setRemoteVideoActive(active);
-              
-              // If video became active, ensure we're playing
-              if (active && remoteVideoRef.current) {
-                remoteVideoRef.current.play().catch(() => {});
-              }
-            }
-          );
-          
-          // BIDIRECTIONAL: Listen for tracks added AFTER initial stream
-          // This handles FaceTime-style video upgrade AND delayed video from receiver
-          stream.onaddtrack = (event) => {
-            console.log('➕ [UnifiedCall] Track added:', event.track.kind, event.track.label);
-            if (event.track.kind === 'video' && remoteVideoRef.current) {
-              console.log('📺 [UnifiedCall] Video track added - starting aggressive playback');
-              
-              // Cleanup and restart aggressive playback
-              if (videoPlaybackCleanupRef.current) {
-                videoPlaybackCleanupRef.current();
-              }
-              
-              videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
-                remoteVideoRef.current,
-                stream,
-                {
-                  maxRetries: 15,
-                  retryIntervalMs: 400,
-                  onPlaybackStarted: () => setRemoteVideoActive(true),
-                  onPlaybackFailed: () => console.warn('Dynamic video playback failed')
-                }
-              );
-            }
-          };
-        });
+        };
+      });
 
-        call.on('connected', () => {
-          console.log('🎉 [UnifiedCall] Connected!');
-          setCallState('connected');
-          startDurationTimer();
-          updateCallStatus('active');
-          
-          // CRITICAL: Notify native shell about connection
-          syncCallStateToNative(callId, 'connected');
-        });
+      call.on('connected', () => {
+        console.log('🎉 [UnifiedCall] Connected!');
+        setCallState('connected');
+        startDurationTimer();
+        // NOTE: Call status is now updated to 'active' inside SimpleWebRTCCall.handleConnected()
+        // No need for duplicate updateCallStatus('active') here
+        
+        // CRITICAL: Notify native shell about connection
+        syncCallStateToNative(callId, 'connected');
+      });
 
-        call.on('failed', (error: Error) => {
-          console.error('⚠️ [UnifiedCall] Failed:', error);
-          const name = error?.name;
-          if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-            setCallState('failed');
-          } else if (name === 'NotReadableError') {
-            toast.error('Camera/Mic is busy. Close other apps.');
-          } else {
-            setCallState('reconnecting');
-          }
-        });
+      call.on('failed', (error: Error) => {
+        console.error('⚠️ [UnifiedCall] Failed:', error);
+        const name = error?.name;
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+          setCallState('failed');
+        } else if (name === 'NotReadableError') {
+          toast.error('Camera/Mic is busy. Close other apps.');
+        } else {
+          setCallState('reconnecting');
+        }
+      });
 
-        call.on('recoveryStatus', () => {
-          if (callState !== 'connected') setCallState('reconnecting');
-        });
+      call.on('recoveryStatus', () => {
+        if (callState !== 'connected') setCallState('reconnecting');
+      });
 
-        call.on('networkQuality', (quality: string) => {
-          if (['excellent', 'good', 'fair', 'poor'].includes(quality)) {
-            setNetworkQuality(quality as any);
-          }
-        });
+      call.on('networkQuality', (quality: string) => {
+        if (['excellent', 'good', 'fair', 'poor'].includes(quality)) {
+          setNetworkQuality(quality as any);
+        }
+      });
 
-        call.on('ended', () => {
-          console.log('👋 [UnifiedCall] Ended by remote');
-          handleEndCall();
-        });
-
-        await call.start();
-        if (isInitiator) await updateCallStatus('ringing');
-
-      } catch (error) {
-        console.error('❌ [UnifiedCall] Init error:', error);
-        onEnd();
-      }
+      call.on('ended', () => {
+        console.log('👋 [UnifiedCall] Ended by remote');
+        handleEndCall();
+      });
     };
 
     initCall();
-    return () => cleanup();
-  }, []);
+    return () => {
+      isMounted = false;
+      cleanup();
+    };
+  }, [callId]); // Only depend on callId - prevents re-init on prop changes
 
   // Enable video mid-call
   useEffect(() => {
