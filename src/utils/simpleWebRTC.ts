@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { classifyNetwork, NetworkQuality, onNetworkChange } from "./networkClassification";
+import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits, CallPreset } from "./indiaCallPresets";
+import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate';
@@ -51,6 +54,12 @@ export class SimpleWebRTCCall {
   private answerSent: boolean = false;
   private processedSignalIds: Set<string> = new Set();
   private started: boolean = false;
+  
+  // India-first: Network-aware configuration
+  private networkQuality: NetworkQuality = 'HOSTILE'; // Default to worst-case
+  private callPreset: CallPreset | null = null;
+  private iceMonitor: (ICEMonitorState & { cleanup: () => void }) | null = null;
+  private networkChangeCleanup: (() => void) | null = null;
 
   // Factory method - use this instead of constructor
   static create(
@@ -86,6 +95,11 @@ export class SimpleWebRTCCall {
       console.log('🎤 [WebRTC] Using pre-acquired media stream');
     }
     console.log('🎬 [WebRTC] Init:', { callId: callId.slice(0, 8), isVideo, isInitiator, userId: userId.slice(0, 8) });
+    
+    // India-first: Classify network immediately
+    this.networkQuality = classifyNetwork();
+    this.callPreset = getCallPreset(this.networkQuality, isVideo);
+    console.log(`🇮🇳 [WebRTC] India-first preset: ${this.callPreset.name} (network: ${this.networkQuality})`);
   }
 
   on(event: string, handler: Function) {
@@ -111,9 +125,15 @@ export class SimpleWebRTCCall {
     this.started = true;
     
     try {
-      console.log('🚀 [WebRTC] Starting...');
+      console.log('🚀 [WebRTC] Starting with India-first optimizations...');
       
-      // Step 1: Get media
+      // Step 0: Subscribe to network changes
+      this.networkChangeCleanup = onNetworkChange((quality) => {
+        console.log(`📶 [WebRTC] Network changed: ${this.networkQuality} → ${quality}`);
+        this.handleNetworkChange(quality);
+      });
+      
+      // Step 1: Get media using preset constraints
       if (!this.localStream) {
         await this.acquireMedia();
       } else {
@@ -158,27 +178,27 @@ export class SimpleWebRTCCall {
         await this.delay(200);
       }
 
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
-      // HIGH QUALITY constraints like FaceTime/WhatsApp
-      const constraints: MediaStreamConstraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-          channelCount: 2, // Stereo for quality
-        } as MediaTrackConstraints,
-        video: this.isVideo ? {
-          width: { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-          frameRate: { ideal: 60, min: 30 },
-          facingMode: 'user',
-          aspectRatio: { ideal: 16/9 }
-        } : false
-      };
+      // India-first: Use preset-based constraints
+      const constraints = this.callPreset 
+        ? getMediaConstraints(this.callPreset, this.isVideo)
+        : {
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 48000,
+              channelCount: 2,
+            } as MediaTrackConstraints,
+            video: this.isVideo ? {
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 },
+              frameRate: { ideal: 60, min: 30 },
+              facingMode: 'user',
+              aspectRatio: { ideal: 16/9 }
+            } : false
+          };
 
-      console.log('🎤 [WebRTC] Requesting media...');
+      console.log('🎤 [WebRTC] Requesting media with preset constraints...');
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('✅ [WebRTC] Media acquired');
       this.emit('localStream', this.localStream);
@@ -202,39 +222,27 @@ export class SimpleWebRTCCall {
   }
 
   private async createPeerConnection() {
-    const iceServers: RTCIceServer[] = [
-      // STUN servers for NAT traversal
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun.cloudflare.com:3478' },
-      
-      // TURN servers for relay
-      {
-        urls: [
-          'turn:openrelay.metered.ca:80',
-          'turn:openrelay.metered.ca:443',
-          'turns:openrelay.metered.ca:443'
-        ],
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      },
-      {
-        urls: [
-          'turn:a.relay.metered.ca:80',
-          'turn:a.relay.metered.ca:443',
-        ],
-        username: 'e8dd65c92ae9a3b9bfcbeb6e',
-        credential: 'uWdWNmkhvyqTW1QP'
-      }
-    ];
+    // India-first: Use preset-based configuration
+    const config = this.callPreset 
+      ? getWebRTCConfig(this.callPreset)
+      : {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            {
+              urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
+              username: 'openrelayproject',
+              credential: 'openrelayproject'
+            }
+          ],
+          iceTransportPolicy: 'all' as RTCIceTransportPolicy,
+          bundlePolicy: 'max-bundle' as RTCBundlePolicy,
+          rtcpMuxPolicy: 'require' as RTCRtcpMuxPolicy,
+          iceCandidatePoolSize: 20,
+        };
 
-    this.pc = new RTCPeerConnection({
-      iceServers,
-      iceTransportPolicy: 'all',
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 20,
-    });
+    console.log(`🇮🇳 [WebRTC] Creating connection with ${this.callPreset?.name || 'default'} preset`);
+    this.pc = new RTCPeerConnection(config);
 
     // Add local tracks
     if (this.localStream) {
@@ -283,7 +291,30 @@ export class SimpleWebRTCCall {
       }
     };
 
-    // ICE connection state
+    // India-first: Use ICE monitor with extended tolerance
+    const toleranceMs = this.callPreset?.iceDisconnectToleranceMs || 8000;
+    const maxAttempts = this.callPreset?.maxReconnectAttempts || 3;
+    
+    this.iceMonitor = createICEMonitor(this.pc, {
+      disconnectToleranceMs: toleranceMs,
+      maxReconnectAttempts: maxAttempts,
+      onRecoveryStart: () => {
+        this.emit('recoveryStatus', { message: 'Reconnecting...' });
+      },
+      onRecoverySuccess: () => {
+        console.log('✅ [WebRTC] Recovery successful');
+        this.emit('recoveryStatus', { message: null });
+      },
+      onRecoveryFailed: () => {
+        console.log('❌ [WebRTC] Recovery failed after max attempts');
+        this.handleConnectionFailed();
+      },
+      onQualityChange: (quality) => {
+        this.emit('networkQuality', quality);
+      }
+    });
+
+    // ICE connection state (backup handler)
     this.pc.oniceconnectionstatechange = () => {
       const state = this.pc!.iceConnectionState;
       console.log('❄️ [WebRTC] ICE state:', state);
@@ -292,22 +323,11 @@ export class SimpleWebRTCCall {
         this.handleConnected();
       } else if (state === 'failed') {
         this.handleConnectionFailed();
-      } else if (state === 'disconnected') {
-        // Wait before restarting ICE - 'disconnected' is often transient
-        console.log('⚠️ [WebRTC] ICE disconnected - waiting before restart...');
-        this.emit('recoveryStatus', { message: 'Reconnecting...' });
-        
-        // Only restart if still disconnected after delay
-        setTimeout(() => {
-          if (this.pc?.iceConnectionState === 'disconnected' && this.callState !== 'ended') {
-            console.log('🔄 [WebRTC] ICE still disconnected - restarting...');
-            this.pc?.restartIce();
-          }
-        }, 3000);
       }
+      // Note: 'disconnected' is now handled by ICE monitor with tolerance
     };
 
-    console.log('✅ [WebRTC] Peer connection created');
+    console.log(`✅ [WebRTC] Peer connection created with ${toleranceMs}ms disconnect tolerance`);
   }
 
   private handleConnected() {
@@ -318,6 +338,15 @@ export class SimpleWebRTCCall {
     this.clearConnectionTimeout();
     this.emit('connected');
     this.emit('networkQuality', 'good');
+    
+    // India-first: Apply bitrate limits based on preset
+    if (this.pc && this.callPreset) {
+      applyBitrateLimits(this.pc, this.callPreset).then(() => {
+        console.log(`🇮🇳 [WebRTC] Applied ${this.callPreset?.name} bitrate limits`);
+      }).catch(e => {
+        console.warn('⚠️ [WebRTC] Failed to apply bitrate limits:', e);
+      });
+    }
   }
 
   private handleConnectionFailed() {
@@ -343,6 +372,31 @@ export class SimpleWebRTCCall {
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
     } catch (e) {
       console.error('❌ [WebRTC] ICE restart failed:', e);
+    }
+  }
+
+  /**
+   * India-first: Handle network quality changes during call
+   */
+  private handleNetworkChange(newQuality: NetworkQuality) {
+    const oldQuality = this.networkQuality;
+    this.networkQuality = newQuality;
+    
+    // Only adapt if quality degraded
+    if (newQuality === 'HOSTILE' && oldQuality !== 'HOSTILE') {
+      console.log('📶 [WebRTC] Network degraded to HOSTILE - reducing quality');
+      this.emit('networkQuality', 'poor');
+      
+      // Apply bitrate limits if connected
+      if (this.pc && this.callState === 'connected' && this.callPreset) {
+        const survivalPreset = getCallPreset('HOSTILE', false);
+        applyBitrateLimits(this.pc, survivalPreset).catch(e => 
+          console.warn('⚠️ [WebRTC] Failed to apply bitrate limits:', e)
+        );
+      }
+    } else if (newQuality === 'GOOD' && oldQuality !== 'GOOD') {
+      console.log('📶 [WebRTC] Network improved to GOOD');
+      this.emit('networkQuality', 'excellent');
     }
   }
 
@@ -732,6 +786,18 @@ export class SimpleWebRTCCall {
     // Stop local tracks
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
+
+    // Cleanup ICE monitor
+    if (this.iceMonitor) {
+      this.iceMonitor.cleanup();
+      this.iceMonitor = null;
+    }
+    
+    // Cleanup network change listener
+    if (this.networkChangeCleanup) {
+      this.networkChangeCleanup();
+      this.networkChangeCleanup = null;
+    }
 
     // Close peer connection
     if (this.pc) {
