@@ -7,6 +7,19 @@ import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
 import { clearPreCallMediaStream, setPreCallMediaStream, takePreCallMediaStream } from "@/utils/preCallMedia";
+// Native call state helpers - inlined to avoid module resolution issues
+const isCallAcceptedByNative = (callId?: string): boolean => {
+  const state = (window as any).__CALL_STATE__;
+  if (!state?.accepted) return false;
+  if (callId && state.callId !== callId) return false;
+  console.log(`[NativeCall] Call ${callId?.slice(0, 8) || 'any'} already accepted by native`);
+  return true;
+};
+
+const clearNativeCallState = (): void => {
+  (window as any).__CALL_STATE__ = undefined;
+  console.log('[NativeCall] Native call state cleared');
+};
 
 // ARCHITECTURE: Skip web-based call handling when running inside native Android/iOS shell
 // Native shell uses TelecomManager (Android) / CallKit (iOS) for incoming calls
@@ -322,9 +335,15 @@ export function GlobalCallListener() {
     };
   }, [userId, toast, isNative]);
 
-  // Auto-request permissions silently when answering a call
+  // GUARD: Block web accept if native already accepted
   const handleAnswer = async () => {
     if (!incomingCall) return;
+
+    // CRITICAL: If native already accepted, skip - auto-join will handle it
+    if (isCallAcceptedByNative(incomingCall.id)) {
+      console.log('🚫 [GlobalCallListener] Web accept blocked - native already accepted');
+      return;
+    }
 
     try {
       // Acquire media under the user's gesture and hand it to the call UI.
@@ -373,10 +392,17 @@ export function GlobalCallListener() {
     }
   };
 
+  // Direct answer (used after media acquired or for auto-join)
   const handleAnswerDirect = async () => {
     if (!incomingCall) return;
 
-    console.log("✅ Answering call:", incomingCall.id);
+    // CRITICAL: If native already accepted, skip DB update - native already did it
+    const nativeAccepted = isCallAcceptedByNative(incomingCall.id);
+    if (nativeAccepted) {
+      console.log('✅ [GlobalCallListener] Auto-joining call (native accepted)');
+    } else {
+      console.log('✅ [GlobalCallListener] Answering call (web accept):', incomingCall.id);
+    }
 
     const preAcquiredStream = takePreCallMediaStream(incomingCall.id);
 
@@ -388,12 +414,15 @@ export function GlobalCallListener() {
     });
     setIncomingCall(null);
 
-    const { error } = await supabase
-      .from("calls")
-      .update({ status: "active", started_at: new Date().toISOString() })
-      .eq("id", incomingCall.id);
+    // Only update DB if this is a web accept (not native auto-join)
+    if (!nativeAccepted) {
+      const { error } = await supabase
+        .from("calls")
+        .update({ status: "active", started_at: new Date().toISOString() })
+        .eq("id", incomingCall.id);
 
-    if (error) console.error("Failed to update call status:", error);
+      if (error) console.error("Failed to update call status:", error);
+    }
   };
 
   const handleReject = async () => {
@@ -442,6 +471,9 @@ export function GlobalCallListener() {
     if (!activeCall) return;
 
     console.log("📵 Ending active call:", activeCall.id);
+
+    // Clear native call state when call ends
+    clearNativeCallState();
 
     await supabase
       .from("calls")
