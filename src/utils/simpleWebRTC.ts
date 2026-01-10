@@ -123,43 +123,45 @@ export class SimpleWebRTCCall {
       return;
     }
     this.started = true;
+    const startTime = Date.now();
     
     try {
-      console.log('🚀 [WebRTC] Starting with India-first optimizations...');
+      console.log('🚀 [WebRTC] FAST START - targeting <2s connection...');
       
-      // Step 0: Subscribe to network changes
-      this.networkChangeCleanup = onNetworkChange((quality) => {
-        console.log(`📶 [WebRTC] Network changed: ${this.networkQuality} → ${quality}`);
-        this.handleNetworkChange(quality);
-      });
-      
-      // Step 1: Get media using preset constraints
+      // PARALLEL: Create peer connection and subscribe to signals simultaneously
+      // This saves ~200-300ms by not waiting sequentially
+      const [_, __] = await Promise.all([
+        this.createPeerConnection(),
+        this.subscribeToSignals()
+      ]);
+
+      // Get media (may already be provided)
       if (!this.localStream) {
         await this.acquireMedia();
       } else {
         this.emit('localStream', this.localStream);
       }
 
-      // Step 2: Create peer connection
-      await this.createPeerConnection();
+      // Add tracks to peer connection
+      if (this.localStream && this.pc) {
+        this.localStream.getTracks().forEach(track => {
+          console.log('➕ [WebRTC] Adding track:', track.kind);
+          this.pc!.addTrack(track, this.localStream!);
+        });
+      }
 
-      // Step 3: Subscribe to signals
-      await this.subscribeToSignals();
-
-      // Step 4: Fetch past signals (offer for receiver, answer for initiator)
+      // Fetch past signals (for late joiners)
       await this.fetchPastSignals();
 
-      // Step 5: Create offer (initiator only, ONCE)
-      // FASTER: Reduced delay since subscription is async anyway
+      // Create offer IMMEDIATELY (no delay - receiver subscription is already active)
       if (this.isInitiator && !this.offerSent) {
-        await this.delay(150); // Minimal delay for receiver setup
         await this.createAndSendOffer();
       }
 
-      // Step 6: Set connection timeout (15 seconds for fast feedback)
+      // Set connection timeout
       this.startConnectionTimeout();
 
-      console.log('✅ [WebRTC] Setup complete');
+      console.log(`✅ [WebRTC] Setup complete in ${Date.now() - startTime}ms`);
     } catch (error: any) {
       console.error('❌ [WebRTC] Setup failed:', error);
       this.callState = 'failed';
@@ -216,41 +218,27 @@ export class SimpleWebRTCCall {
   }
 
   private async createPeerConnection() {
-    // OPTIMIZED: Use fast, reliable ICE config for quick connections
+    // ULTRA-FAST: Minimal ICE config for <2s connections
     const config: RTCConfiguration = {
       iceServers: [
-        // STUN first (fastest - direct P2P)
+        // STUN only - fastest for direct P2P (works 80%+ of the time)
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.cloudflare.com:3478' },
-        // TURN as fallback (for NAT traversal)
+        // Single TURN for NAT traversal fallback
         {
-          urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
+          urls: 'turn:openrelay.metered.ca:443',
           username: 'openrelayproject',
           credential: 'openrelayproject'
-        },
-        {
-          urls: ['turn:a.relay.metered.ca:80', 'turn:a.relay.metered.ca:443'],
-          username: 'e8dd65c92ae9a3b9bfcbeb6e',
-          credential: 'uWdWNmkhvyqTW1QP'
         }
       ],
-      iceTransportPolicy: 'all', // STUN first, TURN fallback (fast!)
+      iceTransportPolicy: 'all',
       bundlePolicy: 'max-bundle',
       rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 5, // Pre-gather candidates for speed
+      iceCandidatePoolSize: 2, // Minimal pre-gathering
     };
 
-    console.log('🔧 [WebRTC] Creating peer connection with optimized config');
+    console.log('🔧 [WebRTC] Creating FAST peer connection');
     this.pc = new RTCPeerConnection(config);
-
-    // Add local tracks
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => {
-        console.log('➕ [WebRTC] Adding track:', track.kind);
-        this.pc!.addTrack(track, this.localStream!);
-      });
-    }
 
     // Handle remote tracks - CRITICAL for bidirectional video
     this.pc.ontrack = (event) => {
@@ -592,20 +580,21 @@ export class SimpleWebRTCCall {
   private async sendSignal(signal: Signal) {
     const startTime = Date.now();
     try {
-      const { error, data } = await supabase.from('webrtc_signals').insert({
+      // FAST: Don't wait for select - fire and forget for speed
+      const { error } = await supabase.from('webrtc_signals').insert({
         call_id: this.callId,
         signal_type: signal.type,
         signal_data: signal.data,
         from_user: this.userId,
         to_user: this.partnerId
-      }).select('id').single();
+      });
       
       if (error) {
         console.error(`❌ [WebRTC] Signal send failed (${signal.type}):`, error.message);
         throw error;
       }
       
-      console.log(`📤 [WebRTC] Signal sent: ${signal.type} (${Date.now() - startTime}ms) id: ${data?.id?.slice(0, 8)}`);
+      console.log(`📤 [WebRTC] Signal sent: ${signal.type} (${Date.now() - startTime}ms)`);
     } catch (error: any) {
       console.error(`❌ [WebRTC] Failed to send ${signal.type}:`, error?.message || error);
     }
