@@ -39,10 +39,13 @@ export function getNetworkInfo(): NetworkInfo {
                      navigator.mozConnection || 
                      navigator.webkitConnection;
 
+  // CRITICAL FIX: Default to MODERATE assumptions (not HOSTILE)
+  // Modern browsers often lack connection API data, so assume decent network
+  // This enables STUN-first connections which are much faster
   return {
-    effectiveType: connection?.effectiveType || 'unknown',
-    rtt: connection?.rtt || 999, // Assume worst if unknown
-    downlink: connection?.downlink || 0.5 // Assume 500kbps if unknown
+    effectiveType: connection?.effectiveType || '4g', // Assume 4G if unknown (optimistic)
+    rtt: connection?.rtt ?? 150, // Assume 150ms if unknown (reasonable default)
+    downlink: connection?.downlink ?? 5 // Assume 5 Mbps if unknown (enables video)
   };
 }
 
