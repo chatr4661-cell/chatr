@@ -218,6 +218,10 @@ export class SimpleWebRTCCall {
   }
 
   private async createPeerConnection() {
+    // Detect Android WebView
+    const isAndroid = typeof navigator !== 'undefined' && 
+      /Android/i.test(navigator.userAgent);
+    
     // ULTRA-FAST: Minimal ICE config for <2s connections
     const config: RTCConfiguration = {
       iceServers: [
@@ -237,8 +241,13 @@ export class SimpleWebRTCCall {
       iceCandidatePoolSize: 2, // Minimal pre-gathering
     };
 
-    console.log('🔧 [WebRTC] Creating FAST peer connection');
+    console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
+    
+    // ANDROID FIX: Force VP8 codec for better Android WebView compatibility
+    if (isAndroid && this.isVideo) {
+      this.forceVP8Codec();
+    }
 
     // Handle remote tracks - CRITICAL for bidirectional video
     this.pc.ontrack = (event) => {
@@ -394,6 +403,43 @@ export class SimpleWebRTCCall {
       console.log('📶 [WebRTC] Network improved to GOOD');
       this.emit('networkQuality', 'excellent');
     }
+  }
+
+  /**
+   * Force VP8 codec for Android WebView compatibility
+   * VP9 can cause frozen video on some Android devices
+   */
+  private forceVP8Codec() {
+    if (!this.pc) return;
+    
+    const transceivers = this.pc.getTransceivers();
+    transceivers.forEach(transceiver => {
+      if (transceiver.sender.track?.kind === 'video' || transceiver.receiver.track?.kind === 'video') {
+        const codecs = RTCRtpReceiver.getCapabilities?.('video')?.codecs || [];
+        
+        // Prioritize VP8 over VP9 for Android compatibility
+        const vp8Codecs = codecs.filter(c => c.mimeType.toLowerCase().includes('vp8'));
+        const h264Codecs = codecs.filter(c => c.mimeType.toLowerCase().includes('h264'));
+        const otherCodecs = codecs.filter(c => 
+          !c.mimeType.toLowerCase().includes('vp8') && 
+          !c.mimeType.toLowerCase().includes('h264') &&
+          !c.mimeType.toLowerCase().includes('vp9')
+        );
+        const vp9Codecs = codecs.filter(c => c.mimeType.toLowerCase().includes('vp9'));
+        
+        // Order: VP8 (most compatible) -> H264 -> VP9 (can cause issues)
+        const orderedCodecs = [...vp8Codecs, ...h264Codecs, ...otherCodecs, ...vp9Codecs];
+        
+        if (orderedCodecs.length > 0 && transceiver.setCodecPreferences) {
+          try {
+            transceiver.setCodecPreferences(orderedCodecs);
+            console.log('🎬 [WebRTC] Forced VP8 codec priority for Android');
+          } catch (e) {
+            console.warn('⚠️ [WebRTC] Could not set codec preferences:', e);
+          }
+        }
+      }
+    });
   }
 
   private async fetchPastSignals() {

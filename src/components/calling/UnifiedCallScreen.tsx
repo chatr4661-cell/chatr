@@ -12,6 +12,7 @@ import { useCallKeepAlive } from '@/hooks/useCallKeepAlive';
 import { Capacitor } from '@capacitor/core';
 import { syncCallStateToNative } from '@/utils/androidBridge';
 import CallMoreMenu from './CallMoreMenu';
+import { startAggressiveVideoPlayback, attachVideoTrackRecoveryHandlers } from '@/utils/androidVideoPlayback';
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
 
@@ -62,6 +63,8 @@ export default function UnifiedCallScreen({
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
+  const videoPlaybackCleanupRef = useRef<(() => void) | null>(null);
+  const trackRecoveryCleanupRef = useRef<(() => void) | null>(null);
 
   const isVideo = callType === 'video' || isVideoOn || videoEnabled;
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -145,8 +148,8 @@ export default function UnifiedCallScreen({
           const audioTracks = stream.getAudioTracks();
           const videoTracks = stream.getVideoTracks();
           console.log(`  → Audio tracks: ${audioTracks.length}, Video tracks: ${videoTracks.length}`);
-          audioTracks.forEach(t => console.log(`    🔊 Audio: ${t.label}, enabled: ${t.enabled}`));
-          videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}`));
+          audioTracks.forEach(t => console.log(`    🔊 Audio: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
+          videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
           
           // CRITICAL: Always setup audio via Audio element
           if (!remoteAudioRef.current) {
@@ -157,64 +160,83 @@ export default function UnifiedCallScreen({
           remoteAudioRef.current.srcObject = stream;
           remoteAudioRef.current.play().catch(e => console.log('Audio autoplay:', e));
           
-          // CRITICAL: Always assign stream to video element for bidirectional video
-          // Both caller AND receiver need to see each other's video
-          if (remoteVideoRef.current) {
-            console.log('📺 [UnifiedCall] Assigning remote stream to video element');
-            remoteVideoRef.current.srcObject = stream;
+          // ANDROID WEBVIEW FIX: Use aggressive video playback helper
+          // This handles muted tracks, srcObject re-assignment, and retry loops
+          if (remoteVideoRef.current && videoTracks.length > 0) {
+            console.log('📺 [UnifiedCall] Starting aggressive video playback for Android');
             
-            // Check if there are video tracks NOW
-            if (videoTracks.length > 0) {
-              const track = videoTracks[0];
-              console.log(`📺 [UnifiedCall] Remote video track found: ${track.label}, ready: ${track.readyState}`);
-              
-              // Unmute for video playback with audio
-              remoteVideoRef.current.muted = false;
-              remoteVideoRef.current.volume = 1.0;
-              
-              remoteVideoRef.current.play()
-                .then(() => {
-                  console.log('✅ [UnifiedCall] Remote video PLAYING');
-                  setRemoteVideoActive(true);
-                })
-                .catch(e => {
-                  console.warn('⚠️ Remote video play blocked:', e);
-                  // Try muted first then unmute
-                  remoteVideoRef.current!.muted = true;
-                  remoteVideoRef.current!.play()
-                    .then(() => {
-                      remoteVideoRef.current!.muted = false;
-                      setRemoteVideoActive(true);
-                    })
-                    .catch(e2 => console.error('Video play failed:', e2));
-                });
+            // Cleanup previous playback attempt
+            if (videoPlaybackCleanupRef.current) {
+              videoPlaybackCleanupRef.current();
             }
+            
+            // Start aggressive playback with retry loop
+            videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
+              remoteVideoRef.current,
+              stream,
+              {
+                maxRetries: 15, // More retries for Android WebView
+                retryIntervalMs: 400,
+                onPlaybackStarted: () => {
+                  console.log('✅ [UnifiedCall] Remote video PLAYING (aggressive)');
+                  setRemoteVideoActive(true);
+                },
+                onPlaybackFailed: () => {
+                  console.warn('⚠️ [UnifiedCall] Video playback failed after all retries');
+                  // Keep trying with track recovery handlers
+                }
+              }
+            );
+          } else if (remoteVideoRef.current) {
+            // No video tracks yet, but assign stream for later
+            console.log('📺 [UnifiedCall] Assigning stream (no video tracks yet)');
+            remoteVideoRef.current.srcObject = stream;
           }
+          
+          // ANDROID WEBVIEW FIX: Attach comprehensive track recovery handlers
+          // This handles onunmute, onended, onmute, and track additions
+          if (trackRecoveryCleanupRef.current) {
+            trackRecoveryCleanupRef.current();
+          }
+          
+          trackRecoveryCleanupRef.current = attachVideoTrackRecoveryHandlers(
+            stream,
+            remoteVideoRef.current!,
+            (active) => {
+              console.log(`📺 [UnifiedCall] Video active state: ${active}`);
+              setRemoteVideoActive(active);
+              
+              // If video became active, ensure we're playing
+              if (active && remoteVideoRef.current) {
+                remoteVideoRef.current.play().catch(() => {});
+              }
+            }
+          );
           
           // BIDIRECTIONAL: Listen for tracks added AFTER initial stream
           // This handles FaceTime-style video upgrade AND delayed video from receiver
           stream.onaddtrack = (event) => {
             console.log('➕ [UnifiedCall] Track added:', event.track.kind, event.track.label);
             if (event.track.kind === 'video' && remoteVideoRef.current) {
-              console.log('📺 [UnifiedCall] Video track added - enabling remote video');
-              // Stream already assigned, just play
-              remoteVideoRef.current.muted = false;
-              remoteVideoRef.current.play()
-                .then(() => setRemoteVideoActive(true))
-                .catch(e => console.log('Dynamic video play:', e));
+              console.log('📺 [UnifiedCall] Video track added - starting aggressive playback');
+              
+              // Cleanup and restart aggressive playback
+              if (videoPlaybackCleanupRef.current) {
+                videoPlaybackCleanupRef.current();
+              }
+              
+              videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
+                remoteVideoRef.current,
+                stream,
+                {
+                  maxRetries: 15,
+                  retryIntervalMs: 400,
+                  onPlaybackStarted: () => setRemoteVideoActive(true),
+                  onPlaybackFailed: () => console.warn('Dynamic video playback failed')
+                }
+              );
             }
           };
-          
-          // Also handle track enabled changes (receiver toggling video on)
-          videoTracks.forEach(track => {
-            track.onunmute = () => {
-              console.log('📺 [UnifiedCall] Video track unmuted');
-              setRemoteVideoActive(true);
-              if (remoteVideoRef.current) {
-                remoteVideoRef.current.play().catch(() => {});
-              }
-            };
-          });
         });
 
         call.on('connected', () => {
@@ -316,6 +338,17 @@ export default function UnifiedCallScreen({
   const cleanup = () => {
     if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    
+    // ANDROID WEBVIEW FIX: Cleanup video playback helpers
+    if (videoPlaybackCleanupRef.current) {
+      videoPlaybackCleanupRef.current();
+      videoPlaybackCleanupRef.current = null;
+    }
+    if (trackRecoveryCleanupRef.current) {
+      trackRecoveryCleanupRef.current();
+      trackRecoveryCleanupRef.current = null;
+    }
+    
     if (remoteAudioRef.current) {
       remoteAudioRef.current.pause();
       remoteAudioRef.current.srcObject = null;
