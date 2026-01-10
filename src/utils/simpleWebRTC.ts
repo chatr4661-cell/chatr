@@ -146,19 +146,17 @@ export class SimpleWebRTCCall {
       // Step 3: Subscribe to signals
       await this.subscribeToSignals();
 
-      // Step 4: Fetch past signals
-      // - Receiver fetches offer
-      // - Initiator fetches answer (in case receiver replied faster)
+      // Step 4: Fetch past signals (offer for receiver, answer for initiator)
       await this.fetchPastSignals();
 
       // Step 5: Create offer (initiator only, ONCE)
-      // Add small delay to allow receiver to setup signaling subscription first
+      // FASTER: Reduced delay since subscription is async anyway
       if (this.isInitiator && !this.offerSent) {
-        await this.delay(300); // Allow receiver to subscribe
+        await this.delay(150); // Minimal delay for receiver setup
         await this.createAndSendOffer();
       }
 
-      // Step 6: Set connection timeout
+      // Step 6: Set connection timeout (15 seconds for fast feedback)
       this.startConnectionTimeout();
 
       console.log('✅ [WebRTC] Setup complete');
@@ -175,35 +173,31 @@ export class SimpleWebRTCCall {
       if (this.localStream) {
         this.localStream.getTracks().forEach(t => t.stop());
         this.localStream = null;
-        await this.delay(200);
+        await this.delay(100); // Shorter delay
       }
 
-      // India-first: Use preset-based constraints
-      const constraints = this.callPreset 
-        ? getMediaConstraints(this.callPreset, this.isVideo)
-        : {
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 48000,
-              channelCount: 2,
-            } as MediaTrackConstraints,
-            video: this.isVideo ? {
-              width: { ideal: 1920, min: 1280 },
-              height: { ideal: 1080, min: 720 },
-              frameRate: { ideal: 60, min: 30 },
-              facingMode: 'user',
-              aspectRatio: { ideal: 16/9 }
-            } : false
-          };
+      // FAST: Use simple, reliable constraints for quick media acquisition
+      const constraints: MediaStreamConstraints = {
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: this.isVideo ? {
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 },
+          frameRate: { ideal: 30 },
+          facingMode: 'user',
+        } : false
+      };
 
-      console.log('🎤 [WebRTC] Requesting media with preset constraints...');
+      console.log('🎤 [WebRTC] Requesting media...');
+      const startTime = Date.now();
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('✅ [WebRTC] Media acquired');
+      console.log(`✅ [WebRTC] Media acquired in ${Date.now() - startTime}ms`);
       this.emit('localStream', this.localStream);
     } catch (error: any) {
-      console.error('❌ [WebRTC] Media failed:', error);
+      console.error('❌ [WebRTC] Media failed:', error.name, error.message);
       
       // Try audio-only fallback for video calls
       if (this.isVideo && error.name !== 'NotAllowedError') {
@@ -222,26 +216,32 @@ export class SimpleWebRTCCall {
   }
 
   private async createPeerConnection() {
-    // India-first: Use preset-based configuration
-    const config = this.callPreset 
-      ? getWebRTCConfig(this.callPreset)
-      : {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            {
-              urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
-              username: 'openrelayproject',
-              credential: 'openrelayproject'
-            }
-          ],
-          iceTransportPolicy: 'all' as RTCIceTransportPolicy,
-          bundlePolicy: 'max-bundle' as RTCBundlePolicy,
-          rtcpMuxPolicy: 'require' as RTCRtcpMuxPolicy,
-          iceCandidatePoolSize: 20,
-        };
+    // OPTIMIZED: Use fast, reliable ICE config for quick connections
+    const config: RTCConfiguration = {
+      iceServers: [
+        // STUN first (fastest - direct P2P)
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        // TURN as fallback (for NAT traversal)
+        {
+          urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: ['turn:a.relay.metered.ca:80', 'turn:a.relay.metered.ca:443'],
+          username: 'e8dd65c92ae9a3b9bfcbeb6e',
+          credential: 'uWdWNmkhvyqTW1QP'
+        }
+      ],
+      iceTransportPolicy: 'all', // STUN first, TURN fallback (fast!)
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
+      iceCandidatePoolSize: 5, // Pre-gather candidates for speed
+    };
 
-    console.log(`🇮🇳 [WebRTC] Creating connection with ${this.callPreset?.name || 'default'} preset`);
+    console.log('🔧 [WebRTC] Creating peer connection with optimized config');
     this.pc = new RTCPeerConnection(config);
 
     // Add local tracks
@@ -267,12 +267,20 @@ export class SimpleWebRTCCall {
       }
     };
 
-    // Handle ICE candidates
+    // Handle ICE candidates - CRITICAL for connection establishment
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
-        console.log('🧊 [WebRTC] Sending ICE candidate');
-        this.sendSignal({ type: 'ice-candidate', data: event.candidate, from: this.userId });
+        const candidateType = event.candidate.type || 'unknown';
+        console.log(`🧊 [WebRTC] ICE candidate: ${candidateType} (${event.candidate.protocol || 'udp'})`);
+        this.sendSignal({ type: 'ice-candidate', data: event.candidate.toJSON(), from: this.userId });
+      } else {
+        console.log('✅ [WebRTC] ICE gathering complete');
       }
+    };
+
+    // Track ICE gathering state for debugging
+    this.pc.onicegatheringstatechange = () => {
+      console.log(`🧊 [WebRTC] ICE gathering state: ${this.pc?.iceGatheringState}`);
     };
 
     // Connection state changes
@@ -582,37 +590,61 @@ export class SimpleWebRTCCall {
   }
 
   private async sendSignal(signal: Signal) {
+    const startTime = Date.now();
     try {
-      const { error } = await supabase.from('webrtc_signals').insert({
+      const { error, data } = await supabase.from('webrtc_signals').insert({
         call_id: this.callId,
         signal_type: signal.type,
         signal_data: signal.data,
         from_user: this.userId,
         to_user: this.partnerId
-      });
+      }).select('id').single();
       
-      if (error) throw error;
-    } catch (error) {
-      console.error('❌ [WebRTC] Failed to send signal:', error);
+      if (error) {
+        console.error(`❌ [WebRTC] Signal send failed (${signal.type}):`, error.message);
+        throw error;
+      }
+      
+      console.log(`📤 [WebRTC] Signal sent: ${signal.type} (${Date.now() - startTime}ms) id: ${data?.id?.slice(0, 8)}`);
+    } catch (error: any) {
+      console.error(`❌ [WebRTC] Failed to send ${signal.type}:`, error?.message || error);
     }
   }
 
   private startConnectionTimeout() {
-    // 30 seconds to connect
+    // 15 seconds for initial connection (fast failure feedback)
     this.connectionTimeout = setTimeout(() => {
       if (this.callState === 'connecting') {
-        console.warn('⏰ [WebRTC] Connection timeout');
+        console.warn('⏰ [WebRTC] Connection timeout after 15s');
         
         if (!this.hasReceivedAnswer && this.isInitiator) {
           // No answer received - partner may not have answered yet
+          console.log('⏳ [WebRTC] No answer yet, waiting...');
           this.emit('recoveryStatus', { message: 'Waiting for answer...' });
+          // Extend timeout for another 15s
+          this.connectionTimeout = setTimeout(() => {
+            if (this.callState === 'connecting') {
+              console.error('❌ [WebRTC] Connection failed - no answer');
+              this.callState = 'failed';
+              this.emit('failed', new Error('No answer received'));
+            }
+          }, 15000);
         } else {
           // Have answer but still not connected - ICE issue
-          this.emit('recoveryStatus', { message: 'Connecting...' });
+          console.log('🔄 [WebRTC] ICE stalled, restarting...');
+          this.emit('recoveryStatus', { message: 'Reconnecting...' });
           this.pc?.restartIce();
+          // Give 10 more seconds after restart
+          this.connectionTimeout = setTimeout(() => {
+            if (this.callState === 'connecting') {
+              console.error('❌ [WebRTC] Connection failed after ICE restart');
+              this.callState = 'failed';
+              this.emit('failed', new Error('ICE connection failed'));
+            }
+          }, 10000);
         }
       }
-    }, 30000);
+    }, 15000);
   }
 
   private clearConnectionTimeout() {

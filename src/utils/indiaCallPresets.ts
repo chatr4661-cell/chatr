@@ -74,27 +74,35 @@ export const INDIA_SURVIVAL: CallPreset = {
   description: 'Optimized for hostile networks (2G, basements, rural)',
   
   iceServers: BASE_ICE_SERVERS,
-  iceTransportPolicy: 'relay', // TURN-only for reliability
+  // CRITICAL FIX: Use 'all' instead of 'relay' to enable STUN (much faster)
+  // TURN-only ('relay') depends on overloaded free servers = slow/fails
+  iceTransportPolicy: 'all', // Allow STUN for fast P2P connections
   
   bundlePolicy: 'max-bundle',
   rtcpMuxPolicy: 'require',
   iceCandidatePoolSize: 10,
   
-  connectionTimeoutMs: 45000, // 45s timeout
-  iceDisconnectToleranceMs: 12000, // 12s elevator survival
-  maxReconnectAttempts: 5,
+  connectionTimeoutMs: 30000, // 30s timeout (faster failure detection)
+  iceDisconnectToleranceMs: 10000, // 10s tolerance
+  maxReconnectAttempts: 3,
   
   audio: {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
-    sampleRate: 16000, // Lower for bandwidth
+    sampleRate: 24000, // Better quality, still efficient
     channelCount: 1, // Mono
   },
-  video: false, // Audio-only in survival mode
+  video: {
+    // Enable basic video even in survival mode
+    width: { ideal: 320, max: 480 },
+    height: { ideal: 240, max: 360 },
+    frameRate: { ideal: 10, max: 15 },
+    facingMode: 'user',
+  },
   
-  maxAudioBitrate: 12, // 12 kbps Opus
-  maxVideoBitrate: 0,
+  maxAudioBitrate: 24, // Better audio quality
+  maxVideoBitrate: 150, // Low but usable video
 };
 
 /**
