@@ -1,3 +1,15 @@
+// Native bridge utilities for Android TelecomManager / iOS CallKit integration
+
+/**
+ * Native call state set by Android TelecomManager / iOS CallKit
+ * Web UI checks this to auto-join calls accepted by native
+ */
+export interface NativeCallState {
+  callId: string;
+  accepted: boolean;
+  acceptedAt?: number;
+}
+
 declare global {
   interface Window {
     Android?: {
@@ -23,11 +35,12 @@ declare global {
       onCallConnected: (callId: string) => void;
       onCallEnded: (callId: string) => void;
     };
+    /** Set by native shell when user accepts via TelecomManager/CallKit */
+    __CALL_STATE__?: NativeCallState;
   }
 }
 
 export const openMiniApp = (packageName: string, fallbackUrl: string) => {
-  // Check if we are running inside the Chatr Android App
   if (typeof window !== "undefined" && window.Android) {
     try {
       console.log(`[Bridge] Launching Native: ${packageName}`);
@@ -37,7 +50,6 @@ export const openMiniApp = (packageName: string, fallbackUrl: string) => {
       window.location.href = fallbackUrl;
     }
   } else {
-    // Fallback for Desktop/iOS users
     console.log("[Bridge] Opening Web Fallback");
     window.open(fallbackUrl, "_blank");
   }
@@ -57,7 +69,6 @@ export const isAppInstalled = (packageName: string): boolean => {
 
 /**
  * Sync auth credentials to native Android app via NativeAuth bridge
- * This enables native screens to access authenticated Supabase data
  */
 export const syncAuthToNative = (
   state: 'SIGNED_IN' | 'SIGNED_OUT',
@@ -67,7 +78,6 @@ export const syncAuthToNative = (
 ): boolean => {
   console.log(`[NativeAuth] Syncing auth state: ${state}, userId: ${userId?.substring(0, 8)}...`);
 
-  // Try NativeAuth bridge first (WebAuthBridge interface)
   if (typeof window !== "undefined" && window.NativeAuth) {
     try {
       if (state === 'SIGNED_IN' && accessToken && userId) {
@@ -88,15 +98,9 @@ export const syncAuthToNative = (
     }
   }
 
-  // Fallback: Try NativeBridge.sendEvent
   if (typeof window !== "undefined" && window.NativeBridge?.sendEvent) {
     try {
-      const data = JSON.stringify({
-        state,
-        userId,
-        accessToken,
-        refreshToken
-      });
+      const data = JSON.stringify({ state, userId, accessToken, refreshToken });
       window.NativeBridge.sendEvent('auth_state_changed', data);
       console.log('[NativeAuth] Auth state synced via NativeBridge.sendEvent');
       return true;
@@ -105,7 +109,6 @@ export const syncAuthToNative = (
     }
   }
 
-  // Fallback: Try ChatrNative.postMessage
   if (typeof window !== "undefined" && window.ChatrNative?.postMessage) {
     try {
       const message = JSON.stringify({
@@ -124,9 +127,6 @@ export const syncAuthToNative = (
   return false;
 };
 
-/**
- * Check if running inside native Android WebView with NativeAuth bridge
- */
 export const isNativeApp = (): boolean => {
   return typeof window !== "undefined" && (
     !!window.Android || 
@@ -136,16 +136,12 @@ export const isNativeApp = (): boolean => {
   );
 };
 
-/**
- * Check if NativeAuth bridge is specifically available
- */
 export const hasNativeAuthBridge = (): boolean => {
   return typeof window !== "undefined" && !!window.NativeAuth;
 };
 
 /**
  * Notify native shell when WebRTC call state changes
- * This syncs connection status to Android TelecomManager UI
  */
 export const syncCallStateToNative = (
   callId: string,
@@ -153,7 +149,6 @@ export const syncCallStateToNative = (
 ): boolean => {
   console.log(`[NativeCall] Syncing call state: ${callId.slice(0, 8)} -> ${state}`);
 
-  // Try ChatrCall bridge first (direct native bridge)
   if (typeof window !== "undefined" && window.ChatrCall) {
     try {
       if (state === 'connected') {
@@ -170,7 +165,6 @@ export const syncCallStateToNative = (
     }
   }
 
-  // Fallback: NativeBridge.sendEvent
   if (typeof window !== "undefined" && window.NativeBridge?.sendEvent) {
     try {
       window.NativeBridge.sendEvent('call_state_changed', JSON.stringify({ callId, state }));
@@ -181,7 +175,6 @@ export const syncCallStateToNative = (
     }
   }
 
-  // Fallback: ChatrNative.postMessage
   if (typeof window !== "undefined" && window.ChatrNative?.postMessage) {
     try {
       window.ChatrNative.postMessage(JSON.stringify({
@@ -198,3 +191,37 @@ export const syncCallStateToNative = (
   console.log('[NativeCall] No native call bridge available');
   return false;
 };
+
+/**
+ * Check if native shell has already accepted a call
+ * Used by web UI to skip the accept button and auto-join WebRTC
+ */
+export function isCallAcceptedByNative(callId?: string): boolean {
+  const state = window.__CALL_STATE__;
+  if (!state?.accepted) return false;
+  
+  if (callId && state.callId !== callId) return false;
+  
+  console.log(`[NativeCall] Call ${callId?.slice(0, 8) || 'any'} already accepted by native`);
+  return true;
+}
+
+/**
+ * Set native call state (called by native bridge when user accepts via TelecomManager/CallKit)
+ */
+export function setNativeCallAccepted(callId: string): void {
+  window.__CALL_STATE__ = {
+    callId,
+    accepted: true,
+    acceptedAt: Date.now()
+  };
+  console.log(`[NativeCall] Native accepted call: ${callId.slice(0, 8)}`);
+}
+
+/**
+ * Clear native call state (called when call ends)
+ */
+export function clearNativeCallState(): void {
+  window.__CALL_STATE__ = undefined;
+  console.log('[NativeCall] Native call state cleared');
+}
