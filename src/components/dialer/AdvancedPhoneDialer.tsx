@@ -3,7 +3,8 @@ import {
   Phone, Video, Delete, Search, Star, Clock, Users, 
   Voicemail, PhoneIncoming, PhoneOutgoing, PhoneMissed,
   MoreVertical, Hash, Plus, X, Shield, Wifi, WifiOff, 
-  Zap, Signal, Lock, UserPlus, MessageCircle, Settings2
+  Zap, Signal, Lock, UserPlus, MessageCircle, Settings2,
+  CheckCircle2, Send, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { NetworkConfidencePill, useNetworkQuality, getCallHint, type NetworkQuality } from './NetworkConfidencePill';
+import { CallOutcomeBadge, getPreferredCallMode, getReliabilityLabel } from './CallOutcomeBadge';
 
 interface Contact {
   id: string;
@@ -54,6 +58,13 @@ interface CallLog {
   duration: number;
   started_at: string;
   created_at: string;
+  connection_quality?: string;
+  missed?: boolean;
+}
+
+interface NonChatrContact {
+  phone: string;
+  name?: string;
 }
 
 interface AdvancedPhoneDialerProps {
@@ -97,8 +108,11 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
   const [activeTab, setActiveTab] = useState<'keypad' | 'recents' | 'contacts' | 'favorites'>('keypad');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showSpeedDial, setShowSpeedDial] = useState(false);
+  const [showNonChatrDialog, setShowNonChatrDialog] = useState(false);
+  const [nonChatrTarget, setNonChatrTarget] = useState<NonChatrContact | null>(null);
   const [speedDials, setSpeedDials] = useState<Record<string, Contact>>({});
-  const [networkStatus, setNetworkStatus] = useState<'excellent' | 'good' | 'poor'>('excellent');
+  const [networkQuality, setNetworkQuality] = useState<NetworkQuality>('excellent');
+  const [inputHint, setInputHint] = useState('Dial a number or search someone on Chatr');
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -106,20 +120,6 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
   // Initialize
   useEffect(() => {
     loadData();
-    
-    // Monitor network quality
-    const checkNetwork = () => {
-      const connection = (navigator as any).connection;
-      if (connection) {
-        const effectiveType = connection.effectiveType;
-        if (effectiveType === '4g') setNetworkStatus('excellent');
-        else if (effectiveType === '3g') setNetworkStatus('good');
-        else setNetworkStatus('poor');
-      }
-    };
-    checkNetwork();
-    const interval = setInterval(checkNetwork, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   // Search for CHATR users when typing
@@ -463,12 +463,59 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
     return `${number.slice(0, 3)} ${number.slice(3, 6)} ${number.slice(6, 10)} ${number.slice(10)}`;
   };
 
-  const getNetworkIcon = () => {
-    switch (networkStatus) {
-      case 'excellent': return <Signal className="h-4 w-4 text-green-500" />;
-      case 'good': return <Wifi className="h-4 w-4 text-yellow-500" />;
-      case 'poor': return <WifiOff className="h-4 w-4 text-destructive" />;
+  // Update input hint based on context
+  useEffect(() => {
+    if (!dialedNumber) {
+      setInputHint('Dial a number or search someone on Chatr');
+    } else if (searching) {
+      setInputHint('Checking availability...');
+    } else if (matchingUsers.length > 0) {
+      setInputHint('Available on Chatr · Free internet call');
+    } else if (/^[\d\s+\-()]+$/.test(dialedNumber.replace(/\s/g, ''))) {
+      setInputHint('Not on Chatr · Call via SMS or WhatsApp');
+    } else {
+      setInputHint('Search by username or phone number');
     }
+  }, [dialedNumber, searching, matchingUsers]);
+
+  // Handle video call with network-aware downgrade
+  const handleSmartVideoCall = (contact: Contact) => {
+    if (networkQuality === 'poor' || networkQuality === 'offline') {
+      toast.info('Starting audio first for reliability', {
+        description: 'Video will upgrade when network improves',
+        duration: 3000
+      });
+      onCall(contact.id, contact.username, 'voice');
+    } else if (networkQuality === 'good') {
+      toast.info('Starting audio first for reliability', { duration: 2000 });
+      onCall(contact.id, contact.username, 'voice');
+    } else {
+      onCall(contact.id, contact.username, 'video');
+    }
+  };
+
+  // Handle non-Chatr number
+  const handleNonChatrCall = (phone: string, name?: string) => {
+    setNonChatrTarget({ phone, name });
+    setShowNonChatrDialog(true);
+  };
+
+  const sendSMS = (phone: string) => {
+    window.open(`sms:${phone}`, '_blank');
+    setShowNonChatrDialog(false);
+  };
+
+  const openWhatsApp = (phone: string) => {
+    const cleanPhone = phone.replace(/[\s\-()]/g, '').replace(/^\+/, '');
+    window.open(`https://wa.me/${cleanPhone}`, '_blank');
+    setShowNonChatrDialog(false);
+  };
+
+  const inviteToChatr = (phone: string) => {
+    const message = encodeURIComponent("I'm calling you on Chatr — works even on weak networks. Download: https://chatr.chat");
+    window.open(`sms:${phone}?body=${message}`, '_blank');
+    setShowNonChatrDialog(false);
+    toast.success('Invite sent!');
   };
 
   const openChat = (contactId: string) => {
@@ -494,12 +541,16 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          {/* Network status */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 text-xs">
-            {getNetworkIcon()}
+        <div className="flex items-center gap-2">
+          {/* Network Confidence Pill - World-class indicator */}
+          <NetworkConfidencePill 
+            onQualityChange={setNetworkQuality}
+            showLabel={true}
+          />
+          
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20">
             <Lock className="h-3 w-3 text-green-500" />
-            <span className="text-muted-foreground hidden sm:inline">Secure</span>
+            <span className="text-xs text-green-600 hidden sm:inline">Secure</span>
           </div>
           
           <DropdownMenu>
@@ -569,9 +620,22 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                   }}
                 >
                   {formatPhoneNumber(dialedNumber) || (
-                    <span className="text-muted-foreground/50 text-xl">Enter number or username</span>
+                    <span className="text-muted-foreground/50 text-lg">Enter number, username, or search contacts</span>
                   )}
                 </p>
+                {/* Dynamic hint text */}
+                <motion.p 
+                  key={inputHint}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={cn(
+                    "text-xs mt-1.5",
+                    matchingUsers.length > 0 ? "text-green-500" : "text-muted-foreground"
+                  )}
+                >
+                  {matchingUsers.length > 0 && <CheckCircle2 className="h-3 w-3 inline mr-1" />}
+                  {inputHint}
+                </motion.p>
               </motion.div>
             </AnimatePresence>
             
@@ -581,7 +645,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                 {searching ? (
                   <div className="flex items-center justify-center gap-2 py-2">
                     <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-muted-foreground">Searching...</span>
+                    <span className="text-sm text-muted-foreground">Checking availability...</span>
                   </div>
                 ) : matchingUsers.length > 0 ? (
                   <ScrollArea className="max-h-32">
@@ -593,7 +657,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                         onClick={() => initiateCall(user, 'voice')}
                         className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary/10 transition-all group"
                       >
-                        <Avatar className="h-9 w-9 ring-2 ring-primary/20">
+                        <Avatar className="h-9 w-9 ring-2 ring-green-500/30">
                           <AvatarImage src={user.avatar_url} />
                           <AvatarFallback className="bg-primary/10 text-primary">
                             {user.username[0]?.toUpperCase()}
@@ -601,12 +665,12 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                         </Avatar>
                         <div className="flex-1 text-left">
                           <p className="text-sm font-medium">{user.username}</p>
-                          <p className="text-xs text-green-500 flex items-center gap-1">
-                            <Shield className="h-3 w-3" />
-                            CHATR User
-                          </p>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-500/10 text-green-600 border-0">
+                            <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                            On Chatr
+                          </Badge>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1">
                           <Button 
                             size="icon" 
                             variant="ghost" 
@@ -618,8 +682,11 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                           <Button 
                             size="icon" 
                             variant="ghost" 
-                            className="h-8 w-8 rounded-full bg-blue-500/10 hover:bg-blue-500/20"
-                            onClick={(e) => { e.stopPropagation(); initiateCall(user, 'video'); }}
+                            className={cn(
+                              "h-8 w-8 rounded-full bg-blue-500/10 hover:bg-blue-500/20",
+                              networkQuality === 'poor' && "opacity-50"
+                            )}
+                            onClick={(e) => { e.stopPropagation(); handleSmartVideoCall(user); }}
                           >
                             <Video className="h-4 w-4 text-blue-500" />
                           </Button>
@@ -627,9 +694,32 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                       </motion.button>
                     ))}
                   </ScrollArea>
+                ) : dialedNumber.length >= 3 && /^[\d\s+\-()]+$/.test(dialedNumber.replace(/\s/g, '')) ? (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={() => handleNonChatrCall(dialedNumber)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-medium">{formatPhoneNumber(dialedNumber)}</p>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
+                        Not on Chatr
+                      </Badge>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                        <Send className="h-3 w-3" />
+                        Invite
+                      </Button>
+                    </div>
+                  </motion.button>
                 ) : dialedNumber.length >= 2 ? (
                   <p className="text-center text-sm text-muted-foreground py-2">
-                    No CHATR users found
+                    No Chatr users found
                   </p>
                 ) : null}
               </div>
@@ -665,46 +755,68 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             </div>
           </div>
 
-          {/* Call buttons */}
-          <div className="flex items-center justify-center gap-6 pb-6 pt-3">
-            {/* Delete */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleDelete}
-              onDoubleClick={handleClear}
-              disabled={!dialedNumber}
-              className="w-12 h-12 rounded-full bg-muted/60 disabled:opacity-30 flex items-center justify-center hover:bg-muted transition-colors"
-            >
-              <Delete className="h-5 w-5" />
-            </motion.button>
+          {/* Call buttons with network-aware hints */}
+          <div className="flex flex-col items-center gap-2 pb-6 pt-3">
+            <div className="flex items-center justify-center gap-6">
+              {/* Delete */}
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleDelete}
+                onDoubleClick={handleClear}
+                disabled={!dialedNumber}
+                className="w-12 h-12 rounded-full bg-muted/60 disabled:opacity-30 flex items-center justify-center hover:bg-muted transition-colors"
+              >
+                <Delete className="h-5 w-5" />
+              </motion.button>
 
-            {/* Voice call */}
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.05 }}
-              onClick={() => handleCall('voice')}
-              className={cn(
-                "w-[68px] h-[68px] rounded-full flex items-center justify-center shadow-lg",
-                "bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500",
-                "transition-all duration-200"
-              )}
-            >
-              <Phone className="h-7 w-7 text-white" />
-            </motion.button>
+              {/* Voice call */}
+              <div className="flex flex-col items-center gap-1">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => handleCall('voice')}
+                  className={cn(
+                    "w-[68px] h-[68px] rounded-full flex items-center justify-center shadow-lg",
+                    "bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500",
+                    "transition-all duration-200"
+                  )}
+                >
+                  <Phone className="h-7 w-7 text-white" />
+                </motion.button>
+                {(networkQuality === 'good' || networkQuality === 'poor') && (
+                  <span className="text-[10px] text-green-600 font-medium">Best for weak networks</span>
+                )}
+              </div>
 
-            {/* Video call */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.05 }}
-              onClick={() => handleCall('video')}
-              className={cn(
-                "w-12 h-12 rounded-full flex items-center justify-center shadow-md",
-                "bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500",
-                "transition-all duration-200"
-              )}
-            >
-              <Video className="h-5 w-5 text-white" />
-            </motion.button>
+              {/* Video call */}
+              <div className="flex flex-col items-center gap-1">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => {
+                    if (matchingUsers.length > 0) {
+                      handleSmartVideoCall(matchingUsers[0]);
+                    } else {
+                      handleCall('video');
+                    }
+                  }}
+                  className={cn(
+                    "w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-200",
+                    networkQuality === 'poor' || networkQuality === 'offline'
+                      ? "bg-gradient-to-br from-gray-400 to-gray-500"
+                      : "bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500"
+                  )}
+                >
+                  <Video className="h-5 w-5 text-white" />
+                </motion.button>
+                {networkQuality === 'good' && (
+                  <span className="text-[10px] text-yellow-600 font-medium">May start as audio</span>
+                )}
+                {networkQuality === 'poor' && (
+                  <span className="text-[10px] text-muted-foreground font-medium">Audio only</span>
+                )}
+              </div>
+            </div>
           </div>
         </TabsContent>
 
@@ -742,20 +854,18 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                       <div className="flex-1 min-w-0">
                         <p className={cn(
                           "font-medium truncate",
-                          (call.status === 'missed' || call.status === 'rejected') && "text-destructive"
+                          (call.status === 'missed' || call.status === 'rejected' || call.missed) && "text-destructive"
                         )}>
                           {contactName || 'Unknown'}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {getCallIcon(call)}
-                          <span>{call.call_type === 'video' ? 'Video' : 'Voice'}</span>
-                          {call.duration > 0 && (
-                            <>
-                              <span>•</span>
-                              <span>{formatDuration(call.duration)}</span>
-                            </>
-                          )}
-                        </div>
+                        {/* Enhanced outcome badge with explanation */}
+                        <CallOutcomeBadge
+                          status={call.missed ? 'missed' : call.status}
+                          callType={call.call_type}
+                          duration={call.duration}
+                          isOutgoing={isOutgoing}
+                          connectionQuality={call.connection_quality}
+                        />
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">
@@ -1021,6 +1131,44 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                 )}
               </div>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Non-Chatr Contact Dialog */}
+      <Dialog open={showNonChatrDialog} onOpenChange={setShowNonChatrDialog}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Call options</DialogTitle>
+            <DialogDescription>
+              {nonChatrTarget?.name || nonChatrTarget?.phone} is not on Chatr yet
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3"
+              onClick={() => nonChatrTarget && sendSMS(nonChatrTarget.phone)}
+            >
+              <Send className="h-4 w-4" />
+              Send SMS
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 text-green-600 border-green-200 hover:bg-green-50"
+              onClick={() => nonChatrTarget && openWhatsApp(nonChatrTarget.phone)}
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open WhatsApp
+            </Button>
+            <Button
+              variant="default"
+              className="w-full justify-start gap-3"
+              onClick={() => nonChatrTarget && inviteToChatr(nonChatrTarget.phone)}
+            >
+              <UserPlus className="h-4 w-4" />
+              Invite to Chatr (recommended)
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
