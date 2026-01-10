@@ -15,10 +15,17 @@ interface Signal {
 
 // GLOBAL: Prevent duplicate WebRTC instances for same call
 const activeCallInstances = new Map<string, SimpleWebRTCCall>();
+// CRITICAL: Prevent race conditions during instance creation
+const creationLocks = new Set<string>();
 
 // Get existing instance (TRUE singleton pattern)
 export function getExistingCall(callId: string): SimpleWebRTCCall | undefined {
   return activeCallInstances.get(callId);
+}
+
+// Check if instance exists or is being created
+export function hasActiveCall(callId: string): boolean {
+  return activeCallInstances.has(callId) || creationLocks.has(callId);
 }
 
 // Clear existing instance for a call
@@ -28,13 +35,14 @@ export function clearCallInstance(callId: string): void {
     existing.end();
   }
   activeCallInstances.delete(callId);
+  creationLocks.delete(callId);
 }
 
 /**
  * SimpleWebRTCCall - Robust, Fast WebRTC Implementation
  * 
  * Key improvements:
- * - TRUE SINGLETON per call ID (factory pattern)
+ * - TRUE SINGLETON per call ID (factory pattern with creation lock)
  * - Faster ICE gathering with aggressive candidate pool
  * - Single offer per connection attempt (no spam)
  * - Proper answer timeout handling
@@ -54,6 +62,7 @@ export class SimpleWebRTCCall {
   private answerSent: boolean = false;
   private processedSignalIds: Set<string> = new Set();
   private started: boolean = false;
+  private instanceId: string; // For debugging
   
   // India-first: Network-aware configuration
   private networkQuality: NetworkQuality = 'HOSTILE'; // Default to worst-case
@@ -70,15 +79,33 @@ export class SimpleWebRTCCall {
     userId: string,
     initialLocalStream: MediaStream | null = null
   ): SimpleWebRTCCall {
-    // STRICT SINGLETON: Return existing instance
+    // STRICT SINGLETON CHECK 1: Return existing instance
     const existing = activeCallInstances.get(callId);
     if (existing) {
       console.log('⚠️ [WebRTC] Returning existing instance for call:', callId.slice(0, 8));
       return existing;
     }
     
+    // STRICT SINGLETON CHECK 2: Block if creation in progress
+    if (creationLocks.has(callId)) {
+      console.log('🔒 [WebRTC] Creation in progress, waiting for existing instance:', callId.slice(0, 8));
+      // Return existing if it appeared during the lock
+      const waitingInstance = activeCallInstances.get(callId);
+      if (waitingInstance) return waitingInstance;
+      // This shouldn't happen, but create anyway with warning
+      console.warn('⚠️ [WebRTC] Lock exists but no instance - creating anyway');
+    }
+    
+    // Acquire creation lock BEFORE creating instance
+    creationLocks.add(callId);
+    console.log('🔐 [WebRTC] Acquired creation lock for:', callId.slice(0, 8));
+    
     const instance = new SimpleWebRTCCall(callId, partnerId, isVideo, isInitiator, userId, initialLocalStream);
     activeCallInstances.set(callId, instance);
+    
+    // Release lock (instance is now in map)
+    creationLocks.delete(callId);
+    
     return instance;
   }
 
@@ -90,11 +117,14 @@ export class SimpleWebRTCCall {
     private userId: string,
     initialLocalStream: MediaStream | null = null
   ) {
+    // Generate unique instance ID for debugging duplicate detection
+    this.instanceId = `${callId.slice(0, 8)}-${Date.now().toString(36)}`;
+    
     if (initialLocalStream) {
       this.localStream = initialLocalStream;
       console.log('🎤 [WebRTC] Using pre-acquired media stream');
     }
-    console.log('🎬 [WebRTC] Init:', { callId: callId.slice(0, 8), isVideo, isInitiator, userId: userId.slice(0, 8) });
+    console.log(`🎬 [WebRTC] Init [${this.instanceId}]:`, { isVideo, isInitiator, userId: userId.slice(0, 8) });
     
     // India-first: Classify network immediately
     this.networkQuality = classifyNetwork();
@@ -338,11 +368,15 @@ export class SimpleWebRTCCall {
   private handleConnected() {
     if (this.callState === 'connected') return;
     
-    console.log('🎉 [WebRTC] CONNECTED!');
+    console.log(`🎉 [WebRTC] CONNECTED! [${this.instanceId}]`);
     this.callState = 'connected';
     this.clearConnectionTimeout();
     this.emit('connected');
     this.emit('networkQuality', 'good');
+    
+    // CRITICAL: Update call status to 'active' in database
+    // This ensures UI and native shells know the call is truly connected
+    this.updateCallToActive();
     
     // India-first: Apply bitrate limits based on preset
     if (this.pc && this.callPreset) {
@@ -351,6 +385,27 @@ export class SimpleWebRTCCall {
       }).catch(e => {
         console.warn('⚠️ [WebRTC] Failed to apply bitrate limits:', e);
       });
+    }
+  }
+  
+  private async updateCallToActive() {
+    try {
+      const { error } = await supabase
+        .from('calls')
+        .update({ 
+          status: 'active', 
+          webrtc_state: 'connected',
+          started_at: new Date().toISOString()
+        })
+        .eq('id', this.callId);
+      
+      if (error) {
+        console.warn('⚠️ [WebRTC] Failed to update call to active:', error);
+      } else {
+        console.log('✅ [WebRTC] Call status updated to active');
+      }
+    } catch (e) {
+      console.warn('⚠️ [WebRTC] Error updating call status:', e);
     }
   }
 
