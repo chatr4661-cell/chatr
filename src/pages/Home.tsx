@@ -312,20 +312,6 @@ const Home = () => {
                 <Search className="w-5 h-5" />
               </Button>
             </div>
-            
-            {/* Trending inline */}
-            <div className="flex items-center gap-2 mt-3 overflow-x-auto scrollbar-hide">
-              <TrendingUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              {trendingSearches.map((term) => (
-                <button
-                  key={term}
-                  onClick={() => handleSearch(term)}
-                  className="text-xs px-2.5 py-1 rounded-full bg-background/60 hover:bg-background text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
-                >
-                  {term}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Recent Chats - Only if authenticated and has chats */}
