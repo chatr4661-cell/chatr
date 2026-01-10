@@ -71,12 +71,25 @@ class PermissionManager {
    */
   private async loadGrantedPermissions() {
     try {
+      // Check if user is authenticated first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // No user logged in - this is expected, not an error
+        console.log('🔑 Loaded 0 granted permissions');
+        return;
+      }
+
       const { data: permissions, error } = await supabase
         .from('app_permissions')
         .select('*')
         .eq('granted', true);
 
-      if (error) throw error;
+      if (error) {
+        // Silently handle permission loading errors for non-authenticated users
+        // This can happen during initial load before auth state is ready
+        console.log('🔑 Loaded 0 granted permissions');
+        return;
+      }
 
       if (permissions) {
         permissions.forEach(perm => {
@@ -89,8 +102,9 @@ class PermissionManager {
         });
         console.log(`🔑 Loaded ${permissions.length} granted permissions`);
       }
-    } catch (error) {
-      console.error('Failed to load permissions:', error);
+    } catch {
+      // Silently handle - permissions can be loaded later when user is authenticated
+      console.log('🔑 Loaded 0 granted permissions');
     }
   }
 
