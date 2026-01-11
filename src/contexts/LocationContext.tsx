@@ -242,21 +242,37 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     updateBackendLocation(manual);
   }, [updateBackendLocation]);
 
-  // Initialize on mount
+  // Initialize on mount - NON-BLOCKING with cache-first strategy
   useEffect(() => {
-    // Try cache first
+    // PERFORMANCE: Try cache first and show immediately (non-blocking)
     const cached = localStorage.getItem('chatr_location');
     if (cached) {
-      const cachedLoc = JSON.parse(cached);
-      if (Date.now() - cachedLoc.timestamp < 300000) { // 5 minutes
-        console.log('📍 Using cached location');
+      try {
+        const cachedLoc = JSON.parse(cached);
+        console.log('📍 Using cached location (instant)');
         setLocation(cachedLoc);
-        return;
+        
+        // If cache is fresh (< 5 min), skip refresh
+        if (Date.now() - cachedLoc.timestamp < 300000) {
+          return;
+        }
+      } catch (e) {
+        console.error('Cache parse error:', e);
       }
     }
 
-    // Request fresh location
-    refreshLocation();
+    // PERFORMANCE: Defer location fetch to idle time
+    // This prevents blocking initial render
+    const scheduleRefresh = () => {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => refreshLocation(), { timeout: 5000 });
+      } else {
+        // Fallback: delay by 2 seconds
+        setTimeout(refreshLocation, 2000);
+      }
+    };
+
+    scheduleRefresh();
   }, [refreshLocation]);
 
   return (

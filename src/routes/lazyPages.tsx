@@ -7,6 +7,27 @@ import { lazy } from 'react';
  */
 
 // ============================================
+// PRELOAD CRITICAL ROUTES
+// Preload commonly visited pages after initial load
+// ============================================
+export const preloadCriticalRoutes = () => {
+  // Defer preloading to idle time
+  const preload = () => {
+    // Most commonly visited after login
+    import('@/pages/Chat');
+    import('@/pages/Calls');
+    import('@/pages/Profile');
+    import('@/pages/Home');
+  };
+
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(preload, { timeout: 3000 });
+  } else {
+    setTimeout(preload, 1500);
+  }
+};
+
+// ============================================
 // CRITICAL PAGES (Keep eagerly loaded for instant navigation)
 // These are imported directly in App.tsx
 // ============================================
