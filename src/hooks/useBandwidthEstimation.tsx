@@ -24,13 +24,19 @@ export const useBandwidthEstimation = () => {
    */
   const updateNetworkInfo = useCallback(() => {
     // @ts-ignore - NetworkInformation is experimental
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
     
     if (connection) {
-      const effectiveType = connection.effectiveType || 'unknown';
+      const rawEffectiveType = connection.effectiveType || 'unknown';
+      // Validate effectiveType is one of the expected values
+      const validTypes = ['2g', '3g', '4g', 'slow-2g', 'unknown'] as const;
+      const effectiveType: BandwidthInfo['effectiveType'] = validTypes.includes(rawEffectiveType) 
+        ? rawEffectiveType 
+        : 'unknown';
+      
       const downlink = connection.downlink || 10;
       const rtt = connection.rtt || 50;
-      const saveData = connection.saveData || false;
+      const saveData = Boolean(connection.saveData);
 
       let estimatedSpeed: BandwidthInfo['estimatedSpeed'] = 'fast';
       
