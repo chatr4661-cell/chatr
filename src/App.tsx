@@ -32,6 +32,7 @@ import Profile from "./pages/Profile";
 // ALL OTHER PAGES - Lazy loaded for performance
 // ============================================
 import * as LazyPages from "./routes/lazyPages";
+import { preloadCriticalRoutes } from "./routes/lazyPages";
 
 // Layout components (small, keep eager)
 import { AdminLayout } from "./components/AdminLayout";
@@ -120,6 +121,9 @@ const App = () => {
     };
     
     initServiceWorker();
+    
+    // PERFORMANCE: Preload critical routes after initial render
+    preloadCriticalRoutes();
   }, []);
 
   // Initialize native call UI (CallKit/ConnectionService)
