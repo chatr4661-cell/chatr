@@ -30,9 +30,11 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     await navigator.serviceWorker.ready;
     console.log('✅ Service Worker ready');
 
-    // Check for updates periodically (only once)
+    // Check for updates periodically with error handling
     setInterval(() => {
-      registration.update();
+      registration.update().catch(() => {
+        // Silently ignore update errors (transient network issues)
+      });
     }, 60000); // Check every minute
 
     // Listen for messages from service worker (e.g., navigate on notification click)
