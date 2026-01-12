@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Mic, MicOff, PhoneOff, Volume2, Video, VideoOff, 
-  SwitchCamera, Grid3X3, MoreHorizontal
+  SwitchCamera, Grid3X3, MoreHorizontal, WifiOff
 } from 'lucide-react';
 import { SimpleWebRTCCall, hasActiveCall, getExistingCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +13,9 @@ import { Capacitor } from '@capacitor/core';
 import { syncCallStateToNative } from '@/utils/androidBridge';
 import CallMoreMenu from './CallMoreMenu';
 import { startAggressiveVideoPlayback, attachVideoTrackRecoveryHandlers } from '@/utils/androidVideoPlayback';
+import NetworkStatusBanner, { SignalStrengthIndicator, VideoDisabledNotice } from '@/components/calls/NetworkStatusBanner';
+import useUltraLowBandwidth from '@/hooks/useUltraLowBandwidth';
+import { MediaQuality } from '@/utils/gracefulDegradation';
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
 
@@ -70,6 +73,44 @@ export default function UnifiedCallScreen({
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   useCallKeepAlive(callId, callState === 'connected');
+  
+  // Ultra-low bandwidth optimizations
+  // Note: peerConnection is accessed lazily since webrtcRef.current may not be set yet
+  const getPeerConnection = useCallback(() => {
+    return webrtcRef.current?.getPeerConnection?.() || null;
+  }, []);
+  
+  const {
+    networkMode,
+    modeName,
+    videoAllowed,
+    videoRequiresTap,
+    currentQuality,
+    qualityDescription,
+    uiState,
+    signalStrength,
+    showWarning,
+    isOffline,
+    applyOptimization,
+    triggerRecovery,
+    canEnableVideo
+  } = useUltraLowBandwidth({
+    // Don't pass peerConnection directly - it's not available on first render
+    callId,
+    onQualityChange: (quality, reason) => {
+      console.log(`📶 [UnifiedCall] Quality changed: ${MediaQuality[quality]} - ${reason}`);
+      if (quality <= MediaQuality.AUDIO_LOW) {
+        setNetworkQuality('poor');
+      } else if (quality <= MediaQuality.AUDIO_HD) {
+        setNetworkQuality('fair');
+      } else {
+        setNetworkQuality('good');
+      }
+    },
+    onFallbackToText: () => {
+      toast.warning('Network too weak for voice - switching to text');
+    }
+  });
 
   // Auto-hide controls for video calls
   const resetControlsTimer = useCallback(() => {
@@ -398,8 +439,19 @@ export default function UnifiedCallScreen({
   };
 
   // FaceTime-style: One tap → video appears for both parties instantly
+  // ULTRA-LOW BANDWIDTH: Check if video is allowed first
   const toggleVideo = async () => {
     if (!isVideoOn) {
+      // Check network policy first
+      if (!canEnableVideo()) {
+        toast.warning(uiState.message || 'Video not available on current network');
+        return;
+      }
+      
+      if (videoRequiresTap) {
+        toast.info('Video enabled on moderate network');
+      }
+      
       // Add video directly - no confirmation needed (FaceTime style)
       console.log('📹 [UnifiedCall] Adding video (FaceTime-style)...');
       setIsVideoOn(true);
@@ -516,6 +568,20 @@ export default function UnifiedCallScreen({
         </motion.div>
       )}
 
+      {/* Network Status Banner - Ultra-Low Bandwidth */}
+      {showWarning && (
+        <div className="absolute top-2 inset-x-4 z-50 flex justify-center">
+          <NetworkStatusBanner compact />
+        </div>
+      )}
+      
+      {/* Video Disabled Notice */}
+      {isVideo && !videoAllowed && callState === 'connected' && (
+        <div className="absolute top-16 inset-x-4 z-40 flex justify-center">
+          <VideoDisabledNotice />
+        </div>
+      )}
+
       {/* Top Bar - Name & Status */}
       <AnimatePresence>
         {controlsVisible && (
@@ -527,15 +593,18 @@ export default function UnifiedCallScreen({
             style={{ paddingTop: 'max(env(safe-area-inset-top, 16px), 16px)' }}
           >
             <div className="flex flex-col items-center py-4">
-              {/* Quality indicator */}
-              <div className={`px-3 py-1 rounded-full text-xs font-medium mb-2 ${
-                networkQuality === 'excellent' || networkQuality === 'good' 
-                  ? 'bg-emerald-500/20 text-emerald-400' 
-                  : networkQuality === 'fair' 
-                    ? 'bg-amber-500/20 text-amber-400'
-                    : 'bg-red-500/20 text-red-400'
-              }`}>
-                {networkQuality === 'excellent' || networkQuality === 'good' ? '● HD' : networkQuality === 'fair' ? '● SD' : '● Low'}
+              {/* Signal Strength + Quality indicator */}
+              <div className="flex items-center gap-2 mb-2">
+                <SignalStrengthIndicator size="sm" />
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  networkQuality === 'excellent' || networkQuality === 'good' 
+                    ? 'bg-emerald-500/20 text-emerald-400' 
+                    : networkQuality === 'fair' 
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : 'bg-red-500/20 text-red-400'
+                }`}>
+                  {qualityDescription || (networkQuality === 'excellent' || networkQuality === 'good' ? 'HD' : networkQuality === 'fair' ? 'SD' : 'Low')}
+                </div>
               </div>
               
               <h1 className="text-white text-xl font-semibold drop-shadow-lg">{contactName}</h1>
@@ -549,7 +618,7 @@ export default function UnifiedCallScreen({
               }`}>
                 {callState === 'connected' && formatDuration(duration)}
                 {callState === 'connecting' && 'Connecting...'}
-                {callState === 'reconnecting' && 'Reconnecting...'}
+                {callState === 'reconnecting' && (uiState.message || 'Reconnecting...')}
                 {callState === 'failed' && 'Connection failed'}
               </p>
             </div>
@@ -600,13 +669,27 @@ export default function UnifiedCallScreen({
                 <span className="text-[10px] text-white/60 capitalize">{audioRoute}</span>
               </button>
 
-              <button onClick={toggleVideo} className="flex flex-col items-center gap-1">
+              <button 
+                onClick={toggleVideo} 
+                className="flex flex-col items-center gap-1"
+                disabled={!videoAllowed && !isVideoOn}
+              >
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                  isVideoOn ? 'bg-emerald-500 text-white' : 'bg-white/15 text-white'
+                  isVideoOn ? 'bg-emerald-500 text-white' 
+                    : !videoAllowed ? 'bg-white/5 text-white/30'
+                    : 'bg-white/15 text-white'
                 }`}>
-                  {isVideoOn ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+                  {!videoAllowed ? (
+                    <WifiOff className="w-6 h-6" />
+                  ) : isVideoOn ? (
+                    <Video className="w-6 h-6" />
+                  ) : (
+                    <VideoOff className="w-6 h-6" />
+                  )}
                 </div>
-                <span className="text-[10px] text-white/60">Video</span>
+                <span className={`text-[10px] ${!videoAllowed ? 'text-white/30' : 'text-white/60'}`}>
+                  {!videoAllowed ? 'No Video' : 'Video'}
+                </span>
               </button>
 
               <button onClick={toggleMute} className="flex flex-col items-center gap-1">
