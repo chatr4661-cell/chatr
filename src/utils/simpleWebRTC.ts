@@ -892,6 +892,13 @@ export class SimpleWebRTCCall {
     }
   }
 
+  /**
+   * Get peer connection for external access (e.g., ultra-low bandwidth hooks)
+   */
+  getPeerConnection(): RTCPeerConnection | null {
+    return this.pc;
+  }
+
   async end() {
     console.log('👋 [WebRTC] Ending call...');
     this.callState = 'ended';
