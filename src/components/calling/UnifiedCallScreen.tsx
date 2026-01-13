@@ -522,12 +522,22 @@ export default function UnifiedCallScreen({
 
   const callUI = (
     <div 
-      className="fixed inset-0 z-[99999] bg-black flex flex-col overflow-hidden select-none touch-none"
-      style={{ height: '100dvh', width: '100vw', isolation: 'isolate' }}
+      className="fixed inset-0 z-[99999] bg-black flex flex-col overflow-hidden select-none"
+      style={{ 
+        height: '100dvh', 
+        width: '100vw', 
+        isolation: 'isolate',
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        willChange: 'transform',
+        contain: 'layout style paint',
+      }}
       onClick={() => resetControlsTimer()}
     >
-      {/* Background - Remote Video or Avatar */}
-      {/* Always render video element, show when video active */}
+      {/* Background - HD Remote Video or Avatar */}
+      {/* Always render video element for bidirectional HD video */}
       <video
         ref={remoteVideoRef}
         autoPlay
@@ -535,27 +545,45 @@ export default function UnifiedCallScreen({
         className={`absolute inset-0 w-full h-full object-cover bg-black ${
           remoteVideoActive ? 'block' : 'hidden'
         }`}
+        style={{
+          transform: 'translateZ(0)', // GPU acceleration for smooth video
+          backfaceVisibility: 'hidden',
+          perspective: 1000,
+        }}
       />
       
-      {/* Show avatar when no remote video */}
+      {/* Show avatar when no remote video - with smooth transitions */}
       {!remoteVideoActive && (
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center">
+        <div 
+          className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center"
+          style={{ transform: 'translateZ(0)' }}
+        >
           {contactAvatar ? (
-            <img src={contactAvatar} alt={contactName} className="w-28 h-28 rounded-full object-cover ring-4 ring-white/10 shadow-2xl" />
+            <img 
+              src={contactAvatar} 
+              alt={contactName} 
+              className="w-28 h-28 rounded-full object-cover ring-4 ring-white/10 shadow-2xl transition-transform duration-200 active:scale-95" 
+            />
           ) : (
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center ring-4 ring-white/10">
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center ring-4 ring-white/10 transition-transform duration-200 active:scale-95">
               <span className="text-5xl font-bold text-white">{contactName.charAt(0).toUpperCase()}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Local Video PIP - show when local video is active */}
+      {/* Local Video PIP - HD bidirectional with smooth drag feel */}
       {localVideoActive && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="absolute top-16 right-4 w-24 h-32 sm:w-28 sm:h-36 rounded-2xl overflow-hidden border-2 border-white/30 shadow-xl z-20"
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          whileTap={{ scale: 0.95 }}
+          className="absolute top-16 right-4 w-28 h-40 sm:w-32 sm:h-44 rounded-2xl overflow-hidden border-2 border-white/40 shadow-2xl z-20"
+          style={{ 
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+          }}
         >
           <video
             ref={localVideoRef}
@@ -563,8 +591,15 @@ export default function UnifiedCallScreen({
             playsInline
             muted
             className="w-full h-full object-cover"
-            style={{ transform: 'scaleX(-1)' }}
+            style={{ 
+              transform: 'scaleX(-1) translateZ(0)',
+              backfaceVisibility: 'hidden',
+            }}
           />
+          {/* HD indicator */}
+          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-[9px] text-emerald-400 font-medium">
+            HD
+          </div>
         </motion.div>
       )}
 
@@ -658,11 +693,15 @@ export default function UnifiedCallScreen({
             className="absolute bottom-0 inset-x-0 z-30 pb-safe"
             style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
           >
-            {/* Row 1: Speaker, Video, Mute */}
+            {/* Row 1: Speaker, Video, Mute - Butter-smooth touch */}
             <div className="flex justify-center gap-6 mb-6">
-              <button onClick={cycleAudioRoute} className="flex flex-col items-center gap-1">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                  audioRoute === 'speaker' ? 'bg-white text-black' : 'bg-white/15 text-white'
+              <button 
+                onClick={cycleAudioRoute} 
+                className="flex flex-col items-center gap-1 touch-manipulation"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 ${
+                  audioRoute === 'speaker' ? 'bg-white text-black' : 'bg-white/15 text-white active:bg-white/25'
                 }`}>
                   <Volume2 className="w-6 h-6" />
                 </div>
@@ -671,13 +710,14 @@ export default function UnifiedCallScreen({
 
               <button 
                 onClick={toggleVideo} 
-                className="flex flex-col items-center gap-1"
+                className="flex flex-col items-center gap-1 touch-manipulation"
                 disabled={!videoAllowed && !isVideoOn}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                  isVideoOn ? 'bg-emerald-500 text-white' 
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 ${
+                  isVideoOn ? 'bg-emerald-500 text-white active:bg-emerald-600' 
                     : !videoAllowed ? 'bg-white/5 text-white/30'
-                    : 'bg-white/15 text-white'
+                    : 'bg-white/15 text-white active:bg-white/25'
                 }`}>
                   {!videoAllowed ? (
                     <WifiOff className="w-6 h-6" />
@@ -688,13 +728,17 @@ export default function UnifiedCallScreen({
                   )}
                 </div>
                 <span className={`text-[10px] ${!videoAllowed ? 'text-white/30' : 'text-white/60'}`}>
-                  {!videoAllowed ? 'No Video' : 'Video'}
+                  {!videoAllowed ? 'No Video' : isVideoOn ? 'HD Video' : 'Video'}
                 </span>
               </button>
 
-              <button onClick={toggleMute} className="flex flex-col items-center gap-1">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                  isMuted ? 'bg-red-500 text-white' : 'bg-white/15 text-white'
+              <button 
+                onClick={toggleMute} 
+                className="flex flex-col items-center gap-1 touch-manipulation"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 ${
+                  isMuted ? 'bg-red-500 text-white active:bg-red-600' : 'bg-white/15 text-white active:bg-white/25'
                 }`}>
                   {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
                 </div>
@@ -702,35 +746,51 @@ export default function UnifiedCallScreen({
               </button>
             </div>
 
-            {/* Row 2: Keypad/More, End, Flip/More */}
+            {/* Row 2: Keypad/More, End, Flip/More - Butter-smooth touch */}
             <div className="flex justify-center gap-6">
-              {/* Keypad for voice, More for video */}
+              {/* Keypad for voice, Flip for video */}
               {!isVideo ? (
-                <button onClick={() => setShowKeypad(!showKeypad)} className="flex flex-col items-center gap-1">
-                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
+                <button 
+                  onClick={() => setShowKeypad(!showKeypad)} 
+                  className="flex flex-col items-center gap-1 touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center transition-all duration-150 active:scale-90 active:bg-white/25">
                     <Grid3X3 className="w-6 h-6 text-white" />
                   </div>
                   <span className="text-[10px] text-white/60">Keypad</span>
                 </button>
               ) : (
-                <button onClick={switchCamera} className="flex flex-col items-center gap-1">
-                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
+                <button 
+                  onClick={switchCamera} 
+                  className="flex flex-col items-center gap-1 touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center transition-all duration-150 active:scale-90 active:bg-white/25">
                     <SwitchCamera className="w-6 h-6 text-white" />
                   </div>
                   <span className="text-[10px] text-white/60">Flip</span>
                 </button>
               )}
 
-              <button onClick={handleEndCall} className="flex flex-col items-center gap-1">
-                <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
+              <button 
+                onClick={handleEndCall} 
+                className="flex flex-col items-center gap-1 touch-manipulation"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg transition-all duration-150 active:scale-90 active:bg-red-600">
                   <PhoneOff className="w-7 h-7 text-white" />
                 </div>
                 <span className="text-[10px] text-red-400">End</span>
               </button>
 
-              {/* More button always visible */}
-              <button onClick={() => setShowMoreMenu(true)} className="flex flex-col items-center gap-1">
-                <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
+              {/* More button */}
+              <button 
+                onClick={() => setShowMoreMenu(true)} 
+                className="flex flex-col items-center gap-1 touch-manipulation"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center transition-all duration-150 active:scale-90 active:bg-white/25">
                   <MoreHorizontal className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-[10px] text-white/60">More</span>
