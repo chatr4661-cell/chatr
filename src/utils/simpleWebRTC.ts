@@ -205,28 +205,53 @@ export class SimpleWebRTCCall {
       if (this.localStream) {
         this.localStream.getTracks().forEach(t => t.stop());
         this.localStream = null;
-        await this.delay(100); // Shorter delay
+        await this.delay(100);
       }
 
-      // FAST: Use simple, reliable constraints for quick media acquisition
+      // HD VIDEO & CRYSTAL CLEAR AUDIO - Bidirectional High Quality
       const constraints: MediaStreamConstraints = {
         audio: {
+          // Studio-quality audio settings
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          sampleRate: 48000,         // CD-quality sample rate
+          sampleSize: 16,            // 16-bit audio
+          channelCount: 1,           // Mono for calls (less bandwidth, clear voice)
         },
         video: this.isVideo ? {
-          width: { ideal: 640, max: 1280 },
-          height: { ideal: 480, max: 720 },
-          frameRate: { ideal: 30 },
+          // HD Video - Prioritize 1080p, fallback to 720p
+          width: { ideal: 1920, min: 1280, max: 1920 },
+          height: { ideal: 1080, min: 720, max: 1080 },
+          frameRate: { ideal: 30, min: 24, max: 60 },
           facingMode: 'user',
+          aspectRatio: { ideal: 16/9 },
         } : false
       };
 
-      console.log('🎤 [WebRTC] Requesting media...');
+      console.log('🎤 [WebRTC] Requesting HD media...');
       const startTime = Date.now();
-      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log(`✅ [WebRTC] Media acquired in ${Date.now() - startTime}ms`);
+      
+      try {
+        // Try HD first
+        this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log(`✅ [WebRTC] HD media acquired in ${Date.now() - startTime}ms`);
+      } catch (hdError) {
+        // Fallback to 720p if 1080p fails
+        console.log('⚠️ [WebRTC] HD failed, trying 720p...');
+        const fallbackConstraints: MediaStreamConstraints = {
+          audio: constraints.audio,
+          video: this.isVideo ? {
+            width: { ideal: 1280, max: 1280 },
+            height: { ideal: 720, max: 720 },
+            frameRate: { ideal: 30 },
+            facingMode: 'user',
+          } : false
+        };
+        this.localStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        console.log(`✅ [WebRTC] 720p media acquired in ${Date.now() - startTime}ms`);
+      }
+      
       this.emit('localStream', this.localStream);
     } catch (error: any) {
       console.error('❌ [WebRTC] Media failed:', error.name, error.message);
@@ -235,7 +260,10 @@ export class SimpleWebRTCCall {
       if (this.isVideo && error.name !== 'NotAllowedError') {
         try {
           console.log('⚠️ [WebRTC] Trying audio-only fallback...');
-          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          this.localStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: false 
+          });
           this.emit('localStream', this.localStream);
           return;
         } catch (fallbackError) {
@@ -763,23 +791,39 @@ export class SimpleWebRTCCall {
     }
 
     try {
-      console.log('📹 [WebRTC] Adding video to call (FaceTime-style)...');
+      console.log('📹 [WebRTC] Adding HD video to call (FaceTime-style)...');
       
-      // Request video with error handling
+      // Request HD video with progressive fallback
       let videoStream: MediaStream;
       try {
+        // Try 1080p HD first
         videoStream = await navigator.mediaDevices.getUserMedia({
           video: { 
-            width: { ideal: 1280, min: 640 }, 
-            height: { ideal: 720, min: 480 }, 
-            frameRate: { ideal: 30, min: 15 },
-            facingMode: 'user' 
+            width: { ideal: 1920, min: 1280, max: 1920 }, 
+            height: { ideal: 1080, min: 720, max: 1080 }, 
+            frameRate: { ideal: 30, min: 24, max: 60 },
+            facingMode: 'user',
+            aspectRatio: { ideal: 16/9 },
           }
         });
-      } catch (mediaError: any) {
-        console.error('❌ [WebRTC] Camera access failed:', mediaError);
-        // Fallback to basic constraints
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log('✅ [WebRTC] 1080p HD video acquired');
+      } catch (hdError: any) {
+        console.log('⚠️ [WebRTC] 1080p failed, trying 720p...');
+        try {
+          // Fallback to 720p
+          videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+              width: { ideal: 1280, max: 1280 }, 
+              height: { ideal: 720, max: 720 }, 
+              frameRate: { ideal: 30 },
+              facingMode: 'user' 
+            }
+          });
+          console.log('✅ [WebRTC] 720p video acquired');
+        } catch (sdError: any) {
+          console.log('⚠️ [WebRTC] 720p failed, using basic video...');
+          videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
       }
 
       const videoTrack = videoStream.getVideoTracks()[0];
