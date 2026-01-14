@@ -8,6 +8,8 @@ interface AppleCardProps extends React.HTMLAttributes<HTMLDivElement> {
   rounded?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
   pressable?: boolean;
   onPress?: () => void;
+  /** Shorthand for variant="glass" */
+  glass?: boolean;
 }
 
 /**
@@ -28,8 +30,11 @@ export const AppleCard = React.forwardRef<HTMLDivElement, AppleCardProps>(
     pressable = false,
     onPress,
     onClick,
+    glass = false,
     ...props 
   }, ref) => {
+    // Handle glass shorthand prop
+    const effectiveVariant = glass ? 'glass' : variant;
     
     const paddingClasses = {
       none: '',
@@ -69,7 +74,7 @@ export const AppleCard = React.forwardRef<HTMLDivElement, AppleCardProps>(
         className={cn(
           // Base styles
           'relative overflow-hidden transition-all duration-200',
-          variantClasses[variant],
+          variantClasses[effectiveVariant],
           roundedClasses[rounded],
           paddingClasses[padding],
           // Pressable styles

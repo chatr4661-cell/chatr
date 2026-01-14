@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, MessageSquare, Phone, UserPlus, Heart, MessageCircle, Settings, Calendar } from 'lucide-react';
+import { MessageSquare, Phone, UserPlus, Heart, MessageCircle, Settings, Calendar } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { AppleHeader } from '@/components/ui/AppleHeader';
+import { AppleCard } from '@/components/ui/AppleCard';
+import { AppleIconButton } from '@/components/ui/AppleButton';
+import { useNativeHaptics } from '@/hooks/useNativeHaptics';
+import { cn } from '@/lib/utils';
 
 interface Notification {
   id: string;
@@ -21,13 +25,13 @@ interface Notification {
 export default function Notifications() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const haptics = useNativeHaptics();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadNotifications();
 
-    // Subscribe to realtime notifications
     const channel = supabase
       .channel('notifications')
       .on(
@@ -93,6 +97,7 @@ export default function Notifications() {
   };
 
   const handleNotificationClick = (notification: Notification) => {
+    haptics.light();
     markAsRead(notification.id);
     if (notification.action_url) {
       navigate(notification.action_url);
@@ -100,99 +105,115 @@ export default function Notifications() {
   };
 
   const getIcon = (type: string) => {
+    const iconClass = "w-5 h-5";
     switch (type) {
       case 'message':
-        return <MessageSquare className="w-5 h-5 text-primary" />;
+        return <MessageSquare className={cn(iconClass, "text-primary")} />;
       case 'call':
-        return <Phone className="w-5 h-5 text-emerald-500" />;
+        return <Phone className={cn(iconClass, "text-emerald-500")} />;
       case 'like':
-        return <Heart className="w-5 h-5 text-rose-500" />;
+        return <Heart className={cn(iconClass, "text-rose-500")} />;
       case 'comment':
-        return <MessageCircle className="w-5 h-5 text-blue-500" />;
+        return <MessageCircle className={cn(iconClass, "text-blue-500")} />;
       case 'friend':
-        return <UserPlus className="w-5 h-5 text-violet-500" />;
+        return <UserPlus className={cn(iconClass, "text-violet-500")} />;
       case 'appointment':
-        return <Calendar className="w-5 h-5 text-amber-500" />;
+        return <Calendar className={cn(iconClass, "text-amber-500")} />;
       default:
-        return <MessageSquare className="w-5 h-5 text-muted-foreground" />;
+        return <MessageSquare className={cn(iconClass, "text-muted-foreground")} />;
     }
   };
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Loading notifications...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background safe-area-pt">
+        <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <p className="mt-4 text-sm text-muted-foreground">Loading notifications...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Native Header */}
-      <div className="sticky top-0 z-10 bg-white border-b">
-        <div className="flex items-center justify-between p-3">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-semibold">Notifications</h1>
-              {notifications.filter(n => !n.read).length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {notifications.filter(n => !n.read).length} unread
-                </p>
-              )}
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/notifications/settings')}
-            className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background safe-area-pt safe-area-pb">
+      {/* Apple-style Header */}
+      <AppleHeader
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : undefined}
+        onBack={() => {
+          haptics.light();
+          navigate(-1);
+        }}
+        showBack
+        rightElement={
+          <AppleIconButton
+            icon={<Settings className="w-5 h-5" />}
+            onClick={() => {
+              haptics.light();
+              navigate('/notifications/settings');
+            }}
+            size="sm"
+          />
+        }
+      />
 
       {/* Notifications List */}
-      <ScrollArea className="h-[calc(100vh-73px)]">
-        <div className="max-w-2xl mx-auto p-4 space-y-2">
+      <ScrollArea className="h-[calc(100vh-80px)]">
+        <div className="px-4 py-2 space-y-2">
           {notifications.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No notifications yet</p>
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                <MessageSquare className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground text-center">No notifications yet</p>
+              <p className="text-sm text-muted-foreground/70 text-center mt-1">
+                We'll let you know when something happens
+              </p>
             </div>
           ) : (
             notifications.map((notification) => (
-              <button
+              <AppleCard
                 key={notification.id}
-                onClick={() => handleNotificationClick(notification)}
-                className={`w-full text-left p-4 rounded-xl transition-all ${
-                  notification.read
-                    ? 'bg-card hover:bg-accent/5'
-                    : 'bg-primary/5 hover:bg-primary/10 border border-primary/20'
-                }`}
+                pressable
+                onPress={() => handleNotificationClick(notification)}
+                className={cn(
+                  "transition-all duration-200",
+                  !notification.read && "bg-primary/5 border-primary/20"
+                )}
+                padding="md"
               >
                 <div className="flex gap-3">
-                  <div className="shrink-0 w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                  {/* Icon */}
+                  <div className={cn(
+                    "shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
+                    notification.read ? "bg-muted/50" : "bg-primary/10"
+                  )}>
                     {getIcon(notification.type)}
                   </div>
+                  
+                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-sm">{notification.title}</h3>
+                      <h3 className={cn(
+                        "text-sm line-clamp-1",
+                        notification.read ? "font-medium" : "font-semibold"
+                      )}>
+                        {notification.title}
+                      </h3>
                       {!notification.read && (
-                        <div className="w-2 h-2 bg-primary rounded-full shrink-0 mt-1" />
+                        <div className="w-2.5 h-2.5 bg-primary rounded-full shrink-0 mt-1" />
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
                       {notification.description}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground/70 mt-1.5">
                       {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                     </p>
                   </div>
                 </div>
-              </button>
+              </AppleCard>
             ))
           )}
         </div>

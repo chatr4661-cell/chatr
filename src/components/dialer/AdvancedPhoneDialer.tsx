@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { NetworkConfidencePill, useNetworkQuality, getCallHint, type NetworkQuality } from './NetworkConfidencePill';
 import { CallOutcomeBadge, getPreferredCallMode, getReliabilityLabel } from './CallOutcomeBadge';
+import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 
 interface Contact {
   id: string;
@@ -97,6 +98,7 @@ const DTMF_FREQUENCIES: Record<string, [number, number]> = {
 
 export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
   const navigate = useNavigate();
+  const haptics = useNativeHaptics();
   const [dialedNumber, setDialedNumber] = useState('');
   const [allUsers, setAllUsers] = useState<Contact[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -360,6 +362,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
   }, []);
 
   const handleDigitPress = (digit: string) => {
+    haptics.light();
     setDialedNumber(prev => prev + digit);
     playDTMFTone(digit);
   };
@@ -388,6 +391,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
   };
 
   const handleDelete = () => {
+    haptics.light();
     setDialedNumber(prev => prev.slice(0, -1));
   };
 
@@ -397,6 +401,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
   };
 
   const initiateCall = (contact: Contact, type: 'voice' | 'video') => {
+    haptics.medium();
     onCall(contact.id, contact.username, type);
   };
 
@@ -528,11 +533,11 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
     : contacts;
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-background to-muted/30 overflow-hidden">
-      {/* Header with CHATR branding */}
-      <div className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm flex-shrink-0">
+    <div className="flex flex-col h-full bg-background overflow-hidden safe-area-pt">
+      {/* Header with Apple-style glass effect */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/80 backdrop-blur-xl flex-shrink-0">
         <div className="flex items-center gap-3">
-          <img src={chatrLogo} alt="Chatr" className="h-8 object-contain" />
+          <img src={chatrLogo} alt="Chatr" className="h-7 object-contain" />
         </div>
         
         <div className="flex items-center gap-2">
@@ -574,22 +579,39 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <TabsList className="mx-4 mt-3 mb-2 grid grid-cols-4 bg-muted/50 p-1 rounded-xl shrink-0">
-          <TabsTrigger value="keypad" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+        {/* Apple-style segmented control */}
+        <TabsList className="mx-4 mt-3 mb-2 grid grid-cols-4 bg-muted/60 p-1 rounded-xl shrink-0 h-10">
+          <TabsTrigger 
+            value="keypad" 
+            onClick={() => haptics.light()}
+            className="gap-1.5 rounded-lg text-xs font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200"
+          >
             <Hash className="h-4 w-4" />
-            <span className="hidden sm:inline text-xs">Keypad</span>
+            <span className="hidden sm:inline">Keypad</span>
           </TabsTrigger>
-          <TabsTrigger value="recents" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger 
+            value="recents" 
+            onClick={() => haptics.light()}
+            className="gap-1.5 rounded-lg text-xs font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200"
+          >
             <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline text-xs">Recents</span>
+            <span className="hidden sm:inline">Recents</span>
           </TabsTrigger>
-          <TabsTrigger value="contacts" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger 
+            value="contacts" 
+            onClick={() => haptics.light()}
+            className="gap-1.5 rounded-lg text-xs font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200"
+          >
             <Users className="h-4 w-4" />
-            <span className="hidden sm:inline text-xs">Contacts</span>
+            <span className="hidden sm:inline">Contacts</span>
           </TabsTrigger>
-          <TabsTrigger value="favorites" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger 
+            value="favorites" 
+            onClick={() => haptics.light()}
+            className="gap-1.5 rounded-lg text-xs font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200"
+          >
             <Star className="h-4 w-4" />
-            <span className="hidden sm:inline text-xs">Favorites</span>
+            <span className="hidden sm:inline">Favorites</span>
           </TabsTrigger>
         </TabsList>
 
@@ -720,13 +742,13 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             )}
           </div>
 
-          {/* Keypad */}
-          <div className="px-4 md:px-8 pb-2">
-            <div className="grid grid-cols-3 gap-3 md:gap-4 max-w-xs mx-auto">
+          {/* Apple-style Keypad */}
+          <div className="px-6 md:px-10 pb-2">
+            <div className="grid grid-cols-3 gap-4 max-w-[280px] mx-auto">
               {keypadDigits.map(({ digit, letters, icon }) => (
                 <motion.button
                   key={digit}
-                  whileTap={{ scale: 0.92, backgroundColor: 'hsl(var(--primary) / 0.15)' }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => handleDigitPress(digit)}
                   onMouseDown={() => handleDigitDown(digit)}
                   onMouseUp={handleDigitUp}
@@ -734,60 +756,75 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                   onTouchStart={() => handleDigitDown(digit)}
                   onTouchEnd={handleDigitUp}
                   className={cn(
-                    "flex flex-col items-center justify-center w-16 h-16 md:w-[72px] md:h-[72px] rounded-full mx-auto",
-                    "bg-muted/60 hover:bg-muted active:bg-primary/10 transition-all duration-150",
-                    "shadow-sm hover:shadow-md",
+                    // Apple-style dial pad button
+                    "flex flex-col items-center justify-center",
+                    "w-[76px] h-[76px] rounded-full mx-auto",
+                    "bg-secondary/80 backdrop-blur-sm",
+                    "active:bg-muted transition-colors duration-100",
+                    "touch-manipulation select-none",
                     speedDials[digit] && "ring-2 ring-primary/40"
                   )}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <span className="text-2xl md:text-3xl font-medium">{digit}</span>
-                  {icon ? icon : letters && (
-                    <span className="text-[9px] md:text-[10px] text-muted-foreground tracking-[0.2em]">{letters}</span>
+                  <span className="text-[28px] font-light text-foreground">{digit}</span>
+                  {icon ? (
+                    <span className="text-muted-foreground">{icon}</span>
+                  ) : letters && (
+                    <span className="text-[10px] text-muted-foreground tracking-[0.15em] font-medium mt-0.5">{letters}</span>
                   )}
                 </motion.button>
               ))}
             </div>
           </div>
 
-          {/* Call buttons with network-aware hints */}
-          <div className="flex flex-col items-center gap-2 pb-6 pt-3">
-            <div className="flex items-center justify-center gap-6">
-              {/* Delete */}
+          {/* Apple-style Call buttons */}
+          <div className="flex flex-col items-center gap-3 pb-8 pt-4 safe-area-pb">
+            <div className="flex items-center justify-center gap-8">
+              {/* Delete - Apple style */}
               <motion.button
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.85 }}
                 onClick={handleDelete}
                 onDoubleClick={handleClear}
                 disabled={!dialedNumber}
-                className="w-12 h-12 rounded-full bg-muted/60 disabled:opacity-30 flex items-center justify-center hover:bg-muted transition-colors"
+                className={cn(
+                  "w-[52px] h-[52px] rounded-full flex items-center justify-center",
+                  "transition-opacity duration-150",
+                  dialedNumber ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <Delete className="h-5 w-5" />
+                <Delete className="h-6 w-6 text-foreground" />
               </motion.button>
 
-              {/* Voice call */}
-              <div className="flex flex-col items-center gap-1">
+              {/* Voice call - iOS green button */}
+              <div className="flex flex-col items-center gap-1.5">
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.05 }}
-                  onClick={() => handleCall('voice')}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => {
+                    haptics.medium();
+                    handleCall('voice');
+                  }}
                   className={cn(
-                    "w-[68px] h-[68px] rounded-full flex items-center justify-center shadow-lg",
-                    "bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500",
-                    "transition-all duration-200"
+                    "w-[72px] h-[72px] rounded-full flex items-center justify-center",
+                    "bg-[#34C759] active:bg-[#2DB84D]",
+                    "shadow-lg shadow-[#34C759]/30",
+                    "transition-all duration-150"
                   )}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <Phone className="h-7 w-7 text-white" />
+                  <Phone className="h-8 w-8 text-white" />
                 </motion.button>
                 {(networkQuality === 'good' || networkQuality === 'poor') && (
-                  <span className="text-[10px] text-green-600 font-medium">Best for weak networks</span>
+                  <span className="text-[10px] text-[#34C759] font-medium">Recommended</span>
                 )}
               </div>
 
-              {/* Video call */}
-              <div className="flex flex-col items-center gap-1">
+              {/* Video call - iOS blue button */}
+              <div className="flex flex-col items-center gap-1.5">
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.85 }}
                   onClick={() => {
+                    haptics.medium();
                     if (matchingUsers.length > 0) {
                       handleSmartVideoCall(matchingUsers[0]);
                     } else {
@@ -795,16 +832,21 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                     }
                   }}
                   className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-200",
+                    "w-[52px] h-[52px] rounded-full flex items-center justify-center",
+                    "transition-all duration-150",
                     networkQuality === 'poor' || networkQuality === 'offline'
-                      ? "bg-gradient-to-br from-gray-400 to-gray-500"
-                      : "bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500"
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-[#007AFF] active:bg-[#0066DD] shadow-lg shadow-[#007AFF]/30"
                   )}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <Video className="h-5 w-5 text-white" />
+                  <Video className={cn(
+                    "h-6 w-6",
+                    networkQuality === 'poor' || networkQuality === 'offline' ? "text-muted-foreground" : "text-white"
+                  )} />
                 </motion.button>
                 {networkQuality === 'good' && (
-                  <span className="text-[10px] text-yellow-600 font-medium">May start as audio</span>
+                  <span className="text-[10px] text-amber-500 font-medium">May start as audio</span>
                 )}
                 {networkQuality === 'poor' && (
                   <span className="text-[10px] text-muted-foreground font-medium">Audio only</span>
