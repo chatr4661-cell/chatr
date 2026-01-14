@@ -5,7 +5,7 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
-type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject';
+type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
 
 interface Signal {
   type: SignalType;
@@ -630,6 +630,22 @@ export class SimpleWebRTCCall {
           
           console.log(`📥 [WebRTC] Processing ${isRenegotiation ? 'RENEGOTIATION' : 'INITIAL'} OFFER...`);
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+
+          // FaceTime-style auto video upgrade:
+          // If partner renegotiates specifically for video upgrade, auto-enable OUR camera too
+          const upgradeReason = (signal.data as any)?.__chatr?.reason;
+          if (isRenegotiation && upgradeReason === 'video-upgrade') {
+            try {
+              const hasLocalVideo = (this.localStream?.getVideoTracks()?.length || 0) > 0;
+              if (!hasLocalVideo) {
+                console.log('📹 [WebRTC] Auto-enabling local video for bidirectional upgrade...');
+                // No renegotiation here; we are responding with an answer.
+                await this.enableLocalVideoAfterAccept();
+              }
+            } catch (e) {
+              console.warn('⚠️ [WebRTC] Could not auto-enable local video:', e);
+            }
+          }
           
           // Always send answer for offers (including renegotiation)
           const answer = await this.pc.createAnswer();
@@ -685,6 +701,11 @@ export class SimpleWebRTCCall {
         case 'video-reject':
           console.log('📹 [WebRTC] Video upgrade rejected by partner');
           this.emit('videoUpgradeRejected', signal.from);
+          break;
+
+        case 'video-enable':
+          console.log('📹 [WebRTC] Video enable requested by partner');
+          this.emit('videoEnableRequested', signal.from);
           break;
       }
     } catch (error) {
@@ -802,21 +823,22 @@ export class SimpleWebRTCCall {
     });
   }
 
-  // ============== VIDEO UPGRADE REQUEST/ACCEPT ==============
+  // ============== VIDEO UPGRADE (FACE TIME AUTO) ==============
   
   /**
-   * Send video upgrade request to partner
-   * The requester does NOT enable video yet - waits for accept signal
+   * Ask partner to auto-enable video (no consent modal)
+   * Used when the non-initiator clicks video; initiator will renegotiate.
    */
-  async sendVideoUpgradeRequest(): Promise<void> {
-    console.log('📹 [WebRTC] Sending video upgrade request...');
-    await this.sendSignal({ 
-      type: 'video-request', 
-      data: { timestamp: Date.now() }, 
-      from: this.userId 
+  async sendVideoEnable(): Promise<void> {
+    console.log('📹 [WebRTC] Sending video enable signal...');
+    await this.sendSignal({
+      type: 'video-enable',
+      data: { timestamp: Date.now() },
+      from: this.userId,
     });
   }
 
+  // ==============================================================
   /**
    * Accept video upgrade request and enable local video
    * The ACCEPTOR is the one who triggers renegotiation to prevent glare
@@ -876,23 +898,18 @@ export class SimpleWebRTCCall {
       
       console.log('📹 [WebRTC] Got video track:', videoTrack.label);
       
-      // Check if we already have a video sender from the acceptor's renegotiation
+      // Check if we already have a video sender from the current peer connection
       const existingVideoSender = this.pc.getSenders().find(s => s.track?.kind === 'video');
       
       if (existingVideoSender) {
-        // Just replace the track - no new renegotiation needed
+        // Just replace the track - no renegotiation from this helper
         await existingVideoSender.replaceTrack(videoTrack);
         console.log('📹 [WebRTC] Replaced video sender track (no renegotiation)');
       } else {
-        // Need to add track and renegotiate (fallback)
-        console.log('📹 [WebRTC] No existing sender - adding track with renegotiation');
+        // Add track; the current/next offer-answer will carry it
+        console.log('📹 [WebRTC] No existing sender - adding video track (no renegotiation)');
         const stream = this.localStream || new MediaStream([videoTrack]);
         this.pc.addTrack(videoTrack, stream);
-        
-        // Trigger renegotiation as fallback
-        const offer = await this.pc.createOffer();
-        await this.pc.setLocalDescription(offer);
-        await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
       }
       
       // Update local stream for UI
@@ -1008,11 +1025,12 @@ export class SimpleWebRTCCall {
       
       this.emit('localStream', this.localStream);
 
-      // Renegotiate to inform partner
+      // Renegotiate to inform partner (tagged so receiver can auto-enable their camera too)
       this.hasReceivedAnswer = false;
       this.offerSent = false;
       
       const offer = await this.pc.createOffer();
+      (offer as any).__chatr = { reason: 'video-upgrade' };
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
       console.log('📤 [WebRTC] Sent renegotiation offer with video');
