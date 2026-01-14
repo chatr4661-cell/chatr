@@ -211,7 +211,7 @@ export class SimpleWebRTCCall {
         await this.delay(100);
       }
 
-      // HD VIDEO & CRYSTAL CLEAR AUDIO - Bidirectional High Quality
+      // ULTRA HD VIDEO & CRYSTAL CLEAR AUDIO - Maximum Quality for FaceTime-level calls
       const constraints: MediaStreamConstraints = {
         audio: {
           // Studio-quality audio settings
@@ -223,36 +223,73 @@ export class SimpleWebRTCCall {
           channelCount: 1,           // Mono for calls (less bandwidth, clear voice)
         },
         video: this.isVideo ? {
-          // HD Video - Prioritize 1080p, fallback to 720p
-          width: { ideal: 1920, min: 1280, max: 1920 },
-          height: { ideal: 1080, min: 720, max: 1080 },
-          frameRate: { ideal: 30, min: 24, max: 60 },
+          // 4K Ultra HD Video - Best quality first
+          width: { ideal: 3840, min: 1280 },
+          height: { ideal: 2160, min: 720 },
+          frameRate: { ideal: 60, min: 30 },
           facingMode: 'user',
           aspectRatio: { ideal: 16/9 },
         } : false
       };
 
-      console.log('🎤 [WebRTC] Requesting HD media...');
+      console.log('🎬 [WebRTC] Requesting ULTRA HD media (4K@60fps)...');
       const startTime = Date.now();
       
       try {
-        // Try HD first
+        // Try 4K first
         this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        console.log(`✅ [WebRTC] HD media acquired in ${Date.now() - startTime}ms`);
-      } catch (hdError) {
-        // Fallback to 720p if 1080p fails
-        console.log('⚠️ [WebRTC] HD failed, trying 720p...');
-        const fallbackConstraints: MediaStreamConstraints = {
-          audio: constraints.audio,
-          video: this.isVideo ? {
-            width: { ideal: 1280, max: 1280 },
-            height: { ideal: 720, max: 720 },
-            frameRate: { ideal: 30 },
-            facingMode: 'user',
-          } : false
-        };
-        this.localStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-        console.log(`✅ [WebRTC] 720p media acquired in ${Date.now() - startTime}ms`);
+        const videoTrack = this.localStream.getVideoTracks()[0];
+        if (videoTrack) {
+          const settings = videoTrack.getSettings();
+          console.log(`✅ [WebRTC] Video acquired: ${settings.width}x${settings.height}@${settings.frameRate}fps in ${Date.now() - startTime}ms`);
+        }
+      } catch (uhd4kError) {
+        // Fallback to 1080p@60fps
+        console.log('⚠️ [WebRTC] 4K failed, trying 1080p@60fps...');
+        try {
+          const fhd60Constraints: MediaStreamConstraints = {
+            audio: constraints.audio,
+            video: this.isVideo ? {
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 },
+              frameRate: { ideal: 60, min: 30 },
+              facingMode: 'user',
+              aspectRatio: { ideal: 16/9 },
+            } : false
+          };
+          this.localStream = await navigator.mediaDevices.getUserMedia(fhd60Constraints);
+          console.log(`✅ [WebRTC] 1080p@60fps acquired in ${Date.now() - startTime}ms`);
+        } catch (fhd60Error) {
+          // Fallback to 1080p@30fps
+          console.log('⚠️ [WebRTC] 1080p@60fps failed, trying 1080p@30fps...');
+          try {
+            const fhd30Constraints: MediaStreamConstraints = {
+              audio: constraints.audio,
+              video: this.isVideo ? {
+                width: { ideal: 1920, min: 1280 },
+                height: { ideal: 1080, min: 720 },
+                frameRate: { ideal: 30 },
+                facingMode: 'user',
+              } : false
+            };
+            this.localStream = await navigator.mediaDevices.getUserMedia(fhd30Constraints);
+            console.log(`✅ [WebRTC] 1080p@30fps acquired in ${Date.now() - startTime}ms`);
+          } catch (fhd30Error) {
+            // Final fallback to 720p
+            console.log('⚠️ [WebRTC] 1080p failed, trying 720p...');
+            const hdConstraints: MediaStreamConstraints = {
+              audio: constraints.audio,
+              video: this.isVideo ? {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 },
+                facingMode: 'user',
+              } : false
+            };
+            this.localStream = await navigator.mediaDevices.getUserMedia(hdConstraints);
+            console.log(`✅ [WebRTC] 720p acquired in ${Date.now() - startTime}ms`);
+          }
+        }
       }
       
       this.emit('localStream', this.localStream);
@@ -409,13 +446,49 @@ export class SimpleWebRTCCall {
     // This ensures UI and native shells know the call is truly connected
     this.updateCallToActive();
     
-    // India-first: Apply bitrate limits based on preset
-    if (this.pc && this.callPreset) {
+    // ULTRA HD: Apply maximum bitrate for video calls
+    if (this.pc && this.isVideo) {
+      this.applyMaximumVideoBitrate();
+    }
+    
+    // India-first: Apply bitrate limits based on preset (only for hostile networks)
+    if (this.pc && this.callPreset && this.networkQuality === 'HOSTILE') {
       applyBitrateLimits(this.pc, this.callPreset).then(() => {
         console.log(`🇮🇳 [WebRTC] Applied ${this.callPreset?.name} bitrate limits`);
       }).catch(e => {
         console.warn('⚠️ [WebRTC] Failed to apply bitrate limits:', e);
       });
+    }
+  }
+  
+  /**
+   * Apply maximum video bitrate for crystal-clear quality
+   * Target: 8-15 Mbps for 1080p@60fps or 4K
+   */
+  private async applyMaximumVideoBitrate() {
+    if (!this.pc) return;
+    
+    try {
+      const videoSender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+      if (!videoSender) return;
+      
+      const params = videoSender.getParameters();
+      if (!params.encodings || params.encodings.length === 0) {
+        params.encodings = [{}];
+      }
+      
+      // Set maximum bitrate: 15 Mbps for ultra quality
+      params.encodings[0].maxBitrate = 15_000_000; // 15 Mbps
+      params.encodings[0].maxFramerate = 60;
+      // @ts-ignore - Priority hint for browsers that support it
+      params.encodings[0].priority = 'high';
+      // @ts-ignore - Network priority
+      params.encodings[0].networkPriority = 'high';
+      
+      await videoSender.setParameters(params);
+      console.log('🎬 [WebRTC] Applied ULTRA HD bitrate: 15 Mbps @ 60fps');
+    } catch (e) {
+      console.warn('⚠️ [WebRTC] Could not apply max bitrate:', e);
     }
   }
   

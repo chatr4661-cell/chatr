@@ -6,32 +6,38 @@ export interface QualityPreset {
 }
 
 export const QUALITY_PRESETS = {
+  '4k': { 
+    bitrate: 25000000, // 25 Mbps - 4K Ultra HD
+    resolution: { width: 3840, height: 2160 },
+    fps: 60,
+    label: '4K Ultra HD @ 60fps'
+  },
   ultra: { 
-    bitrate: 8000000, // 8 Mbps - Superior to FaceTime
+    bitrate: 15000000, // 15 Mbps - Crystal clear 1080p
     resolution: { width: 1920, height: 1080 },
     fps: 60,
     label: '1080p Ultra @ 60fps'
   },
   high: { 
-    bitrate: 5000000, // 5 Mbps
+    bitrate: 8000000, // 8 Mbps
     resolution: { width: 1920, height: 1080 },
     fps: 30,
     label: '1080p High'
   },
   medium: { 
-    bitrate: 2500000, // 2.5 Mbps
+    bitrate: 4000000, // 4 Mbps
     resolution: { width: 1280, height: 720 },
     fps: 30,
     label: '720p'
   },
   low: { 
-    bitrate: 1000000, // 1 Mbps
+    bitrate: 1500000, // 1.5 Mbps
     resolution: { width: 640, height: 480 },
     fps: 24,
     label: '480p'
   },
   'ultra-low': {
-    bitrate: 200000, // 200 Kbps - optimized for 2G
+    bitrate: 300000, // 300 Kbps - optimized for 2G
     resolution: { width: 320, height: 240 },
     fps: 15,
     label: '240p (2G)'
@@ -50,9 +56,9 @@ export const getOptimalVideoConstraints = (quality: QualityLevel = 'ultra', faci
   const preset = QUALITY_PRESETS[quality];
   
   return {
-    width: { ideal: preset.resolution.width, max: 1920, min: 640 },
-    height: { ideal: preset.resolution.height, max: 1080, min: 480 },
-    frameRate: { ideal: preset.fps, max: 60 },
+    width: { ideal: preset.resolution.width, min: 640 },
+    height: { ideal: preset.resolution.height, min: 480 },
+    frameRate: { ideal: preset.fps, min: 24, max: 60 },
     aspectRatio: 16/9,
     facingMode: facingMode
   };
