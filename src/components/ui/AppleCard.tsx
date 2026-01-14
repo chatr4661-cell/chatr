@@ -23,10 +23,11 @@ export const AppleCard = React.forwardRef<HTMLDivElement, AppleCardProps>(
     children, 
     className, 
     variant = 'default',
-    padding = 'md',
+    padding = 'none',
     rounded = 'xl',
     pressable = false,
     onPress,
+    onClick,
     ...props 
   }, ref) => {
     
@@ -53,12 +54,13 @@ export const AppleCard = React.forwardRef<HTMLDivElement, AppleCardProps>(
       grouped: 'bg-secondary/50 border-0 shadow-none',
     };
 
+    const isClickable = pressable || onPress || onClick;
+
     const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (pressable && onPress) {
-        // Visual and haptic feedback handled by CSS
+      if (onPress) {
         onPress();
       }
-      props.onClick?.(e);
+      onClick?.(e);
     };
 
     return (
@@ -71,7 +73,7 @@ export const AppleCard = React.forwardRef<HTMLDivElement, AppleCardProps>(
           roundedClasses[rounded],
           paddingClasses[padding],
           // Pressable styles
-          pressable && [
+          isClickable && [
             'cursor-pointer',
             'active:scale-[0.98]',
             'active:opacity-90',
@@ -88,8 +90,6 @@ export const AppleCard = React.forwardRef<HTMLDivElement, AppleCardProps>(
     );
   }
 );
-
-AppleCard.displayName = 'AppleCard';
 
 /**
  * Apple-style Grouped List Container

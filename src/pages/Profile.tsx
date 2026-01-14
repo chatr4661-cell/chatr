@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProfileEditDialog } from '@/components/ProfileEditDialog';
 import { VerifiedBadge } from '@/components/profile/VerifiedBadge';
@@ -25,8 +23,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AppleButton } from '@/components/ui/AppleButton';
+import { AppleCard, AppleGroupedList, AppleListItem } from '@/components/ui/AppleCard';
+import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 
 const Profile = () => {
+  const haptics = useNativeHaptics();
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -138,14 +140,14 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground mb-3">{profile.status}</p>
           )}
           
-          <Button 
+          <AppleButton 
             onClick={() => setIsEditDialogOpen(true)}
-            variant="outline"
+            variant="secondary"
             size="sm"
-            className="rounded-full h-9 px-6"
+            rounded="full"
           >
             Edit Profile
-          </Button>
+          </AppleButton>
         </div>
       </div>
 
@@ -253,14 +255,14 @@ const Profile = () => {
             </div>
 
             {/* Sign Out */}
-            <Button
+            <AppleButton
               onClick={handleSignOut}
               variant="destructive"
-              className="w-full h-11"
+              fullWidth
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
-            </Button>
+            </AppleButton>
           </TabsContent>
 
           <TabsContent value="albums">
@@ -269,13 +271,13 @@ const Profile = () => {
 
           <TabsContent value="social">
             <div className="space-y-4">
-              <Card className="p-4">
+              <AppleCard className="p-4">
                 <h3 className="font-medium mb-3 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Mutual Friends
                 </h3>
                 {user?.id && <MutualFriendsDisplay userId={user.id} maxDisplay={5} />}
-              </Card>
+              </AppleCard>
             </div>
           </TabsContent>
         </Tabs>
