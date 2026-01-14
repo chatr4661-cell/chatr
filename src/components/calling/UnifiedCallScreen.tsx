@@ -16,7 +16,7 @@ import { startAggressiveVideoPlayback, attachVideoTrackRecoveryHandlers } from '
 import NetworkStatusBanner, { SignalStrengthIndicator, VideoDisabledNotice } from '@/components/calls/NetworkStatusBanner';
 import useUltraLowBandwidth from '@/hooks/useUltraLowBandwidth';
 import { MediaQuality } from '@/utils/gracefulDegradation';
-import VideoUpgradeModal from './VideoUpgradeModal';
+// VideoUpgradeModal removed - FaceTime-style auto video upgrade
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
 
@@ -60,10 +60,7 @@ export default function UnifiedCallScreen({
   const [controlsVisible, setControlsVisible] = useState(true);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   
-  // Video upgrade request states
-  const [showVideoUpgradeModal, setShowVideoUpgradeModal] = useState(false);
-  const [videoUpgradeRequester, setVideoUpgradeRequester] = useState<string | null>(null);
-  const [pendingVideoUpgrade, setPendingVideoUpgrade] = useState(false);
+  // Video upgrade states (simplified - no request/accept flow, FaceTime-style auto)
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -360,35 +357,27 @@ export default function UnifiedCallScreen({
         handleEndCall();
       });
 
-      // Video upgrade request/response handlers
-      call.on('videoUpgradeRequest', (fromUserId: string) => {
-        console.log('📹 [UnifiedCall] Video upgrade request from:', fromUserId.slice(0, 8));
-        setVideoUpgradeRequester(fromUserId);
-        setShowVideoUpgradeModal(true);
+      // FaceTime-style: When partner's renegotiation with video arrives, auto-enable our camera
+      call.on('renegotiationComplete', () => {
+        console.log('📹 [UnifiedCall] Renegotiation complete - checking for video upgrade');
       });
 
-      call.on('videoUpgradeAccepted', async (fromUserId: string) => {
-        console.log('📹 [UnifiedCall] Partner accepted video upgrade');
-        setPendingVideoUpgrade(false);
-        toast.success('Video enabled for both');
-        
-        // Enable our local video using the non-renegotiating method
-        // The acceptor already triggered renegotiation, so we just add our local track
-        const videoStream = await webrtcRef.current?.enableLocalVideoAfterAccept();
-        if (videoStream && localVideoRef.current) {
-          localVideoRef.current.srcObject = videoStream;
-          localVideoRef.current.muted = true;
-          await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-          setLocalVideoActive(true);
-          setIsVideoOn(true);
+      // Auto video enable: partner clicked video, we auto-enable too
+      call.on('videoEnableRequested', async (fromUserId: string) => {
+        console.log('📹 [UnifiedCall] Partner requested video enable - auto-enabling...');
+        try {
+          const videoStream = await webrtcRef.current?.addVideoToCall();
+          if (videoStream && localVideoRef.current) {
+            localVideoRef.current.srcObject = videoStream;
+            localVideoRef.current.muted = true;
+            await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+            setLocalVideoActive(true);
+            setIsVideoOn(true);
+            toast.success('Video enabled');
+          }
+        } catch (e) {
+          console.warn('📹 [UnifiedCall] Could not auto-enable video:', e);
         }
-      });
-
-      call.on('videoUpgradeRejected', () => {
-        console.log('📹 [UnifiedCall] Partner rejected video upgrade');
-        setPendingVideoUpgrade(false);
-        setIsVideoOn(false);
-        toast.info('Video request declined');
       });
     };
 
@@ -475,30 +464,38 @@ export default function UnifiedCallScreen({
     webrtcRef.current?.toggleAudio(!newState);
   };
 
-  // Video upgrade: Send request, wait for partner to accept
+  // FaceTime-style instant video toggle - no request/accept flow
   const toggleVideo = async () => {
-    if (!isVideoOn && !pendingVideoUpgrade) {
+    if (!isVideoOn) {
       // Check network policy first
       if (!canEnableVideo()) {
         toast.warning(uiState.message || 'Video not available on current network');
         return;
       }
       
-      // Send video upgrade request to partner
-      console.log('📹 [UnifiedCall] Sending video upgrade request...');
-      setPendingVideoUpgrade(true);
-      setIsVideoOn(true); // Show as pending
+      // Instantly enable video and renegotiate (FaceTime-style)
+      console.log('📹 [UnifiedCall] Enabling video (FaceTime-style)...');
+      setIsVideoOn(true);
       
       try {
-        await webrtcRef.current?.sendVideoUpgradeRequest();
-        toast.info('Video request sent to ' + contactName);
+        // This will add video, renegotiate, and the partner will auto-enable their camera too
+        const videoStream = await webrtcRef.current?.addVideoToCall();
+        if (videoStream && localVideoRef.current) {
+          localVideoRef.current.srcObject = videoStream;
+          localVideoRef.current.muted = true;
+          await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+          setLocalVideoActive(true);
+          toast.success('Video enabled');
+        } else {
+          setIsVideoOn(false);
+          toast.error('Could not enable video');
+        }
       } catch (e) {
-        console.error('📹 [UnifiedCall] Video request failed:', e);
-        setPendingVideoUpgrade(false);
+        console.error('📹 [UnifiedCall] Video enable failed:', e);
         setIsVideoOn(false);
-        toast.error('Could not send video request');
+        toast.error('Camera access failed');
       }
-    } else if (isVideoOn && !pendingVideoUpgrade) {
+    } else {
       // Turn off video
       console.log('📹 [UnifiedCall] Disabling video...');
       setIsVideoOn(false);
@@ -508,46 +505,7 @@ export default function UnifiedCallScreen({
         localVideoRef.current.srcObject = null;
       }
       toast.info('Video disabled');
-    } else if (pendingVideoUpgrade) {
-      // Cancel pending request
-      toast.info('Waiting for partner to accept...');
     }
-  };
-
-  // Handle video upgrade accept
-  const handleVideoUpgradeAccept = async () => {
-    console.log('📹 [UnifiedCall] Accepting video upgrade...');
-    setShowVideoUpgradeModal(false);
-    
-    try {
-      const videoStream = await webrtcRef.current?.acceptVideoUpgrade();
-      if (videoStream && localVideoRef.current) {
-        localVideoRef.current.srcObject = videoStream;
-        localVideoRef.current.muted = true;
-        await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-        setLocalVideoActive(true);
-        setIsVideoOn(true);
-        toast.success('Video call started');
-      } else {
-        toast.error('Could not enable video');
-      }
-    } catch (e) {
-      console.error('📹 [UnifiedCall] Accept video upgrade failed:', e);
-      toast.error('Camera access failed');
-    }
-    
-    setVideoUpgradeRequester(null);
-  };
-
-  // Handle video upgrade reject
-  const handleVideoUpgradeReject = async () => {
-    console.log('📹 [UnifiedCall] Rejecting video upgrade...');
-    setShowVideoUpgradeModal(false);
-    
-    await webrtcRef.current?.rejectVideoUpgrade();
-    toast.info('Video request declined');
-    
-    setVideoUpgradeRequester(null);
   };
 
   const switchCamera = async () => {
@@ -776,9 +734,8 @@ export default function UnifiedCallScreen({
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 relative ${
-                  pendingVideoUpgrade ? 'bg-amber-500 text-white animate-pulse'
-                    : isVideoOn && localVideoActive ? 'bg-emerald-500 text-white active:bg-emerald-600' 
-                    : isVideoOn && !localVideoActive ? 'bg-amber-500/70 text-white'
+                  isVideoOn && localVideoActive ? 'bg-emerald-500 text-white active:bg-emerald-600' 
+                    : isVideoOn && !localVideoActive ? 'bg-amber-500/70 text-white animate-pulse'
                     : !videoAllowed ? 'bg-white/5 text-white/30'
                     : 'bg-white/15 text-white active:bg-white/25'
                 }`}>
@@ -789,13 +746,9 @@ export default function UnifiedCallScreen({
                   ) : (
                     <VideoOff className="w-6 h-6" />
                   )}
-                  {pendingVideoUpgrade && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping" />
-                  )}
                 </div>
-                <span className={`text-[10px] ${!videoAllowed ? 'text-white/30' : pendingVideoUpgrade ? 'text-amber-400' : 'text-white/60'}`}>
+                <span className={`text-[10px] ${!videoAllowed ? 'text-white/30' : 'text-white/60'}`}>
                   {!videoAllowed ? 'No Video' 
-                    : pendingVideoUpgrade ? 'Requesting...'
                     : isVideoOn && localVideoActive ? 'HD Video' 
                     : isVideoOn ? 'Starting...'
                     : 'Video'}
@@ -881,15 +834,6 @@ export default function UnifiedCallScreen({
             webrtcRef.current.toggleAudio(!held);
           }
         }}
-      />
-
-      {/* Video Upgrade Request Modal */}
-      <VideoUpgradeModal
-        open={showVideoUpgradeModal}
-        contactName={contactName}
-        contactAvatar={contactAvatar}
-        onAccept={handleVideoUpgradeAccept}
-        onReject={handleVideoUpgradeReject}
       />
     </div>
   );
