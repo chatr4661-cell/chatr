@@ -2,6 +2,35 @@ import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
+// Global ringtone reference for emergency cleanup
+let globalRingtoneAudio: HTMLAudioElement | null = null;
+
+// Emergency stop function - call from anywhere to ensure ringtone stops
+export function stopAllRingtones() {
+  console.log('🔕 [Global] Emergency ringtone stop');
+  if (globalRingtoneAudio) {
+    try {
+      globalRingtoneAudio.pause();
+      globalRingtoneAudio.currentTime = 0;
+      globalRingtoneAudio.src = '';
+      globalRingtoneAudio.load();
+      globalRingtoneAudio = null;
+    } catch (e) {
+      console.warn('⚠️ Error stopping global ringtone:', e);
+    }
+  }
+  
+  // Also stop any other audio elements that might be ringtones
+  document.querySelectorAll('audio').forEach(audio => {
+    if (audio.src.includes('ringtone') || audio.src.includes('ring')) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (e) {}
+    }
+  });
+}
+
 // Native ringtone plugin (will use Capacitor's local notifications)
 interface UseNativeRingtoneOptions {
   enabled: boolean;
@@ -45,6 +74,8 @@ export function useNativeRingtone({
     // CRITICAL: Stop immediately if disabled (call answered/rejected)
     if (!enabled) {
       console.log('🔕 Ringtone disabled - stopping immediately');
+      
+      // Stop local ref
       if (audioRef.current) {
         try {
           audioRef.current.pause();
@@ -57,6 +88,10 @@ export function useNativeRingtone({
         }
         audioRef.current = null;
       }
+      
+      // Stop global ref too
+      stopAllRingtones();
+      
       playCountRef.current = maxPlays;
       stopVibration();
       return;
@@ -71,6 +106,7 @@ export function useNativeRingtone({
     audio.volume = volume;
     audio.preload = 'auto';
     audioRef.current = audio;
+    globalRingtoneAudio = audio; // Set global reference
       
     // Handle ringtone ending - replay up to maxPlays times
     audio.onended = () => {
@@ -133,6 +169,7 @@ export function useNativeRingtone({
     }
 
     return () => {
+      console.log('🔕 Ringtone cleanup - unmounting');
       if (audioRef.current) {
         try {
           audioRef.current.pause();
@@ -143,6 +180,10 @@ export function useNativeRingtone({
         } catch (e) {
           console.log('⚠️ Cleanup error:', e);
         }
+      }
+      // Also clear global reference
+      if (globalRingtoneAudio) {
+        globalRingtoneAudio = null;
       }
       stopVibration();
       playCountRef.current = 0;

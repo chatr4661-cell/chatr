@@ -16,6 +16,7 @@ import { startAggressiveVideoPlayback, attachVideoTrackRecoveryHandlers } from '
 import NetworkStatusBanner, { SignalStrengthIndicator, VideoDisabledNotice } from '@/components/calls/NetworkStatusBanner';
 import useUltraLowBandwidth from '@/hooks/useUltraLowBandwidth';
 import { MediaQuality } from '@/utils/gracefulDegradation';
+import { stopAllRingtones } from '@/hooks/useNativeRingtone';
 // VideoUpgradeModal removed - FaceTime-style auto video upgrade
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
@@ -50,7 +51,7 @@ export default function UnifiedCallScreen({
   const [callState, setCallState] = useState<'connecting' | 'connected' | 'reconnecting' | 'failed'>('connecting');
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(callType === 'video' || videoEnabled);
-  const [audioRoute, setAudioRoute] = useState<AudioRoute>('earpiece');
+  const [audioRoute, setAudioRoute] = useState<AudioRoute>('speaker'); // Default to speaker for hands-free
   const [duration, setDuration] = useState(0);
   const [showKeypad, setShowKeypad] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -77,6 +78,11 @@ export default function UnifiedCallScreen({
 
   useCallKeepAlive(callId, callState === 'connected');
   
+  // CRITICAL: Stop any ringtones when call screen opens (safety measure)
+  useEffect(() => {
+    stopAllRingtones();
+  }, []);
+
   // Ultra-low bandwidth optimizations
   // Note: peerConnection is accessed lazily since webrtcRef.current may not be set yet
   const getPeerConnection = useCallback(() => {
@@ -537,10 +543,23 @@ export default function UnifiedCallScreen({
   };
 
   const cycleAudioRoute = () => {
-    const routes: AudioRoute[] = ['earpiece', 'speaker'];
+    const routes: AudioRoute[] = ['speaker', 'earpiece'];
     const idx = routes.indexOf(audioRoute);
-    setAudioRoute(routes[(idx + 1) % routes.length]);
-    toast.info(`Audio: ${routes[(idx + 1) % routes.length]}`);
+    const newRoute = routes[(idx + 1) % routes.length];
+    setAudioRoute(newRoute);
+    
+    // Apply audio output change to actual audio element
+    if (remoteAudioRef.current) {
+      // On web, we can't directly control earpiece vs speaker
+      // But we can set speaker mode via Web Audio API or native bridge
+      if (Capacitor.isNativePlatform()) {
+        // On native, use Capacitor plugin or bridge to control audio route
+        // For now, just show toast - actual implementation would use native audio routing
+        console.log(`📱 Setting audio route: ${newRoute}`);
+      }
+    }
+    
+    toast.info(`Audio: ${newRoute === 'speaker' ? 'Speaker' : 'Earpiece'}`);
   };
 
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
@@ -566,26 +585,36 @@ export default function UnifiedCallScreen({
       style={{ 
         height: '100dvh', 
         width: '100vw', 
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         isolation: 'isolate',
         WebkitTapHighlightColor: 'transparent',
         touchAction: 'manipulation',
         WebkitUserSelect: 'none',
         userSelect: 'none',
-        willChange: 'transform',
+        willChange: 'transform, opacity',
         contain: 'layout style paint',
+        transform: 'translateZ(0)', // Force GPU layer for smooth touch
+        backfaceVisibility: 'hidden',
+        perspective: 1000,
       }}
       onClick={() => resetControlsTimer()}
     >
-      {/* Background - HD Remote Video or Avatar */}
-      {/* Always render video element for bidirectional HD video */}
+      {/* Background - Full-screen HD Remote Video like FaceTime */}
       <video
         ref={remoteVideoRef}
         autoPlay
         playsInline
-        className={`absolute inset-0 w-full h-full object-cover bg-black ${
+        className={`absolute inset-0 w-full h-full bg-black ${
           remoteVideoActive ? 'block' : 'hidden'
         }`}
         style={{
+          width: '100vw',
+          height: '100dvh',
+          minHeight: '-webkit-fill-available',
+          objectFit: 'cover', // Edge-to-edge immersive video
           transform: 'translateZ(0)', // GPU acceleration for smooth video
           backfaceVisibility: 'hidden',
           perspective: 1000,
