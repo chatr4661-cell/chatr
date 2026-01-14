@@ -70,19 +70,39 @@ export function IncomingCallScreen({
   const handleAnswer = async () => {
     console.log('🔕 Stopping ringtone - call answered');
     setRingtoneEnabled(false);
+    
+    // Stop haptics immediately
+    if (hapticIntervalRef.current) {
+      clearInterval(hapticIntervalRef.current);
+      hapticIntervalRef.current = null;
+    }
+    
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Medium });
     }
-    setTimeout(() => onAnswer(), 100);
+    
+    // Give ringtone hook time to fully stop before transitioning
+    await new Promise(resolve => setTimeout(resolve, 150));
+    onAnswer();
   };
 
   const handleReject = async () => {
     console.log('🔕 Stopping ringtone - call rejected');
     setRingtoneEnabled(false);
+    
+    // Stop haptics immediately
+    if (hapticIntervalRef.current) {
+      clearInterval(hapticIntervalRef.current);
+      hapticIntervalRef.current = null;
+    }
+    
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Light });
     }
-    setTimeout(() => onReject(), 100);
+    
+    // Give ringtone hook time to fully stop before transitioning
+    await new Promise(resolve => setTimeout(resolve, 150));
+    onReject();
   };
 
   const handleMessage = async () => {
