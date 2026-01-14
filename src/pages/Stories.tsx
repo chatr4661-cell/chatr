@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
 import { StoryViewer } from '@/components/stories/StoryViewer';
 import { StoryCreator } from '@/components/stories/StoryCreator';
 import { StoriesCarousel } from '@/components/stories/StoriesCarousel';
+import { AppleHeader } from '@/components/ui/AppleHeader';
+import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 
 const Stories = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const haptics = useNativeHaptics();
   const [user, setUser] = useState<any>(null);
   const [stories, setStories] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -23,12 +24,10 @@ const Stories = () => {
       } else {
         setUser(session.user);
 
-        // Handle navigation state
         const state = location.state as any;
         if (state?.createNew) {
           setShowCreator(true);
         } else if (state?.selectedStory) {
-          // Load stories and show viewer
           loadStoriesAndShow(session.user.id, state.selectedStory);
         }
       }
@@ -61,6 +60,7 @@ const Stories = () => {
   };
 
   const handleNext = () => {
+    haptics.light();
     if (currentIndex < stories.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
@@ -70,6 +70,7 @@ const Stories = () => {
   };
 
   const handlePrevious = () => {
+    haptics.light();
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
     }
@@ -93,21 +94,16 @@ const Stories = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Native Header */}
-      <div className="sticky top-0 z-10 bg-white border-b">
-        <div className="flex items-center gap-2 p-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-lg font-semibold">Stories</h1>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background safe-area-pb">
+      {/* Apple-style Header */}
+      <AppleHeader
+        title="Stories"
+        onBack={() => {
+          haptics.light();
+          navigate('/');
+        }}
+        glass
+      />
 
       {/* Stories Carousel */}
       <div className="max-w-2xl mx-auto">
@@ -118,4 +114,3 @@ const Stories = () => {
 };
 
 export default Stories;
-

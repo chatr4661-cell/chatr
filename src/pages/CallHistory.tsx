@@ -1,18 +1,22 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, Trash2, Search, UserPlus, Grid3X3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CallHistoryEmptyState, CallListSkeleton } from "@/components/ui/PremiumEmptyStates";
 import { PhoneDialer } from "@/components/calling/PhoneDialer";
 import { clearPreCallMediaStream, setPreCallMediaStream } from "@/utils/preCallMedia";
+import { AppleHeader, AppleHeaderAction } from "@/components/ui/AppleHeader';
+import { AppleSegmentedControl } from '@/components/ui/AppleSegmentedControl';
+import { AppleSearchBar } from '@/components/ui/AppleInput';
+import { AppleCard } from '@/components/ui/AppleCard';
+import { AppleIconButton, AppleButton } from '@/components/ui/AppleButton';
+import { useNativeHaptics } from '@/hooks/useNativeHaptics';
+import { cn } from '@/lib/utils';
 
 interface Call {
   id: string;
@@ -29,9 +33,10 @@ interface Call {
 
 export default function CallHistory() {
   const navigate = useNavigate();
+  const haptics = useNativeHaptics();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'missed'>('all');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [contacts, setContacts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,8 +70,6 @@ export default function CallHistory() {
       
       setCurrentUserId(user.id);
 
-      // Single optimized query - no N+1 problem
-      // Use caller_name/receiver_name/avatar stored directly in calls table
       const { data, error } = await supabase
         .from('calls')
         .select('id, call_type, status, started_at, ended_at, duration, caller_id, receiver_id, caller_name, caller_avatar, receiver_name, receiver_avatar')
@@ -76,7 +79,6 @@ export default function CallHistory() {
 
       if (error) throw error;
       
-      // Map to expected format using stored names/avatars
       const callsWithProfiles = (data || []).map(call => ({
         ...call,
         caller: { username: call.caller_name || 'Unknown', avatar_url: call.caller_avatar },
@@ -111,6 +113,7 @@ export default function CallHistory() {
   };
 
   const deleteCall = async (callId: string) => {
+    haptics.light();
     try {
       const { error } = await supabase
         .from('calls')
@@ -127,7 +130,6 @@ export default function CallHistory() {
     }
   };
 
-  // Generate UUID for call
   const generateCallId = (): string => {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
       return crypto.randomUUID();
@@ -142,6 +144,7 @@ export default function CallHistory() {
   };
 
   const startCall = async (contactId: string, callType: 'voice' | 'video') => {
+    haptics.medium();
     const callId = generateCallId();
     
     try {
@@ -151,14 +154,12 @@ export default function CallHistory() {
         return;
       }
 
-      // CRITICAL: Pre-acquire media under user gesture
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: callType === 'video',
       });
       setPreCallMediaStream(callId, stream);
 
-      // Get receiver profile first to validate they exist
       const { data: receiverProfile, error: receiverError } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
@@ -166,20 +167,17 @@ export default function CallHistory() {
         .single();
 
       if (receiverError || !receiverProfile) {
-        console.error('Receiver not found:', receiverError);
         clearPreCallMediaStream(callId);
         toast.error('Contact not found');
         return;
       }
 
-      // Get caller profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('username, avatar_url')
         .eq('id', user.id)
         .single();
 
-      // Find or create conversation
       let conversationId: string;
       
       const { data: existingConv } = await supabase
@@ -201,7 +199,6 @@ export default function CallHistory() {
           .single();
 
         if (convError) {
-          console.error('Conversation creation failed:', convError);
           clearPreCallMediaStream(callId);
           toast.error('Could not create conversation');
           return;
@@ -209,7 +206,6 @@ export default function CallHistory() {
         conversationId = newConv.id;
       }
 
-      // Create the call record
       const { data: callData, error: callError } = await supabase
         .from('calls')
         .insert({
@@ -228,15 +224,12 @@ export default function CallHistory() {
         .single();
 
       if (callError) {
-        console.error('Call creation failed:', callError);
         clearPreCallMediaStream(callId);
         toast.error('Could not start call');
         return;
       }
 
-      // Send FCM push notification to receiver
       try {
-        console.log('📲 Sending FCM call notification to:', contactId);
         await supabase.functions.invoke('fcm-notify', {
           body: {
             type: 'call',
@@ -248,12 +241,10 @@ export default function CallHistory() {
             callType: callType
           }
         });
-        console.log('✅ FCM call notification sent');
       } catch (fcmError) {
-        console.warn('⚠️ FCM notification failed:', fcmError);
+        console.warn('FCM notification failed:', fcmError);
       }
 
-      // GlobalCallListener will show the call UI automatically
       setShowNewCall(false);
       setShowDialer(false);
       loadCalls();
@@ -266,8 +257,6 @@ export default function CallHistory() {
           ? 'Please allow camera and microphone to make video calls'
           : 'Please allow microphone to make voice calls'
         );
-      } else if (error?.name === 'NotReadableError') {
-        toast.error('Microphone is busy. Close other apps and try again.');
       } else {
         toast.error('Failed to start call');
       }
@@ -314,86 +303,97 @@ export default function CallHistory() {
     contact.phone?.includes(searchQuery)
   );
 
+  const segmentOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'missed', label: 'Missed' }
+  ];
+
   return (
-    <div className="flex flex-col h-screen bg-background pb-24">
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold">Calls</h1>
-          <div className="flex items-center gap-2">
-            <Button size="icon" variant="ghost" onClick={() => setShowDialer(true)}>
+    <div className="flex flex-col h-screen bg-background safe-area-pb">
+      {/* Apple-style Header */}
+      <AppleHeader
+        title="Calls"
+        largeTitle
+        glass
+        rightAction={
+          <div className="flex items-center gap-1">
+            <AppleIconButton variant="ghost" onClick={() => {
+              haptics.light();
+              setShowDialer(true);
+            }}>
               <Grid3X3 className="h-5 w-5" />
-            </Button>
+            </AppleIconButton>
             <Dialog open={showNewCall} onOpenChange={setShowNewCall}>
               <DialogTrigger asChild>
-                <Button size="icon" variant="ghost">
+                <AppleIconButton variant="ghost" onClick={() => haptics.light()}>
                   <UserPlus className="h-5 w-5" />
-                </Button>
+                </AppleIconButton>
               </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>New Call</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
+              <DialogContent className="max-w-md rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>New Call</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <AppleSearchBar
                     placeholder="Search contacts..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    onChange={setSearchQuery}
                   />
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2">
+                      {filteredContacts.map((contact) => (
+                        <div
+                          key={contact.id}
+                          className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors"
+                        >
+                          <Avatar className="w-12 h-12">
+                            <AvatarImage src={contact.avatar_url} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                              {contact.username?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-semibold">{contact.username}</p>
+                            {contact.phone && (
+                              <p className="text-sm text-muted-foreground">{contact.phone}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <AppleIconButton
+                              variant="ghost"
+                              onClick={() => startCall(contact.id, 'voice')}
+                            >
+                              <Phone className="h-4 w-4" />
+                            </AppleIconButton>
+                            <AppleIconButton
+                              variant="ghost"
+                              onClick={() => startCall(contact.id, 'video')}
+                            >
+                              <Video className="h-4 w-4" />
+                            </AppleIconButton>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </div>
-                <ScrollArea className="h-[400px]">
-                  <div className="space-y-2">
-                    {filteredContacts.map((contact) => (
-                      <div
-                        key={contact.id}
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent"
-                      >
-                        <Avatar>
-                          <AvatarImage src={contact.avatar_url} />
-                          <AvatarFallback>
-                            {contact.username?.[0]?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="font-semibold">{contact.username}</p>
-                          {contact.phone && (
-                            <p className="text-sm text-muted-foreground">{contact.phone}</p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => startCall(contact.id, 'voice')}
-                          >
-                            <Phone className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => startCall(contact.id, 'video')}
-                          >
-                            <Video className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
           </div>
-        </div>
+        }
+      />
 
-        <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as 'all' | 'missed')} className="w-full px-4">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="missed">Missed</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      {/* Segmented Control */}
+      <div className="px-4 py-2 bg-background/80 backdrop-blur-xl border-b border-border/50">
+        <AppleSegmentedControl
+          options={segmentOptions}
+          value={activeFilter}
+          onChange={(value) => {
+            haptics.light();
+            setActiveFilter(value);
+          }}
+          fullWidth
+        />
       </div>
 
       <ScrollArea className="flex-1">
@@ -401,22 +401,31 @@ export default function CallHistory() {
           {loading ? (
             <CallListSkeleton count={6} />
           ) : filteredCalls.length === 0 ? (
-            <CallHistoryEmptyState onStartCall={() => setShowNewCall(true)} />
+            <CallHistoryEmptyState onStartCall={() => {
+              haptics.light();
+              setShowNewCall(true);
+            }} />
           ) : (
             filteredCalls.map((call) => {
               const contact = getContactInfo(call);
               const isOutgoing = call.caller_id === currentUserId;
 
               return (
-                <div key={call.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-accent transition-colors">
-                  <Avatar>
+                <AppleCard
+                  key={call.id}
+                  pressable
+                  className="flex items-center gap-4 p-4"
+                >
+                  <Avatar className="w-12 h-12">
                     <AvatarImage src={contact.avatar} />
-                    <AvatarFallback>{contact.name?.[0]?.toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                      {contact.name?.[0]?.toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">{contact.name}</p>
+                      <p className="font-semibold truncate">{contact.name}</p>
                       {getCallIcon(call)}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -433,14 +442,13 @@ export default function CallHistory() {
                     </p>
                   </div>
 
-                  <Button
+                  <AppleIconButton
                     variant="ghost"
-                    size="icon"
                     onClick={() => deleteCall(call.id)}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </AppleIconButton>
+                </AppleCard>
               );
             })
           )}
