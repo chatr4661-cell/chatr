@@ -1053,21 +1053,56 @@ export class SimpleWebRTCCall {
     const videoTrack = this.localStream?.getVideoTracks()[0];
     if (!videoTrack) throw new Error('No video track');
 
-    const constraints = videoTrack.getConstraints();
-    const currentFacing = (constraints.facingMode as string) || 'user';
+    // Get current facing mode - check settings first, then constraints
+    const settings = videoTrack.getSettings?.();
+    const constraints = videoTrack.getConstraints?.();
+    const currentFacing = settings?.facingMode || (constraints?.facingMode as string) || 'user';
     const newFacing = currentFacing === 'user' ? 'environment' : 'user';
+    
+    console.log(`📷 [WebRTC] Switching camera: ${currentFacing} → ${newFacing}`);
 
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: newFacing, width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: { exact: newFacing }, 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 } 
+        }
+      });
 
-    const newVideoTrack = newStream.getVideoTracks()[0];
-    await this.replaceTrack(newVideoTrack);
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      
+      // Replace track in peer connection
+      await this.replaceTrack(newVideoTrack);
 
-    // Stop old track
-    videoTrack.stop();
+      // Stop old track AFTER successful replacement
+      videoTrack.stop();
+      
+      // Emit localStream again so UI updates the video element
+      if (this.localStream) {
+        this.emit('localStream', this.localStream);
+      }
 
-    return newFacing;
+      console.log(`✅ [WebRTC] Camera switched to ${newFacing}`);
+      return newFacing;
+    } catch (e: any) {
+      console.error('❌ [WebRTC] Switch camera failed:', e);
+      // If exact fails, try without exact
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: newFacing, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        const fallbackTrack = fallbackStream.getVideoTracks()[0];
+        await this.replaceTrack(fallbackTrack);
+        videoTrack.stop();
+        if (this.localStream) {
+          this.emit('localStream', this.localStream);
+        }
+        return newFacing;
+      } catch (fallbackErr) {
+        throw fallbackErr;
+      }
+    }
   }
 
   async replaceTrack(newTrack: MediaStreamTrack): Promise<void> {

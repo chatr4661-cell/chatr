@@ -542,8 +542,21 @@ export default function UnifiedCallScreen({
     }
     try {
       const newFacing = await webrtcRef.current.switchCamera();
+      
       // Update local video preview mirror based on facing mode
-      if (localVideoRef.current) {
+      // Also re-bind the srcObject in case the stream changed
+      if (localVideoRef.current && webrtcRef.current) {
+        const pc = webrtcRef.current.getPeerConnection?.();
+        const sender = pc?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender?.track && localVideoRef.current.srcObject) {
+          // The stream object is the same, but we need to ensure the new track is rendering
+          const stream = localVideoRef.current.srcObject as MediaStream;
+          // Force re-render by reassigning
+          localVideoRef.current.srcObject = null;
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.play().catch(() => {});
+        }
+        // Mirror for front camera, no mirror for rear
         localVideoRef.current.style.transform = newFacing === 'user' ? 'scaleX(-1) translateZ(0)' : 'translateZ(0)';
       }
       toast.success(newFacing === 'environment' ? 'Rear camera' : 'Front camera');
