@@ -1,6 +1,7 @@
 package com.chatr.app.presentation.calling
 
 import android.content.Context
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -29,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chatr.app.calling.service.CallForegroundService
 import com.chatr.app.presentation.theme.ChatrTheme
+import com.chatr.app.webview.WebViewBridgeManager
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Native Call Activity - Full-screen call UI
@@ -37,9 +40,15 @@ import dagger.hilt.android.AndroidEntryPoint
  * Shows:
  * - Incoming call screen with Answer/Reject for ringing calls
  * - Active call screen for connected calls
+ * 
+ * CRITICAL: When answering, sets window.__CALL_STATE__ via WebViewBridgeManager
+ * to prevent double-ringing and enable web UI auto-join
  */
 @AndroidEntryPoint
 class CallActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var webViewBridgeManager: WebViewBridgeManager
 
     private var callId: String = ""
     private var callerName: String = ""
@@ -50,6 +59,9 @@ class CallActivity : ComponentActivity() {
     
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    
+    // Track if we already started ringing to prevent double-ring
+    private var isRinging: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,8 +86,11 @@ class CallActivity : ComponentActivity() {
         isVideo = intent.getBooleanExtra("extra_is_video", false)
         isIncoming = intent.getBooleanExtra("is_incoming", false)
 
-        // Start ringtone and vibration for incoming calls
-        if (isIncoming) {
+        android.util.Log.d("CallActivity", "📞 onCreate: callId=$callId, incoming=$isIncoming")
+
+        // Start ringtone and vibration for incoming calls ONLY if not already ringing
+        if (isIncoming && !isRinging) {
+            isRinging = true
             startRingtone()
             startVibration()
         }
@@ -144,6 +159,7 @@ class CallActivity : ComponentActivity() {
     }
     
     private fun stopRingtoneAndVibration() {
+        isRinging = false
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
@@ -151,8 +167,22 @@ class CallActivity : ComponentActivity() {
     }
 
     private fun answerCall() {
+        android.util.Log.d("CallActivity", "✅ Native answering call: $callId")
+        
         stopRingtoneAndVibration()
         isIncoming = false
+        
+        // CRITICAL: Set window.__CALL_STATE__ in WebView to prevent double-ringing
+        // and enable web UI to auto-join the WebRTC session
+        webViewBridgeManager.setNativeCallAccepted(callId)
+        
+        // Broadcast for any other native components
+        val answerIntent = Intent("com.chatr.app.CALL_ANSWERED").apply {
+            putExtra("callId", callId)
+            putExtra("isVideo", isVideo)
+        }
+        sendBroadcast(answerIntent)
+        
         // The TelecomManager connection.onAnswer() will handle the rest
         // Just update UI to show active call
         setContent {
@@ -168,13 +198,34 @@ class CallActivity : ComponentActivity() {
     }
     
     private fun rejectCall() {
+        android.util.Log.d("CallActivity", "❌ Native rejecting call: $callId")
+        
         stopRingtoneAndVibration()
+        
+        // Broadcast rejection
+        val rejectIntent = Intent("com.chatr.app.CALL_REJECTED").apply {
+            putExtra("callId", callId)
+        }
+        sendBroadcast(rejectIntent)
+        
         CallForegroundService.stop(this)
         finish()
     }
 
     private fun endCall() {
+        android.util.Log.d("CallActivity", "📵 Native ending call: $callId")
+        
         stopRingtoneAndVibration()
+        
+        // Clear native call state in WebView
+        webViewBridgeManager.clearNativeCallState()
+        
+        // Broadcast end
+        val endIntent = Intent("com.chatr.app.CALL_ENDED").apply {
+            putExtra("callId", callId)
+        }
+        sendBroadcast(endIntent)
+        
         CallForegroundService.stop(this)
         finish()
     }

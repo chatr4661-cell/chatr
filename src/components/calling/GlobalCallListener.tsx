@@ -72,6 +72,31 @@ export function GlobalCallListener() {
   // Track if running in native shell
   const isNative = isNativeShell();
   
+  // CRITICAL: Listen for native call acceptance event
+  // This is dispatched by WebViewBridgeManager when user answers via TelecomManager
+  useEffect(() => {
+    if (!isNative) return;
+    
+    const handleNativeCallAccepted = (event: CustomEvent<{ callId: string }>) => {
+      const { callId } = event.detail;
+      console.log(`📱 [GlobalCallListener] Native accepted call event: ${callId?.slice(0, 8)}`);
+      
+      // If we have a matching incoming call, dismiss the web UI immediately
+      // (shouldn't happen as web UI is skipped for native, but safety check)
+      const current = incomingCallRef.current;
+      if (current && current.id === callId) {
+        console.log('📱 [GlobalCallListener] Dismissing web incoming UI - native accepted');
+        setIncomingCall(null);
+      }
+    };
+    
+    window.addEventListener('chatr:native_call_accepted', handleNativeCallAccepted as EventListener);
+    
+    return () => {
+      window.removeEventListener('chatr:native_call_accepted', handleNativeCallAccepted as EventListener);
+    };
+  }, [isNative]);
+  
   // Subscribe once per logged-in user
   // CRITICAL: In native shell, skip INCOMING call notifications (handled by TelecomManager/CallKit)
   // But STILL subscribe to call STATUS updates for WebRTC signaling to work!
