@@ -536,10 +536,21 @@ export default function UnifiedCallScreen({
   };
 
   const switchCamera = async () => {
+    if (!localVideoActive || !webrtcRef.current) {
+      toast.error('Enable video first');
+      return;
+    }
     try {
-      await webrtcRef.current?.switchCamera();
-      toast.success('Camera switched');
-    } catch (e) { toast.error('Could not switch camera'); }
+      const newFacing = await webrtcRef.current.switchCamera();
+      // Update local video preview mirror based on facing mode
+      if (localVideoRef.current) {
+        localVideoRef.current.style.transform = newFacing === 'user' ? 'scaleX(-1) translateZ(0)' : 'translateZ(0)';
+      }
+      toast.success(newFacing === 'environment' ? 'Rear camera' : 'Front camera');
+    } catch (e) { 
+      console.error('Switch camera error:', e);
+      toast.error('Could not switch camera'); 
+    }
   };
 
   const cycleAudioRoute = () => {
@@ -603,13 +614,12 @@ export default function UnifiedCallScreen({
       onClick={() => resetControlsTimer()}
     >
       {/* Background - Full-screen HD Remote Video like FaceTime */}
+      {/* ALWAYS show remote video when video is on (don't hide) - let CSS handle visibility */}
       <video
         ref={remoteVideoRef}
         autoPlay
         playsInline
-        className={`absolute inset-0 w-full h-full bg-black ${
-          remoteVideoActive ? 'block' : 'hidden'
-        }`}
+        className="absolute inset-0 w-full h-full bg-black"
         style={{
           width: '100vw',
           height: '100dvh',
@@ -618,28 +628,34 @@ export default function UnifiedCallScreen({
           transform: 'translateZ(0)', // GPU acceleration for smooth video
           backfaceVisibility: 'hidden',
           perspective: 1000,
+          opacity: remoteVideoActive ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+          zIndex: 1,
         }}
       />
       
       {/* Show avatar when no remote video - with smooth transitions */}
-      {!remoteVideoActive && (
-        <div 
-          className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center"
-          style={{ transform: 'translateZ(0)' }}
-        >
-          {contactAvatar ? (
-            <img 
-              src={contactAvatar} 
-              alt={contactName} 
-              className="w-28 h-28 rounded-full object-cover ring-4 ring-white/10 shadow-2xl transition-transform duration-200 active:scale-95" 
-            />
-          ) : (
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center ring-4 ring-white/10 transition-transform duration-200 active:scale-95">
-              <span className="text-5xl font-bold text-white">{contactName.charAt(0).toUpperCase()}</span>
-            </div>
-          )}
-        </div>
-      )}
+      <div 
+        className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center"
+        style={{ 
+          transform: 'translateZ(0)',
+          opacity: remoteVideoActive ? 0 : 1,
+          transition: 'opacity 0.3s ease',
+          zIndex: 0,
+        }}
+      >
+        {contactAvatar ? (
+          <img 
+            src={contactAvatar} 
+            alt={contactName} 
+            className="w-28 h-28 rounded-full object-cover ring-4 ring-white/10 shadow-2xl transition-transform duration-200 active:scale-95" 
+          />
+        ) : (
+          <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center ring-4 ring-white/10 transition-transform duration-200 active:scale-95">
+            <span className="text-5xl font-bold text-white">{contactName.charAt(0).toUpperCase()}</span>
+          </div>
+        )}
+      </div>
 
       {/* Local Video PIP - keep mounted so ref exists; hide when inactive */}
       <motion.div
@@ -821,32 +837,25 @@ export default function UnifiedCallScreen({
               </button>
             </div>
 
-            {/* Row 2: Keypad/More, End, Flip/More - Butter-smooth touch */}
+            {/* Row 2: Flip, End, More - Always show Flip when local video active */}
             <div className="flex justify-center gap-6">
-              {/* Keypad for voice, Flip for video */}
-              {!isVideo ? (
-                <button 
-                  onClick={() => setShowKeypad(!showKeypad)} 
-                  className="flex flex-col items-center gap-1 touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                >
-                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center transition-all duration-150 active:scale-90 active:bg-white/25">
-                    <Grid3X3 className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-[10px] text-white/60">Keypad</span>
-                </button>
-              ) : (
-                <button 
-                  onClick={switchCamera} 
-                  className="flex flex-col items-center gap-1 touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                >
-                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center transition-all duration-150 active:scale-90 active:bg-white/25">
+              {/* Flip camera - shown when local video is active OR video call */}
+              <button 
+                onClick={localVideoActive ? switchCamera : () => setShowKeypad(!showKeypad)} 
+                className="flex flex-col items-center gap-1 touch-manipulation"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 ${
+                  localVideoActive ? 'bg-white/15 active:bg-white/25' : 'bg-white/15 active:bg-white/25'
+                }`}>
+                  {localVideoActive ? (
                     <SwitchCamera className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-[10px] text-white/60">Flip</span>
-                </button>
-              )}
+                  ) : (
+                    <Grid3X3 className="w-6 h-6 text-white" />
+                  )}
+                </div>
+                <span className="text-[10px] text-white/60">{localVideoActive ? 'Flip' : 'Keypad'}</span>
+              </button>
 
               <button 
                 onClick={handleEndCall} 
