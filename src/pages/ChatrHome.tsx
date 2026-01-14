@@ -221,21 +221,21 @@ export default function ChatrHome() {
               <p className="text-xs text-muted-foreground">What would you like to do?</p>
             </div>
           </div>
-          <AppleIconButton 
-            variant="ghost"
-            onClick={() => {
-              haptics.light();
-              navigate('/notifications');
-            }}
-            className="relative"
-          >
-            <Bell className="w-5 h-5" />
+          <div className="relative">
+            <AppleIconButton 
+              variant="ghost"
+              icon={<Bell className="w-5 h-5" />}
+              onClick={() => {
+                haptics.light();
+                navigate('/notifications');
+              }}
+            />
             {activityData.notifications > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center pointer-events-none">
                 {activityData.notifications > 9 ? '9+' : activityData.notifications}
               </span>
             )}
-          </AppleIconButton>
+          </div>
         </div>
       </div>
 
@@ -343,7 +343,11 @@ export default function ChatrHome() {
               {recentActivity.map((item, index) => (
                 <AppleListItem
                   key={item.id}
-                  icon={<MessageCircle className="w-5 h-5 text-primary" />}
+                  leading={
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-primary" />
+                    </div>
+                  }
                   title={item.title}
                   subtitle="Tap to continue"
                   chevron

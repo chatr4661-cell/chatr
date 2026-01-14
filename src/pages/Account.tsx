@@ -410,7 +410,11 @@ export default function Account() {
           </h3>
           <AppleGroupedList>
             <AppleListItem
-              icon={<TrendingUp className="w-5 h-5 text-orange-500" />}
+              leading={
+                <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-orange-500" />
+                </div>
+              }
               title="Chatr Champions"
               subtitle="Track referrals & earnings"
               chevron
@@ -420,7 +424,11 @@ export default function Account() {
               }}
             />
             <AppleListItem
-              icon={<Users className="w-5 h-5 text-purple-500" />}
+              leading={
+                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-purple-500" />
+                </div>
+              }
               title="Become an Ambassador"
               subtitle="Join campus network"
               chevron
@@ -430,7 +438,11 @@ export default function Account() {
               }}
             />
             <AppleListItem
-              icon={<Stethoscope className="w-5 h-5 text-teal-500" />}
+              leading={
+                <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                  <Stethoscope className="w-5 h-5 text-teal-500" />
+                </div>
+              }
               title="Healthcare Provider"
               subtitle="Join as a doctor"
               chevron

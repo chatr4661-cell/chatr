@@ -144,18 +144,18 @@ export const AppleIconButton = React.forwardRef<
   {
     icon: React.ReactNode;
     size?: 'sm' | 'md' | 'lg';
-    variant?: 'default' | 'filled' | 'glass';
+    variant?: 'default' | 'filled' | 'glass' | 'ghost';
     className?: string;
-    onClick?: () => void;
+    onClick?: (e?: React.MouseEvent) => void;
     disabled?: boolean;
   }
 >(({ icon, size = 'md', variant = 'default', className, onClick, disabled }, ref) => {
   const haptics = useNativeHaptics();
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
     if (disabled) return;
     haptics.light();
-    onClick?.();
+    onClick?.(e);
   };
 
   const sizeClasses = {
@@ -168,6 +168,7 @@ export const AppleIconButton = React.forwardRef<
     default: 'text-primary active:bg-muted',
     filled: 'bg-primary/10 text-primary active:bg-primary/20',
     glass: 'bg-white/20 backdrop-blur-lg text-foreground active:bg-white/30',
+    ghost: 'text-primary active:bg-primary/10',
   };
 
   return (
