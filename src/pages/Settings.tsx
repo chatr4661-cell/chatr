@@ -6,22 +6,24 @@ import { PrivacySettings } from "@/components/settings/PrivacySettings";
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 import { ConnectedAccounts } from "@/components/ConnectedAccounts";
 import LinkedDevices from "@/components/settings/LinkedDevices";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, User, Shield, Palette, LogOut, Ghost, QrCode } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { SEOHead } from '@/components/SEOHead';
 import { Breadcrumbs } from '@/components/navigation';
 import QRLoginScanner from "@/components/qr/QRLoginScanner";
 import { Capacitor } from "@capacitor/core";
+import { AppleHeader } from '@/components/ui/AppleHeader';
+import { AppleButton } from '@/components/ui/AppleButton';
+import { AppleCard, AppleGroupedList, AppleListItem } from '@/components/ui/AppleCard';
+import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 
 export default function Settings() {
   const [userId, setUserId] = useState<string | undefined>();
   const [scannerOpen, setScannerOpen] = useState(false);
   const navigate = useNavigate();
+  const haptics = useNativeHaptics();
   const isNative = Capacitor.isNativePlatform();
 
   useEffect(() => {
@@ -80,14 +82,14 @@ export default function Settings() {
             <ConnectedAccounts />
             <LinkedDevices />
             {isNative && (
-              <Button 
-                variant="outline" 
-                className="w-full gap-2"
+              <AppleButton 
+                variant="secondary" 
+                fullWidth
                 onClick={() => setScannerOpen(true)}
+                icon={<QrCode className="h-4 w-4" />}
               >
-                <QrCode className="h-4 w-4" />
                 Link a New Device
-              </Button>
+              </AppleButton>
             )}
           </TabsContent>
 
@@ -106,19 +108,18 @@ export default function Settings() {
 
         <div className="mt-8 space-y-3">
           <Link to="/stealth-mode">
-            <Button variant="outline" className="w-full justify-start gap-2">
-              <Ghost className="w-4 h-4" />
+            <AppleButton variant="secondary" fullWidth icon={<Ghost className="w-4 h-4" />}>
               Stealth Mode Settings
-            </Button>
+            </AppleButton>
           </Link>
-          <Button 
+          <AppleButton 
             variant="destructive" 
-            className="w-full"
+            fullWidth
             onClick={handleLogout}
+            icon={<LogOut className="w-4 h-4" />}
           >
-            <LogOut className="w-4 h-4 mr-2" />
             Logout
-          </Button>
+          </AppleButton>
         </div>
       </div>
     </div>

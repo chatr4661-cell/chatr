@@ -152,35 +152,75 @@ export const AppleInput = forwardRef<HTMLInputElement, AppleInputProps>(
 AppleInput.displayName = 'AppleInput';
 
 /**
- * Apple-style Search Bar
+ * Apple-style Search Bar with simplified API
  */
-export const AppleSearchBar = forwardRef<
-  HTMLInputElement,
-  Omit<AppleInputProps, 'variant' | 'leftIcon'> & {
-    onSearch?: (value: string) => void;
-  }
->(({ className, onSearch, value, onChange, onClear, ...props }, ref) => {
+interface AppleSearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+  onClear?: () => void;
+  onSubmit?: () => void;
+  placeholder?: string;
+  rightIcon?: React.ReactNode;
+  className?: string;
+}
+
+export const AppleSearchBar: React.FC<AppleSearchBarProps> = ({
+  value,
+  onChange,
+  onClear,
+  onSubmit,
+  placeholder = 'Search',
+  rightIcon,
+  className,
+}) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange?.(e);
-    onSearch?.(e.target.value);
+    onChange(e.target.value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && onSubmit) {
+      onSubmit();
+    }
+  };
+
+  const handleClear = () => {
+    onChange('');
+    onClear?.();
   };
 
   return (
-    <AppleInput
-      ref={ref}
-      variant="filled"
-      rounded="xl"
-      leftIcon={<Search className="w-5 h-5" />}
-      clearable
-      value={value}
-      onChange={handleChange}
-      onClear={onClear}
-      placeholder="Search"
-      className={cn('h-10', className)}
-      {...props}
-    />
+    <div className={cn('relative w-full', className)}>
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className={cn(
+          'w-full h-12 pl-11 pr-20',
+          'bg-muted/50 rounded-2xl',
+          'text-base text-foreground',
+          'placeholder:text-muted-foreground',
+          'border-0 focus:outline-none focus:ring-2 focus:ring-primary/20',
+          'transition-all duration-200'
+        )}
+      />
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        {value && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="p-1 rounded-full bg-muted/80 text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+        {rightIcon}
+      </div>
+    </div>
   );
-});
+};
 
 AppleSearchBar.displayName = 'AppleSearchBar';
 
