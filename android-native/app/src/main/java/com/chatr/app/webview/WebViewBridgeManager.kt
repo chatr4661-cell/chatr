@@ -16,17 +16,24 @@ import javax.inject.Singleton
  * 
  * Handles communication between native app and WebView
  * Injects auth session and handles callbacks
+ * 
+ * CRITICAL: Sets window.__CALL_STATE__ when native accepts calls
+ * to prevent double-ringing and enable web auto-join
  */
 @Singleton
 class WebViewBridgeManager @Inject constructor(
     private val auth: Auth
 ) {
     
+    private var webViewRef: WebView? = null
+    
     /**
      * Configure WebView with auth session injection
      */
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
     fun configureWebView(webView: WebView, onMessage: (String) -> Unit = {}) {
+        webViewRef = webView
+        
         webView.addJavascriptInterface(
             WebViewBridge(onMessage),
             "ChatrNative"
@@ -47,6 +54,59 @@ class WebViewBridgeManager @Inject constructor(
     fun loadChatrPage(webView: WebView, path: String = "") {
         val url = "${SupabaseConfig.WEB_DASHBOARD_URL}$path"
         webView.loadUrl(url)
+    }
+    
+    /**
+     * CRITICAL: Set native call state in WebView when user accepts via TelecomManager
+     * This prevents double-ringing and enables web UI to auto-join WebRTC
+     */
+    fun setNativeCallAccepted(callId: String) {
+        val webView = webViewRef ?: return
+        
+        CoroutineScope(Dispatchers.Main).launch {
+            val js = """
+                (function() {
+                    try {
+                        window.__CALL_STATE__ = {
+                            callId: '$callId',
+                            accepted: true,
+                            acceptedAt: Date.now()
+                        };
+                        console.log('[NativeCall] Native accepted call: ${callId.take(8)}');
+                        
+                        // Also dispatch event for any listeners
+                        if (window.dispatchEvent) {
+                            window.dispatchEvent(new CustomEvent('chatr:native_call_accepted', { 
+                                detail: { callId: '$callId' } 
+                            }));
+                        }
+                    } catch (e) {
+                        console.error('[NativeCall] Failed to set call state:', e);
+                    }
+                })();
+            """.trimIndent()
+            
+            webView.evaluateJavascript(js, null)
+            android.util.Log.d("WebViewBridge", "Set __CALL_STATE__ for call: $callId")
+        }
+    }
+    
+    /**
+     * Clear native call state when call ends
+     */
+    fun clearNativeCallState() {
+        val webView = webViewRef ?: return
+        
+        CoroutineScope(Dispatchers.Main).launch {
+            val js = """
+                (function() {
+                    window.__CALL_STATE__ = undefined;
+                    console.log('[NativeCall] Native call state cleared');
+                })();
+            """.trimIndent()
+            
+            webView.evaluateJavascript(js, null)
+        }
     }
     
     /**
