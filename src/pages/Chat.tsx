@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
-import { ProductionCallNotifications } from '@/components/calling/ProductionCallNotifications';
+import { clearPreCallMediaStream, setPreCallMediaStream } from '@/utils/preCallMedia';
 import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useChatPushNotifications } from '@/hooks/useChatPushNotifications';
@@ -647,14 +647,39 @@ const ChatEnhancedContent = () => {
     setConversationParticipants(data?.map(p => p.user_id) || []);
   };
 
+  // Generate UUID for call
+  const generateCallId = (): string => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const toHex = (n: number) => n.toString(16).padStart(2, '0');
+    const b = Array.from(bytes, toHex).join('');
+    return `${b.slice(0, 8)}-${b.slice(8, 12)}-${b.slice(12, 16)}-${b.slice(16, 20)}-${b.slice(20)}`;
+  };
+
   const handleStartCall = async (callType: 'voice' | 'video') => {
     if (!activeConversationId || !otherUser) {
       toast.error('Please select a conversation first');
       return;
     }
 
+    const callId = generateCallId();
+
     try {
       console.log('🎥 Starting call:', { callType, to: otherUser.username });
+      
+      // CRITICAL: Pre-acquire media under user gesture to avoid Android WebView errors
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: callType === 'video',
+      });
+      
+      // Store stream for GlobalCallListener to pick up
+      setPreCallMediaStream(callId, stream);
       
       // Get current user profile for caller name and phone
       const { data: profile } = await supabase
@@ -673,6 +698,7 @@ const ChatEnhancedContent = () => {
       const { data, error } = await supabase
         .from('calls')
         .insert({
+          id: callId, // Use pre-generated ID so media stream matches
           conversation_id: activeConversationId,
           caller_id: user!.id,
           caller_name: profile?.username || user!.email || 'Unknown',
@@ -690,6 +716,7 @@ const ChatEnhancedContent = () => {
 
       if (error) {
         console.error('❌ Failed to create call:', error);
+        clearPreCallMediaStream(callId);
         throw error;
       }
 
@@ -715,10 +742,30 @@ const ChatEnhancedContent = () => {
         console.warn('⚠️ FCM notification failed (user may still receive via realtime):', fcmError);
       }
       
-      toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
-    } catch (error) {
+      // GlobalCallListener will show the call UI automatically
+    } catch (error: any) {
       console.error('Error starting call:', error);
-      toast.error('Failed to start call');
+      clearPreCallMediaStream(callId);
+      
+      // User-friendly error messages
+      if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError') {
+        toast.error(callType === 'video'
+          ? 'Please allow camera and microphone to make video calls'
+          : 'Please allow microphone to make voice calls'
+        );
+      } else if (error?.name === 'NotReadableError') {
+        toast.error(callType === 'video'
+          ? 'Camera/microphone is busy. Close other apps and try again.'
+          : 'Microphone is busy. Close other apps and try again.'
+        );
+      } else if (error?.name === 'NotFoundError') {
+        toast.error(callType === 'video'
+          ? 'No camera or microphone found on this device'
+          : 'No microphone found on this device'
+        );
+      } else {
+        toast.error('Failed to start call');
+      }
     }
   };
 
@@ -772,13 +819,7 @@ const ChatEnhancedContent = () => {
 
   return (
     <>
-      {/* Call Notifications - CRITICAL: This handles ALL calls */}
-      {user && profile && (
-        <ProductionCallNotifications 
-          userId={user.id} 
-          username={profile.username || user.email || 'User'} 
-        />
-      )}
+      {/* NOTE: Call notifications handled by GlobalCallListener in App.tsx */}
 
       <div className="flex flex-col h-screen bg-background pb-24">
       <NetworkStatus />
