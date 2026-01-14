@@ -169,6 +169,13 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
+            // Check if sw.js exists first to prevent unhandled 404 rejections
+            const swCheck = await fetch('/sw.js', { method: 'HEAD' }).catch(() => null);
+            if (!swCheck || !swCheck.ok) {
+              console.log('SW not available (404), skipping registration');
+              return;
+            }
+            
             // Use a timeout to prevent hanging on slow networks
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -176,9 +183,14 @@
             const registration = await navigator.serviceWorker.register('/sw.js', {
               scope: '/',
               updateViaCache: 'none'
+            }).catch(err => {
+              console.log('SW registration failed:', err.message);
+              return null;
             });
             
             clearTimeout(timeoutId);
+            if (!registration) return;
+            
             console.log('SW registered:', registration);
             
             // Check for updates every 60 seconds - with error handling
