@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CallHistoryEmptyState, CallListSkeleton } from "@/components/ui/PremiumEmptyStates";
 import { PhoneDialer } from "@/components/calling/PhoneDialer";
+import { clearPreCallMediaStream, setPreCallMediaStream } from "@/utils/preCallMedia";
 
 interface Call {
   id: string;
@@ -126,13 +127,36 @@ export default function CallHistory() {
     }
   };
 
+  // Generate UUID for call
+  const generateCallId = (): string => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const toHex = (n: number) => n.toString(16).padStart(2, '0');
+    const b = Array.from(bytes, toHex).join('');
+    return `${b.slice(0, 8)}-${b.slice(8, 12)}-${b.slice(12, 16)}-${b.slice(16, 20)}-${b.slice(20)}`;
+  };
+
   const startCall = async (contactId: string, callType: 'voice' | 'video') => {
+    const callId = generateCallId();
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Please sign in to make calls');
         return;
       }
+
+      // CRITICAL: Pre-acquire media under user gesture
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: callType === 'video',
+      });
+      setPreCallMediaStream(callId, stream);
 
       // Get receiver profile first to validate they exist
       const { data: receiverProfile, error: receiverError } = await supabase
@@ -143,6 +167,7 @@ export default function CallHistory() {
 
       if (receiverError || !receiverProfile) {
         console.error('Receiver not found:', receiverError);
+        clearPreCallMediaStream(callId);
         toast.error('Contact not found');
         return;
       }
@@ -177,6 +202,7 @@ export default function CallHistory() {
 
         if (convError) {
           console.error('Conversation creation failed:', convError);
+          clearPreCallMediaStream(callId);
           toast.error('Could not create conversation');
           return;
         }
@@ -187,6 +213,7 @@ export default function CallHistory() {
       const { data: callData, error: callError } = await supabase
         .from('calls')
         .insert({
+          id: callId,
           conversation_id: conversationId,
           caller_id: user.id,
           caller_name: profile?.username || 'Unknown',
@@ -202,6 +229,7 @@ export default function CallHistory() {
 
       if (callError) {
         console.error('Call creation failed:', callError);
+        clearPreCallMediaStream(callId);
         toast.error('Could not start call');
         return;
       }
@@ -225,13 +253,24 @@ export default function CallHistory() {
         console.warn('⚠️ FCM notification failed:', fcmError);
       }
 
-      toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
+      // GlobalCallListener will show the call UI automatically
       setShowNewCall(false);
       setShowDialer(false);
       loadCalls();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting call:', error);
-      toast.error('Failed to start call');
+      clearPreCallMediaStream(callId);
+      
+      if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError') {
+        toast.error(callType === 'video'
+          ? 'Please allow camera and microphone to make video calls'
+          : 'Please allow microphone to make voice calls'
+        );
+      } else if (error?.name === 'NotReadableError') {
+        toast.error('Microphone is busy. Close other apps and try again.');
+      } else {
+        toast.error('Failed to start call');
+      }
     }
   };
 

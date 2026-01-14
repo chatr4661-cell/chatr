@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { clearPreCallMediaStream, setPreCallMediaStream } from '@/utils/preCallMedia';
 
 interface Conversation {
   id: string;
@@ -175,10 +176,33 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
     }
   };
 
+  // Generate UUID for call
+  const generateCallId = (): string => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const toHex = (n: number) => n.toString(16).padStart(2, '0');
+    const b = Array.from(bytes, toHex).join('');
+    return `${b.slice(0, 8)}-${b.slice(8, 12)}-${b.slice(12, 16)}-${b.slice(16, 20)}-${b.slice(20)}`;
+  };
+
   const startCall = async (conversation: any, callType: 'voice' | 'video', e: React.MouseEvent) => {
     e.stopPropagation();
+    const callId = generateCallId();
+    
     try {
       console.log('🎥 Starting call from conversation list:', { callType, to: conversation.other_user?.username });
+      
+      // CRITICAL: Pre-acquire media under user gesture
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: callType === 'video',
+      });
+      setPreCallMediaStream(callId, stream);
       
       // Get current user profile with phone number
       const { data: profile } = await supabase
@@ -190,6 +214,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
       const { data, error } = await supabase
         .from('calls')
         .insert({
+          id: callId,
           conversation_id: conversation.id,
           caller_id: userId,
           caller_name: profile?.username || 'Unknown',
@@ -207,6 +232,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
 
       if (error) {
         console.error('❌ Failed to create call:', error);
+        clearPreCallMediaStream(callId);
         throw error;
       }
       
@@ -232,10 +258,21 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
         console.warn('⚠️ FCM notification failed (user may still receive via realtime):', fcmError);
       }
       
-      toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
-    } catch (error) {
+      // GlobalCallListener will show the call UI automatically
+    } catch (error: any) {
       console.error('Error starting call:', error);
-      toast.error('Failed to start call');
+      clearPreCallMediaStream(callId);
+      
+      if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError') {
+        toast.error(callType === 'video'
+          ? 'Please allow camera and microphone to make video calls'
+          : 'Please allow microphone to make voice calls'
+        );
+      } else if (error?.name === 'NotReadableError') {
+        toast.error('Microphone is busy. Close other apps and try again.');
+      } else {
+        toast.error('Failed to start call');
+      }
     }
   };
 

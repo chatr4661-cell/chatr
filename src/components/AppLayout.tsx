@@ -1,15 +1,11 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { NetworkStatus } from './NetworkStatus';
 import { InstallPWAPrompt } from './InstallPWAPrompt';
 import { Toaster } from './ui/toaster';
 import { Toaster as Sonner } from './ui/sonner';
 
-const ProductionCallNotifications = React.lazy(() => 
-  import('./calling/ProductionCallNotifications').then(module => ({ 
-    default: module.ProductionCallNotifications 
-  }))
-);
+// NOTE: Call notifications are handled by GlobalCallListener in App.tsx
+// Do NOT add ProductionCallNotifications here - it creates duplicate listeners
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -18,26 +14,11 @@ interface AppLayoutProps {
 }
 
 export const AppLayout = ({ children, user, profile }: AppLayoutProps) => {
-  const location = useLocation();
-  const isIndexPage = location.pathname === '/';
-  
   return (
     <>
       <NetworkStatus />
       <InstallPWAPrompt />
-      
-      {/* Don't load call notifications on index page for faster load */}
-      {!isIndexPage && user && profile && (
-        <React.Suspense fallback={null}>
-          <ProductionCallNotifications 
-            userId={user.id} 
-            username={profile.username || user.email || 'User'} 
-          />
-        </React.Suspense>
-      )}
-      
       {children}
-      
       <Toaster />
       <Sonner />
     </>

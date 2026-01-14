@@ -217,7 +217,7 @@ export default function Calls() {
         console.warn('⚠️ FCM notification failed:', fcmError);
       }
 
-      toast.success(`${callType === 'voice' ? 'Voice' : 'Video'} call started`);
+      // GlobalCallListener will show the call UI automatically
     } catch (error) {
       console.error('Error starting call:', error);
       clearPreCallMediaStream(callId);

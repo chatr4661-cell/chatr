@@ -132,10 +132,7 @@ export default function GlobalContacts() {
         console.warn('⚠️ FCM notification failed:', fcmError);
       }
 
-      toast({
-        title: 'Success',
-        description: `${callType === 'voice' ? 'Voice' : 'Video'} call started`
-      });
+      // GlobalCallListener will show the call UI automatically
     } catch (error) {
       console.error('Error starting call:', error);
       toast({
