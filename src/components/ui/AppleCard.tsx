@@ -137,27 +137,82 @@ export const AppleListItem = ({
   onClick,
   leading,
   trailing,
+  icon,
+  title,
+  subtitle,
+  chevron,
+  value,
+  last,
+  destructive,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   onClick?: () => void;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
-}) => (
-  <div
-    className={cn(
-      'flex items-center gap-3 px-4 py-3.5 min-h-[52px]',
-      'transition-colors duration-150',
-      onClick && 'cursor-pointer active:bg-muted/50 touch-manipulation',
-      className
-    )}
-    onClick={onClick}
-    style={{ WebkitTapHighlightColor: 'transparent' }}
-  >
-    {leading && <div className="flex-shrink-0">{leading}</div>}
-    <div className="flex-1 min-w-0">{children}</div>
-    {trailing && <div className="flex-shrink-0 text-muted-foreground">{trailing}</div>}
-  </div>
-);
+  /** Icon on the left side */
+  icon?: React.ReactNode;
+  /** Title text */
+  title?: string;
+  /** Subtitle text */
+  subtitle?: string;
+  /** Show chevron indicator */
+  chevron?: boolean;
+  /** Value display on right side */
+  value?: React.ReactNode;
+  /** Is this the last item */
+  last?: boolean;
+  /** Destructive style */
+  destructive?: boolean;
+}) => {
+  // Use leading prop, or wrap icon in a styled container
+  const effectiveLeading = leading || (icon && (
+    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+      {icon}
+    </div>
+  ));
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 px-4 py-3.5 min-h-[52px]',
+        'transition-colors duration-150',
+        onClick && 'cursor-pointer active:bg-muted/50 touch-manipulation',
+        className
+      )}
+      onClick={onClick}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+    >
+      {effectiveLeading && <div className="flex-shrink-0">{effectiveLeading}</div>}
+      <div className="flex-1 min-w-0">
+        {title && (
+          <p className={cn(
+            'text-[17px] leading-tight',
+            destructive ? 'text-destructive' : 'text-foreground'
+          )}>
+            {title}
+          </p>
+        )}
+        {subtitle && (
+          <p className="text-sm text-muted-foreground truncate">
+            {subtitle}
+          </p>
+        )}
+        {children}
+      </div>
+      {value && (
+        <span className="text-muted-foreground text-[15px] flex-shrink-0">
+          {value}
+        </span>
+      )}
+      {trailing && <div className="flex-shrink-0 text-muted-foreground">{trailing}</div>}
+      {chevron && (
+        <svg className="w-5 h-5 text-muted-foreground/50 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      )}
+    </div>
+  );
+};
 
 export default AppleCard;

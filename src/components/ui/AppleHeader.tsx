@@ -4,7 +4,7 @@ import { ChevronLeft, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 
-interface AppleHeaderProps {
+export interface AppleHeaderProps {
   title?: string;
   subtitle?: string;
   showBack?: boolean;
@@ -15,6 +15,10 @@ interface AppleHeaderProps {
   rightElement?: React.ReactNode;
   transparent?: boolean;
   large?: boolean;
+  /** Alias for large */
+  largeTitle?: boolean;
+  /** Glass morphism background */
+  glass?: boolean;
   className?: string;
 }
 
@@ -36,10 +40,13 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   rightElement,
   transparent = false,
   large = false,
+  largeTitle = false,
+  glass = false,
   className,
 }) => {
-  // Support both rightAction and rightElement
+  // Support aliases
   const effectiveRightAction = rightAction || rightElement;
+  const effectiveLarge = large || largeTitle;
   const navigate = useNavigate();
   const haptics = useNativeHaptics();
 
@@ -65,7 +72,9 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           // Background
           transparent 
             ? 'bg-transparent' 
-            : 'bg-background/80 backdrop-blur-xl border-b border-border/50',
+            : glass
+              ? 'bg-white/10 backdrop-blur-2xl border-b border-white/20'
+              : 'bg-background/80 backdrop-blur-xl border-b border-border/50',
           className
         )}
       >
@@ -91,7 +100,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           </div>
 
           {/* Center - Title (compact mode) */}
-          {!large && title && (
+          {!effectiveLarge && title && (
             <div className="flex-1 flex flex-col items-center justify-center min-w-0">
               <h1 className="text-[17px] font-semibold text-foreground truncate">
                 {title}
@@ -111,7 +120,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
         </div>
 
         {/* Large title (iOS 11+ style) */}
-        {large && title && (
+        {effectiveLarge && title && (
           <div className="px-4 pb-2 pt-1">
             <h1 className="text-[34px] font-bold text-foreground leading-tight">
               {title}
@@ -129,7 +138,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
       <div 
         className={cn(
           'pt-[max(env(safe-area-inset-top),0px)]',
-          large ? 'h-[calc(44px+60px+env(safe-area-inset-top))]' : 'h-[calc(44px+env(safe-area-inset-top))]'
+          effectiveLarge ? 'h-[calc(44px+60px+env(safe-area-inset-top))]' : 'h-[calc(44px+env(safe-area-inset-top))]'
         )} 
       />
     </>

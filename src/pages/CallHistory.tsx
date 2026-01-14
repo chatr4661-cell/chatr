@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CallHistoryEmptyState, CallListSkeleton } from "@/components/ui/PremiumEmptyStates";
 import { PhoneDialer } from "@/components/calling/PhoneDialer";
 import { clearPreCallMediaStream, setPreCallMediaStream } from "@/utils/preCallMedia";
-import { AppleHeader, AppleHeaderAction } from "@/components/ui/AppleHeader';
+import { AppleHeader } from "@/components/ui/AppleHeader";
 import { AppleSegmentedControl } from '@/components/ui/AppleSegmentedControl';
 import { AppleSearchBar } from '@/components/ui/AppleInput';
 import { AppleCard } from '@/components/ui/AppleCard';
@@ -317,17 +317,21 @@ export default function CallHistory() {
         glass
         rightAction={
           <div className="flex items-center gap-1">
-            <AppleIconButton variant="ghost" onClick={() => {
-              haptics.light();
-              setShowDialer(true);
-            }}>
-              <Grid3X3 className="h-5 w-5" />
-            </AppleIconButton>
+            <AppleIconButton 
+              variant="ghost" 
+              icon={<Grid3X3 className="h-5 w-5" />}
+              onClick={() => {
+                haptics.light();
+                setShowDialer(true);
+              }}
+            />
             <Dialog open={showNewCall} onOpenChange={setShowNewCall}>
               <DialogTrigger asChild>
-                <AppleIconButton variant="ghost" onClick={() => haptics.light()}>
-                  <UserPlus className="h-5 w-5" />
-                </AppleIconButton>
+                <AppleIconButton 
+                  variant="ghost" 
+                  icon={<UserPlus className="h-5 w-5" />}
+                  onClick={() => haptics.light()}
+                />
               </DialogTrigger>
               <DialogContent className="max-w-md rounded-2xl">
                 <DialogHeader>
@@ -361,16 +365,14 @@ export default function CallHistory() {
                           <div className="flex gap-1">
                             <AppleIconButton
                               variant="ghost"
+                              icon={<Phone className="h-4 w-4" />}
                               onClick={() => startCall(contact.id, 'voice')}
-                            >
-                              <Phone className="h-4 w-4" />
-                            </AppleIconButton>
+                            />
                             <AppleIconButton
                               variant="ghost"
+                              icon={<Video className="h-4 w-4" />}
                               onClick={() => startCall(contact.id, 'video')}
-                            >
-                              <Video className="h-4 w-4" />
-                            </AppleIconButton>
+                            />
                           </div>
                         </div>
                       ))}
@@ -444,10 +446,9 @@ export default function CallHistory() {
 
                   <AppleIconButton
                     variant="ghost"
+                    icon={<Trash2 className="h-4 w-4 text-muted-foreground" />}
                     onClick={() => deleteCall(call.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  </AppleIconButton>
+                  />
                 </AppleCard>
               );
             })

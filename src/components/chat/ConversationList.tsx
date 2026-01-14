@@ -311,7 +311,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
                 haptics.light();
                 window.location.href = '/contacts';
               }}
-              leftIcon={<User className="w-4 h-4" />}
+              icon={<User className="w-4 h-4" />}
             >
               Add Contacts
             </AppleButton>
@@ -408,17 +408,15 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
                       <AppleIconButton
                         variant="ghost"
                         size="sm"
+                        icon={<Phone className="h-4 w-4" />}
                         onClick={(e) => startCall(conv, 'voice', e)}
-                      >
-                        <Phone className="h-4 w-4" />
-                      </AppleIconButton>
+                      />
                       <AppleIconButton
                         variant="ghost"
                         size="sm"
+                        icon={<Video className="h-4 w-4" />}
                         onClick={(e) => startCall(conv, 'video', e)}
-                      >
-                        <Video className="h-4 w-4" />
-                      </AppleIconButton>
+                      />
                     </div>
                   )}
                 </div>
