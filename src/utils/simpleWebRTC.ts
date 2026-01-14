@@ -5,13 +5,16 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
-type SignalType = 'offer' | 'answer' | 'ice-candidate';
+type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject';
 
 interface Signal {
   type: SignalType;
   data: any;
   from: string;
 }
+
+// Video upgrade callback type
+export type VideoUpgradeCallback = (fromUserId: string) => void;
 
 // GLOBAL: Prevent duplicate WebRTC instances for same call
 const activeCallInstances = new Map<string, SimpleWebRTCCall>();
@@ -668,6 +671,21 @@ export class SimpleWebRTCCall {
             this.pendingIceCandidates.push(new RTCIceCandidate(signal.data));
           }
           break;
+          
+        case 'video-request':
+          console.log('📹 [WebRTC] Video upgrade request received');
+          this.emit('videoUpgradeRequest', signal.from);
+          break;
+          
+        case 'video-accept':
+          console.log('📹 [WebRTC] Video upgrade accepted by partner');
+          this.emit('videoUpgradeAccepted', signal.from);
+          break;
+          
+        case 'video-reject':
+          console.log('📹 [WebRTC] Video upgrade rejected by partner');
+          this.emit('videoUpgradeRejected', signal.from);
+          break;
       }
     } catch (error) {
       console.error(`❌ [WebRTC] Signal error (${signal.type}):`, error);
@@ -783,6 +801,51 @@ export class SimpleWebRTCCall {
       track.enabled = enabled;
     });
   }
+
+  // ============== VIDEO UPGRADE REQUEST/ACCEPT ==============
+  
+  /**
+   * Send video upgrade request to partner
+   */
+  async sendVideoUpgradeRequest(): Promise<void> {
+    console.log('📹 [WebRTC] Sending video upgrade request...');
+    await this.sendSignal({ 
+      type: 'video-request', 
+      data: { timestamp: Date.now() }, 
+      from: this.userId 
+    });
+  }
+
+  /**
+   * Accept video upgrade request and enable local video
+   */
+  async acceptVideoUpgrade(): Promise<MediaStream | null> {
+    console.log('📹 [WebRTC] Accepting video upgrade...');
+    
+    // Notify partner we accepted
+    await this.sendSignal({ 
+      type: 'video-accept', 
+      data: { timestamp: Date.now() }, 
+      from: this.userId 
+    });
+    
+    // Now add our own video
+    return this.addVideoToCall();
+  }
+
+  /**
+   * Reject video upgrade request
+   */
+  async rejectVideoUpgrade(): Promise<void> {
+    console.log('📹 [WebRTC] Rejecting video upgrade...');
+    await this.sendSignal({ 
+      type: 'video-reject', 
+      data: { timestamp: Date.now() }, 
+      from: this.userId 
+    });
+  }
+  
+  // ==============================================================
 
   async addVideoToCall(): Promise<MediaStream | null> {
     if (!this.pc) {
