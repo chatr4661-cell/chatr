@@ -20,15 +20,16 @@ import {
   ChevronRight,
   Zap,
   Shield,
-  Clock,
   TrendingUp
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { BottomNav } from '@/components/BottomNav';
+import { AppleCard, AppleGroupedList, AppleListItem } from '@/components/ui/apple';
+import { AppleSearchBar } from '@/components/ui/AppleInput';
+import { AppleIconButton } from '@/components/ui/AppleButton';
+import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 import chatrIconLogo from '@/assets/chatr-icon-logo.png';
 
 // Quick Actions Data
@@ -53,14 +54,9 @@ const services = [
   { icon: Settings, label: 'Settings', color: 'from-gray-500 to-slate-600', route: '/settings' },
 ];
 
-// Trending searches
-const trendingSearches = [
-  'plumber near me', 'doctor available now', 'biryani delivery', 
-  'AC repair', 'yoga classes', 'job openings'
-];
-
 export default function ChatrHome() {
   const navigate = useNavigate();
+  const haptics = useNativeHaptics();
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [userName, setUserName] = useState('');
@@ -166,10 +162,12 @@ export default function ChatrHome() {
       toast.error('Please enter a search query');
       return;
     }
+    haptics.light();
     navigate(`/chatr-results?q=${encodeURIComponent(q)}`);
-  }, [query, navigate]);
+  }, [query, navigate, haptics]);
 
   const startVoiceSearch = () => {
+    haptics.medium();
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast.error('Voice search not supported');
       return;
@@ -190,9 +188,19 @@ export default function ChatrHome() {
     recognition.start();
   };
 
+  const handleQuickAction = (route: string) => {
+    haptics.light();
+    navigate(route);
+  };
+
+  const handleServicePress = (route: string) => {
+    haptics.light();
+    navigate(route);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center safe-area-pt safe-area-pb">
         <div className="flex flex-col items-center gap-3">
           <img src={chatrIconLogo} alt="CHATR" className="w-16 h-16 animate-pulse" />
           <span className="text-sm text-muted-foreground">Loading...</span>
@@ -202,58 +210,68 @@ export default function ChatrHome() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/50">
+    <div className="min-h-screen bg-background pb-24 safe-area-pt">
+      {/* Apple-style Header */}
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 safe-area-pt">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={chatrIconLogo} alt="CHATR" className="w-10 h-10" />
+            <img src={chatrIconLogo} alt="CHATR" className="w-10 h-10 rounded-xl" />
             <div>
               <p className="text-base font-bold text-foreground">{greeting}, {userName}!</p>
               <p className="text-xs text-muted-foreground">What would you like to do?</p>
             </div>
           </div>
-          <button 
-            onClick={() => navigate('/notifications')}
-            className="relative p-2 rounded-full hover:bg-muted transition-colors"
+          <AppleIconButton 
+            variant="ghost"
+            onClick={() => {
+              haptics.light();
+              navigate('/notifications');
+            }}
+            className="relative"
           >
-            <Bell className="w-5 h-5 text-muted-foreground" />
+            <Bell className="w-5 h-5" />
             {activityData.notifications > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
                 {activityData.notifications > 9 ? '9+' : activityData.notifications}
               </span>
             )}
-          </button>
+          </AppleIconButton>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-4 space-y-5 mt-4">
         {/* Activity Widgets */}
         <div className="grid grid-cols-3 gap-3">
-          <button
-            onClick={() => navigate('/chat')}
-            className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-green-500/10 border border-green-500/20 hover:border-green-500/40 transition-all"
+          <AppleCard 
+            pressable 
+            onClick={() => handleQuickAction('/chat')}
+            className="flex flex-col items-center gap-1 p-3"
+            padding="none"
           >
-            <MessageCircle className="w-6 h-6 text-green-600" />
+            <MessageCircle className="w-6 h-6 text-primary" />
             <span className="text-[11px] font-medium text-muted-foreground">Chats</span>
-            <span className="text-sm font-bold text-green-600">Open</span>
-          </button>
-          <button
-            onClick={() => navigate('/care')}
-            className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/40 transition-all"
+            <span className="text-sm font-bold text-primary">Open</span>
+          </AppleCard>
+          <AppleCard 
+            pressable 
+            onClick={() => handleQuickAction('/care')}
+            className="flex flex-col items-center gap-1 p-3"
+            padding="none"
           >
             <Stethoscope className="w-6 h-6 text-blue-600" />
             <span className="text-[11px] font-medium text-muted-foreground">Appointments</span>
             <span className="text-sm font-bold text-blue-600">{activityData.appointments}</span>
-          </button>
-          <button
-            onClick={() => navigate('/chatr-wallet')}
-            className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-all"
+          </AppleCard>
+          <AppleCard 
+            pressable 
+            onClick={() => handleQuickAction('/chatr-wallet')}
+            className="flex flex-col items-center gap-1 p-3"
+            padding="none"
           >
             <Wallet className="w-6 h-6 text-amber-600" />
             <span className="text-[11px] font-medium text-muted-foreground">Balance</span>
             <span className="text-sm font-bold text-amber-600">₹{activityData.walletBalance.toLocaleString()}</span>
-          </button>
+          </AppleCard>
         </div>
 
         {/* Quick Actions */}
@@ -263,12 +281,13 @@ export default function ChatrHome() {
             {quickActions.map((action) => (
               <button
                 key={action.label}
-                onClick={() => navigate(action.route)}
-                className="flex flex-col items-center gap-1.5 min-w-[56px] group"
+                onClick={() => handleQuickAction(action.route)}
+                className="flex flex-col items-center gap-1.5 min-w-[56px] group touch-manipulation"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <div className={cn(
                   "w-12 h-12 rounded-full flex items-center justify-center transition-all",
-                  "bg-gradient-to-br shadow-md group-hover:shadow-lg group-hover:scale-105 group-active:scale-95",
+                  "bg-gradient-to-br shadow-md group-hover:shadow-lg group-active:scale-90",
                   action.color
                 )}>
                   <action.icon className="w-5 h-5 text-white" strokeWidth={2} />
@@ -281,73 +300,58 @@ export default function ChatrHome() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-3">
+        {/* Apple-style Search Bar */}
+        <AppleCard variant="glass" className="p-3">
           <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
+            <div className="flex-1">
+              <AppleSearchBar
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search jobs, doctors, food, services..."
-                className="pl-9 pr-10 h-11 bg-background/80 backdrop-blur text-sm"
+                onChange={setQuery}
+                placeholder="Search jobs, doctors, food..."
+                onSubmit={() => handleSearch()}
+                rightIcon={
+                  <button
+                    onClick={startVoiceSearch}
+                    disabled={isListening}
+                    className="p-1.5 rounded-full hover:bg-muted/50 transition-colors touch-manipulation"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    <Mic className={cn("w-4 h-4", isListening ? "text-destructive animate-pulse" : "text-muted-foreground")} />
+                  </button>
+                }
               />
-              <button
-                onClick={startVoiceSearch}
-                disabled={isListening}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-muted/50 transition-colors"
-              >
-                <Mic className={cn("w-4 h-4", isListening ? "text-red-500 animate-pulse" : "text-muted-foreground")} />
-              </button>
             </div>
-            <Button onClick={() => handleSearch()} size="sm" className="h-11 px-4">
-              <Search className="w-4 h-4" />
-            </Button>
           </div>
-        </div>
-
-        {/* Trending Searches */}
-        <div className="flex gap-2 flex-wrap">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          {trendingSearches.slice(0, 4).map((term) => (
-            <button
-              key={term}
-              onClick={() => handleSearch(term)}
-              className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {term}
-            </button>
-          ))}
-        </div>
+        </AppleCard>
 
         {/* Recent Activity */}
         {recentActivity.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-semibold text-muted-foreground">Recent Activity</h2>
-              <button onClick={() => navigate('/chat')} className="text-xs text-primary hover:underline">
+              <button 
+                onClick={() => {
+                  haptics.light();
+                  navigate('/chat');
+                }} 
+                className="text-xs text-primary hover:underline touch-manipulation"
+              >
                 View all
               </button>
             </div>
-            <div className="space-y-2">
-              {recentActivity.map((item) => (
-                <button
+            <AppleGroupedList>
+              {recentActivity.map((item, index) => (
+                <AppleListItem
                   key={item.id}
-                  onClick={() => navigate(item.route)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-card hover:bg-muted/50 border border-border/50 transition-all"
-                >
-                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <MessageCircle className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-medium truncate">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">Tap to continue</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
+                  icon={<MessageCircle className="w-5 h-5 text-primary" />}
+                  title={item.title}
+                  subtitle="Tap to continue"
+                  chevron
+                  onClick={() => handleQuickAction(item.route)}
+                  last={index === recentActivity.length - 1}
+                />
               ))}
-            </div>
+            </AppleGroupedList>
           </div>
         )}
 
@@ -356,10 +360,12 @@ export default function ChatrHome() {
           <h2 className="text-sm font-semibold text-muted-foreground mb-2">All Services</h2>
           <div className="grid grid-cols-4 gap-3">
             {services.map((service) => (
-              <button
+              <AppleCard
                 key={service.label}
-                onClick={() => navigate(service.route)}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
+                pressable
+                onClick={() => handleServicePress(service.route)}
+                className="flex flex-col items-center gap-2 p-3"
+                padding="none"
               >
                 <div className={cn(
                   "w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-md",
@@ -368,13 +374,13 @@ export default function ChatrHome() {
                   <service.icon className="w-5 h-5 text-white" strokeWidth={2} />
                 </div>
                 <span className="text-[10px] font-semibold text-center leading-tight">{service.label}</span>
-              </button>
+              </AppleCard>
             ))}
           </div>
         </div>
 
         {/* Trust Banner */}
-        <div className="bg-gradient-to-r from-primary/5 to-purple-500/5 rounded-2xl border border-primary/10 p-4 flex items-center gap-4">
+        <AppleCard variant="glass" className="flex items-center gap-4 p-4">
           <Shield className="w-8 h-8 text-primary flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold">Secure & Private</p>
@@ -390,7 +396,7 @@ export default function ChatrHome() {
               <div>Available</div>
             </div>
           </div>
-        </div>
+        </AppleCard>
       </div>
 
       {/* Bottom Navigation */}
