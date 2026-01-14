@@ -4,13 +4,13 @@ import { useNativeAppInitialization } from '@/hooks/useNativeAppInitialization';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAutoContactSync } from '@/hooks/useAutoContactSync';
 import { useNativeHaptics } from '@/hooks/useNativeHaptics';
-import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
 import { useBatteryOptimization } from '@/hooks/useBatteryOptimization';
 import { useContactSync } from '@/hooks/useContactSync';
 import { useOfflineUploadQueue } from '@/hooks/useOfflineUploadQueue';
 import { useGeofencing } from '@/hooks/useGeofencing';
 import { useNativeAuthSync } from '@/hooks/useNativeAuthSync';
 import { useNativeCallBridge } from '@/hooks/useNativeCallBridge';
+import { useAppleNativeFeatures } from '@/hooks/useAppleNativeFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsProvider } from './AnalyticsProvider';
 import { ChatrOSProvider } from './ChatrOSProvider';
@@ -68,6 +68,9 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   // Initialize all native features
   useNativeAppInitialization(userId);
   
+  // Apple-like native features (status bar, keyboard sync, back gesture)
+  useAppleNativeFeatures();
+  
   // Auto-sync contacts
   useAutoContactSync(userId);
   
@@ -85,9 +88,6 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   
   // Native haptics
   const haptics = useNativeHaptics();
-  
-  // Android back button
-  useAndroidBackButton();
   
   // Geofencing for location-based notifications
   useGeofencing(userId);

@@ -1166,3 +1166,239 @@ html.transitioning * {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* ===== APPLE-LIKE UI ENHANCEMENTS ===== */
+
+/* Edge-to-edge display with proper insets */
+.apple-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Apple-style rounded containers */
+.apple-card {
+  background: hsl(var(--card));
+  border-radius: 1.25rem; /* 20px - iOS card radius */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.apple-card-elevated {
+  background: hsl(var(--card));
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Apple glass effect */
+.apple-glass {
+  background: hsl(var(--background) / 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid hsl(var(--border) / 0.3);
+}
+
+.apple-glass-heavy {
+  background: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+}
+
+/* Keyboard animation sync */
+body.keyboard-visible {
+  transition: padding-bottom 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-bottom: var(--keyboard-height, 0);
+}
+
+body.keyboard-animating {
+  transition: padding-bottom 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Back gesture visual feedback */
+body.gesture-active {
+  overflow-x: hidden;
+}
+
+body.gesture-active::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(to right, hsl(var(--muted) / 0.5), transparent);
+  transform: translateX(var(--swipe-progress, 0px));
+  opacity: 0.5;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Apple-style bottom nav */
+.apple-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: hsl(var(--background) / 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 0.5px solid hsl(var(--border) / 0.3);
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+/* Apple-style touch feedback */
+.apple-touch {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.apple-touch:active {
+  transform: scale(0.97);
+  opacity: 0.8;
+}
+
+/* Apple-style button press (more subtle) */
+.apple-button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 0.12s cubic-bezier(0.2, 0, 0.1, 1);
+}
+
+.apple-button:active {
+  transform: scale(0.96);
+}
+
+/* Apple-style list row */
+.apple-list-row {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+  transition: background-color 0.15s ease;
+}
+
+.apple-list-row:active {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* Apple-style separator */
+.apple-separator {
+  height: 0.5px;
+  background: hsl(var(--border) / 0.5);
+  margin-left: 1rem;
+}
+
+/* Apple-style large title */
+.apple-large-title {
+  font-size: 2.125rem; /* 34px */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* Apple-style navigation title */
+.apple-nav-title {
+  font-size: 1.0625rem; /* 17px */
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Apple-style section header */
+.apple-section-header {
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0.5rem 1rem;
+}
+
+/* Apple-style grouped background */
+.apple-grouped-bg {
+  background: hsl(var(--muted) / 0.3);
+}
+
+/* iOS-style spring animation */
+@keyframes ios-spring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-ios-spring {
+  animation: ios-spring 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* iOS-style slide up */
+@keyframes ios-slide-up {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-ios-slide-up {
+  animation: ios-slide-up 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* iOS-style fade */
+@keyframes ios-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-ios-fade {
+  animation: ios-fade 0.25s ease-out;
+}
+
+/* Safe area utilities for BottomNav */
+.safe-area-pb {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.safe-area-pt {
+  padding-top: max(0rem, env(safe-area-inset-top));
+}
+
+.safe-area-px {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Content area with bottom nav compensation */
+.has-bottom-nav {
+  padding-bottom: calc(4rem + max(0.5rem, env(safe-area-inset-bottom)));
+}
+
+/* Status bar overlay content */
+.status-bar-overlay {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Full bleed edge-to-edge */
+.edge-to-edge {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+}
