@@ -372,8 +372,9 @@ export default function UnifiedCallScreen({
         setPendingVideoUpgrade(false);
         toast.success('Video enabled for both');
         
-        // Now enable our own video since partner accepted
-        const videoStream = await webrtcRef.current?.addVideoToCall();
+        // Enable our local video using the non-renegotiating method
+        // The acceptor already triggered renegotiation, so we just add our local track
+        const videoStream = await webrtcRef.current?.enableLocalVideoAfterAccept();
         if (videoStream && localVideoRef.current) {
           localVideoRef.current.srcObject = videoStream;
           localVideoRef.current.muted = true;

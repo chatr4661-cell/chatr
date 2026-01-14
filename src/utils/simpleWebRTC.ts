@@ -806,6 +806,7 @@ export class SimpleWebRTCCall {
   
   /**
    * Send video upgrade request to partner
+   * The requester does NOT enable video yet - waits for accept signal
    */
   async sendVideoUpgradeRequest(): Promise<void> {
     console.log('📹 [WebRTC] Sending video upgrade request...');
@@ -818,19 +819,102 @@ export class SimpleWebRTCCall {
 
   /**
    * Accept video upgrade request and enable local video
+   * The ACCEPTOR is the one who triggers renegotiation to prevent glare
    */
   async acceptVideoUpgrade(): Promise<MediaStream | null> {
-    console.log('📹 [WebRTC] Accepting video upgrade...');
+    console.log('📹 [WebRTC] Accepting video upgrade - I will trigger renegotiation...');
     
-    // Notify partner we accepted
+    // First enable our own video and trigger renegotiation
+    const stream = await this.addVideoToCall();
+    
+    // THEN notify partner we accepted (they will just add local video without renegotiating)
     await this.sendSignal({ 
       type: 'video-accept', 
       data: { timestamp: Date.now() }, 
       from: this.userId 
     });
     
-    // Now add our own video
-    return this.addVideoToCall();
+    return stream;
+  }
+
+  /**
+   * Enable local video for the requester AFTER partner accepted
+   * Does NOT trigger renegotiation - just adds local video track
+   * The acceptor's renegotiation will handle adding our track to their view
+   */
+  async enableLocalVideoAfterAccept(): Promise<MediaStream | null> {
+    if (!this.pc) {
+      console.error('❌ [WebRTC] No peer connection for video');
+      return null;
+    }
+
+    try {
+      console.log('📹 [WebRTC] Enabling local video (no renegotiation - acceptor handles it)...');
+      
+      // Request video
+      let videoStream: MediaStream;
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 1280, max: 1920 }, 
+            height: { ideal: 720, max: 1080 }, 
+            frameRate: { ideal: 30 },
+            facingMode: 'user',
+          }
+        });
+        console.log('✅ [WebRTC] Video acquired for requester');
+      } catch (e: any) {
+        console.log('⚠️ [WebRTC] HD failed, using basic video...');
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
+      const videoTrack = videoStream.getVideoTracks()[0];
+      if (!videoTrack) {
+        console.error('❌ [WebRTC] No video track obtained');
+        return null;
+      }
+      
+      console.log('📹 [WebRTC] Got video track:', videoTrack.label);
+      
+      // Check if we already have a video sender from the acceptor's renegotiation
+      const existingVideoSender = this.pc.getSenders().find(s => s.track?.kind === 'video');
+      
+      if (existingVideoSender) {
+        // Just replace the track - no new renegotiation needed
+        await existingVideoSender.replaceTrack(videoTrack);
+        console.log('📹 [WebRTC] Replaced video sender track (no renegotiation)');
+      } else {
+        // Need to add track and renegotiate (fallback)
+        console.log('📹 [WebRTC] No existing sender - adding track with renegotiation');
+        const stream = this.localStream || new MediaStream([videoTrack]);
+        this.pc.addTrack(videoTrack, stream);
+        
+        // Trigger renegotiation as fallback
+        const offer = await this.pc.createOffer();
+        await this.pc.setLocalDescription(offer);
+        await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+      }
+      
+      // Update local stream for UI
+      if (this.localStream) {
+        const oldVideoTrack = this.localStream.getVideoTracks()[0];
+        if (oldVideoTrack && oldVideoTrack !== videoTrack) {
+          this.localStream.removeTrack(oldVideoTrack);
+          oldVideoTrack.stop();
+        }
+        if (!this.localStream.getVideoTracks().includes(videoTrack)) {
+          this.localStream.addTrack(videoTrack);
+        }
+      } else {
+        this.localStream = videoStream;
+      }
+      
+      this.emit('localStream', this.localStream);
+      return this.localStream;
+    } catch (error) {
+      console.error('❌ [WebRTC] Failed to enable local video:', error);
+      return null;
+    }
   }
 
   /**
