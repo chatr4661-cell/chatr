@@ -11,6 +11,8 @@ interface AppleHeaderProps {
   onBack?: () => void;
   leftAction?: React.ReactNode;
   rightAction?: React.ReactNode;
+  /** Alias for rightAction */
+  rightElement?: React.ReactNode;
   transparent?: boolean;
   large?: boolean;
   className?: string;
@@ -31,10 +33,13 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   onBack,
   leftAction,
   rightAction,
+  rightElement,
   transparent = false,
   large = false,
   className,
 }) => {
+  // Support both rightAction and rightElement
+  const effectiveRightAction = rightAction || rightElement;
   const navigate = useNavigate();
   const haptics = useNativeHaptics();
 
@@ -101,7 +106,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
 
           {/* Right side - Custom action */}
           <div className="flex items-center justify-end min-w-[60px]">
-            {rightAction}
+            {effectiveRightAction}
           </div>
         </div>
 

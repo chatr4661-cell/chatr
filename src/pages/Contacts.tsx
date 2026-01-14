@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ContactManager } from '@/components/ContactManager';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { AppleHeader } from '@/components/ui/AppleHeader';
+import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 
 export default function Contacts() {
   const navigate = useNavigate();
+  const haptics = useNativeHaptics();
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -22,17 +23,16 @@ export default function Contacts() {
   }, [navigate]);
 
   const handleContactSelect = (contact: any) => {
-    // Navigate to chat with selected contact
+    haptics.light();
     navigate('/chat', { state: { selectedContact: contact } });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Loading contacts...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background safe-area-pt">
+        {/* Apple-style loading */}
+        <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <p className="mt-4 text-sm text-muted-foreground">Loading contacts...</p>
       </div>
     );
   }
@@ -40,25 +40,18 @@ export default function Contacts() {
   if (!userId) return null;
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Native Header */}
-      <div className="sticky top-0 z-10 bg-white border-b">
-        <div className="flex items-center gap-2 p-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="h-9 w-9 rounded-full hover:bg-muted/50 active:bg-muted"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">Contacts</h1>
-          </div>
-        </div>
-      </div>
+    <div className="h-screen flex flex-col bg-background safe-area-pt">
+      {/* Apple-style Header */}
+      <AppleHeader
+        title="Contacts"
+        onBack={() => {
+          haptics.light();
+          navigate(-1);
+        }}
+        showBack
+      />
 
-      {/* Contact Manager */}
+      {/* Contact Manager with Apple styling */}
       <div className="flex-1 overflow-hidden">
         <ContactManager 
           userId={userId} 
