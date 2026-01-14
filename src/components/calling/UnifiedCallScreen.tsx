@@ -466,40 +466,61 @@ export default function UnifiedCallScreen({
 
   // FaceTime-style instant video toggle - no request/accept flow
   const toggleVideo = async () => {
+    const call = webrtcRef.current;
+    if (!call) return;
+
     if (!isVideoOn) {
       // Check network policy first
       if (!canEnableVideo()) {
         toast.warning(uiState.message || 'Video not available on current network');
         return;
       }
-      
-      // Instantly enable video and renegotiate (FaceTime-style)
+
       console.log('📹 [UnifiedCall] Enabling video (FaceTime-style)...');
+
+      // Ensure the local PIP mounts so localVideoRef is available
       setIsVideoOn(true);
-      
+      setLocalVideoActive(true);
+
+      // Wait a frame so the <video ref={localVideoRef}> is mounted
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
       try {
-        // This will add video, renegotiate, and the partner will auto-enable their camera too
-        const videoStream = await webrtcRef.current?.addVideoToCall();
+        let videoStream: MediaStream | null = null;
+
+        if (isInitiator) {
+          // Initiator performs the renegotiation (prevents offer glare)
+          videoStream = await call.addVideoToCall();
+        } else {
+          // Non-initiator: enable local camera WITHOUT renegotiation,
+          // then ask initiator to renegotiate.
+          videoStream = await call.enableLocalVideoAfterAccept();
+          await call.sendVideoEnable();
+        }
+
         if (videoStream && localVideoRef.current) {
           localVideoRef.current.srcObject = videoStream;
           localVideoRef.current.muted = true;
-          await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-          setLocalVideoActive(true);
+          await localVideoRef.current.play().catch((e) => console.log('Local video play:', e));
           toast.success('Video enabled');
-        } else {
-          setIsVideoOn(false);
-          toast.error('Could not enable video');
+          return;
         }
+
+        // If we got here, we failed to attach preview
+        setIsVideoOn(false);
+        setLocalVideoActive(false);
+        toast.error('Could not enable video');
       } catch (e) {
         console.error('📹 [UnifiedCall] Video enable failed:', e);
         setIsVideoOn(false);
+        setLocalVideoActive(false);
         toast.error('Camera access failed');
       }
     } else {
       // Turn off video
       console.log('📹 [UnifiedCall] Disabling video...');
       setIsVideoOn(false);
-      webrtcRef.current?.toggleVideo(false);
+      call.toggleVideo(false);
       setLocalVideoActive(false);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = null;
@@ -591,36 +612,38 @@ export default function UnifiedCallScreen({
         </div>
       )}
 
-      {/* Local Video PIP - HD bidirectional with smooth drag feel */}
-      {localVideoActive && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          whileTap={{ scale: 0.95 }}
-          className="absolute top-16 right-4 w-28 h-40 sm:w-32 sm:h-44 rounded-2xl overflow-hidden border-2 border-white/40 shadow-2xl z-20"
-          style={{ 
-            transform: 'translateZ(0)',
+      {/* Local Video PIP - keep mounted so ref exists; hide when inactive */}
+      <motion.div
+        initial={false}
+        animate={localVideoActive ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+        whileTap={localVideoActive ? { scale: 0.95 } : undefined}
+        className={`absolute top-16 right-4 w-28 h-40 sm:w-32 sm:h-44 rounded-2xl overflow-hidden border-2 border-white/40 shadow-2xl z-20 ${
+          localVideoActive ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+        style={{
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+        }}
+      >
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+          style={{
+            transform: 'scaleX(-1) translateZ(0)',
             backfaceVisibility: 'hidden',
           }}
-        >
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-            style={{ 
-              transform: 'scaleX(-1) translateZ(0)',
-              backfaceVisibility: 'hidden',
-            }}
-          />
-          {/* HD indicator */}
+        />
+        {/* HD indicator */}
+        {localVideoActive && (
           <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-[9px] text-emerald-400 font-medium">
             HD
           </div>
-        </motion.div>
-      )}
+        )}
+      </motion.div>
 
       {/* Network Status Banner - Ultra-Low Bandwidth */}
       {showWarning && (
