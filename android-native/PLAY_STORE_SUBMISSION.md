@@ -51,7 +51,10 @@ HD calls, secure messaging & wellness tracking — smart communication.
 ```
 Chatr — A product of Talentxcel Services Pvt Ltd
 
-Chatr delivers telecom-grade calling that actually works.
+Chatr delivers reliable VoIP calling that actually works.
+
+Chatr is a VoIP communication app and does not replace your 
+mobile carrier or emergency calling services.
 
 📞 RELIABLE CALLS
 • Calls ring even when your phone is locked or app is closed
@@ -65,7 +68,7 @@ Chatr delivers telecom-grade calling that actually works.
 • Works on WiFi and mobile data
 
 💬 SECURE MESSAGING
-• End-to-end encrypted conversations
+• Secure, encrypted conversations
 • Share photos, videos, and files
 • See when messages are delivered and read
 • Typing indicators
@@ -108,7 +111,7 @@ Expected Rating: **Everyone** or **Teen**
 | Contacts | Optional | No | Find friends |
 | Audio | Yes | No | Voice calls |
 | Video | Yes | No | Video calls |
-| Messages | Yes | No | Messaging feature |
+| Messages | Yes | No | Deliver and sync user conversations |
 
 **Security Practices:**
 - [x] Data encrypted in transit
@@ -121,9 +124,9 @@ For each permission, provide justification:
 
 **Phone (READ_PHONE_STATE, CALL_PHONE, ANSWER_PHONE_CALLS)**
 ```
-Required to integrate with Android's native calling system. Chatr uses 
-the Telecom Framework to provide reliable incoming calls that appear 
-in the system call log and work with the device's native call UI.
+Chatr uses Android's Telecom Framework to present and manage 
+incoming and outgoing VoIP calls. The app does not place 
+cellular calls or access carrier services.
 ```
 
 **Microphone (RECORD_AUDIO)**
@@ -143,7 +146,8 @@ real-time and is not stored or recorded without user consent.
 ```
 Optional permission that helps users find and connect with people 
 they know. Contact data is processed locally and used only to 
-display names in the app's contact list.
+display names in the app's contact list. Users can fully use 
+Chatr without granting contacts permission.
 ```
 
 **Notifications (POST_NOTIFICATIONS)**
