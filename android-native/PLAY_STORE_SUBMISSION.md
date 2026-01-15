@@ -37,13 +37,20 @@
 Chatr - Secure Calls & Messages
 ```
 
+#### Developer Name
+```
+Talentxcel Services Pvt Ltd
+```
+
 #### Short Description (80 chars max)
 ```
-Crystal-clear voice & video calls. Encrypted messaging. Always reliable.
+HD calls, secure messaging & wellness tracking — smart communication.
 ```
 
 #### Full Description
 ```
+Chatr — A product of Talentxcel Services Pvt Ltd
+
 Chatr delivers telecom-grade calling that actually works.
 
 📞 RELIABLE CALLS
@@ -74,6 +81,9 @@ Chatr delivers telecom-grade calling that actually works.
 • Minimal storage footprint
 
 Download Chatr today and experience calling that just works.
+
+---
+© 2026 Talentxcel Services Pvt Ltd. All rights reserved.
 ```
 
 ### 4. Content Rating

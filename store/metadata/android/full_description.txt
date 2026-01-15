@@ -1,4 +1,6 @@
-Chatr.Chat — Where Every Connection Feels Alive! 🌟
+Chatr — Where Every Connection Feels Alive! 🌟
+
+A product of Talentxcel Services Pvt Ltd
 
 Experience conversations like never before — smooth, secure, and full of heart. Your all-in-one smart connection hub for modern communication.
 
@@ -31,7 +33,7 @@ Optimized messaging engine with offline support and intelligent data saving for 
 🔒 Privacy & Security
 End-to-end encryption, customizable location sharing, and granular privacy controls keep you safe.
 
-WHY CHATR.CHAT?
+WHY CHATR?
 
 ✓ AI-powered smart features
 ✓ Real-time location presence
@@ -54,7 +56,7 @@ PERFECT FOR:
 • Health-conscious users
 • Anyone who values privacy and smart features
 
-Join Chatr.Chat today and experience communication that truly connects — fast, intelligent, and heartfelt.
+Join Chatr today and experience communication that truly connects — fast, intelligent, and heartfelt.
 
 PERMISSIONS:
 
@@ -68,7 +70,11 @@ PERMISSIONS:
 
 SUPPORT:
 
-Have questions or feedback? Contact us at support@chatr.app
+Have questions or feedback? Contact us at support@chatr.chat
 
-Privacy Policy: https://chatr.app/privacy
-Terms of Service: https://chatr.app/terms
+Privacy Policy: https://chatr.chat/privacy
+Terms of Service: https://chatr.chat/terms
+
+---
+Chatr is a product of Talentxcel Services Pvt Ltd
+© 2026 Talentxcel Services Pvt Ltd. All rights reserved.

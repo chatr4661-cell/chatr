@@ -134,9 +134,8 @@ export default function PrivacyPolicy() {
             <h2 className="text-xl font-semibold mb-3">12. Grievance Officer</h2>
             <p className="text-muted-foreground leading-relaxed">
               As required by Indian IT Rules, our Grievance Officer can be contacted at:<br />
-              Name: [Grievance Officer Name]<br />
-              Email: grievance@chatr.app<br />
-              Address: TalentXcel Services Pvt. Ltd., [Registered Address]<br />
+              Talentxcel Services Pvt Ltd<br />
+              Email: grievance@chatr.chat<br />
               Response Time: Within 48 hours
             </p>
           </section>
@@ -145,9 +144,12 @@ export default function PrivacyPolicy() {
             <h2 className="text-xl font-semibold mb-3">13. Contact Us</h2>
             <p className="text-muted-foreground leading-relaxed">
               For privacy-related questions, contact:<br />
-              TalentXcel Services Pvt. Ltd.<br />
-              Email: privacy@chatr.app<br />
-              Address: [Your Registered Address]
+              Talentxcel Services Pvt Ltd<br />
+              Email: privacy@chatr.chat<br />
+              Website: chatr.chat
+            </p>
+            <p className="text-muted-foreground leading-relaxed mt-4 pt-4 border-t border-border/40">
+              © 2026 Talentxcel Services Pvt Ltd. All rights reserved.
             </p>
           </section>
         </div>

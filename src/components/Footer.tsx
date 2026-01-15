@@ -6,10 +6,10 @@ export const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center justify-center gap-3 text-center">
           <p className="text-[11px] text-muted-foreground/70">
-            Chatr is a brand of TalentXcel Services Pvt. Ltd.
+            Chatr — A product of Talentxcel Services Pvt Ltd
           </p>
           <p className="text-[11px] text-muted-foreground/70">
-            © 2026 All rights reserved.
+            © 2026 Talentxcel Services Pvt Ltd. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 text-[11px]">
             <Link 
