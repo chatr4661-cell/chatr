@@ -39,9 +39,9 @@ export interface UIStateInfo {
   isInterruptive: boolean;
 }
 
-// State listeners
+// State listeners - CRITICAL: Default to 'excellent' to prevent false "offline" banners
 let stateListeners: Array<(info: UIStateInfo) => void> = [];
-let currentUIState: UIState = 'good';
+let currentUIState: UIState = 'excellent'; // Default to excellent, not 'good'
 let lastRecoveryTime = 0;
 const RECOVERY_DISPLAY_DURATION = 3000; // Show "recovered" for 3 seconds
 

@@ -70,26 +70,58 @@ interface UltraLowBandwidthState {
 export function useUltraLowBandwidth(options: UseUltraLowBandwidthOptions = {}) {
   const { peerConnection, callId, onQualityChange, onFallbackToText, onOfflineMode } = options;
   
+  // CRITICAL: Initialize with optimistic defaults to prevent false "offline"/"video paused" notices
+  // The real values will be updated after initialization
   const [state, setState] = useState<UltraLowBandwidthState>(() => {
-    const modeInfo = getNetworkModeInfo();
-    const uiState = getUIStateInfo();
-    const degradation = getDegradationState();
-    
-    return {
-      networkMode: modeInfo.mode,
-      modeName: NetworkMode[modeInfo.mode],
-      videoAllowed: modeInfo.videoAllowed,
-      videoRequiresTap: modeInfo.videoOnTapOnly,
-      maxAudioBitrate: modeInfo.maxAudioBitrate,
-      maxVideoBitrate: modeInfo.maxVideoBitrate,
-      currentQuality: degradation.currentQuality,
-      qualityDescription: getQualityDescription(degradation.currentQuality),
-      uiState,
-      signalStrength: getSignalStrength(),
-      showWarning: shouldShowNetworkWarning(),
-      isLocalCall: isLocalNetworkCall(),
-      isOffline: modeInfo.mode === NetworkMode.MODE_0_OFFLINE
-    };
+    // Try to get real values, but have safe fallbacks
+    try {
+      const modeInfo = getNetworkModeInfo();
+      const uiState = getUIStateInfo();
+      const degradation = getDegradationState();
+      
+      return {
+        networkMode: modeInfo.mode,
+        modeName: NetworkMode[modeInfo.mode],
+        videoAllowed: modeInfo.videoAllowed,
+        videoRequiresTap: modeInfo.videoOnTapOnly,
+        maxAudioBitrate: modeInfo.maxAudioBitrate,
+        maxVideoBitrate: modeInfo.maxVideoBitrate,
+        currentQuality: degradation.currentQuality,
+        qualityDescription: getQualityDescription(degradation.currentQuality),
+        uiState,
+        signalStrength: getSignalStrength(),
+        showWarning: shouldShowNetworkWarning(),
+        isLocalCall: isLocalNetworkCall(),
+        isOffline: modeInfo.mode === NetworkMode.MODE_0_OFFLINE
+      };
+    } catch (e) {
+      // Fallback to safe defaults if initialization fails
+      console.warn('[useUltraLowBandwidth] Falling back to defaults:', e);
+      return {
+        networkMode: NetworkMode.MODE_4_HIGH,
+        modeName: 'MODE_4_HIGH',
+        videoAllowed: true,
+        videoRequiresTap: false,
+        maxAudioBitrate: 48,
+        maxVideoBitrate: 1500,
+        currentQuality: MediaQuality.HD_VIDEO,
+        qualityDescription: 'HD Video',
+        uiState: {
+          state: 'excellent' as const,
+          message: 'Excellent network',
+          shortMessage: 'HD',
+          icon: 'signal-full' as const,
+          color: 'green' as const,
+          showBanner: false,
+          bannerType: 'info' as const,
+          isInterruptive: false
+        },
+        signalStrength: 4,
+        showWarning: false,
+        isLocalCall: false,
+        isOffline: false
+      };
+    }
   });
   
   const cleanupRef = useRef<(() => void) | null>(null);
