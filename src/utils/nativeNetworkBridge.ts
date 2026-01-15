@@ -92,10 +92,16 @@ const MODE_CONFIGS: Record<NetworkMode, Omit<NetworkModeInfo, 'estimatedBandwidt
   }
 };
 
-// Global state
-let currentMode: NetworkMode = NetworkMode.MODE_3_NORMAL;
-let currentModeInfo: NetworkModeInfo | null = null;
+// Global state - CRITICAL: Initialize with proper defaults to prevent false "offline" state
+let currentMode: NetworkMode = NetworkMode.MODE_4_HIGH; // Default to HIGH, not OFFLINE
+let currentModeInfo: NetworkModeInfo = {
+  ...MODE_CONFIGS[NetworkMode.MODE_4_HIGH],
+  estimatedBandwidth: 1000,
+  rtt: 50
+}; // Initialize with defaults, not null
 let modeChangeListeners: Array<(info: NetworkModeInfo) => void> = [];
+let nativeHasControl = false;
+let isInitialized = false;
 
 // Extend window interface
 declare global {
@@ -143,16 +149,8 @@ export function classifyNetworkMode(bandwidthKbps: number, rttMs: number): Netwo
  * Get current network mode info
  */
 export function getNetworkModeInfo(): NetworkModeInfo {
-  if (currentModeInfo) {
-    return currentModeInfo;
-  }
-  
-  const config = MODE_CONFIGS[currentMode];
-  return {
-    ...config,
-    estimatedBandwidth: 0,
-    rtt: 0
-  };
+  // Always return initialized info - never null
+  return currentModeInfo;
 }
 
 /**
@@ -205,23 +203,43 @@ export function onNetworkModeChange(callback: (info: NetworkModeInfo) => void): 
  * Initialize network bridge
  */
 export function initializeNetworkBridge(): void {
+  if (isInitialized) {
+    console.log('📶 [NetworkBridge] Already initialized');
+    return;
+  }
+  
   console.log('📶 [NetworkBridge] Initializing...');
+  isInitialized = true;
   
   // Expose to window for native bridge
   if (typeof window !== 'undefined') {
     window.ChatrNetwork = {
       getMode: () => currentMode,
       getModeInfo: getNetworkModeInfo,
-      setMode: setNetworkMode,
+      setMode: (mode: NetworkMode, bandwidth: number, rtt: number) => {
+        nativeHasControl = true;
+        setNetworkMode(mode, bandwidth, rtt);
+      },
       onModeChange: onNetworkModeChange
     };
     
-    // Initial mode detection from web
-    detectNetworkModeFromWeb();
+    // Check if native already set mode BEFORE our detection
+    if (window.CHATR_NETWORK_MODE !== undefined) {
+      nativeHasControl = true;
+      currentMode = window.CHATR_NETWORK_MODE;
+      console.log('📶 [NetworkBridge] Native already set mode:', NetworkMode[currentMode]);
+    }
+    
+    // Initial mode detection from web (only if native hasn't taken control)
+    if (!nativeHasControl) {
+      detectNetworkModeFromWeb();
+    }
     
     // Listen for online/offline events
     window.addEventListener('online', () => {
-      detectNetworkModeFromWeb();
+      if (!nativeHasControl) {
+        detectNetworkModeFromWeb();
+      }
     });
     
     window.addEventListener('offline', () => {
@@ -235,7 +253,9 @@ export function initializeNetworkBridge(): void {
     
     if (connection) {
       connection.addEventListener('change', () => {
-        detectNetworkModeFromWeb();
+        if (!nativeHasControl) {
+          detectNetworkModeFromWeb();
+        }
       });
     }
   }
@@ -247,9 +267,9 @@ export function initializeNetworkBridge(): void {
  * Detect network mode from web APIs (fallback when native bridge not available)
  */
 function detectNetworkModeFromWeb(): void {
-  // Check if native has already set mode
-  if (typeof window !== 'undefined' && window.CHATR_NETWORK_MODE !== undefined) {
-    // Native bridge has control, don't override
+  // Check if native has already taken control
+  if (nativeHasControl) {
+    console.log('📶 [NetworkBridge] Native has control, skipping web detection');
     return;
   }
   
@@ -263,8 +283,9 @@ function detectNetworkModeFromWeb(): void {
                      (navigator as any).webkitConnection;
   
   if (!connection) {
-    // No network info API, assume normal
-    setNetworkMode(NetworkMode.MODE_3_NORMAL, 500, 100);
+    // No network info API - assume HIGH quality for modern browsers/WiFi
+    console.log('📶 [NetworkBridge] No Network Info API, assuming HIGH (modern browser/WiFi)');
+    setNetworkMode(NetworkMode.MODE_4_HIGH, 1000, 50);
     return;
   }
   

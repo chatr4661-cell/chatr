@@ -40,10 +40,10 @@ export interface DegradationConfig {
   minRecoveryTimeMs?: number; // Minimum time before attempting recovery
 }
 
-// State
+// State - CRITICAL: Default to HD_VIDEO not AUDIO_HD to prevent false "video paused" notices
 let state: DegradationState = {
-  currentQuality: MediaQuality.AUDIO_HD,
-  targetQuality: MediaQuality.AUDIO_HD,
+  currentQuality: MediaQuality.HD_VIDEO, // Default to HD video, not audio-only
+  targetQuality: MediaQuality.HD_VIDEO,
   isDegrading: false,
   isRecovering: false,
   lastChange: Date.now(),
