@@ -25,7 +25,7 @@ export default function Terms() {
           <section>
             <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
             <p className="text-muted-foreground leading-relaxed">
-              By accessing and using Chatr (operated by TalentXcel Services Pvt. Ltd.), you accept and agree to be bound by the terms and conditions of this agreement. If you do not agree to these terms, please do not use our services.
+              By accessing and using Chatr (a product of Talentxcel Services Pvt Ltd), you accept and agree to be bound by the terms and conditions of this agreement. If you do not agree to these terms, please do not use our services.
             </p>
           </section>
 
@@ -75,7 +75,7 @@ export default function Terms() {
           <section>
             <h2 className="text-xl font-semibold mb-3">7. Intellectual Property</h2>
             <p className="text-muted-foreground leading-relaxed">
-              All intellectual property rights in Chatr, including trademarks, logos, and software, belong to TalentXcel Services Pvt. Ltd. You may not copy, modify, or distribute our intellectual property without permission.
+              All intellectual property rights in Chatr, including trademarks, logos, and software, belong to Talentxcel Services Pvt Ltd. You may not copy, modify, or distribute our intellectual property without permission.
             </p>
           </section>
 
@@ -104,9 +104,12 @@ export default function Terms() {
             <h2 className="text-xl font-semibold mb-3">11. Contact Information</h2>
             <p className="text-muted-foreground leading-relaxed">
               For questions about these terms, please contact us at:<br />
-              TalentXcel Services Pvt. Ltd.<br />
-              Email: legal@chatr.app<br />
-              Address: [Your Registered Address]
+              Talentxcel Services Pvt Ltd<br />
+              Email: legal@chatr.chat<br />
+              Website: chatr.chat
+            </p>
+            <p className="text-muted-foreground leading-relaxed mt-4 pt-4 border-t border-border/40">
+              © 2026 Talentxcel Services Pvt Ltd. All rights reserved.
             </p>
           </section>
         </div>

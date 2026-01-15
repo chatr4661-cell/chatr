@@ -145,22 +145,25 @@ export default function About() {
           <h3 className="text-xl font-bold">Company Information</h3>
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-muted-foreground">Company Name</p>
-              <p className="font-semibold">TalentXcel Services Pvt. Ltd.</p>
+              <p className="text-muted-foreground">Product</p>
+              <p className="font-semibold">Chatr</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Operated By</p>
+              <p className="font-semibold">Talentxcel Services Pvt Ltd</p>
             </div>
             <div>
               <p className="text-muted-foreground">Headquarters</p>
               <p className="font-semibold">Noida, Uttar Pradesh, India</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Founded</p>
-              <p className="font-semibold">2025</p>
-            </div>
-            <div>
               <p className="text-muted-foreground">Industry</p>
               <p className="font-semibold">Technology, Healthcare, Communication</p>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground pt-2 border-t">
+            © 2026 Talentxcel Services Pvt Ltd. All rights reserved.
+          </p>
         </Card>
 
         {/* CTA */}
