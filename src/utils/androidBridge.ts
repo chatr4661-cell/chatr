@@ -1,7 +1,44 @@
 // Native bridge utilities for Android TelecomManager / iOS CallKit integration
 
 /**
- * Native call state set by Android TelecomManager / iOS CallKit
+ * Native CallState enum values from CallStateManager (Sprint 1-2)
+ * Maps to: com.chatr.app.calling.state.CallState
+ */
+export type NativeCallStateEnum =
+  | 'IDLE'
+  | 'INCOMING_RINGING'
+  | 'OUTGOING_DIALING'
+  | 'CONNECTING'
+  | 'CONNECTED'
+  | 'ON_HOLD'
+  | 'RECONNECTING'
+  | 'ENDING'
+  | 'ENDED'
+  | 'FAILED'
+  | 'PROXY_ACTIVE';
+
+/**
+ * Native call state from CallStateManager
+ */
+export interface NativeCallStateInfo {
+  state: NativeCallStateEnum;
+  callId: string | null;
+  isProxyMode: boolean;
+  timestamp: number;
+}
+
+/**
+ * State transition history entry
+ */
+export interface CallStateHistoryEntry {
+  fromState: NativeCallStateEnum;
+  toState: NativeCallStateEnum;
+  timestamp: number;
+  callId: string | null;
+}
+
+/**
+ * Legacy native call state set by Android TelecomManager / iOS CallKit
  * Web UI checks this to auto-join calls accepted by native
  */
 export interface NativeCallState {
@@ -18,9 +55,15 @@ declare global {
     };
     NativeBridge?: {
       sendEvent: (eventType: string, data: string) => void;
+      // Sprint 1-2: CallStateManager read-only APIs
+      getCallState?: () => string;
+      getCallStateHistory?: () => string;
     };
     ChatrNative?: {
       postMessage: (message: string) => void;
+      // Sprint 1-2: CallStateManager read-only APIs
+      getCallState?: () => string;
+      getCallStateHistory?: () => string;
     };
     NativeAuth?: {
       setAuthToken: (token: string) => void;
@@ -224,4 +267,98 @@ export function setNativeCallAccepted(callId: string): void {
 export function clearNativeCallState(): void {
   window.__CALL_STATE__ = undefined;
   console.log('[NativeCall] Native call state cleared');
+}
+
+// ==========================================
+// Sprint 1-2: CallStateManager Read-Only APIs
+// ==========================================
+
+/**
+ * Get current call state from native CallStateManager
+ * Returns null if no native bridge available
+ */
+export function getNativeCallState(): NativeCallStateInfo | null {
+  try {
+    // Try NativeBridge first (primary)
+    if (window.NativeBridge?.getCallState) {
+      const json = window.NativeBridge.getCallState();
+      const state = JSON.parse(json) as NativeCallStateInfo;
+      console.log(`[NativeCall] Got state from NativeBridge: ${state.state}`);
+      return state;
+    }
+    
+    // Fallback to ChatrNative
+    if (window.ChatrNative?.getCallState) {
+      const json = window.ChatrNative.getCallState();
+      const state = JSON.parse(json) as NativeCallStateInfo;
+      console.log(`[NativeCall] Got state from ChatrNative: ${state.state}`);
+      return state;
+    }
+  } catch (e) {
+    console.error('[NativeCall] Failed to get native call state:', e);
+  }
+  
+  return null;
+}
+
+/**
+ * Get call state transition history from native CallStateManager
+ * Returns empty array if no native bridge available
+ */
+export function getNativeCallStateHistory(): CallStateHistoryEntry[] {
+  try {
+    // Try NativeBridge first (primary)
+    if (window.NativeBridge?.getCallStateHistory) {
+      const json = window.NativeBridge.getCallStateHistory();
+      const history = JSON.parse(json) as CallStateHistoryEntry[];
+      console.log(`[NativeCall] Got ${history.length} history entries from NativeBridge`);
+      return history;
+    }
+    
+    // Fallback to ChatrNative
+    if (window.ChatrNative?.getCallStateHistory) {
+      const json = window.ChatrNative.getCallStateHistory();
+      const history = JSON.parse(json) as CallStateHistoryEntry[];
+      console.log(`[NativeCall] Got ${history.length} history entries from ChatrNative`);
+      return history;
+    }
+  } catch (e) {
+    console.error('[NativeCall] Failed to get call state history:', e);
+  }
+  
+  return [];
+}
+
+/**
+ * Check if native call is in a specific state
+ */
+export function isNativeCallInState(targetState: NativeCallStateEnum): boolean {
+  const state = getNativeCallState();
+  return state?.state === targetState;
+}
+
+/**
+ * Check if native has an active call (any non-idle/ended state)
+ */
+export function hasActiveNativeCall(): boolean {
+  const state = getNativeCallState();
+  if (!state) return false;
+  
+  const inactiveStates: NativeCallStateEnum[] = ['IDLE', 'ENDED', 'FAILED'];
+  return !inactiveStates.includes(state.state);
+}
+
+/**
+ * Check if native call is connected and ready for media
+ */
+export function isNativeCallConnected(): boolean {
+  return isNativeCallInState('CONNECTED');
+}
+
+/**
+ * Check if native call is in proxy mode (PSTN bridging)
+ */
+export function isNativeCallProxyMode(): boolean {
+  const state = getNativeCallState();
+  return state?.isProxyMode === true || state?.state === 'PROXY_ACTIVE';
 }
