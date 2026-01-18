@@ -2,8 +2,9 @@
 # https://bun.sh/docs/runtime/bunfig
 
 [install]
-# Skip optional dependencies (often large / platform-specific)
-optional = false
+# Keep optional dependencies enabled because Vite/Rollup relies on
+# platform-specific optional packages (e.g. @rollup/rollup-linux-x64-gnu).
+optional = true
 
-# Skip peer dependency auto-installs (can explode dependency graph)
-peer = false
+# Keep peer dependencies enabled to avoid missing peers in CI.
+peer = true
