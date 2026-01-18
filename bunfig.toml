@@ -1,0 +1,9 @@
+# Bun configuration to keep installs fast/stable in CI-like environments
+# https://bun.sh/docs/runtime/bunfig
+
+[install]
+# Skip optional dependencies (often large / platform-specific)
+optional = false
+
+# Skip peer dependency auto-installs (can explode dependency graph)
+peer = false
