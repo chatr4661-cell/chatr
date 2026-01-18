@@ -12,6 +12,7 @@ import android.telecom.TelecomManager
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.chatr.app.R
+import com.chatr.app.calling.service.ChatrConnectionService
 
 /**
  * Helper class for Telecom integration

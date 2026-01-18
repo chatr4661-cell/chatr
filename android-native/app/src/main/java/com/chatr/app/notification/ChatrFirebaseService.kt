@@ -9,8 +9,9 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.chatr.app.ChatrApplication
 import com.chatr.app.R
-import com.chatr.app.calling.TelecomHelper
+import com.chatr.app.call.TelecomHelper
 import com.chatr.app.presentation.MainActivity
+import com.chatr.app.presentation.calling.CallActivity
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -63,7 +64,8 @@ class ChatrFirebaseService : FirebaseMessagingService() {
 
     /**
      * Handle incoming call notification
-     * Uses TelecomManager for native call UI with fallback
+     * For self-managed apps, we MUST show our own UI immediately
+     * TelecomManager only handles system integration, not the actual UI
      */
     private fun handleCallNotification(data: Map<String, String>) {
         val callId = data["call_id"] ?: data["callId"] ?: return
@@ -72,30 +74,68 @@ class ChatrFirebaseService : FirebaseMessagingService() {
         val callerPhone = data["caller_phone"] ?: data["callerPhone"] ?: ""
         val callerAvatar = data["caller_avatar"] ?: data["callerAvatar"]
         val callType = data["call_type"] ?: data["callType"] ?: "audio"
-        val isVideo = callType == "video"
+        val isVideo = callType == "video" || data["is_video"] == "true"
+        val conversationId = data["conversation_id"] ?: data["conversationId"] ?: ""
 
-        Log.d(TAG, "📞 Incoming call from $callerName ($callerPhone), callId: $callId")
+        Log.d(TAG, "📞 Incoming call from $callerName ($callerPhone), callId: $callId, isVideo: $isVideo")
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                // Use TelecomManager for native call UI
-                TelecomHelper.reportIncomingCall(
-                    context = this,
-                    callId = callId,
-                    callerPhone = callerPhone,
-                    callerName = callerName,
-                    callerAvatar = callerAvatar,
-                    isVideo = isVideo
-                )
-                Log.d(TAG, "✅ Reported call to TelecomManager")
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ TelecomManager failed, using fallback", e)
-                showFallbackCallNotification(callId, callerName, callerPhone, isVideo)
+        // CRITICAL: For self-managed apps, TelecomManager does NOT show UI!
+        // We must ALWAYS launch our own CallActivity
+        try {
+            // First, report to TelecomManager for system integration (call logs, etc.)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    TelecomHelper.reportIncomingCall(
+                        context = this,
+                        callId = callId,
+                        callerPhone = callerPhone,
+                        callerName = callerName,
+                        isVideo = isVideo
+                    )
+                    Log.d(TAG, "✅ Reported call to TelecomManager")
+                } catch (e: Exception) {
+                    Log.w(TAG, "⚠️ TelecomManager report failed (non-fatal): ${e.message}")
+                }
             }
-        } else {
-            // Fallback for older devices
+
+            // ALWAYS launch our own incoming call UI (this is required for self-managed)
+            launchIncomingCallActivity(callId, callerId, callerName, callerPhone, callerAvatar, isVideo, conversationId)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to launch call activity, using fallback", e)
             showFallbackCallNotification(callId, callerName, callerPhone, isVideo)
         }
+    }
+
+    /**
+     * Launch the full-screen incoming call activity
+     * This MUST be called for self-managed connections since system UI won't appear
+     */
+    private fun launchIncomingCallActivity(
+        callId: String,
+        callerId: String,
+        callerName: String,
+        callerPhone: String,
+        callerAvatar: String?,
+        isVideo: Boolean,
+        conversationId: String
+    ) {
+        val intent = Intent(this, CallActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or 
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            // Use extra_ prefix to match CallActivity's expected extras
+            putExtra("extra_call_id", callId)
+            putExtra("extra_caller_id", callerId)
+            putExtra("extra_caller_name", callerName)
+            putExtra("extra_caller_phone", callerPhone)
+            putExtra("extra_caller_avatar", callerAvatar)
+            putExtra("extra_is_video", isVideo)
+            putExtra("extra_conversation_id", conversationId)
+            putExtra("is_incoming", true)
+        }
+        startActivity(intent)
+        Log.d(TAG, "✅ Launched CallActivity for incoming call from $callerName")
     }
 
     /**

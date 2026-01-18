@@ -79,11 +79,17 @@ class CallActivity : ComponentActivity() {
             )
         }
 
-        callId = intent.getStringExtra("extra_call_id") ?: ""
-        callerName = intent.getStringExtra("extra_caller_name") ?: "Unknown"
-        callerPhone = intent.getStringExtra("extra_caller_phone") ?: ""
-        callerAvatar = intent.getStringExtra("extra_caller_avatar")
+        // Support both extra_ prefix and non-prefixed keys for compatibility
+        callId = intent.getStringExtra("extra_call_id") 
+            ?: intent.getStringExtra("call_id") ?: ""
+        callerName = intent.getStringExtra("extra_caller_name") 
+            ?: intent.getStringExtra("caller_name") ?: "Unknown"
+        callerPhone = intent.getStringExtra("extra_caller_phone") 
+            ?: intent.getStringExtra("caller_phone") ?: ""
+        callerAvatar = intent.getStringExtra("extra_caller_avatar") 
+            ?: intent.getStringExtra("caller_avatar")
         isVideo = intent.getBooleanExtra("extra_is_video", false)
+            || intent.getBooleanExtra("is_video", false)
         isIncoming = intent.getBooleanExtra("is_incoming", false)
 
         android.util.Log.d("CallActivity", "📞 onCreate: callId=$callId, incoming=$isIncoming")
