@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
 import { clearPreCallMediaStream, setPreCallMediaStream } from '@/utils/preCallMedia';
@@ -64,7 +64,39 @@ const ChatEnhancedContent = () => {
   const { user, session, isAuthReady } = useChatContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
+  const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
+  const [activeConversationId, setActiveConversationId] = React.useState<string | null>(urlConversationId || null);
+  
+  // Sync URL param to state when it changes
+  React.useEffect(() => {
+    if (urlConversationId && urlConversationId !== activeConversationId) {
+      setActiveConversationId(urlConversationId);
+      // Load other user info for the conversation
+      const loadConversationUser = async () => {
+        if (!user?.id) return;
+        const { data } = await supabase
+          .from('conversation_participants')
+          .select('user_id')
+          .eq('conversation_id', urlConversationId)
+          .neq('user_id', user.id)
+          .limit(1)
+          .single();
+        
+        if (data?.user_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, is_online')
+            .eq('id', data.user_id)
+            .single();
+          
+          if (profile) {
+            setOtherUser(profile);
+          }
+        }
+      };
+      loadConversationUser();
+    }
+  }, [urlConversationId, user?.id]);
   const [otherUser, setOtherUser] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [showClusterCreator, setShowClusterCreator] = React.useState(false);
