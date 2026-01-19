@@ -821,6 +821,13 @@ export class SimpleWebRTCCall {
             return;
           }
           
+          // CRITICAL: Prevent duplicate answers for same offer
+          // Only allow ONE answer per offer (except renegotiation)
+          if (this.answerSent && !isRenegotiation) {
+            console.log('⏭️ [WebRTC] Already sent initial answer, skipping duplicate offer');
+            return;
+          }
+          
           console.log(`📥 [WebRTC] Processing ${isRenegotiation ? 'RENEGOTIATION' : 'INITIAL'} OFFER...`);
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { IncomingCallScreen } from "./IncomingCallScreen";
 import UnifiedCallScreen from "./UnifiedCallScreen";
@@ -73,16 +73,69 @@ export function GlobalCallListener() {
   const isNative = isNativeShell();
   
   // CRITICAL: Listen for native call acceptance event
-  // This is dispatched by WebViewBridgeManager when user answers via TelecomManager
+  // This is dispatched by MainActivity when user answers via native UI
   useEffect(() => {
-    if (!isNative) return;
+    // Listen for nativeCallAction events from MainActivity.handleAnswerCall()
+    const handleNativeCallAction = async (event: CustomEvent) => {
+      const { action, callId, callerId, callerName, callerAvatar, callType } = event.detail || {};
+      console.log(`📱 [GlobalCallListener] nativeCallAction: ${action} for call ${callId?.slice(0, 8)}`);
+      
+      if (action === 'answer' && callId) {
+        console.log('📱 [GlobalCallListener] Native answered call - starting WebRTC as receiver');
+        
+        // Dismiss any incoming UI
+        setIncomingCall(null);
+        
+        // CRITICAL: Skip if we already have an active call for this ID
+        if (activeCallRef.current?.id === callId) {
+          console.log('📱 [GlobalCallListener] Already have active call, skipping');
+          return;
+        }
+        
+        // Pre-acquire media for the call
+        try {
+          const isVideo = callType === 'video';
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: true, 
+            video: isVideo 
+          });
+          setPreCallMediaStream(callId, stream);
+        } catch (mediaErr) {
+          console.warn('📱 [GlobalCallListener] Could not pre-acquire media:', mediaErr);
+        }
+        
+        // Update call status to active (may already be done by native JS bridge, but ensure it)
+        try {
+          await supabase.from('calls')
+            .update({ status: 'active', started_at: new Date().toISOString() })
+            .eq('id', callId);
+        } catch (dbErr) {
+          console.warn('📱 [GlobalCallListener] Could not update call status:', dbErr);
+        }
+        
+        // Start WebRTC as receiver (non-initiator)
+        setActiveCall({
+          id: callId,
+          caller_id: callerId,
+          call_type: callType || 'audio',
+          isInitiator: false, // Receiver waits for offer
+          partnerId: callerId,
+          callerName: callerName || 'Unknown',
+          callerAvatar: callerAvatar,
+          preAcquiredStream: takePreCallMediaStream(callId),
+        });
+        
+      } else if (action === 'reject' && callId) {
+        console.log('📱 [GlobalCallListener] Native rejected call');
+        setIncomingCall(null);
+      }
+    };
     
+    // Also handle legacy chatr:native_call_accepted event
     const handleNativeCallAccepted = (event: CustomEvent<{ callId: string }>) => {
       const { callId } = event.detail;
       console.log(`📱 [GlobalCallListener] Native accepted call event: ${callId?.slice(0, 8)}`);
       
-      // If we have a matching incoming call, dismiss the web UI immediately
-      // (shouldn't happen as web UI is skipped for native, but safety check)
       const current = incomingCallRef.current;
       if (current && current.id === callId) {
         console.log('📱 [GlobalCallListener] Dismissing web incoming UI - native accepted');
@@ -90,12 +143,14 @@ export function GlobalCallListener() {
       }
     };
     
+    window.addEventListener('nativeCallAction', handleNativeCallAction as EventListener);
     window.addEventListener('chatr:native_call_accepted', handleNativeCallAccepted as EventListener);
     
     return () => {
+      window.removeEventListener('nativeCallAction', handleNativeCallAction as EventListener);
       window.removeEventListener('chatr:native_call_accepted', handleNativeCallAccepted as EventListener);
     };
-  }, [isNative]);
+  }, []);
   
   // Subscribe once per logged-in user
   // CRITICAL: In native shell, skip INCOMING call notifications (handled by TelecomManager/CallKit)
@@ -145,7 +200,8 @@ export function GlobalCallListener() {
         });
     }
 
-    // Call updates relevant to this receiver (ended/answered elsewhere, OR native accepted)
+    // Call updates relevant to this receiver (ended/answered elsewhere)
+    // NOTE: For native shell, WebRTC is started via nativeCallAction event instead
     const updatesChannel = supabase
       .channel(`call-updates:${userId}`)
       .on(
@@ -160,38 +216,19 @@ export function GlobalCallListener() {
           const call = payload.new as any;
           console.log("📱 [GlobalCallListener] Receiver call UPDATE:", call.id, "status:", call.status);
 
-          // If running in native shell and call becomes active, START WebRTC as receiver!
-          if (isNative && call.status === "active" && !activeCallRef.current) {
-            console.log("📱 [GlobalCallListener] Native accepted call - starting WebRTC as receiver");
-            
-            const { data: callerProfile } = await supabase
-              .from("profiles")
-              .select("username, avatar_url")
-              .eq("id", call.caller_id)
-              .maybeSingle();
-
-            // CRITICAL: On native, we need to acquire media permission here
-            // The native shell may have already granted permission, but WebView needs it too
-            try {
-              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-              setPreCallMediaStream(call.id, stream);
-            } catch (mediaErr) {
-              console.warn('📱 [GlobalCallListener] Could not pre-acquire media for native call:', mediaErr);
-              // Continue anyway - WebRTC will try again
+          // CRITICAL: Skip if we already have an active call - prevents duplicate WebRTC instances
+          if (activeCallRef.current?.id === call.id) {
+            console.log("📱 [GlobalCallListener] Already have active call for this ID, skipping");
+            // But check if it was ended
+            if (call.status === "ended" || call.status === "missed") {
+              console.log("📵 [GlobalCallListener] Active call ended by partner (receiver side)");
+              setActiveCall(null);
+              toast.info("Call ended");
             }
-
-            setActiveCall({
-              ...call,
-              isInitiator: false, // Receiver is NOT initiator - will wait for offer
-              partnerId: call.caller_id,
-              callerName: callerProfile?.username || call.caller_name || "Unknown",
-              callerAvatar: callerProfile?.avatar_url || call.caller_avatar,
-              preAcquiredStream: takePreCallMediaStream(call.id),
-            });
             return;
           }
 
-          // Handle call ended for receiver's active call
+          // Handle call ended for any call we might be tracking
           const currentActive = activeCallRef.current;
           if (currentActive && call.id === currentActive.id) {
             if (call.status === "ended" || call.status === "missed") {
