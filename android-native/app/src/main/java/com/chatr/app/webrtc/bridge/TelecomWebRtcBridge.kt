@@ -95,9 +95,10 @@ class TelecomWebRtcBridge @Inject constructor(
         callId: String,
         token: String,
         isVideo: Boolean,
-        isIncomingCall: Boolean
+        isIncomingCall: Boolean,
+        partnerId: String? = null
     ) {
-        Log.d(TAG, "Initializing call: $callId (video: $isVideo, incoming: $isIncomingCall)")
+        Log.d(TAG, "Initializing call: $callId (video: $isVideo, incoming: $isIncomingCall, partner: ${partnerId?.take(8)})")
 
         currentCallId = callId
         currentToken = token
@@ -114,6 +115,10 @@ class TelecomWebRtcBridge @Inject constructor(
 
         // Initialize audio routing
         audioRouteManager.initialize()
+
+        // CRITICAL: Set partner ID and token for unified signaling
+        partnerId?.let { signalingClient.setPartnerId(it) }
+        signalingClient.setToken(token)
 
         // Connect to signaling
         scope.launch {

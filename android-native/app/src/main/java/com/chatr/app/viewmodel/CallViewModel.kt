@@ -162,6 +162,15 @@ class CallViewModel @Inject constructor(
     
     private fun connectSignaling(callId: String) {
         val userId = authRepository.getCurrentUserId() ?: return
+        val token = authRepository.getAccessToken() ?: return
+        
+        // Get partner ID from active call state
+        val callData = _activeCallState.value.callData
+        val partnerId = if (callData?.callerId == userId) {
+            callData.receiverId
+        } else {
+            callData?.callerId ?: ""
+        }
         
         signalingClient = WebRTCSignalingClient(
             callId = callId,
@@ -170,6 +179,10 @@ class CallViewModel @Inject constructor(
                 handleSignalingEvent(event)
             }
         )
+        
+        // CRITICAL: Set partner ID and token BEFORE connecting
+        signalingClient?.setPartnerId(partnerId)
+        signalingClient?.setToken(token)
         signalingClient?.connect()
     }
     

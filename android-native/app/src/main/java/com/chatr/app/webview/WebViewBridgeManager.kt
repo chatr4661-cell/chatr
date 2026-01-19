@@ -60,7 +60,7 @@ class WebViewBridgeManager @Inject constructor(
      * CRITICAL: Set native call state in WebView when user accepts via TelecomManager
      * This prevents double-ringing and enables web UI to auto-join WebRTC
      */
-    fun setNativeCallAccepted(callId: String) {
+    fun setNativeCallAccepted(callId: String, callerId: String? = null, callerName: String? = null, callerAvatar: String? = null, callType: String? = null) {
         val webView = webViewRef ?: return
         
         CoroutineScope(Dispatchers.Main).launch {
@@ -69,13 +69,26 @@ class WebViewBridgeManager @Inject constructor(
                     try {
                         window.__CALL_STATE__ = {
                             callId: '$callId',
+                            callerId: '${callerId ?: ""}',
                             accepted: true,
                             acceptedAt: Date.now()
                         };
                         console.log('[NativeCall] Native accepted call: ${callId.take(8)}');
                         
-                        // Also dispatch event for any listeners
+                        // Dispatch nativeCallAction event with all call info for GlobalCallListener
                         if (window.dispatchEvent) {
+                            window.dispatchEvent(new CustomEvent('nativeCallAction', { 
+                                detail: { 
+                                    action: 'answer',
+                                    callId: '$callId',
+                                    callerId: '${callerId ?: ""}',
+                                    callerName: '${callerName ?: "Unknown"}',
+                                    callerAvatar: '${callerAvatar ?: ""}',
+                                    callType: '${callType ?: "audio"}'
+                                } 
+                            }));
+                            
+                            // Also dispatch legacy event
                             window.dispatchEvent(new CustomEvent('chatr:native_call_accepted', { 
                                 detail: { callId: '$callId' } 
                             }));
@@ -87,7 +100,7 @@ class WebViewBridgeManager @Inject constructor(
             """.trimIndent()
             
             webView.evaluateJavascript(js, null)
-            android.util.Log.d("WebViewBridge", "Set __CALL_STATE__ for call: $callId")
+            android.util.Log.d("WebViewBridge", "Set __CALL_STATE__ for call: $callId with callerId: $callerId")
         }
     }
     
