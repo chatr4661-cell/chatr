@@ -75,6 +75,7 @@ export default function UnifiedCallScreen({
 
   const isVideo = callType === 'video' || isVideoOn || videoEnabled;
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const callStateRef = useRef(callState);
 
   useCallKeepAlive(callId, callState === 'connected');
   
@@ -82,6 +83,11 @@ export default function UnifiedCallScreen({
   useEffect(() => {
     stopAllRingtones();
   }, []);
+
+  // Keep a stable reference for realtime callbacks (prevents stale closures)
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
 
   // Ultra-low bandwidth optimizations
   // Note: peerConnection is accessed lazily since webrtcRef.current may not be set yet
@@ -150,7 +156,19 @@ export default function UnifiedCallScreen({
         (payload) => {
           const updatedCall = payload.new as any;
           console.log('📡 [UnifiedCall] Call status update:', updatedCall.status);
-          
+
+          // If backend marks WebRTC as connected, force UI into connected state.
+          // This fixes cases where we re-attach to an existing WebRTC instance and miss the 'connected' event.
+          if (
+            (updatedCall.webrtc_state === 'connected' || updatedCall.status === 'active') &&
+            callStateRef.current !== 'connected'
+          ) {
+            console.log('✅ [UnifiedCall] Sync: backend says connected');
+            setCallState('connected');
+            startDurationTimer();
+            syncCallStateToNative(callId, 'connected');
+          }
+
           if (updatedCall.status === 'ended' || updatedCall.status === 'missed') {
             console.log('📵 [UnifiedCall] Call ended by partner');
             cleanup();
@@ -183,8 +201,21 @@ export default function UnifiedCallScreen({
           if (existing) {
             console.log('⚠️ [UnifiedCall] Reusing existing WebRTC instance');
             webrtcRef.current = existing;
+
             // Re-attach event handlers
             attachEventHandlers(existing);
+
+            // Ensure the underlying WebRTC is actually started (safe: start() is idempotent)
+            await existing.start();
+
+            // If we missed the 'connected' event, sync from peer connection state
+            const pc = existing.getPeerConnection?.();
+            if (pc && (pc.connectionState === 'connected' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed')) {
+              console.log('✅ [UnifiedCall] Sync: existing peer connection already connected');
+              setCallState('connected');
+              startDurationTimer();
+            }
+
             return;
           }
         }
@@ -372,7 +403,7 @@ export default function UnifiedCallScreen({
       });
 
       call.on('recoveryStatus', () => {
-        if (callState !== 'connected') setCallState('reconnecting');
+        if (callStateRef.current !== 'connected') setCallState('reconnecting');
       });
 
       call.on('networkQuality', (quality: string) => {
@@ -474,6 +505,7 @@ export default function UnifiedCallScreen({
   }, [videoEnabled, localVideoActive]);
 
   const startDurationTimer = () => {
+    if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     durationIntervalRef.current = setInterval(() => setDuration(d => d + 1), 1000);
   };
 
