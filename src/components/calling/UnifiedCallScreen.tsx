@@ -246,10 +246,10 @@ export default function UnifiedCallScreen({
         remoteAudioRef.current.srcObject = stream;
         remoteAudioRef.current.play().catch(e => console.log('Audio autoplay:', e));
         
-        // ANDROID WEBVIEW FIX: Use aggressive video playback helper
-        // This handles muted tracks, srcObject re-assignment, and retry loops
+        // VIDEO PLAYBACK: Works for both desktop and mobile/WebView
+        // Handles muted tracks, srcObject re-assignment, and retry loops
         if (remoteVideoRef.current && videoTracks.length > 0) {
-          console.log('📺 [UnifiedCall] Starting aggressive video playback for Android');
+          console.log('📺 [UnifiedCall] Starting aggressive video playback');
           
           // Cleanup previous playback attempt
           if (videoPlaybackCleanupRef.current) {
@@ -261,7 +261,7 @@ export default function UnifiedCallScreen({
             remoteVideoRef.current,
             stream,
             {
-              maxRetries: 15, // More retries for Android WebView
+              maxRetries: 15,
               retryIntervalMs: 400,
               onPlaybackStarted: () => {
                 console.log('✅ [UnifiedCall] Remote video PLAYING (aggressive)');
@@ -269,10 +269,33 @@ export default function UnifiedCallScreen({
               },
               onPlaybackFailed: () => {
                 console.warn('⚠️ [UnifiedCall] Video playback failed after all retries');
-                // Keep trying with track recovery handlers
+                // Fallback: force-enable if video element has srcObject with video tracks
+                if (remoteVideoRef.current?.srcObject) {
+                  const currentStream = remoteVideoRef.current.srcObject as MediaStream;
+                  if (currentStream.getVideoTracks().length > 0) {
+                    console.log('🔄 [UnifiedCall] Fallback: enabling remote video state');
+                    setRemoteVideoActive(true);
+                  }
+                }
               }
             }
           );
+          
+          // SAFETY: Additional fallback check after 3 seconds
+          setTimeout(() => {
+            // Use functional state update to get current value
+            setRemoteVideoActive(current => {
+              if (!current && remoteVideoRef.current?.srcObject) {
+                const currentStream = remoteVideoRef.current.srcObject as MediaStream;
+                if (currentStream.getVideoTracks().length > 0) {
+                  console.log('🔄 [UnifiedCall] 3s fallback: forcing remote video active');
+                  remoteVideoRef.current.play().catch(() => {});
+                  return true;
+                }
+              }
+              return current;
+            });
+          }, 3000);
         } else if (remoteVideoRef.current) {
           // No video tracks yet, but assign stream for later
           console.log('📺 [UnifiedCall] Assigning stream (no video tracks yet)');

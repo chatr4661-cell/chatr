@@ -12,6 +12,10 @@ const isAndroidWebView = () => {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 };
 
+const isAnyWebView = () => {
+  return Capacitor.isNativePlatform();
+};
+
 interface VideoPlaybackOptions {
   maxRetries?: number;
   retryIntervalMs?: number;
@@ -47,9 +51,20 @@ export function startAggressiveVideoPlayback(
   const log = (msg: string) => console.log(`📺 [AndroidVideo] ${msg}`);
 
   const checkVideoPlaying = (): boolean => {
-    return !videoElement.paused && 
-           videoElement.readyState >= 2 && 
-           (videoElement.videoWidth > 0 || videoElement.videoHeight > 0);
+    // Check if video is actually playing with valid dimensions
+    // readyState >= 2 means HAVE_CURRENT_DATA - can render current frame
+    // Some browsers need a moment to report dimensions
+    const hasData = videoElement.readyState >= 2;
+    const hasDimensions = videoElement.videoWidth > 0 && videoElement.videoHeight > 0;
+    const isPlaying = !videoElement.paused;
+    
+    // For desktop browsers, just check that we have data and it's playing
+    // Dimensions may take a moment to populate
+    if (!isAndroidWebView() && hasData && isPlaying) {
+      return true;
+    }
+    
+    return isPlaying && hasData && hasDimensions;
   };
 
   const attemptPlay = async (): Promise<boolean> => {
@@ -99,9 +114,11 @@ export function startAggressiveVideoPlayback(
       log(`Muted play failed: ${e.name}`);
     }
 
-    // Strategy 3: Re-assign srcObject (critical for Android WebView)
-    if (isAndroidWebView() && retryCount > 2) {
-      log('Re-assigning srcObject for Android WebView');
+    // Strategy 3: Re-assign srcObject (works for all browsers, critical for WebViews)
+    // Apply earlier on desktop browsers (retryCount > 1) since they're usually faster
+    const shouldReassign = isAndroidWebView() ? retryCount > 2 : retryCount > 1;
+    if (shouldReassign) {
+      log('Re-assigning srcObject');
       videoElement.srcObject = null;
       await new Promise(r => setTimeout(r, 50));
       videoElement.srcObject = stream;
@@ -121,6 +138,15 @@ export function startAggressiveVideoPlayback(
       } catch (e) {
         log('srcObject re-assign play failed');
       }
+    }
+    
+    // Strategy 4: Check if we're playing but dimensions not yet reported
+    // This happens on some desktop browsers
+    if (retryCount >= 3 && !videoElement.paused && videoElement.readyState >= 2) {
+      log('✅ Video playing (readyState check, awaiting dimensions)');
+      playbackStarted = true;
+      onPlaybackStarted?.();
+      return true;
     }
 
     return false;
