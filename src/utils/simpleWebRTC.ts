@@ -183,8 +183,22 @@ export class SimpleWebRTCCall {
         });
       }
 
-      // Fetch past signals (for late joiners)
+      // Fetch past signals (for late joiners) with retry for race condition
       await this.fetchPastSignals();
+      
+      // RECEIVER: If no offer found, retry after 500ms (race condition with INSERT)
+      if (!this.isInitiator && !this.hasReceivedAnswer && !this.pc?.remoteDescription) {
+        console.log('🔄 [WebRTC] Receiver: No offer processed yet, retrying in 500ms...');
+        await this.delay(500);
+        await this.fetchPastSignals();
+        
+        // One more retry after 1s if still no offer
+        if (!this.pc?.remoteDescription) {
+          console.log('🔄 [WebRTC] Receiver: Still no offer, retrying in 1s...');
+          await this.delay(1000);
+          await this.fetchPastSignals();
+        }
+      }
 
       // Create offer IMMEDIATELY (no delay - receiver subscription is already active)
       if (this.isInitiator && !this.offerSent) {
@@ -725,17 +739,27 @@ export class SimpleWebRTCCall {
     console.log('📥 [WebRTC] Fetching past signals...');
     
     try {
-      const { data: signals } = await supabase
+      const { data: signals, error } = await supabase
         .from('webrtc_signals')
         .select('*')
         .eq('call_id', this.callId)
         .eq('to_user', this.userId)
         .order('created_at', { ascending: false }); // Get NEWEST first
 
+      if (error) {
+        console.error('❌ [WebRTC] Signals query error:', error);
+        return;
+      }
+
+      console.log(`📥 [WebRTC] Found ${signals?.length || 0} past signals for user ${this.userId.slice(0, 8)}`);
+
       if (signals?.length) {
-        console.log(`📥 [WebRTC] Found ${signals.length} past signals`);
+        // Log all found signals for debugging
+        signals.forEach(s => {
+          console.log(`  → ${s.signal_type} from ${s.from_user.slice(0, 8)} (id: ${s.id.slice(0, 8)})`);
+        });
         
-        // Mark all as processed to prevent duplicates
+        // Mark all as processed to prevent duplicates from realtime
         signals.forEach(s => this.processedSignalIds.add(s.id));
         
         if (!this.isInitiator) {
@@ -744,6 +768,8 @@ export class SimpleWebRTCCall {
           if (latestOffer) {
             console.log(`📥 [WebRTC] Processing LATEST offer from ${latestOffer.from_user.slice(0, 8)}`);
             await this.handleSignal({ type: 'offer', data: latestOffer.signal_data, from: latestOffer.from_user });
+          } else {
+            console.log('⚠️ [WebRTC] No offer found in past signals (receiver mode)');
           }
         } else {
           // INITIATOR: Check if receiver already sent an answer
@@ -759,9 +785,12 @@ export class SimpleWebRTCCall {
           .filter(s => s.signal_type === 'ice-candidate')
           .reverse(); // Reverse to process oldest first
           
+        console.log(`📥 [WebRTC] Processing ${candidates.length} ICE candidates`);
         for (const c of candidates) {
           await this.handleSignal({ type: 'ice-candidate', data: c.signal_data, from: c.from_user });
         }
+      } else {
+        console.log('📥 [WebRTC] No past signals found - waiting for realtime...');
       }
     } catch (error) {
       console.error('❌ [WebRTC] Failed to fetch past signals:', error);
