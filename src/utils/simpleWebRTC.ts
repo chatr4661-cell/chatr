@@ -186,16 +186,24 @@ export class SimpleWebRTCCall {
       // Fetch past signals (for late joiners) with retry for race condition
       await this.fetchPastSignals();
       
-      // RECEIVER: If no offer found, retry after 500ms (race condition with INSERT)
-      if (!this.isInitiator && !this.hasReceivedAnswer && !this.pc?.remoteDescription) {
+      // RECEIVER: If no offer found/processed, retry (race condition with INSERT)
+      // Check if remote description was set (means offer was processed)
+      if (!this.isInitiator && !this.pc?.remoteDescription) {
         console.log('🔄 [WebRTC] Receiver: No offer processed yet, retrying in 500ms...');
         await this.delay(500);
         await this.fetchPastSignals();
         
-        // One more retry after 1s if still no offer
+        // Second retry after 1s if still no offer
         if (!this.pc?.remoteDescription) {
           console.log('🔄 [WebRTC] Receiver: Still no offer, retrying in 1s...');
           await this.delay(1000);
+          await this.fetchPastSignals();
+        }
+        
+        // Third retry after 2s if still no offer (slow networks)
+        if (!this.pc?.remoteDescription) {
+          console.log('🔄 [WebRTC] Receiver: Still no offer, final retry in 2s...');
+          await this.delay(2000);
           await this.fetchPastSignals();
         }
       }
@@ -797,39 +805,55 @@ export class SimpleWebRTCCall {
     }
   }
 
-  private async subscribeToSignals() {
+  private async subscribeToSignals(): Promise<void> {
     console.log('📡 [WebRTC] Subscribing to signals...');
     
-    this.signalChannel = supabase
-      .channel(`webrtc-${this.callId}-${this.userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'webrtc_signals',
-          filter: `call_id=eq.${this.callId}`
-        },
-        (payload) => {
-          const signal = payload.new as any;
-          if (signal.to_user === this.userId) {
-            // DEDUPE: Skip already processed signals
-            if (this.processedSignalIds.has(signal.id)) {
-              console.log('⏭️ [WebRTC] Skipping duplicate signal:', signal.id.slice(0, 8));
-              return;
+    return new Promise((resolve) => {
+      this.signalChannel = supabase
+        .channel(`webrtc-${this.callId}-${this.userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'webrtc_signals',
+            filter: `call_id=eq.${this.callId}`
+          },
+          (payload) => {
+            const signal = payload.new as any;
+            if (signal.to_user === this.userId) {
+              // DEDUPE: Skip already processed signals
+              if (this.processedSignalIds.has(signal.id)) {
+                console.log('⏭️ [WebRTC] Skipping duplicate signal:', signal.id.slice(0, 8));
+                return;
+              }
+              this.processedSignalIds.add(signal.id);
+              
+              console.log('📥 [WebRTC] Signal received via realtime:', signal.signal_type);
+              this.handleSignal({
+                type: signal.signal_type,
+                data: signal.signal_data,
+                from: signal.from_user
+              });
             }
-            this.processedSignalIds.add(signal.id);
-            
-            console.log('📥 [WebRTC] Signal received:', signal.signal_type);
-            this.handleSignal({
-              type: signal.signal_type,
-              data: signal.signal_data,
-              from: signal.from_user
-            });
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe((status) => {
+          console.log('📡 [WebRTC] Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            resolve();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('⚠️ [WebRTC] Subscription failed, resolving anyway');
+            resolve();
+          }
+        });
+      
+      // Fallback timeout in case subscription status never fires
+      setTimeout(() => {
+        console.log('📡 [WebRTC] Subscription timeout, continuing...');
+        resolve();
+      }, 3000);
+    });
   }
 
   private async handleSignal(signal: Signal) {
