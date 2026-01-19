@@ -409,9 +409,12 @@ export class SimpleWebRTCCall {
       // Emit stream for EVERY track to ensure UI updates for both audio AND video
       this.emit('remoteStream', remoteStream);
       
-      // Log track details for debugging bidirectional video
+      // CRITICAL for video upgrade: Emit dedicated event when VIDEO track arrives
+      // This ensures the UI rebinds the video element even if stream reference is same
       if (track.kind === 'video') {
         console.log(`📹 [WebRTC] VIDEO track settings:`, track.getSettings());
+        // Emit special event for video track arrival (handles mid-call upgrades)
+        this.emit('remoteVideoTrack', { track, stream: remoteStream });
       }
     };
 

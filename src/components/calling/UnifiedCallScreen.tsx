@@ -408,6 +408,44 @@ export default function UnifiedCallScreen({
           console.warn('📹 [UnifiedCall] Could not auto-enable video:', e);
         }
       });
+
+      // CRITICAL: Handle remote video track arrival (for mid-call upgrades)
+      // This ensures video plays even when stream reference doesn't change
+      call.on('remoteVideoTrack', ({ track, stream }: { track: MediaStreamTrack; stream: MediaStream }) => {
+        console.log('📺 [UnifiedCall] Remote VIDEO track received - forcing playback');
+        
+        if (!remoteVideoRef.current) return;
+        
+        // Force rebind srcObject to trigger video element refresh
+        remoteVideoRef.current.srcObject = null;
+        remoteVideoRef.current.srcObject = stream;
+        
+        // Start aggressive playback for the new video track
+        if (videoPlaybackCleanupRef.current) {
+          videoPlaybackCleanupRef.current();
+        }
+        
+        videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
+          remoteVideoRef.current,
+          stream,
+          {
+            maxRetries: 15,
+            retryIntervalMs: 400,
+            onPlaybackStarted: () => {
+              console.log('✅ [UnifiedCall] Remote video PLAYING after upgrade');
+              setRemoteVideoActive(true);
+            },
+            onPlaybackFailed: () => {
+              console.warn('⚠️ [UnifiedCall] Video upgrade playback failed');
+              // Force enable anyway if video track exists
+              setRemoteVideoActive(true);
+            }
+          }
+        );
+        
+        // Also set video on immediately for UI
+        setIsVideoOn(true);
+      });
     };
 
     initCall();
