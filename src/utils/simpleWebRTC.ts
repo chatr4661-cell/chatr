@@ -920,18 +920,21 @@ export class SimpleWebRTCCall {
           break;
 
         case 'answer':
-          // Process answers for this side
-          // During renegotiation, both sides can receive answers
-          if (!this.offerSent && !this.hasReceivedAnswer) {
-            console.log('⏭️ [WebRTC] Ignoring unsolicited answer');
+          // Only accept answers when we actually have a local offer outstanding.
+          // This is critical for mid-call renegotiation (video upgrades) where offerSent may be reset.
+          if (this.pc.signalingState !== 'have-local-offer') {
+            console.log(
+              '⏭️ [WebRTC] Ignoring answer (not expecting one), signalingState:',
+              this.pc.signalingState
+            );
             return;
           }
-          
+
           console.log('📥 [WebRTC] Processing ANSWER...');
           this.hasReceivedAnswer = true;
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
           console.log('✅ [WebRTC] ANSWER processed');
-          
+
           // Process queued ICE candidates
           await this.flushPendingCandidates();
           break;
