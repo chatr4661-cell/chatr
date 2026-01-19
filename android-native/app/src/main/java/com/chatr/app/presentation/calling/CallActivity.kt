@@ -51,6 +51,7 @@ class CallActivity : ComponentActivity() {
     lateinit var webViewBridgeManager: WebViewBridgeManager
 
     private var callId: String = ""
+    private var callerId: String = "" // CRITICAL: Needed for signaling partner ID
     private var callerName: String = ""
     private var callerPhone: String = ""
     private var callerAvatar: String? = null
@@ -82,6 +83,8 @@ class CallActivity : ComponentActivity() {
         // Support both extra_ prefix and non-prefixed keys for compatibility
         callId = intent.getStringExtra("extra_call_id") 
             ?: intent.getStringExtra("call_id") ?: ""
+        callerId = intent.getStringExtra("extra_caller_id") 
+            ?: intent.getStringExtra("caller_id") ?: ""
         callerName = intent.getStringExtra("extra_caller_name") 
             ?: intent.getStringExtra("caller_name") ?: "Unknown"
         callerPhone = intent.getStringExtra("extra_caller_phone") 
@@ -92,7 +95,7 @@ class CallActivity : ComponentActivity() {
             || intent.getBooleanExtra("is_video", false)
         isIncoming = intent.getBooleanExtra("is_incoming", false)
 
-        android.util.Log.d("CallActivity", "📞 onCreate: callId=$callId, incoming=$isIncoming")
+        android.util.Log.d("CallActivity", "📞 onCreate: callId=$callId, callerId=$callerId, incoming=$isIncoming")
 
         // Start ringtone and vibration for incoming calls ONLY if not already ringing
         if (isIncoming && !isRinging) {
@@ -173,18 +176,25 @@ class CallActivity : ComponentActivity() {
     }
 
     private fun answerCall() {
-        android.util.Log.d("CallActivity", "✅ Native answering call: $callId")
+        android.util.Log.d("CallActivity", "✅ Native answering call: $callId from caller: $callerId")
         
         stopRingtoneAndVibration()
         isIncoming = false
         
-        // CRITICAL: Set window.__CALL_STATE__ in WebView to prevent double-ringing
-        // and enable web UI to auto-join the WebRTC session
-        webViewBridgeManager.setNativeCallAccepted(callId)
+        // CRITICAL: Set window.__CALL_STATE__ in WebView AND dispatch nativeCallAction event
+        // This includes callerId which is CRITICAL for WebRTC signaling partnerId
+        webViewBridgeManager.setNativeCallAccepted(
+            callId = callId, 
+            callerId = callerId, 
+            callerName = callerName, 
+            callerAvatar = callerAvatar, 
+            callType = if (isVideo) "video" else "audio"
+        )
         
-        // Broadcast for any other native components
+        // Broadcast for any other native components - INCLUDE CALLER_ID for signaling
         val answerIntent = Intent("com.chatr.app.CALL_ANSWERED").apply {
             putExtra("callId", callId)
+            putExtra("callerId", callerId) // CRITICAL: WebRTC needs this for partner ID
             putExtra("isVideo", isVideo)
         }
         sendBroadcast(answerIntent)

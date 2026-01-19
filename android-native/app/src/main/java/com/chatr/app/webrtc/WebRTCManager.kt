@@ -2,6 +2,7 @@ package com.chatr.app.webrtc
 
 import android.content.Context
 import android.util.Log
+import com.chatr.app.data.repository.AuthRepository
 import com.chatr.app.data.repository.CallsRepository
 import com.chatr.app.websocket.SignalingEvent
 import com.chatr.app.websocket.WebRTCSignalingClient
@@ -22,7 +23,8 @@ import javax.inject.Singleton
 class WebRTCManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val signalingClient: WebRTCSignalingClient,
-    private val callsRepository: CallsRepository
+    private val callsRepository: CallsRepository,
+    private val authRepository: AuthRepository
 ) {
     
     private val TAG = "WebRTCManager"
@@ -127,6 +129,9 @@ class WebRTCManager @Inject constructor(
             isVideoCall = isVideo
             _callState.value = CallState.Connecting
             
+            // Get current user ID
+            val userId = authRepository.getCurrentUserId() ?: throw Exception("Not authenticated")
+            
             // First, initiate call via API
             val result = callsRepository.initiateCall(receiverId, if (isVideo) "video" else "audio")
             
@@ -134,7 +139,10 @@ class WebRTCManager @Inject constructor(
                 onSuccess = { callData ->
                     currentCallId = callData.id
                     
-                    // Connect to signaling
+                    // CRITICAL: Set user ID, partner ID and token BEFORE connecting
+                    signalingClient.setUserId(userId)
+                    signalingClient.setPartnerId(receiverId)
+                    signalingClient.setToken(token)
                     signalingClient.connect(callData.id, token)
                     
                     // Create peer connection and offer
@@ -159,16 +167,22 @@ class WebRTCManager @Inject constructor(
     /**
      * Accept an incoming call (receiver side)
      */
-    suspend fun acceptCall(callId: String, isVideo: Boolean, token: String) {
+    suspend fun acceptCall(callId: String, callerId: String, isVideo: Boolean, token: String) {
         try {
             currentCallId = callId
             isVideoCall = isVideo
             _callState.value = CallState.Connecting
             
+            // Get current user ID
+            val userId = authRepository.getCurrentUserId() ?: throw Exception("Not authenticated")
+            
             // Accept call via API
             callsRepository.acceptCall(callId)
             
-            // Connect to signaling
+            // CRITICAL: Set user ID, partner ID and token BEFORE connecting
+            signalingClient.setUserId(userId)
+            signalingClient.setPartnerId(callerId)
+            signalingClient.setToken(token)
             signalingClient.connect(callId, token)
             
             // Create peer connection
