@@ -15,6 +15,34 @@ const FRAUD_RULES = {
   RISK_SCORE_THRESHOLD: 30,
 };
 
+// deno-lint-ignore no-explicit-any
+async function updateSubmissionStatus(supabase: any, submissionId: string, status: string, reason?: string) {
+  await supabase
+    .from("micro_task_submissions")
+    .update({ 
+      status,
+      rejection_reason: reason || null,
+    })
+    .eq("id", submissionId);
+}
+
+// deno-lint-ignore no-explicit-any
+async function insertFraudFlag(
+  supabase: any, 
+  userId: string, 
+  submissionId: string, 
+  flagType: string, 
+  details: Record<string, unknown>
+) {
+  await supabase.from("micro_task_fraud_flags").insert({
+    user_id: userId,
+    submission_id: submissionId,
+    flag_type: flagType,
+    details,
+    risk_score_delta: 10,
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -54,7 +82,7 @@ serve(async (req) => {
 
     const task = submission.task;
     const userId = submission.user_id;
-    let fraudFlags: string[] = [];
+    const fraudFlags: string[] = [];
     let shouldReject = false;
     let rejectReason = "";
 
@@ -144,10 +172,8 @@ serve(async (req) => {
     if (shouldReject) {
       finalStatus = "auto_rejected";
     } else if (fraudFlags.length > 0) {
-      // Has flags but not critical - send to manual review
       finalStatus = "manual_review";
     } else {
-      // Verify answer for audio tasks
       if (task.task_type === "audio_listen") {
         const isCorrect = submission.selected_option_index === task.correct_option_index;
         if (!isCorrect) {
@@ -159,12 +185,10 @@ serve(async (req) => {
           rupeesAwarded = task.reward_rupees;
         }
       } else if (task.task_type === "rate_service" && submission.rating) {
-        // Rate tasks auto-approve if valid rating
         finalStatus = "auto_approved";
         coinsAwarded = task.reward_coins;
         rupeesAwarded = task.reward_rupees;
       } else if (task.task_type === "photo_verify") {
-        // Photo tasks go to manual review
         finalStatus = "manual_review";
       } else {
         finalStatus = "manual_review";
@@ -176,13 +200,11 @@ serve(async (req) => {
 
     // If approved, update assignment and award coins
     if (finalStatus === "auto_approved") {
-      // Update assignment to completed
       await supabase
         .from("micro_task_assignments")
         .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("id", submission.assignment_id);
 
-      // Create verification record
       await supabase.from("micro_task_verifications").insert({
         submission_id: submissionId,
         verification_type: "auto",
@@ -191,7 +213,6 @@ serve(async (req) => {
         rupees_awarded: rupeesAwarded,
       });
 
-      // Update user's score
       await supabase
         .from("micro_task_user_scores")
         .upsert({
@@ -202,29 +223,21 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
 
-      // Also credit to chatr_coin_balances for unified wallet
-      await supabase.rpc("add_coins_to_balance", {
-        p_user_id: userId,
-        p_amount: coinsAwarded,
-      }).catch(() => {
-        // RPC might not exist, insert directly
-        supabase.from("chatr_coin_transactions").insert({
-          user_id: userId,
-          amount: coinsAwarded,
-          transaction_type: "earn",
-          source: "micro_task",
-          description: `Earned from: ${task.title}`,
-          reference_id: submissionId,
-        });
+      // Credit to coin transactions
+      await supabase.from("chatr_coin_transactions").insert({
+        user_id: userId,
+        amount: coinsAwarded,
+        transaction_type: "earn",
+        source: "micro_task",
+        description: `Earned from: ${task.title}`,
+        reference_id: submissionId,
       });
     } else if (finalStatus === "auto_rejected") {
-      // Update assignment to rejected
       await supabase
         .from("micro_task_assignments")
         .update({ status: "rejected" })
         .eq("id", submission.assignment_id);
 
-      // Create verification record
       await supabase.from("micro_task_verifications").insert({
         submission_id: submissionId,
         verification_type: "auto",
@@ -244,37 +257,12 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Verification error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
-
-async function updateSubmissionStatus(supabase: any, submissionId: string, status: string, reason?: string) {
-  await supabase
-    .from("micro_task_submissions")
-    .update({ 
-      status,
-      rejection_reason: reason || null,
-    })
-    .eq("id", submissionId);
-}
-
-async function insertFraudFlag(
-  supabase: any, 
-  userId: string, 
-  submissionId: string, 
-  flagType: string, 
-  details: any
-) {
-  await supabase.from("micro_task_fraud_flags").insert({
-    user_id: userId,
-    submission_id: submissionId,
-    flag_type: flagType,
-    details,
-    risk_score_delta: 10,
-  });
-}

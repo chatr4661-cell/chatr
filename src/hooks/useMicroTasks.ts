@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export interface MicroTask {
@@ -105,12 +104,27 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 }
 
 export function useMicroTasks() {
-  const { user } = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<MicroTask[]>([]);
   const [myAssignments, setMyAssignments] = useState<TaskAssignment[]>([]);
   const [myScore, setMyScore] = useState<UserTaskScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get current user
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUserId(session?.user?.id || null);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Fetch available tasks
   const fetchTasks = useCallback(async () => {
@@ -119,54 +133,56 @@ export function useMicroTasks() {
         .from('micro_tasks')
         .select('*')
         .eq('is_active', true)
-        .or('expires_at.is.null,expires_at.gt.now()')
         .order('reward_rupees', { ascending: false });
 
       if (error) throw error;
       
       // Filter out tasks user has already done
-      const { data: assignments } = await supabase
-        .from('micro_task_assignments')
-        .select('task_id')
-        .eq('user_id', user?.id || '');
+      if (userId) {
+        const { data: assignments } = await supabase
+          .from('micro_task_assignments')
+          .select('task_id')
+          .eq('user_id', userId);
 
-      const completedTaskIds = new Set(assignments?.map(a => a.task_id) || []);
-      const availableTasks = (data || []).filter(t => !completedTaskIds.has(t.id));
-      
-      setTasks(availableTasks as MicroTask[]);
-    } catch (err: any) {
+        const completedTaskIds = new Set(assignments?.map(a => a.task_id) || []);
+        const availableTasks = (data || []).filter(t => !completedTaskIds.has(t.id));
+        setTasks(availableTasks as MicroTask[]);
+      } else {
+        setTasks((data || []) as MicroTask[]);
+      }
+    } catch (err: unknown) {
       console.error('Error fetching tasks:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
     }
-  }, [user?.id]);
+  }, [userId]);
 
   // Fetch user's assignments
   const fetchMyAssignments = useCallback(async () => {
-    if (!user?.id) return;
+    if (!userId) return;
     
     try {
       const { data, error } = await supabase
         .from('micro_task_assignments')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('assigned_at', { ascending: false });
 
       if (error) throw error;
       setMyAssignments(data as TaskAssignment[]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching assignments:', err);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   // Fetch user's score
   const fetchMyScore = useCallback(async () => {
-    if (!user?.id) return;
+    if (!userId) return;
     
     try {
       const { data, error } = await supabase
         .from('micro_task_user_scores')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (error) throw error;
@@ -188,14 +204,14 @@ export function useMicroTasks() {
           total_earned_rupees: 0,
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching score:', err);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   // Claim a task
   const claimTask = useCallback(async (taskId: string): Promise<TaskAssignment | null> => {
-    if (!user?.id) {
+    if (!userId) {
       toast.error('Please log in to claim tasks');
       return null;
     }
@@ -211,7 +227,7 @@ export function useMicroTasks() {
         .from('micro_task_assignments')
         .insert({
           task_id: taskId,
-          user_id: user.id,
+          user_id: userId,
           status: 'assigned',
         })
         .select()
@@ -229,12 +245,12 @@ export function useMicroTasks() {
       toast.success('Task claimed! Complete it within 30 minutes.');
       await fetchMyAssignments();
       return data as TaskAssignment;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error claiming task:', err);
       toast.error('Failed to claim task');
       return null;
     }
-  }, [user?.id, myScore?.is_soft_blocked, fetchMyAssignments]);
+  }, [userId, myScore?.is_soft_blocked, fetchMyAssignments]);
 
   // Submit task completion
   const submitTask = useCallback(async (
@@ -251,7 +267,7 @@ export function useMicroTasks() {
       longitude?: number;
     }
   ): Promise<TaskSubmission | null> => {
-    if (!user?.id) {
+    if (!userId) {
       toast.error('Please log in');
       return null;
     }
@@ -292,7 +308,7 @@ export function useMicroTasks() {
         .insert({
           assignment_id: assignmentId,
           task_id: taskId,
-          user_id: user.id,
+          user_id: userId,
           audio_listened_percent: submissionData.audio_listened_percent,
           selected_option_index: submissionData.selected_option_index,
           media_url: submissionData.media_url,
@@ -330,12 +346,12 @@ export function useMicroTasks() {
       await fetchMyScore();
       
       return submission as TaskSubmission;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error submitting task:', err);
       toast.error('Failed to submit task');
       return null;
     }
-  }, [user?.id, fetchMyAssignments, fetchMyScore]);
+  }, [userId, fetchMyAssignments, fetchMyScore]);
 
   // Initial load
   useEffect(() => {
@@ -349,12 +365,8 @@ export function useMicroTasks() {
       setLoading(false);
     };
 
-    if (user?.id) {
-      loadData();
-    } else {
-      setLoading(false);
-    }
-  }, [user?.id, fetchTasks, fetchMyAssignments, fetchMyScore]);
+    loadData();
+  }, [userId, fetchTasks, fetchMyAssignments, fetchMyScore]);
 
   return {
     tasks,
@@ -362,6 +374,7 @@ export function useMicroTasks() {
     myScore,
     loading,
     error,
+    userId,
     claimTask,
     submitTask,
     refresh: useCallback(() => {
