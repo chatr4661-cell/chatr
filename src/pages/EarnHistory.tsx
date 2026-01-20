@@ -6,7 +6,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, CheckCircle, XCircle, Clock, IndianRupee } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 
 interface SubmissionWithTask {
@@ -18,18 +17,26 @@ interface SubmissionWithTask {
     title: string;
     task_type: string;
     reward_rupees: number;
-  };
+  } | null;
 }
 
 export default function EarnHistory() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionWithTask[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+  }, []);
+
+  useEffect(() => {
     const fetchHistory = async () => {
-      if (!user?.id) return;
+      if (!userId) return;
 
       const { data, error } = await supabase
         .from('micro_task_submissions')
@@ -44,18 +51,18 @@ export default function EarnHistory() {
             reward_rupees
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (!error && data) {
-        setSubmissions(data as any);
+        setSubmissions(data as SubmissionWithTask[]);
       }
       setLoading(false);
     };
 
     fetchHistory();
-  }, [user?.id]);
+  }, [userId]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
