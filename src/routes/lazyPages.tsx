@@ -47,6 +47,11 @@ export const Stories = lazy(() => import('@/pages/Stories'));
 export const GeoDiscovery = lazy(() => import('@/pages/GeoDiscovery'));
 export const CallHistory = lazy(() => import('@/pages/CallHistory'));
 
+// Earning / Micro-Tasks
+export const Earn = lazy(() => import('@/pages/Earn'));
+export const EarnHistory = lazy(() => import('@/pages/EarnHistory'));
+export const AdminMicroTasks = lazy(() => import('@/pages/admin/MicroTasks'));
+
 // Communities
 export const Communities = lazy(() => import('@/pages/Communities'));
 export const CreateCommunity = lazy(() => import('@/pages/CreateCommunity'));

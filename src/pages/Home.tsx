@@ -21,10 +21,10 @@ import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 const quickActions = [
   { icon: MessageCircle, label: 'Chat', color: 'from-green-500 to-emerald-600', route: '/chat' },
   { icon: Phone, label: 'Call', color: 'from-blue-500 to-indigo-600', route: '/calls' },
+  { icon: Wallet, label: 'Earn', color: 'from-amber-500 to-yellow-600', route: '/earn' },
   { icon: Stethoscope, label: 'Doctor', color: 'from-red-500 to-rose-600', route: '/local-healthcare' },
   { icon: Utensils, label: 'Food', color: 'from-orange-500 to-amber-600', route: '/food-ordering' },
   { icon: Briefcase, label: 'Jobs', color: 'from-emerald-500 to-teal-600', route: '/jobs' },
-  { icon: Percent, label: 'Deals', color: 'from-purple-500 to-pink-600', route: '/local-deals' },
 ];
 
 // Main Services Grid

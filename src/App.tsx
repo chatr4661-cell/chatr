@@ -261,6 +261,10 @@ const App = () => {
             <Route path="/order-history" element={<LazyRoute component={LazyPages.OrderHistory} />} />
             <Route path="/local-deals" element={<LazyRoute component={LazyPages.LocalDeals} />} />
             
+            {/* Earning / Micro-Tasks Routes */}
+            <Route path="/earn" element={<ProtectedLazyRoute component={LazyPages.Earn} />} />
+            <Route path="/earn/history" element={<ProtectedLazyRoute component={LazyPages.EarnHistory} />} />
+            
             {/* Points & Payment Routes */}
             <Route path="/chatr-points" element={<LazyRoute component={LazyPages.ChatrPoints} />} />
             <Route path="/reward-shop" element={<LazyRoute component={LazyPages.RewardShop} />} />
@@ -334,6 +338,7 @@ const App = () => {
               <Route path="kyc-approvals" element={<LazyRoute component={LazyPages.KYCApprovals} />} />
               <Route path="chatr-world" element={<LazyRoute component={LazyPages.ChatrWorldAdmin} />} />
               <Route path="payment-verification" element={<LazyRoute component={LazyPages.PaymentVerification} />} />
+              <Route path="micro-tasks" element={<LazyRoute component={LazyPages.AdminMicroTasks} />} />
             </Route>
             
             <Route path="/chatr-tutors" element={<LazyRoute component={LazyPages.ChatrTutors} />} />
