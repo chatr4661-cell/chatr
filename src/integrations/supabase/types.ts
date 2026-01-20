@@ -10390,6 +10390,339 @@ export type Database = {
           },
         ]
       }
+      micro_task_admins: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      micro_task_assignments: {
+        Row: {
+          assigned_at: string | null
+          completed_at: string | null
+          expires_at: string | null
+          id: string
+          status: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          completed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          status?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          completed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          status?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "micro_task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "micro_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      micro_task_fraud_flags: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          flag_type: string
+          id: string
+          risk_score_delta: number | null
+          submission_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          flag_type: string
+          id?: string
+          risk_score_delta?: number | null
+          submission_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          flag_type?: string
+          id?: string
+          risk_score_delta?: number | null
+          submission_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "micro_task_fraud_flags_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "micro_task_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      micro_task_submissions: {
+        Row: {
+          assignment_id: string
+          audio_listened_percent: number | null
+          created_at: string | null
+          device_hash: string | null
+          gps_distance_km: number | null
+          id: string
+          media_hash: string | null
+          media_url: string | null
+          rating: number | null
+          rejection_reason: string | null
+          selected_option_index: number | null
+          status: string
+          submitted_lat: number | null
+          submitted_lng: number | null
+          task_id: string
+          user_id: string
+          voice_note_url: string | null
+        }
+        Insert: {
+          assignment_id: string
+          audio_listened_percent?: number | null
+          created_at?: string | null
+          device_hash?: string | null
+          gps_distance_km?: number | null
+          id?: string
+          media_hash?: string | null
+          media_url?: string | null
+          rating?: number | null
+          rejection_reason?: string | null
+          selected_option_index?: number | null
+          status?: string
+          submitted_lat?: number | null
+          submitted_lng?: number | null
+          task_id: string
+          user_id: string
+          voice_note_url?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          audio_listened_percent?: number | null
+          created_at?: string | null
+          device_hash?: string | null
+          gps_distance_km?: number | null
+          id?: string
+          media_hash?: string | null
+          media_url?: string | null
+          rating?: number | null
+          rejection_reason?: string | null
+          selected_option_index?: number | null
+          status?: string
+          submitted_lat?: number | null
+          submitted_lng?: number | null
+          task_id?: string
+          user_id?: string
+          voice_note_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "micro_task_submissions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "micro_task_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "micro_task_submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "micro_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      micro_task_user_scores: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_soft_blocked: boolean | null
+          last_flag_at: string | null
+          risk_score: number | null
+          tasks_completed: number | null
+          total_earned_coins: number | null
+          total_earned_rupees: number | null
+          total_flags: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_soft_blocked?: boolean | null
+          last_flag_at?: string | null
+          risk_score?: number | null
+          tasks_completed?: number | null
+          total_earned_coins?: number | null
+          total_earned_rupees?: number | null
+          total_flags?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_soft_blocked?: boolean | null
+          last_flag_at?: string | null
+          risk_score?: number | null
+          tasks_completed?: number | null
+          total_earned_coins?: number | null
+          total_earned_rupees?: number | null
+          total_flags?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      micro_task_verifications: {
+        Row: {
+          coins_awarded: number | null
+          created_at: string | null
+          id: string
+          reason: string | null
+          result: string
+          rupees_awarded: number | null
+          submission_id: string
+          verification_type: string
+          verified_by: string | null
+        }
+        Insert: {
+          coins_awarded?: number | null
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          result: string
+          rupees_awarded?: number | null
+          submission_id: string
+          verification_type: string
+          verified_by?: string | null
+        }
+        Update: {
+          coins_awarded?: number | null
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          result?: string
+          rupees_awarded?: number | null
+          submission_id?: string
+          verification_type?: string
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "micro_task_verifications_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "micro_task_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      micro_tasks: {
+        Row: {
+          audio_duration_seconds: number | null
+          audio_url: string | null
+          correct_option_index: number | null
+          created_at: string | null
+          created_by: string | null
+          current_completions: number | null
+          description: string | null
+          expires_at: string | null
+          geo_lat: number | null
+          geo_lng: number | null
+          geo_radius_km: number | null
+          geo_required: boolean | null
+          id: string
+          is_active: boolean | null
+          max_completions: number | null
+          max_per_user: number | null
+          reward_coins: number
+          reward_rupees: number
+          task_type: string
+          title: string
+          updated_at: string | null
+          verification_options: Json | null
+          verification_question: string | null
+        }
+        Insert: {
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
+          correct_option_index?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_completions?: number | null
+          description?: string | null
+          expires_at?: string | null
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_radius_km?: number | null
+          geo_required?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_completions?: number | null
+          max_per_user?: number | null
+          reward_coins?: number
+          reward_rupees?: number
+          task_type: string
+          title: string
+          updated_at?: string | null
+          verification_options?: Json | null
+          verification_question?: string | null
+        }
+        Update: {
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
+          correct_option_index?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_completions?: number | null
+          description?: string | null
+          expires_at?: string | null
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_radius_km?: number | null
+          geo_required?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_completions?: number | null
+          max_per_user?: number | null
+          reward_coins?: number
+          reward_rupees?: number
+          task_type?: string
+          title?: string
+          updated_at?: string | null
+          verification_options?: Json | null
+          verification_question?: string | null
+        }
+        Relationships: []
+      }
       mini_apps: {
         Row: {
           app_name: string
@@ -16671,6 +17004,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      haversine_distance_km: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       increment_cache_hit: { Args: { cache_id: string }; Returns: undefined }
       increment_community_members: {
         Args: { community_id: string }
@@ -16685,6 +17022,7 @@ export type Database = {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
       }
+      is_micro_task_admin: { Args: { check_user_id: string }; Returns: boolean }
       process_chatr_plus_payment: {
         Args: {
           p_amount: number
