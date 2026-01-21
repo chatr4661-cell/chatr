@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Coins, Gift, History, ShoppingCart, TrendingUp, Trophy, Zap, Users, Share2, Target, Star, Flame, Medal, Award, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react";
+import { 
+  ArrowLeft, Coins, Gift, History, ShoppingCart, TrendingUp, Trophy, 
+  Users, Share2, Flame, Medal, CheckCircle, 
+  Loader2, Copy, Sparkles, Crown, Wallet
+} from "lucide-react";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { SocialShareDialog } from "@/components/SocialShareDialog";
 import { UPIPaymentModal } from "@/components/payment/UPIPaymentModal";
-import { SEOHead } from '@/components/SEOHead';
-import { Breadcrumbs, CrossModuleNav } from '@/components/navigation';
-import { ShareDeepLink } from '@/components/sharing';
+import { motion } from "framer-motion";
 
 interface UserPoints {
   balance: number;
@@ -31,29 +32,13 @@ interface PointTransaction {
   created_at: string;
 }
 
-interface PointReward {
-  id: string;
-  name: string;
-  description: string;
-  points_required: number;
-  reward_type: string;
-  icon: string;
-  discount_percentage?: number;
-}
-
-interface PointPackage {
-  id: string;
-  name: string;
-  points: number;
-  price_usd: number;
-  bonus_points: number;
-  badge_text?: string;
-  popular: boolean;
-}
-
 interface UserRedemption {
   id: string;
-  reward: PointReward;
+  reward: {
+    name: string;
+    description: string;
+    icon: string;
+  };
   points_spent: number;
   status: string;
   redeemed_at: string;
@@ -70,112 +55,106 @@ interface CoinPackage {
   badge?: string;
 }
 
+const COIN_REWARDS = [
+  { icon: '🚫', name: 'Ad-Free for 7 Days', description: 'Enjoy Chatr without ads for a week', coins: 500, value: '₹50' },
+  { icon: '💊', name: 'Free Medicine Delivery', description: 'Get free delivery on your next medicine order', coins: 1000, discount: '100% OFF', value: '₹100' },
+  { icon: '🏥', name: '10% Off Next Consultation', description: 'Save 10% on your next doctor consultation', coins: 2000, discount: '10% OFF', value: '₹200' },
+  { icon: '🛒', name: '₹500 Marketplace Credit', description: 'Get ₹500 discount on marketplace purchases', coins: 3000, discount: '₹500 OFF', value: '₹300' },
+  { icon: '🔬', name: '25% Off Lab Tests', description: 'Save 25% on your next lab test booking', coins: 5000, discount: '25% OFF', value: '₹500' },
+  { icon: '⭐', name: 'Premium Features (30 Days)', description: 'Unlock all premium features for a month', coins: 7500, value: '₹750' },
+  { icon: '🏠', name: 'Free Home Care Visit', description: 'One free home healthcare service visit', coins: 10000, discount: '100% OFF', value: '₹1,000' }
+];
+
+const COIN_PACKAGES: CoinPackage[] = [
+  { name: 'Starter Pack', coins: 2500, bonus: 0, price: 199, popular: false },
+  { name: 'Value Pack', coins: 6000, bonus: 500, price: 499, popular: true, badge: 'MOST POPULAR' },
+  { name: 'Premium Pack', coins: 15000, bonus: 2000, price: 999, popular: false, badge: 'BEST VALUE' },
+  { name: 'Ultimate Pack', coins: 40000, bonus: 8000, price: 2499, popular: false, badge: 'ULTIMATE' }
+];
+
+const EARN_ACTIONS = [
+  { icon: '👥', title: 'Refer a Friend', coins: 500, rupees: 50, desc: 'Each new user via your code' },
+  { icon: '🎯', title: 'Complete Your Profile', coins: 100, rupees: 10, desc: 'Fill in all profile details' },
+  { icon: '📱', title: 'Install 3 Mini-Apps', coins: 200, rupees: 20, desc: 'Try out our mini-apps' },
+  { icon: '✍️', title: 'Create Content/Post', coins: 100, rupees: 10, desc: 'Share in communities' },
+  { icon: '🔥', title: '7-Day Login Streak', coins: 200, rupees: 20, desc: 'Login daily for a week' },
+  { icon: '🏢', title: 'Refer a Business', coins: 1000, rupees: 100, desc: 'Bring businesses to Chatr' },
+  { icon: '💬', title: 'Daily Login', coins: 50, rupees: 5, desc: 'Login every day' },
+  { icon: '📊', title: 'Upload Lab Reports', coins: 250, rupees: 25, desc: 'Add health documents' },
+  { icon: '💊', title: 'Medicine Adherence', coins: 50, rupees: 5, desc: 'Take medicines on time' }
+];
+
 export default function ChatrPoints() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  
   const [loading, setLoading] = useState(true);
   const [userPoints, setUserPoints] = useState<UserPoints | null>(null);
   const [transactions, setTransactions] = useState<PointTransaction[]>([]);
-  const [rewards, setRewards] = useState<PointReward[]>([]);
-  const [packages, setPackages] = useState<PointPackage[]>([]);
   const [redemptions, setRedemptions] = useState<UserRedemption[]>([]);
   
-  // Growth system states
-  const [referralCode, setReferralCode] = useState('');
+  // Unified coin economy states
   const [coinBalance, setCoinBalance] = useState(0);
   const [lifetimeEarned, setLifetimeEarned] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+  
+  // Referral states
+  const [referralCode, setReferralCode] = useState('');
   const [referralStats, setReferralStats] = useState({ total: 0, active: 0 });
   const [referrals, setReferrals] = useState<any[]>([]);
-  const [networkStats, setNetworkStats] = useState({
-    level1: 0,
-    level2: 0,
-    level3: 0,
-    level4: 0,
-    totalCoins: 0
-  });
+  const [networkStats, setNetworkStats] = useState({ level1: 0, level2: 0, level3: 0, level4: 0, totalCoins: 0 });
+  
+  // Leaderboard
   const [leaderboards, setLeaderboards] = useState<any[]>([]);
   const [leaderboardTab, setLeaderboardTab] = useState('referrals');
-  const [showShareDialog, setShowShareDialog] = useState(false);
   
-  // Payment states
+  // UI states
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<CoinPackage | null>(null);
   const [redeeming, setRedeeming] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
 
   useEffect(() => {
-    loadPointsData();
-    loadGrowthData();
-    processDailyLogin();
+    checkAuthAndLoad();
   }, []);
 
   useEffect(() => {
-    loadLeaderboards();
+    if (leaderboardTab) loadLeaderboards();
   }, [leaderboardTab]);
+
+  const checkAuthAndLoad = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    
+    await Promise.all([
+      loadPointsData(),
+      loadGrowthData(),
+      processDailyLogin()
+    ]);
+  };
 
   const loadPointsData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
+      if (!user) return;
 
-      // Load user points
-      const { data: pointsData } = await supabase
-        .from("user_points")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
+      const [pointsResult, transResult, redemptionsResult] = await Promise.all([
+        supabase.from("user_points").select("*").eq("user_id", user.id).single(),
+        supabase.from("point_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+        supabase.from("user_reward_redemptions").select(`*, reward:reward_id (*)`).eq("user_id", user.id).order("redeemed_at", { ascending: false })
+      ]);
 
-      setUserPoints(pointsData);
-
-      // Load transactions
-      const { data: transData } = await supabase
-        .from("point_transactions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      setTransactions(transData || []);
-
-      // Load rewards
-      const { data: rewardsData } = await supabase
-        .from("point_rewards")
-        .select("*")
-        .eq("is_active", true)
-        .order("points_required");
-
-      setRewards(rewardsData || []);
-
-      // Load packages
-      const { data: packagesData } = await supabase
-        .from("point_packages")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-
-      setPackages(packagesData || []);
-
-      // Load user redemptions
-      const { data: redemptionsData } = await supabase
-        .from("user_reward_redemptions")
-        .select(`
-          *,
-          reward:reward_id (*)
-        `)
-        .eq("user_id", user.id)
-        .order("redeemed_at", { ascending: false });
-
-      setRedemptions(redemptionsData as any || []);
-
+      setUserPoints(pointsResult.data);
+      setTransactions(transResult.data || []);
+      setRedemptions(redemptionsResult.data as any || []);
     } catch (error: any) {
-      toast({
-        title: "Error loading points data",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Error loading points data:', error);
     } finally {
       setLoading(false);
     }
@@ -186,13 +165,14 @@ export default function ChatrPoints() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Generate or get referral code
+      // Generate or get referral code - FIX: use correct property name
       const { data: codeData } = await supabase.functions.invoke('generate-referral-code');
       if (codeData) {
-        setReferralCode(codeData.code);
+        // The edge function returns 'referralCode' not 'code'
+        setReferralCode(codeData.referralCode || codeData.code || '');
       }
 
-      // Get coin balance
+      // Get coin balance from chatr_coin_balances
       const { data: balance } = await supabase
         .from('chatr_coin_balances')
         .select('*')
@@ -200,35 +180,27 @@ export default function ChatrPoints() {
         .single();
 
       if (balance) {
-        setCoinBalance(balance.total_coins);
-        setLifetimeEarned(balance.lifetime_earned);
+        setCoinBalance(balance.total_coins || 0);
+        setLifetimeEarned(balance.lifetime_earned || 0);
         setCurrentStreak(balance.current_streak || 0);
+        setLongestStreak(balance.longest_streak || 0);
       }
 
       // Get referral stats
-      const { count: totalReferrals } = await supabase
-        .from('chatr_referrals')
-        .select('*', { count: 'exact', head: true })
-        .eq('referrer_id', user.id);
-
-      const { count: activeReferrals } = await supabase
-        .from('chatr_referrals')
-        .select('*', { count: 'exact', head: true })
-        .eq('referrer_id', user.id)
-        .eq('status', 'active');
+      const [totalResult, activeResult] = await Promise.all([
+        supabase.from('chatr_referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', user.id),
+        supabase.from('chatr_referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', user.id).eq('status', 'active')
+      ]);
 
       setReferralStats({
-        total: totalReferrals || 0,
-        active: activeReferrals || 0
+        total: totalResult.count || 0,
+        active: activeResult.count || 0
       });
 
-      // Load referrals
+      // Load referrals list
       const { data: refData } = await supabase
         .from('chatr_referrals')
-        .select(`
-          *,
-          profiles:referred_user_id (username, avatar_url)
-        `)
+        .select(`*, profiles:referred_user_id (username, avatar_url)`)
         .eq('referrer_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -240,21 +212,13 @@ export default function ChatrPoints() {
         .select('level')
         .eq('root_user_id', user.id);
 
-      const stats = {
-        level1: 0,
-        level2: 0,
-        level3: 0,
-        level4: 0,
-        totalCoins: 0
-      };
-
+      const stats = { level1: 0, level2: 0, level3: 0, level4: 0, totalCoins: 0 };
       network?.forEach((entry) => {
         if (entry.level === 1) stats.level1++;
-        if (entry.level === 2) stats.level2++;
-        if (entry.level === 3) stats.level3++;
-        if (entry.level === 4) stats.level4++;
+        else if (entry.level === 2) stats.level2++;
+        else if (entry.level === 3) stats.level3++;
+        else if (entry.level === 4) stats.level4++;
       });
-
       stats.totalCoins = stats.level1 * 500 + stats.level2 * 150 + stats.level3 * 75 + stats.level4 * 25;
       setNetworkStats(stats);
 
@@ -271,10 +235,11 @@ export default function ChatrPoints() {
           title: `🎉 Daily Login Reward!`,
           description: `You earned ${data.coinsAwarded} coins! Current streak: ${data.currentStreak} days`,
         });
+        // Refresh data after a short delay
         setTimeout(() => {
           loadPointsData();
           loadGrowthData();
-        }, 1000);
+        }, 500);
       }
     } catch (error) {
       console.error('Error processing daily login:', error);
@@ -284,10 +249,7 @@ export default function ChatrPoints() {
   const loadLeaderboards = async () => {
     const { data } = await supabase
       .from('chatr_leaderboards')
-      .select(`
-        *,
-        profiles:user_id (username, avatar_url)
-      `)
+      .select(`*, profiles:user_id (username, avatar_url)`)
       .eq('leaderboard_type', leaderboardTab)
       .eq('period', 'monthly')
       .order('rank')
@@ -299,128 +261,9 @@ export default function ChatrPoints() {
   const copyReferralLink = () => {
     const shareUrl = `https://chatr.chat/auth?ref=${referralCode}`;
     navigator.clipboard.writeText(shareUrl);
-    toast({
-      title: 'Copied!',
-      description: 'Referral link copied to clipboard',
-    });
+    toast({ title: 'Copied! 📋', description: 'Referral link copied to clipboard' });
   };
 
-  const shareReferral = () => {
-    setShowShareDialog(true);
-  };
-
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="h-6 w-6 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-6 w-6 text-gray-400" />;
-    if (rank === 3) return <Medal className="h-6 w-6 text-orange-600" />;
-    return null;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'expired':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return null;
-    }
-  };
-
-  const handleRedeemReward = async (reward: PointReward) => {
-    if (!userPoints || userPoints.balance < reward.points_required) {
-      toast({
-        title: "Insufficient Points",
-        description: `You need ${reward.points_required} points to redeem this reward.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Create redemption code
-      const redemptionCode = `CHATR-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30);
-
-      // Start transaction
-      const newBalance = userPoints.balance - reward.points_required;
-
-      // Update user points
-      await supabase
-        .from("user_points")
-        .update({
-          balance: newBalance,
-          lifetime_spent: userPoints.lifetime_spent + reward.points_required,
-        })
-        .eq("user_id", user.id);
-
-      // Create transaction record
-      const { data: transaction } = await supabase
-        .from("point_transactions")
-        .insert({
-          user_id: user.id,
-          amount: -reward.points_required,
-          transaction_type: "spend",
-          source: "redemption",
-          description: `Redeemed: ${reward.name}`,
-          reference_id: reward.id,
-          reference_type: "reward",
-        })
-        .select()
-        .single();
-
-      // Create redemption record
-      await supabase
-        .from("user_reward_redemptions")
-        .insert({
-          user_id: user.id,
-          reward_id: reward.id,
-          points_spent: reward.points_required,
-          expires_at: expiresAt.toISOString(),
-          redemption_code: redemptionCode,
-          transaction_id: transaction?.id,
-        });
-
-      toast({
-        title: "Reward Redeemed! 🎉",
-        description: `Your redemption code: ${redemptionCode}`,
-      });
-
-      loadPointsData();
-    } catch (error: any) {
-      toast({
-        title: "Redemption failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getTransactionIcon = (type: string, source: string) => {
-    if (type === "earn") return "🎁";
-    if (type === "spend") return "💸";
-    if (type === "purchase") return "💳";
-    if (type === "expire") return "⏰";
-    return "📊";
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: any = {
-      active: "default",
-      used: "secondary",
-      expired: "destructive",
-      refunded: "outline",
-    };
-    return variants[status] || "default";
-  };
-
-  // Handle coin reward redemption
   const handleRedeemCoinReward = async (rewardName: string, coinsRequired: number) => {
     try {
       setRedeeming(rewardName);
@@ -439,35 +282,26 @@ export default function ChatrPoints() {
         return;
       }
 
-      // Create redemption code
-      const redemptionCode = `CHATR-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const redemptionCode = `CHATR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
 
-      // Deduct coins from balance
-      const { error: balanceError } = await supabase
+      // Deduct coins
+      await supabase
         .from('chatr_coin_balances')
-        .update({
-          total_coins: coinBalance - coinsRequired,
-          updated_at: new Date().toISOString()
-        })
+        .update({ total_coins: coinBalance - coinsRequired, updated_at: new Date().toISOString() })
         .eq('user_id', user.id);
 
-      if (balanceError) throw balanceError;
-
       // Record transaction
-      await supabase
-        .from('chatr_coin_transactions')
-        .insert({
-          user_id: user.id,
-          transaction_type: 'spend',
-          amount: -coinsRequired,
-          source: 'reward_redemption',
-          description: `Redeemed: ${rewardName}`,
-          reference_id: redemptionCode
-        });
+      await supabase.from('chatr_coin_transactions').insert({
+        user_id: user.id,
+        transaction_type: 'spend',
+        amount: -coinsRequired,
+        source: 'reward_redemption',
+        description: `Redeemed: ${rewardName}`,
+        reference_id: redemptionCode
+      });
 
-      // Update local state
       setCoinBalance(prev => prev - coinsRequired);
       
       toast({
@@ -478,51 +312,37 @@ export default function ChatrPoints() {
       loadPointsData();
       loadGrowthData();
     } catch (error: any) {
-      toast({
-        title: "Redemption failed",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: "Redemption failed", description: error.message, variant: "destructive" });
     } finally {
       setRedeeming(null);
     }
   };
 
-  // Handle buying coins
   const handleBuyCoins = (pkg: CoinPackage) => {
     setSelectedPackage(pkg);
     setShowPaymentModal(true);
   };
 
-  // Handle payment submission
   const handlePaymentSubmitted = async (paymentId: string) => {
     if (!selectedPackage) return;
-
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Create pending coin purchase record
-      await supabase
-        .from('chatr_coin_transactions')
-        .insert({
-          user_id: user.id,
-          transaction_type: 'purchase_pending',
-          amount: selectedPackage.coins + selectedPackage.bonus,
-          source: 'coin_purchase',
-          description: `${selectedPackage.name} - ₹${selectedPackage.price} (Pending verification)`,
-          reference_id: paymentId,
-          metadata: {
-            package_name: selectedPackage.name,
-            price: selectedPackage.price,
-            coins: selectedPackage.coins,
-            bonus: selectedPackage.bonus
-          }
-        });
+      await supabase.from('chatr_coin_transactions').insert({
+        user_id: user.id,
+        transaction_type: 'purchase_pending',
+        amount: selectedPackage.coins + selectedPackage.bonus,
+        source: 'coin_purchase',
+        description: `${selectedPackage.name} - ₹${selectedPackage.price} (Pending verification)`,
+        reference_id: paymentId,
+        metadata: { package_name: selectedPackage.name, price: selectedPackage.price, coins: selectedPackage.coins, bonus: selectedPackage.bonus }
+      });
 
       toast({
         title: "Payment Submitted! 🎉",
-        description: `Your ${selectedPackage.name} purchase is pending verification. Coins will be credited once verified.`,
+        description: `Your ${selectedPackage.name} purchase is pending verification.`,
       });
 
       setShowPaymentModal(false);
@@ -532,506 +352,416 @@ export default function ChatrPoints() {
     }
   };
 
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <Crown className="h-6 w-6 text-yellow-500" />;
+    if (rank === 2) return <Medal className="h-6 w-6 text-gray-400" />;
+    if (rank === 3) return <Medal className="h-6 w-6 text-orange-600" />;
+    return null;
+  };
+
+  const getTransactionIcon = (type: string) => {
+    if (type === "earn") return "💰";
+    if (type === "spend") return "💸";
+    if (type === "purchase") return "💳";
+    if (type === "bonus") return "🎁";
+    return "📊";
+  };
+
+  // Unified balance = coin balance (primary currency)
+  const displayBalance = coinBalance || userPoints?.balance || 0;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Coins className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading your points...</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="relative">
+            <Coins className="w-16 h-16 mx-auto mb-4 text-primary" />
+            <motion.div
+              className="absolute inset-0 rounded-full border-4 border-primary/30"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+          </div>
+          <p className="text-muted-foreground">Loading your wallet...</p>
+        </motion.div>
       </div>
     );
   }
 
-  const nextReward = rewards.find(r => r.points_required > (userPoints?.balance || 0));
-  const progressToNext = nextReward
-    ? ((userPoints?.balance || 0) / nextReward.points_required) * 100
-    : 100;
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground p-6 pb-20">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-4 text-primary-foreground hover:bg-primary-foreground/10"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Premium Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
+        
+        <div className="relative p-6 pb-24">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="mb-4 text-primary-foreground hover:bg-white/10"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Coins className="w-8 h-8" />
-              Chatr Points
-            </h1>
-            <p className="text-primary-foreground/80 mt-1">
-              Chat • Pay • Earn • Redeem
-            </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-primary-foreground flex items-center gap-2">
+                <Wallet className="w-7 h-7" />
+                Chatr Wallet
+              </h1>
+              <p className="text-primary-foreground/70 text-sm mt-1">
+                Earn • Spend • Grow
+              </p>
+            </div>
+            
+            {/* Streak Badge */}
+            {currentStreak > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full"
+              >
+                <Flame className="h-4 w-4 text-orange-300" />
+                <span className="text-sm font-semibold text-primary-foreground">{currentStreak} days</span>
+              </motion.div>
+            )}
           </div>
-          <div className="text-right">
-            <div className="text-4xl font-bold">{userPoints?.balance || 0}</div>
-            <div className="text-sm text-primary-foreground/80">Available Points</div>
-          </div>
-        </div>
 
-        {/* Quick Action: Reward Shop */}
-        <Button
-          onClick={() => navigate('/reward-shop')}
-          className="w-full mt-6 bg-primary-foreground text-primary hover:bg-primary-foreground/90 h-14 text-lg font-semibold"
-          size="lg"
-        >
-          <Gift className="mr-2 h-5 w-5" />
-          Browse Reward Shop
-        </Button>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <Card className="bg-primary-foreground/10 border-primary-foreground/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary-foreground" />
-                <div>
-                  <div className="text-2xl font-bold text-primary-foreground">
-                    {userPoints?.lifetime_earned || 0}
-                  </div>
-                  <div className="text-xs text-primary-foreground/80">Lifetime Earned</div>
-                </div>
+          {/* Balance Card */}
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="mt-6"
+          >
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20">
+              <div className="flex items-center gap-2 text-primary-foreground/70 text-sm mb-2">
+                <Coins className="h-4 w-4" />
+                Available Balance
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-primary-foreground/10 border-primary-foreground/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-primary-foreground" />
-                <div>
-                  <div className="text-2xl font-bold text-primary-foreground">
-                    {userPoints?.lifetime_spent || 0}
-                  </div>
-                  <div className="text-xs text-primary-foreground/80">Lifetime Spent</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Progress to next reward */}
-        {nextReward && (
-          <Card className="mt-4 bg-primary-foreground/10 border-primary-foreground/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-primary-foreground">Next Reward: {nextReward.name}</span>
-                <span className="text-xs text-primary-foreground/80">
-                  {userPoints?.balance}/{nextReward.points_required}
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl font-bold text-primary-foreground">
+                  {displayBalance.toLocaleString()}
                 </span>
+                <span className="text-primary-foreground/60 text-sm">coins</span>
               </div>
-              <Progress value={progressToNext} className="h-2" />
-            </CardContent>
-          </Card>
-        )}
+              <div className="text-primary-foreground/60 text-sm mt-1">
+                ≈ ₹{(displayBalance / 10).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="bg-white/10 rounded-xl p-3">
+                  <div className="flex items-center gap-2 text-green-300">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-xs">Earned</span>
+                  </div>
+                  <div className="text-lg font-bold text-primary-foreground mt-1">
+                    {lifetimeEarned.toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-white/10 rounded-xl p-3">
+                  <div className="flex items-center gap-2 text-orange-300">
+                    <Flame className="h-4 w-4" />
+                    <span className="text-xs">Best Streak</span>
+                  </div>
+                  <div className="text-lg font-bold text-primary-foreground mt-1">
+                    {longestStreak} days
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Quick Actions */}
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-4 gap-2 mt-4"
+          >
+            {[
+              { icon: Gift, label: 'Redeem', action: () => setActiveTab('rewards') },
+              { icon: ShoppingCart, label: 'Buy', action: () => setActiveTab('buy') },
+              { icon: Share2, label: 'Refer', action: () => setActiveTab('referral') },
+              { icon: Trophy, label: 'Rank', action: () => setActiveTab('leaderboard') },
+            ].map((item, i) => (
+              <Button
+                key={i}
+                variant="ghost"
+                onClick={item.action}
+                className="flex-col h-auto py-3 bg-white/10 hover:bg-white/20 text-primary-foreground rounded-xl"
+              >
+                <item.icon className="h-5 w-5 mb-1" />
+                <span className="text-xs">{item.label}</span>
+              </Button>
+            ))}
+          </motion.div>
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="p-6 -mt-12">
-        <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 gap-1">
-            <TabsTrigger value="rewards">
-              <Gift className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Rewards</span>
-            </TabsTrigger>
-            <TabsTrigger value="buy">
-              <ShoppingCart className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Buy</span>
-            </TabsTrigger>
-            <TabsTrigger value="history">
-              <History className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">History</span>
-            </TabsTrigger>
-            <TabsTrigger value="active">
-              <Zap className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Active</span>
-            </TabsTrigger>
-            <TabsTrigger value="growth">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Growth</span>
-            </TabsTrigger>
-            <TabsTrigger value="leaderboard">
-              <Trophy className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Leaders</span>
-            </TabsTrigger>
-            <TabsTrigger value="network">
-              <Users className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Network</span>
-            </TabsTrigger>
+      <div className="px-4 -mt-12 pb-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 bg-card shadow-lg rounded-xl p-1">
+            <TabsTrigger value="overview" className="text-xs rounded-lg">Overview</TabsTrigger>
+            <TabsTrigger value="rewards" className="text-xs rounded-lg">Rewards</TabsTrigger>
+            <TabsTrigger value="buy" className="text-xs rounded-lg">Buy</TabsTrigger>
+            <TabsTrigger value="referral" className="text-xs rounded-lg">Refer</TabsTrigger>
+            <TabsTrigger value="history" className="text-xs rounded-lg">History</TabsTrigger>
           </TabsList>
 
-          {/* Rewards Tab */}
-          <TabsContent value="rewards" className="space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Redeem Chatr Coins</CardTitle>
-                <CardDescription>
-                  Use your coins to get amazing rewards and discounts (1 coin = ₹0.10)
-                </CardDescription>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="mt-4 space-y-4">
+            {/* Earn More Section */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Ways to Earn
+                </CardTitle>
+                <CardDescription>Complete actions to earn coins</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Hardcoded rewards matching the coin economy */}
-                {[
-                  {
-                    icon: '🚫',
-                    name: 'Ad-Free for 7 Days',
-                    description: 'Enjoy Chatr without ads for a week',
-                    coins: 500,
-                    value: '₹50'
-                  },
-                  {
-                    icon: '💊',
-                    name: 'Free Medicine Delivery',
-                    description: 'Get free delivery on your next medicine order',
-                    coins: 1000,
-                    discount: '100% OFF',
-                    value: '₹100'
-                  },
-                  {
-                    icon: '🏥',
-                    name: '10% Off Next Consultation',
-                    description: 'Save 10% on your next doctor consultation',
-                    coins: 2000,
-                    discount: '10% OFF',
-                    value: '₹200'
-                  },
-                  {
-                    icon: '🛒',
-                    name: '₹500 Marketplace Credit',
-                    description: 'Get ₹500 discount on marketplace purchases',
-                    coins: 3000,
-                    discount: '₹500 OFF',
-                    value: '₹300'
-                  },
-                  {
-                    icon: '🔬',
-                    name: '25% Off Lab Tests',
-                    description: 'Save 25% on your next lab test booking',
-                    coins: 5000,
-                    discount: '25% OFF',
-                    value: '₹500'
-                  },
-                  {
-                    icon: '⭐',
-                    name: 'Premium Features (30 Days)',
-                    description: 'Unlock all premium features for a month',
-                    coins: 7500,
-                    value: '₹750'
-                  },
-                  {
-                    icon: '🏠',
-                    name: 'Free Home Care Visit',
-                    description: 'One free home healthcare service visit',
-                    coins: 10000,
-                    discount: '100% OFF',
-                    value: '₹1,000'
-                  }
-                ].map((reward, index) => (
-                  <Card key={index} className="overflow-hidden hover:shadow-lg transition-all">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-3xl">{reward.icon}</span>
-                            <div>
-                              <h3 className="font-semibold text-lg">{reward.name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {reward.description}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 mt-3">
-                            <Badge variant="secondary" className="bg-gradient-to-r from-primary/20 to-primary/10">
-                              <Coins className="w-4 h-4 mr-1 text-yellow-600" />
-                              <span className="font-bold">{reward.coins.toLocaleString()}</span> coins
-                            </Badge>
-                            <Badge variant="outline" className="text-muted-foreground">
-                              {reward.value}
-                            </Badge>
-                            {reward.discount && (
-                              <Badge variant="default" className="bg-green-600">
-                                {reward.discount}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => handleRedeemCoinReward(reward.name, reward.coins)}
-                          disabled={(coinBalance || 0) < reward.coins || redeeming === reward.name}
-                          size="sm"
-                          className="min-w-[80px]"
-                        >
-                          {redeeming === reward.name ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            'Redeem'
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Buy Points Tab */}
-          <TabsContent value="buy" className="space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Buy Chatr Coins</CardTitle>
-                <CardDescription>
-                  Get more coins to unlock exclusive rewards (1 coin = ₹0.10)
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4">
-                {[
-                  {
-                    name: 'Starter Pack',
-                    coins: 2500,
-                    bonus: 0,
-                    price: 199,
-                    popular: false
-                  },
-                  {
-                    name: 'Value Pack',
-                    coins: 6000,
-                    bonus: 500,
-                    price: 499,
-                    popular: true,
-                    badge: 'MOST POPULAR'
-                  },
-                  {
-                    name: 'Premium Pack',
-                    coins: 15000,
-                    bonus: 2000,
-                    price: 999,
-                    popular: false,
-                    badge: 'BEST VALUE'
-                  },
-                  {
-                    name: 'Ultimate Pack',
-                    coins: 40000,
-                    bonus: 8000,
-                    price: 2499,
-                    popular: false,
-                    badge: 'ULTIMATE'
-                  }
-                ].map((pkg, index) => (
-                  <Card
-                    key={index}
-                    className={`relative overflow-hidden ${
-                      pkg.popular ? "border-primary shadow-lg ring-2 ring-primary" : ""
-                    }`}
-                  >
-                    {pkg.badge && (
-                      <div className="absolute top-0 right-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-xs px-4 py-1 rounded-bl-lg font-bold">
-                        {pkg.badge}
-                      </div>
-                    )}
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-xl font-bold">{pkg.name}</h3>
-                          <div className="flex items-baseline gap-2 mt-2">
-                            <span className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                              {(pkg.coins + pkg.bonus).toLocaleString()}
-                            </span>
-                            <span className="text-muted-foreground">coins</span>
-                          </div>
-                          {pkg.bonus > 0 && (
-                            <Badge variant="secondary" className="mt-2 bg-green-100 text-green-700">
-                              + {pkg.bonus.toLocaleString()} BONUS
-                            </Badge>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Worth ₹{((pkg.coins + pkg.bonus) / 10).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-3xl font-bold text-primary">
-                            ₹{pkg.price}
-                          </div>
-                           <Button 
-                            className="mt-3 hover:scale-105 transition-transform" 
-                            size="sm"
-                            onClick={() => handleBuyCoins(pkg)}
-                          >
-                            Buy Now
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* History Tab */}
-          <TabsContent value="history" className="space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-                <CardDescription>
-                  Your points earning and spending history
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {transactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between p-3 rounded-lg border"
+              <CardContent className="space-y-2">
+                {EARN_ACTIONS.slice(0, 5).map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">
-                        {getTransactionIcon(transaction.transaction_type, transaction.source)}
-                      </span>
+                      <span className="text-2xl">{item.icon}</span>
                       <div>
-                        <p className="font-medium">{transaction.description}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(transaction.created_at), "MMM d, yyyy 'at' h:mm a")}
-                        </p>
+                        <p className="font-medium text-sm">{item.title}</p>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
                       </div>
                     </div>
-                    <div
-                      className={`text-lg font-bold ${
-                        transaction.amount > 0 ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {transaction.amount > 0 ? "+" : ""}
-                      {transaction.amount}
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 text-primary font-bold">
+                        <Coins className="h-3.5 w-3.5 text-yellow-500" />
+                        {item.coins}
+                      </div>
+                      <p className="text-xs text-muted-foreground">₹{item.rupees}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-                {transactions.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No transactions yet. Start earning points!
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Active Rewards Tab */}
-          <TabsContent value="active" className="space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Rewards</CardTitle>
-                <CardDescription>
-                  Your redeemed rewards and their status
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {redemptions.map((redemption) => (
-                  <Card key={redemption.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{redemption.reward.icon}</span>
-                          <div>
-                            <h3 className="font-semibold">{redemption.reward.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {redemption.reward.description}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant={getStatusBadge(redemption.status)}>
-                          {redemption.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="bg-muted p-3 rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-1">Redemption Code</p>
-                        <p className="font-mono font-bold">{redemption.redemption_code}</p>
-                      </div>
-                      <div className="flex items-center justify-between mt-3 text-sm">
-                        <span className="text-muted-foreground">
-                          Redeemed: {format(new Date(redemption.redeemed_at), "MMM d, yyyy")}
-                        </span>
-                        <span className="text-muted-foreground">
-                          Expires: {format(new Date(redemption.expires_at), "MMM d, yyyy")}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                {redemptions.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No active rewards. Redeem points to get started!
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Growth Tab */}
-          <TabsContent value="growth" className="space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Coins className="h-5 w-5 text-primary" />
-                  Chatr Coins Balance
-                </CardTitle>
-                <CardDescription>₹{(coinBalance / 10).toFixed(2)} value</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-4xl font-bold text-primary">{coinBalance.toLocaleString()}</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 rounded-lg bg-accent/10">
-                    <p className="text-sm text-muted-foreground">Lifetime Earned</p>
-                    <p className="text-xl font-semibold">{lifetimeEarned.toLocaleString()}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-primary/10 flex items-center gap-2">
-                    <Flame className="h-5 w-5 text-orange-500" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Streak</p>
-                      <p className="text-xl font-semibold">{currentStreak} days</p>
-                    </div>
-                  </div>
-                </div>
+                <Button variant="outline" className="w-full mt-2" onClick={() => setActiveTab('referral')}>
+                  View All Ways to Earn
+                </Button>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
+            {/* Referral Quick Card */}
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/5 to-primary/10">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    Your Referral Code
-                  </CardTitle>
-                  <Badge variant="default">{referralStats.total} referrals</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5">
-                  <div className="flex items-center justify-between">
-                    <code className="text-2xl font-bold tracking-wider text-primary">
-                      {referralCode || 'Loading...'}
-                    </code>
-                    <Button size="sm" variant="ghost" onClick={copyReferralLink}>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Your Referral Code</p>
+                    <p className="text-2xl font-bold font-mono tracking-wider text-primary">
+                      {referralCode || '------'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="icon" variant="outline" onClick={copyReferralLink} disabled={!referralCode}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" onClick={() => setShowShareDialog(true)} disabled={!referralCode}>
                       <Share2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
+                <div className="flex items-center gap-4 mt-3 pt-3 border-t">
+                  <div className="text-center flex-1">
+                    <p className="text-xl font-bold text-primary">{referralStats.total}</p>
+                    <p className="text-xs text-muted-foreground">Referrals</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-xl font-bold text-green-500">{referralStats.active}</p>
+                    <p className="text-xs text-muted-foreground">Active</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-xl font-bold text-amber-500">{referralStats.total * 500}</p>
+                    <p className="text-xs text-muted-foreground">Coins Earned</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Rewards Tab */}
+          <TabsContent value="rewards" className="mt-4 space-y-4">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gift className="h-5 w-5 text-primary" />
+                  Redeem Coins
+                </CardTitle>
+                <CardDescription>1 coin = ₹0.10 value</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {COIN_REWARDS.map((reward, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="p-4 rounded-xl border bg-card hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-3xl">{reward.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold">{reward.name}</h3>
+                        <p className="text-sm text-muted-foreground">{reward.description}</p>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <Badge variant="secondary" className="bg-primary/10">
+                            <Coins className="w-3 h-3 mr-1 text-yellow-500" />
+                            {reward.coins.toLocaleString()}
+                          </Badge>
+                          <Badge variant="outline">{reward.value}</Badge>
+                          {reward.discount && (
+                            <Badge className="bg-green-500">{reward.discount}</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleRedeemCoinReward(reward.name, reward.coins)}
+                        disabled={displayBalance < reward.coins || redeeming === reward.name}
+                        className="shrink-0"
+                      >
+                        {redeeming === reward.name ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : displayBalance >= reward.coins ? (
+                          'Redeem'
+                        ) : (
+                          `Need ${(reward.coins - displayBalance).toLocaleString()}`
+                        )}
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => navigate('/reward-shop')}
+            >
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Browse Full Reward Shop
+            </Button>
+          </TabsContent>
+
+          {/* Buy Tab */}
+          <TabsContent value="buy" className="mt-4 space-y-4">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                  Buy Coins
+                </CardTitle>
+                <CardDescription>Get more coins to unlock rewards</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {COIN_PACKAGES.map((pkg, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`relative p-4 rounded-xl border-2 transition-all ${
+                      pkg.popular 
+                        ? 'border-primary shadow-lg bg-primary/5' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    {pkg.badge && (
+                      <div className="absolute -top-2 right-4 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full font-semibold">
+                        {pkg.badge}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg">{pkg.name}</h3>
+                        <div className="flex items-baseline gap-2 mt-1">
+                          <span className="text-3xl font-bold text-primary">
+                            {(pkg.coins + pkg.bonus).toLocaleString()}
+                          </span>
+                          <span className="text-muted-foreground text-sm">coins</span>
+                        </div>
+                        {pkg.bonus > 0 && (
+                          <Badge variant="secondary" className="mt-2 bg-green-100 text-green-700">
+                            +{pkg.bonus.toLocaleString()} BONUS
+                          </Badge>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Worth ₹{((pkg.coins + pkg.bonus) / 10).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">₹{pkg.price}</div>
+                        <Button 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => handleBuyCoins(pkg)}
+                        >
+                          Buy Now
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Referral Tab */}
+          <TabsContent value="referral" className="mt-4 space-y-4">
+            {/* Referral Code Card */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Your Referral Code
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-dashed border-primary/30 text-center">
+                  <code className="text-3xl font-bold tracking-[0.3em] text-primary">
+                    {referralCode || 'LOADING'}
+                  </code>
+                </div>
 
                 {referralCode && (
-                  <div className="flex justify-center p-4 bg-white rounded-lg">
-                    <QRCodeSVG value={`https://chatr.app/join/${referralCode}`} size={200} />
+                  <div className="flex justify-center p-4 bg-white rounded-xl">
+                    <QRCodeSVG 
+                      value={`https://chatr.chat/auth?ref=${referralCode}`} 
+                      size={180}
+                      level="M"
+                    />
                   </div>
                 )}
 
-                <Button onClick={shareReferral} className="w-full">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share Referral Link
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={copyReferralLink} disabled={!referralCode}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy Link
+                  </Button>
+                  <Button onClick={() => setShowShareDialog(true)} disabled={!referralCode}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Share
+                  </Button>
+                </div>
 
                 <div className="grid grid-cols-3 gap-3 pt-3 border-t">
                   <div className="text-center">
@@ -1043,60 +773,159 @@ export default function ChatrPoints() {
                     <p className="text-xs text-muted-foreground">Active</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-accent">
-                      {referralStats.total * 500}
-                    </p>
+                    <p className="text-2xl font-bold text-amber-500">{referralStats.total * 500}</p>
                     <p className="text-xs text-muted-foreground">Coins</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            {/* Network Stats */}
+            <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Gift className="h-5 w-5 text-primary" />
-                  Earn More Coins
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Your Network
                 </CardTitle>
+                <CardDescription>Multi-level referral earnings</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-2 mb-4">
                   {[
-                    { action: 'Refer a friend', coins: 500, icon: Users },
-                    { action: 'Complete your profile', coins: 100, icon: Target },
-                    { action: 'Install 3 mini-apps', coins: 200, icon: Star },
-                    { action: 'Create content/post', coins: 100, icon: Trophy },
-                    { action: '7-day login streak', coins: 200, icon: Flame },
-                    { action: 'Refer a business', coins: 1000, icon: TrendingUp }
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-3 rounded-lg hover:bg-accent/10 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <item.icon className="h-4 w-4 text-primary" />
-                        </div>
-                        <span className="font-medium">{item.action}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Coins className="h-4 w-4 text-yellow-500" />
-                        <span className="font-semibold">{item.coins}</span>
-                      </div>
+                    { level: 1, count: networkStats.level1, bonus: 500 },
+                    { level: 2, count: networkStats.level2, bonus: 150 },
+                    { level: 3, count: networkStats.level3, bonus: 75 },
+                    { level: 4, count: networkStats.level4, bonus: 25 },
+                  ].map((item) => (
+                    <div key={item.level} className="text-center p-3 rounded-xl bg-muted/50">
+                      <div className="text-xs text-muted-foreground">L{item.level}</div>
+                      <div className="text-xl font-bold">{item.count}</div>
+                      <div className="text-xs text-primary">+{item.bonus}</div>
                     </div>
                   ))}
                 </div>
+                <div className="p-4 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-center">
+                  <p className="text-sm opacity-80">Total Network Earnings</p>
+                  <p className="text-3xl font-bold">{networkStats.totalCoins.toLocaleString()} coins</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* All Earn Actions */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle>All Ways to Earn</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {EARN_ACTIONS.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{item.icon}</span>
+                      <div>
+                        <p className="font-medium text-sm">{item.title}</p>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 text-primary font-bold">
+                        <Coins className="h-3.5 w-3.5 text-yellow-500" />
+                        {item.coins}
+                      </div>
+                      <p className="text-xs text-muted-foreground">₹{item.rupees}</p>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Leaderboard Tab */}
-          <TabsContent value="leaderboard" className="space-y-4 mt-6">
-            <Card>
+          {/* History Tab */}
+          <TabsContent value="history" className="mt-4 space-y-4">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5 text-primary" />
+                  Transaction History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {transactions.length > 0 ? (
+                  <div className="space-y-2">
+                    {transactions.map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="flex items-center justify-between p-3 rounded-xl bg-muted/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{getTransactionIcon(transaction.transaction_type)}</span>
+                          <div>
+                            <p className="font-medium text-sm">{transaction.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(transaction.created_at), "MMM d, yyyy 'at' h:mm a")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`font-bold ${transaction.amount > 0 ? "text-green-600" : "text-red-500"}`}>
+                          {transaction.amount > 0 ? "+" : ""}{transaction.amount}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <History className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                    <p>No transactions yet</p>
+                    <p className="text-sm">Start earning coins to see your history!</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Active Redemptions */}
+            {redemptions.length > 0 && (
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    Active Rewards
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {redemptions.map((redemption) => (
+                    <div key={redemption.id} className="p-4 rounded-xl border">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{redemption.reward?.icon || '🎁'}</span>
+                          <span className="font-medium">{redemption.reward?.name}</span>
+                        </div>
+                        <Badge variant={redemption.status === 'active' ? 'default' : 'secondary'}>
+                          {redemption.status}
+                        </Badge>
+                      </div>
+                      <div className="bg-muted p-2 rounded-lg font-mono text-sm">
+                        {redemption.redemption_code}
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                        <span>Redeemed: {format(new Date(redemption.redeemed_at), "MMM d, yyyy")}</span>
+                        <span>Expires: {format(new Date(redemption.expires_at), "MMM d, yyyy")}</span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Leaderboard Tab (accessible via quick action) */}
+          <TabsContent value="leaderboard" className="mt-4 space-y-4">
+            <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-primary" />
-                  Top 100 This Month
+                  Leaderboard
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1107,270 +936,54 @@ export default function ChatrPoints() {
                     <TabsTrigger value="creators">Creators</TabsTrigger>
                   </TabsList>
 
-                  <div className="space-y-2">
-                    {leaderboards.length > 0 ? (
-                      leaderboards.map((entry) => (
+                  {leaderboards.length > 0 ? (
+                    <div className="space-y-2">
+                      {leaderboards.map((entry) => (
                         <div
                           key={entry.id}
-                          className={`flex items-center gap-4 p-3 rounded-lg ${
-                            entry.rank <= 3 ? 'bg-gradient-to-r from-primary/10 to-transparent' : 'hover:bg-accent/5'
+                          className={`flex items-center gap-3 p-3 rounded-xl ${
+                            entry.rank <= 3 ? 'bg-gradient-to-r from-primary/10 to-transparent' : 'bg-muted/50'
                           }`}
                         >
-                          <div className="w-12 text-center">
+                          <div className="w-10 text-center">
                             {getRankIcon(entry.rank) || (
-                              <span className="font-bold text-lg">#{entry.rank}</span>
+                              <span className="font-bold text-muted-foreground">#{entry.rank}</span>
                             )}
                           </div>
-
                           <div className="flex-1">
-                            <p className="font-semibold">
-                              {entry.profiles?.username || 'Anonymous'}
-                            </p>
-                            {entry.city && (
-                              <p className="text-xs text-muted-foreground">{entry.city}</p>
-                            )}
+                            <p className="font-medium">{entry.profiles?.username || 'Anonymous'}</p>
                           </div>
-
                           <div className="text-right">
-                            <p className="font-bold text-lg text-primary">
-                              {entry.score.toLocaleString()}
-                            </p>
+                            <p className="font-bold text-primary">{entry.score?.toLocaleString()}</p>
                             <p className="text-xs text-muted-foreground">
                               {leaderboardTab === 'coins' ? 'coins' : leaderboardTab === 'referrals' ? 'users' : 'posts'}
                             </p>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Trophy className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p>No leaderboard data yet</p>
-                        <p className="text-sm">Be the first to climb the ranks!</p>
-                      </div>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Trophy className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                      <p className="font-medium">No rankings yet</p>
+                      <p className="text-sm">Be the first to climb the leaderboard!</p>
+                    </div>
+                  )}
                 </Tabs>
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Network Tab */}
-          <TabsContent value="network" className="space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Network Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-lg bg-primary/10 text-center">
-                    <p className="text-sm text-muted-foreground mb-1">Level 1</p>
-                    <p className="text-3xl font-bold text-primary">{networkStats.level1}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Direct</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-accent/10 text-center">
-                    <p className="text-sm text-muted-foreground mb-1">Level 2</p>
-                    <p className="text-3xl font-bold text-accent">{networkStats.level2}</p>
-                    <p className="text-xs text-muted-foreground mt-1">2nd tier</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-primary/10 text-center">
-                    <p className="text-sm text-muted-foreground mb-1">Level 3</p>
-                    <p className="text-3xl font-bold text-primary">{networkStats.level3}</p>
-                    <p className="text-xs text-muted-foreground mt-1">3rd tier</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-accent/10 text-center">
-                    <p className="text-sm text-muted-foreground mb-1">Level 4</p>
-                    <p className="text-3xl font-bold text-accent">{networkStats.level4}</p>
-                    <p className="text-xs text-muted-foreground mt-1">4th tier</p>
-                  </div>
-                </div>
-                <div className="mt-4 p-4 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-center">
-                  <p className="text-sm opacity-90">Total Network Earnings</p>
-                  <p className="text-3xl font-bold">{networkStats.totalCoins.toLocaleString()} coins</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Direct Referrals (Level 1)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {referrals.length > 0 ? (
-                    referrals.map((ref) => (
-                      <div
-                        key={ref.id}
-                        className="flex items-center justify-between p-3 rounded-lg hover:bg-accent/10 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground font-semibold">
-                            {ref.profiles?.username?.[0]?.toUpperCase() || 'U'}
-                          </div>
-                          <div>
-                            <p className="font-medium">{ref.profiles?.username || 'User'}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Joined {new Date(ref.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <Badge variant={ref.status === 'active' ? 'default' : 'secondary'}>
-                            {getStatusIcon(ref.status)}
-                            <span className="ml-1">{ref.status}</span>
-                          </Badge>
-                          {ref.status === 'active' && (
-                            <span className="text-sm font-semibold text-primary">+500 coins</span>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>No referrals yet</p>
-                      <p className="text-sm">Share your code to start building your network!</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>How Multi-Level Works</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  { level: 1, bonus: 500, desc: 'Your direct referrals' },
-                  { level: 2, bonus: 150, desc: 'People referred by your referrals' },
-                  { level: 3, bonus: 75, desc: 'Third level down' },
-                  { level: 4, bonus: 25, desc: 'Fourth level down' }
-                ].map((item) => (
-                  <div key={item.level} className="flex items-center justify-between p-3 rounded-lg bg-accent/5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <span className="font-bold text-primary">{item.level}</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Level {item.level}</p>
-                        <p className="text-xs text-muted-foreground">{item.desc}</p>
-                      </div>
-                    </div>
-                    <span className="font-semibold text-primary">{item.bonus} coins</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
-
-        {/* How to Earn Coins */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>How to Earn Chatr Coins</CardTitle>
-            <CardDescription>1 coin = ₹0.10 • Build your coin balance!</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            {[
-              {
-                icon: '👥',
-                title: 'Refer a Friend',
-                coins: 500,
-                rupees: 50,
-                desc: 'Each new user via your code'
-              },
-              {
-                icon: '🎯',
-                title: 'Complete Your Profile',
-                coins: 100,
-                rupees: 10,
-                desc: 'Fill in all profile details'
-              },
-              {
-                icon: '📱',
-                title: 'Install 3 Mini-Apps',
-                coins: 200,
-                rupees: 20,
-                desc: 'Try out our mini-apps'
-              },
-              {
-                icon: '✍️',
-                title: 'Create Content/Post',
-                coins: 100,
-                rupees: 10,
-                desc: 'Share in communities'
-              },
-              {
-                icon: '🔥',
-                title: '7-Day Login Streak',
-                coins: 200,
-                rupees: 20,
-                desc: 'Login daily for a week'
-              },
-              {
-                icon: '🏢',
-                title: 'Refer a Business',
-                coins: 1000,
-                rupees: 100,
-                desc: 'Bring businesses to Chatr'
-              },
-              {
-                icon: '💬',
-                title: 'Daily Login',
-                coins: 50,
-                rupees: 5,
-                desc: 'Login every day'
-              },
-              {
-                icon: '📊',
-                title: 'Upload Lab Reports',
-                coins: 250,
-                rupees: 25,
-                desc: 'Add health documents'
-              },
-              {
-                icon: '💊',
-                title: 'Medicine Adherence',
-                coins: 50,
-                rupees: 5,
-                desc: 'Take medicines on time'
-              }
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-accent/10 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="font-semibold">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1 text-primary font-bold">
-                    <Coins className="h-4 w-4 text-yellow-600" />
-                    {item.coins}
-                  </div>
-                  <p className="text-xs text-muted-foreground">₹{item.rupees}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
       </div>
-      
+
+      {/* Dialogs */}
       <SocialShareDialog
         open={showShareDialog}
         onOpenChange={setShowShareDialog}
         referralCode={referralCode}
         shareUrl={`https://chatr.chat/auth?ref=${referralCode}`}
       />
-      
-      {/* UPI Payment Modal for buying coins */}
+
       <UPIPaymentModal
         open={showPaymentModal}
         onOpenChange={setShowPaymentModal}
