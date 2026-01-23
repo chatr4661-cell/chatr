@@ -164,65 +164,92 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration - PWA Compliant with Resilient Error Handling -->
+    <!-- Service Worker Registration - PWA Compliant with Ultra-Resilient Error Handling -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', async () => {
+      (function() {
+        // Wrap entire SW logic to prevent ANY errors from causing blank screen
+        if (!('serviceWorker' in navigator)) return;
+        
+        window.addEventListener('load', function() {
+          // Use setTimeout to ensure React has fully mounted first
+          setTimeout(function() {
+            registerSW().catch(function() {});
+          }, 1000);
+        });
+        
+        async function registerSW() {
           try {
-            // Check if sw.js exists first to prevent unhandled 404 rejections
-            const swCheck = await fetch('/sw.js', { method: 'HEAD' }).catch(() => null);
-            if (!swCheck || !swCheck.ok) {
-              console.log('SW not available (404), skipping registration');
+            // Check existing registration first
+            const existing = await navigator.serviceWorker.getRegistration('/').catch(function() { return null; });
+            if (existing) {
+              console.log('SW already registered');
+              // Silently update - never throw
+              existing.update().catch(function() {});
+              setupSWListeners(existing);
               return;
             }
             
-            // Use a timeout to prevent hanging on slow networks
+            // Check if sw.js exists - use timeout to prevent hanging
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const timeoutId = setTimeout(function() { controller.abort(); }, 3000);
             
+            const swCheck = await fetch('/sw.js', { 
+              method: 'HEAD',
+              signal: controller.signal 
+            }).catch(function() { return null; });
+            
+            clearTimeout(timeoutId);
+            
+            if (!swCheck || !swCheck.ok) {
+              console.log('SW file not available, skipping');
+              return;
+            }
+            
+            // Register with timeout protection
             const registration = await navigator.serviceWorker.register('/sw.js', {
               scope: '/',
               updateViaCache: 'none'
-            }).catch(err => {
-              console.log('SW registration failed:', err.message);
+            }).catch(function(err) {
+              console.log('SW registration skipped:', err.message);
               return null;
             });
             
-            clearTimeout(timeoutId);
             if (!registration) return;
             
-            console.log('SW registered:', registration);
+            console.log('SW registered');
+            setupSWListeners(registration);
             
-            // Check for updates every 60 seconds - with error handling
-            setInterval(() => {
-              registration.update().catch(() => {
-                // Silently ignore update errors (transient network issues)
-              });
+          } catch (err) {
+            // Silently fail - SW is optional, never crash the app
+            console.log('SW setup skipped');
+          }
+        }
+        
+        function setupSWListeners(registration) {
+          try {
+            // Silent periodic updates
+            setInterval(function() {
+              registration.update().catch(function() {});
             }, 60000);
             
             // Request notification permission
             if ('Notification' in window && Notification.permission === 'default') {
-              Notification.requestPermission().catch(() => {});
+              Notification.requestPermission().catch(function() {});
             }
             
-            // Register periodic sync only if supported (shorter tags)
+            // Register periodic sync (optional)
             if ('periodicSync' in registration) {
               registration.periodicSync.register('sync', {
-                minInterval: 24 * 60 * 60 * 1000 // 24 hours
-              }).then(() => {
-                console.log('Periodic sync registered');
-              }).catch((err) => {
-                console.log('Periodic sync not available:', err.message);
-              });
+                minInterval: 24 * 60 * 60 * 1000
+              }).catch(function() {});
             }
             
             // Listen for updates
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
+            registration.addEventListener('updatefound', function() {
+              var newWorker = registration.installing;
               if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
+                newWorker.addEventListener('statechange', function() {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New SW available, auto-reload
                     newWorker.postMessage({ type: 'SKIP_WAITING' });
                     window.location.reload();
                   }
@@ -231,20 +258,18 @@
             });
             
             // Handle controller change
-            let refreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
               if (!refreshing) {
                 refreshing = true;
                 window.location.reload();
               }
             });
-            
           } catch (err) {
-            // Silently handle SW registration failures - app works without it
-            console.log('SW registration skipped:', err.message || 'transient error');
+            // Silently ignore listener setup errors
           }
-        });
-      }
+        }
+      })();
       
       // Handle install prompt
       let deferredPrompt;
