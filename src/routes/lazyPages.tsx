@@ -52,6 +52,9 @@ export const Earn = lazy(() => import('@/pages/Earn'));
 export const EarnHistory = lazy(() => import('@/pages/EarnHistory'));
 export const AdminMicroTasks = lazy(() => import('@/pages/admin/MicroTasks'));
 
+// Business / Dhandha
+export const Dhandha = lazy(() => import('@/pages/Dhandha'));
+
 // Communities
 export const Communities = lazy(() => import('@/pages/Communities'));
 export const CreateCommunity = lazy(() => import('@/pages/CreateCommunity'));

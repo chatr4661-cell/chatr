@@ -265,6 +265,9 @@ const App = () => {
             <Route path="/earn" element={<ProtectedLazyRoute component={LazyPages.Earn} />} />
             <Route path="/earn/history" element={<ProtectedLazyRoute component={LazyPages.EarnHistory} />} />
             
+            {/* Business / Dhandha Routes */}
+            <Route path="/dhandha" element={<ProtectedLazyRoute component={LazyPages.Dhandha} />} />
+            
             {/* Points & Payment Routes */}
             <Route path="/chatr-points" element={<LazyRoute component={LazyPages.ChatrPoints} />} />
             <Route path="/reward-shop" element={<LazyRoute component={LazyPages.RewardShop} />} />
