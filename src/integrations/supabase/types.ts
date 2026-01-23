@@ -5348,6 +5348,50 @@ export type Database = {
           },
         ]
       }
+      dhandha_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          fee_coins: number
+          id: string
+          merchant_id: string
+          paid_at: string | null
+          status: string
+          upi_link: string
+          voice_input: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          fee_coins?: number
+          id?: string
+          merchant_id: string
+          paid_at?: string | null
+          status?: string
+          upi_link: string
+          voice_input?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          fee_coins?: number
+          id?: string
+          merchant_id?: string
+          paid_at?: string | null
+          status?: string
+          upi_link?: string
+          voice_input?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dhandha_transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_applications: {
         Row: {
           bio: string | null
@@ -9862,6 +9906,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      merchant_profiles: {
+        Row: {
+          business_name: string | null
+          business_type: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          upi_id: string
+          user_id: string
+        }
+        Insert: {
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          upi_id: string
+          user_id: string
+        }
+        Update: {
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          upi_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       message_delivery_status: {
         Row: {

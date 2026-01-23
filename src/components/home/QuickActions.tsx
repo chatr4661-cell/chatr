@@ -6,7 +6,7 @@ import {
   Stethoscope, 
   Utensils,
   Search,
-  Sparkles
+  Store
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +27,12 @@ export const QuickActions = () => {
       action: () => navigate('/calls')
     },
     {
+      icon: Store,
+      label: 'Dhandha',
+      color: 'from-amber-500 to-orange-600',
+      action: () => navigate('/dhandha')
+    },
+    {
       icon: Stethoscope,
       label: 'Doctor',
       color: 'from-red-500 to-rose-600',
@@ -43,12 +49,6 @@ export const QuickActions = () => {
       label: 'Search',
       color: 'from-purple-500 to-pink-600',
       action: () => navigate('/chatr-world')
-    },
-    {
-      icon: Sparkles,
-      label: 'AI',
-      color: 'from-cyan-500 to-blue-600',
-      action: () => navigate('/chat-ai')
     }
   ];
 
