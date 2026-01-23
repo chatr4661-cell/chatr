@@ -15,14 +15,23 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     const existing = await navigator.serviceWorker.getRegistration('/');
     if (existing) {
       console.log('✅ Service Worker already active');
+      // Silently try to update - don't throw if it fails
+      existing.update().catch(() => {});
       return existing;
     }
 
-    // Register the Firebase messaging service worker
-    const registration = await navigator.serviceWorker.register(
-      '/firebase-messaging-sw.js',
-      { scope: '/' }
-    );
+    // Check if sw.js exists before attempting registration
+    const swCheck = await fetch('/sw.js', { method: 'HEAD' }).catch(() => null);
+    if (!swCheck || !swCheck.ok) {
+      console.log('⚠️ Service Worker file not available, skipping registration');
+      return null;
+    }
+
+    // Register the main service worker (handles both caching and push)
+    const registration = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none'
+    });
 
     console.log('✅ Service Worker registered:', registration);
 
@@ -47,7 +56,8 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
     return registration;
   } catch (error) {
-    console.error('❌ Service Worker registration failed:', error);
+    // Silently fail - SW is optional
+    console.log('⚠️ Service Worker registration skipped:', (error as Error).message);
     return null;
   }
 };
