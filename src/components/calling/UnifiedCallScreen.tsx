@@ -282,12 +282,30 @@ export default function UnifiedCallScreen({
         if (remoteVideoRef.current && videoTracks.length > 0) {
           console.log('📺 [UnifiedCall] Starting aggressive video playback');
           
+          // CRITICAL FIX: Immediately assign srcObject and show video
+          // Don't wait for playback confirmation - show video UI immediately
+          remoteVideoRef.current.srcObject = stream;
+          remoteVideoRef.current.muted = false;
+          
+          // OPTIMISTIC: Enable video visibility immediately when tracks exist
+          // This ensures users see video even if playback detection is slow
+          const hasActiveTrack = videoTracks.some(t => t.enabled && t.readyState === 'live');
+          if (hasActiveTrack) {
+            console.log('📺 [UnifiedCall] OPTIMISTIC: Enabling remote video immediately');
+            setRemoteVideoActive(true);
+          }
+          
           // Cleanup previous playback attempt
           if (videoPlaybackCleanupRef.current) {
             videoPlaybackCleanupRef.current();
           }
           
-          // Start aggressive playback with retry loop
+          // Try to play immediately
+          remoteVideoRef.current.play().catch(() => {
+            console.log('📺 [UnifiedCall] Initial play attempt failed, retrying...');
+          });
+          
+          // Start aggressive playback with retry loop (still needed for edge cases)
           videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
             remoteVideoRef.current,
             stream,
@@ -312,9 +330,23 @@ export default function UnifiedCallScreen({
             }
           );
           
+          // SAFETY: Fast fallback check after 1 second
+          setTimeout(() => {
+            setRemoteVideoActive(current => {
+              if (!current && remoteVideoRef.current?.srcObject) {
+                const currentStream = remoteVideoRef.current.srcObject as MediaStream;
+                if (currentStream.getVideoTracks().length > 0) {
+                  console.log('🔄 [UnifiedCall] 1s fallback: forcing remote video active');
+                  remoteVideoRef.current.play().catch(() => {});
+                  return true;
+                }
+              }
+              return current;
+            });
+          }, 1000);
+          
           // SAFETY: Additional fallback check after 3 seconds
           setTimeout(() => {
-            // Use functional state update to get current value
             setRemoteVideoActive(current => {
               if (!current && remoteVideoRef.current?.srcObject) {
                 const currentStream = remoteVideoRef.current.srcObject as MediaStream;
@@ -447,11 +479,22 @@ export default function UnifiedCallScreen({
         
         if (!remoteVideoRef.current) return;
         
+        // OPTIMISTIC: Enable video visibility IMMEDIATELY
+        // Don't wait for playback detection - users should see video right away
+        console.log('📺 [UnifiedCall] OPTIMISTIC: Enabling remote video immediately (remoteVideoTrack)');
+        setRemoteVideoActive(true);
+        setIsVideoOn(true);
+        
         // Force rebind srcObject to trigger video element refresh
         remoteVideoRef.current.srcObject = null;
         remoteVideoRef.current.srcObject = stream;
         
-        // Start aggressive playback for the new video track
+        // Try immediate play
+        remoteVideoRef.current.play().catch(() => {
+          console.log('📺 [UnifiedCall] Initial remoteVideoTrack play failed, retrying...');
+        });
+        
+        // Start aggressive playback for the new video track (backup)
         if (videoPlaybackCleanupRef.current) {
           videoPlaybackCleanupRef.current();
         }
@@ -473,9 +516,6 @@ export default function UnifiedCallScreen({
             }
           }
         );
-        
-        // Also set video on immediately for UI
-        setIsVideoOn(true);
       });
     };
 

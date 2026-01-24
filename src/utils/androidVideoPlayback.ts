@@ -51,19 +51,26 @@ export function startAggressiveVideoPlayback(
   const log = (msg: string) => console.log(`📺 [AndroidVideo] ${msg}`);
 
   const checkVideoPlaying = (): boolean => {
-    // Check if video is actually playing with valid dimensions
+    // Check if video is actually playing
     // readyState >= 2 means HAVE_CURRENT_DATA - can render current frame
-    // Some browsers need a moment to report dimensions
+    // Many browsers take time to report dimensions, so we don't strictly require them
     const hasData = videoElement.readyState >= 2;
     const hasDimensions = videoElement.videoWidth > 0 && videoElement.videoHeight > 0;
     const isPlaying = !videoElement.paused;
     
-    // For desktop browsers, just check that we have data and it's playing
-    // Dimensions may take a moment to populate
-    if (!isAndroidWebView() && hasData && isPlaying) {
+    // CRITICAL FIX: Check if stream has active video tracks
+    // This is more reliable than waiting for video element dimensions
+    const hasActiveVideoTracks = stream.getVideoTracks().some(
+      t => t.enabled && t.readyState === 'live'
+    );
+    
+    // For ALL browsers: if we have data, it's playing, and we have active tracks, 
+    // consider it playing even without dimensions (dimensions may take a moment)
+    if (hasData && isPlaying && hasActiveVideoTracks) {
       return true;
     }
     
+    // Fallback: also accept if dimensions are reported
     return isPlaying && hasData && hasDimensions;
   };
 
@@ -231,11 +238,16 @@ export function attachVideoTrackRecoveryHandlers(
 
   const handleTrackChange = async () => {
     const videoTracks = stream.getVideoTracks();
-    const hasActiveVideo = videoTracks.some(t => t.enabled && t.readyState === 'live' && !t.muted);
     
-    log(`Track change: ${videoTracks.length} tracks, active=${hasActiveVideo}`);
+    // CRITICAL FIX: More lenient active check
+    // Don't require !muted - tracks can be temporarily muted during setup
+    const hasActiveVideo = videoTracks.some(t => t.enabled && t.readyState === 'live');
+    const hasAnyVideo = videoTracks.length > 0;
     
-    if (hasActiveVideo && videoElement) {
+    log(`Track change: ${videoTracks.length} tracks, active=${hasActiveVideo}, any=${hasAnyVideo}`);
+    
+    // OPTIMISTIC: If we have ANY video track, try to enable video
+    if (hasAnyVideo && videoElement) {
       // Re-assign and play
       videoElement.srcObject = stream;
       try {
@@ -243,9 +255,16 @@ export function attachVideoTrackRecoveryHandlers(
         await videoElement.play();
         await new Promise(r => setTimeout(r, 50));
         videoElement.muted = false;
-        onVideoActive(true);
+        // Enable video if track is live, even if muted initially
+        if (hasActiveVideo) {
+          onVideoActive(true);
+        }
       } catch (e) {
         log('Recovery play failed');
+        // Still enable video visibility if track exists - user should see something
+        if (hasActiveVideo) {
+          onVideoActive(true);
+        }
       }
     } else {
       onVideoActive(false);
