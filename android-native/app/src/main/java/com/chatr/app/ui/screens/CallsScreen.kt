@@ -14,42 +14,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.chatr.app.ui.theme.*
+import com.chatr.app.viewmodel.CallHistoryViewModel
+import com.chatr.app.viewmodel.CallLogItem
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 
-data class CallLog(
-    val id: String,
-    val contactName: String,
-    val callType: CallType,
-    val timestamp: Long,
-    val duration: Int, // in seconds
-    val isMissed: Boolean = false,
-    val avatarUrl: String? = null
-)
-
-enum class CallType {
-    VOICE, VIDEO
-}
-
+/**
+ * CallsScreen - Shows REAL call history from backend
+ * Uses CallHistoryViewModel which fetches from Supabase calls table
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CallsScreen(
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit = {},
+    onStartCall: ((String, Boolean) -> Unit)? = null,
+    viewModel: CallHistoryViewModel = hiltViewModel()
 ) {
+    val state by viewModel.state.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     
-    val callLogs = remember {
-        listOf(
-            CallLog("1", "John Doe", CallType.VIDEO, System.currentTimeMillis() - 3600000, 1230),
-            CallLog("2", "Sarah Smith", CallType.VOICE, System.currentTimeMillis() - 7200000, 456, isMissed = true),
-            CallLog("3", "Mike Johnson", CallType.VIDEO, System.currentTimeMillis() - 86400000, 2340),
-            CallLog("4", "Emma Wilson", CallType.VOICE, System.currentTimeMillis() - 172800000, 890),
-            CallLog("5", "Alex Brown", CallType.VIDEO, System.currentTimeMillis() - 259200000, 1567),
-            CallLog("6", "Lisa Anderson", CallType.VOICE, System.currentTimeMillis() - 345600000, 234, isMissed = true)
-        )
+    LaunchedEffect(Unit) {
+        viewModel.loadCallHistory()
     }
 
     Scaffold(
@@ -73,12 +66,19 @@ fun CallsScreen(
                             tint = Primary
                         )
                     }
+                    IconButton(onClick = { viewModel.loadCallHistory() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            tint = Primary
+                        )
+                    }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onNavigate("new-call") },
+                onClick = { onNavigate("contacts") },
                 containerColor = Primary,
                 contentColor = PrimaryForeground
             ) {
@@ -129,22 +129,95 @@ fun CallsScreen(
                 )
             }
 
-            // Calls list
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                val filteredLogs = when (selectedTab) {
-                    1 -> callLogs.filter { it.isMissed }
-                    else -> callLogs
+            // Error state
+            state.error?.let { error ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Destructive.copy(alpha = 0.1f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = error,
+                            color = Destructive,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { viewModel.loadCallHistory() }) {
+                            Text("Retry", color = Primary)
+                        }
+                    }
                 }
-                
-                items(filteredLogs) { call ->
-                    CallLogRow(
-                        callLog = call,
-                        onClick = { onNavigate("call-detail/${call.id}") },
-                        onCallBack = { /* Handle callback */ }
-                    )
+            }
+
+            // Loading state
+            if (state.isLoading && state.calls.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            } else {
+                // Filter calls based on tab
+                val filteredCalls = when (selectedTab) {
+                    1 -> state.calls.filter { it.isMissed }
+                    else -> state.calls
+                }
+
+                if (filteredCalls.isEmpty()) {
+                    // Empty state
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CallMissed,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MutedForeground
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = if (selectedTab == 1) "No missed calls" else "No calls yet",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MutedForeground
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Your call history will appear here",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MutedForeground
+                            )
+                        }
+                    }
+                } else {
+                    // Calls list
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        items(
+                            items = filteredCalls,
+                            key = { it.id }
+                        ) { call ->
+                            CallLogRow(
+                                callLog = call,
+                                onClick = { onNavigate("call-detail/${call.id}") },
+                                onCallBack = { 
+                                    onStartCall?.invoke(call.otherUserId, call.isVideo)
+                                        ?: onNavigate("call/${call.otherUserId}?video=${call.isVideo}")
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -152,8 +225,8 @@ fun CallsScreen(
 }
 
 @Composable
-fun CallLogRow(
-    callLog: CallLog,
+private fun CallLogRow(
+    callLog: CallLogItem,
     onClick: () -> Unit,
     onCallBack: () -> Unit
 ) {
@@ -175,18 +248,33 @@ fun CallLogRow(
         ) {
             // Avatar
             Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(Primary.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.size(56.dp)
             ) {
-                Text(
-                    text = callLog.contactName.first().toString(),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Primary,
-                    fontWeight = FontWeight.Bold
-                )
+                if (!callLog.avatarUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = callLog.avatarUrl,
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(Primary.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = callLog.contactName.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -199,13 +287,23 @@ fun CallLogRow(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = when (callLog.callType) {
-                            CallType.VIDEO -> Icons.Default.Videocam
-                            CallType.VOICE -> Icons.Default.Phone
+                        imageVector = when {
+                            callLog.isMissed -> Icons.Default.CallMissed
+                            callLog.isOutgoing -> Icons.Default.CallMade
+                            else -> Icons.Default.CallReceived
                         },
                         contentDescription = null,
                         tint = if (callLog.isMissed) Destructive else MutedForeground,
                         modifier = Modifier.size(16.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    Icon(
+                        imageVector = if (callLog.isVideo) Icons.Default.Videocam else Icons.Default.Phone,
+                        contentDescription = null,
+                        tint = MutedForeground,
+                        modifier = Modifier.size(14.dp)
                     )
                     
                     Spacer(modifier = Modifier.width(8.dp))
@@ -214,7 +312,9 @@ fun CallLogRow(
                         text = callLog.contactName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (callLog.isMissed) Destructive else Foreground
+                        color = if (callLog.isMissed) Destructive else Foreground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -233,10 +333,7 @@ fun CallLogRow(
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = when (callLog.callType) {
-                        CallType.VIDEO -> Icons.Default.Videocam
-                        CallType.VOICE -> Icons.Default.Phone
-                    },
+                    imageVector = if (callLog.isVideo) Icons.Default.Videocam else Icons.Default.Phone,
                     contentDescription = "Call back",
                     tint = Primary
                 )
@@ -245,13 +342,14 @@ fun CallLogRow(
     }
 }
 
-private fun formatCallInfo(callLog: CallLog): String {
+private fun formatCallInfo(callLog: CallLogItem): String {
     val timestamp = formatTimestamp(callLog.timestamp)
-    val duration = if (callLog.isMissed) "Missed" else formatDuration(callLog.duration)
+    val duration = if (callLog.isMissed) "Missed" else formatDuration(callLog.durationSeconds)
     return "$timestamp • $duration"
 }
 
 private fun formatDuration(seconds: Int): String {
+    if (seconds <= 0) return "0s"
     val minutes = seconds / 60
     val secs = seconds % 60
     return if (minutes > 0) {
@@ -261,15 +359,21 @@ private fun formatDuration(seconds: Int): String {
     }
 }
 
-private fun formatTimestamp(timestamp: Long): String {
-    val now = System.currentTimeMillis()
-    val diff = now - timestamp
-    
-    return when {
-        diff < 60000 -> "Just now"
-        diff < 3600000 -> "${diff / 60000}m ago"
-        diff < 86400000 -> "${diff / 3600000}h ago"
-        diff < 604800000 -> "${diff / 86400000}d ago"
-        else -> SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(timestamp))
+private fun formatTimestamp(isoTimestamp: String): String {
+    return try {
+        val instant = Instant.parse(isoTimestamp)
+        val timestamp = instant.toEpochMilli()
+        val now = System.currentTimeMillis()
+        val diff = now - timestamp
+        
+        when {
+            diff < 60000 -> "Just now"
+            diff < 3600000 -> "${diff / 60000}m ago"
+            diff < 86400000 -> "${diff / 3600000}h ago"
+            diff < 604800000 -> "${diff / 86400000}d ago"
+            else -> SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(timestamp))
+        }
+    } catch (e: Exception) {
+        ""
     }
 }
