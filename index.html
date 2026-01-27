@@ -1,13 +1,21 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Preconnect for instant loading -->
+    <!-- CRITICAL: Preconnect to critical origins FIRST -->
     <link rel="preconnect" href="https://sbayuqgomlflmxgicplz.supabase.co" crossorigin />
-    <link rel="preload" href="/src/main.tsx" as="script" crossorigin />
+    <link rel="dns-prefetch" href="https://sbayuqgomlflmxgicplz.supabase.co" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- CRITICAL: Module preload for instant script execution -->
+    <link rel="modulepreload" href="/src/main.tsx" />
     
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+    
+    <!-- Reduce layout shift -->
+    <meta name="color-scheme" content="light dark">
     <meta name="color-scheme" content="light dark">
     <meta name="format-detection" content="telephone=no">
     
@@ -157,12 +165,57 @@
       "url": "https://chatr.chat"
     }
     </script>
+    <!-- CRITICAL CSS: Inlined for instant first paint -->
+    <style>
+      /* Minimal critical CSS for instant skeleton */
+      :root { --background: 0 0% 100%; --foreground: 220 13% 10%; --muted: 220 13% 96%; --primary: 262 100% 46%; }
+      @media (prefers-color-scheme: dark) { :root { --background: 220 13% 4%; --foreground: 0 0% 98%; --muted: 220 13% 15%; } }
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: hsl(var(--background)); color: hsl(var(--foreground)); }
+      #root { min-height: 100vh; min-height: 100dvh; }
+      
+      /* Instant skeleton animation */
+      @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+      .skeleton { background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted) / 0.5) 50%, hsl(var(--muted)) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+      
+      /* Instant app shell */
+      .instant-shell { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+      .instant-header { height: 56px; background: hsl(var(--background)); border-bottom: 1px solid hsl(var(--muted)); display: flex; align-items: center; padding: 0 16px; }
+      .instant-content { flex: 1; padding: 16px; }
+      .instant-nav { height: 64px; background: hsl(var(--background)); border-top: 1px solid hsl(var(--muted)); display: flex; justify-content: space-around; align-items: center; position: sticky; bottom: 0; }
+      .instant-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid hsl(var(--muted) / 0.5); }
+      .instant-avatar { width: 48px; height: 48px; border-radius: 50%; }
+      .instant-text-lg { height: 14px; border-radius: 7px; width: 60%; }
+      .instant-text-sm { height: 10px; border-radius: 5px; width: 40%; margin-top: 6px; }
+      .instant-nav-item { width: 24px; height: 24px; border-radius: 8px; }
+    </style>
   </head>
 
   <body>
-    <!-- React fix applied -->
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- INSTANT APP SHELL: Shows immediately while JS loads -->
+    <div id="root">
+      <div class="instant-shell">
+        <div class="instant-header">
+          <div class="skeleton instant-avatar" style="width:32px;height:32px"></div>
+          <div style="flex:1;margin-left:12px"><div class="skeleton" style="width:120px;height:14px;border-radius:7px"></div></div>
+        </div>
+        <div class="instant-content">
+          <div class="instant-item"><div class="skeleton instant-avatar"></div><div style="flex:1"><div class="skeleton instant-text-lg"></div><div class="skeleton instant-text-sm"></div></div></div>
+          <div class="instant-item"><div class="skeleton instant-avatar"></div><div style="flex:1"><div class="skeleton instant-text-lg"></div><div class="skeleton instant-text-sm"></div></div></div>
+          <div class="instant-item"><div class="skeleton instant-avatar"></div><div style="flex:1"><div class="skeleton instant-text-lg"></div><div class="skeleton instant-text-sm"></div></div></div>
+          <div class="instant-item"><div class="skeleton instant-avatar"></div><div style="flex:1"><div class="skeleton instant-text-lg"></div><div class="skeleton instant-text-sm"></div></div></div>
+          <div class="instant-item"><div class="skeleton instant-avatar"></div><div style="flex:1"><div class="skeleton instant-text-lg"></div><div class="skeleton instant-text-sm"></div></div></div>
+        </div>
+        <div class="instant-nav">
+          <div class="skeleton instant-nav-item"></div>
+          <div class="skeleton instant-nav-item"></div>
+          <div class="skeleton instant-nav-item"></div>
+          <div class="skeleton instant-nav-item"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- CRITICAL: Load main script with high priority -->
+    <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
     
     <!-- Service Worker Registration - PWA Compliant with Ultra-Resilient Error Handling -->
     <script>
