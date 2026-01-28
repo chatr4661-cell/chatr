@@ -21,9 +21,10 @@ const clearNativeCallState = (): void => {
   console.log('[NativeCall] Native call state cleared');
 };
 
-// ARCHITECTURE: Skip web-based call handling when running inside native Android/iOS shell
-// Native shell uses TelecomManager (Android) / CallKit (iOS) for incoming calls
+// ARCHITECTURE: Only skip web call UI if native TelecomManager/CallKit is ACTUALLY available
+// Plain Capacitor wrappers (without CallKit plugin) should use web UI
 const isNativeShell = () => Capacitor.isNativePlatform();
+const hasNativeCallUI = () => isNativeShell() && !!(window as any).CallKit;
 
 export function GlobalCallListener() {
   const [incomingCall, setIncomingCall] = useState<any>(null);
@@ -69,8 +70,8 @@ export function GlobalCallListener() {
     };
   }, []);
 
-  // Track if running in native shell
-  const isNative = isNativeShell();
+  // Track if running in native shell WITH CallKit (not just Capacitor wrapper)
+  const hasNativeUI = hasNativeCallUI();
   
   // CRITICAL: Listen for native call acceptance event
   // This is dispatched by MainActivity when user answers via native UI
@@ -158,14 +159,14 @@ export function GlobalCallListener() {
   useEffect(() => {
     if (!userId) return;
     
-    console.log(`🔔 GlobalCallListener active for user: ${userId} (native: ${isNative})`);
+    console.log(`🔔 GlobalCallListener active for user: ${userId} (hasNativeUI: ${hasNativeUI})`);
     
-    // Native shell: Skip incoming call INSERT listener (native TelecomManager shows incoming UI)
-    // Web: Listen for incoming calls normally
+    // Only skip web incoming UI if native CallKit/TelecomManager is available
+    // Plain Capacitor wrappers should use web UI for incoming calls
 
-    // Incoming calls (receiver side) - SKIP UI in native shell (TelecomManager shows it)
+    // Incoming calls (receiver side) - SKIP UI only if native TelecomManager/CallKit shows it
     let incomingChannel: any = null;
-    if (!isNative) {
+    if (!hasNativeUI) {
       incomingChannel = supabase
         .channel(`incoming-calls:${userId}`)
         .on(
@@ -395,7 +396,7 @@ export function GlobalCallListener() {
       supabase.removeChannel(outgoingUpdatesChannel);
       supabase.removeChannel(videoUpgradeChannel);
     };
-  }, [userId, toast, isNative]);
+  }, [userId, toast, hasNativeUI]);
 
   // GUARD: Block web accept if native already accepted
   const handleAnswer = async () => {
