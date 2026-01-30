@@ -4,6 +4,8 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
+  // CRITICAL: Use relative paths for Capacitor file:// protocol
+  base: './',
   server: {
     host: "::",
     port: 8080,
