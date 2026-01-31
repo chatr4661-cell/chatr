@@ -340,19 +340,7 @@ export function GlobalCallListener() {
               setActiveCall(null);
             }
             
-            // Show appropriate message based on the actual outcome
-            let title = "Call Ended";
-            let description = "Call ended";
-            
-            if (call.status === "rejected" || call.missed === false) {
-              title = "Call Declined";
-              description = "The call was declined";
-            } else if (call.missed === true) {
-              title = "No Answer";
-              description = "The call was not answered";
-            }
-            
-            toast.info(description);
+            // Silent cleanup - no toast notification needed for call outcomes
           }
         }
       )
