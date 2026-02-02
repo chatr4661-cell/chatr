@@ -1,23 +1,30 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, startTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Search, Mic, MessageCircle, Phone, Stethoscope, Utensils,
-  Briefcase, Percent, Heart, Brain, Sparkles, Gamepad2,
+  Mic, MessageCircle, Phone, Stethoscope, Utensils,
+  Briefcase, Heart, Brain, Sparkles, Gamepad2,
   Users, Wallet, Bell, Settings, ChevronRight, Zap, Shield,
-  TrendingUp, Calendar, ArrowRight, Store, Building2, Crown
+  Calendar, ArrowRight, Store, Building2, Crown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { BottomNav } from '@/components/BottomNav';
 import { SEOHead } from '@/components/SEOHead';
 import chatrIconLogo from '@/assets/chatr-icon-logo.png';
+
+// Direct imports for critical UI (no lazy loading overhead for core components)
 import { AppleCard, AppleGroupedList, AppleListItem } from '@/components/ui/AppleCard';
 import { AppleSearchBar } from '@/components/ui/AppleInput';
 import { AppleButton, AppleIconButton } from '@/components/ui/AppleButton';
-import { useNativeHaptics } from '@/hooks/useNativeHaptics';
+import { BottomNav } from '@/components/BottomNav';
 
-// Quick Actions - Circular buttons
+// Inline haptic hook to avoid import delay
+const useNativeHaptics = () => ({
+  light: () => { try { navigator.vibrate?.(10); } catch {} },
+  medium: () => { try { navigator.vibrate?.(20); } catch {} }
+});
+
+// Static data - defined outside component to avoid recreation
 const quickActions = [
   { icon: MessageCircle, label: 'Chat', color: 'from-green-500 to-emerald-600', route: '/chat' },
   { icon: Phone, label: 'Call', color: 'from-blue-500 to-indigo-600', route: '/calls' },
@@ -25,9 +32,8 @@ const quickActions = [
   { icon: Stethoscope, label: 'Doctor', color: 'from-red-500 to-rose-600', route: '/local-healthcare' },
   { icon: Utensils, label: 'Food', color: 'from-orange-500 to-amber-600', route: '/food-ordering' },
   { icon: Briefcase, label: 'Jobs', color: 'from-emerald-500 to-teal-600', route: '/jobs' },
-];
+] as const;
 
-// Main Services Grid
 const mainServices = [
   { icon: Brain, label: 'AI Brain', desc: 'Unified AI Assistant', color: 'from-cyan-500 to-blue-600', route: '/chat-ai' },
   { icon: Sparkles, label: 'AI Agents', desc: 'Create your AI self', color: 'from-violet-500 to-purple-600', route: '/ai-agents' },
@@ -41,120 +47,134 @@ const mainServices = [
   { icon: Building2, label: 'Business', desc: 'CRM & Analytics', color: 'from-slate-500 to-gray-600', route: '/business' },
   { icon: Crown, label: 'Premium', desc: 'Unlock all features', color: 'from-amber-400 to-yellow-500', route: '/chatr-plus-subscribe' },
   { icon: Settings, label: 'Settings', desc: 'Account & Prefs', color: 'from-gray-500 to-slate-600', route: '/settings' },
-];
+] as const;
 
-// Trending searches
-const trendingSearches = [
-  'plumber near me', 'doctor now', 'biryani delivery', 
-  'AC repair', 'job openings', 'yoga classes'
-];
+// Get greeting immediately (no state needed)
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  if (hour >= 17 && hour < 21) return 'Good evening';
+  return 'Good night';
+};
 
-const Home = () => {
+// Cache key for instant hydration
+const CACHE_KEY = 'chatr_home_cache';
+
+// Get cached data instantly
+const getCachedData = () => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      // Cache valid for 5 minutes
+      if (Date.now() - timestamp < 300000) return data;
+    }
+  } catch {}
+  return null;
+};
+
+const Home = memo(() => {
   const navigate = useNavigate();
   const haptics = useNativeHaptics();
+  const greeting = useMemo(getGreeting, []);
+  
+  // Initialize with cached data for instant render
+  const cachedData = useMemo(getCachedData, []);
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [userName, setUserName] = useState('');
-  const [greeting, setGreeting] = useState('Welcome');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [activityData, setActivityData] = useState({
+  const [userName, setUserName] = useState(cachedData?.userName || '');
+  const [isAuthenticated, setIsAuthenticated] = useState(cachedData?.isAuthenticated ?? false);
+  const [loading, setLoading] = useState(!cachedData);
+  const [activityData, setActivityData] = useState(cachedData?.activityData || {
     unreadChats: 0,
     appointments: 0,
     walletBalance: 0,
     notifications: 0
   });
-  const [recentChats, setRecentChats] = useState<any[]>([]);
+  const [recentChats, setRecentChats] = useState<any[]>(cachedData?.recentChats || []);
 
-  // Time-based greeting
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) setGreeting('Good morning');
-    else if (hour >= 12 && hour < 17) setGreeting('Good afternoon');
-    else if (hour >= 17 && hour < 21) setGreeting('Good evening');
-    else setGreeting('Good night');
-  }, []);
-
-  const handleNavigate = (route: string) => {
+  // Navigation with haptic feedback
+  const handleNavigate = useCallback((route: string) => {
     haptics.light();
     navigate(route);
-  };
+  }, [navigate, haptics]);
 
-  // Fetch user data
+
+  // Fetch user data with caching and non-blocking updates
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
+        if (!isMounted) return;
+        
         if (user) {
-          setIsAuthenticated(true);
+          // Set authenticated immediately
+          if (!isAuthenticated) setIsAuthenticated(true);
           
-          // Fetch profile
+          // Fetch profile first (critical for UI)
           const { data: profile } = await supabase
             .from('profiles')
             .select('full_name, username')
             .eq('id', user.id)
             .maybeSingle();
 
-          if (profile) {
-            const firstName = profile.full_name?.split(' ')[0] || profile.username || 'there';
-            setUserName(firstName);
-          }
+          if (!isMounted) return;
+          
+          const firstName = profile?.full_name?.split(' ')[0] || profile?.username || 'there';
+          setUserName(firstName);
+          setLoading(false);
 
-          // Fetch activity counts in parallel
-          const [notifRes, apptRes, walletRes, chatsRes] = await Promise.all([
-            supabase
-              .from('notifications')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', user.id)
-              .eq('read', false),
-            supabase
-              .from('appointments')
-              .select('*', { count: 'exact', head: true })
-              .eq('patient_id', user.id)
-              .gte('appointment_date', new Date().toISOString()),
-            supabase
-              .from('chatr_coin_balances')
-              .select('total_coins')
-              .eq('user_id', user.id)
-              .maybeSingle(),
-            supabase
-              .from('conversation_participants')
-              .select(`
-                conversation_id,
-                conversations!inner(id, updated_at, is_group, group_name)
-              `)
-              .eq('user_id', user.id)
-              .order('conversations(updated_at)', { ascending: false })
-              .limit(3)
-          ]);
-
-          setActivityData({
-            unreadChats: 0,
-            appointments: notifRes.count || 0,
-            walletBalance: walletRes.data?.total_coins || 0,
-            notifications: notifRes.count || 0
+          // Non-blocking: fetch activity data in background
+          startTransition(() => {
+            Promise.all([
+              supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false),
+              supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('patient_id', user.id).gte('appointment_date', new Date().toISOString()),
+              supabase.from('chatr_coin_balances').select('total_coins').eq('user_id', user.id).maybeSingle(),
+              supabase.from('conversation_participants').select('conversation_id, conversations!inner(id, updated_at, is_group, group_name)').eq('user_id', user.id).limit(3)
+            ]).then(([notifRes, apptRes, walletRes, chatsRes]) => {
+              if (!isMounted) return;
+              
+              const newActivityData = {
+                unreadChats: 0,
+                appointments: notifRes.count || 0,
+                walletBalance: walletRes.data?.total_coins || 0,
+                notifications: notifRes.count || 0
+              };
+              setActivityData(newActivityData);
+              
+              const newChats = chatsRes.data?.map((c: any) => ({
+                id: c.conversations.id,
+                title: c.conversations.is_group ? (c.conversations.group_name || 'Group Chat') : 'Conversation',
+                route: `/chat/${c.conversations.id}`
+              })) || [];
+              setRecentChats(newChats);
+              
+              // Cache for instant next load
+              try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                  data: { userName: firstName, isAuthenticated: true, activityData: newActivityData, recentChats: newChats },
+                  timestamp: Date.now()
+                }));
+              } catch {}
+            });
           });
-
-          if (chatsRes.data) {
-            setRecentChats(chatsRes.data.map((c: any) => ({
-              id: c.conversations.id,
-              title: c.conversations.is_group ? (c.conversations.group_name || 'Group Chat') : 'Conversation',
-              route: `/chat/${c.conversations.id}`
-            })));
-          }
         } else {
           setUserName('there');
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error:', error);
-      } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+    return () => { isMounted = false; };
+  }, [isAuthenticated]);
 
   const handleSearch = useCallback((searchQuery?: string) => {
     const q = searchQuery || query;
@@ -185,13 +205,18 @@ const Home = () => {
     recognition.start();
   };
 
-  if (loading) {
+  // Show skeleton only if no cached data (first visit)
+  if (loading && !cachedData) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <img src={chatrIconLogo} alt="CHATR" className="w-16 h-16 animate-pulse" />
-          <span className="text-sm text-muted-foreground">Loading...</span>
-        </div>
+        <img src={chatrIconLogo} alt="CHATR" className="w-16 h-16 animate-pulse" />
+      </div>
+    );
+  }
+  if (loading && !cachedData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <img src={chatrIconLogo} alt="CHATR" className="w-16 h-16 animate-pulse" />
       </div>
     );
   }
@@ -417,6 +442,6 @@ const Home = () => {
       </div>
     </>
   );
-};
+});
 
 export default Home;
