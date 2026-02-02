@@ -19,29 +19,31 @@ export default defineConfig(({ mode }) => ({
       'react',
       'react-dom',
       'react/jsx-runtime',
+      'react-is',
       '@radix-ui/react-popover',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
+      'recharts',
     ],
     esbuildOptions: {
       target: 'esnext',
     },
-    force: true, // Force re-optimization
+    force: true,
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
       'react': path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
-      'react-window': path.resolve(__dirname, './src/lib/react-window-shim.ts'), // Shim for cached imports
+      'react-window': path.resolve(__dirname, './src/lib/react-window-shim.ts'),
     },
-    dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react-is'],
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
+          'react-vendor': ['react', 'react-dom', 'react-is'],
         },
       },
     },
