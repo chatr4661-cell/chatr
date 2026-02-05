@@ -36,7 +36,7 @@ export default function Settings() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast.success('Logged out successfully');
+   console.log('[Settings] User logged out');
     navigate('/auth');
   };
 

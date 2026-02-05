@@ -99,7 +99,7 @@ const Profile = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth');
-    toast.success('Signed out successfully');
+   console.log('[Profile] User signed out');
   };
 
   if (loading) {

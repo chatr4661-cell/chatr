@@ -220,7 +220,7 @@ const Index = () => {
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
         setMounted(true);
-        toast.success('Welcome! 👋');
+       console.log('[Index] User signed in:', session.user.id);
       } else if (!session && event !== 'INITIAL_SESSION') {
         setUser(null);
         navigate('/auth', { replace: true });
@@ -406,9 +406,7 @@ const Index = () => {
       if (error) throw error;
       
       if (data?.pointsAwarded > 0) {
-        toast.success(`🎉 Daily Login Bonus: ${data.pointsAwarded} points!`, {
-          description: data.message
-        });
+       console.log(`[Index] Daily login bonus: ${data.pointsAwarded} points`);
         loadPointsData();
       }
       

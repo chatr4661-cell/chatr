@@ -50,7 +50,7 @@ export default function CallMoreMenu({
     const newHeld = !isHeld;
     setIsHeld(newHeld);
     onHoldChange?.(newHeld);
-    toast.info(newHeld ? 'Call on hold' : 'Call resumed');
+   console.log(`📞 [CallMoreMenu] ${newHeld ? 'Call on hold' : 'Call resumed'}`);
   };
 
   const handleParkCall = async () => {

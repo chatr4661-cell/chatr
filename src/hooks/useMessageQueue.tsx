@@ -74,7 +74,7 @@ export const useMessageQueue = (userId: string | null) => {
     
     // Show offline notification
     if (!isOnline) {
-      toast.info('Message queued - will send when back online');
+     console.log('[MessageQueue] Message queued - will send when back online');
     }
 
     return queuedMessage.id;

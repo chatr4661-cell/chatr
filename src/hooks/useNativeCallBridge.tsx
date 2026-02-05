@@ -36,13 +36,7 @@ export const useNativeCallBridge = () => {
           setPreCallMediaStream(callId, stream);
         } catch (mediaErr: any) {
           console.error('❌ [NativeCallBridge] Media failed:', mediaErr);
-          toast({
-            title: 'Microphone Access',
-            description: mediaErr?.name === 'NotReadableError' 
-              ? 'Microphone busy - close other apps'
-              : 'Please allow microphone access',
-            variant: 'destructive',
-          });
+         // Silent - let call proceed without media if possible
         }
 
         // Update call status to active
@@ -56,11 +50,7 @@ export const useNativeCallBridge = () => {
 
         if (error) {
           console.error('❌ [NativeCallBridge] Status update failed:', error);
-          toast({
-            title: 'Call Error',
-            description: 'Failed to connect',
-            variant: 'destructive',
-          });
+         // Silent - UI will show connection state
         } else {
           console.log('✅ [NativeCallBridge] Call status: active');
         }

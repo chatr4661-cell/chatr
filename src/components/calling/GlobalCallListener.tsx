@@ -411,27 +411,18 @@ export function GlobalCallListener() {
       if (incomingCall?.id) clearPreCallMediaStream(incomingCall.id);
 
       // Device busy: let user retry (do NOT auto-reject)
-      if (error?.name === 'NotReadableError') {
-        toast.error(incomingCall.call_type === 'video'
-          ? 'Camera/microphone is busy. Close other apps and try again.'
-          : 'Microphone is busy. Close other apps and try again.'
-        );
+       if (error?.name === 'NotReadableError') {
+         console.warn('📱 [GlobalCallListener] Device busy:', error);
         return;
       }
 
       // Simple, friendly messages for non-technical users
       if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError') {
-        toast.error(incomingCall.call_type === 'video'
-          ? 'Please allow camera and microphone to answer video calls'
-          : 'Please allow microphone to answer calls'
-        );
+         console.warn('📱 [GlobalCallListener] Permission denied:', error);
       } else if (error?.name === 'NotFoundError') {
-        toast.error(incomingCall.call_type === 'video'
-          ? 'No camera or microphone found'
-          : 'No microphone found'
-        );
+         console.warn('📱 [GlobalCallListener] Device not found:', error);
       } else {
-        toast.error('Could not access device. Please try again.');
+         console.warn('📱 [GlobalCallListener] Media error:', error);
       }
 
       // CRITICAL: Do NOT auto-reject for permission errors

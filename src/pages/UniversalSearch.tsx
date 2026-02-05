@@ -485,7 +485,7 @@ const UniversalSearch = () => {
 
   const handleChat = (result: SearchResult) => {
     trackInteraction(result.id, 'chat_clicked');
-    toast.info('Opening chat...');
+   console.log('[UniversalSearch] Opening chat:', result.id);
   };
 
   const handleGetDirections = (result: SearchResult) => {

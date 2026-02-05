@@ -206,7 +206,7 @@ export function VoiceConversation({
   const startCall = () => {
     setIsActive(true);
     startListening();
-    toast.success(`Voice call started with ${agentName}`);
+   console.log(`📞 [VoiceConversation] Voice call started with ${agentName}`);
   };
 
   const endCall = () => {
@@ -222,7 +222,7 @@ export function VoiceConversation({
     setAiResponse('');
     conversationHistory.current = [];
     onClose?.();
-    toast.info('Voice call ended');
+   console.log('📞 [VoiceConversation] Voice call ended');
   };
 
   const toggleMute = () => {

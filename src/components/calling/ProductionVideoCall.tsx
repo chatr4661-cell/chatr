@@ -169,14 +169,8 @@ export default function ProductionVideoCall({
                     document.addEventListener(eventType, playOnInteraction, { once: true, capture: true });
                   });
                   
-                  // Show toast notification
-                  toast.info('Tap screen to enable audio', {
-                    duration: 8000,
-                    action: {
-                      label: 'Enable',
-                      onClick: playOnInteraction
-                    }
-                  });
+                 // Silent - user will tap naturally
+                 console.log('🔊 [ProductionVideoCall] Waiting for user gesture for audio');
                 }
               }
             };
@@ -385,7 +379,7 @@ export default function ProductionVideoCall({
 
   const handleSwapVideos = () => {
     setVideoLayout(prev => prev === 'remote-main' ? 'local-main' : 'remote-main');
-    toast.info(videoLayout === 'remote-main' ? 'Your video is now main' : 'Their video is now main');
+   console.log(`📹 [ProductionVideoCall] Layout: ${videoLayout === 'remote-main' ? 'local-main' : 'remote-main'}`);
   };
 
   const handleToggleFullScreen = async () => {
@@ -465,7 +459,7 @@ export default function ProductionVideoCall({
       }
       
       setIsScreenSharing(false);
-      toast.info('Screen sharing stopped');
+     console.log('📹 [ProductionVideoCall] Screen sharing stopped');
     } catch (error) {
       console.error('Error stopping screen share:', error);
     }
