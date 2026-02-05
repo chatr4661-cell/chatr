@@ -270,10 +270,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         })
         .eq('id', call.id);
 
-      toast({
-        title: 'Call connected',
-        description: `Connected with ${call.caller_name}`,
-      });
+      // Silent - no toast for call connected
 
     } catch (error: any) {
       console.error('Answer call error:', error);
@@ -300,10 +297,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
     
     setIncomingCall(null);
 
-    toast({
-      title: 'Call rejected',
-      description: `Rejected call from ${call.caller_name}`,
-    });
+    // Silent - no toast for call rejected
   };
 
   // End call
@@ -353,9 +347,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
     setIsMuted(false);
     setIsVideoOff(false);
 
-    toast({
-      title: 'Call ended',
-    });
+    // Silent - no toast for call ended
   };
 
   // Toggle mute
@@ -461,9 +453,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
       }
       
       setCallType(newType);
-      toast({
-        title: newType === 'video' ? 'Video enabled' : 'Video disabled',
-      });
+      // Silent - no toast for video toggle
     } catch (error) {
       console.error('Error toggling call type:', error);
       toast({
@@ -502,12 +492,7 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
           audio.play().catch(e => console.log('Could not play ringtone:', e));
           ringtoneRef.current = audio;
 
-          // Show toast notification
-          toast({
-            title: `Incoming ${call.call_type} call`,
-            description: `${call.caller_name} is calling you`,
-            duration: 30000,
-          });
+          // Silent - no toast for incoming call (dialog handles it)
         }
       })
       .subscribe((status) => {
@@ -550,20 +535,14 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
           if (activeCall?.id === updatedCall.id) {
             console.log('📞 Other party ended the call');
             endCall();
-            toast({
-              title: 'Call ended',
-              description: 'The other party ended the call',
-            });
+            // Silent - no toast for call ended
           } else if (incomingCall?.id === updatedCall.id) {
             if (ringtoneRef.current) {
               ringtoneRef.current.pause();
               ringtoneRef.current = null;
             }
             setIncomingCall(null);
-            toast({
-              title: 'Call ended',
-              description: 'The caller ended the call',
-            });
+            // Silent - no toast for call ended
           }
         }
       })
