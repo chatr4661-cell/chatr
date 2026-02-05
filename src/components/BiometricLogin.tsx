@@ -73,8 +73,7 @@ export const BiometricLogin = ({ onSuccess }: BiometricLoginProps) => {
       logEvent('biometric_login_success');
       
       toast({
-        title: 'Login successful',
-        description: `Welcome back!`
+       title: 'Login successful'
       });
 
       if (onSuccess) {

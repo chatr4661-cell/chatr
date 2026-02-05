@@ -664,7 +664,7 @@ export default function UnifiedCallScreen({
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = null;
       }
-      toast.info('Video disabled');
+     console.log('📹 [UnifiedCall] Video disabled');
     }
   };
 
@@ -716,7 +716,7 @@ export default function UnifiedCallScreen({
       }
     }
     
-    toast.info(`Audio: ${newRoute === 'speaker' ? 'Speaker' : 'Earpiece'}`);
+   console.log(`📱 [UnifiedCall] Audio route: ${newRoute === 'speaker' ? 'Speaker' : 'Earpiece'}`);
   };
 
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;

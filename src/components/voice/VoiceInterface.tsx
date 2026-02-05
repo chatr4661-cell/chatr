@@ -82,7 +82,7 @@ export const VoiceInterface = ({ onSpeakingChange, onTranscriptUpdate }: VoiceIn
     setIsConnected(false);
     setIsSpeaking(false);
     onSpeakingChange?.(false);
-    toast.info("Conversation ended");
+   console.log('[VoiceInterface] Conversation ended');
   };
 
   return null; // Hidden by default - can be accessed via AI Features menu

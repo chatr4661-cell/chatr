@@ -65,10 +65,7 @@ const Auth = () => {
               const redirectPath = sessionStorage.getItem('auth_redirect');
               sessionStorage.removeItem('auth_redirect');
               
-              toast({
-                title: 'Welcome back! 👋',
-                description: `Signed in as ${profile.username || profile.email}`,
-              });
+             console.log('[AUTH] User signed in:', profile.username || profile.email);
               
               if (isAdmin) {
                 navigate('/admin', { replace: true });
@@ -130,10 +127,10 @@ const Auth = () => {
           if (profile?.onboarding_completed) {
             const redirectPath = sessionStorage.getItem('auth_redirect');
             sessionStorage.removeItem('auth_redirect');
-            toast({ title: 'Welcome back! 👋' });
+           console.log('[AUTH] Welcome back');
             navigate(redirectPath || '/', { replace: true });
           } else {
-            toast({ title: 'Welcome! 🎉', description: 'Complete your profile' });
+           console.log('[AUTH] New user - complete profile');
           }
         }, 0);
       }

@@ -45,7 +45,7 @@ export const useVoiceAI = () => {
 
     recognition.onstart = () => {
       setIsListening(true);
-      toast.info(`🎤 Listening... (${platform === 'ios' ? 'ChatGPT' : 'Gemini'} mode)`);
+     console.log(`🎤 [VoiceAI] Listening... (${platform === 'ios' ? 'ChatGPT' : 'Gemini'} mode)`);
     };
 
     recognition.onresult = async (event: any) => {

@@ -96,14 +96,8 @@ export default function ProductionVoiceCall({
                   document.addEventListener(eventType, playOnInteraction, { once: true, capture: true });
                 });
                 
-                // Show toast notification
-                toast.info('Tap screen to enable audio', {
-                  duration: 8000,
-                  action: {
-                    label: 'Enable',
-                    onClick: playOnInteraction
-                  }
-                });
+               // Silent - user will tap naturally
+               console.log('🔊 [ProductionVoiceCall] Waiting for user gesture for audio');
               }
             }
           };

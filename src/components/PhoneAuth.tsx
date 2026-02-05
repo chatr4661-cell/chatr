@@ -262,8 +262,7 @@ export const PhoneAuth = () => {
       }
 
       toast({
-        title: "Welcome Back! 👋",
-        description: "Signing you in...",
+       title: "Signing in...",
       });
 
       console.log('[AUTH] Login successful, auth state change will handle redirect');

@@ -414,11 +414,11 @@ export default function GSMStyleVoiceCall({
     if (targetDevice) {
       const success = await switchAudioRoute(targetDevice.id, nextRoute);
       if (success) {
-        toast.success(`Switched to ${nextRoute}`);
+       console.log(`🔊 [GSMStyleVoiceCall] Switched to ${nextRoute}`);
       }
     } else {
       setAudioRoute(nextRoute);
-      toast.success(`Switched to ${nextRoute}`);
+     console.log(`🔊 [GSMStyleVoiceCall] Switched to ${nextRoute}`);
     }
   };
 

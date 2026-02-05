@@ -19,17 +19,9 @@ export const useBatteryOptimization = () => {
           const isIgnoring = await checkBatteryOptimization();
           
           if (!isIgnoring) {
-            // Show user-friendly explanation
-            toast.info('Enable background access for calls & messages', {
-              description: 'Allow Chatr to run in background for reliable notifications',
-              duration: 5000,
-              action: {
-                label: 'Enable',
-                onClick: async () => {
-                  await requestExemption();
-                }
-              }
-            });
+           // Silent - request exemption automatically
+           console.log('[BatteryOptimization] Requesting exemption...');
+           await requestExemption();
           }
         }
       } catch (error) {
