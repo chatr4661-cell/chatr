@@ -224,7 +224,7 @@ export function GlobalCallListener() {
             if (call.status === "ended" || call.status === "missed") {
               console.log("📵 [GlobalCallListener] Active call ended by partner (receiver side)");
               setActiveCall(null);
-              // Silent - no toast for call ended
+              toast.info("Call ended");
             }
             return;
           }
@@ -235,7 +235,7 @@ export function GlobalCallListener() {
             if (call.status === "ended" || call.status === "missed") {
               console.log("📵 [GlobalCallListener] Active call ended by partner (receiver side)");
               setActiveCall(null);
-              // Silent - no toast for call ended
+              toast.info("Call ended");
               return;
             }
           }
@@ -248,7 +248,7 @@ export function GlobalCallListener() {
           if (call.status === "ended" || call.status === "missed") {
             console.log("📵 Incoming call cancelled by caller");
             setIncomingCall(null);
-            // Silent - no toast for call cancelled
+            toast.info("Call cancelled by caller");
           }
 
           if (call.status === "active") {

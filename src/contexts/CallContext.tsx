@@ -133,7 +133,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (activeCallRef.current?.id === call.id) {
           if (call.status === 'ended' || call.status === 'missed') {
             setActiveCall(null);
-            // Silent - no toast for call ended
+            toast.info('Call ended');
           }
         }
         
@@ -141,7 +141,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (incomingCallRef.current?.id === call.id) {
           if (call.status === 'ended' || call.status === 'missed') {
             setIncomingCall(null);
-            // Silent - no toast for call cancelled
+            toast.info('Call cancelled');
           }
         }
       })
@@ -327,7 +327,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       .eq('id', call.id);
     
     setIncomingCall(null);
-    // Silent - no toast for call declined
+    toast.info('Call declined');
   }, []);
 
   /**

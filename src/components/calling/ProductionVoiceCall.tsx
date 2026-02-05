@@ -119,7 +119,7 @@ export default function ProductionVoiceCall({
           console.log('🎉 [ProductionVoiceCall] Call connected!');
           // CRITICAL: Always transition to connected, even from failed state
           setCallState('connected');
-          // Silent - no toast for call connected
+          toast.success('Call connected');
           startDurationTimer();
           updateCallStatus('active');
         });

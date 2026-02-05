@@ -34,19 +34,37 @@ export function usePSTNCall() {
 
       switch (callEvent) {
         case 'ringing':
-          // Silent - no toast for ringing
+          toast({
+            title: '📞 Calling...',
+            description: `Ringing ${call.to}`,
+          });
           break;
         case 'answered':
-          // Silent - no toast for connected
+          toast({
+            title: '✅ Connected',
+            description: 'Call in progress',
+          });
           break;
         case 'busy':
-          // Silent - no toast for busy
+          toast({
+            title: 'Line Busy',
+            description: 'The number is busy, try again later',
+            variant: 'destructive',
+          });
           break;
         case 'no-answer':
-          // Silent - no toast for no answer
+          toast({
+            title: 'No Answer',
+            description: 'The call was not answered',
+          });
           break;
         case 'ended':
-          // Silent - no toast for call ended
+          if (call.duration && call.cost) {
+            toast({
+              title: 'Call Ended',
+              description: `Duration: ${formatDuration(call.duration)} • Cost: $${(call.cost / 100).toFixed(2)}`,
+            });
+          }
           setState(prev => ({ ...prev, activeCall: null }));
           break;
       }

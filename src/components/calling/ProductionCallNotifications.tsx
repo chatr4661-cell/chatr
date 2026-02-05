@@ -107,7 +107,10 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
       })
       .eq('id', call.id);
 
-    // Silent - no toast for call connected
+    toast({
+      title: 'Call connected',
+      description: `Connected with ${call.caller_name}`,
+    });
   };
 
   const rejectCall = async (call: any) => {
@@ -125,7 +128,10 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
       })
       .eq('id', call.id);
 
-    // Silent - no toast for call declined
+    toast({
+      title: 'Call declined',
+      description: `Declined call from ${call.caller_name}`,
+    });
   };
 
   const endActiveCall = async () => {
@@ -194,7 +200,11 @@ export function ProductionCallNotifications({ userId, username }: ProductionCall
           
           setIncomingCall(call);
 
-          // Silent - no toast for incoming call (native UI handles it)
+          toast({
+            title: `Incoming ${call.call_type} call`,
+            description: `${call.caller_name || 'Unknown'} is calling...`,
+            duration: 30000,
+          });
         } else {
           console.log('⏭️ Skipping incoming call (already in call)');
         }
