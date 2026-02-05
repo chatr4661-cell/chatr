@@ -74,10 +74,7 @@ export const useNativeCallBridge = () => {
           })
           .eq('id', callId);
 
-        toast({
-          title: 'Call Declined',
-          description: `Declined call from ${callerName || 'Unknown'}`,
-        });
+      // Silent - no toast for call declined
       }
     };
 
