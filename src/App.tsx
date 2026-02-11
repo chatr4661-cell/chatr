@@ -14,8 +14,6 @@ import { OfflineIndicator } from "./components/OfflineIndicator";
 import { GlobalCallListener } from "./components/calling/GlobalCallListener";
 import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
 import { CallProvider } from "./contexts/CallContext";
-import { Toaster } from "./components/ui/toaster";
-import { Toaster as Sonner } from "./components/ui/sonner";
 import { PageLoader } from "./components/PageLoader";
 
 // ============================================
@@ -430,8 +428,7 @@ const App = () => {
             {/* 404 Route */}
             <Route path="*" element={<LazyRoute component={LazyPages.NotFound} />} />
           </Routes>
-          <Toaster />
-          <Sonner />
+          {/* Toasters removed for clean WhatsApp-style UX */}
           </CallProvider>
           </NativeAppProvider>
         </BrowserRouter>

@@ -1402,3 +1402,48 @@ body.gesture-active::before {
   height: 100vh;
   height: 100dvh;
 }
+
+/* ============================
+   2G NETWORK OPTIMIZATIONS
+   ============================ */
+
+/* GPU-accelerated scrolling for all scrollable areas */
+.overflow-y-auto, .overflow-x-auto, .overflow-auto,
+[data-radix-scroll-area-viewport] {
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+  contain: layout style;
+}
+
+/* Reduce paint for cards & list items */
+.card, [data-slot="card"],
+.instant-item, li {
+  contain: layout style paint;
+}
+
+/* Disable animations on slow networks */
+.disable-animations *,
+.disable-animations *::before,
+.disable-animations *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Reduce image quality on 2G via rendering hint */
+@media (prefers-reduced-data: reduce) {
+  img, video {
+    image-rendering: optimizeSpeed;
+  }
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Content-visibility for off-screen elements (huge perf win) */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
+}

@@ -40,10 +40,25 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react-is'],
   },
   build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    cssMinify: true,
+    sourcemap: false,
+    // 2G OPTIMIZATION: Aggressive chunk splitting for parallel download
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-is'],
+          'router': ['react-router-dom'],
+          'query': ['@tanstack/react-query'],
+          'ui-core': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+          ],
+          'supabase': ['@supabase/supabase-js'],
         },
       },
     },
@@ -51,6 +66,13 @@ export default defineConfig(({ mode }) => ({
       include: [/node_modules/],
       transformMixedEsModules: true,
     },
+    // Reduce chunk size for 2G
+    chunkSizeWarningLimit: 300,
+    assetsInlineLimit: 4096, // Inline small assets to reduce requests
   },
-  cacheDir: '.vite-nocache', // Permanent non-timestamped cache dir to force fresh rebuild
+  // CSS optimization
+  css: {
+    devSourcemap: false,
+  },
+  cacheDir: '.vite-nocache',
 }));
