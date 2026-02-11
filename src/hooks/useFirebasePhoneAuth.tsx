@@ -6,7 +6,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/firebase';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+
 
 export type PhoneAuthStep = 'phone' | 'otp' | 'syncing';
 
@@ -25,7 +25,7 @@ interface UseFirebasePhoneAuthReturn {
 }
 
 export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
-  const { toast } = useToast();
+  
   const [step, setStep] = useState<PhoneAuthStep>('phone');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +93,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       
       if (data?.session) {
         setIsExistingUser(true);
-        toast({ title: 'Welcome back! 👋' });
+        console.log('✅ [Auth] Welcome back');
         setLoading(false);
         return true;
       }
@@ -104,7 +104,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     // New user - send OTP immediately
     setIsExistingUser(false);
     return await sendOTP(phone);
-  }, [toast]);
+  }, []);
 
   const sendOTP = async (phone: string): Promise<boolean> => {
     try {
@@ -125,10 +125,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       setCountdown(30); // Reduced from 60s
       setLoading(false);
       
-      toast({
-        title: 'OTP Sent! 📱',
-        description: 'Enter the code from SMS',
-      });
+      console.log('📱 [Auth] OTP sent successfully');
 
       return true;
     } catch (err: any) {

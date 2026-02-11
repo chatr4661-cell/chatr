@@ -1,6 +1,6 @@
 import { useCall } from '@/contexts/CallContext';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+
 
 /**
  * useInitiateCall - Hook to start calls from ANY screen
@@ -27,12 +27,12 @@ export function useInitiateCall() {
     conversationId?: string
   ) => {
     if (isInCall) {
-      toast.warning('You are already in a call');
+      console.log('📞 [Call] Already in a call');
       return null;
     }
     
     if (hasIncomingCall) {
-      toast.warning('You have an incoming call');
+      console.log('📞 [Call] Has incoming call');
       return null;
     }
 
