@@ -41,13 +41,16 @@ import DesktopLayout from "./layouts/DesktopLayout";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 10, // 10 minutes
-      retry: 2,
+      staleTime: 1000 * 60 * 10, // 10 minutes - reduce refetches
+      gcTime: 1000 * 60 * 30, // 30 minutes - keep cache longer
+      retry: 1, // Fewer retries = faster failure recovery
       refetchOnWindowFocus: false,
-      refetchOnMount: true,
+      refetchOnMount: false, // Use cached data on mount
       refetchOnReconnect: true,
       refetchInterval: false,
+    },
+    mutations: {
+      retry: 1,
     },
   },
 });

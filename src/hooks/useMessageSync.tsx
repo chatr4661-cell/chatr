@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { toast as sonnerToast } from 'sonner';
+
 
 interface Message {
   id: string;
@@ -312,9 +312,7 @@ export const useMessageSync = (conversationId: string | null, userId: string | n
                 receiveAudioRef.current.play().catch(e => console.log('Could not play receive sound:', e));
               }
               
-              sonnerToast('New message', {
-                description: (data.content?.substring(0, 50) || '') + ((data.content?.length || 0) > 50 ? '...' : ''),
-              });
+              console.log('📨 [Chat] New message received');
             }
           }
         }

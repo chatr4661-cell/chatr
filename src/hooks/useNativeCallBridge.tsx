@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+
 import { setPreCallMediaStream } from '@/utils/preCallMedia';
 
 /**
@@ -12,7 +12,7 @@ import { setPreCallMediaStream } from '@/utils/preCallMedia';
  * and acquires media permissions.
  */
 export const useNativeCallBridge = () => {
-  const { toast } = useToast();
+  
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -85,7 +85,7 @@ export const useNativeCallBridge = () => {
           });
 
         if (!error) {
-          toast({ title: 'Message sent' });
+          console.log('✅ [NativeCallBridge] Message sent');
         }
       } catch (err) {
         console.error('❌ [NativeCallBridge] Reply error:', err);
@@ -99,7 +99,7 @@ export const useNativeCallBridge = () => {
       window.removeEventListener('nativeCallAction', handleNativeCallAction as EventListener);
       window.removeEventListener('nativeReply', handleNativeReply as EventListener);
     };
-  }, [toast]);
+  }, []);
 };
 
 export default useNativeCallBridge;
