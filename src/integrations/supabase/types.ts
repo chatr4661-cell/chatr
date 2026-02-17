@@ -6095,6 +6095,63 @@ export type Database = {
           },
         ]
       }
+      fcm_delivery_logs: {
+        Row: {
+          api_version: string | null
+          call_id: string
+          caller_id: string
+          created_at: string
+          delivery_latency_ms: number | null
+          device_token_masked: string | null
+          fcm_error: string | null
+          fcm_message_id: string | null
+          fcm_status: string
+          http_status: number | null
+          id: string
+          platform: string | null
+          receiver_id: string
+          tokens_failed: number | null
+          tokens_found: number | null
+          tokens_sent: number | null
+        }
+        Insert: {
+          api_version?: string | null
+          call_id: string
+          caller_id: string
+          created_at?: string
+          delivery_latency_ms?: number | null
+          device_token_masked?: string | null
+          fcm_error?: string | null
+          fcm_message_id?: string | null
+          fcm_status?: string
+          http_status?: number | null
+          id?: string
+          platform?: string | null
+          receiver_id: string
+          tokens_failed?: number | null
+          tokens_found?: number | null
+          tokens_sent?: number | null
+        }
+        Update: {
+          api_version?: string | null
+          call_id?: string
+          caller_id?: string
+          created_at?: string
+          delivery_latency_ms?: number | null
+          device_token_masked?: string | null
+          fcm_error?: string | null
+          fcm_message_id?: string | null
+          fcm_status?: string
+          http_status?: number | null
+          id?: string
+          platform?: string | null
+          receiver_id?: string
+          tokens_failed?: number | null
+          tokens_found?: number | null
+          tokens_sent?: number | null
+        }
+        Relationships: []
+      }
       fcm_tokens: {
         Row: {
           created_at: string | null
@@ -16944,6 +17001,7 @@ export type Database = {
       cleanup_expired_messages: { Args: never; Returns: number }
       cleanup_expired_qr_sessions: { Args: never; Returns: undefined }
       cleanup_expired_visual_search_cache: { Args: never; Returns: undefined }
+      cleanup_old_fcm_delivery_logs: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       create_direct_conversation: {
         Args: { other_user_id: string }
