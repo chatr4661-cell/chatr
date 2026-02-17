@@ -345,6 +345,7 @@ async function handleCallNotificationV1(
   payload: CallNotification
 ) {
   const { receiverId, callerId, callerName, callerAvatar, callerPhone, callId, callType, conversationId } = payload;
+  const startTime = Date.now();
 
   console.log('📞 Processing CALL notification (FCM v1) for receiver:', receiverId);
   console.log('📞 Call type:', callType, '| Call ID:', callId);
@@ -356,6 +357,12 @@ async function handleCallNotificationV1(
   if (!firebaseServiceAccountJson) {
     console.error('❌ FIREBASE_SERVICE_ACCOUNT not configured - cannot use FCM v1 API');
     console.log('⚠️ Falling back to legacy FCM API (not recommended for calls)');
+    // Log validation failure
+    await logDeliveryResult(supabase, {
+      callId, receiverId, callerId, tokensFound: 0, tokensSent: 0, tokensFailed: 0,
+      status: 'config_error', error: 'FIREBASE_SERVICE_ACCOUNT not configured',
+      apiVersion: 'legacy_fallback', latencyMs: Date.now() - startTime,
+    });
     return await handleCallNotificationLegacy(supabase, payload);
   }
 
@@ -375,13 +382,23 @@ async function handleCallNotificationV1(
 
   if (tokenError) {
     console.error('Error fetching device tokens:', tokenError);
+    await logDeliveryResult(supabase, {
+      callId, receiverId, callerId, tokensFound: 0, tokensSent: 0, tokensFailed: 0,
+      status: 'token_fetch_error', error: tokenError.message,
+      apiVersion: 'v1', latencyMs: Date.now() - startTime,
+    });
     throw tokenError;
   }
 
   if (!deviceTokens || deviceTokens.length === 0) {
     console.log('⚠️ No FCM tokens found for receiver:', receiverId);
+    await logDeliveryResult(supabase, {
+      callId, receiverId, callerId, tokensFound: 0, tokensSent: 0, tokensFailed: 0,
+      status: 'no_tokens', error: 'No device tokens registered for receiver',
+      apiVersion: 'v1', latencyMs: Date.now() - startTime,
+    });
     return new Response(
-      JSON.stringify({ success: false, message: 'No device tokens found' }),
+      JSON.stringify({ success: false, message: 'No device tokens found', validation: { status: 'no_tokens', tokensFound: 0 } }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -398,7 +415,9 @@ async function handleCallNotificationV1(
     conversationId: conversationId || ""
   };
 
-  // Send FCM v1 to each device token
+  // Send FCM v1 to each device token and collect per-token results
+  const perTokenResults: Array<{ token: string; platform: string; success: boolean; messageId?: string; error?: string; httpStatus?: number }> = [];
+
   const results = await Promise.allSettled(
     deviceTokens.map(async (tokenData: any) => {
       const result = await sendFCMv1Call(
@@ -408,13 +427,19 @@ async function handleCallNotificationV1(
         callData
       );
 
+      const maskedToken = tokenData.device_token.length > 16
+        ? tokenData.device_token.substring(0, 8) + '...' + tokenData.device_token.substring(tokenData.device_token.length - 8)
+        : tokenData.device_token;
+
       if (result.success) {
+        perTokenResults.push({ token: maskedToken, platform: tokenData.platform, success: true, messageId: result.messageId });
         await supabase
           .from('device_tokens')
           .update({ last_used_at: new Date().toISOString() })
           .eq('device_token', tokenData.device_token);
         return result;
       } else {
+        perTokenResults.push({ token: maskedToken, platform: tokenData.platform, success: false, error: result.error });
         // Check if token is invalid and remove it
         if (result.error?.includes('UNREGISTERED') || 
             result.error?.includes('INVALID_ARGUMENT')) {
@@ -431,13 +456,72 @@ async function handleCallNotificationV1(
 
   const successful = results.filter(r => r.status === 'fulfilled').length;
   const failed = results.filter(r => r.status === 'rejected').length;
+  const latencyMs = Date.now() - startTime;
 
-  console.log(`✅ Call notification (FCM v1) sent to ${successful} device(s), failed: ${failed}`);
+  console.log(`✅ Call notification (FCM v1) sent to ${successful} device(s), failed: ${failed}, latency: ${latencyMs}ms`);
+
+  // Log delivery validation result
+  const firstSuccess = perTokenResults.find(r => r.success);
+  const firstError = perTokenResults.find(r => !r.success);
+  await logDeliveryResult(supabase, {
+    callId,
+    receiverId,
+    callerId,
+    tokensFound: deviceTokens.length,
+    tokensSent: successful,
+    tokensFailed: failed,
+    status: successful > 0 ? 'delivered' : 'all_failed',
+    error: firstError?.error || null,
+    fcmMessageId: firstSuccess?.messageId || null,
+    deviceTokenMasked: firstSuccess?.token || firstError?.token || null,
+    platform: perTokenResults[0]?.platform || null,
+    apiVersion: 'v1',
+    latencyMs,
+  });
+
+  const validation = {
+    status: successful > 0 ? 'delivered' : 'all_failed',
+    tokensFound: deviceTokens.length,
+    tokensSent: successful,
+    tokensFailed: failed,
+    latencyMs,
+    perTokenResults,
+  };
 
   return new Response(
-    JSON.stringify({ success: true, sentTo: successful, failed, api: 'v1' }),
+    JSON.stringify({ success: successful > 0, sentTo: successful, failed, api: 'v1', validation }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
+}
+
+/** Persist FCM delivery validation to fcm_delivery_logs */
+async function logDeliveryResult(supabase: any, data: {
+  callId: string; receiverId: string; callerId: string;
+  tokensFound: number; tokensSent: number; tokensFailed: number;
+  status: string; error?: string | null; fcmMessageId?: string | null;
+  deviceTokenMasked?: string | null; platform?: string | null;
+  apiVersion: string; latencyMs: number;
+}) {
+  try {
+    await supabase.from('fcm_delivery_logs').insert({
+      call_id: data.callId,
+      receiver_id: data.receiverId,
+      caller_id: data.callerId,
+      device_token_masked: data.deviceTokenMasked || null,
+      platform: data.platform || null,
+      fcm_message_id: data.fcmMessageId || null,
+      fcm_status: data.status,
+      fcm_error: data.error || null,
+      api_version: data.apiVersion,
+      tokens_found: data.tokensFound,
+      tokens_sent: data.tokensSent,
+      tokens_failed: data.tokensFailed,
+      delivery_latency_ms: data.latencyMs,
+    });
+    console.log('📊 FCM delivery validation logged:', data.status);
+  } catch (err) {
+    console.error('⚠️ Failed to log FCM delivery:', err);
+  }
 }
 
 /**

@@ -263,7 +263,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         console.log('📲 [CallContext] Sending FCM call notification to:', params.partnerId);
-        const { error: fcmError } = await supabase.functions.invoke('fcm-notify', {
+        const fcmStart = performance.now();
+        const { data: fcmData, error: fcmError } = await supabase.functions.invoke('fcm-notify', {
           body: {
             type: 'call',
             receiverId: params.partnerId,
@@ -276,10 +277,24 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             conversationId: convId,
           }
         });
+        const fcmLatency = Math.round(performance.now() - fcmStart);
+
         if (fcmError) {
-          console.warn('⚠️ [CallContext] FCM notification failed:', fcmError);
+          console.warn('⚠️ [FCM-VALIDATION] Delivery FAILED:', fcmError, `(${fcmLatency}ms)`);
         } else {
-          console.log('✅ [CallContext] FCM call notification sent successfully');
+          const v = fcmData?.validation;
+          if (v) {
+            console.log(`✅ [FCM-VALIDATION] Status: ${v.status} | Tokens: ${v.tokensFound} found, ${v.tokensSent} sent, ${v.tokensFailed} failed | Latency: ${v.latencyMs}ms (round-trip: ${fcmLatency}ms)`);
+            if (v.status === 'no_tokens') {
+              console.warn('🚨 [FCM-VALIDATION] Receiver has NO registered device tokens — push will NOT arrive');
+            } else if (v.status === 'all_failed') {
+              console.warn('🚨 [FCM-VALIDATION] ALL token deliveries failed — push did NOT reach any device');
+            } else if (v.tokensFailed > 0) {
+              console.warn(`⚠️ [FCM-VALIDATION] ${v.tokensFailed}/${v.tokensFound} tokens failed`);
+            }
+          } else {
+            console.log(`✅ [CallContext] FCM call notification sent (${fcmLatency}ms)`);
+          }
         }
       } catch (fcmErr) {
         console.warn('⚠️ [CallContext] FCM notification error:', fcmErr);
