@@ -754,10 +754,11 @@ const ChatEnhancedContent = () => {
 
       console.log('✅ Call created successfully:', data.id);
       
-      // Send FCM push notification to receiver for background/killed app
+      // Send FCM push notification - DB trigger handles this automatically now
+      // This is a redundant safety net; the database trigger fires fcm-call-trigger on INSERT
       try {
-        console.log('📲 Sending FCM call notification to:', otherUser.id);
-        await supabase.functions.invoke('fcm-notify', {
+        console.log('📲 [Chat] Sending FCM call notification to:', otherUser.id);
+        const { data: fcmData, error: fcmError } = await supabase.functions.invoke('fcm-notify', {
           body: {
             type: 'call',
             receiverId: otherUser.id,
@@ -769,9 +770,13 @@ const ChatEnhancedContent = () => {
             callType: callType
           }
         });
-        console.log('✅ FCM call notification sent');
+        if (fcmError) {
+          console.error('❌ [Chat] FCM invoke error:', fcmError);
+        } else {
+          console.log('✅ [Chat] FCM sent:', fcmData?.validation?.status || 'ok');
+        }
       } catch (fcmError) {
-        console.warn('⚠️ FCM notification failed (user may still receive via realtime):', fcmError);
+        console.error('❌ [Chat] FCM invoke exception (DB trigger is backup):', fcmError);
       }
       
       // GlobalCallListener will show the call UI automatically
