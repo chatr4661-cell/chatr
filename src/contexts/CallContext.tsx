@@ -252,6 +252,38 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         status: 'ringing',
         preAcquiredStream: stream,
       });
+
+      // 🔔 CRITICAL: Send FCM push notification to wake receiver's device
+      try {
+        // Get caller's own profile name for the notification
+        const { data: callerProfile } = await supabase
+          .from('profiles')
+          .select('username, avatar_url, phone_number')
+          .eq('id', userId)
+          .single();
+
+        console.log('📲 [CallContext] Sending FCM call notification to:', params.partnerId);
+        const { error: fcmError } = await supabase.functions.invoke('fcm-notify', {
+          body: {
+            type: 'call',
+            receiverId: params.partnerId,
+            callerId: userId,
+            callerName: callerProfile?.username || 'Unknown',
+            callerAvatar: callerProfile?.avatar_url || '',
+            callerPhone: callerProfile?.phone_number || '',
+            callId: call.id,
+            callType: params.callType === 'video' ? 'video' : 'audio',
+            conversationId: convId,
+          }
+        });
+        if (fcmError) {
+          console.warn('⚠️ [CallContext] FCM notification failed:', fcmError);
+        } else {
+          console.log('✅ [CallContext] FCM call notification sent successfully');
+        }
+      } catch (fcmErr) {
+        console.warn('⚠️ [CallContext] FCM notification error:', fcmErr);
+      }
       
       return call.id;
     } catch (err: any) {
