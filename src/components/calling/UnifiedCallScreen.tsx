@@ -255,16 +255,20 @@ export default function UnifiedCallScreen({
         if (localVideoRef.current) {
           const videoTracks = stream.getVideoTracks();
           if (videoTracks.length > 0) {
-            // Always rebind srcObject so camera switch gets the fresh stream
+            // CRITICAL: Force srcObject reassignment even if same stream reference.
+            // Camera switches mutate the stream in-place so we must null then reassign
+            // to force the video element to pick up the new underlying track.
+            localVideoRef.current.srcObject = null;
             localVideoRef.current.srcObject = stream;
             localVideoRef.current.muted = true;
             localVideoRef.current.play().catch(e => console.log('Local video play:', e));
             setLocalVideoActive(true);
-            // Mirror front camera, don't mirror rear
-            const facing = (videoTracks[0].getSettings().facingMode) || 'user';
-            localVideoRef.current.style.transform = facing === 'environment'
-              ? 'translateZ(0)'
-              : 'scaleX(-1) translateZ(0)';
+            // Dynamic mirror: front camera = mirror, rear camera = no mirror
+            const facing = videoTracks[0].getSettings().facingMode || 'user';
+            const mirror = facing !== 'environment';
+            localVideoRef.current.style.transform = mirror
+              ? 'scaleX(-1) translateZ(0)'
+              : 'scaleX(1) translateZ(0)';
           }
         }
       });
@@ -277,25 +281,23 @@ export default function UnifiedCallScreen({
         audioTracks.forEach(t => console.log(`    🔊 Audio: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
         videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
         
-        // CRITICAL: Always setup audio via the DOM <audio> element (must be in DOM for mobile autoplay)
+        // AUDIO: Always route through the DOM <audio> element (bypasses mobile autoplay block)
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = stream;
           remoteAudioRef.current.volume = 1.0;
-          remoteAudioRef.current.play().catch(e => console.log('🔊 [UnifiedCall] Audio autoplay blocked:', e));
+          remoteAudioRef.current.muted = false;
+          remoteAudioRef.current.play().catch(e => console.log('🔊 [UnifiedCall] Audio play:', e));
         }
         
-        // VIDEO PLAYBACK: Works for both desktop and mobile/WebView
-        // Handles muted tracks, srcObject re-assignment, and retry loops
+        // VIDEO: Assign to the <video> element (muted=true bypasses autoplay block)
+        // Audio is already handled above — the video element stays muted
         if (remoteVideoRef.current && videoTracks.length > 0) {
           console.log('📺 [UnifiedCall] Starting aggressive video playback');
           
-          // CRITICAL FIX: Immediately assign srcObject and show video
-          // Don't wait for playback confirmation - show video UI immediately
           remoteVideoRef.current.srcObject = stream;
-          remoteVideoRef.current.muted = false;
+          remoteVideoRef.current.muted = true; // CRITICAL: stay muted — audio is in <audio> element
           
           // OPTIMISTIC: Enable video visibility immediately when tracks exist
-          // This ensures users see video even if playback detection is slow
           const hasActiveTrack = videoTracks.some(t => t.enabled && t.readyState === 'live');
           if (hasActiveTrack) {
             console.log('📺 [UnifiedCall] OPTIMISTIC: Enabling remote video immediately');
@@ -307,7 +309,7 @@ export default function UnifiedCallScreen({
             videoPlaybackCleanupRef.current();
           }
           
-          // Try to play immediately
+          // Try to play immediately (muted, so no autoplay block)
           remoteVideoRef.current.play().catch(() => {
             console.log('📺 [UnifiedCall] Initial play attempt failed, retrying...');
           });
@@ -487,14 +489,14 @@ export default function UnifiedCallScreen({
         if (!remoteVideoRef.current) return;
         
         // OPTIMISTIC: Enable video visibility IMMEDIATELY
-        // Don't wait for playback detection - users should see video right away
         console.log('📺 [UnifiedCall] OPTIMISTIC: Enabling remote video immediately (remoteVideoTrack)');
         setRemoteVideoActive(true);
         setIsVideoOn(true);
         
-        // Force rebind srcObject to trigger video element refresh
+        // Force rebind srcObject — video element stays muted (audio is in <audio> element)
         remoteVideoRef.current.srcObject = null;
         remoteVideoRef.current.srcObject = stream;
+        remoteVideoRef.current.muted = true; // KEEP MUTED — audio is via <audio> element
         
         // Try immediate play
         remoteVideoRef.current.play().catch(() => {
@@ -518,19 +520,13 @@ export default function UnifiedCallScreen({
             },
             onPlaybackFailed: () => {
               console.warn('⚠️ [UnifiedCall] Video upgrade playback failed');
-              // Force enable anyway if video track exists
-              setRemoteVideoActive(true);
+              setRemoteVideoActive(true); // Force enable anyway if video track exists
             }
           }
         );
       });
     };
 
-    initCall();
-    return () => {
-      isMounted = false;
-      cleanup();
-    };
   }, [callId]); // Only depend on callId - prevents re-init on prop changes
 
   // Enable video mid-call
@@ -764,22 +760,29 @@ export default function UnifiedCallScreen({
 
       {/* Background - Full-screen HD Remote Video like FaceTime */}
       {/* ALWAYS show remote video when video is on (don't hide) - let CSS handle visibility */}
+      {/* 
+        REMOTE VIDEO: muted initially to pass mobile/WebView autoplay policy.
+        Audio is handled separately by the hidden <audio> element above.
+        This element is only for the VIDEO track — it does not produce audio output.
+      */}
       <video
         ref={remoteVideoRef}
         autoPlay
         playsInline
+        muted
         className="absolute inset-0 w-full h-full bg-black"
         style={{
           width: '100vw',
           height: '100dvh',
           minHeight: '-webkit-fill-available',
-          objectFit: 'cover', // Edge-to-edge immersive video
-          transform: 'translateZ(0)', // GPU acceleration for smooth video
+          objectFit: 'cover',
+          transform: 'translateZ(0)',
           backfaceVisibility: 'hidden',
           perspective: 1000,
           opacity: remoteVideoActive ? 1 : 0,
-          transition: 'opacity 0.3s ease',
+          transition: 'opacity 0.4s ease',
           zIndex: 1,
+          willChange: 'opacity',
         }}
       />
       
@@ -827,8 +830,11 @@ export default function UnifiedCallScreen({
           muted
           className="w-full h-full object-cover"
           style={{
-            transform: 'scaleX(-1) translateZ(0)',
+            // Mirror is applied dynamically via JS in the localStream event handler
+            // based on facingMode (front=mirror, rear=no-mirror). Do NOT set it here.
+            transform: 'scaleX(-1) translateZ(0)', // default: front camera (will be overridden)
             backfaceVisibility: 'hidden',
+            willChange: 'transform',
           }}
         />
         {/* HD indicator */}

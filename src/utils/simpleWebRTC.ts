@@ -373,26 +373,41 @@ export class SimpleWebRTCCall {
     const isAndroid = typeof navigator !== 'undefined' && 
       /Android/i.test(navigator.userAgent);
     
-    // ULTRA-FAST: Minimal ICE config for <2s connections
+    // ULTRA-FAST + RELIABLE ICE configuration
+    // Multiple STUN servers for fast hole-punching + TURN fallback for strict NAT
     const config: RTCConfiguration = {
       iceServers: [
-        // STUN only - fastest for direct P2P (works 80%+ of the time)
+        // Google STUN - fast, reliable, free
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        // Single TURN for NAT traversal fallback
+        { urls: 'stun:stun2.l.google.com:19302' },
+        // Cloudflare STUN - low latency worldwide
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        // Metered TURN - reliable NAT traversal for strict NAT/firewalls
         {
-          urls: 'turn:openrelay.metered.ca:443',
+          urls: [
+            'turn:a.relay.metered.ca:80',
+            'turn:a.relay.metered.ca:80?transport=tcp',
+            'turn:a.relay.metered.ca:443',
+            'turns:a.relay.metered.ca:443?transport=tcp',
+          ],
           username: 'openrelayproject',
-          credential: 'openrelayproject'
-        }
+          credential: 'openrelayproject',
+        },
+        // Fallback TURN - open relay (lower priority)
+        {
+          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject',
+        },
       ],
       iceTransportPolicy: 'all',
       bundlePolicy: 'max-bundle',
       rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 2, // Minimal pre-gathering
+      iceCandidatePoolSize: 4, // Pre-gather more candidates for faster connection
     };
 
-    console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
+    console.log(`🔧 [WebRTC] Creating FAST+RELIABLE peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
     
     // ANDROID FIX: Force VP8 codec for better Android WebView compatibility
@@ -1319,8 +1334,8 @@ export class SimpleWebRTCCall {
       return this.currentFacingMode;
     }
     
-    const videoTrack = this.localStream?.getVideoTracks()[0];
-    if (!videoTrack) throw new Error('No video track');
+    const oldVideoTrack = this.localStream?.getVideoTracks()[0];
+    if (!oldVideoTrack) throw new Error('No video track');
 
     this.isSwitchingCamera = true;
     
@@ -1343,8 +1358,8 @@ export class SimpleWebRTCCall {
       for (const profile of cameraProfiles) {
         try {
           console.log(`📷 [WebRTC] Trying camera profile: ${profile.label}`);
-          const newStream = await navigator.mediaDevices.getUserMedia({ video: profile });
-          newVideoTrack = newStream.getVideoTracks()[0];
+          const tempStream = await navigator.mediaDevices.getUserMedia({ video: profile });
+          newVideoTrack = tempStream.getVideoTracks()[0];
           if (newVideoTrack) {
             console.log(`✅ [WebRTC] Camera acquired with profile: ${profile.label}`);
             break;
@@ -1358,25 +1373,32 @@ export class SimpleWebRTCCall {
         throw new Error('All camera profiles failed');
       }
 
-      // Replace track in peer connection with timeout
-      const replacePromise = this.replaceTrack(newVideoTrack);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Track replace timeout')), 5000)
-      );
-      
-      await Promise.race([replacePromise, timeoutPromise]);
+      // Replace track in the peer connection sender (causes remote side to switch cameras)
+      const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) {
+        const replacePromise = sender.replaceTrack(newVideoTrack);
+        const timeoutPromise = new Promise<void>((_, reject) => 
+          setTimeout(() => reject(new Error('Track replace timeout')), 5000)
+        );
+        await Promise.race([replacePromise, timeoutPromise]);
+        console.log('📷 [WebRTC] Track replaced in sender successfully');
+      }
 
-      // Stop old track AFTER successful replacement
-      videoTrack.stop();
+      // Stop the OLD track AFTER successful replacement to avoid camera race
+      oldVideoTrack.stop();
       
-      // Update state
+      // Mutate localStream IN-PLACE: swap the old track for the new one
+      // This preserves the same MediaStream reference so srcObject stays valid
+      if (this.localStream) {
+        this.localStream.removeTrack(oldVideoTrack);
+        this.localStream.addTrack(newVideoTrack);
+      }
+      
+      // Update facing mode state
       this.currentFacingMode = newFacing;
       
-      // Force re-emit localStream to update UI
+      // Re-emit localStream so UI can update mirror transform and re-bind srcObject
       if (this.localStream) {
-        // Create a fresh stream reference to force UI update
-        const freshStream = new MediaStream(this.localStream.getTracks());
-        this.localStream = freshStream;
         this.emit('localStream', this.localStream);
       }
 
