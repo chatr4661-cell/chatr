@@ -66,7 +66,7 @@ export default function UnifiedCallScreen({
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null); // Must be a DOM element for mobile autoplay
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
@@ -268,14 +268,12 @@ export default function UnifiedCallScreen({
         audioTracks.forEach(t => console.log(`    🔊 Audio: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
         videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
         
-        // CRITICAL: Always setup audio via Audio element
-        if (!remoteAudioRef.current) {
-          remoteAudioRef.current = new Audio();
-          remoteAudioRef.current.autoplay = true;
+        // CRITICAL: Always setup audio via the DOM <audio> element (must be in DOM for mobile autoplay)
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = stream;
           remoteAudioRef.current.volume = 1.0;
+          remoteAudioRef.current.play().catch(e => console.log('🔊 [UnifiedCall] Audio autoplay blocked:', e));
         }
-        remoteAudioRef.current.srcObject = stream;
-        remoteAudioRef.current.play().catch(e => console.log('Audio autoplay:', e));
         
         // VIDEO PLAYBACK: Works for both desktop and mobile/WebView
         // Handles muted tracks, srcObject re-assignment, and retry loops
@@ -589,7 +587,7 @@ export default function UnifiedCallScreen({
     
     if (remoteAudioRef.current) {
       remoteAudioRef.current.pause();
-      remoteAudioRef.current.srcObject = null;
+      // Don't set srcObject=null here - React manages the DOM element lifecycle
     }
     if (webrtcRef.current) {
       webrtcRef.current.end();
@@ -759,6 +757,15 @@ export default function UnifiedCallScreen({
       }}
       onClick={() => resetControlsTimer()}
     >
+      {/* CRITICAL: Hidden audio element in DOM for remote audio - needed for mobile/WebView autoplay policy */}
+      {/* Audio elements NOT in DOM are blocked by browsers on mobile. This must stay rendered. */}
+      <audio
+        ref={remoteAudioRef}
+        autoPlay
+        playsInline
+        style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
+      />
+
       {/* Background - Full-screen HD Remote Video like FaceTime */}
       {/* ALWAYS show remote video when video is on (don't hide) - let CSS handle visibility */}
       <video
