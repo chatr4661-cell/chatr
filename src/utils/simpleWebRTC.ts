@@ -169,7 +169,20 @@ export class SimpleWebRTCCall {
       ]);
 
       // Get media (may already be provided)
-      if (!this.localStream) {
+      // CRITICAL: If this is a video call but preAcquiredStream has no live video tracks,
+      // we MUST re-acquire with video. A voice-to-video upgrade or audio-only pre-stream
+      // would otherwise leave the call stuck on "Starting..."
+      const preHasLiveVideo = this.localStream
+        ? this.localStream.getVideoTracks().some(t => t.readyState !== 'ended')
+        : false;
+
+      if (!this.localStream || (this.isVideo && !preHasLiveVideo)) {
+        if (this.localStream && this.isVideo && !preHasLiveVideo) {
+          console.log('🎬 [WebRTC] Pre-acquired stream has no live video — re-acquiring for video call');
+          // Stop old tracks cleanly before acquiring fresh stream
+          this.localStream.getTracks().forEach(t => t.stop());
+          this.localStream = null;
+        }
         await this.acquireMedia();
       } else {
         this.emit('localStream', this.localStream);
