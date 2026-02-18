@@ -250,13 +250,22 @@ export default function UnifiedCallScreen({
     
     const attachEventHandlers = (call: SimpleWebRTCCall) => {
       call.on('localStream', (stream: MediaStream) => {
-        console.log('📹 [UnifiedCall] Local stream received');
-        setLocalStream(stream); // Store for recording and other features
-        if (localVideoRef.current && stream.getVideoTracks().length > 0) {
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.muted = true;
-          localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-          setLocalVideoActive(true);
+        console.log('📹 [UnifiedCall] Local stream received/updated');
+        setLocalStream(stream);
+        if (localVideoRef.current) {
+          const videoTracks = stream.getVideoTracks();
+          if (videoTracks.length > 0) {
+            // Always rebind srcObject so camera switch gets the fresh stream
+            localVideoRef.current.srcObject = stream;
+            localVideoRef.current.muted = true;
+            localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+            setLocalVideoActive(true);
+            // Mirror front camera, don't mirror rear
+            const facing = (videoTracks[0].getSettings().facingMode) || 'user';
+            localVideoRef.current.style.transform = facing === 'environment'
+              ? 'translateZ(0)'
+              : 'scaleX(-1) translateZ(0)';
+          }
         }
       });
 
@@ -672,25 +681,12 @@ export default function UnifiedCallScreen({
       return;
     }
     try {
+      // switchCamera() in simpleWebRTC re-emits 'localStream' with the fresh stream.
+      // The 'localStream' event handler above handles srcObject rebind + mirror transform.
+      // No manual DOM manipulation needed here — avoids stale stream race condition.
       const newFacing = await webrtcRef.current.switchCamera();
-      
-      // Update local video preview mirror based on facing mode
-      // Also re-bind the srcObject in case the stream changed
-      if (localVideoRef.current && webrtcRef.current) {
-        const pc = webrtcRef.current.getPeerConnection?.();
-        const sender = pc?.getSenders().find(s => s.track?.kind === 'video');
-        if (sender?.track && localVideoRef.current.srcObject) {
-          // The stream object is the same, but we need to ensure the new track is rendering
-          const stream = localVideoRef.current.srcObject as MediaStream;
-          // Force re-render by reassigning
-          localVideoRef.current.srcObject = null;
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch(() => {});
-        }
-        // Mirror for front camera, no mirror for rear
-        localVideoRef.current.style.transform = newFacing === 'user' ? 'scaleX(-1) translateZ(0)' : 'translateZ(0)';
-      }
-      toast.success(newFacing === 'environment' ? 'Rear camera' : 'Front camera');
+      console.log(`📷 [UnifiedCall] Camera switched to: ${newFacing}`);
+      toast.success(newFacing === 'environment' ? '🔭 Rear camera' : '🤳 Front camera');
     } catch (e) { 
       console.error('Switch camera error:', e);
       toast.error('Could not switch camera'); 

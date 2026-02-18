@@ -96,6 +96,15 @@ export function useNativeRingtone({
       stopVibration();
       return;
     }
+
+    // CRITICAL: On native platform, the OS phone ringer (TelecomManager / CallKit)
+    // handles all audio. Playing a web Audio element on top causes DOUBLE ringing.
+    // Only vibration haptics are allowed here (handled separately in IncomingCallScreen).
+    if (Capacitor.isNativePlatform()) {
+      console.log('📱 [Ringtone] Native platform — skipping web audio, OS ringer handles it');
+      startVibration();
+      return () => stopVibration();
+    }
     
     console.log('🔔 Starting native ringtone:', ringtoneUrl);
     playCountRef.current = 0;

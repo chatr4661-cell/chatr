@@ -78,43 +78,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   
   const isNative = Capacitor.isNativePlatform();
 
-  // Subscribe to incoming calls
-  useEffect(() => {
-    if (!userId || isNative) return; // Native handles via TelecomManager
-    
-    const channel = supabase
-      .channel(`call-ctx-incoming:${userId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'calls',
-        filter: `receiver_id=eq.${userId}`,
-      }, async (payload) => {
-        const call = payload.new as any;
-        if (call.status !== 'ringing') return;
-        if (activeCallRef.current || incomingCallRef.current) return; // Already in/receiving call
-        
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username, avatar_url, phone_number')
-          .eq('id', call.caller_id)
-          .maybeSingle();
-        
-        setIncomingCall({
-          id: call.id,
-          partnerId: call.caller_id,
-          partnerName: profile?.username || call.caller_name || 'Unknown',
-          partnerAvatar: profile?.avatar_url || call.caller_avatar,
-          partnerPhone: profile?.phone_number || call.caller_phone,
-          callType: call.call_type,
-          isInitiator: false,
-          status: 'ringing',
-        });
-      })
-      .subscribe();
-    
-    return () => { supabase.removeChannel(channel); };
-  }, [userId, isNative]);
+  // NOTE: Incoming call subscriptions are handled exclusively by GlobalCallListener.
+  // CallContext only provides shared state (answerCall, rejectCall, endCall).
+  // DO NOT add a second incoming-calls subscription here — it causes duplicate ringing.
 
   // Subscribe to call status updates (for both initiator and receiver)
   useEffect(() => {
