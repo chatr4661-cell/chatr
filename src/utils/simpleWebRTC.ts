@@ -183,6 +183,12 @@ export class SimpleWebRTCCall {
         });
       }
 
+      // ANDROID FIX: Force VP8 codec AFTER tracks are added (transceivers exist now)
+      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+      if (isAndroid && this.isVideo) {
+        this.forceVP8Codec();
+      }
+
       // Fetch past signals (for late joiners) with retry for race condition
       await this.fetchPastSignals();
       
@@ -409,27 +415,24 @@ export class SimpleWebRTCCall {
 
     console.log(`🔧 [WebRTC] Creating FAST+RELIABLE peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
-    
-    // ANDROID FIX: Force VP8 codec for better Android WebView compatibility
-    if (isAndroid && this.isVideo) {
-      this.forceVP8Codec();
-    }
+    // Note: VP8 codec preference is applied AFTER tracks are added in start(), not here
 
     // Handle remote tracks - CRITICAL for bidirectional video
     this.pc.ontrack = (event) => {
       const track = event.track;
       const [remoteStream] = event.streams;
       console.log(`📺 [WebRTC] Remote track received: ${track.kind}, id: ${track.id.slice(0,8)}, stream tracks: ${remoteStream.getTracks().length}`);
-      
-      // Emit stream for EVERY track to ensure UI updates for both audio AND video
+
+      // Always emit remoteStream so audio is hooked up immediately
       this.emit('remoteStream', remoteStream);
-      
-      // CRITICAL for video upgrade: Emit dedicated event when VIDEO track arrives
-      // This ensures the UI rebinds the video element even if stream reference is same
+
+      // CRITICAL for video upgrade: emit dedicated event ONLY for video tracks.
+      // Use a microtask so the track is fully attached to the stream before the UI acts on it.
       if (track.kind === 'video') {
-        console.log(`📹 [WebRTC] VIDEO track settings:`, track.getSettings());
-        // Emit special event for video track arrival (handles mid-call upgrades)
-        this.emit('remoteVideoTrack', { track, stream: remoteStream });
+        Promise.resolve().then(() => {
+          console.log(`📹 [WebRTC] VIDEO track live, settings:`, track.getSettings());
+          this.emit('remoteVideoTrack', { track, stream: remoteStream });
+        });
       }
     };
 
