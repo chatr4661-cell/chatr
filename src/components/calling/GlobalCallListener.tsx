@@ -517,21 +517,15 @@ export function GlobalCallListener() {
     // Clear native call state when call ends
     clearNativeCallState();
 
+    // Update DB status to ended - partner detects this via Realtime subscription in UnifiedCallScreen
+    // NOTE: UnifiedCallScreen.handleEndCall also does this, so this is a safety fallback only
     await supabase
       .from("calls")
       .update({ status: "ended", ended_at: new Date().toISOString() })
       .eq("id", activeCall.id);
 
-    try {
-      await sendSignal({
-        type: "answer" as any,
-        callId: activeCall.id,
-        data: { ended: true },
-        to: activeCall.partnerId,
-      });
-    } catch (error) {
-      console.error("Failed to send end signal:", error);
-    }
+    // DO NOT send a bogus "answer" signal - it corrupts WebRTC signaling state on the receiver
+    // The DB status change (above) is sufficient for partner to detect call ended
 
     setActiveCall(null);
   };
