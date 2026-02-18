@@ -72,6 +72,8 @@ export default function UnifiedCallScreen({
   const userIdRef = useRef<string | null>(null);
   const videoPlaybackCleanupRef = useRef<(() => void) | null>(null);
   const trackRecoveryCleanupRef = useRef<(() => void) | null>(null);
+  // Ref so event handlers (closures) always see the latest value without stale captures
+  const isVideoOnRef = useRef(isVideoOn);
 
   const isVideo = callType === 'video' || isVideoOn || videoEnabled;
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -84,10 +86,9 @@ export default function UnifiedCallScreen({
     stopAllRingtones();
   }, []);
 
-  // Keep a stable reference for realtime callbacks (prevents stale closures)
-  useEffect(() => {
-    callStateRef.current = callState;
-  }, [callState]);
+  // Keep stable references for realtime callbacks (prevents stale closures)
+  useEffect(() => { callStateRef.current = callState; }, [callState]);
+  useEffect(() => { isVideoOnRef.current = isVideoOn; }, [isVideoOn]);
 
   // Ultra-low bandwidth optimizations
   // Note: peerConnection is accessed lazily since webrtcRef.current may not be set yet
@@ -253,41 +254,50 @@ export default function UnifiedCallScreen({
         console.log('📹 [UnifiedCall] Local stream received/updated');
         setLocalStream(stream);
 
-        const videoTracks = stream.getVideoTracks();
+        // Only count tracks that are truly live (not ended/muted-off)
+        const videoTracks = stream.getVideoTracks().filter(t => t.readyState !== 'ended');
 
         if (videoTracks.length > 0) {
-          // Show PIP immediately so the video element is available
+          // Update state immediately so PIP overlay becomes visible
           setLocalVideoActive(true);
 
           const attachToVideo = (el: HTMLVideoElement) => {
-            // Only reassign srcObject if the stream or track changed to avoid flicker
-            const existing = el.srcObject as MediaStream | null;
-            const existingTrack = existing?.getVideoTracks()[0];
-            const newTrack = videoTracks[0];
-
-            if (existingTrack?.id !== newTrack.id) {
-              // Different track (camera switch or new stream) — reassign
-              el.srcObject = stream;
-            }
+            // ALWAYS force-rebind srcObject. The dedup check caused the video element to
+            // never receive the stream when the same MediaStream reference was mutated
+            // in-place (e.g. camera switch via removeTrack/addTrack). Resetting to null
+            // first triggers the browser's media pipeline to flush and restart cleanly.
+            el.srcObject = null;
+            el.srcObject = stream;
             el.muted = true;
 
             // Dynamic mirror: front camera = mirror, rear camera = no mirror
-            const facing = newTrack.getSettings().facingMode || 'user';
-            const mirror = facing !== 'environment';
-            el.style.transform = mirror
+            const facing = videoTracks[0].getSettings().facingMode || 'user';
+            el.style.transform = (facing !== 'environment')
               ? 'scaleX(-1) translateZ(0)'
               : 'scaleX(1) translateZ(0)';
 
-            el.play().catch(e => console.log('📹 Local video play:', e));
+            // Aggressive play — retry once on failure (handles Android readyState race)
+            const tryPlay = () =>
+              el.play().catch(() => setTimeout(() => el.play().catch(() => {}), 200));
+            tryPlay();
           };
 
           if (localVideoRef.current) {
             attachToVideo(localVideoRef.current);
           } else {
-            // Ref not yet mounted — wait one animation frame for React to render it
+            // Ref not yet mounted — wait for React to render the PIP element
             requestAnimationFrame(() => {
               if (localVideoRef.current) attachToVideo(localVideoRef.current);
             });
+          }
+        } else {
+          // Stream arrived with no live video tracks (camera denied / audio-only fallback).
+          // Reset video UI so the user gets clear feedback instead of "Starting..." forever.
+          console.warn('📹 [UnifiedCall] localStream has no live video tracks — resetting video UI');
+          setLocalVideoActive(false);
+          if (isVideoOnRef.current) {
+            setIsVideoOn(false);
+            toast.error('Camera unavailable — check permissions');
           }
         }
       });
@@ -514,14 +524,25 @@ export default function UnifiedCallScreen({
       setIsVideoOn(true);
 
       try {
+        let result: MediaStream | null = null;
         if (isInitiator) {
           // Initiator performs the renegotiation (prevents offer glare)
-          await call.addVideoToCall();
+          result = await call.addVideoToCall();
         } else {
           // Non-initiator: enable local camera WITHOUT renegotiation,
           // then ask initiator to renegotiate.
-          await call.enableLocalVideoAfterAccept();
+          result = await call.enableLocalVideoAfterAccept();
           await call.sendVideoEnable();
+        }
+
+        if (!result || result.getVideoTracks().filter(t => t.readyState !== 'ended').length === 0) {
+          // Camera acquisition failed — addVideoToCall() returned null or audio-only stream.
+          // The 'localStream' event handler will also reset isVideoOn, but set it here too
+          // for instant feedback without waiting for the event.
+          console.warn('📹 [UnifiedCall] addVideoToCall returned no video — resetting UI');
+          setIsVideoOn(false);
+          // toast is shown by the localStream handler
+          return;
         }
         // 'localStream' event handler handles srcObject bind + mirror + play + setLocalVideoActive
         toast.success('Video enabled');
