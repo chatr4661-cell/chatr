@@ -72,8 +72,6 @@ export default function UnifiedCallScreen({
   const userIdRef = useRef<string | null>(null);
   const videoPlaybackCleanupRef = useRef<(() => void) | null>(null);
   const trackRecoveryCleanupRef = useRef<(() => void) | null>(null);
-  // Ref so event handlers (closures) always see the latest value without stale captures
-  const isVideoOnRef = useRef(isVideoOn);
 
   const isVideo = callType === 'video' || isVideoOn || videoEnabled;
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -86,9 +84,10 @@ export default function UnifiedCallScreen({
     stopAllRingtones();
   }, []);
 
-  // Keep stable references for realtime callbacks (prevents stale closures)
-  useEffect(() => { callStateRef.current = callState; }, [callState]);
-  useEffect(() => { isVideoOnRef.current = isVideoOn; }, [isVideoOn]);
+  // Keep a stable reference for realtime callbacks (prevents stale closures)
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
 
   // Ultra-low bandwidth optimizations
   // Note: peerConnection is accessed lazily since webrtcRef.current may not be set yet
@@ -253,88 +252,170 @@ export default function UnifiedCallScreen({
       call.on('localStream', (stream: MediaStream) => {
         console.log('📹 [UnifiedCall] Local stream received/updated');
         setLocalStream(stream);
-
-        // Only count tracks that are truly live (not ended/muted-off)
-        const videoTracks = stream.getVideoTracks().filter(t => t.readyState !== 'ended');
-
-        if (videoTracks.length > 0) {
-          // Update state immediately so PIP overlay becomes visible
-          setLocalVideoActive(true);
-
-          const attachToVideo = (el: HTMLVideoElement) => {
-            // ALWAYS force-rebind srcObject. The dedup check caused the video element to
-            // never receive the stream when the same MediaStream reference was mutated
-            // in-place (e.g. camera switch via removeTrack/addTrack). Resetting to null
-            // first triggers the browser's media pipeline to flush and restart cleanly.
-            el.srcObject = null;
-            el.srcObject = stream;
-            el.muted = true;
-
-            // Dynamic mirror: front camera = mirror, rear camera = no mirror
-            const facing = videoTracks[0].getSettings().facingMode || 'user';
-            el.style.transform = (facing !== 'environment')
-              ? 'scaleX(-1) translateZ(0)'
-              : 'scaleX(1) translateZ(0)';
-
-            // Aggressive play — retry once on failure (handles Android readyState race)
-            const tryPlay = () =>
-              el.play().catch(() => setTimeout(() => el.play().catch(() => {}), 200));
-            tryPlay();
-          };
-
-          if (localVideoRef.current) {
-            attachToVideo(localVideoRef.current);
-          } else {
-            // Ref not yet mounted — wait for React to render the PIP element
-            requestAnimationFrame(() => {
-              if (localVideoRef.current) attachToVideo(localVideoRef.current);
-            });
-          }
-        } else {
-          // Stream arrived with no live video tracks (camera denied / audio-only fallback).
-          // Reset video UI so the user gets clear feedback instead of "Starting..." forever.
-          console.warn('📹 [UnifiedCall] localStream has no live video tracks — resetting video UI');
-          setLocalVideoActive(false);
-          if (isVideoOnRef.current) {
-            setIsVideoOn(false);
-            toast.error('Camera unavailable — check permissions');
+        if (localVideoRef.current) {
+          const videoTracks = stream.getVideoTracks();
+          if (videoTracks.length > 0) {
+            // Always rebind srcObject so camera switch gets the fresh stream
+            localVideoRef.current.srcObject = stream;
+            localVideoRef.current.muted = true;
+            localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+            setLocalVideoActive(true);
+            // Mirror front camera, don't mirror rear
+            const facing = (videoTracks[0].getSettings().facingMode) || 'user';
+            localVideoRef.current.style.transform = facing === 'environment'
+              ? 'translateZ(0)'
+              : 'scaleX(-1) translateZ(0)';
           }
         }
       });
 
       call.on('remoteStream', (stream: MediaStream) => {
-        console.log('🔊 [UnifiedCall] Remote stream received - hooking up audio');
-
-        // AUDIO ONLY: Route through the DOM <audio> element (bypasses mobile autoplay block).
-        // Video is handled exclusively by the 'remoteVideoTrack' event below.
-        if (remoteAudioRef.current) {
-          // Only reassign if stream changed
-          if (remoteAudioRef.current.srcObject !== stream) {
-            remoteAudioRef.current.srcObject = stream;
-          }
-          remoteAudioRef.current.volume = 1.0;
-          remoteAudioRef.current.muted = false;
-          remoteAudioRef.current.play().catch(e => {
-            // Autoplay blocked — will play once user interacts (standard browser behaviour)
-            console.log('🔊 [UnifiedCall] Audio autoplay deferred:', e.name);
-          });
-        }
-
-        // If stream already has video tracks (e.g. call started as video),
-        // attach to video element immediately too
+        console.log('📺 [UnifiedCall] Remote stream received');
+        const audioTracks = stream.getAudioTracks();
         const videoTracks = stream.getVideoTracks();
-        if (videoTracks.length > 0 && remoteVideoRef.current) {
-          if (remoteVideoRef.current.srcObject !== stream) {
-            remoteVideoRef.current.srcObject = stream;
-            remoteVideoRef.current.muted = true;
-          }
-          remoteVideoRef.current.play().catch(() => {});
+        console.log(`  → Audio tracks: ${audioTracks.length}, Video tracks: ${videoTracks.length}`);
+        audioTracks.forEach(t => console.log(`    🔊 Audio: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
+        videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
+        
+        // CRITICAL: Always setup audio via the DOM <audio> element (must be in DOM for mobile autoplay)
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = stream;
+          remoteAudioRef.current.volume = 1.0;
+          remoteAudioRef.current.play().catch(e => console.log('🔊 [UnifiedCall] Audio autoplay blocked:', e));
+        }
+        
+        // VIDEO PLAYBACK: Works for both desktop and mobile/WebView
+        // Handles muted tracks, srcObject re-assignment, and retry loops
+        if (remoteVideoRef.current && videoTracks.length > 0) {
+          console.log('📺 [UnifiedCall] Starting aggressive video playback');
+          
+          // CRITICAL FIX: Immediately assign srcObject and show video
+          // Don't wait for playback confirmation - show video UI immediately
+          remoteVideoRef.current.srcObject = stream;
+          remoteVideoRef.current.muted = false;
+          
+          // OPTIMISTIC: Enable video visibility immediately when tracks exist
+          // This ensures users see video even if playback detection is slow
           const hasActiveTrack = videoTracks.some(t => t.enabled && t.readyState === 'live');
           if (hasActiveTrack) {
-            console.log('📺 [UnifiedCall] OPTIMISTIC: video active from initial stream');
+            console.log('📺 [UnifiedCall] OPTIMISTIC: Enabling remote video immediately');
             setRemoteVideoActive(true);
           }
+          
+          // Cleanup previous playback attempt
+          if (videoPlaybackCleanupRef.current) {
+            videoPlaybackCleanupRef.current();
+          }
+          
+          // Try to play immediately
+          remoteVideoRef.current.play().catch(() => {
+            console.log('📺 [UnifiedCall] Initial play attempt failed, retrying...');
+          });
+          
+          // Start aggressive playback with retry loop (still needed for edge cases)
+          videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
+            remoteVideoRef.current,
+            stream,
+            {
+              maxRetries: 15,
+              retryIntervalMs: 400,
+              onPlaybackStarted: () => {
+                console.log('✅ [UnifiedCall] Remote video PLAYING (aggressive)');
+                setRemoteVideoActive(true);
+              },
+              onPlaybackFailed: () => {
+                console.warn('⚠️ [UnifiedCall] Video playback failed after all retries');
+                // Fallback: force-enable if video element has srcObject with video tracks
+                if (remoteVideoRef.current?.srcObject) {
+                  const currentStream = remoteVideoRef.current.srcObject as MediaStream;
+                  if (currentStream.getVideoTracks().length > 0) {
+                    console.log('🔄 [UnifiedCall] Fallback: enabling remote video state');
+                    setRemoteVideoActive(true);
+                  }
+                }
+              }
+            }
+          );
+          
+          // SAFETY: Fast fallback check after 1 second
+          setTimeout(() => {
+            setRemoteVideoActive(current => {
+              if (!current && remoteVideoRef.current?.srcObject) {
+                const currentStream = remoteVideoRef.current.srcObject as MediaStream;
+                if (currentStream.getVideoTracks().length > 0) {
+                  console.log('🔄 [UnifiedCall] 1s fallback: forcing remote video active');
+                  remoteVideoRef.current.play().catch(() => {});
+                  return true;
+                }
+              }
+              return current;
+            });
+          }, 1000);
+          
+          // SAFETY: Additional fallback check after 3 seconds
+          setTimeout(() => {
+            setRemoteVideoActive(current => {
+              if (!current && remoteVideoRef.current?.srcObject) {
+                const currentStream = remoteVideoRef.current.srcObject as MediaStream;
+                if (currentStream.getVideoTracks().length > 0) {
+                  console.log('🔄 [UnifiedCall] 3s fallback: forcing remote video active');
+                  remoteVideoRef.current.play().catch(() => {});
+                  return true;
+                }
+              }
+              return current;
+            });
+          }, 3000);
+        } else if (remoteVideoRef.current) {
+          // No video tracks yet, but assign stream for later
+          console.log('📺 [UnifiedCall] Assigning stream (no video tracks yet)');
+          remoteVideoRef.current.srcObject = stream;
         }
+        
+        // ANDROID WEBVIEW FIX: Attach comprehensive track recovery handlers
+        // This handles onunmute, onended, onmute, and track additions
+        if (trackRecoveryCleanupRef.current) {
+          trackRecoveryCleanupRef.current();
+        }
+        
+        trackRecoveryCleanupRef.current = attachVideoTrackRecoveryHandlers(
+          stream,
+          remoteVideoRef.current!,
+          (active) => {
+            console.log(`📺 [UnifiedCall] Video active state: ${active}`);
+            setRemoteVideoActive(active);
+            
+            // If video became active, ensure we're playing
+            if (active && remoteVideoRef.current) {
+              remoteVideoRef.current.play().catch(() => {});
+            }
+          }
+        );
+        
+        // BIDIRECTIONAL: Listen for tracks added AFTER initial stream
+        // This handles FaceTime-style video upgrade AND delayed video from receiver
+        stream.onaddtrack = (event) => {
+          console.log('➕ [UnifiedCall] Track added:', event.track.kind, event.track.label);
+          if (event.track.kind === 'video' && remoteVideoRef.current) {
+            console.log('📺 [UnifiedCall] Video track added - starting aggressive playback');
+            
+            // Cleanup and restart aggressive playback
+            if (videoPlaybackCleanupRef.current) {
+              videoPlaybackCleanupRef.current();
+            }
+            
+            videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
+              remoteVideoRef.current,
+              stream,
+              {
+                maxRetries: 15,
+                retryIntervalMs: 400,
+                onPlaybackStarted: () => setRemoteVideoActive(true),
+                onPlaybackFailed: () => console.warn('Dynamic video playback failed')
+              }
+            );
+          }
+        };
       });
 
       call.on('connected', () => {
@@ -380,60 +461,76 @@ export default function UnifiedCallScreen({
         console.log('📹 [UnifiedCall] Renegotiation complete - checking for video upgrade');
       });
 
-      // Auto video enable: partner clicked video, we auto-enable too.
-      // addVideoToCall() re-emits 'localStream', which the handler above already handles.
-      // We just need to update the UI state here.
-      call.on('videoEnableRequested', async (_fromUserId: string) => {
+      // Auto video enable: partner clicked video, we auto-enable too
+      call.on('videoEnableRequested', async (fromUserId: string) => {
         console.log('📹 [UnifiedCall] Partner requested video enable - auto-enabling...');
         try {
-          await webrtcRef.current?.addVideoToCall();
-          // localStream event handler takes care of srcObject + mirror + play
-          setIsVideoOn(true);
-          toast.success('Video enabled');
+          const videoStream = await webrtcRef.current?.addVideoToCall();
+          if (videoStream && localVideoRef.current) {
+            localVideoRef.current.srcObject = videoStream;
+            localVideoRef.current.muted = true;
+            await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+            setLocalVideoActive(true);
+            setIsVideoOn(true);
+            toast.success('Video enabled');
+          }
         } catch (e) {
           console.warn('📹 [UnifiedCall] Could not auto-enable video:', e);
         }
       });
 
-      // Remote VIDEO track arrived (initial stream or mid-call upgrade)
+      // CRITICAL: Handle remote video track arrival (for mid-call upgrades)
+      // This ensures video plays even when stream reference doesn't change
       call.on('remoteVideoTrack', ({ track, stream }: { track: MediaStreamTrack; stream: MediaStream }) => {
-        console.log('📺 [UnifiedCall] Remote VIDEO track - attaching to video element');
-
-        const el = remoteVideoRef.current;
-        if (!el) return;
-
-        // Attach stream to video element if not already the same stream
-        if (el.srcObject !== stream) {
-          el.srcObject = stream;
-        }
-        el.muted = true; // KEEP MUTED — audio is via <audio> element
-
-        // Show video UI immediately (optimistic)
+        console.log('📺 [UnifiedCall] Remote VIDEO track received - forcing playback');
+        
+        if (!remoteVideoRef.current) return;
+        
+        // OPTIMISTIC: Enable video visibility IMMEDIATELY
+        // Don't wait for playback detection - users should see video right away
+        console.log('📺 [UnifiedCall] OPTIMISTIC: Enabling remote video immediately (remoteVideoTrack)');
         setRemoteVideoActive(true);
         setIsVideoOn(true);
-
-        // Play — this succeeds because the element is muted (bypasses autoplay policy)
-        el.play().catch(e => {
-          console.log('📺 [UnifiedCall] remoteVideoTrack play failed:', e.name);
-          // One retry after a short delay (handles readyState < HAVE_ENOUGH_DATA race)
-          setTimeout(() => el.play().catch(() => {}), 300);
+        
+        // Force rebind srcObject to trigger video element refresh
+        remoteVideoRef.current.srcObject = null;
+        remoteVideoRef.current.srcObject = stream;
+        
+        // Try immediate play
+        remoteVideoRef.current.play().catch(() => {
+          console.log('📺 [UnifiedCall] Initial remoteVideoTrack play failed, retrying...');
         });
-
-        // Also restart track recovery handlers for the new track
-        if (trackRecoveryCleanupRef.current) {
-          trackRecoveryCleanupRef.current();
+        
+        // Start aggressive playback for the new video track (backup)
+        if (videoPlaybackCleanupRef.current) {
+          videoPlaybackCleanupRef.current();
         }
-        trackRecoveryCleanupRef.current = attachVideoTrackRecoveryHandlers(
+        
+        videoPlaybackCleanupRef.current = startAggressiveVideoPlayback(
+          remoteVideoRef.current,
           stream,
-          el,
-          (active) => {
-            setRemoteVideoActive(active);
-            if (active) el.play().catch(() => {});
+          {
+            maxRetries: 15,
+            retryIntervalMs: 400,
+            onPlaybackStarted: () => {
+              console.log('✅ [UnifiedCall] Remote video PLAYING after upgrade');
+              setRemoteVideoActive(true);
+            },
+            onPlaybackFailed: () => {
+              console.warn('⚠️ [UnifiedCall] Video upgrade playback failed');
+              // Force enable anyway if video track exists
+              setRemoteVideoActive(true);
+            }
           }
         );
       });
     };
 
+    initCall();
+    return () => {
+      isMounted = false;
+      cleanup();
+    };
   }, [callId]); // Only depend on callId - prevents re-init on prop changes
 
   // Enable video mid-call
@@ -441,10 +538,15 @@ export default function UnifiedCallScreen({
     if (!videoEnabled || !webrtcRef.current || localVideoActive) return;
     
     const addVideo = async () => {
-      console.log('📹 [UnifiedCall] Adding video to call (videoEnabled prop)...');
-      await webrtcRef.current?.addVideoToCall();
-      // localStream event handler takes care of srcObject + mirror + play + setLocalVideoActive
-      setIsVideoOn(true);
+      console.log('📹 [UnifiedCall] Adding video to call...');
+      const videoStream = await webrtcRef.current?.addVideoToCall();
+      if (videoStream && localVideoRef.current) {
+        localVideoRef.current.srcObject = videoStream;
+        localVideoRef.current.muted = true;
+        localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+        setLocalVideoActive(true);
+        setIsVideoOn(true);
+      }
     };
     addVideo();
   }, [videoEnabled, localVideoActive]);
@@ -521,46 +623,55 @@ export default function UnifiedCallScreen({
       }
 
       console.log('📹 [UnifiedCall] Enabling video (FaceTime-style)...');
+
+      // Ensure the local PIP mounts so localVideoRef is available
       setIsVideoOn(true);
+      setLocalVideoActive(true);
+
+      // Wait a frame so the <video ref={localVideoRef}> is mounted
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
       try {
-        let result: MediaStream | null = null;
+        let videoStream: MediaStream | null = null;
+
         if (isInitiator) {
           // Initiator performs the renegotiation (prevents offer glare)
-          result = await call.addVideoToCall();
+          videoStream = await call.addVideoToCall();
         } else {
           // Non-initiator: enable local camera WITHOUT renegotiation,
           // then ask initiator to renegotiate.
-          result = await call.enableLocalVideoAfterAccept();
+          videoStream = await call.enableLocalVideoAfterAccept();
           await call.sendVideoEnable();
         }
 
-        if (!result || result.getVideoTracks().filter(t => t.readyState !== 'ended').length === 0) {
-          // Camera acquisition failed — addVideoToCall() returned null or audio-only stream.
-          // The 'localStream' event handler will also reset isVideoOn, but set it here too
-          // for instant feedback without waiting for the event.
-          console.warn('📹 [UnifiedCall] addVideoToCall returned no video — resetting UI');
-          setIsVideoOn(false);
-          // toast is shown by the localStream handler
+        if (videoStream && localVideoRef.current) {
+          localVideoRef.current.srcObject = videoStream;
+          localVideoRef.current.muted = true;
+          await localVideoRef.current.play().catch((e) => console.log('Local video play:', e));
+          toast.success('Video enabled');
           return;
         }
-        // 'localStream' event handler handles srcObject bind + mirror + play + setLocalVideoActive
-        toast.success('Video enabled');
+
+        // If we got here, we failed to attach preview
+        setIsVideoOn(false);
+        setLocalVideoActive(false);
+        toast.error('Could not enable video');
       } catch (e) {
         console.error('📹 [UnifiedCall] Video enable failed:', e);
         setIsVideoOn(false);
+        setLocalVideoActive(false);
         toast.error('Camera access failed');
       }
     } else {
       // Turn off video
       console.log('📹 [UnifiedCall] Disabling video...');
       setIsVideoOn(false);
-      setLocalVideoActive(false);
       call.toggleVideo(false);
+      setLocalVideoActive(false);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = null;
       }
-      console.log('📹 [UnifiedCall] Video disabled');
+     console.log('📹 [UnifiedCall] Video disabled');
     }
   };
 
@@ -653,29 +764,22 @@ export default function UnifiedCallScreen({
 
       {/* Background - Full-screen HD Remote Video like FaceTime */}
       {/* ALWAYS show remote video when video is on (don't hide) - let CSS handle visibility */}
-      {/* 
-        REMOTE VIDEO: muted initially to pass mobile/WebView autoplay policy.
-        Audio is handled separately by the hidden <audio> element above.
-        This element is only for the VIDEO track — it does not produce audio output.
-      */}
       <video
         ref={remoteVideoRef}
         autoPlay
         playsInline
-        muted
         className="absolute inset-0 w-full h-full bg-black"
         style={{
           width: '100vw',
           height: '100dvh',
           minHeight: '-webkit-fill-available',
-          objectFit: 'cover',
-          transform: 'translateZ(0)',
+          objectFit: 'cover', // Edge-to-edge immersive video
+          transform: 'translateZ(0)', // GPU acceleration for smooth video
           backfaceVisibility: 'hidden',
           perspective: 1000,
           opacity: remoteVideoActive ? 1 : 0,
-          transition: 'opacity 0.4s ease',
+          transition: 'opacity 0.3s ease',
           zIndex: 1,
-          willChange: 'opacity',
         }}
       />
       
@@ -723,11 +827,8 @@ export default function UnifiedCallScreen({
           muted
           className="w-full h-full object-cover"
           style={{
-            // Mirror is applied dynamically via JS in the localStream event handler
-            // based on facingMode (front=mirror, rear=no-mirror). Do NOT set it here.
-            transform: 'scaleX(-1) translateZ(0)', // default: front camera (will be overridden)
+            transform: 'scaleX(-1) translateZ(0)',
             backfaceVisibility: 'hidden',
-            willChange: 'transform',
           }}
         />
         {/* HD indicator */}

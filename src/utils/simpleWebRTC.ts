@@ -169,20 +169,7 @@ export class SimpleWebRTCCall {
       ]);
 
       // Get media (may already be provided)
-      // CRITICAL: If this is a video call but preAcquiredStream has no live video tracks,
-      // we MUST re-acquire with video. A voice-to-video upgrade or audio-only pre-stream
-      // would otherwise leave the call stuck on "Starting..."
-      const preHasLiveVideo = this.localStream
-        ? this.localStream.getVideoTracks().some(t => t.readyState !== 'ended')
-        : false;
-
-      if (!this.localStream || (this.isVideo && !preHasLiveVideo)) {
-        if (this.localStream && this.isVideo && !preHasLiveVideo) {
-          console.log('🎬 [WebRTC] Pre-acquired stream has no live video — re-acquiring for video call');
-          // Stop old tracks cleanly before acquiring fresh stream
-          this.localStream.getTracks().forEach(t => t.stop());
-          this.localStream = null;
-        }
+      if (!this.localStream) {
         await this.acquireMedia();
       } else {
         this.emit('localStream', this.localStream);
@@ -194,12 +181,6 @@ export class SimpleWebRTCCall {
           console.log('➕ [WebRTC] Adding track:', track.kind);
           this.pc!.addTrack(track, this.localStream!);
         });
-      }
-
-      // ANDROID FIX: Force VP8 codec AFTER tracks are added (transceivers exist now)
-      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
-      if (isAndroid && this.isVideo) {
-        this.forceVP8Codec();
       }
 
       // Fetch past signals (for late joiners) with retry for race condition
@@ -392,60 +373,48 @@ export class SimpleWebRTCCall {
     const isAndroid = typeof navigator !== 'undefined' && 
       /Android/i.test(navigator.userAgent);
     
-    // ULTRA-FAST + RELIABLE ICE configuration
-    // Multiple STUN servers for fast hole-punching + TURN fallback for strict NAT
+    // ULTRA-FAST: Minimal ICE config for <2s connections
     const config: RTCConfiguration = {
       iceServers: [
-        // Google STUN - fast, reliable, free
+        // STUN only - fastest for direct P2P (works 80%+ of the time)
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        // Cloudflare STUN - low latency worldwide
-        { urls: 'stun:stun.cloudflare.com:3478' },
-        // Metered TURN - reliable NAT traversal for strict NAT/firewalls
+        // Single TURN for NAT traversal fallback
         {
-          urls: [
-            'turn:a.relay.metered.ca:80',
-            'turn:a.relay.metered.ca:80?transport=tcp',
-            'turn:a.relay.metered.ca:443',
-            'turns:a.relay.metered.ca:443?transport=tcp',
-          ],
+          urls: 'turn:openrelay.metered.ca:443',
           username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        // Fallback TURN - open relay (lower priority)
-        {
-          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
+          credential: 'openrelayproject'
+        }
       ],
       iceTransportPolicy: 'all',
       bundlePolicy: 'max-bundle',
       rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 4, // Pre-gather more candidates for faster connection
+      iceCandidatePoolSize: 2, // Minimal pre-gathering
     };
 
-    console.log(`🔧 [WebRTC] Creating FAST+RELIABLE peer connection (Android: ${isAndroid})`);
+    console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
-    // Note: VP8 codec preference is applied AFTER tracks are added in start(), not here
+    
+    // ANDROID FIX: Force VP8 codec for better Android WebView compatibility
+    if (isAndroid && this.isVideo) {
+      this.forceVP8Codec();
+    }
 
     // Handle remote tracks - CRITICAL for bidirectional video
     this.pc.ontrack = (event) => {
       const track = event.track;
       const [remoteStream] = event.streams;
       console.log(`📺 [WebRTC] Remote track received: ${track.kind}, id: ${track.id.slice(0,8)}, stream tracks: ${remoteStream.getTracks().length}`);
-
-      // Always emit remoteStream so audio is hooked up immediately
+      
+      // Emit stream for EVERY track to ensure UI updates for both audio AND video
       this.emit('remoteStream', remoteStream);
-
-      // CRITICAL for video upgrade: emit dedicated event ONLY for video tracks.
-      // Use a microtask so the track is fully attached to the stream before the UI acts on it.
+      
+      // CRITICAL for video upgrade: Emit dedicated event when VIDEO track arrives
+      // This ensures the UI rebinds the video element even if stream reference is same
       if (track.kind === 'video') {
-        Promise.resolve().then(() => {
-          console.log(`📹 [WebRTC] VIDEO track live, settings:`, track.getSettings());
-          this.emit('remoteVideoTrack', { track, stream: remoteStream });
-        });
+        console.log(`📹 [WebRTC] VIDEO track settings:`, track.getSettings());
+        // Emit special event for video track arrival (handles mid-call upgrades)
+        this.emit('remoteVideoTrack', { track, stream: remoteStream });
       }
     };
 
@@ -1350,8 +1319,8 @@ export class SimpleWebRTCCall {
       return this.currentFacingMode;
     }
     
-    const oldVideoTrack = this.localStream?.getVideoTracks()[0];
-    if (!oldVideoTrack) throw new Error('No video track');
+    const videoTrack = this.localStream?.getVideoTracks()[0];
+    if (!videoTrack) throw new Error('No video track');
 
     this.isSwitchingCamera = true;
     
@@ -1374,8 +1343,8 @@ export class SimpleWebRTCCall {
       for (const profile of cameraProfiles) {
         try {
           console.log(`📷 [WebRTC] Trying camera profile: ${profile.label}`);
-          const tempStream = await navigator.mediaDevices.getUserMedia({ video: profile });
-          newVideoTrack = tempStream.getVideoTracks()[0];
+          const newStream = await navigator.mediaDevices.getUserMedia({ video: profile });
+          newVideoTrack = newStream.getVideoTracks()[0];
           if (newVideoTrack) {
             console.log(`✅ [WebRTC] Camera acquired with profile: ${profile.label}`);
             break;
@@ -1389,32 +1358,25 @@ export class SimpleWebRTCCall {
         throw new Error('All camera profiles failed');
       }
 
-      // Replace track in the peer connection sender (causes remote side to switch cameras)
-      const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
-      if (sender) {
-        const replacePromise = sender.replaceTrack(newVideoTrack);
-        const timeoutPromise = new Promise<void>((_, reject) => 
-          setTimeout(() => reject(new Error('Track replace timeout')), 5000)
-        );
-        await Promise.race([replacePromise, timeoutPromise]);
-        console.log('📷 [WebRTC] Track replaced in sender successfully');
-      }
+      // Replace track in peer connection with timeout
+      const replacePromise = this.replaceTrack(newVideoTrack);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Track replace timeout')), 5000)
+      );
+      
+      await Promise.race([replacePromise, timeoutPromise]);
 
-      // Stop the OLD track AFTER successful replacement to avoid camera race
-      oldVideoTrack.stop();
+      // Stop old track AFTER successful replacement
+      videoTrack.stop();
       
-      // Mutate localStream IN-PLACE: swap the old track for the new one
-      // This preserves the same MediaStream reference so srcObject stays valid
-      if (this.localStream) {
-        this.localStream.removeTrack(oldVideoTrack);
-        this.localStream.addTrack(newVideoTrack);
-      }
-      
-      // Update facing mode state
+      // Update state
       this.currentFacingMode = newFacing;
       
-      // Re-emit localStream so UI can update mirror transform and re-bind srcObject
+      // Force re-emit localStream to update UI
       if (this.localStream) {
+        // Create a fresh stream reference to force UI update
+        const freshStream = new MediaStream(this.localStream.getTracks());
+        this.localStream = freshStream;
         this.emit('localStream', this.localStream);
       }
 
