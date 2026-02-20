@@ -1,8 +1,8 @@
 # CHATR Complete API & Route Documentation
 
 > Auto-generated comprehensive documentation for chatr.chat domain
-> Last Updated: 2026-01-02
-> Version: 3.0.0
+> Last Updated: 2026-02-20
+> Version: 4.0.0
 
 ---
 
@@ -18,6 +18,7 @@
 9. [Integration Checklist](#8-integration-checklist)
 10. [WebRTC & Calling Architecture](#9-webrtc--calling-architecture)
 11. [CHATR Brain AI System](#10-chatr-brain-ai-system)
+12. [Database Triggers & Automation](#11-database-triggers--automation)
 
 ---
 
@@ -99,14 +100,43 @@ Response:
 ]
 ```
 
-### 0.3 Database Schema Reference
+### 0.3 Other RPC Functions
+
+| Function | Body | Description |
+|----------|------|-------------|
+| `create_direct_conversation` | `{ "other_user_id": "uuid" }` | Create 1-to-1 conversation (finds existing or creates new) |
+| `toggle_message_reaction` | `{ "p_message_id": "uuid", "p_user_id": "uuid", "p_emoji": "❤️" }` | Toggle emoji reaction on message |
+| `find_user_for_call` | `{ "search_term": "phone_or_email" }` | Find user by phone/email/ID for calling |
+| `get_user_conversations_optimized` | `{ "p_user_id": "uuid" }` | Performance-optimized conversation list (LIMIT 50) |
+| `sync_user_contacts` | `{ "user_uuid": "uuid", "contact_list": [...] }` | Sync phone contacts and match registered users |
+| `add_call_participant` | `{ "p_call_id": "uuid", "p_user_id": "uuid" }` | Add participant to group call |
+| `get_call_participants` | `{ "p_call_id": "uuid" }` | List active call participants |
+| `process_coin_payment` | `{ "p_user_id": "uuid", "p_amount": 100, ... }` | Process Chatr Coin payment |
+| `process_referral_reward` | `{ "referral_code_param": "ABC123" }` | Process referral code and reward points |
+| `generate_user_referral_code` | `{}` | Generate unique referral code for current user |
+| `calculate_bmi` | `{ "p_height_cm": 170, "p_weight_kg": 70 }` | Calculate BMI with category |
+| `track_app_usage` | `{ "p_app_id": "uuid" }` | Track mini-app usage count |
+| `increment_community_members` | `{ "community_id": "uuid" }` | Increment community member count |
+| `check_api_limit` | `{ "api": "search", "daily_max": 10000 }` | Rate limiting check |
+| `increment_job_views` | `{ "job_id": "uuid" }` | Increment job listing view counter |
+| `find_emotion_matches` | `{ "p_user_id": "uuid", "p_emotion": "happy" }` | Find users with matching emotions for connection |
+| `haversine_distance_km` | `{ lat1, lng1, lat2, lng2 }` | Calculate distance between two GPS coordinates |
+| `is_conversation_participant` | `{ "_conversation_id": "uuid", "_user_id": "uuid" }` | Check if user is in conversation |
+| `generate_sso_token` | `{ "app_id_param": "uuid" }` | Generate SSO token for mini-app auth |
+| `create_mutual_contact` | `{ "user1_email": "...", "user2_email": "..." }` | Create bidirectional contact entries |
+
+### 0.4 Database Schema Reference
 
 ```
 conversations
 ├── id (UUID, PK)
 ├── is_group (BOOLEAN)
+├── is_community (BOOLEAN)
 ├── group_name (TEXT)
 ├── group_icon_url (TEXT)
+├── community_description (TEXT)
+├── member_count (INTEGER)
+├── disappearing_messages_duration (INTEGER, seconds)
 ├── created_by (UUID)
 └── created_at (TIMESTAMPTZ)
 
@@ -127,6 +157,18 @@ messages
 ├── message_type (TEXT)
 ├── status (TEXT: 'sent'|'delivered'|'read')
 ├── reactions (JSONB)
+├── media_url (TEXT)
+├── media_attachments (JSONB)
+├── reply_to (UUID, self-FK)
+├── is_edited (BOOLEAN)
+├── is_deleted (BOOLEAN)
+├── is_starred (BOOLEAN)
+├── is_pinned (BOOLEAN)
+├── is_expired (BOOLEAN)
+├── expires_at (TIMESTAMPTZ)
+├── location_latitude (NUMERIC)
+├── location_longitude (NUMERIC)
+├── location_name (TEXT)
 └── created_at (TIMESTAMPTZ)
 
 profiles
@@ -134,7 +176,57 @@ profiles
 ├── username (TEXT)
 ├── avatar_url (TEXT)
 ├── is_online (BOOLEAN)
-└── email (TEXT)
+├── email (TEXT)
+├── phone_number (TEXT)
+├── phone_search (TEXT, normalized)
+├── phone_hash (TEXT)
+├── bio (TEXT)
+├── onboarding_completed (BOOLEAN)
+├── last_seen (TIMESTAMPTZ)
+├── privacy_last_seen (TEXT)
+├── privacy_profile_photo (TEXT)
+├── privacy_about (TEXT)
+├── read_receipts_enabled (BOOLEAN)
+├── privacy_groups_add (TEXT)
+└── updated_at (TIMESTAMPTZ)
+
+calls
+├── id (UUID, PK)
+├── conversation_id (UUID, FK)
+├── caller_id (UUID)
+├── receiver_id (UUID, FK → profiles)
+├── call_type (TEXT: 'audio'|'video')
+├── status (TEXT: 'ringing'|'active'|'ended'|'missed'|'rejected')
+├── caller_name (TEXT)
+├── caller_avatar (TEXT)
+├── caller_phone (TEXT)
+├── receiver_name (TEXT)
+├── receiver_avatar (TEXT)
+├── receiver_phone (TEXT)
+├── duration (INTEGER, seconds)
+├── started_at (TIMESTAMPTZ)
+├── ended_at (TIMESTAMPTZ)
+├── missed (BOOLEAN)
+├── is_group (BOOLEAN)
+├── total_participants (INTEGER)
+├── webrtc_state (TEXT)
+├── connection_quality (TEXT)
+├── quality_rating (INTEGER)
+├── quality_metrics (JSONB)
+├── average_bitrate (INTEGER)
+├── packet_loss_percentage (NUMERIC)
+├── reconnection_count (INTEGER)
+├── participants (JSONB)
+└── created_at (TIMESTAMPTZ)
+
+webrtc_signals
+├── id (UUID, PK)
+├── call_id (UUID)
+├── from_user (UUID)
+├── to_user (UUID)
+├── type (TEXT: 'offer'|'answer'|'candidate')
+├── data (JSONB)
+└── created_at (TIMESTAMPTZ)
 ```
 
 ---
@@ -154,9 +246,10 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 | POST | `/auth/signin` | User login | No | `{ email, password }` OR `{ phone, otp }` |
 | POST | `/auth/signout` | User logout | Yes | - |
 | POST | `/auth/refresh` | Refresh token | Yes | `{ refresh_token }` |
-| POST | `/auth/otp/send` | Send OTP | No | `{ phone_number }` |
-| POST | `/auth/otp/verify` | Verify OTP | No | `{ phone_number, otp }` |
+| POST | `auth-phone-otp` | Phone OTP (send/verify) | No | `{ phoneNumber, action: "send"|"verify", otp? }` |
+| POST | `firebase-phone-auth` | Firebase phone auth | No | `{ phoneNumber, firebaseUid }` |
 | GET | `/auth/user` | Get current user | Yes | - |
+| POST | `qr-login` | QR code login | No | `{ session_id, token }` |
 
 ### 1.2 Users Service
 
@@ -241,23 +334,33 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 | POST | `/device/register` | Register FCM token | Yes | `{ fcm_token, platform }` |
 | POST | `send-push-notification` | Send push | Yes | `{ user_id, title, body }` |
 | POST | `send-chat-notification` | Chat notification | Yes | `{ conversation_id, message }` |
+| POST | `schedule-notification` | Schedule notification | Yes | `{ userId, title, body, scheduledFor }` |
+| POST | `process-scheduled-notifications` | Process scheduled queue | Yes | - |
+| POST | `send-module-notification` | Module-specific notification | Yes | `{ userId, module, title, body }` |
 
 ### 1.9 Search Service
 
 | Method | Endpoint | Description | Auth | Request/Response |
 |--------|----------|-------------|------|------------------|
 | POST | `universal-search` | Universal search | No | `{ query, lat?, lon?, category? }` |
+| POST | `universal-search-engine` | Full search engine | No | `{ query, filters?, pagination? }` |
 | POST | `ai-browser-search` | AI-powered search | Yes | `{ query, context? }` |
 | POST | `visual-search` | Image-based search | No | `{ imageUrl?, imageBase64? }` |
 | POST | `geo-search` | Location search | No | `{ query, lat, lon, radius? }` |
 | POST | `perplexity-search` | Deep web search | No | `{ query }` |
+| POST | `web-search-aggregator` | Multi-source aggregation | No | `{ query, sources? }` |
 | POST | `click-log` | Log search clicks | No | `{ query, url, position }` |
+| POST | `search-suggestions` | Get search suggestions | No | `{ query, category? }` |
+| POST | `saved-search-alerts` | Manage saved search alerts | Yes | `{ query, frequency }` |
+| POST | `search-alerts-notifier` | Trigger saved search alerts | Yes | - |
+| POST | `chatr-world-search` | Chatr World content search | Yes | `{ query }` |
 
 ### 1.10 AI Services
 
 | Method | Endpoint | Description | Auth | Request/Response |
 |--------|----------|-------------|------|------------------|
 | POST | `ai-assistant` | AI assistant chat | No | `{ message, context? }` |
+| POST | `ai-chat-assistant` | Conversational AI chat | Yes | `{ message, history? }` |
 | POST | `ai-agent-chat` | AI agent conversation | Yes | `{ agent_id, message }` |
 | POST | `ai-answer` | Get AI answer | No | `{ query, context? }` |
 | POST | `ai-health-assistant` | Health AI | No | `{ symptoms, history? }` |
@@ -265,8 +368,20 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 | POST | `smart-compose` | AI compose | Yes | `{ partial_text, context }` |
 | POST | `symptom-checker` | Symptom analysis | Yes | `{ symptoms: string[] }` |
 | POST | `summarize-chat` | Chat summary | Yes | `{ conversation_id }` |
+| POST | `ai-chat-summary` | AI-powered chat summary | Yes | `{ conversationId }` |
 | POST | `translate-message` | Translate text | Yes | `{ text, target_lang }` |
+| POST | `auto-translate` | Auto-detect & translate | Yes | `{ text }` |
 | POST | `transcribe-voice` | Voice to text | Yes | `{ audio_url }` |
+| POST | `ai-image-generator` | Generate AI image | Yes | `{ prompt }` |
+| POST | `ai-message-insights` | Message analytics insights | Yes | `{ conversationId }` |
+| POST | `ai-coaching` | AI life coaching | Yes | `{ message, context }` |
+| POST | `ai-voice-summarize` | Voice message summary | Yes | `{ audioUrl }` |
+| POST | `agent-voice-tts` | Text-to-speech for agents | Yes | `{ text, voice? }` |
+| POST | `generate-sticker` | AI sticker generation | Yes | `{ photoUrl, style }` |
+| POST | `generate-feature` | AI feature generation | Yes | `{ description }` |
+| POST | `analyze-fame-content` | Analyze content virality | Yes | `{ contentUrl }` |
+| POST | `analyze-chat-brands` | Brand detection in chat | Yes | `{ conversationId }` |
+| POST | `world-content-moderation` | Content moderation | Yes | `{ contentId, type }` |
 
 ### 1.11 Location Services
 
@@ -295,6 +410,11 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 | POST | `sync-health-data` | Sync health data | Yes | `{ data: HealthData }` |
 | POST | `medication-interactions` | Check interactions | Yes | `{ medications: string[] }` |
 | POST | `health-predictions` | AI health predictions | Yes | `{ health_data }` |
+| POST | `health-bmi-calculator` | BMI calculation | Yes | `{ height_cm, weight_kg }` |
+| POST | `health-passport-export` | Export health passport | Yes | `{ format: "pdf"|"json" }` |
+| POST | `nutrition-tracker` | Log nutrition data | Yes | `{ meals, water_ml }` |
+| POST | `parse-prescription` | OCR prescription parsing | Yes | `{ imageUrl }` |
+| POST | `live-transcription` | Real-time speech transcription | Yes | `{ audioChunk }` |
 
 ### 1.14 Jobs Services
 
@@ -302,6 +422,7 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 |--------|----------|-------------|------|------------------|
 | POST | `fetch-jobs` | Search jobs | No | `{ query, lat?, lon?, location? }` |
 | POST | `scrape-jobs` | Scrape job listings | No | `{ query, location }` |
+| POST | `crawl-jobs` | Crawl job boards | No | `{ sources, query }` |
 | POST | `job-matching` | AI job matching | Yes | `{ user_profile }` |
 
 ### 1.15 Payment Services
@@ -313,6 +434,8 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 | POST | `generate-referral-code` | Generate code | Yes | - |
 | POST | `process-coin-reward` | Reward coins | Yes | `{ action_type }` |
 | POST | `process-daily-login` | Daily login reward | Yes | - |
+| POST | `process-daily-login-streak` | Streak-based login rewards | Yes | - |
+| POST | `notify-referral-join` | Notify referrer on join | Yes | `{ referrerId, newUserId }` |
 
 ### 1.16 WebRTC Services
 
@@ -323,16 +446,24 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 | POST | `get-turn-credentials` | Get TURN credentials | Yes | Response: `{ urls, username, credential }` |
 | POST | `realtime-token` | Get realtime token | Yes | Response: `{ token }` |
 | POST | `native-call-update` | Native call status update (service role) | Yes | `{ callId, status, userId }` |
+| POST | `pstn-call` | PSTN phone call bridge | Yes | `{ phoneNumber, callId }` |
+| POST | `call-summary` | Generate call summary | Yes | `{ callId }` |
+| POST | `call-sentiment` | Analyze call sentiment | Yes | `{ callId }` |
+| POST | `live-translate` | Real-time call translation | Yes | `{ text, sourceLang, targetLang }` |
 
 ### 1.17 FCM & Push Services
 
 | Method | Endpoint | Description | Auth | Request/Response |
 |--------|----------|-------------|------|------------------|
 | POST | `fcm-notify` | Send FCM v1 push (OAuth2) | Yes | `{ userId, title, body, data }` |
+| POST | `fcm-call-trigger` | DB-trigger initiated call notification | Internal | `{ call_id, caller_id, receiver_id, ... }` |
 | POST | `send-call-notification` | High-priority call notification | Yes | `{ callId, callerName, isVideo }` |
 | POST | `send-chat-notification` | Chat message notification | Yes | `{ conversationId, message }` |
 | POST | `send-push-notification` | Generic push notification | Yes | `{ userId, title, body }` |
+| POST | `send-push` | Simplified push endpoint | Yes | `{ to, title, body }` |
 | POST | `register-device-token` | Register FCM token | Yes | `{ token, platform }` |
+| POST | `send-sms` | Send SMS notification | Yes | `{ phoneNumber, message }` |
+| POST | `send-broadcast-email` | Broadcast email to users | Yes | `{ subject, body, recipients }` |
 
 ### 1.18 CHATR Brain AI Services
 
@@ -340,9 +471,39 @@ Production: https://sbayuqgomlflmxgicplz.supabase.co/functions/v1
 |--------|----------|-------------|------|------------------|
 | POST | `chatr-brain` | Unified AI router | Yes | `{ message, context?, agentHint? }` |
 | POST | `chatr-world-ai` | Social feed AI | Yes | `{ query, context }` |
+| POST | `chatr-world` | Chatr World content engine | Yes | `{ action, data }` |
 | POST | `chatr-games-ai` | Gaming AI assistant | Yes | `{ gameContext, action }` |
 | POST | `universal-ai-search` | Universal AI search | Yes | `{ query, category? }` |
 | POST | `mental-health-assistant` | Mental health AI | Yes | `{ message, history? }` |
+| POST | `chatr-plus-ai-search` | Chatr+ service AI search | Yes | `{ query, location? }` |
+
+### 1.19 Chatr+ Marketplace Services
+
+| Method | Endpoint | Description | Auth | Request/Response |
+|--------|----------|-------------|------|------------------|
+| POST | `detect-video-objects` | Object detection in video calls | Yes | `{ frameData }` |
+
+### 1.20 Communication Services
+
+| Method | Endpoint | Description | Auth | Request/Response |
+|--------|----------|-------------|------|------------------|
+| POST | `send-invite` | Send app invite | Yes | `{ contactPhone, message }` |
+| POST | `send-whatsapp-invite` | Send WhatsApp invite | Yes | `{ phoneNumber }` |
+| POST | `sync-google-contacts` | Sync Google contacts | Yes | `{ accessToken }` |
+| POST | `backfill-phone-hashes` | Backfill phone hashes for privacy | Internal | - |
+
+### 1.21 Micro-Tasks / Earning Services
+
+| Method | Endpoint | Description | Auth | Request/Response |
+|--------|----------|-------------|------|------------------|
+| POST | `verify-micro-task` | Verify task completion | Yes | `{ taskId, proof }` |
+
+### 1.22 App Management
+
+| Method | Endpoint | Description | Auth | Request/Response |
+|--------|----------|-------------|------|------------------|
+| POST | `app-version` | Check app version | No | `{ platform, currentVersion }` |
+| POST | `cleanup-expired-messages` | Cleanup disappearing messages | Internal | - |
 
 ## 2. WebSocket Routes
 
@@ -367,6 +528,8 @@ Channels:
   - conversations: Chat list updates
   - notifications: Push notification delivery
   - typing: Typing indicators per conversation
+  - calls: Call status changes (REPLICA IDENTITY FULL)
+  - webrtc_signals: WebRTC signaling relay
 ```
 
 ### 2.3 Typing Indicators (Realtime Broadcast)
@@ -506,7 +669,7 @@ Response:
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/` | Index | Landing page |
+| `/` | Index | Landing page (SubdomainRedirect) |
 | `/auth` | Auth | Login/Signup |
 | `/download` | Download | App download page |
 | `/install` | Install | PWA installation |
@@ -518,27 +681,44 @@ Response:
 | `/terms` | Terms | Terms of service |
 | `/refund` | Refund | Refund policy |
 | `/disclaimer` | Disclaimer | Disclaimer |
+| `/join` | JoinInvite | Invite join page |
+| `/web` | ChatrWeb | Web app entry |
 | `/search` | UniversalSearch | Global search |
+| `/universal-search` | UniversalSearch | Alias for search |
 | `/ai-browser-home` | AIBrowserHome | AI Browser landing |
+| `/ai-search` | AIBrowserHome | AI Search alias |
 | `/ai-browser` | AIBrowserView | AI Browser results |
 | `/chatr-home` | ChatrHome | Search home |
 | `/chatr-results` | ChatrResults | Search results |
 
-### 4.2 Core Chat Routes
+### 4.2 Desktop Layout Routes (web.chatr.chat)
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/desktop` | DesktopLayout | Desktop wrapper (redirects to /desktop/chat) |
+| `/desktop/chat` | DesktopChat | Desktop chat view |
+| `/desktop/contacts` | DesktopContacts | Desktop contacts |
+| `/desktop/calls` | DesktopCalls | Desktop calls |
+| `/desktop/notifications` | Notifications | Desktop notifications |
+| `/desktop/settings` | Settings | Desktop settings |
+
+### 4.3 Core Chat Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
 | `/home` | Home | Main home page |
+| `/chat` | Chat | Chat list |
 | `/chat/:conversationId` | Chat | Chat conversation |
 | `/chat/:conversationId/media` | MediaViewer | Media gallery |
 | `/contacts` | Contacts | Contacts list |
 | `/global-contacts` | GlobalContacts | Global directory |
 | `/call-history` | CallHistory | Call log |
+| `/calls` | Calls | Calls page |
 | `/smart-inbox` | SmartInbox | AI-sorted inbox |
 | `/starred-messages` | StarredMessages | Starred messages |
 | `/stories` | Stories | Stories feed |
 
-### 4.3 Health & Wellness Routes
+### 4.4 Health & Wellness Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
@@ -551,43 +731,84 @@ Response:
 | `/symptom-checker` | SymptomCheckerPage | AI symptom checker |
 | `/health-wallet` | HealthWalletPage | Health wallet |
 | `/teleconsultation` | TeleconsultationPage | Video consultation |
+| `/medication-interactions` | MedicationInteractionsPage | Drug interaction check |
+| `/health-streaks` | HealthStreaksPage | Health adherence streaks |
+| `/chronic-vitals` | ChronicVitalsPage | Chronic condition vitals |
+| `/bmi-calculator` | BMICalculator | BMI calculator |
+| `/nutrition-tracker` | NutritionTracker | Nutrition logging |
+| `/mental-health` | MentalHealth | Mental health support |
+| `/health-reminders` | HealthReminders | Health reminders |
+| `/health-risks` | HealthRiskPredictions | AI risk predictions |
 | `/emergency` | EmergencyButton | Emergency SOS |
 | `/emergency-services` | EmergencyServices | Emergency directory |
 | `/local-healthcare` | LocalHealthcare | Nearby healthcare |
 
-### 4.4 Discovery & Search Routes
+### 4.4.1 Care Path Routes
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/care/path/:pathId` | CarePathDetail | Care pathway detail |
+| `/care/doctor/:doctorId` | DoctorDetail | Doctor profile |
+| `/care/family/add` | AddFamilyMember | Add family member |
+| `/care/appointments` | MyAppointments | User appointments |
+
+### 4.4.2 Medicine Subscription Routes
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/care/medicines` | MedicineHubPage | Medicine hub |
+| `/care/medicines/subscribe` | MedicineSubscribePage | Medicine subscription |
+| `/care/medicines/subscriptions` | MedicineSubscriptionsPage | Active subscriptions |
+| `/care/medicines/family` | MedicineFamilyPage | Family medicine |
+| `/care/medicines/vitals` | MedicineVitalsPage | Vitals tracking |
+| `/care/medicines/prescriptions` | MedicinePrescriptionsPage | Prescriptions |
+| `/care/medicines/reminders` | MedicineRemindersPage | Medicine reminders |
+| `/care/medicines/rewards` | MedicineRewardsPage | Adherence rewards |
+
+### 4.5 Discovery & Search Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
 | `/geo` | GeoDiscovery | Location discovery |
-| `/local-jobs` | LocalJobs | Job search |
+| `/jobs` | LocalJobs | Job search |
+| `/local-jobs` | → `/jobs` redirect | Legacy redirect |
+| `/job/:id` | JobDetail | Job detail (protected) |
 | `/food-ordering` | FoodOrdering | Food delivery |
+| `/restaurant/:id` | RestaurantDetail | Restaurant detail |
+| `/food-checkout/:id` | FoodCheckout | Food checkout |
+| `/order-tracking/:orderId` | OrderTracking | Order tracking |
+| `/order-history` | OrderHistory | Order history |
 | `/local-deals` | LocalDeals | Local deals |
 | `/marketplace` | Marketplace | Marketplace |
+| `/marketplace/checkout` | MarketplaceCheckout | Marketplace checkout |
+| `/marketplace/order-success` | OrderSuccessPage | Order success |
 | `/home-services` | HomeServices | Home services |
 
-### 4.5 AI & Assistant Routes
+### 4.6 AI & Assistant Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/ai-agents` | AIAgents | AI agents marketplace |
-| `/ai-agents/chat/:agentId` | AIAgentChat | Chat with AI agent |
+| `/ai-agents` | AIAgentsHub | AI agents marketplace |
+| `/ai-agents/create` | AIAgentCreate | Create AI agent |
+| `/ai-agents/chat/:agentId` | AIAgentChatNew | Chat with AI agent |
+| `/ai-agents/settings/:agentId` | AIAgents | AI agent settings |
 | `/ai-assistant` | AIAssistant | AI assistant |
-| `/prechu-ai` | PrechuAI | Prechu AI chat |
+| `/prechu-ai` | PrechuAI | Prechu AI chat (protected) |
 | `/chat-ai` | AIChat | AI conversation |
 
-### 4.6 Community Routes
+### 4.7 Community Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/community` | CommunitySpace | Community hub |
+| `/community` | CommunitySpace / Community | Community hub |
 | `/communities` | Communities | Community list |
 | `/create-community` | CreateCommunity | Create community |
 | `/wellness-circles` | WellnessCircles | Wellness groups |
 | `/wellness-circles/:circleId` | WellnessCircles | Specific circle |
 | `/chatr-world` | ChatrWorld | Social feed |
+| `/chatr-games` | ChatrGames | Games hub |
 
-### 4.7 Chatr+ Marketplace Routes
+### 4.8 Chatr+ Marketplace Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
@@ -599,8 +820,10 @@ Response:
 | `/chatr-plus/wallet` | ChatrPlusWallet | Chatr+ wallet |
 | `/subscription` | UserSubscription | User subscription |
 | `/wallet` | ChatrWallet | Main wallet |
+| `/chatr-wallet` | ChatrWallet | Wallet alias |
+| `/chatr-plus-subscribe` | ChatrPlusSubscribe | Subscribe alias |
 
-### 4.8 Seller Portal Routes
+### 4.9 Seller Portal Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
@@ -614,10 +837,33 @@ Response:
 | `/seller/reviews` | SellerReviews | Reviews |
 | `/seller/payouts` | SellerPayouts | Payouts |
 | `/seller/subscription` | SellerSubscription | Seller subscription |
+| `/seller/settlements` | SellerSettlements | Settlement history |
 | `/chatr-plus/seller-registration` | ChatrPlusSellerRegistration | Seller signup |
 | `/chatr-plus/seller/dashboard` | ChatrPlusSellerDashboard | Dashboard |
+| `/chatr-plus/seller/bookings` | SellerBookings | Seller bookings alias |
+| `/chatr-plus/seller/services` | SellerServices | Seller services alias |
+| `/chatr-plus/seller/analytics` | SellerAnalytics | Analytics alias |
+| `/chatr-plus/seller/messages` | SellerMessages | Messages alias |
+| `/chatr-plus/seller/settings` | SellerSettings | Settings alias |
 
-### 4.9 Business Routes
+### 4.10 Vendor Portal Routes (Food/Doctor)
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/vendor/login` | VendorLogin | Vendor login |
+| `/vendor/register` | VendorRegister | Vendor registration |
+| `/vendor/dashboard` | VendorDashboard | Vendor dashboard (protected) |
+| `/vendor/menu` | RestaurantMenu | Restaurant menu (protected) |
+| `/vendor/orders` | RestaurantOrders | Restaurant orders (protected) |
+| `/vendor/deals` | DealsManagement | Deals management (protected) |
+| `/vendor/deals/new` | DealsManagement | New deal (protected) |
+| `/vendor/settings` | VendorSettings | Vendor settings (protected) |
+| `/vendor/appointments` | DoctorAppointments | Doctor appointments (protected) |
+| `/vendor/patients` | DoctorPatients | Doctor patients (protected) |
+| `/vendor/analytics` | DoctorAnalytics | Doctor analytics (protected) |
+| `/vendor/availability` | DoctorAvailability | Doctor availability (protected) |
+
+### 4.11 Business Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
@@ -631,8 +877,9 @@ Response:
 | `/business/catalog` | BusinessCatalog | Product catalog |
 | `/business/broadcasts` | BusinessBroadcasts | Broadcasts |
 | `/business/groups` | BusinessGroups | Customer groups |
+| `/dhandha` | Dhandha | Business portal (Hindi, protected) |
 
-### 4.10 Provider Routes
+### 4.12 Provider Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
@@ -645,8 +892,11 @@ Response:
 | `/provider/:providerId` | ProviderDetails | Provider profile |
 | `/doctor-onboarding` | DoctorOnboarding | Doctor registration |
 | `/allied-healthcare` | AlliedHealthcare | Allied health |
+| `/service/:categoryId` | ServiceListing | Service listing |
+| `/booking` | BookingPage | Booking page |
+| `/booking/track/:bookingId` | BookingTracking | Booking tracking |
 
-### 4.11 Admin Routes (Protected)
+### 4.13 Admin Routes (Protected)
 
 | Route | Page | Description |
 |-------|------|-------------|
@@ -666,8 +916,12 @@ Response:
 | `/admin/app-approvals` | AppApprovals | App approvals |
 | `/admin/feature-builder` | FeatureBuilder | Feature builder |
 | `/admin/schema-manager` | SchemaManager | Schema manager |
+| `/admin/kyc-approvals` | KYCApprovals | KYC verification approvals |
+| `/admin/chatr-world` | ChatrWorldAdmin | Chatr World moderation |
+| `/admin/payment-verification` | PaymentVerification | Payment verification |
+| `/admin/micro-tasks` | AdminMicroTasks | Micro-tasks management |
 
-### 4.12 User Settings Routes
+### 4.14 User Settings Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
@@ -676,55 +930,65 @@ Response:
 | `/settings` | Settings | App settings |
 | `/notifications` | Notifications | Notifications |
 | `/notification-settings` | NotificationSettings | Notification prefs |
+| `/notifications/settings` | NotificationSettings | Alias |
 | `/device-management` | DeviceManagement | Linked devices |
 | `/geofences` | Geofences | Geofence settings |
 | `/geofence-history` | GeofenceHistory | Geofence log |
+| `/stealth-mode` | StealthMode | Stealth mode (protected) |
+| `/kyc-verification` | KYCVerificationPage | KYC verification (protected) |
+| `/bluetooth-test` | BluetoothTest | Bluetooth testing |
 
-### 4.13 Growth & Rewards Routes
+### 4.15 Growth & Rewards Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
 | `/chatr-points` | ChatrPoints | Points dashboard |
 | `/reward-shop` | RewardShop | Rewards store |
 | `/growth` | ChatrGrowth | Growth hub |
-| `/chatr-growth` | ChatrGrowth | Growth hub |
-| `/referrals` | Referrals | Referral program |
+| `/chatr-growth` | ChatrGrowth | Growth hub alias |
+| `/referrals` | Referrals | Referral program (protected) |
 | `/ambassador-program` | AmbassadorProgram | Ambassador signup |
 | `/leaderboard` | ChatrPoints | Leaderboard |
 
-### 4.14 Special Feature Routes
+### 4.16 Special Feature Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
 | `/native-apps` | MiniApps | App launcher |
+| `/mini-apps` | MiniAppsStore | Mini apps store |
 | `/chatr-os` | ChatrOS | Chatr OS interface |
 | `/os-detection` | OSDetection | OS detection |
-| `/launcher` | Launcher | Home launcher |
+| `/launcher` | Launcher | Home launcher (protected) |
 | `/chatr-studio` | ChatrStudio | Content studio |
-| `/fame-cam` | FameCam | Fame camera |
-| `/fame-leaderboard` | FameLeaderboard | Fame rankings |
+| `/fame-cam` | FameCam | Fame camera (protected) |
+| `/fame-leaderboard` | FameLeaderboard | Fame rankings (protected) |
 | `/capture` | Capture | Photo/video capture |
 | `/qr-payment` | QRPayment | QR payments |
-| `/qr-login` | QRLogin | QR login |
-| `/bluetooth-test` | BluetoothTest | BT testing |
 
-### 4.15 Education Routes
+### 4.17 Education Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
 | `/chatr-tutors` | ChatrTutors | Tutoring |
-| `/tutors` | ChatrTutors | Tutors |
+| `/tutors` | ChatrTutors | Tutors alias |
 | `/youth-engagement` | YouthEngagement | Youth hub |
 | `/youth-feed` | YouthFeed | Youth content |
 | `/expert-sessions` | ExpertSessions | Expert calls |
 
-### 4.16 Developer Routes
+### 4.18 Developer & Ecosystem Routes
 
 | Route | Page | Description |
 |-------|------|-------------|
 | `/developer-portal` | DeveloperPortal | Developer hub |
 | `/app-statistics` | AppStatistics | App stats |
 | `/official-accounts` | OfficialAccounts | Official accounts |
+
+### 4.19 Earning / Micro-Tasks Routes
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/earn` | Earn | Micro-tasks earning (protected) |
+| `/earn/history` | EarnHistory | Earning history (protected) |
 
 ---
 
@@ -770,6 +1034,7 @@ Response:
 | `ChatrConnectionService` | `call/` | WhatsApp-style background call management |
 | `SupabaseRpcRepository` | `data/repository/` | JWT-aware RPC calls via Retrofit REST API |
 | `MessageRepository` | `data/repository/` | Offline-first message management |
+| `ContactsRepository` | `data/repository/` | Contact sync, block/unblock |
 | `MessageSyncWorker` | `sync/` | Background message synchronization |
 | `SecureStore` | `security/` | Encrypted credential storage |
 | `SimpleWebRTC` | `webrtc/` | WebRTC connection management |
@@ -778,7 +1043,6 @@ Response:
 ### 5.3 Room Database Entities
 
 ```kotlin
-// MessageEntity with proper column annotations
 @Entity(tableName = "messages")
 data class MessageEntity(
     @PrimaryKey val id: String,
@@ -802,7 +1066,6 @@ enum class SyncStatus { PENDING, SYNCED, FAILED }
 ### 5.4 SupabaseRestApi Interface
 
 ```kotlin
-// Native Retrofit interface for RPC calls (avoids Edge Function gateway 405 errors)
 interface SupabaseRestApi {
     
     @POST("rpc/get_user_conversations")
@@ -842,6 +1105,7 @@ WebView localStorage          SecureStore (Native)
         │                     │ Background Repos │
         │                     │ - MessageRepo    │
         │                     │ - CallRepo       │
+        │                     │ - ContactsRepo   │
         │                     └──────────────────┘
 ```
 
@@ -852,12 +1116,6 @@ WebView localStorage          SecureStore (Native)
 ### 6.1 ChatrApi.kt (Complete Interface)
 
 ```kotlin
-package com.chatr.app.data.api
-
-import com.chatr.app.data.models.*
-import retrofit2.Response
-import retrofit2.http.*
-
 interface ChatrApi {
     
     // ==================== AUTH ====================
@@ -870,14 +1128,17 @@ interface ChatrApi {
     @POST("auth/signout")
     suspend fun signOut(): Response<Unit>
     
-    @POST("auth/otp/send")
-    suspend fun sendOtp(@Body request: OtpRequest): Response<Unit>
+    @POST("auth-phone-otp")
+    suspend fun sendOtp(@Body request: OtpRequest): Response<OtpSendResponse>
     
-    @POST("auth/otp/verify")
+    @POST("auth-phone-otp")
     suspend fun verifyOtp(@Body request: OtpVerifyRequest): Response<AuthResponse>
     
     @GET("auth/user")
     suspend fun getCurrentUser(): Response<User>
+    
+    @POST("auth/refresh")
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<AuthResponse>
     
     // ==================== USERS ====================
     @GET("users/{userId}")
@@ -952,28 +1213,24 @@ interface ChatrApi {
         @Body request: ReactionRequest
     ): Response<Unit>
     
-    // ==================== CALLS ====================
-    @POST("calls/initiate")
-    suspend fun initiateCall(@Body callData: InitiateCallRequest): Response<CallData>
+    // ==================== DEVICE ====================
+    @POST("device/register")
+    suspend fun registerDevice(@Body request: DeviceRegistrationRequest): Response<Unit>
     
-    @POST("calls/{callId}/accept")
-    suspend fun acceptCall(@Path("callId") callId: String): Response<CallData>
+    @POST("device/unregister")
+    suspend fun unregisterDevice(@Body request: DeviceUnregisterRequest): Response<Unit>
+}
+```
+
+### 6.2 ContactsApi.kt
+
+```kotlin
+interface ContactsApi {
+    @GET("contacts")
+    suspend fun getContacts(): Response<List<ContactResponse>>
     
-    @POST("calls/{callId}/reject")
-    suspend fun rejectCall(@Path("callId") callId: String): Response<CallData>
-    
-    @POST("calls/{callId}/end")
-    suspend fun endCall(@Path("callId") callId: String): Response<CallData>
-    
-    @GET("calls/history")
-    suspend fun getCallHistory(@Query("limit") limit: Int = 50): Response<List<CallData>>
-    
-    // ==================== CONTACTS ====================
     @POST("contacts/sync")
     suspend fun syncContacts(@Body contacts: List<ContactInfo>): Response<List<User>>
-    
-    @GET("contacts")
-    suspend fun getContacts(): Response<List<Contact>>
     
     @POST("contacts/block")
     suspend fun blockContact(@Body request: BlockContactRequest): Response<Unit>
@@ -981,60 +1238,14 @@ interface ChatrApi {
     @DELETE("contacts/block/{userId}")
     suspend fun unblockContact(@Path("userId") userId: String): Response<Unit>
     
-    // ==================== DEVICE ====================
-    @POST("device/register")
-    suspend fun registerDevice(@Body request: DeviceRegistrationRequest): Response<Unit>
-    
-    // ==================== NOTIFICATIONS ====================
-    @GET("notifications")
-    suspend fun getNotifications(
-        @Query("limit") limit: Int = 50,
-        @Query("unread") unread: Boolean = false
-    ): Response<List<Notification>>
-    
-    @POST("notifications/read")
-    suspend fun markNotificationsRead(@Body request: MarkReadRequest): Response<Unit>
-    
-    // ==================== STORIES ====================
-    @GET("stories")
-    suspend fun getStories(): Response<List<Story>>
-    
-    @POST("stories")
-    suspend fun createStory(@Body request: CreateStoryRequest): Response<Story>
-    
-    @DELETE("stories/{id}")
-    suspend fun deleteStory(@Path("id") storyId: String): Response<Unit>
-    
-    @POST("stories/{id}/view")
-    suspend fun markStoryViewed(@Path("id") storyId: String): Response<Unit>
-    
-    // ==================== COMMUNITIES ====================
-    @GET("communities")
-    suspend fun getCommunities(): Response<List<Community>>
-    
-    @POST("communities")
-    suspend fun createCommunity(@Body request: CreateCommunityRequest): Response<Community>
-    
-    @GET("communities/{id}")
-    suspend fun getCommunity(@Path("id") communityId: String): Response<Community>
-    
-    @POST("communities/{id}/join")
-    suspend fun joinCommunity(@Path("id") communityId: String): Response<Unit>
-    
-    @POST("communities/{id}/leave")
-    suspend fun leaveCommunity(@Path("id") communityId: String): Response<Unit>
+    @GET("contacts/blocked")
+    suspend fun getBlockedContacts(): Response<List<ContactResponse>>
 }
 ```
 
-### 6.2 SearchApi.kt
+### 6.3 SearchApi.kt
 
 ```kotlin
-package com.chatr.app.data.api
-
-import com.chatr.app.data.models.*
-import retrofit2.Response
-import retrofit2.http.*
-
 interface SearchApi {
     
     @POST("universal-search")
@@ -1063,15 +1274,9 @@ interface SearchApi {
 }
 ```
 
-### 6.3 AIApi.kt
+### 6.4 AIApi.kt
 
 ```kotlin
-package com.chatr.app.data.api
-
-import com.chatr.app.data.models.*
-import retrofit2.Response
-import retrofit2.http.*
-
 interface AIApi {
     
     @POST("ai-assistant")
@@ -1109,623 +1314,118 @@ interface AIApi {
 }
 ```
 
-### 6.4 Data Models (Models.kt)
+### 6.5 Data Models (Models.kt)
 
 ```kotlin
-package com.chatr.app.data.models
-
 // ==================== AUTH MODELS ====================
-data class SignUpRequest(
-    val email: String?,
-    val password: String?,
-    val phoneNumber: String?
-)
-
-data class SignInRequest(
-    val email: String?,
-    val password: String?,
-    val phone: String?,
-    val otp: String?
-)
-
-data class OtpRequest(val phoneNumber: String)
-
-data class OtpVerifyRequest(
-    val phoneNumber: String,
-    val otp: String
-)
-
-data class AuthResponse(
-    val accessToken: String,
-    val refreshToken: String,
-    val user: User,
-    val expiresIn: Long
-)
+data class SignUpRequest(val email: String?, val password: String?, val phoneNumber: String?)
+data class SignInRequest(val email: String?, val password: String?, val phone: String?, val otp: String?)
+data class OtpRequest(val phoneNumber: String, val action: String = "send")
+data class OtpSendResponse(val success: Boolean, val message: String?)
+data class OtpVerifyRequest(val phoneNumber: String, val otp: String? = null, val firebaseUid: String? = null, val action: String = "verify")
+data class RefreshTokenRequest(val refreshToken: String)
+data class AuthResponse(val accessToken: String, val refreshToken: String, val user: User, val expiresIn: Long)
 
 // ==================== USER MODELS ====================
-data class User(
-    val id: String,
-    val email: String?,
-    val phoneNumber: String?,
-    val username: String?,
-    val avatarUrl: String?,
-    val isOnline: Boolean = false,
-    val lastSeen: Long? = null,
-    val bio: String? = null
-)
-
-data class UpdateUserRequest(
-    val username: String?,
-    val avatarUrl: String?,
-    val bio: String?
-)
-
+data class User(val id: String, val email: String?, val phoneNumber: String?, val username: String?, val avatarUrl: String?, val isOnline: Boolean = false, val lastSeen: Long? = null, val bio: String? = null)
+data class UpdateUserRequest(val username: String?, val avatarUrl: String?, val bio: String?)
 data class OnlineStatusRequest(val isOnline: Boolean)
 
 // ==================== MESSAGE MODELS ====================
-data class Message(
-    val id: String,
-    val conversationId: String,
-    val senderId: String,
-    val content: String,
-    val timestamp: Long,
-    val type: MessageType = MessageType.TEXT,
-    val status: MessageStatus = MessageStatus.SENT,
-    val replyTo: String? = null,
-    val mediaUrl: String? = null,
-    val reactions: List<MessageReaction> = emptyList(),
-    val isEdited: Boolean = false,
-    val isPinned: Boolean = false,
-    val isStarred: Boolean = false,
-    val isDeleted: Boolean = false
-)
-
-data class MessageReaction(
-    val emoji: String,
-    val userId: String,
-    val createdAt: Long
-)
-
+data class Message(val id: String, val conversationId: String, val senderId: String, val content: String, val timestamp: Long, val type: MessageType = MessageType.TEXT, val status: MessageStatus = MessageStatus.SENT, val replyTo: String? = null, val mediaUrl: String? = null, val reactions: List<MessageReaction> = emptyList(), val isEdited: Boolean = false, val isPinned: Boolean = false, val isStarred: Boolean = false, val isDeleted: Boolean = false)
+data class MessageReaction(val emoji: String, val userId: String, val createdAt: Long)
 enum class MessageType { TEXT, IMAGE, VIDEO, AUDIO, FILE, LOCATION, CONTACT, STICKER }
 enum class MessageStatus { SENDING, SENT, DELIVERED, READ, FAILED }
-
-data class SendMessageRequest(
-    val conversationId: String,
-    val content: String,
-    val type: MessageType = MessageType.TEXT,
-    val replyTo: String? = null,
-    val mediaUrl: String? = null,
-    val forwardedFrom: String? = null
-)
-
+data class SendMessageRequest(val conversationId: String, val content: String, val type: String = "TEXT", val replyTo: String? = null, val mediaUrl: String? = null)
 data class EditMessageRequest(val content: String)
-
 data class ReactionRequest(val emoji: String) // Supported: ❤️, 👍, 😂, 😮, 😢, 🙏
 
 // ==================== CHAT MODELS ====================
-data class Chat(
-    val id: String,
-    val participants: List<String>,
-    val lastMessage: Message?,
-    val unreadCount: Int = 0,
-    val updatedAt: Long,
-    val isGroup: Boolean = false,
-    val groupName: String? = null,
-    val groupIconUrl: String? = null
-)
-
-data class CreateChatRequest(
-    val participants: List<String>,
-    val isGroup: Boolean = false,
-    val groupName: String? = null
-)
-
+data class Chat(val id: String, val participants: List<String>, val lastMessage: Message?, val unreadCount: Int = 0, val updatedAt: Long, val isGroup: Boolean = false, val groupName: String? = null, val groupIconUrl: String? = null)
+data class CreateChatRequest(val participants: List<String>, val isGroup: Boolean = false, val groupName: String? = null)
 data class ParticipantRequest(val userId: String)
 
 // ==================== CALL MODELS ====================
-data class CallData(
-    val id: String,
-    val callerId: String,
-    val receiverId: String,
-    val type: CallType,
-    val status: CallStatus,
-    val startTime: Long? = null,
-    val endTime: Long? = null,
-    val duration: Int? = null,
-    val callerName: String? = null,
-    val callerAvatar: String? = null
-)
-
+data class CallData(val id: String, val callerId: String, val receiverId: String, val type: CallType, val status: CallStatus, val startTime: Long? = null, val endTime: Long? = null, val duration: Int? = null, val callerName: String? = null, val callerAvatar: String? = null)
 enum class CallType { AUDIO, VIDEO }
 enum class CallStatus { INITIATING, RINGING, ACTIVE, ENDED, MISSED, REJECTED }
-
-data class InitiateCallRequest(
-    val receiverId: String,
-    val type: CallType
-)
+data class InitiateCallRequest(val receiverId: String, val type: CallType)
 
 // ==================== CONTACT MODELS ====================
-data class Contact(
-    val id: String,
-    val userId: String,
-    val contactUserId: String?,
-    val contactName: String,
-    val contactPhone: String?,
-    val isRegistered: Boolean = false
-)
-
-data class ContactInfo(
-    val name: String,
-    val phoneNumber: String?,
-    val email: String?
-)
-
-data class BlockContactRequest(
-    val userId: String,
-    val reason: String? = null
-)
+data class Contact(val id: String, val userId: String, val contactUserId: String?, val contactName: String, val contactPhone: String?, val isRegistered: Boolean = false)
+data class ContactInfo(val name: String, val phoneNumber: String?, val email: String?)
+data class BlockContactRequest(val userId: String, val reason: String? = null)
 
 // ==================== PRIVACY MODELS ====================
-data class PrivacySettings(
-    val lastSeen: VisibilityOption = VisibilityOption.EVERYONE,
-    val profilePhoto: VisibilityOption = VisibilityOption.EVERYONE,
-    val about: VisibilityOption = VisibilityOption.EVERYONE,
-    val readReceipts: Boolean = true,
-    val groupsAdd: VisibilityOption = VisibilityOption.EVERYONE
-)
-
+data class PrivacySettings(val lastSeen: VisibilityOption = VisibilityOption.EVERYONE, val profilePhoto: VisibilityOption = VisibilityOption.EVERYONE, val about: VisibilityOption = VisibilityOption.EVERYONE, val readReceipts: Boolean = true, val groupsAdd: VisibilityOption = VisibilityOption.EVERYONE)
 enum class VisibilityOption { EVERYONE, CONTACTS, NOBODY }
 
-data class UpdatePrivacyRequest(
-    val lastSeen: VisibilityOption?,
-    val profilePhoto: VisibilityOption?,
-    val about: VisibilityOption?,
-    val readReceipts: Boolean?,
-    val groupsAdd: VisibilityOption?
-)
-
-data class BlockedContact(
-    val id: String,
-    val blockedUserId: String,
-    val blockedUser: User?,
-    val reason: String?,
-    val blockedAt: Long
-)
-data class DeviceRegistrationRequest(
-    val userId: String,
-    val fcmToken: String,
-    val platform: String = "android"
-)
-
-// ==================== NOTIFICATION MODELS ====================
-data class Notification(
-    val id: String,
-    val userId: String,
-    val title: String,
-    val message: String,
-    val type: String,
-    val data: Map<String, Any>?,
-    val read: Boolean = false,
-    val createdAt: Long
-)
-
-data class MarkReadRequest(val notificationIds: List<String>)
-
-// ==================== STORY MODELS ====================
-data class Story(
-    val id: String,
-    val userId: String,
-    val mediaUrl: String,
-    val caption: String?,
-    val type: String,
-    val viewCount: Int = 0,
-    val createdAt: Long,
-    val expiresAt: Long
-)
-
-data class CreateStoryRequest(
-    val mediaUrl: String,
-    val caption: String?,
-    val type: String
-)
-
-// ==================== COMMUNITY MODELS ====================
-data class Community(
-    val id: String,
-    val name: String,
-    val description: String?,
-    val iconUrl: String?,
-    val memberCount: Int = 0,
-    val createdBy: String,
-    val createdAt: Long
-)
-
-data class CreateCommunityRequest(
-    val name: String,
-    val description: String?
-)
-
-// ==================== SEARCH MODELS ====================
-data class UniversalSearchRequest(
-    val query: String,
-    val lat: Double? = null,
-    val lon: Double? = null,
-    val category: String? = null,
-    val limit: Int = 20
-)
-
-data class SearchResponse(
-    val results: List<SearchResult>,
-    val aiAnswer: String?,
-    val totalResults: Int
-)
-
-data class SearchResult(
-    val id: String,
-    val title: String,
-    val description: String?,
-    val url: String?,
-    val imageUrl: String?,
-    val rating: Double? = null,
-    val distance: String? = null,
-    val price: String? = null,
-    val category: String? = null,
-    val source: String? = null
-)
-
-data class AISearchRequest(
-    val query: String,
-    val context: String? = null
-)
-
-data class AISearchResponse(
-    val answer: String,
-    val sources: List<SearchSource>,
-    val relatedQueries: List<String>
-)
-
-data class SearchSource(
-    val title: String,
-    val url: String,
-    val snippet: String
-)
-
-data class VisualSearchRequest(
-    val imageUrl: String? = null,
-    val imageBase64: String? = null,
-    val userId: String? = null
-)
-
-data class VisualSearchResponse(
-    val imageAnalysis: ImageAnalysis,
-    val results: List<SearchResult>,
-    val aiRecommendations: String?
-)
-
-data class ImageAnalysis(
-    val objects: List<String>,
-    val searchQuery: String
-)
-
-data class GeoSearchRequest(
-    val query: String,
-    val lat: Double,
-    val lon: Double,
-    val radius: Int = 5000,
-    val category: String? = null
-)
-
-data class PerplexitySearchRequest(val query: String)
-
-data class PerplexityResponse(
-    val answer: String,
-    val citations: List<String>,
-    val sources: List<SearchSource>
-)
-
-data class ClickLogRequest(
-    val query: String,
-    val url: String,
-    val position: Int
-)
-
-data class JobSearchRequest(
-    val query: String,
-    val lat: Double? = null,
-    val lon: Double? = null,
-    val location: String? = null
-)
-
-data class JobSearchResponse(
-    val jobs: List<Job>,
-    val totalResults: Int
-)
-
-data class Job(
-    val id: String,
-    val title: String,
-    val company: String,
-    val location: String,
-    val salary: String?,
-    val description: String?,
-    val url: String?,
-    val postedAt: Long?
-)
-
-data class HealthcareSearchRequest(
-    val query: String,
-    val lat: Double,
-    val lon: Double
-)
-
-data class HealthcareResponse(
-    val providers: List<HealthcareProvider>,
-    val totalResults: Int
-)
-
-data class HealthcareProvider(
-    val id: String,
-    val name: String,
-    val type: String,
-    val address: String,
-    val phone: String?,
-    val rating: Double?,
-    val distance: String?,
-    val isOpen: Boolean?
-)
-
-// ==================== AI MODELS ====================
-data class AIAssistantRequest(
-    val message: String,
-    val context: String? = null
-)
-
-data class AIAssistantResponse(
-    val response: String,
-    val suggestions: List<String>?
-)
-
-data class AIAgentChatRequest(
-    val agentId: String,
-    val message: String
-)
-
-data class AIAgentChatResponse(
-    val response: String,
-    val agentName: String
-)
-
-data class AIAnswerRequest(
-    val query: String,
-    val context: String? = null
-)
-
-data class AIAnswerResponse(
-    val answer: String,
-    val sources: List<SearchSource>?
-)
-
-data class AIHealthRequest(
-    val symptoms: String,
-    val history: String? = null
-)
-
-data class AIHealthResponse(
-    val analysis: String,
-    val recommendations: List<String>,
-    val urgencyLevel: String
-)
-
-data class SmartReplyRequest(
-    val conversationContext: String
-)
-
-data class SmartReplyResponse(
-    val replies: List<String>
-)
-
-data class SmartComposeRequest(
-    val partialText: String,
-    val context: String? = null
-)
-
-data class SmartComposeResponse(
-    val completions: List<String>
-)
-
-data class SymptomCheckerRequest(
-    val symptoms: List<String>
-)
-
-data class SymptomCheckerResponse(
-    val possibleConditions: List<PossibleCondition>,
-    val recommendations: String,
-    val urgencyLevel: String
-)
-
-data class PossibleCondition(
-    val name: String,
-    val probability: Double,
-    val description: String
-)
-
-data class SummarizeChatRequest(
-    val conversationId: String
-)
-
-data class SummarizeChatResponse(
-    val summary: String,
-    val keyPoints: List<String>
-)
-
-data class TranslateRequest(
-    val text: String,
-    val targetLang: String
-)
-
-data class TranslateResponse(
-    val translatedText: String,
-    val detectedLanguage: String?
-)
-
-data class TranscribeRequest(
-    val audioUrl: String
-)
-
-data class TranscribeResponse(
-    val text: String,
-    val duration: Float?
-)
-
-data class ImageGeneratorRequest(
-    val prompt: String
-)
-
-data class ImageGeneratorResponse(
-    val imageUrl: String
-)
+// ==================== DEVICE MODELS ====================
+data class DeviceRegistrationRequest(val userId: String? = null, val fcmToken: String, val platform: String = "android", val deviceModel: String? = null)
+data class DeviceUnregisterRequest(val fcmToken: String)
 ```
 
-### 6.5 Repository Classes
+### 6.6 Repository Classes
 
 ```kotlin
-package com.chatr.app.data.repository
-
-import com.chatr.app.data.api.*
-import com.chatr.app.data.models.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import javax.inject.Inject
-import javax.inject.Singleton
-
 @Singleton
-class AuthRepository @Inject constructor(
-    private val api: ChatrApi
-) {
-    suspend fun signUp(request: SignUpRequest): Result<AuthResponse> = safeApiCall { api.signUp(request) }
-    suspend fun signIn(request: SignInRequest): Result<AuthResponse> = safeApiCall { api.signIn(request) }
-    suspend fun signOut(): Result<Unit> = safeApiCall { api.signOut() }
-    suspend fun sendOtp(phone: String): Result<Unit> = safeApiCall { api.sendOtp(OtpRequest(phone)) }
-    suspend fun verifyOtp(phone: String, otp: String): Result<AuthResponse> = 
-        safeApiCall { api.verifyOtp(OtpVerifyRequest(phone, otp)) }
-    suspend fun getCurrentUser(): Result<User> = safeApiCall { api.getCurrentUser() }
+class AuthRepository @Inject constructor(private val api: ChatrApi) {
+    suspend fun signUp(request: SignUpRequest) = safeApiCall { api.signUp(request) }
+    suspend fun signIn(request: SignInRequest) = safeApiCall { api.signIn(request) }
+    suspend fun signOut() = safeApiCall { api.signOut() }
+    suspend fun sendOtp(phone: String) = safeApiCall { api.sendOtp(OtpRequest(phone)) }
+    suspend fun verifyOtp(phone: String, otp: String) = safeApiCall { api.verifyOtp(OtpVerifyRequest(phone, otp)) }
+    suspend fun getCurrentUser() = safeApiCall { api.getCurrentUser() }
 }
 
 @Singleton
-class ChatRepository @Inject constructor(
-    private val api: ChatrApi
-) {
-    fun getChats(userId: String): Flow<Result<List<Chat>>> = flow {
-        emit(safeApiCall { api.getChats(userId) })
-    }
-    
-    fun getMessages(chatId: String, limit: Int = 50): Flow<Result<List<Message>>> = flow {
-        emit(safeApiCall { api.getMessages(chatId, limit) })
-    }
-    
-    suspend fun sendMessage(request: SendMessageRequest): Result<Message> = 
-        safeApiCall { api.sendMessage(request) }
-    
-    suspend fun createChat(participants: List<String>): Result<Chat> =
-        safeApiCall { api.createChat(CreateChatRequest(participants)) }
+class ChatRepository @Inject constructor(private val api: ChatrApi) {
+    fun getChats(userId: String) = flow { emit(safeApiCall { api.getChats(userId) }) }
+    fun getMessages(chatId: String, limit: Int = 50) = flow { emit(safeApiCall { api.getMessages(chatId, limit) }) }
+    suspend fun sendMessage(request: SendMessageRequest) = safeApiCall { api.sendMessage(request) }
+    suspend fun createChat(participants: List<String>) = safeApiCall { api.createChat(CreateChatRequest(participants)) }
 }
 
 @Singleton
-class CallRepository @Inject constructor(
-    private val api: ChatrApi
-) {
-    suspend fun initiateCall(receiverId: String, type: CallType): Result<CallData> =
-        safeApiCall { api.initiateCall(InitiateCallRequest(receiverId, type)) }
-    
-    suspend fun acceptCall(callId: String): Result<CallData> = safeApiCall { api.acceptCall(callId) }
-    suspend fun rejectCall(callId: String): Result<CallData> = safeApiCall { api.rejectCall(callId) }
-    suspend fun endCall(callId: String): Result<CallData> = safeApiCall { api.endCall(callId) }
-    
-    fun getCallHistory(): Flow<Result<List<CallData>>> = flow {
-        emit(safeApiCall { api.getCallHistory() })
-    }
+class CallRepository @Inject constructor(private val api: ChatrApi) {
+    suspend fun initiateCall(receiverId: String, type: CallType) = safeApiCall { api.initiateCall(InitiateCallRequest(receiverId, type)) }
+    suspend fun acceptCall(callId: String) = safeApiCall { api.acceptCall(callId) }
+    suspend fun rejectCall(callId: String) = safeApiCall { api.rejectCall(callId) }
+    suspend fun endCall(callId: String) = safeApiCall { api.endCall(callId) }
+    fun getCallHistory() = flow { emit(safeApiCall { api.getCallHistory() }) }
 }
 
 @Singleton
-class SearchRepository @Inject constructor(
-    private val api: SearchApi
-) {
-    suspend fun universalSearch(query: String, lat: Double?, lon: Double?, category: String? = null): Result<SearchResponse> =
-        safeApiCall { api.universalSearch(UniversalSearchRequest(query, lat, lon, category)) }
-    
-    suspend fun aiBrowserSearch(query: String): Result<AISearchResponse> =
-        safeApiCall { api.aiBrowserSearch(AISearchRequest(query)) }
-    
-    suspend fun visualSearch(imageUrl: String?, imageBase64: String?): Result<VisualSearchResponse> =
-        safeApiCall { api.visualSearch(VisualSearchRequest(imageUrl, imageBase64)) }
-    
-    suspend fun geoSearch(query: String, lat: Double, lon: Double, radius: Int = 5000): Result<SearchResponse> =
-        safeApiCall { api.geoSearch(GeoSearchRequest(query, lat, lon, radius)) }
-    
-    suspend fun fetchJobs(query: String, lat: Double?, lon: Double?): Result<JobSearchResponse> =
-        safeApiCall { api.fetchJobs(JobSearchRequest(query, lat, lon)) }
-    
-    suspend fun fetchHealthcare(query: String, lat: Double, lon: Double): Result<HealthcareResponse> =
-        safeApiCall { api.fetchHealthcare(HealthcareSearchRequest(query, lat, lon)) }
-    
-    suspend fun logClick(query: String, url: String, position: Int): Result<Unit> =
-        safeApiCall { api.logClick(ClickLogRequest(query, url, position)) }
+class ContactsRepository @Inject constructor(private val api: ContactsApi) {
+    fun getContacts() = flow { emit(safeApiCall { api.getContacts() }) }
+    suspend fun syncContacts(contacts: List<ContactInfo>) = safeApiCall { api.syncContacts(contacts) }
+    suspend fun blockContact(userId: String) = safeApiCall { api.blockContact(BlockContactRequest(userId)) }
+    suspend fun unblockContact(userId: String) = safeApiCall { api.unblockContact(userId) }
+    fun getBlockedContacts() = flow { emit(safeApiCall { api.getBlockedContacts() }) }
 }
 
 @Singleton
-class AIRepository @Inject constructor(
-    private val api: AIApi
-) {
-    suspend fun aiAssistant(message: String): Result<AIAssistantResponse> =
-        safeApiCall { api.aiAssistant(AIAssistantRequest(message)) }
-    
-    suspend fun aiAgentChat(agentId: String, message: String): Result<AIAgentChatResponse> =
-        safeApiCall { api.aiAgentChat(AIAgentChatRequest(agentId, message)) }
-    
-    suspend fun checkSymptoms(symptoms: List<String>): Result<SymptomCheckerResponse> =
-        safeApiCall { api.checkSymptoms(SymptomCheckerRequest(symptoms)) }
-    
-    suspend fun getSmartReplies(context: String): Result<SmartReplyResponse> =
-        safeApiCall { api.getSmartReplies(SmartReplyRequest(context)) }
-    
-    suspend fun translateMessage(text: String, targetLang: String): Result<TranslateResponse> =
-        safeApiCall { api.translateMessage(TranslateRequest(text, targetLang)) }
+class SearchRepository @Inject constructor(private val api: SearchApi) {
+    suspend fun universalSearch(query: String, lat: Double?, lon: Double?, category: String? = null) = safeApiCall { api.universalSearch(UniversalSearchRequest(query, lat, lon, category)) }
+    suspend fun aiBrowserSearch(query: String) = safeApiCall { api.aiBrowserSearch(AISearchRequest(query)) }
+    suspend fun geoSearch(query: String, lat: Double, lon: Double, radius: Int = 5000) = safeApiCall { api.geoSearch(GeoSearchRequest(query, lat, lon, radius)) }
+    suspend fun fetchJobs(query: String, lat: Double?, lon: Double?) = safeApiCall { api.fetchJobs(JobSearchRequest(query, lat, lon)) }
+    suspend fun fetchHealthcare(query: String, lat: Double, lon: Double) = safeApiCall { api.fetchHealthcare(HealthcareSearchRequest(query, lat, lon)) }
 }
 
-// Helper function for safe API calls
-private suspend fun <T> safeApiCall(call: suspend () -> retrofit2.Response<T>): Result<T> {
-    return try {
-        val response = call()
-        if (response.isSuccessful && response.body() != null) {
-            Result.success(response.body()!!)
-        } else {
-            Result.failure(Exception("API Error: ${response.code()} - ${response.message()}"))
-        }
-    } catch (e: Exception) {
-        Result.failure(e)
-    }
+@Singleton
+class AIRepository @Inject constructor(private val api: AIApi) {
+    suspend fun aiAssistant(message: String) = safeApiCall { api.aiAssistant(AIAssistantRequest(message)) }
+    suspend fun aiAgentChat(agentId: String, message: String) = safeApiCall { api.aiAgentChat(AIAgentChatRequest(agentId, message)) }
+    suspend fun checkSymptoms(symptoms: List<String>) = safeApiCall { api.checkSymptoms(SymptomCheckerRequest(symptoms)) }
+    suspend fun getSmartReplies(context: String) = safeApiCall { api.getSmartReplies(SmartReplyRequest(context)) }
+    suspend fun translateMessage(text: String, targetLang: String) = safeApiCall { api.translateMessage(TranslateRequest(text, targetLang)) }
 }
 ```
 
-### 6.6 Dependency Injection (NetworkModule.kt)
+### 6.7 Dependency Injection (NetworkModule.kt)
 
 ```kotlin
-package com.chatr.app.di
-
-import com.chatr.app.data.api.*
-import com.chatr.app.data.repository.*
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
-import javax.inject.Named
-import javax.inject.Singleton
-
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
@@ -1733,16 +1433,7 @@ object NetworkModule {
     private const val BASE_URL = "https://sbayuqgomlflmxgicplz.supabase.co/functions/v1/"
     private const val REST_BASE_URL = "https://sbayuqgomlflmxgicplz.supabase.co/rest/v1/"
     
-    @Provides
-    @Singleton
-    fun provideLoggingInterceptor(): HttpLoggingInterceptor {
-        return HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-    }
-    
-    @Provides
-    @Singleton
+    @Provides @Singleton
     fun provideOkHttpClient(loggingInterceptor: HttpLoggingInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
@@ -1759,65 +1450,20 @@ object NetworkModule {
             .build()
     }
     
-    @Provides
-    @Singleton
-    @Named("functions")
+    @Provides @Singleton @Named("functions")
     fun provideFunctionsRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+        return Retrofit.Builder().baseUrl(BASE_URL).client(okHttpClient).addConverterFactory(GsonConverterFactory.create()).build()
     }
     
-    @Provides
-    @Singleton
-    @Named("rest")
+    @Provides @Singleton @Named("rest")
     fun provideRestRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(REST_BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+        return Retrofit.Builder().baseUrl(REST_BASE_URL).client(okHttpClient).addConverterFactory(GsonConverterFactory.create()).build()
     }
     
-    @Provides
-    @Singleton
-    fun provideChatrApi(@Named("functions") retrofit: Retrofit): ChatrApi {
-        return retrofit.create(ChatrApi::class.java)
-    }
-    
-    @Provides
-    @Singleton
-    fun provideSearchApi(@Named("functions") retrofit: Retrofit): SearchApi {
-        return retrofit.create(SearchApi::class.java)
-    }
-    
-    @Provides
-    @Singleton
-    fun provideAIApi(@Named("functions") retrofit: Retrofit): AIApi {
-        return retrofit.create(AIApi::class.java)
-    }
-    
-    @Provides
-    @Singleton
-    fun provideAuthRepository(api: ChatrApi): AuthRepository = AuthRepository(api)
-    
-    @Provides
-    @Singleton
-    fun provideChatRepository(api: ChatrApi): ChatRepository = ChatRepository(api)
-    
-    @Provides
-    @Singleton
-    fun provideCallRepository(api: ChatrApi): CallRepository = CallRepository(api)
-    
-    @Provides
-    @Singleton
-    fun provideSearchRepository(api: SearchApi): SearchRepository = SearchRepository(api)
-    
-    @Provides
-    @Singleton
-    fun provideAIRepository(api: AIApi): AIRepository = AIRepository(api)
+    @Provides @Singleton fun provideChatrApi(@Named("functions") retrofit: Retrofit): ChatrApi = retrofit.create(ChatrApi::class.java)
+    @Provides @Singleton fun provideSearchApi(@Named("functions") retrofit: Retrofit): SearchApi = retrofit.create(SearchApi::class.java)
+    @Provides @Singleton fun provideAIApi(@Named("functions") retrofit: Retrofit): AIApi = retrofit.create(AIApi::class.java)
+    @Provides @Singleton fun provideContactsApi(@Named("functions") retrofit: Retrofit): ContactsApi = retrofit.create(ContactsApi::class.java)
 }
 ```
 
@@ -1835,6 +1481,7 @@ object NetworkModule {
     <category android:name="android.intent.category.BROWSABLE" />
     <data android:scheme="https" android:host="chatr.chat" />
     <data android:scheme="https" android:host="www.chatr.chat" />
+    <data android:scheme="https" android:host="web.chatr.chat" />
     <data android:scheme="chatr" android:host="*" />
 </intent-filter>
 ```
@@ -1853,7 +1500,7 @@ object NetworkModule {
 | `/communities` | `chatr://communities` | - | `chatr://communities` |
 | `/health` | `chatr://health` | - | `chatr://health` |
 | `/care` | `chatr://care` | - | `chatr://care` |
-| `/local-jobs` | `chatr://jobs` | `query?: String` | `chatr://jobs?q=developer` |
+| `/jobs` | `chatr://jobs` | `query?: String` | `chatr://jobs?q=developer` |
 | `/local-healthcare` | `chatr://healthcare` | `lat?, lon?` | `chatr://healthcare?lat=28.5&lon=77.3` |
 | `/food-ordering` | `chatr://food` | - | `chatr://food` |
 | `/local-deals` | `chatr://deals` | - | `chatr://deals` |
@@ -1876,308 +1523,90 @@ object NetworkModule {
 | `/emergency` | `chatr://emergency` | - | `chatr://emergency` |
 | `/fame-cam` | `chatr://fame-cam` | - | `chatr://fame-cam` |
 | `/chatr-world` | `chatr://world` | - | `chatr://world` |
+| `/chatr-games` | `chatr://games` | - | `chatr://games` |
 | `/native-apps` | `chatr://apps` | - | `chatr://apps` |
-
-### 7.3 Navigation Graph Entry (nav_graph.xml)
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<navigation xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/nav_graph"
-    app:startDestination="@id/homeFragment">
-
-    <fragment
-        android:id="@+id/homeFragment"
-        android:name="com.chatr.app.ui.home.HomeFragment"
-        android:label="Home">
-        <deepLink app:uri="chatr://home" />
-        <deepLink app:uri="https://chatr.chat" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/chatFragment"
-        android:name="com.chatr.app.ui.chat.ChatFragment"
-        android:label="Chat">
-        <argument
-            android:name="conversationId"
-            app:argType="string" />
-        <deepLink app:uri="chatr://chat/{conversationId}" />
-        <deepLink app:uri="https://chatr.chat/chat/{conversationId}" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/searchFragment"
-        android:name="com.chatr.app.ui.search.SearchFragment"
-        android:label="Search">
-        <argument
-            android:name="query"
-            app:argType="string"
-            app:nullable="true"
-            android:defaultValue="" />
-        <deepLink app:uri="chatr://search?q={query}" />
-        <deepLink app:uri="https://chatr.chat/search?q={query}" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/aiAgentChatFragment"
-        android:name="com.chatr.app.ui.ai.AIAgentChatFragment"
-        android:label="AI Agent">
-        <argument
-            android:name="agentId"
-            app:argType="string" />
-        <deepLink app:uri="chatr://ai-agent/{agentId}" />
-        <deepLink app:uri="https://chatr.chat/ai-agents/chat/{agentId}" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/serviceDetailFragment"
-        android:name="com.chatr.app.ui.plus.ServiceDetailFragment"
-        android:label="Service">
-        <argument
-            android:name="serviceId"
-            app:argType="string" />
-        <deepLink app:uri="chatr://service/{serviceId}" />
-        <deepLink app:uri="https://chatr.chat/chatr-plus/service/{serviceId}" />
-    </fragment>
-
-    <!-- Add remaining fragments... -->
-</navigation>
-```
+| `/earn` | `chatr://earn` | - | `chatr://earn` |
+| `/join` | `chatr://join` | - | `chatr://join` |
+| `/dhandha` | `chatr://dhandha` | - | `chatr://dhandha` |
 
 ---
 
 ## 8. Integration Checklist
 
 ### ✅ Phase 1: Core Setup
-
-- [ ] **Retrofit Setup**
-  - [ ] Add Retrofit dependencies to `build.gradle`
-  - [ ] Create `ChatrApi`, `SearchApi`, `AIApi` interfaces
-  - [ ] Configure `NetworkModule` with Hilt DI
-  - [ ] Add API key interceptor for Supabase auth
-  - [ ] Configure SSL pinning for production
-
-- [ ] **Data Models**
-  - [ ] Create all request/response data classes
-  - [ ] Add Gson annotations for JSON serialization
-  - [ ] Create enum classes for status types
-
-- [ ] **Repository Layer**
-  - [ ] Implement `AuthRepository`
-  - [ ] Implement `ChatRepository`
-  - [ ] Implement `CallRepository`
-  - [ ] Implement `SearchRepository`
-  - [ ] Implement `AIRepository`
+- [x] Retrofit Setup with `ChatrApi`, `SearchApi`, `AIApi`, `ContactsApi`
+- [x] `NetworkModule` with Hilt DI
+- [x] API key interceptor for auth
+- [x] Repository Layer (Auth, Chat, Call, Search, AI, Contacts)
 
 ### ✅ Phase 2: Authentication
-
-- [ ] **Auth Flow**
-  - [ ] Phone OTP authentication
-  - [ ] Google OAuth integration
-  - [ ] Token storage in EncryptedSharedPreferences
-  - [ ] Auto-refresh token logic
-  - [ ] Logout and session cleanup
+- [x] Phone OTP authentication (Firebase + Custom)
+- [x] Token storage in EncryptedSharedPreferences
+- [x] Auto-refresh token logic
+- [x] QR Login support
 
 ### ✅ Phase 3: Real-time Communication
-
-- [ ] **WebRTC Setup**
-  - [ ] Add WebRTC dependency
-  - [ ] Implement `WebRTCClient` class
-  - [ ] Create `CallSignaling` service
-  - [ ] Implement ICE candidate handling
-  - [ ] Add TURN/STUN server configuration
-
-- [ ] **Socket.IO Integration**
-  - [ ] Add Socket.IO client dependency
-  - [ ] Create `SocketService` for real-time messages
-  - [ ] Handle connection/reconnection logic
-  - [ ] Implement presence updates
-  - [ ] Handle typing indicators
+- [x] WebRTC with Perfect Negotiation
+- [x] Dual-protocol signaling (WebSocket + Realtime)
+- [x] TelecomManager integration
+- [x] FCM v1 with OAuth2 for call notifications
+- [x] DB trigger for automated call FCM (`notify_call_fcm`)
 
 ### ✅ Phase 4: Search Integration
-
-- [ ] **Universal Search**
-  - [ ] Implement search UI with categories
-  - [ ] Integrate `universal-search` endpoint
-  - [ ] Add location-based search parameters
-  - [ ] Display AI-generated answers
-  - [ ] Log search clicks for analytics
-
-- [ ] **Visual Search**
-  - [ ] Camera/gallery image picker
-  - [ ] Image compression before upload
-  - [ ] Call `visual-search` endpoint
-  - [ ] Display visual search results
+- [x] Universal Search with categories
+- [x] Visual Search with camera
+- [x] AI Browser Search
+- [x] Geo Search with location
 
 ### ✅ Phase 5: Contacts & Sync
-
-- [ ] **Contact Sync**
-  - [ ] Request contacts permission
-  - [ ] Read device contacts
-  - [ ] Hash phone numbers for privacy
-  - [ ] Sync via `contacts/sync` endpoint
-  - [ ] Show registered vs unregistered contacts
+- [x] Contact sync via `sync_user_contacts` RPC
+- [x] Block/unblock via `ContactsRepository`
+- [x] Phone hash privacy
 
 ### ✅ Phase 6: AI Features
-
-- [ ] **AI Assistant**
-  - [ ] Chat interface for AI
-  - [ ] Integrate `ai-assistant` endpoint
-  - [ ] Handle streaming responses
-  - [ ] Display smart reply suggestions
-
-- [ ] **Health AI**
-  - [ ] Symptom checker UI
-  - [ ] Integrate `symptom-checker` endpoint
-  - [ ] Display health recommendations
+- [x] AI Assistant, Agent Chat, Smart Reply
+- [x] Health AI, Symptom Checker
+- [x] CHATR Brain unified routing
+- [x] Mental Health Assistant
 
 ### ✅ Phase 7: Location Services
-
-- [ ] **Location Manager**
-  - [ ] Request location permissions
-  - [ ] Implement GPS location fetching
-  - [ ] Fallback to IP-based location
-  - [ ] Update user location via `update-location`
-  - [ ] Geofence monitoring
+- [x] GPS + IP-based location fallback
+- [x] Geofence monitoring
+- [x] Location-based search
 
 ### ✅ Phase 8: Notifications
-
-- [ ] **FCM Setup**
-  - [ ] Configure Firebase project
-  - [ ] Register device token on login
-  - [ ] Handle notification payloads
-  - [ ] Deep link from notifications
-  - [ ] Handle call notifications (high priority)
+- [x] FCM v1 OAuth2 push
+- [x] High-priority call notifications
+- [x] DB-trigger automated notifications
+- [x] Scheduled notifications
 
 ### ✅ Phase 9: Deep Linking
-
-- [ ] **Deep Link Setup**
-  - [ ] Configure `AndroidManifest.xml` intent filters
-  - [ ] Add App Links verification
-  - [ ] Create `DeepLinkHandler` class
-  - [ ] Map URLs to navigation destinations
-  - [ ] Handle query parameters
+- [x] `chatr://` scheme + `https://chatr.chat` verified links
+- [x] `web.chatr.chat` desktop subdomain
+- [x] Navigation graph with fragments
 
 ### ✅ Phase 10: Offline & Caching
-
-- [ ] **Room Database**
-  - [ ] Create database entities for messages, chats, contacts
-  - [ ] Implement DAO interfaces
-  - [ ] Cache API responses locally
-  - [ ] Sync when online
-
-- [ ] **Offline Queue**
-  - [ ] Queue messages when offline
-  - [ ] Auto-retry on reconnection
-  - [ ] Handle media uploads offline
-
----
-
-## Summary Statistics
-
-| Category | Count |
-|----------|-------|
-| REST API Endpoints | 70+ |
-| WebSocket Channels | 5 |
-| Search Endpoints | 8 |
-| Frontend Routes | 125+ |
-| Deep Link Routes | 50+ |
-| Edge Functions | 60+ |
-| Data Models | 55+ |
-| Retrofit Interfaces | 3 |
-| Repositories | 5 |
-| Database Functions | 45+ |
-
----
-
-## Changelog
-
-### v3.0.0 (January 2, 2026)
-**Major Android Native Architecture Overhaul:**
-- Added dual-protocol signaling (WebSocket + Supabase Realtime) for cross-platform call sync
-- New `websocket-signaling` edge function handles native `call:accept` events
-- New `native-call-update` edge function (service role) bypasses RLS for background call updates
-- FCM v1 migration with OAuth2 authentication for high-priority data-only messages
-- Added `ChatrFirebaseService` for native TelecomManager integration
-- Added `ChatrConnectionService` for WhatsApp-style background calls
-- SecureStore credential sync from WebView localStorage for background operations
-- Added `MessageSyncWorker` for offline-first message synchronization
-- Room database schema updated with `@ColumnInfo` annotations for camelCase column preservation
-
-**WebRTC & Calling Improvements:**
-- Extended ICE connection timeouts (45s mobile, 35s desktop)
-- Continuous ICE recovery mode with 5-second restart intervals
-- Removed auto-disconnect on connection failures - calls only end on explicit hangup
-- REPLICA IDENTITY FULL on `calls` table for reliable Realtime delivery
-- TelecomManager uses `tel:` URI schemes (E.164) with `ChatrPlus` branding
-- Removed 30-second auto-reject timer on incoming calls
-
-**CHATR Brain AI System:**
-- Unified AI router with intent detection and agent selection
-- Six specialized agents: Personal, Work, Search, Local Services, Job-Matching, Health
-- Shared memory context across agents for cross-domain intelligence
-- Action dispatcher for transaction completion (book, order, apply)
-- New edge functions: `chatr-brain`, `chatr-games-ai`, `mental-health-assistant`
-
-**New Edge Functions:**
-- `websocket-signaling` - Dual-protocol call signaling bridge
-- `native-call-update` - Service role call status updates
-- `fcm-notify` - FCM v1 OAuth2 push notifications
-- `chatr-brain` - Unified AI routing
-- `chatr-games-ai` - Gaming AI assistant
-- `mental-health-assistant` - Mental health support AI
-
-**Android Native Components (android-native/ folder):**
-- `ChatrFirebaseService` - FCM message handling with TelecomManager
-- `ChatrConnectionService` - Background call management
-- `SupabaseRpcRepository` - JWT-aware RPC calls via Retrofit
-- `MessageRepository` - Offline-first message management
-- `MessageSyncWorker` - Background sync worker
-- `SecureStore` - Encrypted credential storage
-- Room entities with proper column annotations
-
-### v2.1.0 (December 21, 2025)
-- Added JWT-aware RPC functions (`get_user_conversations`, `get_conversation_messages`)
-- Fixed "Unknown" user issue with pre-joined profile data
-- Added Supabase REST API routing for Android native clients
-- Updated Database Schema Reference
-
-### v2.0.0 (December 20, 2025)
-- Added message reactions with `toggle_message_reaction` RPC function
-- Added privacy settings to profiles (last_seen, profile_photo, about, read_receipts, groups_add)
-- Added block/unblock user functionality with blocked_contacts table
-- Added typing indicators via Supabase Realtime broadcast
-- Added message pinning and starring
-- Added message forwarding endpoint
-- Added message search endpoint
-- Updated Message model with reactions, isEdited, isPinned, isStarred, isDeleted fields
-- Added PrivacySettings and BlockedContact models
-- Added VisibilityOption enum (EVERYONE, CONTACTS, NOBODY)
-- Updated supported reaction emojis: ❤️, 👍, 😂, 😮, 😢, 🙏
-
-### v1.0.0 (December 3, 2025)
-- Initial documentation release
-- Core API endpoints for auth, users, messages, chats, calls, contacts
-- WebSocket and Socket.IO documentation
-- Search engine routes (universal, visual, AI browser, geo)
-- Frontend pages documentation (120+ routes)
-- Android Retrofit interfaces and data models
-- Deep link configuration and route mapping
-- Integration checklist
+- [x] Room database for messages
+- [x] Offline message queue
+- [x] MessageSyncWorker for background sync
 
 ---
 
 ## 9. WebRTC & Calling Architecture
 
-### 9.1 Production Standards (ChatrPlus Quality)
+### 9.1 Production Standards (FaceTime-Level Parity)
 
 ```
-Video: VP9 codec @ 8Mbps/60fps (FaceTime-standard)
+Video: VP9 codec @ adaptive bitrate (25Mbps max, 4K@60fps capable)
 Audio: Opus @ 128kbps with noise suppression
-Adaptive Bitrate: Auto-adjusts based on network conditions
-ICE Timeout: 45s mobile, 35s desktop
+Adaptive Bitrate: WebCodecs API for hardware acceleration
+ICE Timeout: 60s mobile, 45s desktop
 Recovery: Continuous ICE restarts every 5s if disconnected
+Camera: Progressive acquisition with 5s replaceTrack timeout
+Mirror: Dynamic based on facingMode (mirror front, no-mirror rear)
+Audio Playback: DOM-rendered <audio> element (bypass WebView autoplay blocks)
+Signaling: Perfect Negotiation pattern with duplicate answer guard
+Termination: Database status authoritative (no manual 'answer' signals with 'ended')
 ```
 
 ### 9.2 Dual-Protocol Signaling
@@ -2197,7 +1626,23 @@ Recovery: Continuous ICE restarts every 5s if disconnected
                         └──────────────────┘
 ```
 
-### 9.3 FCM v1 Call Notifications
+### 9.3 FCM Call Notification Flow (DB Trigger)
+
+```
+calls table INSERT (status='ringing')
+        │
+        ▼
+notify_call_fcm() trigger
+        │
+        ▼ net.http_post()
+fcm-call-trigger edge function
+        │
+        ▼
+FCM v1 API → Device
+        │
+        ▼
+TelecomManager / System Ringer
+```
 
 ```json
 {
@@ -2220,13 +1665,18 @@ Recovery: Continuous ICE restarts every 5s if disconnected
 ### 9.4 Native TelecomManager Integration
 
 ```kotlin
-// URI scheme for system call UI
 val uri = Uri.parse("tel:+1234567890")
 val extras = Bundle().apply {
     putString(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, "ChatrPlus")
 }
 telecomManager.addNewIncomingCall(phoneAccountHandle, extras)
 ```
+
+### 9.5 Ringing Behavior
+- **Native platforms**: OS ringer via `useNativeRingtone.tsx` (skips web audio)
+- **Web**: Web Audio API ringtone
+- **Single source**: Only one ringing mechanism active to prevent multiple rings
+- **No auto-reject**: Calls ring until explicit user action
 
 ---
 
@@ -2243,41 +1693,98 @@ telecomManager.addNewIncomingCall(phoneAccountHandle, extras)
 │  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
 └───────────────────────────┬─────────────────────────────────────┘
                             ▼
-    ┌───────────┬───────────┬───────────┬───────────┬───────────┐
-    │ Personal  │ Work AI   │ Search AI │ Local     │ Health AI │
-    │ AI        │           │           │ Services  │           │
-    │ (habits)  │ (tasks)   │ (answers) │ (booking) │ (symptoms)│
-    └───────────┴───────────┴───────────┴───────────┴───────────┘
+    ┌───────────┬───────────┬───────────┬───────────┬───────────┬───────────┐
+    │ Personal  │ Work AI   │ Search AI │ Local     │ Job       │ Health AI │
+    │ AI        │           │           │ Services  │ Matching  │           │
+    │ (habits)  │ (tasks)   │ (answers) │ (booking) │ (resume)  │ (symptoms)│
+    └───────────┴───────────┴───────────┴───────────┴───────────┴───────────┘
 ```
 
 ### 10.2 Specialized Agents
 
-| Agent | Purpose | Actions |
-|-------|---------|---------|
-| Personal AI | Learns habits, tone, preferences | Reminders, personalization |
-| Work AI | Tasks, docs, meetings | Summarize, schedule, organize |
-| Search AI | Perplexity-style answers | Web search with citations |
-| Local Services | Plumbers, food, groceries, doctors | Book, order, schedule |
-| Job-Matching AI | Resume to job application | Apply, match, prepare |
-| Health AI | Symptoms, doctor search | Check symptoms, find doctors |
+| Agent | Type | Purpose | Actions |
+|-------|------|---------|---------|
+| Personal AI | `personal` | Learns habits, tone, preferences | Reminders, personalization |
+| Work AI | `work` | Tasks, docs, meetings | Summarize, schedule, organize |
+| Search AI | `search` | Perplexity-style answers | Web search with citations |
+| Local Services | `local` | Plumbers, food, groceries, doctors | Book, order, schedule |
+| Job-Matching AI | `jobs` | Resume to job application | Apply, match, prepare |
+| Health AI | `health` | Symptoms, doctor search | Check symptoms, find doctors |
 
-### 10.3 Cross-Agent Intelligence
+### 10.3 Intent Categories
+
+| Intent | Description | Trigger Examples |
+|--------|-------------|-----------------|
+| `question` | Asking for information | "What is...", "How do I..." |
+| `action` | Wants to complete a task | "Book a...", "Order..." |
+| `search` | Looking for something | "Find...", "Show me..." |
+| `booking` | Wants to book/schedule | "Schedule...", "Appointment..." |
+| `transaction` | Wants to pay/buy | "Pay...", "Buy..." |
+| `support` | Needs help/guidance | "Help me...", "I need..." |
+| `conversation` | General chat | Casual conversation |
+
+### 10.4 Action Types
+
+| Action | Description |
+|--------|-------------|
+| `book_appointment` | Book healthcare/service appointment |
+| `apply_job` | Apply to job listing |
+| `order_food` | Place food order |
+| `make_payment` | Process payment |
+| `save_contact` | Save a contact |
+| `set_reminder` | Set a reminder |
+| `file_complaint` | File a complaint |
+| `call_service` | Call a service provider |
+| `navigate` | Navigate to a route |
+
+### 10.5 Cross-Agent Intelligence
 
 ```typescript
-// Shared context enables features like:
-// - Health AI knowing user location from Local Services AI
-// - Work AI knowing meetings for Personal AI reminders
-// - Job AI knowing skills for Search AI career advice
-
 interface SharedContext {
   userId: string;
-  location?: { lat: number; lon: number };
-  recentSearches: string[];
-  healthProfile?: HealthData;
-  workContext?: WorkData;
-  preferences: UserPreferences;
+  location: { lat?: number; lon?: number; city?: string; state?: string; };
+  preferences: { responseStyle: 'detailed'|'concise'|'technical'|'simple'; language: string; tone: 'formal'|'casual'|'friendly'; };
+  memory: { recentQueries: string[]; interests: string[]; healthHistory?: string[]; jobPreferences?: { skills: string[]; salary?: number; type?: string; }; savedLocations?: string[]; };
+  session: { conversationId?: string; lastAgent?: AgentType; lastAction?: ActionType; timestamp: Date; };
 }
 ```
+
+---
+
+## 11. Database Triggers & Automation
+
+### 11.1 Active Triggers
+
+| Trigger | Table | Event | Function | Description |
+|---------|-------|-------|----------|-------------|
+| `call_fcm_trigger` | `calls` | AFTER INSERT (status='ringing') | `notify_call_fcm()` | Auto-send FCM push for incoming calls |
+| `set_message_expiry_trigger` | `messages` | BEFORE INSERT | `set_message_expiry()` | Set disappearing message expiry |
+| `update_message_delivery_trigger` | `messages` | AFTER UPDATE | `update_message_delivery()` | Update delivery status on read |
+| `normalize_phone_trigger` | `profiles` | BEFORE INSERT/UPDATE | `normalize_phone_search()` | Normalize phone for search |
+| `encrypt_bmi_trigger` | `bmi_records` | BEFORE INSERT | `encrypt_bmi_on_save()` | Encrypt health data at rest |
+| `encrypt_kyc_trigger` | `kyc_verifications` | BEFORE INSERT | `encrypt_kyc_on_save()` | Encrypt KYC documents |
+| `update_follower_count_trigger` | `account_followers` | INSERT/DELETE | `update_follower_count()` | Auto-update follower counts |
+| `update_app_rating_trigger` | `app_reviews` | AFTER INSERT | `update_app_rating()` | Recalculate app rating |
+| `update_provider_rating_trigger` | `service_reviews` | AFTER INSERT | `update_provider_rating()` | Recalculate provider rating |
+| `update_tutor_rating_trigger` | `tutor_reviews` | AFTER INSERT | `update_tutor_rating()` | Recalculate tutor rating |
+| `update_fame_score_trigger` | `fame_posts` | AFTER INSERT | `update_fame_score()` | Update fame leaderboard |
+| `process_invite_signup_trigger` | `profiles` | AFTER INSERT | `process_invite_signup()` | Reward inviter on signup |
+| `create_default_pipeline_trigger` | `business_profiles` | AFTER INSERT | `create_default_crm_pipeline()` | Auto-create CRM pipeline |
+| `create_notification_prefs_trigger` | `profiles` | AFTER INSERT | `create_default_notification_preferences()` | Default notification settings |
+| `handle_new_user_trigger` | `auth.users` | AFTER INSERT | `handle_new_user()` | Create profile + welcome points |
+
+### 11.2 Scheduled Cleanup Functions
+
+| Function | Description | Interval |
+|----------|-------------|----------|
+| `cleanup_expired_messages()` | Delete expired disappearing messages | Periodic |
+| `cleanup_old_webrtc_signals()` | Remove signals older than 5 min | Periodic |
+| `cleanup_expired_qr_sessions()` | Expire pending QR login sessions | Periodic |
+| `cleanup_old_fcm_delivery_logs()` | Remove FCM logs older than 7 days | Daily |
+| `cleanup_expired_visual_search_cache()` | Clear expired visual search cache | Periodic |
+| `clean_expired_geo_cache()` | Clear expired geo cache | Periodic |
+| `expire_old_inter_app_messages()` | Expire old inter-app messages | Periodic |
+| `auto_delete_old_location_data()` | Nullify location data after 30 days | Trigger-based |
 
 ---
 
@@ -2285,21 +1792,113 @@ interface SharedContext {
 
 | Category | Count |
 |----------|-------|
-| REST API Endpoints | 85+ |
-| WebSocket Channels | 6 |
-| Search Endpoints | 10 |
-| Frontend Routes | 130+ |
-| Deep Link Routes | 55+ |
-| Edge Functions | 85+ |
-| Data Models | 60+ |
+| REST API Endpoints | 100+ |
+| Edge Functions | 95+ |
+| WebSocket Channels | 7 |
+| Search Endpoints | 12 |
+| Frontend Routes | 165+ |
+| Desktop Routes | 5 |
+| Deep Link Routes | 60+ |
+| Data Models | 65+ |
 | Retrofit Interfaces | 4 |
-| Repositories | 8 |
-| Database Functions | 65+ |
+| Repositories | 6 |
+| Database RPC Functions | 50+ |
+| Database Triggers | 16+ |
 | AI Agents | 6 |
 | Native Android Components | 15+ |
 
 ---
 
-**Document Version**: 3.0.0  
-**Generated**: 2026-01-02  
+## Changelog
+
+### v4.0.0 (February 20, 2026)
+**Comprehensive Documentation Refresh:**
+- Updated all route tables to match actual `App.tsx` (165+ routes)
+- Added Desktop Layout routes (`/desktop/*` for `web.chatr.chat`)
+- Added Vendor Portal routes (`/vendor/*` for food/doctor vendors)
+- Added Medicine Subscription routes (`/care/medicines/*`)
+- Added Earning/Micro-Tasks routes (`/earn`, `/earn/history`)
+- Added Dhandha (business) route
+- Added missing health routes: `/medication-interactions`, `/health-streaks`, `/chronic-vitals`
+- Added `/join` invite landing page
+- Added `/web` ChatrWeb entry point
+- Added `/chatr-games` route
+- Added `/mini-apps` store route
+- Added `/seller/settlements` route
+
+**Calling System Updates:**
+- FaceTime-level parity specs: 4K@60fps, WebCodecs API, Insertable Streams
+- DOM-rendered `<audio>` element for mobile WebView audio playback
+- Database trigger `notify_call_fcm()` for automated call notifications via `fcm-call-trigger`
+- Extended ICE timeouts (60s mobile / 45s desktop)
+- Camera stability: progressive acquisition, 5s replaceTrack timeout, dynamic mirroring
+- Single ringing mechanism: native OS ringer on mobile, web audio on desktop
+- Perfect Negotiation pattern with duplicate answer guard
+- Database status as authoritative termination signal
+
+**New Edge Functions (since v3.0.0):**
+- `fcm-call-trigger` - DB-trigger initiated FCM call notifications
+- `ai-chat-assistant` - Conversational AI chat
+- `ai-chat-summary` - AI-powered chat summaries
+- `ai-coaching` - Life coaching AI
+- `ai-voice-summarize` - Voice message summarization
+- `ai-message-insights` - Chat analytics insights
+- `agent-voice-tts` - Text-to-speech for AI agents
+- `auto-translate` - Auto-detect and translate
+- `call-sentiment` - Call sentiment analysis
+- `call-summary` - Call summary generation
+- `live-transcription` - Real-time speech transcription
+- `live-translate` - Real-time call translation
+- `parse-prescription` - OCR prescription parsing
+- `nutrition-tracker` - Nutrition data logging
+- `health-passport-export` - Health record export
+- `process-daily-login-streak` - Streak-based login rewards
+- `notify-referral-join` - Referral join notifications
+- `pstn-call` - PSTN phone call bridge
+- `crawl-jobs` - Job board crawler
+- `send-broadcast-email` - Broadcast email service
+- `send-sms` - SMS notification service
+- `app-version` - App version checker
+- `verify-micro-task` - Micro-task verification
+- `world-content-moderation` - Content moderation
+- `chatr-world-search` - Social content search
+
+**Architecture Updates:**
+- ContactsApi and ContactsRepository added to Retrofit interfaces
+- DeviceUnregisterRequest added for FCM token cleanup
+- OtpRequest/OtpVerifyRequest updated with Firebase UID support
+- Expanded RPC functions documentation (50+ functions)
+- Database triggers documentation section added (16+ triggers)
+- Scheduled cleanup functions documented
+- Updated summary statistics
+
+**Security & Data:**
+- Encrypted health data at rest (BMI, KYC)
+- Phone hash privacy for contact matching
+- Location data auto-deletion after 30 days
+- WebRTC signal cleanup (5-minute TTL)
+
+### v3.0.0 (January 2, 2026)
+- Android Native Architecture overhaul
+- Dual-protocol signaling (WebSocket + Realtime)
+- FCM v1 migration with OAuth2
+- CHATR Brain AI System with 6 specialized agents
+- SecureStore credential sync
+
+### v2.1.0 (December 21, 2025)
+- JWT-aware RPC functions
+- Fixed "Unknown" user issue
+- Supabase REST API routing for Android
+
+### v2.0.0 (December 20, 2025)
+- Message reactions, privacy settings, block/unblock
+- Typing indicators, message pinning/starring/forwarding
+
+### v1.0.0 (December 3, 2025)
+- Initial documentation release
+
+---
+
+**Document Version**: 4.0.0  
+**Generated**: 2026-02-20  
 **Domain**: chatr.chat
