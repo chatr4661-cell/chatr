@@ -1930,6 +1930,113 @@ export type Database = {
         }
         Relationships: []
       }
+      call_summaries: {
+        Row: {
+          action_items: Json | null
+          call_id: string
+          created_at: string
+          duration_seconds: number | null
+          follow_up_required: boolean | null
+          generated_at: string | null
+          id: string
+          is_scam: boolean | null
+          key_points: Json | null
+          next_steps: Json | null
+          participants: Json | null
+          sentiment: string | null
+          sentiment_history: Json | null
+          summary: string
+          topics: Json | null
+          transcript: string | null
+          trust_score: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          action_items?: Json | null
+          call_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          follow_up_required?: boolean | null
+          generated_at?: string | null
+          id?: string
+          is_scam?: boolean | null
+          key_points?: Json | null
+          next_steps?: Json | null
+          participants?: Json | null
+          sentiment?: string | null
+          sentiment_history?: Json | null
+          summary?: string
+          topics?: Json | null
+          transcript?: string | null
+          trust_score?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_items?: Json | null
+          call_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          follow_up_required?: boolean | null
+          generated_at?: string | null
+          id?: string
+          is_scam?: boolean | null
+          key_points?: Json | null
+          next_steps?: Json | null
+          participants?: Json | null
+          sentiment?: string | null
+          sentiment_history?: Json | null
+          summary?: string
+          topics?: Json | null
+          transcript?: string | null
+          trust_score?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_transcriptions: {
+        Row: {
+          call_id: string
+          confidence: number | null
+          created_at: string
+          id: string
+          language: string | null
+          speaker_label: string | null
+          text: string
+          timestamp: string
+        }
+        Insert: {
+          call_id: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          speaker_label?: string | null
+          text: string
+          timestamp?: string
+        }
+        Update: {
+          call_id?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          speaker_label?: string | null
+          text?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       calls: {
         Row: {
           average_bitrate: number | null
@@ -7657,6 +7764,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      identity_scores: {
+        Row: {
+          badges: Json | null
+          created_at: string
+          id: string
+          last_calculated_at: string | null
+          overall_score: number | null
+          scam_flags: number | null
+          total_interactions: number | null
+          trusted_by_count: number | null
+          updated_at: string
+          user_id: string
+          verification_level: string | null
+        }
+        Insert: {
+          badges?: Json | null
+          created_at?: string
+          id?: string
+          last_calculated_at?: string | null
+          overall_score?: number | null
+          scam_flags?: number | null
+          total_interactions?: number | null
+          trusted_by_count?: number | null
+          updated_at?: string
+          user_id: string
+          verification_level?: string | null
+        }
+        Update: {
+          badges?: Json | null
+          created_at?: string
+          id?: string
+          last_calculated_at?: string | null
+          overall_score?: number | null
+          scam_flags?: number | null
+          total_interactions?: number | null
+          trusted_by_count?: number | null
+          updated_at?: string
+          user_id?: string
+          verification_level?: string | null
+        }
+        Relationships: []
       }
       insurance_preauth: {
         Row: {
@@ -15394,6 +15543,48 @@ export type Database = {
           last_searched_at?: string
           query?: string
           search_count?: number | null
+        }
+        Relationships: []
+      }
+      trust_graph: {
+        Row: {
+          badge: string | null
+          created_at: string
+          id: string
+          interaction_count: number | null
+          last_interaction_at: string | null
+          metadata: Json | null
+          relationship_type: string | null
+          source_user_id: string
+          target_user_id: string
+          trust_level: number | null
+          updated_at: string
+        }
+        Insert: {
+          badge?: string | null
+          created_at?: string
+          id?: string
+          interaction_count?: number | null
+          last_interaction_at?: string | null
+          metadata?: Json | null
+          relationship_type?: string | null
+          source_user_id: string
+          target_user_id: string
+          trust_level?: number | null
+          updated_at?: string
+        }
+        Update: {
+          badge?: string | null
+          created_at?: string
+          id?: string
+          interaction_count?: number | null
+          last_interaction_at?: string | null
+          metadata?: Json | null
+          relationship_type?: string | null
+          source_user_id?: string
+          target_user_id?: string
+          trust_level?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
