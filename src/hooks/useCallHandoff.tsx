@@ -24,6 +24,9 @@ interface HandoffRequest {
     isVideoOn: boolean;
     isMuted: boolean;
     duration: number;
+    facingMode?: 'user' | 'environment';
+    videoEnabled?: boolean;
+    audioRoute?: string;
   };
   created_at: string;
 }
