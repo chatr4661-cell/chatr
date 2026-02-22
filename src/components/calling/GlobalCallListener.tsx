@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { IncomingCallScreen } from "./IncomingCallScreen";
 import UnifiedCallScreen from "./UnifiedCallScreen";
+import CallHandoffBanner from "./CallHandoffBanner";
+import { useCallHandoff } from "@/hooks/useCallHandoff";
 
 import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
+import { AnimatePresence } from "framer-motion";
 import { clearPreCallMediaStream, setPreCallMediaStream, takePreCallMediaStream } from "@/utils/preCallMedia";
 // Native call state helpers - inlined to avoid module resolution issues
 const isCallAcceptedByNative = (callId?: string): boolean => {
@@ -29,6 +32,17 @@ const hasNativeCallUI = () => isNativeShell() && !!(window as any).CallKit;
 export function GlobalCallListener() {
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [activeCall, setActiveCall] = useState<any>(null);
+
+  // Device fingerprint for handoff
+  const deviceFingerprint = useRef(
+    btoa(`${navigator.userAgent}-${screen.width}x${screen.height}-${Intl.DateTimeFormat().resolvedOptions().timeZone}`).slice(0, 32)
+  ).current;
+
+  const {
+    incomingHandoff,
+    acceptHandoff,
+    rejectHandoff,
+  } = useCallHandoff(deviceFingerprint);
   const [outgoingCall, setOutgoingCall] = useState<any>(null); // NEW: Track outgoing calls (caller side)
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -534,14 +548,39 @@ export function GlobalCallListener() {
   // CRITICAL: Only render when incoming AND no active call to ensure clean ringtone stop
   if (incomingCall && !activeCall) {
     return (
-      <IncomingCallScreen
-        callerName={incomingCall.callerName}
-        callerAvatar={incomingCall.callerAvatar}
-        callType={incomingCall.call_type}
-        onAnswer={handleAnswer}
-        onReject={handleReject}
-        ringtoneUrl="/ringtone.mp3"
-      />
+      <>
+        {/* Call handoff banner from another device */}
+        <AnimatePresence>
+          {incomingHandoff && (
+            <CallHandoffBanner
+              callState={incomingHandoff.call_state}
+              fromDevice={incomingHandoff.from_device_id}
+              onAccept={async () => {
+                const state = await acceptHandoff(incomingHandoff.id);
+                if (state) {
+                  setActiveCall({
+                    id: incomingHandoff.call_id,
+                    isInitiator: false,
+                    partnerId: state.partnerId,
+                    callerName: state.partnerName,
+                    call_type: state.callType,
+                    videoEnabled: state.isVideoOn,
+                  });
+                }
+              }}
+              onReject={() => rejectHandoff(incomingHandoff.id)}
+            />
+          )}
+        </AnimatePresence>
+        <IncomingCallScreen
+          callerName={incomingCall.callerName}
+          callerAvatar={incomingCall.callerAvatar}
+          callType={incomingCall.call_type}
+          onAnswer={handleAnswer}
+          onReject={handleReject}
+          ringtoneUrl="/ringtone.mp3"
+        />
+      </>
     );
   }
 
@@ -611,25 +650,79 @@ export function GlobalCallListener() {
   // FaceTime-style: Accept/Decline no longer needed - video just works via WebRTC renegotiation
 
   // Show active call (both caller and receiver) - UNIFIED for voice and video
+  // Also render handoff banner on top of active calls
   if (activeCall) {
     const contactName = activeCall.isInitiator 
       ? activeCall.callerName 
       : activeCall.callerName;
 
     return (
-      <UnifiedCallScreen
-        callId={activeCall.id}
-        contactName={contactName}
-        contactAvatar={activeCall.callerAvatar}
-        contactPhone={activeCall.caller_phone || activeCall.receiver_phone}
-        isInitiator={activeCall.isInitiator}
-        partnerId={activeCall.partnerId}
-        callType={activeCall.call_type === 'video' ? 'video' : 'voice'}
-        preAcquiredStream={activeCall.preAcquiredStream}
-        onEnd={handleEndCall}
-        onSwitchToVideo={handleUpgradeToVideo}
-        videoEnabled={activeCall.videoEnabled}
-      />
+      <>
+        {/* Call handoff banner overlay */}
+        <AnimatePresence>
+          {incomingHandoff && (
+            <CallHandoffBanner
+              callState={incomingHandoff.call_state}
+              fromDevice={incomingHandoff.from_device_id}
+              onAccept={async () => {
+                const state = await acceptHandoff(incomingHandoff.id);
+                if (state) {
+                  // End current call and switch to transferred one
+                  handleEndCall();
+                  setActiveCall({
+                    id: incomingHandoff.call_id,
+                    isInitiator: false,
+                    partnerId: state.partnerId,
+                    callerName: state.partnerName,
+                    call_type: state.callType,
+                    videoEnabled: state.isVideoOn,
+                  });
+                }
+              }}
+              onReject={() => rejectHandoff(incomingHandoff.id)}
+            />
+          )}
+        </AnimatePresence>
+        <UnifiedCallScreen
+          callId={activeCall.id}
+          contactName={contactName}
+          contactAvatar={activeCall.callerAvatar}
+          contactPhone={activeCall.caller_phone || activeCall.receiver_phone}
+          isInitiator={activeCall.isInitiator}
+          partnerId={activeCall.partnerId}
+          callType={activeCall.call_type === 'video' ? 'video' : 'voice'}
+          preAcquiredStream={activeCall.preAcquiredStream}
+          onEnd={handleEndCall}
+          onSwitchToVideo={handleUpgradeToVideo}
+          videoEnabled={activeCall.videoEnabled}
+        />
+      </>
+    );
+  }
+
+  // No active call - still show handoff banner if available
+  if (incomingHandoff) {
+    return (
+      <AnimatePresence>
+        <CallHandoffBanner
+          callState={incomingHandoff.call_state}
+          fromDevice={incomingHandoff.from_device_id}
+          onAccept={async () => {
+            const state = await acceptHandoff(incomingHandoff.id);
+            if (state) {
+              setActiveCall({
+                id: incomingHandoff.call_id,
+                isInitiator: false,
+                partnerId: state.partnerId,
+                callerName: state.partnerName,
+                call_type: state.callType,
+                videoEnabled: state.isVideoOn,
+              });
+            }
+          }}
+          onReject={() => rejectHandoff(incomingHandoff.id)}
+        />
+      </AnimatePresence>
     );
   }
 

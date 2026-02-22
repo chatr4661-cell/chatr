@@ -1057,6 +1057,12 @@ export default function UnifiedCallScreen({
         onClose={() => setShowMoreMenu(false)}
         callId={callId}
         localStream={localStream}
+        contactName={contactName}
+        callType={callType}
+        isVideoOn={isVideoOn}
+        isMuted={isMuted}
+        duration={duration}
+        partnerId={partnerId}
         onHoldChange={(held) => {
           if (webrtcRef.current) {
             webrtcRef.current.toggleAudio(!held);
