@@ -17,7 +17,7 @@ import NetworkStatusBanner, { SignalStrengthIndicator, VideoDisabledNotice } fro
 import useUltraLowBandwidth from '@/hooks/useUltraLowBandwidth';
 import { MediaQuality } from '@/utils/gracefulDegradation';
 import { stopAllRingtones } from '@/hooks/useNativeRingtone';
-// VideoUpgradeModal removed - FaceTime-style auto video upgrade
+import NetworkDiagnosticsPanel from './NetworkDiagnosticsPanel';
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
 
@@ -60,6 +60,8 @@ export default function UnifiedCallScreen({
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
   const [controlsVisible, setControlsVisible] = useState(true);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [currentTier, setCurrentTier] = useState<string>('720p');
   
   // Video upgrade states (simplified - no request/accept flow, FaceTime-style auto)
 
@@ -461,6 +463,12 @@ export default function UnifiedCallScreen({
         console.log('📹 [UnifiedCall] Renegotiation complete - checking for video upgrade');
       });
 
+      // ABR tier change tracking
+      call.on('tierChange', ({ tier, reason }: { tier: string; reason: string }) => {
+        console.log(`📊 [UnifiedCall] Tier: ${tier} (${reason})`);
+        setCurrentTier(tier);
+      });
+
       // Auto video enable: partner clicked video, we auto-enable too
       call.on('videoEnableRequested', async (fromUserId: string) => {
         console.log('📹 [UnifiedCall] Partner requested video enable - auto-enabling...');
@@ -845,6 +853,14 @@ export default function UnifiedCallScreen({
           <NetworkStatusBanner compact />
         </div>
       )}
+
+      {/* Network Diagnostics Panel - Triple-tap quality indicator to show */}
+      <NetworkDiagnosticsPanel
+        peerConnection={webrtcRef.current?.getPeerConnection?.() || null}
+        isVisible={showDiagnostics}
+        onClose={() => setShowDiagnostics(false)}
+        currentTier={currentTier}
+      />
       
       {/* Video Disabled Notice */}
       {isVideo && !videoAllowed && callState === 'connected' && (
@@ -864,18 +880,20 @@ export default function UnifiedCallScreen({
             style={{ paddingTop: 'max(env(safe-area-inset-top, 16px), 16px)' }}
           >
             <div className="flex flex-col items-center py-4">
-              {/* Signal Strength + Quality indicator */}
+              {/* Signal Strength + Quality indicator (long-press for diagnostics) */}
               <div className="flex items-center gap-2 mb-2">
                 <SignalStrengthIndicator size="sm" />
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  networkQuality === 'excellent' || networkQuality === 'good' 
-                    ? 'bg-emerald-500/20 text-emerald-400' 
-                    : networkQuality === 'fair' 
-                      ? 'bg-amber-500/20 text-amber-400'
-                      : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {qualityDescription || (networkQuality === 'excellent' || networkQuality === 'good' ? 'HD' : networkQuality === 'fair' ? 'SD' : 'Low')}
-                </div>
+                <button
+                  onDoubleClick={() => setShowDiagnostics(prev => !prev)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    networkQuality === 'excellent' || networkQuality === 'good' 
+                      ? 'bg-emerald-500/20 text-emerald-400' 
+                      : networkQuality === 'fair' 
+                        ? 'bg-amber-500/20 text-amber-400'
+                        : 'bg-red-500/20 text-red-400'
+                  }`}>
+                  {currentTier !== '720p' ? currentTier.toUpperCase() : (qualityDescription || (networkQuality === 'excellent' || networkQuality === 'good' ? 'HD' : networkQuality === 'fair' ? 'SD' : 'Low'))}
+                </button>
               </div>
               
               <h1 className="text-white text-xl font-semibold drop-shadow-lg">{contactName}</h1>

@@ -1839,6 +1839,33 @@ export type Database = {
           },
         ]
       }
+      call_logs: {
+        Row: {
+          call_id: string
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       call_participants: {
         Row: {
           audio_enabled: boolean | null
@@ -5346,6 +5373,63 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      device_capabilities: {
+        Row: {
+          cpu_threads: number | null
+          created_at: string
+          device_memory_gb: number | null
+          gpu_renderer: string | null
+          id: string
+          last_detected_at: string
+          max_camera_height: number | null
+          max_camera_width: number | null
+          platform: string | null
+          supports_4k: boolean | null
+          supports_av1: boolean | null
+          supports_h264: boolean | null
+          supports_vp9: boolean | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          cpu_threads?: number | null
+          created_at?: string
+          device_memory_gb?: number | null
+          gpu_renderer?: string | null
+          id?: string
+          last_detected_at?: string
+          max_camera_height?: number | null
+          max_camera_width?: number | null
+          platform?: string | null
+          supports_4k?: boolean | null
+          supports_av1?: boolean | null
+          supports_h264?: boolean | null
+          supports_vp9?: boolean | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          cpu_threads?: number | null
+          created_at?: string
+          device_memory_gb?: number | null
+          gpu_renderer?: string | null
+          id?: string
+          last_detected_at?: string
+          max_camera_height?: number | null
+          max_camera_width?: number | null
+          platform?: string | null
+          supports_4k?: boolean | null
+          supports_av1?: boolean | null
+          supports_h264?: boolean | null
+          supports_vp9?: boolean | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -11265,6 +11349,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      network_metrics: {
+        Row: {
+          bandwidth_kbps: number | null
+          bitrate_kbps: number | null
+          call_id: string
+          candidate_type: string | null
+          codec: string | null
+          connection_type: string | null
+          created_at: string
+          fps: number | null
+          frames_dropped: number | null
+          id: string
+          jitter_ms: number | null
+          packet_loss_percent: number | null
+          quality_level: string | null
+          resolution_height: number | null
+          resolution_width: number | null
+          rtt_ms: number | null
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          bandwidth_kbps?: number | null
+          bitrate_kbps?: number | null
+          call_id: string
+          candidate_type?: string | null
+          codec?: string | null
+          connection_type?: string | null
+          created_at?: string
+          fps?: number | null
+          frames_dropped?: number | null
+          id?: string
+          jitter_ms?: number | null
+          packet_loss_percent?: number | null
+          quality_level?: string | null
+          resolution_height?: number | null
+          resolution_width?: number | null
+          rtt_ms?: number | null
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          bandwidth_kbps?: number | null
+          bitrate_kbps?: number | null
+          call_id?: string
+          candidate_type?: string | null
+          codec?: string | null
+          connection_type?: string | null
+          created_at?: string
+          fps?: number | null
+          frames_dropped?: number | null
+          id?: string
+          jitter_ms?: number | null
+          packet_loss_percent?: number | null
+          quality_level?: string | null
+          resolution_height?: number | null
+          resolution_width?: number | null
+          rtt_ms?: number | null
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       notification_bundles: {
         Row: {
