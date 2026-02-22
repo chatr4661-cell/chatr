@@ -265,7 +265,6 @@ export const useMultiDeviceSync = () => {
         .channel(`sync:${user.id}`)
         .on('broadcast', { event: 'message_read' }, ({ payload }) => {
           if (payload.device_id !== currentDeviceId) {
-            // Handle message read sync from another device
             console.log('Sync: Message read on another device', payload);
           }
         })
@@ -277,6 +276,16 @@ export const useMultiDeviceSync = () => {
         .on('broadcast', { event: 'conversation_archived' }, ({ payload }) => {
           if (payload.device_id !== currentDeviceId) {
             console.log('Sync: Conversation archived on another device', payload);
+          }
+        })
+        .on('broadcast', { event: 'call_started' }, ({ payload }) => {
+          if (payload.device_id !== currentDeviceId) {
+            console.log('Sync: Call started on another device', payload);
+          }
+        })
+        .on('broadcast', { event: 'call_ended' }, ({ payload }) => {
+          if (payload.device_id !== currentDeviceId) {
+            console.log('Sync: Call ended on another device', payload);
           }
         })
         .subscribe();
