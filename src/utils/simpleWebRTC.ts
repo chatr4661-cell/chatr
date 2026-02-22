@@ -3,6 +3,8 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { classifyNetwork, NetworkQuality, onNetworkChange } from "./networkClassification";
 import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits, CallPreset } from "./indiaCallPresets";
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
+import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
+import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
@@ -71,6 +73,7 @@ export class SimpleWebRTCCall {
   private networkQuality: NetworkQuality = 'HOSTILE'; // Default to worst-case
   private callPreset: CallPreset | null = null;
   private iceMonitor: (ICEMonitorState & { cleanup: () => void }) | null = null;
+  private abrEngine: AdaptiveBitrateEngine | null = null;
   private networkChangeCleanup: (() => void) | null = null;
 
   // Factory method - use this instead of constructor
@@ -395,9 +398,16 @@ export class SimpleWebRTCCall {
     console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
     
-    // ANDROID FIX: Force VP8 codec for better Android WebView compatibility
-    if (isAndroid && this.isVideo) {
-      this.forceVP8Codec();
+    // SMART CODEC NEGOTIATION: Apply optimal codec order based on device capabilities
+    if (this.isVideo) {
+      detectDeviceCapabilities().then(caps => {
+        if (this.pc) {
+          applyOptimalCodecs(this.pc, caps);
+        }
+      }).catch(() => {
+        // Fallback: Android gets VP8, others get default
+        if (isAndroid) this.forceVP8Codec();
+      });
     }
 
     // Handle remote tracks - CRITICAL for bidirectional video
@@ -502,9 +512,25 @@ export class SimpleWebRTCCall {
     // This ensures UI and native shells know the call is truly connected
     this.updateCallToActive();
     
-    // ADAPTIVE VIDEO: Apply stable bitrate for all bandwidth conditions (10kbps - 2Gbps)
+    // ADAPTIVE BITRATE ENGINE: Start smart quality scaling (720p → 4K)
     if (this.pc && this.isVideo) {
       this.applyAdaptiveVideoBitrate();
+      
+      // Start ABR engine for dynamic tier management
+      detectDeviceCapabilities().then(caps => {
+        if (!this.pc) return;
+        const maxTier: VideoTier = caps.supports4K ? '4k' : caps.maxCameraHeight >= 1440 ? '1440p' : '1080p';
+        this.abrEngine = new AdaptiveBitrateEngine(this.pc, {
+          maxTier,
+          callId: this.callId,
+          userId: this.userId,
+          onTierChange: (tier, reason) => {
+            this.emit('tierChange', { tier, reason });
+          },
+        });
+        this.abrEngine.start();
+        console.log(`📊 [WebRTC] ABR engine started (max: ${maxTier})`);
+      }).catch(() => {});
     }
     
     // India-first: Apply bitrate limits based on preset (only for hostile networks)
@@ -1446,6 +1472,12 @@ export class SimpleWebRTCCall {
     // Stop local tracks
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
+
+    // Cleanup adaptive bitrate engine
+    if (this.abrEngine) {
+      this.abrEngine.stop();
+      this.abrEngine = null;
+    }
 
     // Cleanup adaptive bitrate monitor
     if (this.adaptiveMonitorInterval) {
