@@ -7,12 +7,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Phone, PhoneForwarded, ParkingCircle, Pause, Play,
   Mic, MicOff, Circle, Square, Headphones, Users, 
-  Settings, Waves, Shield, Bluetooth
+  Settings, Waves, Shield, Bluetooth, Smartphone
 } from 'lucide-react';
 import { useCallTransfer } from '@/hooks/useCallTransfer';
 import { useCallPark } from '@/hooks/useCallPark';
 import { useCallRecording } from '@/hooks/useCallRecording';
 import { useNoiseCancellation } from '@/hooks/useNoiseCancellation';
+import { useCallHandoff } from '@/hooks/useCallHandoff';
+import DeviceTransferSheet from './DeviceTransferSheet';
 import { toast } from 'sonner';
 
 interface Contact {
@@ -26,6 +28,12 @@ interface CallMoreMenuProps {
   onClose: () => void;
   callId: string;
   localStream: MediaStream | null;
+  contactName?: string;
+  callType?: 'voice' | 'video';
+  isVideoOn?: boolean;
+  isMuted?: boolean;
+  duration?: number;
+  partnerId?: string;
   contacts?: Contact[];
   onHoldChange?: (isHeld: boolean) => void;
 }
@@ -35,16 +43,26 @@ export default function CallMoreMenu({
   onClose,
   callId,
   localStream,
+  contactName = 'Unknown',
+  callType = 'voice',
+  isVideoOn = false,
+  isMuted = false,
+  duration = 0,
+  partnerId = '',
   contacts = [],
   onHoldChange
 }: CallMoreMenuProps) {
-  const [activePanel, setActivePanel] = useState<'main' | 'transfer' | 'audio'>('main');
+  const [activePanel, setActivePanel] = useState<'main' | 'transfer' | 'audio' | 'devices'>('main');
   const [isHeld, setIsHeld] = useState(false);
+  const [showDeviceSheet, setShowDeviceSheet] = useState(false);
   
   const { blindTransfer, startAttendedTransfer, isTransferring } = useCallTransfer();
   const { parkCall } = useCallPark();
   const { isRecording, startRecording, stopRecording } = useCallRecording();
   const { config: noiseConfig, toggle: toggleNoise, setLevel: setNoiseLevel } = useNoiseCancellation();
+
+  const deviceFingerprint = btoa(`${navigator.userAgent}-${screen.width}x${screen.height}-${Intl.DateTimeFormat().resolvedOptions().timeZone}`).slice(0, 32);
+  const { initiateHandoff, availableDevices, isTransferring: isHandoffTransferring, loadActiveDevices } = useCallHandoff(deviceFingerprint);
 
   const handleHold = () => {
     const newHeld = !isHeld;
@@ -115,9 +133,15 @@ export default function CallMoreMenu({
       label: 'Audio', 
       action: () => setActivePanel('audio') 
     },
+    { 
+      icon: Smartphone, 
+      label: 'Switch Device', 
+      action: () => setShowDeviceSheet(true)
+    },
   ];
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -297,5 +321,27 @@ export default function CallMoreMenu({
         </motion.div>
       )}
     </AnimatePresence>
+
+    {/* Device Transfer Sheet */}
+    <DeviceTransferSheet
+      open={showDeviceSheet}
+      onClose={() => setShowDeviceSheet(false)}
+      devices={availableDevices}
+      isTransferring={isHandoffTransferring}
+      onTransfer={async (deviceId) => {
+        await initiateHandoff(callId, deviceId, {
+          partnerId,
+          partnerName: contactName,
+          callType,
+          isVideoOn,
+          isMuted,
+          duration,
+        });
+        setShowDeviceSheet(false);
+        onClose();
+      }}
+      onLoadDevices={loadActiveDevices}
+    />
+    </>
   );
 }

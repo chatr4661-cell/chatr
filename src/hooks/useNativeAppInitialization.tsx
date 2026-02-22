@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceFingerprint, getDeviceName, getDeviceType } from '@/utils/deviceFingerprint';
 import { initDeepLinkListener } from '@/utils/deepLinkHandler';
+import { persistDeviceCapabilities } from '@/utils/deviceCapabilities';
 
 /**
  * Comprehensive native app initialization
@@ -63,6 +64,9 @@ export const useNativeAppInitialization = (userId?: string) => {
             });
 
             console.log('✅ Device session registered');
+
+            // Persist device capabilities for ABR and 4K detection
+            persistDeviceCapabilities().catch(() => {});
           } catch (err) {
             // Silently fail - device_sessions may not be in schema yet
             console.log('Device session registration skipped');
