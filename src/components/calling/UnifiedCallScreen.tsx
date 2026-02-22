@@ -263,11 +263,20 @@ export default function UnifiedCallScreen({
             localVideoRef.current.play().catch(e => console.log('Local video play:', e));
             setLocalVideoActive(true);
             // Mirror front camera, don't mirror rear
-            const facing = (videoTracks[0].getSettings().facingMode) || 'user';
+            const facing = (videoTracks[0].getSettings().facingMode) || call.getCurrentFacingMode?.() || 'user';
             localVideoRef.current.style.transform = facing === 'environment'
               ? 'translateZ(0)'
               : 'scaleX(-1) translateZ(0)';
           }
+        }
+      });
+
+      // Listen for explicit facing mode changes (for browsers that don't report facingMode in settings)
+      call.on('facingModeChanged', (facing: string) => {
+        if (localVideoRef.current) {
+          localVideoRef.current.style.transform = facing === 'environment'
+            ? 'translateZ(0)'
+            : 'scaleX(-1) translateZ(0)';
         }
       });
 

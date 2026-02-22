@@ -372,38 +372,48 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
     }
   };
 
-  // Switch camera (front/back)
+  // Switch camera (front/back) — cross-platform safe
   const switchCamera = async () => {
     if (!localStreamRef.current || callType !== 'video') return;
     
     const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
     
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: { facingMode: { exact: newFacingMode } }
-      });
-
-      const videoTrack = newStream.getVideoTracks()[0];
-      const sender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
+      const { acquireCameraTrack, shouldMirrorVideo } = await import('@/utils/crossPlatformCamera');
+      const currentTrack = localStreamRef.current.getVideoTracks()[0];
+      const result = await acquireCameraTrack(newFacingMode, currentTrack);
       
+      if (!result) {
+        toast({ title: 'Camera switch failed', description: 'No alternate camera found', variant: 'destructive' });
+        return;
+      }
+
+      const { track: newVideoTrack, actualFacing } = result;
+
+      // Replace in peer connection
+      const sender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === 'video');
       if (sender) {
-        await sender.replaceTrack(videoTrack);
+        await sender.replaceTrack(newVideoTrack);
       }
 
       // Stop old video track
-      localStreamRef.current.getVideoTracks()[0].stop();
+      currentTrack?.stop();
       
-      // Update local stream
-      localStreamRef.current = newStream;
+      // Build fresh stream keeping audio
+      const audioTracks = localStreamRef.current.getAudioTracks();
+      const freshStream = new MediaStream([...audioTracks, newVideoTrack]);
+      localStreamRef.current = freshStream;
+      
       if (localVideoRef.current) {
-        localVideoRef.current.srcObject = newStream;
+        localVideoRef.current.srcObject = freshStream;
+        // Apply mirror based on facing mode
+        localVideoRef.current.style.transform = shouldMirrorVideo(actualFacing) ? 'scaleX(-1)' : 'none';
       }
       
-      setFacingMode(newFacingMode);
+      setFacingMode(actualFacing);
       
       toast({
-        title: `Switched to ${newFacingMode === 'user' ? 'front' : 'back'} camera`,
+        title: `Switched to ${actualFacing === 'user' ? 'front' : 'back'} camera`,
       });
     } catch (error) {
       console.error('Error switching camera:', error);

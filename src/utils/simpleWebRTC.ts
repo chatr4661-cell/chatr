@@ -1338,6 +1338,11 @@ export class SimpleWebRTCCall {
   private currentFacingMode: 'user' | 'environment' = 'user';
   private isSwitchingCamera: boolean = false;
 
+  /** Get the current camera facing mode */
+  getCurrentFacingMode(): 'user' | 'environment' {
+    return this.currentFacingMode;
+  }
+
   async switchCamera(): Promise<'user' | 'environment'> {
     // Prevent multiple simultaneous switch attempts (causes stuck camera)
     if (this.isSwitchingCamera) {
@@ -1350,39 +1355,19 @@ export class SimpleWebRTCCall {
 
     this.isSwitchingCamera = true;
     
-    // Determine new facing mode
     const newFacing = this.currentFacingMode === 'user' ? 'environment' : 'user';
     console.log(`📷 [WebRTC] Switching camera: ${this.currentFacingMode} → ${newFacing}`);
 
-    // Progressive camera acquisition with multiple fallbacks
-    const cameraProfiles = [
-      { facingMode: { exact: newFacing }, width: { ideal: 1920 }, height: { ideal: 1080 }, label: 'exact-1080p' },
-      { facingMode: { exact: newFacing }, width: { ideal: 1280 }, height: { ideal: 720 }, label: 'exact-720p' },
-      { facingMode: newFacing, width: { ideal: 1280 }, height: { ideal: 720 }, label: 'ideal-720p' },
-      { facingMode: newFacing, width: { ideal: 640 }, height: { ideal: 480 }, label: 'ideal-480p' },
-      { facingMode: newFacing, label: 'basic' },
-    ];
-
     try {
-      let newVideoTrack: MediaStreamTrack | null = null;
-      
-      for (const profile of cameraProfiles) {
-        try {
-          console.log(`📷 [WebRTC] Trying camera profile: ${profile.label}`);
-          const newStream = await navigator.mediaDevices.getUserMedia({ video: profile });
-          newVideoTrack = newStream.getVideoTracks()[0];
-          if (newVideoTrack) {
-            console.log(`✅ [WebRTC] Camera acquired with profile: ${profile.label}`);
-            break;
-          }
-        } catch (profileError) {
-          console.log(`⚠️ [WebRTC] Profile ${profile.label} failed, trying next...`);
-        }
+      // Use cross-platform camera utility for reliable acquisition
+      const { acquireCameraTrack } = await import('@/utils/crossPlatformCamera');
+      const result = await acquireCameraTrack(newFacing, videoTrack);
+
+      if (!result) {
+        throw new Error('All camera profiles failed across all platforms');
       }
 
-      if (!newVideoTrack) {
-        throw new Error('All camera profiles failed');
-      }
+      const { track: newVideoTrack, actualFacing } = result;
 
       // Replace track in peer connection with timeout
       const replacePromise = this.replaceTrack(newVideoTrack);
@@ -1395,25 +1380,24 @@ export class SimpleWebRTCCall {
       // Stop old track AFTER successful replacement
       videoTrack.stop();
       
-      // Update state
-      this.currentFacingMode = newFacing;
+      // Update state with actual detected facing
+      this.currentFacingMode = actualFacing;
       
-      // Force re-emit localStream to update UI
+      // Force re-emit localStream to update UI (with mirror info)
       if (this.localStream) {
-        // Create a fresh stream reference to force UI update
         const freshStream = new MediaStream(this.localStream.getTracks());
         this.localStream = freshStream;
         this.emit('localStream', this.localStream);
       }
+      // Emit facing mode change so UI can update mirror
+      this.emit('facingModeChanged', actualFacing);
 
-      console.log(`✅ [WebRTC] Camera switched to ${newFacing}`);
-      return newFacing;
+      console.log(`✅ [WebRTC] Camera switched to ${actualFacing}`);
+      return actualFacing;
     } catch (e: any) {
       console.error('❌ [WebRTC] Switch camera failed completely:', e);
-      // Don't throw - return current facing mode to prevent UI crash
       return this.currentFacingMode;
     } finally {
-      // Always unlock
       this.isSwitchingCamera = false;
     }
   }
