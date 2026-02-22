@@ -27,6 +27,9 @@ interface ProductionVideoCallProps {
   onEnd: () => void;
 }
 
+// Track current facing mode for mirror logic
+type FacingModeState = 'user' | 'environment';
+
 export default function ProductionVideoCall({
   callId,
   contactName,
@@ -84,6 +87,9 @@ export default function ProductionVideoCall({
             localVideoRef.current.srcObject = stream;
             localVideoRef.current.muted = true;
             localVideoRef.current.play().catch(e => console.log('Local video play:', e));
+            // Apply mirror based on facing mode
+            const facing = stream.getVideoTracks()[0]?.getSettings()?.facingMode || call.getCurrentFacingMode?.() || 'user';
+            localVideoRef.current.style.transform = facing === 'environment' ? 'translateZ(0)' : 'scaleX(-1) translateZ(0)';
           }
           
           // When local stream is ready, ensure any remote stream is unmuted
@@ -94,6 +100,17 @@ export default function ProductionVideoCall({
               console.log('🔊 Double-checking remote audio is unmuted');
             }
           }, 500);
+        });
+
+        // Listen for camera facing mode changes to update mirror
+        call.on('facingModeChanged', (facing: string) => {
+          if (localVideoRef.current) {
+            localVideoRef.current.style.transform = facing === 'environment' ? 'translateZ(0)' : 'scaleX(-1) translateZ(0)';
+          }
+          // Also update PIP mirror if local is in PIP
+          if (pipVideoRef.current && videoLayout === 'remote-main') {
+            pipVideoRef.current.style.transform = facing === 'environment' ? 'none' : 'scaleX(-1)';
+          }
         });
 
         call.on('remoteStream', (stream: MediaStream) => {
@@ -395,6 +412,7 @@ export default function ProductionVideoCall({
   const handleSwitchCamera = async () => {
     try {
       const newMode = await webrtcRef.current?.switchCamera();
+      // Mirror is handled by facingModeChanged event listener
       toast.success(`Switched to ${newMode === 'user' ? 'front' : 'back'} camera`);
     } catch (error) {
       console.error('Camera switch error:', error);
@@ -575,7 +593,7 @@ export default function ProductionVideoCall({
           autoPlay
           playsInline
           muted={videoLayout === 'remote-main'}
-          className={`w-full h-full object-cover ${videoLayout === 'remote-main' ? 'transform scale-x-[-1]' : ''}`}
+          className={`w-full h-full object-cover`}
           style={{ WebkitPlaysinline: 'true' } as any}
         />
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
