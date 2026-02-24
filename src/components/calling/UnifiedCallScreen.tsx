@@ -80,10 +80,18 @@ export default function UnifiedCallScreen({
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   // Pinch-to-zoom for video (max 2x) — sends zoomed video to partner
+  // Zoom for remote video
   const { containerRef: zoomContainerRef, style: zoomStyle, scale: zoomScale, isZoomed, resetZoom, zoomIn, zoomOut } = useVideoZoom({
     minScale: 1,
     maxScale: 2,
     enabled: callState === 'connected' && remoteVideoActive
+  });
+
+  // Zoom for local PIP video
+  const { containerRef: localZoomRef, style: localZoomStyle, scale: localZoomScale, isZoomed: isLocalZoomed, resetZoom: resetLocalZoom, zoomIn: localZoomIn, zoomOut: localZoomOut } = useVideoZoom({
+    minScale: 1,
+    maxScale: 2,
+    enabled: callState === 'connected' && localVideoActive
   });
   const callStateRef = useRef(callState);
 
@@ -888,7 +896,6 @@ export default function UnifiedCallScreen({
         initial={false}
         animate={localVideoActive ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        whileTap={localVideoActive ? { scale: 0.95 } : undefined}
         className={`absolute top-16 right-4 w-28 h-40 sm:w-32 sm:h-44 rounded-2xl overflow-hidden border-2 border-white/40 shadow-2xl z-20 ${
           localVideoActive ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
@@ -897,18 +904,26 @@ export default function UnifiedCallScreen({
           backfaceVisibility: 'hidden',
         }}
       >
-        <video
-          ref={localVideoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover"
-          style={{
-            transform: 'scaleX(-1) translateZ(0)',
-            backfaceVisibility: 'hidden',
-          }}
-        />
-        {/* HD indicator removed for clean FaceTime look */}
+        <div ref={localZoomRef} className="w-full h-full" style={localZoomStyle}>
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+            style={{
+              transform: 'scaleX(-1) translateZ(0)',
+              backfaceVisibility: 'hidden',
+            }}
+          />
+        </div>
+        {/* Local zoom indicator */}
+        {isLocalZoomed && (
+          <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded-full">
+            <span className="text-white text-[9px] font-medium">{localZoomScale.toFixed(1)}x</span>
+          </div>
+        )}
+        {/* Double-tap to reset local zoom */}
       </motion.div>
 
       {/* Network Status Banner - Ultra-Low Bandwidth */}
@@ -933,30 +948,32 @@ export default function UnifiedCallScreen({
         </div>
       )}
 
-      {/* Zoom indicator */}
+      {/* Remote zoom indicator */}
       <AnimatePresence>
         {isZoomed && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full"
+            className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full flex items-center gap-2"
           >
+            <ZoomIn className="w-3.5 h-3.5 text-white/70" />
             <span className="text-white text-sm font-medium">{zoomScale.toFixed(1)}x</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Zoom controls */}
+      {/* Zoom controls - remote + local */}
       <AnimatePresence>
-        {remoteVideoActive && controlsVisible && (
+        {controlsVisible && (remoteVideoActive || localVideoActive) && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             className="absolute bottom-52 right-4 z-40 flex flex-col gap-2"
           >
-            {zoomScale < 2 && (
+            {/* Remote zoom in */}
+            {remoteVideoActive && zoomScale < 2 && (
               <button
                 onClick={() => {
                   zoomIn();
@@ -964,10 +981,12 @@ export default function UnifiedCallScreen({
                   webrtcRef.current?.applyZoom(newZoom);
                 }}
                 className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center active:scale-90 transition-transform"
+                title="Zoom remote video"
               >
                 <ZoomIn className="w-5 h-5 text-white" />
               </button>
             )}
+            {/* Remote zoom out */}
             {isZoomed && (
               <button
                 onClick={() => {
@@ -975,6 +994,7 @@ export default function UnifiedCallScreen({
                   webrtcRef.current?.applyZoom(1);
                 }}
                 className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center active:scale-90 transition-transform"
+                title="Reset remote zoom"
               >
                 <ZoomOut className="w-5 h-5 text-white" />
               </button>

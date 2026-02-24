@@ -486,8 +486,15 @@ export default function ProductionVideoCall({
   const mainVideoRef = videoLayout === 'remote-main' ? remoteVideoRef : localVideoRef;
   const pipVideoRef = videoLayout === 'remote-main' ? localVideoRef : remoteVideoRef;
 
-  // Video zoom hook for pinch-to-zoom functionality
+  // Video zoom hook for pinch-to-zoom on main video
   const { containerRef: zoomContainerRef, style: zoomStyle, scale: zoomScale, isZoomed, resetZoom, zoomIn, zoomOut } = useVideoZoom({
+    minScale: 1,
+    maxScale: 2,
+    enabled: callState === 'connected'
+  });
+
+  // Video zoom hook for PIP video
+  const { containerRef: pipZoomRef, style: pipZoomStyle, scale: pipZoomScale, isZoomed: isPipZoomed, resetZoom: resetPipZoom, zoomIn: pipZoomIn, zoomOut: pipZoomOut } = useVideoZoom({
     minScale: 1,
     maxScale: 2,
     enabled: callState === 'connected'
@@ -552,42 +559,53 @@ export default function ProductionVideoCall({
         />
       </div>
 
-      {/* Zoom indicator with HD badge */}
+      {/* Zoom indicator for main video */}
       {isZoomed && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="absolute top-24 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full flex items-center gap-2"
         >
+          <ZoomIn className="w-3.5 h-3.5 text-white/70" />
           <span className="text-white text-sm font-medium">{zoomScale.toFixed(1)}x</span>
-          <span className="text-xs text-green-400">Sending to partner</span>
         </motion.div>
       )}
 
-      {/* Chatr Plus Picture-in-picture video (FaceTime style) */}
+      {/* Chatr Plus Picture-in-picture video (FaceTime style) with zoom */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleSwapVideos();
-          if (pipVideoRef.current && videoLayout === 'local-main') {
-            pipVideoRef.current.muted = false;
-            pipVideoRef.current.volume = 1.0;
-            pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
-          }
-        }}
         className="absolute top-20 right-4 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform"
       >
-        <video
-          ref={pipVideoRef}
-          autoPlay
-          playsInline
-          muted={videoLayout === 'remote-main'}
-          className={`w-full h-full object-cover`}
-          style={{ WebkitPlaysinline: 'true' } as any}
-        />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+        <div ref={pipZoomRef} className="w-full h-full" style={pipZoomStyle}>
+          <video
+            ref={pipVideoRef}
+            autoPlay
+            playsInline
+            muted={videoLayout === 'remote-main'}
+            className="w-full h-full object-cover"
+            style={{ WebkitPlaysinline: 'true' } as any}
+          />
+        </div>
+        {/* PIP zoom indicator */}
+        {isPipZoomed && (
+          <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded-full">
+            <span className="text-white text-[9px] font-medium">{pipZoomScale.toFixed(1)}x</span>
+          </div>
+        )}
+        {/* Swap overlay */}
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSwapVideos();
+            if (pipVideoRef.current && videoLayout === 'local-main') {
+              pipVideoRef.current.muted = false;
+              pipVideoRef.current.volume = 1.0;
+              pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
+            }
+          }}
+          className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity"
+        >
           <Repeat className="w-6 h-6 text-white" />
         </div>
       </motion.div>
