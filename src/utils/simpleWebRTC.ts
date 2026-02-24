@@ -399,15 +399,19 @@ export class SimpleWebRTCCall {
     this.pc = new RTCPeerConnection(config);
     
     // SMART CODEC NEGOTIATION: Apply optimal codec order based on device capabilities
+    // CRITICAL: When ANY peer is Android (native or WebView), force VP8 for maximum compatibility
+    // VP9 can cause frozen/black video on many Android devices due to hardware decoder issues
     if (this.isVideo) {
-      detectDeviceCapabilities().then(caps => {
-        if (this.pc) {
-          applyOptimalCodecs(this.pc, caps);
-        }
-      }).catch(() => {
-        // Fallback: Android gets VP8, others get default
-        if (isAndroid) this.forceVP8Codec();
-      });
+      if (isAndroid) {
+        // Immediate VP8 for Android — don't wait for async detectDeviceCapabilities
+        this.forceVP8Codec();
+      } else {
+        detectDeviceCapabilities().then(caps => {
+          if (this.pc) {
+            applyOptimalCodecs(this.pc, caps);
+          }
+        }).catch(() => {});
+      }
     }
 
     // Handle remote tracks - CRITICAL for bidirectional video
@@ -513,11 +517,12 @@ export class SimpleWebRTCCall {
     this.updateCallToActive();
     
     // ADAPTIVE BITRATE ENGINE: Start smart quality scaling (720p → 4K)
+    // CRITICAL: Serialize - apply initial bitrate FIRST, then start ABR engine AFTER
     if (this.pc && this.isVideo) {
-      this.applyAdaptiveVideoBitrate();
-      
-      // Start ABR engine for dynamic tier management
-      detectDeviceCapabilities().then(caps => {
+      this.applyAdaptiveVideoBitrate().then(() => {
+        // Only start ABR engine AFTER initial bitrate is applied (prevents setParameters race)
+        return detectDeviceCapabilities();
+      }).then(caps => {
         if (!this.pc) return;
         const maxTier: VideoTier = caps.supports4K ? '4k' : caps.maxCameraHeight >= 1440 ? '1440p' : '1080p';
         this.abrEngine = new AdaptiveBitrateEngine(this.pc, {
@@ -530,7 +535,9 @@ export class SimpleWebRTCCall {
         });
         this.abrEngine.start();
         console.log(`📊 [WebRTC] ABR engine started (max: ${maxTier})`);
-      }).catch(() => {});
+      }).catch((e) => {
+        console.warn('⚠️ [WebRTC] ABR setup error (non-fatal):', e);
+      });
     }
     
     // India-first: Apply bitrate limits based on preset (only for hostile networks)
@@ -554,18 +561,19 @@ export class SimpleWebRTCCall {
       const videoSender = this.pc.getSenders().find(s => s.track?.kind === 'video');
       if (!videoSender) return;
       
+      // CRITICAL: getParameters() MUST be called before setParameters()
+      // This initializes the sender's internal transaction state
       const params = videoSender.getParameters();
       if (!params.encodings || params.encodings.length === 0) {
         params.encodings = [{}];
       }
       
       // STABILITY-FIRST: Configure for adaptive bitrate with wide range
-      // Allow browser to dynamically adjust between 10kbps and 25Mbps based on network
       params.encodings[0].maxBitrate = 25_000_000; // 25 Mbps maximum for 4K
       params.encodings[0].maxFramerate = 60;
       
       // @ts-ignore - scaleResolutionDownBy allows dynamic scaling
-      params.encodings[0].scaleResolutionDownBy = 1; // Start at full resolution
+      params.encodings[0].scaleResolutionDownBy = 1;
       
       // @ts-ignore - Priority hints for stability
       params.encodings[0].priority = 'high';
@@ -573,7 +581,6 @@ export class SimpleWebRTCCall {
       params.encodings[0].networkPriority = 'high';
       
       // Enable degradation preference for maintaining framerate over resolution
-      // This keeps video smooth even on poor networks
       const track = videoSender.track;
       if (track) {
         try {

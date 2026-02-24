@@ -87,12 +87,30 @@ export function startAggressiveVideoPlayback(
     log(`Attempt ${retryCount + 1}/${maxRetries}: track=${track.readyState}, muted=${track.muted}, enabled=${track.enabled}`);
 
     try {
-      // Strategy 1: Direct play
+      // Strategy 1: Muted play first (avoids AbortError on Android WebView)
+      // then unmute - this is more reliable than direct unmuted play
+      videoElement.muted = true;
+      await videoElement.play();
+      await new Promise(r => setTimeout(r, 100));
+      videoElement.muted = false;
+      videoElement.volume = 1.0;
+      
+      if (checkVideoPlaying()) {
+        log('✅ Video playing (muted-first)');
+        playbackStarted = true;
+        onPlaybackStarted?.();
+        return true;
+      }
+    } catch (e: any) {
+      log(`Muted-first play failed: ${e.name}`);
+    }
+
+    try {
+      // Strategy 2: Direct unmuted play (works on desktop)
       videoElement.muted = false;
       videoElement.volume = 1.0;
       await videoElement.play();
       
-      // Verify it's actually playing video (not just audio)
       await new Promise(r => setTimeout(r, 100));
       if (checkVideoPlaying()) {
         log('✅ Video playing (direct)');
@@ -102,23 +120,6 @@ export function startAggressiveVideoPlayback(
       }
     } catch (e: any) {
       log(`Direct play failed: ${e.name}`);
-    }
-
-    try {
-      // Strategy 2: Muted play then unmute
-      videoElement.muted = true;
-      await videoElement.play();
-      await new Promise(r => setTimeout(r, 50));
-      videoElement.muted = false;
-      
-      if (checkVideoPlaying()) {
-        log('✅ Video playing (muted->unmuted)');
-        playbackStarted = true;
-        onPlaybackStarted?.();
-        return true;
-      }
-    } catch (e: any) {
-      log(`Muted play failed: ${e.name}`);
     }
 
     // Strategy 3: Re-assign srcObject (works for all browsers, critical for WebViews)

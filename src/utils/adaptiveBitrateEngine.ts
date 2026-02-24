@@ -59,6 +59,10 @@ export class AdaptiveBitrateEngine {
   private onTierChange?: (tier: VideoTier, reason: string) => void;
   private callId?: string;
   private userId?: string;
+  
+  // Mutex to serialize setParameters calls and prevent InvalidStateError
+  private parametersPending = false;
+  private parametersQueue: Array<{ tier: VideoTier; reason: string; resolve: () => void }> = [];
 
   constructor(
     pc: RTCPeerConnection,
@@ -228,11 +232,38 @@ export class AdaptiveBitrateEngine {
    * Apply a tier's bitrate/fps limits via setParameters
    */
   private async applyTier(tier: VideoTier, reason: string): Promise<void> {
+    // Queue the request if another setParameters call is in-flight
+    if (this.parametersPending) {
+      return new Promise<void>((resolve) => {
+        this.parametersQueue.push({ tier, reason, resolve });
+      });
+    }
+    
+    this.parametersPending = true;
+    
+    try {
+      await this._applyTierInternal(tier, reason);
+    } finally {
+      this.parametersPending = false;
+      // Process next queued request (only the latest one matters)
+      if (this.parametersQueue.length > 0) {
+        const latest = this.parametersQueue[this.parametersQueue.length - 1];
+        // Resolve all queued promises
+        this.parametersQueue.forEach(q => q.resolve());
+        this.parametersQueue = [];
+        // Apply only the latest tier
+        this.applyTier(latest.tier, latest.reason);
+      }
+    }
+  }
+  
+  private async _applyTierInternal(tier: VideoTier, reason: string): Promise<void> {
     const config = TIER_CONFIGS[tier];
     const sender = this.pc.getSenders().find(s => s.track?.kind === 'video');
     if (!sender) return;
 
     try {
+      // CRITICAL: Always call getParameters() first to initialize the transaction
       const params = sender.getParameters();
       if (!params.encodings || params.encodings.length === 0) {
         params.encodings = [{}];
@@ -262,7 +293,6 @@ export class AdaptiveBitrateEngine {
       }
     } catch (e) {
       console.warn(`⚠️ [ABR] Failed to apply ${tier}:`, e);
-      // Don't crash the call - just log and continue
     }
   }
 
