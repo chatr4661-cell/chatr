@@ -289,10 +289,51 @@ export default function UnifiedCallScreen({
         videoTracks.forEach(t => console.log(`    📹 Video: ${t.label}, enabled: ${t.enabled}, muted: ${t.muted}`));
         
         // CRITICAL: Always setup audio via the DOM <audio> element (must be in DOM for mobile autoplay)
+        // On Android WebView, audio MUST go through a DOM element, not just the PeerConnection
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = stream;
           remoteAudioRef.current.volume = 1.0;
-          remoteAudioRef.current.play().catch(e => console.log('🔊 [UnifiedCall] Audio autoplay blocked:', e));
+          
+          // CRITICAL FIX: Use muted-then-unmuted strategy for Android WebView autoplay
+          const tryAudioPlay = async () => {
+            const audioEl = remoteAudioRef.current;
+            if (!audioEl) return;
+            
+            try {
+              // Strategy 1: Direct unmuted play
+              await audioEl.play();
+              console.log('🔊 [UnifiedCall] Audio playing (direct)');
+            } catch (e1) {
+              console.log('🔊 [UnifiedCall] Direct audio play blocked, trying muted...');
+              try {
+                // Strategy 2: Muted play then unmute
+                audioEl.muted = true;
+                await audioEl.play();
+                // Small delay then unmute
+                setTimeout(() => {
+                  if (audioEl) {
+                    audioEl.muted = false;
+                    audioEl.volume = 1.0;
+                    console.log('🔊 [UnifiedCall] Audio unmuted after muted play');
+                  }
+                }, 100);
+              } catch (e2) {
+                console.warn('🔊 [UnifiedCall] Audio play failed, will retry on interaction:', e2);
+                // Strategy 3: Wait for user interaction
+                const playOnInteraction = () => {
+                  audioEl?.play().then(() => {
+                    console.log('🔊 [UnifiedCall] Audio playing after interaction');
+                  }).catch(() => {});
+                  document.removeEventListener('touchstart', playOnInteraction);
+                  document.removeEventListener('click', playOnInteraction);
+                };
+                document.addEventListener('touchstart', playOnInteraction, { once: true });
+                document.addEventListener('click', playOnInteraction, { once: true });
+              }
+            }
+          };
+          
+          tryAudioPlay();
         }
         
         // VIDEO PLAYBACK: Works for both desktop and mobile/WebView
@@ -301,12 +342,11 @@ export default function UnifiedCallScreen({
           console.log('📺 [UnifiedCall] Starting aggressive video playback');
           
           // CRITICAL FIX: Immediately assign srcObject and show video
-          // Don't wait for playback confirmation - show video UI immediately
           remoteVideoRef.current.srcObject = stream;
-          remoteVideoRef.current.muted = false;
+          // CRITICAL: Start muted to bypass Android WebView autoplay policy, then unmute
+          remoteVideoRef.current.muted = true;
           
           // OPTIMISTIC: Enable video visibility immediately when tracks exist
-          // This ensures users see video even if playback detection is slow
           const hasActiveTrack = videoTracks.some(t => t.enabled && t.readyState === 'live');
           if (hasActiveTrack) {
             console.log('📺 [UnifiedCall] OPTIMISTIC: Enabling remote video immediately');
@@ -318,9 +358,17 @@ export default function UnifiedCallScreen({
             videoPlaybackCleanupRef.current();
           }
           
-          // Try to play immediately
-          remoteVideoRef.current.play().catch(() => {
-            console.log('📺 [UnifiedCall] Initial play attempt failed, retrying...');
+          // Try muted play first (avoids AbortError on Android WebView), then unmute
+          remoteVideoRef.current.play().then(() => {
+            // Successfully started muted, now unmute after small delay
+            setTimeout(() => {
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.muted = false;
+                console.log('📺 [UnifiedCall] Video unmuted after muted start');
+              }
+            }, 100);
+          }).catch(() => {
+            console.log('📺 [UnifiedCall] Initial muted play attempt failed, relying on retry loop...');
           });
           
           // Start aggressive playback with retry loop (still needed for edge cases)
