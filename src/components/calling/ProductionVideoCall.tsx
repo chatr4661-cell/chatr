@@ -489,7 +489,7 @@ export default function ProductionVideoCall({
   // Video zoom hook for pinch-to-zoom functionality
   const { containerRef: zoomContainerRef, style: zoomStyle, scale: zoomScale, isZoomed, resetZoom, zoomIn, zoomOut } = useVideoZoom({
     minScale: 1,
-    maxScale: 4,
+    maxScale: 2,
     enabled: callState === 'connected'
   });
 
@@ -644,8 +644,8 @@ export default function ProductionVideoCall({
               className="rounded-full w-14 h-14 bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
               onClick={() => {
                 zoomIn();
-                // Apply zoom to outgoing video stream
-                const newZoom = Math.min(4, zoomScale + 0.5);
+                // Apply zoom to outgoing video stream (max 2x)
+                const newZoom = Math.min(2, zoomScale + 0.5);
                 webrtcRef.current?.applyZoom(newZoom);
                 if (newZoom > 1) {
                   toast.info(`Sending ${newZoom.toFixed(1)}x zoomed video`, { duration: 2000 });

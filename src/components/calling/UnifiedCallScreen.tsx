@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Mic, MicOff, PhoneOff, Volume2, Video, VideoOff, 
-  SwitchCamera, Grid3X3, MoreHorizontal, WifiOff
+  SwitchCamera, Grid3X3, MoreHorizontal, WifiOff, ZoomIn, ZoomOut
 } from 'lucide-react';
 import { SimpleWebRTCCall, hasActiveCall, getExistingCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +18,7 @@ import useUltraLowBandwidth from '@/hooks/useUltraLowBandwidth';
 import { MediaQuality } from '@/utils/gracefulDegradation';
 import { stopAllRingtones } from '@/hooks/useNativeRingtone';
 import NetworkDiagnosticsPanel from './NetworkDiagnosticsPanel';
+import { useVideoZoom } from '@/hooks/useVideoZoom';
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
 
@@ -77,6 +78,13 @@ export default function UnifiedCallScreen({
 
   const isVideo = callType === 'video' || isVideoOn || videoEnabled;
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // Pinch-to-zoom for video (max 2x) — sends zoomed video to partner
+  const { containerRef: zoomContainerRef, style: zoomStyle, scale: zoomScale, isZoomed, resetZoom, zoomIn, zoomOut } = useVideoZoom({
+    minScale: 1,
+    maxScale: 2,
+    enabled: callState === 'connected' && remoteVideoActive
+  });
   const callStateRef = useRef(callState);
 
   useCallKeepAlive(callId, callState === 'connected');
@@ -827,26 +835,30 @@ export default function UnifiedCallScreen({
         style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
       />
 
-      {/* Background - Full-screen HD Remote Video like FaceTime */}
-      {/* ALWAYS show remote video when video is on (don't hide) - let CSS handle visibility */}
-      <video
-        ref={remoteVideoRef}
-        autoPlay
-        playsInline
-        className="absolute inset-0 w-full h-full bg-black"
-        style={{
-          width: '100vw',
-          height: '100dvh',
-          minHeight: '-webkit-fill-available',
-          objectFit: 'cover', // Edge-to-edge immersive video
-          transform: 'translateZ(0)', // GPU acceleration for smooth video
-          backfaceVisibility: 'hidden',
-          perspective: 1000,
-          opacity: remoteVideoActive ? 1 : 0,
-          transition: 'opacity 0.3s ease',
-          zIndex: 1,
-        }}
-      />
+      {/* Background - Full-screen HD Remote Video with pinch-to-zoom */}
+      <div
+        ref={zoomContainerRef}
+        className="absolute inset-0 overflow-hidden"
+        style={{ zIndex: 1, ...zoomStyle }}
+      >
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className="w-full h-full bg-black"
+          style={{
+            width: '100vw',
+            height: '100dvh',
+            minHeight: '-webkit-fill-available',
+            objectFit: 'cover',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+            perspective: 1000,
+            opacity: remoteVideoActive ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+          }}
+        />
+      </div>
       
       {/* Show avatar when no remote video - with smooth transitions */}
       <div 
@@ -921,7 +933,56 @@ export default function UnifiedCallScreen({
         </div>
       )}
 
-      {/* Top Bar - Name & Status */}
+      {/* Zoom indicator */}
+      <AnimatePresence>
+        {isZoomed && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full"
+          >
+            <span className="text-white text-sm font-medium">{zoomScale.toFixed(1)}x</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Zoom controls */}
+      <AnimatePresence>
+        {remoteVideoActive && controlsVisible && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute bottom-52 right-4 z-40 flex flex-col gap-2"
+          >
+            {zoomScale < 2 && (
+              <button
+                onClick={() => {
+                  zoomIn();
+                  const newZoom = Math.min(2, zoomScale + 0.5);
+                  webrtcRef.current?.applyZoom(newZoom);
+                }}
+                className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center active:scale-90 transition-transform"
+              >
+                <ZoomIn className="w-5 h-5 text-white" />
+              </button>
+            )}
+            {isZoomed && (
+              <button
+                onClick={() => {
+                  resetZoom();
+                  webrtcRef.current?.applyZoom(1);
+                }}
+                className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center active:scale-90 transition-transform"
+              >
+                <ZoomOut className="w-5 h-5 text-white" />
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {controlsVisible && (
           <motion.div

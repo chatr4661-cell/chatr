@@ -13,7 +13,7 @@ interface UseVideoZoomOptions {
 }
 
 export function useVideoZoom(options: UseVideoZoomOptions = {}) {
-  const { minScale = 1, maxScale = 4, enabled = true } = options;
+  const { minScale = 1, maxScale = 2, enabled = true } = options;
   
   const [zoomState, setZoomState] = useState<ZoomState>({
     scale: 1,
