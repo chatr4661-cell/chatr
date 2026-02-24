@@ -896,12 +896,7 @@ export default function UnifiedCallScreen({
             backfaceVisibility: 'hidden',
           }}
         />
-        {/* HD indicator */}
-        {localVideoActive && (
-          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-[9px] text-emerald-400 font-medium">
-            HD
-          </div>
-        )}
+        {/* HD indicator removed for clean FaceTime look */}
       </motion.div>
 
       {/* Network Status Banner - Ultra-Low Bandwidth */}
