@@ -564,16 +564,7 @@ export default function ProductionVideoCall({
         </motion.div>
       )}
 
-      {/* HD Quality Badge */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="absolute top-24 right-4 bg-black/60 backdrop-blur-xl px-3 py-1.5 rounded-full"
-      >
-        <span className="text-green-400 text-xs font-semibold">HD 1080p • NC</span>
-      </motion.div>
-
-      {/* Chatr Plus Picture-in-picture video */}
+      {/* Chatr Plus Picture-in-picture video (FaceTime style) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -586,7 +577,7 @@ export default function ProductionVideoCall({
             pipVideoRef.current.play().catch(err => console.log('PIP play:', err));
           }
         }}
-        className="absolute top-20 right-4 mt-12 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm"
+        className="absolute top-20 right-4 w-28 h-40 rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-transform"
       >
         <video
           ref={pipVideoRef}
