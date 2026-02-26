@@ -227,17 +227,28 @@ async function handleMessageNotification(
   payload: MessageNotification
 ) {
   const { recipientId, senderId, senderName, senderAvatar, conversationId, messageContent, messageId, isGroup } = payload;
-  const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
+  const startTime = Date.now();
 
-  console.log('💬 Processing message notification for recipient:', recipientId);
+  console.log('💬 Processing MESSAGE notification (FCM v1) for recipient:', recipientId);
 
-  if (!firebaseServerKey) {
-    console.error('❌ FIREBASE_SERVER_KEY not configured');
+  // Use FCM HTTP v1 API (same as calls)
+  const firebaseServiceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
+
+  if (!firebaseServiceAccountJson) {
+    console.error('❌ FIREBASE_SERVICE_ACCOUNT not configured for chat messages');
     return new Response(
-      JSON.stringify({ error: 'Firebase server key not configured' }),
+      JSON.stringify({ error: 'Firebase service account not configured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+
+  const serviceAccount = JSON.parse(firebaseServiceAccountJson);
+  const projectId = serviceAccount.project_id;
+
+  console.log('[FCM-v1] Using Firebase Project:', projectId);
+
+  // Get OAuth2 access token
+  const accessToken = await getOAuth2AccessToken(serviceAccount);
 
   const { data: deviceTokens, error: tokenError } = await supabase
     .from('device_tokens')
@@ -257,75 +268,87 @@ async function handleMessageNotification(
     );
   }
 
-  console.log('📱 Found', deviceTokens.length, 'device(s) for recipient');
+  console.log('📱 Found', deviceTokens.length, 'device(s) for message recipient');
 
-  const messageData = {
-    id: messageId,
-    conversationId,
-    senderId,
-    content: messageContent,
-    createdAt: new Date().toISOString()
-  };
+  // Truncate message for notification display
+  const truncatedBody = messageContent && messageContent.length > 100
+    ? messageContent.substring(0, 100) + '...'
+    : (messageContent || 'Sent a message');
 
-  const senderData = {
-    id: senderId,
-    username: senderName,
-    avatar_url: senderAvatar || ''
-  };
+  const endpoint = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
 
   const results = await Promise.allSettled(
     deviceTokens.map(async (tokenData: any) => {
+      // DATA-ONLY payload — NO notification block!
+      // Android native app handles building the notification from data
       const fcmPayload = {
-        to: tokenData.device_token,
-        priority: 'high',
-        data: {
-          type: 'message',
-          conversation_id: conversationId,
-          message: JSON.stringify(messageData),
-          sender: JSON.stringify(senderData),
-          is_group: String(isGroup || false),
-          is_silent: 'false'
-        },
-        android: { priority: 'high' },
-        content_available: true
+        message: {
+          token: tokenData.device_token,
+          data: {
+            type: "chat_message",
+            title: senderName || "New Message",
+            body: truncatedBody,
+            sender_id: senderId,
+            sender_name: senderName || "Unknown",
+            sender_avatar: senderAvatar || "",
+            conversation_id: conversationId,
+            message_id: messageId,
+            is_group: String(isGroup || false),
+            timestamp: Date.now().toString()
+          },
+          android: {
+            priority: "HIGH"
+          }
+        }
       };
 
-      console.log('📤 Sending MESSAGE FCM to:', tokenData.device_token.substring(0, 30) + '...');
+      const maskedToken = tokenData.device_token.length > 16
+        ? tokenData.device_token.substring(0, 8) + '...' + tokenData.device_token.substring(tokenData.device_token.length - 8)
+        : tokenData.device_token;
 
-      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+      console.log('[FCM-v1] ========== OUTGOING MESSAGE FCM ==========');
+      console.log('[FCM-v1] Target Token (masked):', maskedToken);
+      console.log('[FCM-v1] Payload:', JSON.stringify(fcmPayload, null, 2));
+      console.log('[FCM-v1] ============================================');
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `key=${firebaseServerKey}`,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(fcmPayload),
+        body: JSON.stringify(fcmPayload)
       });
 
-      const result = await response.json();
-      
-      if (!response.ok || result.failure > 0) {
-        console.error('❌ FCM Error:', result);
-        if (result.results?.[0]?.error === 'NotRegistered' || 
-            result.results?.[0]?.error === 'InvalidRegistration') {
-          console.log('🗑️ Removing invalid token');
+      const responseBody = await response.text();
+
+      console.log('[FCM-v1] ========== FCM RESPONSE ==========');
+      console.log('[FCM-v1] HTTP Status:', response.status);
+      console.log('[FCM-v1] Response Body:', responseBody);
+      console.log('[FCM-v1] ===================================');
+
+      if (!response.ok) {
+        // Check for invalid/unregistered tokens
+        if (responseBody.includes('UNREGISTERED') || responseBody.includes('INVALID_ARGUMENT')) {
+          console.log('🗑️ Removing invalid token:', maskedToken);
           await supabase.from('device_tokens').delete().eq('device_token', tokenData.device_token);
         }
-        throw new Error(result.results?.[0]?.error || 'FCM failed');
+        throw new Error(`${response.status}: ${responseBody}`);
       }
 
-      console.log('✅ FCM Success:', result);
       await supabase.from('device_tokens').update({ last_used_at: new Date().toISOString() }).eq('device_token', tokenData.device_token);
-      return result;
+      return JSON.parse(responseBody);
     })
   );
 
   const successful = results.filter(r => r.status === 'fulfilled').length;
   const failed = results.filter(r => r.status === 'rejected').length;
+  const latencyMs = Date.now() - startTime;
 
-  console.log(`✅ Message notification sent to ${successful} device(s), failed: ${failed}`);
+  console.log(`✅ Message notification (FCM v1) sent to ${successful} device(s), failed: ${failed}, latency: ${latencyMs}ms`);
 
   return new Response(
-    JSON.stringify({ success: true, sentTo: successful, failed }),
+    JSON.stringify({ success: true, sentTo: successful, failed, api: 'v1', latencyMs }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
