@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { notifyConversationParticipants } from '@/utils/pushNotifications';
 
 interface Message {
   id: string;
@@ -135,6 +136,27 @@ export const useVirtualizedMessages = (conversationId: string | null, userId: st
       setMessages(prev => prev.map(msg => 
         msg.id === tempId ? data : msg
       ));
+
+      // 🔔 Send push notification to all other participants via FCM v1 API
+      // Fire-and-forget: don't block the UI on notification delivery
+      if (data?.id) {
+        // Get sender profile for notification display
+        const { data: senderProfile } = await supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', userId)
+          .single();
+
+        notifyConversationParticipants(
+          conversationId,
+          userId,
+          senderProfile?.username || 'Someone',
+          senderProfile?.avatar_url || undefined,
+          data.id,
+          content.trim(),
+          false // isGroup - could be enhanced later
+        ).catch(err => console.warn('📲 Push notification failed (non-blocking):', err));
+      }
     } catch (error) {
       console.error('[useVirtualizedMessages] Error sending message:', error);
       // Mark as failed
