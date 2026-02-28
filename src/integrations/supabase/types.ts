@@ -2066,22 +2066,27 @@ export type Database = {
       }
       calls: {
         Row: {
+          ai_confidence_score: number | null
           average_bitrate: number | null
           call_type: string
           caller_avatar: string | null
           caller_id: string
           caller_name: string | null
           caller_phone: string | null
+          clarity_score: number | null
           connection_quality: string | null
           conversation_id: string
           created_at: string | null
           duration: number | null
           ended_at: string | null
+          has_outcome_logged: boolean | null
           id: string
           is_group: boolean | null
           missed: boolean | null
+          outcome_status: string | null
           packet_loss_percentage: number | null
           participants: Json | null
+          pre_call_intent: string | null
           quality_metrics: Json | null
           quality_rating: number | null
           receiver_avatar: string | null
@@ -2092,25 +2097,31 @@ export type Database = {
           started_at: string | null
           status: string | null
           total_participants: number | null
+          user_feedback_score: number | null
           webrtc_state: string | null
         }
         Insert: {
+          ai_confidence_score?: number | null
           average_bitrate?: number | null
           call_type: string
           caller_avatar?: string | null
           caller_id: string
           caller_name?: string | null
           caller_phone?: string | null
+          clarity_score?: number | null
           connection_quality?: string | null
           conversation_id: string
           created_at?: string | null
           duration?: number | null
           ended_at?: string | null
+          has_outcome_logged?: boolean | null
           id?: string
           is_group?: boolean | null
           missed?: boolean | null
+          outcome_status?: string | null
           packet_loss_percentage?: number | null
           participants?: Json | null
+          pre_call_intent?: string | null
           quality_metrics?: Json | null
           quality_rating?: number | null
           receiver_avatar?: string | null
@@ -2121,25 +2132,31 @@ export type Database = {
           started_at?: string | null
           status?: string | null
           total_participants?: number | null
+          user_feedback_score?: number | null
           webrtc_state?: string | null
         }
         Update: {
+          ai_confidence_score?: number | null
           average_bitrate?: number | null
           call_type?: string
           caller_avatar?: string | null
           caller_id?: string
           caller_name?: string | null
           caller_phone?: string | null
+          clarity_score?: number | null
           connection_quality?: string | null
           conversation_id?: string
           created_at?: string | null
           duration?: number | null
           ended_at?: string | null
+          has_outcome_logged?: boolean | null
           id?: string
           is_group?: boolean | null
           missed?: boolean | null
+          outcome_status?: string | null
           packet_loss_percentage?: number | null
           participants?: Json | null
+          pre_call_intent?: string | null
           quality_metrics?: Json | null
           quality_rating?: number | null
           receiver_avatar?: string | null
@@ -2150,6 +2167,7 @@ export type Database = {
           started_at?: string | null
           status?: string | null
           total_participants?: number | null
+          user_feedback_score?: number | null
           webrtc_state?: string | null
         }
         Relationships: [
@@ -4706,6 +4724,42 @@ export type Database = {
           sender_id?: string
           status?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      contact_intelligence: {
+        Row: {
+          contact_id: string
+          drops_prevented_count: number | null
+          last_updated: string | null
+          optimal_call_window_end: string | null
+          optimal_call_window_start: string | null
+          pickup_likelihood: number | null
+          preferred_route: string | null
+          user_id: string
+          volatility: string | null
+        }
+        Insert: {
+          contact_id: string
+          drops_prevented_count?: number | null
+          last_updated?: string | null
+          optimal_call_window_end?: string | null
+          optimal_call_window_start?: string | null
+          pickup_likelihood?: number | null
+          preferred_route?: string | null
+          user_id: string
+          volatility?: string | null
+        }
+        Update: {
+          contact_id?: string
+          drops_prevented_count?: number | null
+          last_updated?: string | null
+          optimal_call_window_end?: string | null
+          optimal_call_window_start?: string | null
+          pickup_likelihood?: number | null
+          preferred_route?: string | null
+          user_id?: string
+          volatility?: string | null
         }
         Relationships: []
       }
