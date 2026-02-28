@@ -2031,6 +2031,71 @@ export type Database = {
           },
         ]
       }
+      call_telemetry: {
+        Row: {
+          call_duration_s: number | null
+          call_id: string
+          closed_at: string | null
+          codec_degradations: number
+          contact_id: string | null
+          created_at: string
+          id: string
+          network_start_state: Json
+          outcome_tag: string | null
+          peak_jitter_ms: number | null
+          peak_rtt_ms: number | null
+          retry_attempts: number
+          route_chosen: string
+          route_switches: number
+          silence_ratio: number | null
+          user_id: string | null
+        }
+        Insert: {
+          call_duration_s?: number | null
+          call_id: string
+          closed_at?: string | null
+          codec_degradations?: number
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          network_start_state?: Json
+          outcome_tag?: string | null
+          peak_jitter_ms?: number | null
+          peak_rtt_ms?: number | null
+          retry_attempts?: number
+          route_chosen?: string
+          route_switches?: number
+          silence_ratio?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          call_duration_s?: number | null
+          call_id?: string
+          closed_at?: string | null
+          codec_degradations?: number
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          network_start_state?: Json
+          outcome_tag?: string | null
+          peak_jitter_ms?: number | null
+          peak_rtt_ms?: number | null
+          retry_attempts?: number
+          route_chosen?: string
+          route_switches?: number
+          silence_ratio?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_telemetry_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_transcriptions: {
         Row: {
           call_id: string
@@ -2083,7 +2148,9 @@ export type Database = {
           id: string
           is_group: boolean | null
           missed: boolean | null
+          outcome_note: string | null
           outcome_status: string | null
+          outcome_tag: string | null
           packet_loss_percentage: number | null
           participants: Json | null
           pre_call_intent: string | null
@@ -2094,6 +2161,7 @@ export type Database = {
           receiver_name: string | null
           receiver_phone: string | null
           reconnection_count: number | null
+          route_type: string | null
           started_at: string | null
           status: string | null
           total_participants: number | null
@@ -2118,7 +2186,9 @@ export type Database = {
           id?: string
           is_group?: boolean | null
           missed?: boolean | null
+          outcome_note?: string | null
           outcome_status?: string | null
+          outcome_tag?: string | null
           packet_loss_percentage?: number | null
           participants?: Json | null
           pre_call_intent?: string | null
@@ -2129,6 +2199,7 @@ export type Database = {
           receiver_name?: string | null
           receiver_phone?: string | null
           reconnection_count?: number | null
+          route_type?: string | null
           started_at?: string | null
           status?: string | null
           total_participants?: number | null
@@ -2153,7 +2224,9 @@ export type Database = {
           id?: string
           is_group?: boolean | null
           missed?: boolean | null
+          outcome_note?: string | null
           outcome_status?: string | null
+          outcome_tag?: string | null
           packet_loss_percentage?: number | null
           participants?: Json | null
           pre_call_intent?: string | null
@@ -2164,6 +2237,7 @@ export type Database = {
           receiver_name?: string | null
           receiver_phone?: string | null
           reconnection_count?: number | null
+          route_type?: string | null
           started_at?: string | null
           status?: string | null
           total_participants?: number | null
@@ -4729,36 +4803,78 @@ export type Database = {
       }
       contact_intelligence: {
         Row: {
+          answered_calls: number
+          avg_clarity_score: number | null
+          avg_gsm_score: number | null
+          avg_voip_score: number | null
+          best_hour_utc: number | null
           contact_id: string
+          drop_rate: number
           drops_prevented_count: number | null
+          id: string | null
+          last_call_at: string | null
+          last_outcome: string | null
           last_updated: string | null
+          missed_calls: number
           optimal_call_window_end: string | null
           optimal_call_window_start: string | null
           pickup_likelihood: number | null
           preferred_route: string | null
+          resolution_rate: number
+          resolved_calls: number
+          total_calls: number
           user_id: string
+          voicemail_calls: number
           volatility: string | null
         }
         Insert: {
+          answered_calls?: number
+          avg_clarity_score?: number | null
+          avg_gsm_score?: number | null
+          avg_voip_score?: number | null
+          best_hour_utc?: number | null
           contact_id: string
+          drop_rate?: number
           drops_prevented_count?: number | null
+          id?: string | null
+          last_call_at?: string | null
+          last_outcome?: string | null
           last_updated?: string | null
+          missed_calls?: number
           optimal_call_window_end?: string | null
           optimal_call_window_start?: string | null
           pickup_likelihood?: number | null
           preferred_route?: string | null
+          resolution_rate?: number
+          resolved_calls?: number
+          total_calls?: number
           user_id: string
+          voicemail_calls?: number
           volatility?: string | null
         }
         Update: {
+          answered_calls?: number
+          avg_clarity_score?: number | null
+          avg_gsm_score?: number | null
+          avg_voip_score?: number | null
+          best_hour_utc?: number | null
           contact_id?: string
+          drop_rate?: number
           drops_prevented_count?: number | null
+          id?: string | null
+          last_call_at?: string | null
+          last_outcome?: string | null
           last_updated?: string | null
+          missed_calls?: number
           optimal_call_window_end?: string | null
           optimal_call_window_start?: string | null
           pickup_likelihood?: number | null
           preferred_route?: string | null
+          resolution_rate?: number
+          resolved_calls?: number
+          total_calls?: number
           user_id?: string
+          voicemail_calls?: number
           volatility?: string | null
         }
         Relationships: []
@@ -17373,6 +17489,17 @@ export type Database = {
           },
         ]
       }
+      user_call_rcp: {
+        Row: {
+          resolved_calls: number | null
+          resolved_last_7d: number | null
+          resolved_percentage: number | null
+          total_calls: number | null
+          total_last_7d: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_call_participant: {
@@ -17586,6 +17713,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      refresh_contact_intelligence: {
+        Args: { p_contact_id: string; p_user_id: string }
+        Returns: undefined
       }
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }
