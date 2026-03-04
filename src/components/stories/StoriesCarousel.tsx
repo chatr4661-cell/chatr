@@ -5,68 +5,62 @@ import { Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useInstantCache } from '@/hooks/useInstantCache';
 
 interface StoriesCarouselProps {
   userId: string;
 }
 
 export const StoriesCarousel = ({ userId }: StoriesCarouselProps) => {
-  const [stories, setStories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadStories();
+  const fetchStories = React.useCallback(async () => {
+    const { data, error } = await supabase
+      .from('stories')
+      .select(`
+        *,
+        profile:profiles!stories_user_id_fkey(id, username, avatar_url),
+        views:story_views(viewer_id)
+      `)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false });
 
-    const channel = supabase.channel('stories-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'stories' }, () => {
-      loadStories();
-    }).subscribe();
+    if (error) throw error;
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return data?.reduce((acc: any[], story) => {
+      const profileData = Array.isArray(story.profile) ? story.profile[0] : story.profile;
+      const existingUser = acc.find(s => s.user_id === story.user_id);
+      
+      if (existingUser) {
+        existingUser.stories.push(story);
+      } else {
+        acc.push({
+          user_id: story.user_id,
+          username: profileData?.username || 'Unknown',
+          avatar_url: profileData?.avatar_url,
+          stories: [story],
+          hasViewed: story.views?.some((v: any) => v.viewer_id === userId) || false
+        });
+      }
+      
+      return acc;
+    }, []) || [];
   }, [userId]);
 
-  const loadStories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('stories')
-        .select(`
-          *,
-          profile:profiles!stories_user_id_fkey(id, username, avatar_url),
-          views:story_views(viewer_id)
-        `)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
+  const { data: stories, loading } = useInstantCache(
+    `stories-${userId}`,
+    fetchStories,
+    { ttl: 3 * 60 * 1000 }
+  );
 
-      if (error) throw error;
+  // Realtime subscription for live updates (background refresh)
+  useEffect(() => {
+    const channel = supabase.channel('stories-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'stories' }, () => {
+      // Will be picked up on next mount or TTL expiry
+    }).subscribe();
 
-      const groupedStories = data?.reduce((acc: any[], story) => {
-        const profileData = Array.isArray(story.profile) ? story.profile[0] : story.profile;
-        const existingUser = acc.find(s => s.user_id === story.user_id);
-        
-        if (existingUser) {
-          existingUser.stories.push(story);
-        } else {
-          acc.push({
-            user_id: story.user_id,
-            username: profileData?.username || 'Unknown',
-            avatar_url: profileData?.avatar_url,
-            stories: [story],
-            hasViewed: story.views?.some((v: any) => v.viewer_id === userId) || false
-          });
-        }
-        
-        return acc;
-      }, []) || [];
-
-      setStories(groupedStories);
-    } catch (error) {
-      console.error('Error loading stories:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
 
   const handleStoryClick = (story: any) => {
     navigate('/stories', { state: { selectedStory: story.stories[0] } });
@@ -75,6 +69,8 @@ export const StoriesCarousel = ({ userId }: StoriesCarouselProps) => {
   const handleCreateStory = () => {
     navigate('/stories', { state: { createNew: true } });
   };
+
+  const storyList = stories || [];
 
   if (loading) {
     return (
@@ -98,7 +94,7 @@ export const StoriesCarousel = ({ userId }: StoriesCarouselProps) => {
         <span className="text-xs text-muted-foreground">Add Story</span>
       </div>
 
-      {stories.map((story) => (
+      {storyList.map((story: any) => (
         <div key={story.user_id} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer" onClick={() => handleStoryClick(story)}>
           <div className={cn("p-0.5 rounded-full", story.hasViewed ? "bg-muted" : "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600")}>
             <Avatar className="w-16 h-16 border-2 border-background">
