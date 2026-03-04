@@ -35,9 +35,9 @@ const fetchWidgetData = async (): Promise<WidgetData> => {
 
   // All 3 queries run in PARALLEL
   const [notifRes, apptRes, walletRes] = await Promise.all([
-    supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false).then(r => r.count || 0).catch(() => 0),
-    supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('patient_id', user.id).gte('appointment_date', new Date().toISOString()).then(r => r.count || 0).catch(() => 0),
-    supabase.from('chatr_coin_balances').select('total_coins').eq('user_id', user.id).maybeSingle().then(r => r.data?.total_coins || 0).catch(() => 0),
+    (async () => { try { const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false); return count || 0; } catch { return 0; } })(),
+    (async () => { try { const { count } = await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('patient_id', user.id).gte('appointment_date', new Date().toISOString()); return count || 0; } catch { return 0; } })(),
+    (async () => { try { const { data } = await supabase.from('chatr_coin_balances').select('total_coins').eq('user_id', user.id).maybeSingle(); return data?.total_coins || 0; } catch { return 0; } })(),
   ]);
 
   return {

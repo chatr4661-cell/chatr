@@ -371,6 +371,22 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check localStorage cache first (3 min TTL)
+      const cacheKey = 'ic_index-points';
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          const { d, t } = JSON.parse(raw);
+          if (Date.now() - t < 180000) {
+            setPointsBalance(d.balance || 0);
+            setCurrentStreak(d.streak || 0);
+            if (d.referralCode) setReferralCode(d.referralCode);
+            if (d.qrCodeUrl) setQrCodeUrl(d.qrCodeUrl);
+            return; // Cache hit — skip network
+          }
+        }
+      } catch {}
+
       // Fetch all data in parallel for speed
       const [pointsData, streakData, referralData] = await Promise.all([
         supabase.from('user_points').select('balance').eq('user_id', user.id).maybeSingle().then(r => r.data),
@@ -385,8 +401,15 @@ const Index = () => {
         setReferralCode(referralData.code);
         setQrCodeUrl(referralData.qr_code_url || '');
       }
+
+      // Write to cache
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          d: { balance: pointsData?.balance || 0, streak: streakData?.current_streak || 0, referralCode: referralData?.code, qrCodeUrl: referralData?.qr_code_url },
+          t: Date.now()
+        }));
+      } catch {}
     } catch (error) {
-      // Silently fail to not block UI
       console.error('Error loading points:', error);
     }
   };
