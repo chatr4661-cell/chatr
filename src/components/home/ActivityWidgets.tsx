@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   MessageCircle, 
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useInstantCache } from '@/hooks/useInstantCache';
 
 interface WidgetData {
   unreadChats: number;
@@ -20,98 +21,65 @@ interface WidgetData {
   pendingNotifications: number;
 }
 
+const defaultData: WidgetData = {
+  unreadChats: 0,
+  upcomingAppointments: 0,
+  walletBalance: 0,
+  healthAlerts: 0,
+  pendingNotifications: 0
+};
+
+const fetchWidgetData = async (): Promise<WidgetData> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return defaultData;
+
+  // All 3 queries run in PARALLEL
+  const [notifRes, apptRes, walletRes] = await Promise.all([
+    (async () => { try { const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false); return count || 0; } catch { return 0; } })(),
+    (async () => { try { const { count } = await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('patient_id', user.id).gte('appointment_date', new Date().toISOString()); return count || 0; } catch { return 0; } })(),
+    (async () => { try { const { data } = await supabase.from('chatr_coin_balances').select('total_coins').eq('user_id', user.id).maybeSingle(); return data?.total_coins || 0; } catch { return 0; } })(),
+  ]);
+
+  return {
+    unreadChats: 0,
+    upcomingAppointments: apptRes,
+    walletBalance: walletRes,
+    healthAlerts: 0,
+    pendingNotifications: notifRes
+  };
+};
+
 export const ActivityWidgets = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState<WidgetData>({
-    unreadChats: 0,
-    upcomingAppointments: 0,
-    walletBalance: 0,
-    healthAlerts: 0,
-    pendingNotifications: 0
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchActivityData = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        // Use simple counts without complex type inference
-        let unreadChats = 0;
-        let appointments = 0;
-        let wallet = 0;
-        let notifications = 0;
-
-        try {
-          const { count } = await supabase
-            .from('notifications')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('read', false);
-          notifications = count || 0;
-        } catch {}
-
-        try {
-          const { count } = await supabase
-            .from('appointments')
-            .select('*', { count: 'exact', head: true })
-            .eq('patient_id', user.id)
-            .gte('appointment_date', new Date().toISOString());
-          appointments = count || 0;
-        } catch {}
-
-        try {
-          const { data: walletData } = await supabase
-            .from('chatr_coin_balances')
-            .select('total_coins')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          wallet = walletData?.total_coins || 0;
-        } catch {}
-
-        setData({
-          unreadChats,
-          upcomingAppointments: appointments,
-          walletBalance: wallet,
-          healthAlerts: 0,
-          pendingNotifications: notifications
-        });
-      } catch (error) {
-        console.error('Error fetching activity data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchActivityData();
-  }, []);
+  const { data, loading } = useInstantCache<WidgetData>('activity-widgets', fetchWidgetData, { ttl: 3 * 60 * 1000 });
+  
+  const widgetData = data || defaultData;
 
   const widgets = [
     {
       icon: MessageCircle,
       label: 'Chats',
-      value: data.unreadChats > 0 ? `${data.unreadChats} unread` : 'All caught up',
+      value: widgetData.unreadChats > 0 ? `${widgetData.unreadChats} unread` : 'All caught up',
       color: 'from-green-500 to-emerald-600',
       bgColor: 'bg-green-500/10',
       textColor: 'text-green-600 dark:text-green-400',
       route: '/chat',
-      hasActivity: data.unreadChats > 0
+      hasActivity: widgetData.unreadChats > 0
     },
     {
       icon: Calendar,
       label: 'Appointments',
-      value: data.upcomingAppointments > 0 ? `${data.upcomingAppointments} upcoming` : 'None scheduled',
+      value: widgetData.upcomingAppointments > 0 ? `${widgetData.upcomingAppointments} upcoming` : 'None scheduled',
       color: 'from-blue-500 to-indigo-600',
       bgColor: 'bg-blue-500/10',
       textColor: 'text-blue-600 dark:text-blue-400',
       route: '/care',
-      hasActivity: data.upcomingAppointments > 0
+      hasActivity: widgetData.upcomingAppointments > 0
     },
     {
       icon: Wallet,
       label: 'Wallet',
-      value: `₹${data.walletBalance.toLocaleString()}`,
+      value: `₹${widgetData.walletBalance.toLocaleString()}`,
       color: 'from-amber-500 to-orange-600',
       bgColor: 'bg-amber-500/10',
       textColor: 'text-amber-600 dark:text-amber-400',
@@ -121,12 +89,12 @@ export const ActivityWidgets = () => {
     {
       icon: Bell,
       label: 'Alerts',
-      value: data.pendingNotifications > 0 ? `${data.pendingNotifications} new` : 'No alerts',
+      value: widgetData.pendingNotifications > 0 ? `${widgetData.pendingNotifications} new` : 'No alerts',
       color: 'from-purple-500 to-pink-600',
       bgColor: 'bg-purple-500/10',
       textColor: 'text-purple-600 dark:text-purple-400',
       route: '/notifications',
-      hasActivity: data.pendingNotifications > 0
+      hasActivity: widgetData.pendingNotifications > 0
     }
   ];
 
@@ -152,7 +120,6 @@ export const ActivityWidgets = () => {
             "border-border/50 hover:border-primary/30 hover:shadow-md"
           )}
         >
-          {/* Activity indicator */}
           {widget.hasActivity && (
             <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
           )}
