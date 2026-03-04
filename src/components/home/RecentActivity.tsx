@@ -20,7 +20,6 @@ interface ActivityItem {
   subtitle: string;
   timestamp: Date;
   route: string;
-  // For calls - store the other party's info for direct calling
   callData?: {
     otherUserId: string;
     otherUserName: string;
@@ -29,56 +28,90 @@ interface ActivityItem {
   };
 }
 
+const CACHE_KEY = 'chatr_recent_activity';
+const CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+function getCachedActivity(): ActivityItem[] | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return data.map((a: any) => ({ ...a, timestamp: new Date(a.timestamp) }));
+  } catch { return null; }
+}
+
+function setCachedActivity(items: ActivityItem[]) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data: items, ts: Date.now() }));
+  } catch {}
+}
+
 export const RecentActivity = () => {
   const navigate = useNavigate();
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<ActivityItem[]>(() => getCachedActivity() || []);
+  const [loading, setLoading] = useState(() => !getCachedActivity());
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchRecentActivity = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user || cancelled) return;
+
+        // Run both queries in PARALLEL instead of sequential
+        const [convResult, callResult] = await Promise.all([
+          supabase
+            .from('conversation_participants')
+            .select(`
+              conversation_id,
+              conversations!inner(id, updated_at, is_group, group_name)
+            `)
+            .eq('user_id', user.id)
+            .order('conversations(updated_at)', { ascending: false })
+            .limit(3),
+          supabase
+            .from('calls')
+            .select('id, call_type, receiver_name, caller_name, created_at, caller_id, receiver_id, conversation_id')
+            .or(`caller_id.eq.${user.id},receiver_id.eq.${user.id}`)
+            .order('created_at', { ascending: false })
+            .limit(2)
+        ]);
+
+        if (cancelled) return;
 
         const allActivities: ActivityItem[] = [];
+        const conversations = convResult.data;
+        const calls = callResult.data;
 
-        // Fetch recent conversations with participant info
-        const { data: conversations } = await supabase
-          .from('conversation_participants')
-          .select(`
-            conversation_id,
-            conversations!inner(
-              id,
-              updated_at,
-              is_group,
-              group_name
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('conversations(updated_at)', { ascending: false })
-          .limit(3);
+        if (conversations && conversations.length > 0) {
+          // Get all conversation IDs, then batch-fetch other participants in ONE query
+          const convIds = conversations.map(c => (c.conversations as any).id);
+          
+          const { data: allParticipants } = await supabase
+            .from('conversation_participants')
+            .select('conversation_id, user_id, profiles!inner(username, full_name)')
+            .in('conversation_id', convIds)
+            .neq('user_id', user.id);
 
-        if (conversations) {
+          if (cancelled) return;
+
+          // Build a lookup map: convId → other user's name
+          const nameMap = new Map<string, string>();
+          if (allParticipants) {
+            for (const p of allParticipants) {
+              const profile = p.profiles as any;
+              nameMap.set(p.conversation_id, profile.full_name || profile.username || 'Conversation');
+            }
+          }
+
           for (const conv of conversations) {
             const c = conv.conversations as any;
-            
-            // For 1:1 chats, get the other participant's name
-            let title = c.is_group ? (c.group_name || 'Group Chat') : 'Conversation';
-            
-            if (!c.is_group) {
-              const { data: otherParticipant } = await supabase
-                .from('conversation_participants')
-                .select('user_id, profiles!inner(username, full_name)')
-                .eq('conversation_id', c.id)
-                .neq('user_id', user.id)
-                .maybeSingle();
-              
-              if (otherParticipant) {
-                const profile = otherParticipant.profiles as any;
-                title = profile.full_name || profile.username || 'Conversation';
-              }
-            }
-            
+            const title = c.is_group 
+              ? (c.group_name || 'Group Chat') 
+              : (nameMap.get(c.id) || 'Conversation');
+
             allActivities.push({
               id: c.id,
               type: 'chat',
@@ -89,14 +122,6 @@ export const RecentActivity = () => {
             });
           }
         }
-
-        // Fetch recent calls with full user info
-        const { data: calls } = await supabase
-          .from('calls')
-          .select('id, call_type, receiver_name, caller_name, created_at, caller_id, receiver_id, conversation_id')
-          .or(`caller_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .order('created_at', { ascending: false })
-          .limit(2);
 
         if (calls) {
           for (const call of calls) {
@@ -110,7 +135,7 @@ export const RecentActivity = () => {
               title: otherUserName,
               subtitle: `${call.call_type} call`,
               timestamp: new Date(call.created_at),
-              route: '/calls', // Fallback route
+              route: '/calls',
               callData: {
                 otherUserId: otherUserId || '',
                 otherUserName,
@@ -121,27 +146,30 @@ export const RecentActivity = () => {
           }
         }
 
-        // Sort by timestamp and take top 5
         allActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        setActivities(allActivities.slice(0, 5));
+        const top5 = allActivities.slice(0, 5);
+        
+        if (!cancelled) {
+          setActivities(top5);
+          setCachedActivity(top5);
+        }
       } catch (error) {
         console.error('Error fetching activity:', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchRecentActivity();
+    return () => { cancelled = true; };
   }, []);
 
   const handleActivityClick = async (activity: ActivityItem) => {
-    // For chats - navigate directly to the conversation
     if (activity.type === 'chat') {
       navigate(activity.route);
       return;
     }
     
-    // For calls - initiate a call directly
     if (activity.type === 'call' && activity.callData) {
       const { otherUserId, otherUserName, callType, conversationId } = activity.callData;
       
@@ -157,33 +185,27 @@ export const RecentActivity = () => {
           return;
         }
         
-        // Find or create conversation
         let convId = conversationId;
         if (!convId) {
-          // Try to find existing 1:1 conversation by checking participants
+          // Batch lookup: get all user's conversations, then check for match
           const { data: existingConvs } = await supabase
             .from('conversation_participants')
             .select('conversation_id')
             .eq('user_id', user.id);
           
           if (existingConvs && existingConvs.length > 0) {
-            // Check which conversation also has the other user
-            for (const cp of existingConvs) {
-              const { data: otherParticipant } = await supabase
-                .from('conversation_participants')
-                .select('conversation_id')
-                .eq('conversation_id', cp.conversation_id)
-                .eq('user_id', otherUserId)
-                .maybeSingle();
-              
-              if (otherParticipant) {
-                convId = otherParticipant.conversation_id;
-                break;
-              }
-            }
+            const convIds = existingConvs.map(c => c.conversation_id);
+            const { data: match } = await supabase
+              .from('conversation_participants')
+              .select('conversation_id')
+              .in('conversation_id', convIds)
+              .eq('user_id', otherUserId)
+              .limit(1)
+              .maybeSingle();
+            
+            if (match) convId = match.conversation_id;
           }
           
-          // If still no conversation, create one
           if (!convId) {
             const { data: newConv, error: convError } = await supabase
               .from('conversations')
@@ -197,8 +219,6 @@ export const RecentActivity = () => {
             }
             
             convId = newConv.id;
-            
-            // Add both participants
             await supabase.from('conversation_participants').insert([
               { conversation_id: convId, user_id: user.id },
               { conversation_id: convId, user_id: otherUserId }
@@ -206,8 +226,7 @@ export const RecentActivity = () => {
           }
         }
         
-        // Create the call record
-        const { data: newCall, error } = await supabase
+        const { error } = await supabase
           .from('calls')
           .insert({
             caller_id: user.id,
@@ -222,11 +241,7 @@ export const RecentActivity = () => {
           .single();
         
         if (error) throw error;
-        
         toast.success(`Calling ${otherUserName}...`);
-        
-        // GlobalCallListener will automatically detect the new call and show the UI
-        // No navigation needed - the call overlay is rendered via React Portal
       } catch (error) {
         console.error('Error initiating call:', error);
         toast.error('Failed to initiate call');
@@ -234,7 +249,6 @@ export const RecentActivity = () => {
       return;
     }
     
-    // Fallback - navigate to route
     navigate(activity.route);
   };
 
