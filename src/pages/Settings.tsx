@@ -35,8 +35,9 @@ export default function Settings() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-   console.log('[Settings] User logged out');
+    const { performLogout } = await import('@/utils/logout');
+    await performLogout();
+    console.log('[Settings] User logged out');
     navigate('/auth');
   };
 

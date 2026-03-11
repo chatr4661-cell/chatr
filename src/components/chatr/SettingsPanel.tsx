@@ -38,7 +38,8 @@ export function SettingsPanel({ user }: SettingsPanelProps) {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    const { performLogout } = await import('@/utils/logout');
+    await performLogout();
     navigate('/auth');
   };
 

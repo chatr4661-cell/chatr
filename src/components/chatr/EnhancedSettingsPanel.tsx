@@ -72,7 +72,8 @@ export function EnhancedSettingsPanel({ user }: EnhancedSettingsPanelProps) {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    const { performLogout } = await import('@/utils/logout');
+    await performLogout();
     navigate('/auth');
   };
 

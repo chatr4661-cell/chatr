@@ -97,9 +97,10 @@ const Profile = () => {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    const { performLogout } = await import('@/utils/logout');
+    await performLogout();
     navigate('/auth');
-   console.log('[Profile] User signed out');
+    console.log('[Profile] User signed out');
   };
 
   if (loading) {
