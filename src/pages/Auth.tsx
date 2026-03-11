@@ -80,28 +80,34 @@ const Auth = () => {
           return;
         }
 
-        const deviceFingerprint = await getDeviceFingerprint();
-        const { data: deviceSession } = await supabase
-          .from('device_sessions')
-          .select('*')
-          .eq('device_fingerprint', deviceFingerprint)
-          .eq('is_active', true)
-          .gt('expires_at', new Date().toISOString())
-          .maybeSingle();
+        // Skip device session re-hydration if user explicitly logged out
+        const explicitSignout = sessionStorage.getItem('chatr_explicit_signout');
+        if (!explicitSignout) {
+          const deviceFingerprint = await getDeviceFingerprint();
+          const { data: deviceSession } = await supabase
+            .from('device_sessions')
+            .select('*')
+            .eq('device_fingerprint', deviceFingerprint)
+            .eq('is_active', true)
+            .gt('expires_at', new Date().toISOString())
+            .maybeSingle();
 
-        if (deviceSession) {
-          setUserId(deviceSession.user_id);
-          
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('onboarding_completed')
-            .eq('id', deviceSession.user_id)
-            .single();
-          
-          if (profile?.onboarding_completed) {
-            navigate('/', { replace: true });
-            return;
+          if (deviceSession) {
+            setUserId(deviceSession.user_id);
+            
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('onboarding_completed')
+              .eq('id', deviceSession.user_id)
+              .single();
+            
+            if (profile?.onboarding_completed) {
+              navigate('/', { replace: true });
+              return;
+            }
           }
+        } else {
+          sessionStorage.removeItem('chatr_explicit_signout');
         }
 
         setLoading(false);
