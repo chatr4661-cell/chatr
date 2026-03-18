@@ -514,7 +514,7 @@ class MemoryLayerService {
       this.conversationContext.entities.lastTime = timeMatch[1];
     }
 
-    const locationMatch = query.match(/\bnear\s+(.+?)(?:\.|,|?|$)/i);
+    const locationMatch = query.match(/\bnear\s+(.+?)(?:\.|,|\?|$)/i);
     if (locationMatch) {
       this.conversationContext.entities.lastLocation = locationMatch[1].trim();
     }
