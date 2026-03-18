@@ -9575,6 +9575,101 @@ export type Database = {
         }
         Relationships: []
       }
+      mcp_api_keys: {
+        Row: {
+          api_key_hash: string
+          api_key_prefix: string
+          app_description: string | null
+          app_name: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          permissions: Json
+          rate_limit_per_minute: number
+          request_count: number
+          updated_at: string
+        }
+        Insert: {
+          api_key_hash: string
+          api_key_prefix: string
+          app_description?: string | null
+          app_name: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          permissions?: Json
+          rate_limit_per_minute?: number
+          request_count?: number
+          updated_at?: string
+        }
+        Update: {
+          api_key_hash?: string
+          api_key_prefix?: string
+          app_description?: string | null
+          app_name?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          permissions?: Json
+          rate_limit_per_minute?: number
+          request_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mcp_request_logs: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          latency_ms: number | null
+          request_payload: Json | null
+          response_status: string
+          tool_name: string
+          user_id: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          latency_ms?: number | null
+          request_payload?: Json | null
+          response_status: string
+          tool_name: string
+          user_id?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          latency_ms?: number | null
+          request_payload?: Json | null
+          response_status?: string
+          tool_name?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_request_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_files: {
         Row: {
           created_at: string | null
