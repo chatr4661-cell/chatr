@@ -81,6 +81,7 @@ async function authenticateApiKey(apiKey: string): Promise<AuthResult> {
     authMethod: "api_key",
     apiKeyId: keyRecord.id,
     permissions: keyRecord.permissions as string[],
+    rateLimitPerMinute: keyRecord.rate_limit_per_minute || 60,
   };
 }
 
