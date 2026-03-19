@@ -29,6 +29,7 @@ interface AuthResult {
   authMethod: "jwt" | "api_key";
   apiKeyId?: string;
   permissions: string[];
+  rateLimitPerMinute?: number;
 }
 
 async function authenticateRequest(req: Request): Promise<AuthResult> {
