@@ -296,7 +296,7 @@ const McpDeveloperDashboard = () => {
                       <div className="flex gap-1">
                         {key.is_active && (
                           <Button size="icon" variant="ghost" onClick={() => handleRevokeKey(key.id)}>
-                            <Shield className="h-4 w-4 text-amber-500" />
+                            <Shield className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         )}
                         <Button size="icon" variant="ghost" onClick={() => handleDeleteKey(key.id)}>
