@@ -481,8 +481,8 @@ const McpDeveloperDashboard = () => {
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {logs.slice(0, 50).map(log => (
                       <div key={log.id} className="flex items-center gap-2 py-1.5 border-b border-border/50 last:border-0">
-                        {log.response_status === 'success'
-                          ? <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+                      {log.response_status === 'success'
+                          ? <CheckCircle className="h-3 w-3 text-primary shrink-0" />
                           : <XCircle className="h-3 w-3 text-destructive shrink-0" />
                         }
                         <span className="text-xs font-mono flex-1 truncate">{log.tool_name}</span>
