@@ -161,6 +161,7 @@ export const MiniAppsStore = lazy(() => import('@/pages/MiniAppsStore'));
 export const MiniApps = lazy(() => import('@/pages/MiniApps'));
 export const AppStatistics = lazy(() => import('@/pages/AppStatistics'));
 export const DeveloperPortal = lazy(() => import('@/pages/DeveloperPortal'));
+export const McpDeveloperDashboard = lazy(() => import('@/pages/McpDeveloperDashboard'));
 export const ChatrGames = lazy(() => import('@/pages/ChatrGames'));
 export const ChatrApp = lazy(() => import('@/pages/ChatrApp'));
 export const ChatrOS = lazy(() => import('@/pages/ChatrOS'));
