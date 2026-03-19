@@ -643,7 +643,7 @@ function McpDocumentation() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-500" />
+            <Zap className="h-4 w-4 text-primary" />
             Quick Start
           </CardTitle>
         </CardHeader>
