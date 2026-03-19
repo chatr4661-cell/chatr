@@ -253,6 +253,7 @@ const App = () => {
             <Route path="/youth-feed" element={<LazyRoute component={LazyPages.YouthFeed} />} />
             <Route path="/app-statistics" element={<LazyRoute component={LazyPages.AppStatistics} />} />
             <Route path="/developer-portal" element={<LazyRoute component={LazyPages.DeveloperPortal} />} />
+            <Route path="/mcp-console" element={<ProtectedLazyRoute component={LazyPages.McpDeveloperDashboard} />} />
             <Route path="/official-accounts" element={<LazyRoute component={LazyPages.OfficialAccounts} />} />
             <Route path="/chatr-studio" element={<LazyRoute component={LazyPages.ChatrStudio} />} />
             <Route path="/food-ordering" element={<LazyRoute component={LazyPages.FoodOrdering} />} />

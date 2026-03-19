@@ -29,6 +29,7 @@ interface AuthResult {
   authMethod: "jwt" | "api_key";
   apiKeyId?: string;
   permissions: string[];
+  rateLimitPerMinute?: number;
 }
 
 async function authenticateRequest(req: Request): Promise<AuthResult> {
@@ -80,6 +81,7 @@ async function authenticateApiKey(apiKey: string): Promise<AuthResult> {
     authMethod: "api_key",
     apiKeyId: keyRecord.id,
     permissions: keyRecord.permissions as string[],
+    rateLimitPerMinute: keyRecord.rate_limit_per_minute || 60,
   };
 }
 
@@ -110,6 +112,59 @@ function checkPermission(auth: AuthResult, requiredPermission: string): void {
   if (!auth.permissions.includes(requiredPermission)) {
     throw new Error(`Permission denied: ${requiredPermission} not granted`);
   }
+}
+
+// ─── RATE LIMIT HELPER ─────────────────────────────────
+
+interface RateLimitResult {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  resetAt: number;
+}
+
+async function checkRateLimit(auth: AuthResult): Promise<RateLimitResult> {
+  if (!auth.apiKeyId) {
+    // JWT auth has no per-key rate limit
+    return { allowed: true, limit: 600, remaining: 600, resetAt: 0 };
+  }
+
+  const now = new Date();
+  const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes());
+  const windowKey = windowStart.toISOString();
+
+  // Upsert rate limit counter
+  const { data: existing } = await serviceClient
+    .from("mcp_rate_limits")
+    .select("request_count")
+    .eq("api_key_id", auth.apiKeyId)
+    .eq("window_start", windowKey)
+    .single();
+
+  let currentCount = 1;
+  if (existing) {
+    currentCount = existing.request_count + 1;
+    await serviceClient
+      .from("mcp_rate_limits")
+      .update({ request_count: currentCount })
+      .eq("api_key_id", auth.apiKeyId)
+      .eq("window_start", windowKey);
+  } else {
+    await serviceClient
+      .from("mcp_rate_limits")
+      .insert({ api_key_id: auth.apiKeyId, window_start: windowKey, request_count: 1 });
+  }
+
+  // Get rate limit from API key (default 60/min)
+  const limit = auth.rateLimitPerMinute || 60;
+  const resetAt = Math.floor(windowStart.getTime() / 1000) + 60;
+
+  return {
+    allowed: currentCount <= limit,
+    limit,
+    remaining: Math.max(0, limit - currentCount),
+    resetAt,
+  };
 }
 
 // ─── LOG HELPER ───────────────────────────────────────
@@ -630,6 +685,22 @@ app.all("/chatr-mcp-server/*", async (c) => {
     // Authenticate
     const auth = await authenticateRequest(c.req.raw);
 
+    // Check rate limit
+    const rateLimit = await checkRateLimit(auth);
+    if (!rateLimit.allowed) {
+      return c.json(
+        { jsonrpc: "2.0", error: { code: -32029, message: "Rate limit exceeded" }, id: null },
+        429,
+        {
+          ...corsHeaders,
+          "X-RateLimit-Limit": String(rateLimit.limit),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(rateLimit.resetAt),
+          "Retry-After": "60",
+        },
+      );
+    }
+
     // Create MCP server scoped to this user
     const mcpServer = createMcpServer(auth);
 
@@ -637,12 +708,15 @@ app.all("/chatr-mcp-server/*", async (c) => {
     const transport = new StreamableHttpTransport();
     const response = await transport.handleRequest(c.req.raw, mcpServer);
 
-    // Add CORS headers to MCP response
+    // Add CORS + rate limit headers to MCP response
     const headers = new Headers(response.headers);
     Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
+    headers.set("X-RateLimit-Limit", String(rateLimit.limit));
+    headers.set("X-RateLimit-Remaining", String(rateLimit.remaining));
+    headers.set("X-RateLimit-Reset", String(rateLimit.resetAt));
 
     const latencyMs = performance.now() - startTime;
-    console.log(`✅ [CHATR MCP] Request processed in ${latencyMs.toFixed(0)}ms by ${auth.authMethod}`);
+    console.log(`✅ [CHATR MCP] Request processed in ${latencyMs.toFixed(0)}ms by ${auth.authMethod} [${rateLimit.remaining}/${rateLimit.limit} remaining]`);
 
     return new Response(response.body, {
       status: response.status,
