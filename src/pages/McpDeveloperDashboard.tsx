@@ -427,7 +427,7 @@ const McpDeveloperDashboard = () => {
               </Card>
               <Card>
                 <CardContent className="pt-4 text-center">
-                  <CheckCircle className="h-5 w-5 mx-auto text-green-500 mb-1" />
+                  <CheckCircle className="h-5 w-5 mx-auto text-primary mb-1" />
                   <p className="text-xl font-bold">{successRate}%</p>
                   <p className="text-[10px] text-muted-foreground">Success Rate</p>
                 </CardContent>
