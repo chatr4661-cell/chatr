@@ -48,12 +48,11 @@ export async function createWebhook(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  // Generate webhook secret
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   const secret = 'whsec_' + Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('mcp_webhooks')
     .insert({
       api_key_id: apiKeyId,
@@ -66,21 +65,21 @@ export async function createWebhook(
     .single();
 
   if (error) throw new Error(`Failed to create webhook: ${error.message}`);
-  return data as unknown as McpWebhook;
+  return data as McpWebhook;
 }
 
 export async function listWebhooks(): Promise<McpWebhook[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('mcp_webhooks')
     .select('*')
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(`Failed to list webhooks: ${error.message}`);
-  return (data || []) as unknown as McpWebhook[];
+  return (data || []) as McpWebhook[];
 }
 
 export async function deleteWebhook(webhookId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('mcp_webhooks')
     .delete()
     .eq('id', webhookId);
@@ -89,7 +88,7 @@ export async function deleteWebhook(webhookId: string): Promise<void> {
 }
 
 export async function toggleWebhook(webhookId: string, isActive: boolean): Promise<void> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('mcp_webhooks')
     .update({ is_active: isActive })
     .eq('id', webhookId);
@@ -98,7 +97,7 @@ export async function toggleWebhook(webhookId: string, isActive: boolean): Promi
 }
 
 export async function getWebhookDeliveries(webhookId: string, limit = 50): Promise<WebhookDelivery[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('mcp_webhook_deliveries')
     .select('*')
     .eq('webhook_id', webhookId)
@@ -106,5 +105,5 @@ export async function getWebhookDeliveries(webhookId: string, limit = 50): Promi
     .limit(limit);
 
   if (error) throw new Error(`Failed to get deliveries: ${error.message}`);
-  return (data || []) as unknown as WebhookDelivery[];
+  return (data || []) as WebhookDelivery[];
 }
