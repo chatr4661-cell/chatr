@@ -112,6 +112,59 @@ function checkPermission(auth: AuthResult, requiredPermission: string): void {
   }
 }
 
+// ─── RATE LIMIT HELPER ─────────────────────────────────
+
+interface RateLimitResult {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  resetAt: number;
+}
+
+async function checkRateLimit(auth: AuthResult): Promise<RateLimitResult> {
+  if (!auth.apiKeyId) {
+    // JWT auth has no per-key rate limit
+    return { allowed: true, limit: 600, remaining: 600, resetAt: 0 };
+  }
+
+  const now = new Date();
+  const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes());
+  const windowKey = windowStart.toISOString();
+
+  // Upsert rate limit counter
+  const { data: existing } = await serviceClient
+    .from("mcp_rate_limits")
+    .select("request_count")
+    .eq("api_key_id", auth.apiKeyId)
+    .eq("window_start", windowKey)
+    .single();
+
+  let currentCount = 1;
+  if (existing) {
+    currentCount = existing.request_count + 1;
+    await serviceClient
+      .from("mcp_rate_limits")
+      .update({ request_count: currentCount })
+      .eq("api_key_id", auth.apiKeyId)
+      .eq("window_start", windowKey);
+  } else {
+    await serviceClient
+      .from("mcp_rate_limits")
+      .insert({ api_key_id: auth.apiKeyId, window_start: windowKey, request_count: 1 });
+  }
+
+  // Get rate limit from API key (default 60/min)
+  const limit = auth.rateLimitPerMinute || 60;
+  const resetAt = Math.floor(windowStart.getTime() / 1000) + 60;
+
+  return {
+    allowed: currentCount <= limit,
+    limit,
+    remaining: Math.max(0, limit - currentCount),
+    resetAt,
+  };
+}
+
 // ─── LOG HELPER ───────────────────────────────────────
 
 async function logRequest(
