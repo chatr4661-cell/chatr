@@ -685,6 +685,22 @@ app.all("/chatr-mcp-server/*", async (c) => {
     // Authenticate
     const auth = await authenticateRequest(c.req.raw);
 
+    // Check rate limit
+    const rateLimit = await checkRateLimit(auth);
+    if (!rateLimit.allowed) {
+      return c.json(
+        { jsonrpc: "2.0", error: { code: -32029, message: "Rate limit exceeded" }, id: null },
+        429,
+        {
+          ...corsHeaders,
+          "X-RateLimit-Limit": String(rateLimit.limit),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(rateLimit.resetAt),
+          "Retry-After": "60",
+        },
+      );
+    }
+
     // Create MCP server scoped to this user
     const mcpServer = createMcpServer(auth);
 
@@ -692,12 +708,15 @@ app.all("/chatr-mcp-server/*", async (c) => {
     const transport = new StreamableHttpTransport();
     const response = await transport.handleRequest(c.req.raw, mcpServer);
 
-    // Add CORS headers to MCP response
+    // Add CORS + rate limit headers to MCP response
     const headers = new Headers(response.headers);
     Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
+    headers.set("X-RateLimit-Limit", String(rateLimit.limit));
+    headers.set("X-RateLimit-Remaining", String(rateLimit.remaining));
+    headers.set("X-RateLimit-Reset", String(rateLimit.resetAt));
 
     const latencyMs = performance.now() - startTime;
-    console.log(`✅ [CHATR MCP] Request processed in ${latencyMs.toFixed(0)}ms by ${auth.authMethod}`);
+    console.log(`✅ [CHATR MCP] Request processed in ${latencyMs.toFixed(0)}ms by ${auth.authMethod} [${rateLimit.remaining}/${rateLimit.limit} remaining]`);
 
     return new Response(response.body, {
       status: response.status,
