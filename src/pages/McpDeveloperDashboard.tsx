@@ -434,7 +434,7 @@ const McpDeveloperDashboard = () => {
               </Card>
               <Card>
                 <CardContent className="pt-4 text-center">
-                  <Clock className="h-5 w-5 mx-auto text-amber-500 mb-1" />
+                  <Clock className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
                   <p className="text-xl font-bold">{avgLatency}ms</p>
                   <p className="text-[10px] text-muted-foreground">Avg Latency</p>
                 </CardContent>
