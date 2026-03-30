@@ -222,4 +222,13 @@ class ChatrConnection(
         }
         context.startActivity(intent)
     }
+
+    private fun getStoredAuthToken(): String? {
+        return try {
+            val prefs = context.getSharedPreferences("chatr_auth", Context.MODE_PRIVATE)
+            prefs.getString("access_token", null)
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
