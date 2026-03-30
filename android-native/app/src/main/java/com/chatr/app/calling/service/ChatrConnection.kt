@@ -71,8 +71,21 @@ class ChatrConnection(
         onStatusChange("active")
         requestAudioFocus()
         
-        // START WEBRTC via bridge
+        // START WEBRTC via bridge (existing)
         webRtcBridge?.onCallAnswered()
+        
+        // CRITICAL NEW: Bootstrap native WebRTC via foreground service
+        // This ensures WebRTC works even when app was killed
+        val authToken = getStoredAuthToken()
+        com.chatr.app.service.WebRtcForegroundService.bootstrapIncoming(
+            context = context,
+            callId = callId,
+            callerName = callerName,
+            callerPhone = callerPhone,
+            isVideo = isVideo,
+            authToken = authToken ?: ""
+        )
+        Log.d(TAG, "⚡ Native WebRTC bootstrap triggered for $callId")
         
         launchCallActivity()
     }
