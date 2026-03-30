@@ -118,6 +118,9 @@ class ChatrConnection(
         // CLOSE WEBRTC via bridge
         webRtcBridge?.onCallDisconnected()
         
+        // Stop native WebRTC foreground service
+        com.chatr.app.service.WebRtcForegroundService.endCall(context)
+        
         setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
         releaseAudioFocus()
         destroy()
@@ -127,6 +130,7 @@ class ChatrConnection(
         Log.d(TAG, "onAbort: $callId")
         onStatusChange("ended")
         webRtcBridge?.onCallDisconnected()
+        com.chatr.app.service.WebRtcForegroundService.endCall(context)
         setDisconnected(DisconnectCause(DisconnectCause.CANCELED))
         releaseAudioFocus()
         destroy()
