@@ -71,8 +71,21 @@ class ChatrConnection(
         onStatusChange("active")
         requestAudioFocus()
         
-        // START WEBRTC via bridge
+        // START WEBRTC via bridge (existing)
         webRtcBridge?.onCallAnswered()
+        
+        // CRITICAL NEW: Bootstrap native WebRTC via foreground service
+        // This ensures WebRTC works even when app was killed
+        val authToken = getStoredAuthToken()
+        com.chatr.app.service.WebRtcForegroundService.bootstrapIncoming(
+            context = context,
+            callId = callId,
+            callerName = callerName,
+            callerPhone = callerPhone,
+            isVideo = isVideo,
+            authToken = authToken ?: ""
+        )
+        Log.d(TAG, "⚡ Native WebRTC bootstrap triggered for $callId")
         
         launchCallActivity()
     }
@@ -105,6 +118,9 @@ class ChatrConnection(
         // CLOSE WEBRTC via bridge
         webRtcBridge?.onCallDisconnected()
         
+        // Stop native WebRTC foreground service
+        com.chatr.app.service.WebRtcForegroundService.endCall(context)
+        
         setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
         releaseAudioFocus()
         destroy()
@@ -114,6 +130,7 @@ class ChatrConnection(
         Log.d(TAG, "onAbort: $callId")
         onStatusChange("ended")
         webRtcBridge?.onCallDisconnected()
+        com.chatr.app.service.WebRtcForegroundService.endCall(context)
         setDisconnected(DisconnectCause(DisconnectCause.CANCELED))
         releaseAudioFocus()
         destroy()
@@ -204,5 +221,14 @@ class ChatrConnection(
             putExtra("is_incoming", isIncoming)
         }
         context.startActivity(intent)
+    }
+
+    private fun getStoredAuthToken(): String? {
+        return try {
+            val prefs = context.getSharedPreferences("chatr_auth", Context.MODE_PRIVATE)
+            prefs.getString("access_token", null)
+        } catch (e: Exception) {
+            null
+        }
     }
 }
