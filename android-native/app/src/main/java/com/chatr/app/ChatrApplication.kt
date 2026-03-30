@@ -79,7 +79,13 @@ class ChatrApplication : Application(), Configuration.Provider {
      */
     private fun registerPhoneAccount() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Legacy self-managed registration
             TelecomHelper.registerPhoneAccount(this)
+            
+            // NEW: Dual PhoneAccount registration (self-managed + call provider)
+            val dialerIntegration = com.chatr.app.dialer.SystemDialerIntegration()
+            dialerIntegration.registerAll(this)
+            Log.i("ChatrApp", "✅ System dialer integration registered")
         }
     }
     
