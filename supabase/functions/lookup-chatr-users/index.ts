@@ -66,9 +66,9 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        users: users || [],
+        users: mapped,
         total_queried: limitedPhones.length,
-        total_found: users?.length || 0
+        total_found: mapped.length
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
