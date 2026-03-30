@@ -55,6 +55,15 @@ serve(async (req) => {
 
     console.log(`✅ [lookup-chatr-users] Found ${users?.length || 0}/${limitedPhones.length} users`);
 
+    // Map to consistent output format
+    const mapped = (users || []).map((u: any) => ({
+      id: u.id,
+      phone: u.phone_number,
+      display_name: u.username,
+      avatar_url: u.avatar_url,
+      last_seen: u.last_seen,
+    }));
+
     return new Response(
       JSON.stringify({ 
         users: users || [],
