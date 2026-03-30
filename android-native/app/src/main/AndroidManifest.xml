@@ -125,11 +125,34 @@
             </intent-filter>
         </service>
 
+        <!-- ============= SYSTEM DIALER CONNECTION SERVICE (CALL_PROVIDER) ============= -->
+        <service
+            android:name=".dialer.ChatrDialerConnectionService"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+
+        <!-- ============= WEBRTC FOREGROUND SERVICE ============= -->
+        <service
+            android:name=".service.WebRtcForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall" />
+
         <!-- ============= CALL FOREGROUND SERVICE ============= -->
         <service
             android:name=".calling.service.CallForegroundService"
             android:exported="false"
             android:foregroundServiceType="phoneCall" />
+
+        <!-- ============= CHATR CALLER ID PROVIDER ============= -->
+        <provider
+            android:name=".dialer.ChatrCallerIdProvider"
+            android:authorities="com.chatr.app.callerid"
+            android:exported="true"
+            android:readPermission="android.permission.READ_CONTACTS" />
 
         <!-- ============= FIREBASE MESSAGING SERVICE ============= -->
         <service
