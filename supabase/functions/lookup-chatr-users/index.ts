@@ -43,7 +43,7 @@ serve(async (req) => {
     const { data: users, error } = await supabase
       .from("profiles")
       .select("id, phone, display_name, avatar_url, last_seen")
-      .in_("phone", limitedPhones);
+      .in("phone", limitedPhones);
 
     if (error) {
       console.error("❌ [lookup-chatr-users] Query error:", error);
