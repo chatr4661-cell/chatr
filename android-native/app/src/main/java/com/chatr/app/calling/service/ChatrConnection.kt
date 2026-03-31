@@ -74,18 +74,11 @@ class ChatrConnection(
         // START WEBRTC via bridge (existing)
         webRtcBridge?.onCallAnswered()
         
-        // CRITICAL NEW: Bootstrap native WebRTC via foreground service
-        // This ensures WebRTC works even when app was killed
-        val authToken = getStoredAuthToken()
-        com.chatr.app.service.WebRtcForegroundService.bootstrapIncoming(
-            context = context,
-            callId = callId,
-            callerName = callerName,
-            callerPhone = callerPhone,
-            isVideo = isVideo,
-            authToken = authToken ?: ""
-        )
-        Log.d(TAG, "⚡ Native WebRTC bootstrap triggered for $callId")
+        // CRITICAL v2: Tell pre-warmed service user answered
+        // Service was already started from FCM — WebRTC is pre-warmed
+        // This just triggers: set remote desc → create answer → audio flows
+        com.chatr.app.service.WebRtcForegroundService.userAnswered(context, callId)
+        Log.d(TAG, "⚡ User answered — pre-warmed service will connect instantly")
         
         launchCallActivity()
     }
