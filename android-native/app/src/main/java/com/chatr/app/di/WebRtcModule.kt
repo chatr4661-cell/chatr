@@ -1,6 +1,7 @@
 package com.chatr.app.di
 
 import android.content.Context
+import com.chatr.app.calling.*
 import com.chatr.app.dialer.SmartCallRouter
 import com.chatr.app.dialer.SystemDialerIntegration
 import com.chatr.app.webrtc.audio.AudioRouteManager
@@ -19,10 +20,7 @@ import io.ktor.client.*
 import javax.inject.Singleton
 
 /**
- * Hilt Module for WebRTC + Dialer dependencies
- * 
- * Provides singleton instances of all calling-related components
- * including the new system dialer integration layer
+ * Hilt Module for WebRTC + Dialer + Carrier-Grade Reliability dependencies
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -86,7 +84,45 @@ object WebRtcModule {
         )
     }
 
-    // --- New: System Dialer Integration ---
+    // --- Carrier-Grade Reliability Layer ---
+
+    @Provides
+    @Singleton
+    fun provideCallSessionManager(): CallSessionManager {
+        return CallSessionManager()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAudioFocusManager(
+        @ApplicationContext context: Context
+    ): AudioFocusManager {
+        return AudioFocusManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTurnServerProvider(): TurnServerProvider {
+        return TurnServerProvider()
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkCallbackHandler(
+        @ApplicationContext context: Context
+    ): NetworkCallbackHandler {
+        return NetworkCallbackHandler(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOemProtectionHelper(
+        @ApplicationContext context: Context
+    ): OemProtectionHelper {
+        return OemProtectionHelper(context)
+    }
+
+    // --- System Dialer Integration ---
 
     @Provides
     @Singleton
