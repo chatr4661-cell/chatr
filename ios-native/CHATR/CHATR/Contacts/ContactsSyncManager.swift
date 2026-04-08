@@ -94,16 +94,24 @@ class ContactsSyncManager: ObservableObject {
     }
     
     private func normalizePhoneNumber(_ phone: String) -> String {
-        // Remove all non-digit characters
-        let digits = phone.filter { $0.isNumber }
+        let trimmed = phone.trimmingCharacters(in: .whitespaces)
+        let hasPlus = trimmed.hasPrefix("+")
+        let hasDoubleZero = trimmed.hasPrefix("00")
         
-        // Remove leading country code if present
-        if digits.hasPrefix("1") && digits.count == 11 {
-            return String(digits.dropFirst())
-        } else if digits.count >= 10 {
-            return String(digits.suffix(10))
+        // Strip to digits only
+        let digits = trimmed.filter { $0.isNumber }
+        
+        guard !digits.isEmpty else { return "" }
+        
+        if hasPlus {
+            return "+\(digits)"
+        } else if hasDoubleZero {
+            return "+\(String(digits.dropFirst(2)))"
+        } else if digits.count > 10 {
+            return "+\(digits)"
         } else {
-            return digits
+            // Default to India (+91) for local numbers
+            return "+91\(digits)"
         }
     }
     

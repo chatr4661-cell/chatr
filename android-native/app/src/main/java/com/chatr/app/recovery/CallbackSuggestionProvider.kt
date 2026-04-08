@@ -89,25 +89,25 @@ class CallbackSuggestionProvider(private val context: Context) : ChatrUserChecke
     }
     
     /**
-     * Normalize phone number to E.164 format
+     * Normalize phone number to E.164 international format
+     * Handles: +, 00 prefix, bare digits
      */
     private fun normalizePhoneNumber(number: String): String {
-        // Remove all non-digit characters except +
-        var normalized = number.replace(Regex("[^\\d+]"), "")
+        val trimmed = number.trim()
+        val hasPlus = trimmed.startsWith("+")
+        val hasDoubleZero = trimmed.startsWith("00")
         
-        // Ensure starts with +
-        if (!normalized.startsWith("+")) {
-            // Assume India if no country code
-            if (normalized.length == 10) {
-                normalized = "+91$normalized"
-            } else if (normalized.startsWith("0")) {
-                normalized = "+91${normalized.substring(1)}"
-            } else {
-                normalized = "+$normalized"
-            }
+        // Strip to digits only
+        val digits = trimmed.replace(Regex("[^\\d]"), "")
+        
+        if (digits.isEmpty()) return ""
+        
+        return when {
+            hasPlus -> "+$digits"
+            hasDoubleZero -> "+${digits.substring(2)}"
+            digits.length > 10 -> "+$digits"
+            else -> "+91$digits" // Default country code
         }
-        
-        return normalized
     }
     
     /**

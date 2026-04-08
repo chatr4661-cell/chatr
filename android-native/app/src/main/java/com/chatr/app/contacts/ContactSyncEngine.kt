@@ -188,8 +188,17 @@ class ContactSyncEngine @Inject constructor(
     }
     
     private fun String.normalizePhoneNumber(): String {
-        return this.replace(Regex("[^0-9+]"), "")
-            .let { if (it.startsWith("+")) it else "+91$it" } // Default to India
+        val trimmed = this.trim()
+        val hasPlus = trimmed.startsWith("+")
+        val hasDoubleZero = trimmed.startsWith("00")
+        val digits = trimmed.replace(Regex("[^0-9]"), "")
+        if (digits.isEmpty()) return ""
+        return when {
+            hasPlus -> "+$digits"
+            hasDoubleZero -> "+${digits.substring(2)}"
+            digits.length > 10 -> "+$digits"
+            else -> "+91$digits"
+        }
     }
 }
 

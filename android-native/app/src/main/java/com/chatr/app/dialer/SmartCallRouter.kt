@@ -250,10 +250,17 @@ class SmartCallRouter @Inject constructor(
     }
 
     private fun normalizePhone(phone: String): String {
-        // Strip everything except digits and leading +
-        val cleaned = phone.replace(Regex("[^+\\d]"), "")
-        // If no country code, assume +91 (India default, configurable)
-        return if (cleaned.startsWith("+")) cleaned else "+91$cleaned"
+        val trimmed = phone.trim()
+        val hasPlus = trimmed.startsWith("+")
+        val hasDoubleZero = trimmed.startsWith("00")
+        val digits = trimmed.replace(Regex("[^\\d]"), "")
+        if (digits.isEmpty()) return ""
+        return when {
+            hasPlus -> "+$digits"
+            hasDoubleZero -> "+${digits.substring(2)}"
+            digits.length > 10 -> "+$digits"
+            else -> "+91$digits"
+        }
     }
 
     private fun isEmergency(phone: String): Boolean {
