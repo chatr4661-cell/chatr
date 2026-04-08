@@ -109,14 +109,16 @@ class ContactsSyncManager @Inject constructor(
     }
     
     private fun normalizePhoneNumber(phone: String): String {
-        // Remove all non-digit characters
-        val digits = phone.filter { it.isDigit() }
-        
-        // Remove leading country code if present
+        val trimmed = phone.trim()
+        val hasPlus = trimmed.startsWith("+")
+        val hasDoubleZero = trimmed.startsWith("00")
+        val digits = trimmed.filter { it.isDigit() }
+        if (digits.isEmpty()) return ""
         return when {
-            digits.startsWith("1") && digits.length == 11 -> digits.substring(1)
-            digits.length >= 10 -> digits.takeLast(10)
-            else -> digits
+            hasPlus -> "+$digits"
+            hasDoubleZero -> "+${digits.substring(2)}"
+            digits.length > 10 -> "+$digits"
+            else -> "+91$digits"
         }
     }
     

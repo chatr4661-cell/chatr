@@ -186,10 +186,17 @@ class SMSGatewayService @Inject constructor(
     }
     
     private fun normalizePhoneNumber(phone: String): String {
-        // Remove non-digit characters except leading +
-        val hasPlus = phone.startsWith("+")
-        val digits = phone.filter { it.isDigit() }
-        return if (hasPlus) "+$digits" else digits
+        val trimmed = phone.trim()
+        val hasPlus = trimmed.startsWith("+")
+        val hasDoubleZero = trimmed.startsWith("00")
+        val digits = trimmed.filter { it.isDigit() }
+        if (digits.isEmpty()) return ""
+        return when {
+            hasPlus -> "+$digits"
+            hasDoubleZero -> "+${digits.substring(2)}"
+            digits.length > 10 -> "+$digits"
+            else -> "+91$digits"
+        }
     }
     
     private fun isLikelyRcsEnabled(phoneNumber: String): Boolean {

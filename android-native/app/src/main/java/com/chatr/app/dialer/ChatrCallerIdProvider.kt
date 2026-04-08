@@ -168,8 +168,17 @@ class ChatrCallerIdProvider : ContentProvider() {
     }
 
     private fun normalizePhone(phone: String): String {
-        val cleaned = phone.replace(Regex("[^+\\d]"), "")
-        return if (cleaned.startsWith("+")) cleaned else "+91$cleaned"
+        val trimmed = phone.trim()
+        val hasPlus = trimmed.startsWith("+")
+        val hasDoubleZero = trimmed.startsWith("00")
+        val digits = trimmed.replace(Regex("[^\\d]"), "")
+        if (digits.isEmpty()) return ""
+        return when {
+            hasPlus -> "+$digits"
+            hasDoubleZero -> "+${digits.substring(2)}"
+            digits.length > 10 -> "+$digits"
+            else -> "+91$digits"
+        }
     }
 
     // Read-only provider
