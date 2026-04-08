@@ -70,7 +70,17 @@ serve(async (req) => {
     for (const contact of connections) {
       const name = contact.names?.[0]?.displayName || "Unknown";
       const email = contact.emailAddresses?.[0]?.value?.toLowerCase();
-      const phone = contact.phoneNumbers?.[0]?.value?.replace(/\D/g, "");
+      // Normalize phone to E.164: handle + and 00 prefixes
+      const rawPhone = contact.phoneNumbers?.[0]?.value || "";
+      const phone = (() => {
+        const trimmed = rawPhone.trim();
+        const digits = trimmed.replace(/\D/g, "");
+        if (!digits) return null;
+        if (trimmed.startsWith("+")) return `+${digits}`;
+        if (trimmed.startsWith("00")) return `+${digits.substring(2)}`;
+        if (digits.length > 10) return `+${digits}`;
+        return `+91${digits}`; // Default to India
+      })();
       const photo = contact.photos?.[0]?.url;
 
       if (!email && !phone) continue;
@@ -99,7 +109,7 @@ serve(async (req) => {
     const chatrUserMap = new Map();
     existingUsers?.forEach((u) => {
       if (u.email) chatrUserMap.set(u.email.toLowerCase(), u.id);
-      if (u.phone_number) chatrUserMap.set(u.phone_number.replace(/\D/g, ""), u.id);
+      if (u.phone_number) chatrUserMap.set(u.phone_number, u.id);
     });
 
     // Update contacts with CHATR user status

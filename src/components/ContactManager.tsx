@@ -19,21 +19,9 @@ const hashPhoneNumber = async (phone: string): Promise<string> => {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
-// Normalize phone to E.164 format (+countrycode + number)
-const normalizePhoneNumber = (phone: string): string => {
-  const cleaned = phone.replace(/\D/g, '');
-  
-  // If it doesn't start with +, assume India (+91)
-  if (!phone.startsWith('+')) {
-    if (cleaned.length === 10) {
-      return `+91${cleaned}`;
-    } else if (cleaned.length > 10) {
-      return `+${cleaned}`;
-    }
-  }
-  
-  return phone.startsWith('+') ? phone : `+${cleaned}`;
-};
+// Use canonical normalizer for E.164 format (handles +, 00, bare digits)
+import { normalizeToInternational } from '@/utils/phoneHashUtil';
+const normalizePhoneNumber = (phone: string): string => normalizeToInternational(phone);
 
 interface Contact {
   id: string;

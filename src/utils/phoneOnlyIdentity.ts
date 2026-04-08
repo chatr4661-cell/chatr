@@ -55,24 +55,36 @@ export function isValidPhone(phone: string | null | undefined): boolean {
 
 /**
  * Format phone number to E.164 if not already
+ * Handles +, 00 prefix, and bare digits
  */
 export function formatToE164(phone: string, defaultCountryCode: string = '+91'): string {
   if (!phone) return '';
   
-  // Already E.164
-  if (phone.startsWith('+')) {
-    return phone.replace(/[^\d+]/g, '');
+  const trimmed = phone.trim();
+  
+  // Already E.164 with +
+  if (trimmed.startsWith('+')) {
+    return trimmed.replace(/[^\d+]/g, '');
+  }
+  
+  // International 00 prefix → convert to +
+  if (trimmed.startsWith('00')) {
+    const digits = trimmed.replace(/\D/g, '');
+    return `+${digits.substring(2)}`;
   }
   
   // Remove non-digits
-  const digits = phone.replace(/\D/g, '');
+  const digits = trimmed.replace(/\D/g, '');
   
-  // Add country code
-  if (digits.length === 10) {
-    return `${defaultCountryCode}${digits}`;
+  if (!digits) return '';
+  
+  // Local number (10 digits or fewer)
+  if (digits.length <= 10) {
+    const codeDigits = defaultCountryCode.replace(/\D/g, '');
+    return `+${codeDigits}${digits}`;
   }
   
-  // Assume full number without +
+  // Full number without prefix
   return `+${digits}`;
 }
 
