@@ -8019,6 +8019,44 @@ export type Database = {
           },
         ]
       }
+      identity_access_rules: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted_to_group: string | null
+          granted_to_user_id: string | null
+          id: string
+          identity_id: string
+          permission_level: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted_to_group?: string | null
+          granted_to_user_id?: string | null
+          id?: string
+          identity_id: string
+          permission_level?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted_to_group?: string | null
+          granted_to_user_id?: string | null
+          id?: string
+          identity_id?: string
+          permission_level?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_access_rules_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "user_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       identity_scores: {
         Row: {
           badges: Json | null
@@ -12721,6 +12759,7 @@ export type Database = {
       profiles: {
         Row: {
           age: number | null
+          ai_clone_enabled: boolean | null
           auto_backup_enabled: boolean | null
           auto_backup_frequency: string | null
           auto_translate_enabled: boolean | null
@@ -12731,6 +12770,7 @@ export type Database = {
           contacts_synced: boolean | null
           created_at: string | null
           delivery_address: Json | null
+          discovery_enabled: boolean | null
           email: string
           firebase_uid: string | null
           full_name: string | null
@@ -12738,6 +12778,7 @@ export type Database = {
           google_id: string | null
           health_goals: string[] | null
           id: string
+          identity_tier: string | null
           is_online: boolean | null
           is_phone_verified: boolean | null
           is_verified: boolean | null
@@ -12767,6 +12808,7 @@ export type Database = {
           preferred_auth_method: string | null
           preferred_country_code: string | null
           preferred_language: string | null
+          primary_handle: string | null
           privacy_settings: Json | null
           profile_completed_at: string | null
           public_key: string | null
@@ -12781,6 +12823,7 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          ai_clone_enabled?: boolean | null
           auto_backup_enabled?: boolean | null
           auto_backup_frequency?: string | null
           auto_translate_enabled?: boolean | null
@@ -12791,6 +12834,7 @@ export type Database = {
           contacts_synced?: boolean | null
           created_at?: string | null
           delivery_address?: Json | null
+          discovery_enabled?: boolean | null
           email: string
           firebase_uid?: string | null
           full_name?: string | null
@@ -12798,6 +12842,7 @@ export type Database = {
           google_id?: string | null
           health_goals?: string[] | null
           id: string
+          identity_tier?: string | null
           is_online?: boolean | null
           is_phone_verified?: boolean | null
           is_verified?: boolean | null
@@ -12827,6 +12872,7 @@ export type Database = {
           preferred_auth_method?: string | null
           preferred_country_code?: string | null
           preferred_language?: string | null
+          primary_handle?: string | null
           privacy_settings?: Json | null
           profile_completed_at?: string | null
           public_key?: string | null
@@ -12841,6 +12887,7 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          ai_clone_enabled?: boolean | null
           auto_backup_enabled?: boolean | null
           auto_backup_frequency?: string | null
           auto_translate_enabled?: boolean | null
@@ -12851,6 +12898,7 @@ export type Database = {
           contacts_synced?: boolean | null
           created_at?: string | null
           delivery_address?: Json | null
+          discovery_enabled?: boolean | null
           email?: string
           firebase_uid?: string | null
           full_name?: string | null
@@ -12858,6 +12906,7 @@ export type Database = {
           google_id?: string | null
           health_goals?: string[] | null
           id?: string
+          identity_tier?: string | null
           is_online?: boolean | null
           is_phone_verified?: boolean | null
           is_verified?: boolean | null
@@ -12887,6 +12936,7 @@ export type Database = {
           preferred_auth_method?: string | null
           preferred_country_code?: string | null
           preferred_language?: string | null
+          primary_handle?: string | null
           privacy_settings?: Json | null
           profile_completed_at?: string | null
           public_key?: string | null
@@ -15958,6 +16008,45 @@ export type Database = {
         }
         Relationships: []
       }
+      trust_factors: {
+        Row: {
+          created_at: string
+          evidence: Json | null
+          expires_at: string | null
+          factor_type: string
+          factor_value: number
+          id: string
+          source: string | null
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          evidence?: Json | null
+          expires_at?: string | null
+          factor_type: string
+          factor_value?: number
+          id?: string
+          source?: string | null
+          updated_at?: string
+          user_id: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          evidence?: Json | null
+          expires_at?: string | null
+          factor_type?: string
+          factor_value?: number
+          id?: string
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       trust_graph: {
         Row: {
           badge: string | null
@@ -16478,6 +16567,75 @@ export type Database = {
           },
         ]
       }
+      user_discovery_profiles: {
+        Row: {
+          allow_calls_from: string
+          allow_messages_from: string
+          anonymous_mode: boolean
+          city: string | null
+          company: string | null
+          country: string | null
+          created_at: string
+          headline: string | null
+          id: string
+          industry: string | null
+          is_searchable: boolean
+          job_title: string | null
+          location: string | null
+          search_visibility: string
+          show_phone_to: string
+          skills: string[] | null
+          social_links: Json | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          allow_calls_from?: string
+          allow_messages_from?: string
+          anonymous_mode?: boolean
+          city?: string | null
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          industry?: string | null
+          is_searchable?: boolean
+          job_title?: string | null
+          location?: string | null
+          search_visibility?: string
+          show_phone_to?: string
+          skills?: string[] | null
+          social_links?: Json | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          allow_calls_from?: string
+          allow_messages_from?: string
+          anonymous_mode?: boolean
+          city?: string | null
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          industry?: string | null
+          is_searchable?: boolean
+          job_title?: string | null
+          location?: string | null
+          search_visibility?: string
+          show_phone_to?: string
+          skills?: string[] | null
+          social_links?: Json | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       user_fame_achievements: {
         Row: {
           achievement_id: string | null
@@ -16555,6 +16713,72 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      user_identities: {
+        Row: {
+          ai_clone_boundaries: Json | null
+          ai_clone_config: Json | null
+          ai_clone_enabled: boolean
+          ai_clone_personality: string | null
+          auto_reply_enabled: boolean
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          full_handle: string | null
+          handle: string
+          id: string
+          identity_type: string
+          is_active: boolean
+          metadata: Json | null
+          suffix: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          ai_clone_boundaries?: Json | null
+          ai_clone_config?: Json | null
+          ai_clone_enabled?: boolean
+          ai_clone_personality?: string | null
+          auto_reply_enabled?: boolean
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          full_handle?: string | null
+          handle: string
+          id?: string
+          identity_type?: string
+          is_active?: boolean
+          metadata?: Json | null
+          suffix?: string
+          updated_at?: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          ai_clone_boundaries?: Json | null
+          ai_clone_config?: Json | null
+          ai_clone_enabled?: boolean
+          ai_clone_personality?: string | null
+          auto_reply_enabled?: boolean
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          full_handle?: string | null
+          handle?: string
+          id?: string
+          identity_type?: string
+          is_active?: boolean
+          metadata?: Json | null
+          suffix?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -17620,6 +17844,7 @@ export type Database = {
       cleanup_expired_visual_search_cache: { Args: never; Returns: undefined }
       cleanup_old_fcm_delivery_logs: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
+      compute_trust_score: { Args: { p_user_id: string }; Returns: number }
       create_direct_conversation: {
         Args: { other_user_id: string }
         Returns: string
