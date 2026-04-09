@@ -298,6 +298,11 @@ export const JoinInvite = lazy(() => import('@/pages/JoinInvite'));
 export const ChatrWeb = lazy(() => import('@/pages/ChatrWeb'));
 export const NotFound = lazy(() => import('@/pages/NotFound'));
 
+// CHATR++ Identity System
+export const Identity = lazy(() => import('@/pages/Identity'));
+export const Discover = lazy(() => import('@/pages/Discover'));
+export const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
+
 // Desktop Layout
 export const DesktopChat = lazy(() => import('@/pages/desktop/DesktopChat'));
 export const DesktopContacts = lazy(() => import('@/pages/desktop/DesktopContacts'));

@@ -426,6 +426,11 @@ const App = () => {
             {/* Mini Apps */}
             <Route path="/mini-apps" element={<LazyRoute component={LazyPages.MiniAppsStore} />} />
             
+            {/* CHATR++ Identity System */}
+            <Route path="/identity" element={<ProtectedLazyRoute component={LazyPages.Identity} />} />
+            <Route path="/discover" element={<LazyRoute component={LazyPages.Discover} />} />
+            <Route path="/u/:handle" element={<LazyRoute component={LazyPages.PublicProfile} />} />
+            
             {/* 404 Route */}
             <Route path="*" element={<LazyRoute component={LazyPages.NotFound} />} />
           </Routes>
