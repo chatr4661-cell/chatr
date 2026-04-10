@@ -42,7 +42,8 @@ import {
   Siren,
   IndianRupee,
   GraduationCap,
-  Pill
+  Pill,
+  Fingerprint
 } from 'lucide-react';
 import { PersonalizedSection } from '@/components/home/PersonalizedSection';
 import { PersonalizedGreeting } from '@/components/home/PersonalizedGreeting';
@@ -491,6 +492,20 @@ const Index = () => {
   };
 
   const mainHubs = [
+    {
+      icon: Fingerprint,
+      title: 'CHATR++ Identity',
+      description: 'Multi-layer identity & trust',
+      iconColor: 'bg-gradient-to-br from-teal-400 via-cyan-500 to-blue-600',
+      route: '/identity'
+    },
+    {
+      icon: Globe,
+      title: 'Discover People',
+      description: 'Find by skill, company, city',
+      iconColor: 'bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600',
+      route: '/discover'
+    },
     {
       icon: MessageCircle,
       title: 'Chat',
