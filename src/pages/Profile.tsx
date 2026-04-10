@@ -19,7 +19,10 @@ import {
   Shield,
   Bell,
   Music,
-  Images
+  Images,
+  Fingerprint,
+  Bot,
+  Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -136,6 +139,10 @@ const Profile = () => {
               />
             ))}
           </div>
+
+          {profile?.primary_handle && (
+            <p className="text-sm text-muted-foreground font-mono mb-1">@{profile.primary_handle}</p>
+          )}
           
           {profile?.status && (
             <p className="text-sm text-muted-foreground mb-3">{profile.status}</p>
@@ -168,6 +175,53 @@ const Profile = () => {
           </TabsList>
 
           <TabsContent value="settings" className="space-y-3">
+            {/* CHATR++ Identity */}
+            <div className="native-card divide-y divide-border">
+              <button
+                onClick={() => navigate('/identity')}
+                className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
+              >
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Fingerprint className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <h3 className="font-medium text-sm">CHATR++ Identity</h3>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {profile?.primary_handle ? `@${profile.primary_handle} • 4 identities` : 'Claim your handle'}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              </button>
+
+              <button
+                onClick={() => navigate('/ai-clone-settings')}
+                className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
+              >
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Bot className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <h3 className="font-medium text-sm">AI Clone Settings</h3>
+                  <p className="text-xs text-muted-foreground truncate">Configure your AI identity</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              </button>
+
+              <button
+                onClick={() => navigate('/discover')}
+                className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
+              >
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Globe className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <h3 className="font-medium text-sm">Discover People</h3>
+                  <p className="text-xs text-muted-foreground truncate">Find by skill, company, city</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              </button>
+            </div>
+
             {/* Health & Points Cards */}
             <div className="native-card divide-y divide-border">
               <button

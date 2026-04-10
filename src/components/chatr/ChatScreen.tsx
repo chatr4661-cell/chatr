@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Search, Pin, Image, Smile } from 'lucide-react';
+import { TrustScoreBadge } from '@/components/TrustScoreBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -136,7 +137,10 @@ export function ChatScreen({ chatId, chatName, userId }: ChatScreenProps) {
                 )}
               </div>
               <div>
-                <h2 className="font-semibold">{otherUser?.username || chatName}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold">{otherUser?.username || chatName}</h2>
+                  {otherUser?.id && <TrustScoreBadge userId={otherUser.id} />}
+                </div>
                 <p className="text-xs opacity-90">
                   {isOnline ? 'Online' : otherUser?.last_seen 
                     ? `Last seen ${formatDistanceToNow(new Date(otherUser.last_seen), { addSuffix: true })}`
