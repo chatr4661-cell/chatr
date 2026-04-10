@@ -302,6 +302,7 @@ export const NotFound = lazy(() => import('@/pages/NotFound'));
 export const Identity = lazy(() => import('@/pages/Identity'));
 export const Discover = lazy(() => import('@/pages/Discover'));
 export const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
+export const AICloneSettings = lazy(() => import('@/pages/AICloneSettings'));
 
 // Desktop Layout
 export const DesktopChat = lazy(() => import('@/pages/desktop/DesktopChat'));
