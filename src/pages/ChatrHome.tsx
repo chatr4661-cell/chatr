@@ -20,7 +20,9 @@ import {
   ChevronRight,
   Zap,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Fingerprint,
+  Globe
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -44,6 +46,8 @@ const quickActions = [
 
 // Services Grid Data
 const services = [
+  { icon: Fingerprint, label: 'Identity', color: 'from-teal-500 to-cyan-600', route: '/identity' },
+  { icon: Globe, label: 'Discover', color: 'from-sky-500 to-blue-600', route: '/discover' },
   { icon: Brain, label: 'AI Brain', color: 'from-cyan-500 to-blue-600', route: '/chat-ai' },
   { icon: Sparkles, label: 'AI Agents', color: 'from-violet-500 to-purple-600', route: '/ai-agents' },
   { icon: Heart, label: 'Health Hub', color: 'from-rose-500 to-pink-600', route: '/health' },
