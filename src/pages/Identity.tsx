@@ -415,6 +415,39 @@ const Identity = () => {
           </>
         )}
       </div>
+      {/* Dialogs */}
+      {handle && (
+        <>
+          <QRIdentityShare
+            handle={handle}
+            username={currentUser?.user_metadata?.full_name}
+            avatarUrl={currentUser?.user_metadata?.avatar_url}
+            open={qrOpen}
+            onOpenChange={setQrOpen}
+          />
+          <VerifiedBadgePurchase
+            open={badgeOpen}
+            onOpenChange={setBadgeOpen}
+            userPoints={userPoints}
+            onPurchased={() => {
+              // Refresh points
+              supabase.from('user_points').select('balance').eq('user_id', currentUser?.id).maybeSingle()
+                .then(({ data }) => { if (data) setUserPoints(data.balance || 0); });
+            }}
+          />
+          <ShareableProfileCard
+            open={cardOpen}
+            onOpenChange={setCardOpen}
+            handle={handle}
+            username={currentUser?.user_metadata?.full_name || handle}
+            avatarUrl={currentUser?.user_metadata?.avatar_url}
+            headline={discoveryProfile?.headline}
+            company={discoveryProfile?.company}
+            city={discoveryProfile?.city}
+            trustScore={trustProfile?.score}
+          />
+        </>
+      )}
     </div>
   );
 };
