@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Camera, Upload, CheckCircle2, Gift } from "lucide-react";
+import { Camera, Upload, CheckCircle2, Gift, User, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,8 @@ const profileSchema = z.object({
 export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: OnboardingDialogProps) => {
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
+  const [chatrHandle, setChatrHandle] = useState("");
+  const [claimingHandle, setClaimingHandle] = useState(false);
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
@@ -104,8 +106,54 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
     if (userId) loadProfile();
   }, [userId]);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
+
+  const handleClaimChatrId = async () => {
+    const handle = chatrHandle.trim().toLowerCase();
+    if (!handle || handle.length < 3) {
+      toast({ title: "Handle too short", description: "Must be at least 3 characters", variant: "destructive" });
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(handle)) {
+      toast({ title: "Invalid characters", description: "Only letters, numbers, underscores", variant: "destructive" });
+      return;
+    }
+    setClaimingHandle(true);
+    try {
+      // Check availability
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('primary_handle', handle)
+        .maybeSingle() as any;
+      
+      if (existing) {
+        toast({ title: "Handle taken", description: `@${handle} is already claimed`, variant: "destructive" });
+        return;
+      }
+
+      // Claim handle
+      await supabase
+        .from('profiles')
+        .update({ primary_handle: handle } as any)
+        .eq('id', userId);
+
+      await supabase.from('onboarding_progress').insert({
+        user_id: userId,
+        step_name: 'chatr_id_claim',
+        completed: true,
+        completed_at: new Date().toISOString(),
+      });
+
+      toast({ title: "CHATR ID claimed! 🎉", description: `You are now @${handle}` });
+      setStep(3);
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to claim handle", variant: "destructive" });
+    } finally {
+      setClaimingHandle(false);
+    }
+  };
 
   const handlePhotoUpload = async (fromCamera: boolean) => {
     try {
@@ -229,14 +277,14 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
     }
   };
 
-  const handleStep2Next = async () => {
+  const handleStep3Next = async () => {
     await supabase.from('onboarding_progress').insert({
       user_id: userId,
       step_name: 'additional_details',
       completed: true,
       completed_at: new Date().toISOString(),
     });
-    setStep(3);
+    setStep(4);
   };
 
   const handleContactSync = async () => {
