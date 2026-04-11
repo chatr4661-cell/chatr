@@ -360,8 +360,9 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
             {step === 1 && "Set up your profile"}
-            {step === 2 && "Tell us more about you"}
-            {step === 3 && "Find your friends"}
+            {step === 2 && "Claim your CHATR ID"}
+            {step === 3 && "Tell us more about you"}
+            {step === 4 && "Find your friends"}
           </DialogTitle>
         </DialogHeader>
 
