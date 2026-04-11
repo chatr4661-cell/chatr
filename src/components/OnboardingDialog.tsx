@@ -478,6 +478,61 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
         {step === 2 && (
           <div className="space-y-6">
             <div className="text-center py-4">
+              <div className="h-20 w-20 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                <Sparkles className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Choose your unique CHATR handle</h3>
+              <p className="text-sm text-muted-foreground">
+                This creates 4 identity layers: public, work, private & AI clone
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="chatrHandle">Your Handle</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
+                  <Input
+                    id="chatrHandle"
+                    value={chatrHandle}
+                    onChange={(e) => setChatrHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    placeholder="yourname"
+                    className="pl-8"
+                    maxLength={30}
+                  />
+                </div>
+              </div>
+              {chatrHandle.length >= 3 && (
+                <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                  <p>Your identities:</p>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 text-[10px]">@{chatrHandle}</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 text-[10px]">@{chatrHandle}.work</span>
+                    <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 text-[10px]">@{chatrHandle}.private</span>
+                    <span className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-600 text-[10px]">@{chatrHandle}.ai</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
+                Skip for now
+              </Button>
+              <Button
+                onClick={handleClaimChatrId}
+                disabled={claimingHandle || chatrHandle.length < 3}
+                className="flex-1"
+              >
+                {claimingHandle ? 'Claiming...' : 'Claim @' + (chatrHandle || '...')}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6">
+            <div className="text-center py-4">
               <Gift className="h-16 w-16 text-primary mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">
                 {referralCode ? "Referral Code Applied! 🎉" : "Got a Referral Code?"}
@@ -505,25 +560,22 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleStep2Next} className="flex-1">
+              <Button variant="outline" onClick={handleStep3Next} className="flex-1">
                 Skip
               </Button>
               <Button 
                 onClick={async () => {
                   if (referralCode.trim() || referrerId) {
-                    // Process referral with referrer ID for accurate tracking
                     const { error } = await supabase.functions.invoke('process-referral', {
                       body: { 
                         referralCode: referralCode.trim(), 
                         newUserId: userId,
-                        referrerId: referrerId // Include direct referrer ID if available
+                        referrerId: referrerId
                       }
                     });
                     
                     if (!error) {
                       toast({ title: "Referral code applied! You earned 50 coins!" });
-                      
-                      // Notify the inviter that their friend joined
                       const inviteCode = localStorage.getItem('pending_invite_code');
                       const inviterRefId = localStorage.getItem('pending_referrer_id');
                       
@@ -535,12 +587,11 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
                         }
                       }).catch(err => console.log('Referral notification error:', err));
                       
-                      // Clear localStorage after successful processing
                       localStorage.removeItem('pending_invite_code');
                       localStorage.removeItem('pending_referrer_id');
                     }
                   }
-                  handleStep2Next();
+                  handleStep3Next();
                 }} 
                 className="flex-1"
               >
@@ -550,7 +601,7 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="space-y-6">
             <div className="text-center py-4">
               <div className="h-32 w-32 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
@@ -582,7 +633,7 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
         )}
 
         <div className="flex justify-center gap-2 mt-2">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
               className={`h-2 w-2 rounded-full ${
