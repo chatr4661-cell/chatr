@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Camera, Upload, CheckCircle2, Gift } from "lucide-react";
+import { Camera, Upload, CheckCircle2, Gift, User, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,8 @@ const profileSchema = z.object({
 export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: OnboardingDialogProps) => {
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
+  const [chatrHandle, setChatrHandle] = useState("");
+  const [claimingHandle, setClaimingHandle] = useState(false);
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
@@ -104,8 +106,54 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
     if (userId) loadProfile();
   }, [userId]);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
+
+  const handleClaimChatrId = async () => {
+    const handle = chatrHandle.trim().toLowerCase();
+    if (!handle || handle.length < 3) {
+      toast({ title: "Handle too short", description: "Must be at least 3 characters", variant: "destructive" });
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(handle)) {
+      toast({ title: "Invalid characters", description: "Only letters, numbers, underscores", variant: "destructive" });
+      return;
+    }
+    setClaimingHandle(true);
+    try {
+      // Check availability
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('primary_handle', handle)
+        .maybeSingle() as any;
+      
+      if (existing) {
+        toast({ title: "Handle taken", description: `@${handle} is already claimed`, variant: "destructive" });
+        return;
+      }
+
+      // Claim handle
+      await supabase
+        .from('profiles')
+        .update({ primary_handle: handle } as any)
+        .eq('id', userId);
+
+      await supabase.from('onboarding_progress').insert({
+        user_id: userId,
+        step_name: 'chatr_id_claim',
+        completed: true,
+        completed_at: new Date().toISOString(),
+      });
+
+      toast({ title: "CHATR ID claimed! 🎉", description: `You are now @${handle}` });
+      setStep(3);
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to claim handle", variant: "destructive" });
+    } finally {
+      setClaimingHandle(false);
+    }
+  };
 
   const handlePhotoUpload = async (fromCamera: boolean) => {
     try {
@@ -229,14 +277,14 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
     }
   };
 
-  const handleStep2Next = async () => {
+  const handleStep3Next = async () => {
     await supabase.from('onboarding_progress').insert({
       user_id: userId,
       step_name: 'additional_details',
       completed: true,
       completed_at: new Date().toISOString(),
     });
-    setStep(3);
+    setStep(4);
   };
 
   const handleContactSync = async () => {
@@ -312,8 +360,9 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
             {step === 1 && "Set up your profile"}
-            {step === 2 && "Tell us more about you"}
-            {step === 3 && "Find your friends"}
+            {step === 2 && "Claim your CHATR ID"}
+            {step === 3 && "Tell us more about you"}
+            {step === 4 && "Find your friends"}
           </DialogTitle>
         </DialogHeader>
 
@@ -429,6 +478,61 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
         {step === 2 && (
           <div className="space-y-6">
             <div className="text-center py-4">
+              <div className="h-20 w-20 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                <Sparkles className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Choose your unique CHATR handle</h3>
+              <p className="text-sm text-muted-foreground">
+                This creates 4 identity layers: public, work, private & AI clone
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="chatrHandle">Your Handle</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
+                  <Input
+                    id="chatrHandle"
+                    value={chatrHandle}
+                    onChange={(e) => setChatrHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    placeholder="yourname"
+                    className="pl-8"
+                    maxLength={30}
+                  />
+                </div>
+              </div>
+              {chatrHandle.length >= 3 && (
+                <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                  <p>Your identities:</p>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 text-[10px]">@{chatrHandle}</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 text-[10px]">@{chatrHandle}.work</span>
+                    <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 text-[10px]">@{chatrHandle}.private</span>
+                    <span className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-600 text-[10px]">@{chatrHandle}.ai</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
+                Skip for now
+              </Button>
+              <Button
+                onClick={handleClaimChatrId}
+                disabled={claimingHandle || chatrHandle.length < 3}
+                className="flex-1"
+              >
+                {claimingHandle ? 'Claiming...' : 'Claim @' + (chatrHandle || '...')}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6">
+            <div className="text-center py-4">
               <Gift className="h-16 w-16 text-primary mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">
                 {referralCode ? "Referral Code Applied! 🎉" : "Got a Referral Code?"}
@@ -456,25 +560,22 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleStep2Next} className="flex-1">
+              <Button variant="outline" onClick={handleStep3Next} className="flex-1">
                 Skip
               </Button>
               <Button 
                 onClick={async () => {
                   if (referralCode.trim() || referrerId) {
-                    // Process referral with referrer ID for accurate tracking
                     const { error } = await supabase.functions.invoke('process-referral', {
                       body: { 
                         referralCode: referralCode.trim(), 
                         newUserId: userId,
-                        referrerId: referrerId // Include direct referrer ID if available
+                        referrerId: referrerId
                       }
                     });
                     
                     if (!error) {
                       toast({ title: "Referral code applied! You earned 50 coins!" });
-                      
-                      // Notify the inviter that their friend joined
                       const inviteCode = localStorage.getItem('pending_invite_code');
                       const inviterRefId = localStorage.getItem('pending_referrer_id');
                       
@@ -486,12 +587,11 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
                         }
                       }).catch(err => console.log('Referral notification error:', err));
                       
-                      // Clear localStorage after successful processing
                       localStorage.removeItem('pending_invite_code');
                       localStorage.removeItem('pending_referrer_id');
                     }
                   }
-                  handleStep2Next();
+                  handleStep3Next();
                 }} 
                 className="flex-1"
               >
@@ -501,7 +601,7 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="space-y-6">
             <div className="text-center py-4">
               <div className="h-32 w-32 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
@@ -533,7 +633,7 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
         )}
 
         <div className="flex justify-center gap-2 mt-2">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
               className={`h-2 w-2 rounded-full ${

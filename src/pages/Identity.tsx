@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Briefcase, Lock, Bot, Shield, Globe, Settings, Copy, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, User, Briefcase, Lock, Bot, Shield, Globe, Settings, Copy, ExternalLink, CheckCircle2, QrCode, Award, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,9 @@ import { useIdentity } from '@/hooks/useIdentity';
 import { useTrustScore } from '@/hooks/useTrustScore';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { QRIdentityShare } from '@/components/identity/QRIdentityShare';
+import { VerifiedBadgePurchase } from '@/components/identity/VerifiedBadgePurchase';
+import { ShareableProfileCard } from '@/components/identity/ShareableProfileCard';
 
 const identityIcons: Record<string, React.ReactNode> = {
   personal: <User className="h-5 w-5" />,
@@ -35,13 +38,25 @@ const Identity = () => {
   const [claiming, setClaiming] = useState(false);
   const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null);
   const [trustProfile, setTrustProfile] = useState<any>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [badgeOpen, setBadgeOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [userPoints, setUserPoints] = useState(0);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   React.useEffect(() => {
     const loadTrust = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setCurrentUser(user);
         const tp = await fetchTrustProfile(user.id);
         setTrustProfile(tp);
+        const { data: pts } = await supabase
+          .from('user_points')
+          .select('balance')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (pts) setUserPoints(pts.balance || 0);
       }
     };
     loadTrust();
@@ -132,13 +147,24 @@ const Identity = () => {
                     <p className="text-lg font-bold font-mono">chatr.me/{handle}</p>
                   </div>
                   <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setQrOpen(true)} title="QR Code">
+                      <QrCode className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setCardOpen(true)} title="Share Card">
+                      <Share2 className="h-4 w-4" />
+                    </Button>
                     <Button variant="outline" size="icon" onClick={() => copyHandle(`chatr.me/${handle}`)}>
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon">
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
                   </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setBadgeOpen(true)}>
+                    <Award className="h-4 w-4 mr-1.5" /> Get Verified
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/u/${handle}`)}>
+                    <ExternalLink className="h-4 w-4 mr-1.5" /> View Profile
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -389,6 +415,39 @@ const Identity = () => {
           </>
         )}
       </div>
+      {/* Dialogs */}
+      {handle && (
+        <>
+          <QRIdentityShare
+            handle={handle}
+            username={currentUser?.user_metadata?.full_name}
+            avatarUrl={currentUser?.user_metadata?.avatar_url}
+            open={qrOpen}
+            onOpenChange={setQrOpen}
+          />
+          <VerifiedBadgePurchase
+            open={badgeOpen}
+            onOpenChange={setBadgeOpen}
+            userPoints={userPoints}
+            onPurchased={() => {
+              // Refresh points
+              supabase.from('user_points').select('balance').eq('user_id', currentUser?.id).maybeSingle()
+                .then(({ data }) => { if (data) setUserPoints(data.balance || 0); });
+            }}
+          />
+          <ShareableProfileCard
+            open={cardOpen}
+            onOpenChange={setCardOpen}
+            handle={handle}
+            username={currentUser?.user_metadata?.full_name || handle}
+            avatarUrl={currentUser?.user_metadata?.avatar_url}
+            headline={discoveryProfile?.headline}
+            company={discoveryProfile?.company}
+            city={discoveryProfile?.city}
+            trustScore={trustProfile?.score}
+          />
+        </>
+      )}
     </div>
   );
 };
