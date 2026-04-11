@@ -147,13 +147,24 @@ const Identity = () => {
                     <p className="text-lg font-bold font-mono">chatr.me/{handle}</p>
                   </div>
                   <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setQrOpen(true)} title="QR Code">
+                      <QrCode className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setCardOpen(true)} title="Share Card">
+                      <Share2 className="h-4 w-4" />
+                    </Button>
                     <Button variant="outline" size="icon" onClick={() => copyHandle(`chatr.me/${handle}`)}>
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon">
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
                   </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setBadgeOpen(true)}>
+                    <Award className="h-4 w-4 mr-1.5" /> Get Verified
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/u/${handle}`)}>
+                    <ExternalLink className="h-4 w-4 mr-1.5" /> View Profile
+                  </Button>
                 </div>
               </CardContent>
             </Card>
