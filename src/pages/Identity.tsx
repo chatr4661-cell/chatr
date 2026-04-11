@@ -48,8 +48,15 @@ const Identity = () => {
     const loadTrust = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setCurrentUser(user);
         const tp = await fetchTrustProfile(user.id);
         setTrustProfile(tp);
+        const { data: pts } = await supabase
+          .from('user_points')
+          .select('balance')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (pts) setUserPoints(pts.balance || 0);
       }
     };
     loadTrust();
