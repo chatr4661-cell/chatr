@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Briefcase, Lock, Bot, Shield, Globe, Settings, Copy, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, User, Briefcase, Lock, Bot, Shield, Globe, Settings, Copy, ExternalLink, CheckCircle2, QrCode, Award, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,9 @@ import { useIdentity } from '@/hooks/useIdentity';
 import { useTrustScore } from '@/hooks/useTrustScore';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { QRIdentityShare } from '@/components/identity/QRIdentityShare';
+import { VerifiedBadgePurchase } from '@/components/identity/VerifiedBadgePurchase';
+import { ShareableProfileCard } from '@/components/identity/ShareableProfileCard';
 
 const identityIcons: Record<string, React.ReactNode> = {
   personal: <User className="h-5 w-5" />,
