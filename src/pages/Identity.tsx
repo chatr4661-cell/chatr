@@ -38,6 +38,11 @@ const Identity = () => {
   const [claiming, setClaiming] = useState(false);
   const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null);
   const [trustProfile, setTrustProfile] = useState<any>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [badgeOpen, setBadgeOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [userPoints, setUserPoints] = useState(0);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   React.useEffect(() => {
     const loadTrust = async () => {
