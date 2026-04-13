@@ -2129,6 +2129,81 @@ export type Database = {
         }
         Relationships: []
       }
+      caller_id_aggregates: {
+        Row: {
+          community_label: string | null
+          community_name: string | null
+          first_reported_at: string | null
+          last_reported_at: string
+          most_common_type: string | null
+          phone_number: string
+          safe_reports: number
+          spam_percentage: number
+          spam_reports: number
+          total_reports: number
+          updated_at: string
+        }
+        Insert: {
+          community_label?: string | null
+          community_name?: string | null
+          first_reported_at?: string | null
+          last_reported_at?: string
+          most_common_type?: string | null
+          phone_number: string
+          safe_reports?: number
+          spam_percentage?: number
+          spam_reports?: number
+          total_reports?: number
+          updated_at?: string
+        }
+        Update: {
+          community_label?: string | null
+          community_name?: string | null
+          first_reported_at?: string | null
+          last_reported_at?: string
+          most_common_type?: string | null
+          phone_number?: string
+          safe_reports?: number
+          spam_percentage?: number
+          spam_reports?: number
+          total_reports?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      caller_reports: {
+        Row: {
+          caller_name: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          phone_number: string
+          report_type: string
+          reporter_id: string
+          spam_type: string | null
+        }
+        Insert: {
+          caller_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone_number: string
+          report_type?: string
+          reporter_id: string
+          spam_type?: string | null
+        }
+        Update: {
+          caller_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone_number?: string
+          report_type?: string
+          reporter_id?: string
+          spam_type?: string | null
+        }
+        Relationships: []
+      }
       calls: {
         Row: {
           ai_confidence_score: number | null
@@ -17997,6 +18072,16 @@ export type Database = {
         Returns: boolean
       }
       is_micro_task_admin: { Args: { check_user_id: string }; Returns: boolean }
+      lookup_caller_id: {
+        Args: { p_phone: string }
+        Returns: {
+          community_label: string
+          community_name: string
+          most_common_type: string
+          spam_percentage: number
+          total_reports: number
+        }[]
+      }
       process_chatr_plus_payment: {
         Args: {
           p_amount: number
