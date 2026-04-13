@@ -164,6 +164,18 @@ class IncomingCallActivity : ComponentActivity() {
         findViewById<ImageButton>(R.id.rejectButton)?.setOnClickListener {
             rejectCall()
         }
+
+        // Remind Me button
+        findViewById<ImageButton>(R.id.remindMeButton)?.setOnClickListener {
+            Log.i(TAG, "🔔 Remind Me tapped for call: $callId")
+            // TODO: Schedule reminder notification
+        }
+
+        // Message button
+        findViewById<ImageButton>(R.id.messageButton)?.setOnClickListener {
+            Log.i(TAG, "💬 Quick Message tapped for call: $callId")
+            rejectCall() // Reject and open chat
+        }
     }
 
     private fun startRinging() {
