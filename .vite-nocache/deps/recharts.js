@@ -1,9 +1,9 @@
 import {
-  require_shim
-} from "./chunk-FVB56JDY.js";
-import {
   clsx
 } from "./chunk-KDVGFZWC.js";
+import {
+  require_shim
+} from "./chunk-FVB56JDY.js";
 import {
   require_react_is
 } from "./chunk-HPYPUJ2F.js";

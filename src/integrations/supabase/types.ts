@@ -2129,6 +2129,81 @@ export type Database = {
         }
         Relationships: []
       }
+      caller_id_aggregates: {
+        Row: {
+          community_label: string | null
+          community_name: string | null
+          first_reported_at: string | null
+          last_reported_at: string
+          most_common_type: string | null
+          phone_number: string
+          safe_reports: number
+          spam_percentage: number
+          spam_reports: number
+          total_reports: number
+          updated_at: string
+        }
+        Insert: {
+          community_label?: string | null
+          community_name?: string | null
+          first_reported_at?: string | null
+          last_reported_at?: string
+          most_common_type?: string | null
+          phone_number: string
+          safe_reports?: number
+          spam_percentage?: number
+          spam_reports?: number
+          total_reports?: number
+          updated_at?: string
+        }
+        Update: {
+          community_label?: string | null
+          community_name?: string | null
+          first_reported_at?: string | null
+          last_reported_at?: string
+          most_common_type?: string | null
+          phone_number?: string
+          safe_reports?: number
+          spam_percentage?: number
+          spam_reports?: number
+          total_reports?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      caller_reports: {
+        Row: {
+          caller_name: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          phone_number: string
+          report_type: string
+          reporter_id: string
+          spam_type: string | null
+        }
+        Insert: {
+          caller_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone_number: string
+          report_type?: string
+          reporter_id: string
+          spam_type?: string | null
+        }
+        Update: {
+          caller_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone_number?: string
+          report_type?: string
+          reporter_id?: string
+          spam_type?: string | null
+        }
+        Relationships: []
+      }
       calls: {
         Row: {
           ai_confidence_score: number | null
@@ -5817,6 +5892,111 @@ export type Database = {
           reviewed_by?: string | null
           specialty?: string
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      e2e_identity_keys: {
+        Row: {
+          created_at: string
+          id: string
+          identity_public_key: string
+          registration_id: number
+          signed_prekey_id: number
+          signed_prekey_public: string
+          signed_prekey_signature: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          identity_public_key: string
+          registration_id?: number
+          signed_prekey_id?: number
+          signed_prekey_public: string
+          signed_prekey_signature: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          identity_public_key?: string
+          registration_id?: number
+          signed_prekey_id?: number
+          signed_prekey_public?: string
+          signed_prekey_signature?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      e2e_prekeys: {
+        Row: {
+          created_at: string
+          id: string
+          is_used: boolean
+          prekey_id: number
+          public_key: string
+          used_at: string | null
+          used_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_used?: boolean
+          prekey_id: number
+          public_key: string
+          used_at?: string | null
+          used_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_used?: boolean
+          prekey_id?: number
+          public_key?: string
+          used_at?: string | null
+          used_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      e2e_sessions: {
+        Row: {
+          chain_key: string | null
+          created_at: string
+          id: string
+          message_number: number
+          peer_id: string
+          root_key: string | null
+          session_state: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chain_key?: string | null
+          created_at?: string
+          id?: string
+          message_number?: number
+          peer_id: string
+          root_key?: string | null
+          session_state: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chain_key?: string | null
+          created_at?: string
+          id?: string
+          message_number?: number
+          peer_id?: string
+          root_key?: string | null
+          session_state?: string
           updated_at?: string
           user_id?: string
         }
@@ -17845,6 +18025,13 @@ export type Database = {
       cleanup_old_fcm_delivery_logs: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       compute_trust_score: { Args: { p_user_id: string }; Returns: number }
+      consume_prekey: {
+        Args: { p_target_user_id: string }
+        Returns: {
+          prekey_id: number
+          public_key: string
+        }[]
+      }
       create_direct_conversation: {
         Args: { other_user_id: string }
         Returns: string
@@ -17997,6 +18184,16 @@ export type Database = {
         Returns: boolean
       }
       is_micro_task_admin: { Args: { check_user_id: string }; Returns: boolean }
+      lookup_caller_id: {
+        Args: { p_phone: string }
+        Returns: {
+          community_label: string
+          community_name: string
+          most_common_type: string
+          spam_percentage: number
+          total_reports: number
+        }[]
+      }
       process_chatr_plus_payment: {
         Args: {
           p_amount: number
