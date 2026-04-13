@@ -104,7 +104,7 @@ export function useSignalProtocol() {
       .select('prekey_id')
       .eq('user_id', userId)
       .order('prekey_id', { ascending: false })
-      .limit(1);
+      .limit(1) as any;
     return data?.[0]?.prekey_id ?? 0;
   };
 
