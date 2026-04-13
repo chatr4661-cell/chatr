@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Flag, TrendingUp, ArrowLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CallerIdLookup } from '@/components/callerid/CallerIdLookup';
@@ -6,6 +6,7 @@ import { ReportCallerSheet } from '@/components/callerid/ReportCallerSheet';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { SEOHead } from '@/components/SEOHead';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function CallerIdHub() {
   const [reportOpen, setReportOpen] = useState(false);
@@ -70,11 +71,10 @@ export default function CallerIdHub() {
 }
 
 function TrendingSpam() {
-  const [spammers, setSpammers] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const { supabase } = React.useMemo(() => ({ supabase: require('@/integrations/supabase/client').supabase }), []);
+  const [spammers, setSpammers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const load = async () => {
       const { data } = await supabase
         .from('caller_id_aggregates' as any)
@@ -93,7 +93,7 @@ function TrendingSpam() {
   return (
     <div className="space-y-2">
       {spammers.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">No spam reports yet. Be the first!</p>
+        <p className="text-center text-muted-foreground py-8">No spam reports yet. Be the first to report!</p>
       ) : (
         spammers.map((s: any) => (
           <div key={s.phone_number} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
@@ -101,7 +101,7 @@ function TrendingSpam() {
               <p className="font-medium">{s.community_name || s.phone_number}</p>
               <p className="text-xs text-muted-foreground">{s.phone_number} · {s.total_reports} reports</p>
             </div>
-            <span className={`text-sm font-bold ${s.spam_percentage >= 80 ? 'text-red-500' : 'text-orange-500'}`}>
+            <span className={`text-sm font-bold ${s.spam_percentage >= 80 ? 'text-destructive' : 'text-orange-500'}`}>
               {Math.round(s.spam_percentage)}% spam
             </span>
           </div>
