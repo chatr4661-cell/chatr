@@ -115,7 +115,7 @@ export function useSignalProtocol() {
       .from('e2e_identity_keys' as any)
       .select('*')
       .eq('user_id', peerId)
-      .single();
+      .single() as any;
 
     if (!peerKeys) throw new Error('Peer has no encryption keys');
 
