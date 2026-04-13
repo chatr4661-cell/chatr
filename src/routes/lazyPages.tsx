@@ -303,6 +303,8 @@ export const Identity = lazy(() => import('@/pages/Identity'));
 export const Discover = lazy(() => import('@/pages/Discover'));
 export const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
 export const AICloneSettings = lazy(() => import('@/pages/AICloneSettings'));
+export const CallerIdHub = lazy(() => import('@/pages/CallerIdHub'));
+export const EarnCampaign = lazy(() => import('@/pages/EarnCampaign'));
 
 // Desktop Layout
 export const DesktopChat = lazy(() => import('@/pages/desktop/DesktopChat'));
