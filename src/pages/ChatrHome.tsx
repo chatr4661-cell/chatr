@@ -22,7 +22,9 @@ import {
   Shield,
   TrendingUp,
   Fingerprint,
-  Globe
+  Globe,
+  Shield,
+  IndianRupee
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -54,6 +56,8 @@ const services = [
   { icon: Gamepad2, label: 'Games', color: 'from-indigo-500 to-purple-600', route: '/chatr-games' },
   { icon: Users, label: 'Community', color: 'from-blue-500 to-cyan-600', route: '/community' },
   { icon: Wallet, label: 'Wallet', color: 'from-amber-500 to-orange-600', route: '/chatr-wallet' },
+  { icon: Shield, label: 'Caller ID', color: 'from-red-500 to-orange-600', route: '/caller-id' },
+  { icon: IndianRupee, label: 'Earn ₹100', color: 'from-green-500 to-emerald-600', route: '/earn' },
   { icon: Zap, label: 'Chatr World', color: 'from-yellow-500 to-orange-600', route: '/chatr-world' },
   { icon: Settings, label: 'Settings', color: 'from-gray-500 to-slate-600', route: '/settings' },
 ];
