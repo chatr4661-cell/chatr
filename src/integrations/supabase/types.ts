@@ -5897,6 +5897,111 @@ export type Database = {
         }
         Relationships: []
       }
+      e2e_identity_keys: {
+        Row: {
+          created_at: string
+          id: string
+          identity_public_key: string
+          registration_id: number
+          signed_prekey_id: number
+          signed_prekey_public: string
+          signed_prekey_signature: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          identity_public_key: string
+          registration_id?: number
+          signed_prekey_id?: number
+          signed_prekey_public: string
+          signed_prekey_signature: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          identity_public_key?: string
+          registration_id?: number
+          signed_prekey_id?: number
+          signed_prekey_public?: string
+          signed_prekey_signature?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      e2e_prekeys: {
+        Row: {
+          created_at: string
+          id: string
+          is_used: boolean
+          prekey_id: number
+          public_key: string
+          used_at: string | null
+          used_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_used?: boolean
+          prekey_id: number
+          public_key: string
+          used_at?: string | null
+          used_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_used?: boolean
+          prekey_id?: number
+          public_key?: string
+          used_at?: string | null
+          used_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      e2e_sessions: {
+        Row: {
+          chain_key: string | null
+          created_at: string
+          id: string
+          message_number: number
+          peer_id: string
+          root_key: string | null
+          session_state: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chain_key?: string | null
+          created_at?: string
+          id?: string
+          message_number?: number
+          peer_id: string
+          root_key?: string | null
+          session_state: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chain_key?: string | null
+          created_at?: string
+          id?: string
+          message_number?: number
+          peer_id?: string
+          root_key?: string | null
+          session_state?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_contacts: {
         Row: {
           created_at: string | null
@@ -17920,6 +18025,13 @@ export type Database = {
       cleanup_old_fcm_delivery_logs: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       compute_trust_score: { Args: { p_user_id: string }; Returns: number }
+      consume_prekey: {
+        Args: { p_target_user_id: string }
+        Returns: {
+          prekey_id: number
+          public_key: string
+        }[]
+      }
       create_direct_conversation: {
         Args: { other_user_id: string }
         Returns: string
