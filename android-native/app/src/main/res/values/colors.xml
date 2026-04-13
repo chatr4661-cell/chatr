@@ -2,8 +2,15 @@
 <resources>
     <color name="primary">#9b87f5</color>
     <color name="primary_dark">#7E69AB</color>
+    <color name="primary_light">#D6BCFA</color>
+    <color name="accent">#6E59A5</color>
     <color name="background">#0a0a0a</color>
     <color name="surface">#1a1a1a</color>
+    <color name="surface_variant">#2a2a2a</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
+    <color name="notification_accent">#9b87f5</color>
+    <color name="error">#FF5252</color>
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FFC107</color>
 </resources>
