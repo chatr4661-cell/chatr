@@ -4,11 +4,13 @@
     android:layout_height="match_parent"
     android:background="#1a1a2e">
 
-    <!-- Gradient Background -->
+    <!-- Gradient Background — NOT clickable/focusable so it won't steal touches -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/call_background_gradient" />
+        android:background="@drawable/call_background_gradient"
+        android:clickable="false"
+        android:focusable="false" />
 
     <!-- Content -->
     <LinearLayout
@@ -16,7 +18,8 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center_horizontal"
-        android:padding="32dp">
+        android:padding="32dp"
+        android:clickable="false">
 
         <!-- Caller Avatar -->
         <ImageView
@@ -56,7 +59,71 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Action Buttons -->
+        <!-- Remind Me + Message Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="32dp">
+
+            <!-- Remind Me -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginEnd="48dp">
+
+                <ImageButton
+                    android:id="@+id/remindMeButton"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/button_secondary"
+                    android:src="@drawable/ic_notifications"
+                    android:scaleType="center"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Remind me" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Remind Me"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Message -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <ImageButton
+                    android:id="@+id/messageButton"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/button_secondary"
+                    android:src="@drawable/ic_message"
+                    android:scaleType="center"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Send message" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Message"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Action Buttons (Decline / Accept) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -79,6 +146,9 @@
                     android:background="@drawable/button_reject"
                     android:src="@drawable/ic_call_end"
                     android:scaleType="center"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:elevation="6dp"
                     android:contentDescription="Reject call" />
 
                 <TextView
@@ -104,6 +174,9 @@
                     android:background="@drawable/button_answer"
                     android:src="@drawable/ic_call"
                     android:scaleType="center"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:elevation="6dp"
                     android:contentDescription="Answer call" />
 
                 <TextView
