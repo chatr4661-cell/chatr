@@ -563,6 +563,47 @@ export type Database = {
         }
         Relationships: []
       }
+      app_installs: {
+        Row: {
+          app_id: string
+          device_type: string | null
+          id: string
+          installed_at: string | null
+          installed_version: string | null
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          device_type?: string | null
+          id?: string
+          installed_at?: string | null
+          installed_version?: string | null
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          device_type?: string | null
+          id?: string
+          installed_at?: string | null
+          installed_version?: string | null
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_installs_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_permissions: {
         Row: {
           app_id: string
@@ -874,6 +915,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "app_usage_sessions_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "mini_apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_versions: {
+        Row: {
+          app_id: string
+          created_at: string | null
+          download_url: string | null
+          file_size_bytes: number | null
+          id: string
+          is_active: boolean | null
+          is_force_update: boolean | null
+          release_notes: string | null
+          version_code: number
+          version_name: string
+        }
+        Insert: {
+          app_id: string
+          created_at?: string | null
+          download_url?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_force_update?: boolean | null
+          release_notes?: string | null
+          version_code: number
+          version_name: string
+        }
+        Update: {
+          app_id?: string
+          created_at?: string | null
+          download_url?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_force_update?: boolean | null
+          release_notes?: string | null
+          version_code?: number
+          version_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_versions_app_id_fkey"
             columns: ["app_id"]
             isOneToOne: false
             referencedRelation: "mini_apps"
@@ -11572,13 +11660,17 @@ export type Database = {
       }
       mini_apps: {
         Row: {
+          apk_url: string | null
           app_name: string
+          app_type: string | null
           app_url: string
           category_id: string | null
           cover_image_url: string | null
           created_at: string | null
           description: string | null
           developer_id: string | null
+          downloads_count: number | null
+          file_size_bytes: number | null
           icon_url: string | null
           id: string
           install_count: number | null
@@ -11586,22 +11678,31 @@ export type Database = {
           is_trending: boolean | null
           is_verified: boolean | null
           launch_date: string | null
+          min_android_version: string | null
           monthly_active_users: number | null
+          package_name: string | null
+          privacy_policy_url: string | null
           rating_average: number | null
           rating_count: number | null
           screenshots: string[] | null
+          short_description: string | null
+          support_email: string | null
           tags: string[] | null
           updated_at: string | null
           version: string | null
         }
         Insert: {
+          apk_url?: string | null
           app_name: string
+          app_type?: string | null
           app_url: string
           category_id?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
           developer_id?: string | null
+          downloads_count?: number | null
+          file_size_bytes?: number | null
           icon_url?: string | null
           id?: string
           install_count?: number | null
@@ -11609,22 +11710,31 @@ export type Database = {
           is_trending?: boolean | null
           is_verified?: boolean | null
           launch_date?: string | null
+          min_android_version?: string | null
           monthly_active_users?: number | null
+          package_name?: string | null
+          privacy_policy_url?: string | null
           rating_average?: number | null
           rating_count?: number | null
           screenshots?: string[] | null
+          short_description?: string | null
+          support_email?: string | null
           tags?: string[] | null
           updated_at?: string | null
           version?: string | null
         }
         Update: {
+          apk_url?: string | null
           app_name?: string
+          app_type?: string | null
           app_url?: string
           category_id?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
           developer_id?: string | null
+          downloads_count?: number | null
+          file_size_bytes?: number | null
           icon_url?: string | null
           id?: string
           install_count?: number | null
@@ -11632,10 +11742,15 @@ export type Database = {
           is_trending?: boolean | null
           is_verified?: boolean | null
           launch_date?: string | null
+          min_android_version?: string | null
           monthly_active_users?: number | null
+          package_name?: string | null
+          privacy_policy_url?: string | null
           rating_average?: number | null
           rating_count?: number | null
           screenshots?: string[] | null
+          short_description?: string | null
+          support_email?: string | null
           tags?: string[] | null
           updated_at?: string | null
           version?: string | null

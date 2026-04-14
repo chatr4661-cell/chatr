@@ -168,6 +168,13 @@ export const ChatrOS = lazy(() => import('@/pages/ChatrOS'));
 export const OSDetection = lazy(() => import('@/pages/OSDetection'));
 export const Launcher = lazy(() => import('@/pages/Launcher'));
 
+// CHATR Store
+export const StoreAppDetail = lazy(() => import('@/pages/store/AppDetail'));
+export const StoreMyApps = lazy(() => import('@/pages/store/MyApps'));
+export const StoreUpdates = lazy(() => import('@/pages/store/AppUpdates'));
+export const StoreExplore = lazy(() => import('@/pages/store/StoreExplore'));
+export const StoreDeveloperDashboard = lazy(() => import('@/pages/store/DeveloperDashboard'));
+
 // Chatr Features
 export const ChatrWorld = lazy(() => import('@/pages/ChatrWorld'));
 export const ChatrHome = lazy(() => import('@/pages/ChatrHome'));

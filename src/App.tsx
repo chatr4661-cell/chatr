@@ -287,6 +287,11 @@ const App = () => {
             <Route path="/chatr-world" element={<LazyRoute component={LazyPages.ChatrWorld} />} />
             <Route path="/chatr-games" element={<LazyRoute component={LazyPages.ChatrGames} />} />
             <Route path="/native-apps" element={<LazyRoute component={LazyPages.MiniApps} />} />
+            <Route path="/store/app/:id" element={<LazyRoute component={LazyPages.StoreAppDetail} />} />
+            <Route path="/store/my-apps" element={<LazyRoute component={LazyPages.StoreMyApps} />} />
+            <Route path="/store/updates" element={<LazyRoute component={LazyPages.StoreUpdates} />} />
+            <Route path="/store/explore" element={<LazyRoute component={LazyPages.StoreExplore} />} />
+            <Route path="/store/developer" element={<LazyRoute component={LazyPages.StoreDeveloperDashboard} />} />
             <Route path="/chatr-os" element={<LazyRoute component={LazyPages.ChatrOS} />} />
             <Route path="/os-detection" element={<LazyRoute component={LazyPages.OSDetection} />} />
             <Route path="/ai-agents" element={<LazyRoute component={LazyPages.AIAgentsHub} />} />
