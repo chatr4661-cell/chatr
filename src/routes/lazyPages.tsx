@@ -259,6 +259,7 @@ export const AdminDoctorApplications = lazy(() => import('@/pages/admin/DoctorAp
 export const FeatureBuilder = lazy(() => import('@/pages/admin/FeatureBuilder'));
 export const SchemaManager = lazy(() => import('@/pages/admin/SchemaManager'));
 export const KYCApprovals = lazy(() => import('@/pages/admin/KYCApprovals'));
+export const CommandCenter = lazy(() => import('@/pages/CommandCenter'));
 export const BrandPartnerships = lazy(() => import('@/pages/admin/BrandPartnerships'));
 export const AppApprovals = lazy(() => import('@/pages/admin/AppApprovals'));
 export const OfficialAccountsManager = lazy(() => import('@/pages/admin/OfficialAccountsManager'));

@@ -14,7 +14,8 @@ import {
   Sparkles,
   LogOut,
   Wand2,
-  Database
+  Database,
+  Crown
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,6 +36,7 @@ import { toast } from "sonner";
 
 const adminMenuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "AI Command Center", url: "/command-center", icon: Crown },
   { title: "Feature Builder", url: "/admin/feature-builder", icon: Wand2 },
   { title: "Schema Manager", url: "/admin/schema-manager", icon: Database },
   { title: "Users", url: "/admin/users", icon: Users },
