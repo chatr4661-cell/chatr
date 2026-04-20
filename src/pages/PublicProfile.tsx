@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TrustScoreBadge } from '@/components/TrustScoreBadge';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
+import { buildPublicProfileUrl, normalizePublicHandle } from '@/lib/profileLinks';
 
 const PublicProfile = () => {
   const { handle } = useParams<{ handle: string }>();
@@ -20,7 +21,8 @@ const PublicProfile = () => {
   const [loading, setLoading] = useState(true);
   const [qrOpen, setQrOpen] = useState(false);
 
-  const profileUrl = `https://chatr.chat/${handle}`;
+  const normalizedHandle = normalizePublicHandle(handle);
+  const profileUrl = buildPublicProfileUrl(handle);
 
   useEffect(() => {
     if (handle) loadProfile(handle);
@@ -29,52 +31,30 @@ const PublicProfile = () => {
   const loadProfile = async (h: string) => {
     setLoading(true);
     try {
-      const cleanHandle = h.replace(/^@/, '').toLowerCase();
+      const cleanHandle = normalizePublicHandle(h);
 
-      // Try primary_handle first, then username
-      let { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('primary_handle', cleanHandle)
-        .maybeSingle() as any;
+      const { data, error } = await supabase.rpc('get_public_profile' as any, {
+        handle_input: cleanHandle,
+      } as any);
 
-      if (!profileData) {
-        const { data: byUsername } = await supabase
-          .from('profiles')
-          .select('*')
-          .ilike('username', cleanHandle)
-          .maybeSingle() as any;
-        profileData = byUsername;
-      }
+      if (error) throw error;
 
-      if (!profileData) {
+      if (!data?.profile) {
+        setProfile(null);
+        setIdentities([]);
+        setDiscovery(null);
         setLoading(false);
         return;
       }
 
-      setProfile(profileData);
-
-      // Get public identities
-      const { data: ids } = await supabase
-        .from('user_identities' as any)
-        .select('*')
-        .eq('user_id', profileData.id)
-        .eq('is_active', true)
-        .in('visibility', ['public']) as any;
-
-      setIdentities(ids || []);
-
-      // Get discovery profile
-      const { data: disc } = await supabase
-        .from('user_discovery_profiles' as any)
-        .select('*')
-        .eq('user_id', profileData.id)
-        .eq('is_searchable', true)
-        .maybeSingle() as any;
-
-      setDiscovery(disc);
+      setProfile(data.profile);
+      setIdentities(data.identities || []);
+      setDiscovery(data.discovery || null);
     } catch (error) {
       console.error('Failed to load profile:', error);
+      setProfile(null);
+      setIdentities([]);
+      setDiscovery(null);
     } finally {
       setLoading(false);
     }
@@ -92,7 +72,7 @@ const PublicProfile = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <h2 className="text-xl font-bold mb-2">Profile Not Found</h2>
-        <p className="text-muted-foreground text-sm mb-4">@{handle} doesn't exist on CHATR</p>
+        <p className="text-muted-foreground text-sm mb-4">@{normalizedHandle || handle} doesn't exist on CHATR</p>
         <Button onClick={() => navigate('/')}>Go Home</Button>
       </div>
     );
@@ -104,7 +84,7 @@ const PublicProfile = () => {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <span className="font-mono text-sm flex-1">chatr.chat/{handle}</span>
+        <span className="font-mono text-sm flex-1">chatr.chat/{normalizedHandle || handle}</span>
         <Button variant="ghost" size="icon" onClick={() => setQrOpen(true)} aria-label="Show QR code">
           <QrCode className="h-5 w-5" />
         </Button>
@@ -122,7 +102,7 @@ const PublicProfile = () => {
               <h2 className="text-xl font-bold">{profile.username}</h2>
               <TrustScoreBadge userId={profile.id} />
             </div>
-            <p className="text-sm text-muted-foreground font-mono mb-3">@{handle}</p>
+            <p className="text-sm text-muted-foreground font-mono mb-3">@{normalizedHandle || handle}</p>
 
             {discovery?.headline && (
               <p className="text-sm mb-3">{discovery.headline}</p>
@@ -221,7 +201,7 @@ const PublicProfile = () => {
                 includeMargin={false}
               />
             </div>
-            <p className="text-sm font-mono text-muted-foreground">chatr.chat/{handle}</p>
+            <p className="text-sm font-mono text-muted-foreground">chatr.chat/{normalizedHandle || handle}</p>
             <div className="flex gap-2 w-full">
               <Button
                 variant="outline"
