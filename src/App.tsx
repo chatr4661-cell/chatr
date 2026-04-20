@@ -442,6 +442,9 @@ const App = () => {
             <Route path="/caller-id" element={<ProtectedLazyRoute component={LazyPages.CallerIdHub} />} />
             <Route path="/earn" element={<LazyRoute component={LazyPages.EarnCampaign} />} />
             
+            {/* Public profile shortlink: /handle (must be last before 404) */}
+            <Route path="/:handle" element={<LazyRoute component={LazyPages.PublicProfile} />} />
+            
             {/* 404 Route */}
             <Route path="*" element={<LazyRoute component={LazyPages.NotFound} />} />
           </Routes>

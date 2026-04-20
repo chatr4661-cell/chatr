@@ -24,12 +24,23 @@ const PublicProfile = () => {
   const loadProfile = async (h: string) => {
     setLoading(true);
     try {
-      // Get profile by handle
-      const { data: profileData } = await supabase
+      const cleanHandle = h.replace(/^@/, '').toLowerCase();
+
+      // Try primary_handle first, then username
+      let { data: profileData } = await supabase
         .from('profiles')
         .select('*')
-        .eq('primary_handle', h)
+        .eq('primary_handle', cleanHandle)
         .maybeSingle() as any;
+
+      if (!profileData) {
+        const { data: byUsername } = await supabase
+          .from('profiles')
+          .select('*')
+          .ilike('username', cleanHandle)
+          .maybeSingle() as any;
+        profileData = byUsername;
+      }
 
       if (!profileData) {
         setLoading(false);
