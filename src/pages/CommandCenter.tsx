@@ -228,6 +228,26 @@ export default function CommandCenter() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {isEmpty && (
+          <Card className="border-primary/40 bg-gradient-to-br from-primary/10 via-card to-card">
+            <CardContent className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold text-lg">Command Center is ready</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  No data yet. Generate your first AI plan below, or load demo data to explore every panel instantly.
+                </p>
+              </div>
+              <Button onClick={seedDemoData} disabled={generating} variant="default" size="lg">
+                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
+                Load Demo Data
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Revenue Pipeline (business engine) */}
         <RevenuePipelineWidget stats={pipeline} />
 
