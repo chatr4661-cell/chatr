@@ -327,6 +327,9 @@ const App = () => {
             <Route path="/device-management" element={<LazyRoute component={LazyPages.DeviceManagement} />} />
             <Route path="/bluetooth-test" element={<LazyRoute component={LazyPages.BluetoothTest} />} />
             
+            {/* AI Command Center (CEO portal) */}
+            <Route path="/command-center" element={<LazyRoute component={LazyPages.CommandCenter} />} />
+
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<LazyRoute component={LazyPages.AdminDashboard} />} />
