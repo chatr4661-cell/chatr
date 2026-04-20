@@ -141,18 +141,27 @@ const PublicProfile = () => {
               )}
             </div>
 
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center flex-wrap">
               <Button size="sm">
                 <MessageSquare className="h-4 w-4 mr-1" /> Message
               </Button>
               <Button size="sm" variant="outline">
                 <Phone className="h-4 w-4 mr-1" /> Call
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => {
-                navigator.clipboard.writeText(`chatr.me/${handle}`);
+              <Button size="sm" variant="outline" onClick={() => setQrOpen(true)}>
+                <QrCode className="h-4 w-4 mr-1" /> QR
+              </Button>
+              <Button size="sm" variant="ghost" onClick={async () => {
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title: `${profile.username} on CHATR`, url: profileUrl });
+                    return;
+                  } catch {}
+                }
+                navigator.clipboard.writeText(profileUrl);
                 toast.success('Link copied!');
               }}>
-                <Copy className="h-4 w-4" />
+                <Share2 className="h-4 w-4" />
               </Button>
             </div>
           </CardContent>
