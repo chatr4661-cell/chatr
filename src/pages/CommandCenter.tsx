@@ -53,13 +53,39 @@ export default function CommandCenter() {
   const [pipeline, setPipeline] = useState({ leads: 0, outreach: 0, replied: 0, qualified: 0, closed: 0, revenue: 0 });
 
   const loadAll = async () => {
-    const [{ data: p }, { data: l }] = await Promise.all([
+    const [{ data: p }, { data: l }, { data: leads }, { data: outreach }, { data: metrics }] = await Promise.all([
       supabase.from("cc_plans").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("cc_logs").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("cc_leads").select("status"),
+      supabase.from("cc_outreach").select("status"),
+      supabase.from("cc_revenue_metrics").select("revenue_amount"),
     ]);
     setPlans((p || []) as Plan[]);
     setLogs((l || []) as LogRow[]);
+    const leadList = (leads || []) as { status: string }[];
+    const outList = (outreach || []) as { status: string }[];
+    setPipeline({
+      leads: leadList.length,
+      outreach: outList.filter(o => ["sent", "replied", "approved"].includes(o.status)).length,
+      replied: leadList.filter(l => ["replied", "qualified", "converted"].includes(l.status)).length,
+      qualified: leadList.filter(l => ["qualified", "converted"].includes(l.status)).length,
+      closed: leadList.filter(l => l.status === "converted").length,
+      revenue: (metrics || []).reduce((s: number, m: any) => s + Number(m.revenue_amount || 0), 0),
+    });
   };
+
+  useEffect(() => {
+    if (!isCEO) return;
+    loadAll();
+    const ch = supabase
+      .channel("cc-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "cc_plans" }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cc_logs" }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cc_leads" }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cc_outreach" }, loadAll)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [isCEO]);
 
   useEffect(() => {
     if (!isCEO) return;
