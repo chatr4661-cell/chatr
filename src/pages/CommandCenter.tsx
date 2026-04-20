@@ -14,6 +14,9 @@ import {
   TrendingUp, Users, Target, DollarSign, Loader2, Zap, Brain
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
+import { RevenuePipelineWidget } from "@/components/command-center/RevenuePipelineWidget";
+import { SalesAgentPanel } from "@/components/command-center/SalesAgentPanel";
+import { EngineeringAgentPanel } from "@/components/command-center/EngineeringAgentPanel";
 
 type Plan = {
   id: string; title: string; description: string | null;
@@ -47,14 +50,28 @@ export default function CommandCenter() {
   const [generating, setGenerating] = useState(false);
   const [goal, setGoal] = useState("");
   const [emergencyStop, setEmergencyStop] = useState(false);
+  const [pipeline, setPipeline] = useState({ leads: 0, outreach: 0, replied: 0, qualified: 0, closed: 0, revenue: 0 });
 
   const loadAll = async () => {
-    const [{ data: p }, { data: l }] = await Promise.all([
+    const [{ data: p }, { data: l }, { data: leads }, { data: outreach }, { data: metrics }] = await Promise.all([
       supabase.from("cc_plans").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("cc_logs").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("cc_leads").select("status"),
+      supabase.from("cc_outreach").select("status"),
+      supabase.from("cc_revenue_metrics").select("revenue_amount"),
     ]);
     setPlans((p || []) as Plan[]);
     setLogs((l || []) as LogRow[]);
+    const leadList = (leads || []) as { status: string }[];
+    const outList = (outreach || []) as { status: string }[];
+    setPipeline({
+      leads: leadList.length,
+      outreach: outList.filter(o => ["sent", "replied", "approved"].includes(o.status)).length,
+      replied: leadList.filter(l => ["replied", "qualified", "converted"].includes(l.status)).length,
+      qualified: leadList.filter(l => ["qualified", "converted"].includes(l.status)).length,
+      closed: leadList.filter(l => l.status === "converted").length,
+      revenue: (metrics || []).reduce((s: number, m: any) => s + Number(m.revenue_amount || 0), 0),
+    });
   };
 
   useEffect(() => {
@@ -64,9 +81,12 @@ export default function CommandCenter() {
       .channel("cc-feed")
       .on("postgres_changes", { event: "*", schema: "public", table: "cc_plans" }, loadAll)
       .on("postgres_changes", { event: "*", schema: "public", table: "cc_logs" }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cc_leads" }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cc_outreach" }, loadAll)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [isCEO]);
+
 
   if (roleLoading) {
     return <div className="min-h-screen grid place-items-center bg-background">
@@ -153,6 +173,9 @@ export default function CommandCenter() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Revenue Pipeline (business engine) */}
+        <RevenuePipelineWidget stats={pipeline} />
+
         {/* Overview metrics */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard icon={<Sparkles className="h-4 w-4" />} label="Plans Today" value={todayCount} />
@@ -188,8 +211,10 @@ export default function CommandCenter() {
 
         {/* Tabs */}
         <Tabs defaultValue="queue" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="queue">Queue ({pending.length})</TabsTrigger>
+            <TabsTrigger value="sales">Sales</TabsTrigger>
+            <TabsTrigger value="engineering">Engineering</TabsTrigger>
             <TabsTrigger value="all">All Plans</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
@@ -197,6 +222,14 @@ export default function CommandCenter() {
           <TabsContent value="queue" className="space-y-3 mt-4">
             {pending.length === 0 && <EmptyState text="No plans awaiting your approval. Generate one above." />}
             {pending.map(p => <PlanCard key={p.id} plan={p} onApprove={() => decide(p, "approved")} onReject={() => decide(p, "rejected")} />)}
+          </TabsContent>
+
+          <TabsContent value="sales" className="mt-4">
+            <SalesAgentPanel disabled={emergencyStop} />
+          </TabsContent>
+
+          <TabsContent value="engineering" className="mt-4">
+            <EngineeringAgentPanel disabled={emergencyStop} />
           </TabsContent>
 
           <TabsContent value="all" className="space-y-3 mt-4">

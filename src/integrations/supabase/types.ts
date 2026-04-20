@@ -2506,6 +2506,133 @@ export type Database = {
           },
         ]
       }
+      cc_dev_tasks: {
+        Row: {
+          api_plan: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          estimated_hours: number | null
+          feature_spec: string | null
+          id: string
+          lovable_prompt: string | null
+          plan_id: string | null
+          priority: string
+          status: string
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          api_plan?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          feature_spec?: string | null
+          id?: string
+          lovable_prompt?: string | null
+          plan_id?: string | null
+          priority?: string
+          status?: string
+          task_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          api_plan?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          feature_spec?: string | null
+          id?: string
+          lovable_prompt?: string | null
+          plan_id?: string | null
+          priority?: string
+          status?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cc_dev_tasks_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "cc_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cc_leads: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          icp_match_score: number | null
+          id: string
+          industry: string | null
+          linkedin_url: string | null
+          location: string | null
+          notes: string | null
+          phone: string | null
+          plan_id: string | null
+          role_title: string | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          icp_match_score?: number | null
+          id?: string
+          industry?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          notes?: string | null
+          phone?: string | null
+          plan_id?: string | null
+          role_title?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          icp_match_score?: number | null
+          id?: string
+          industry?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          notes?: string | null
+          phone?: string | null
+          plan_id?: string | null
+          role_title?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cc_leads_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "cc_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cc_logs: {
         Row: {
           action: string
@@ -2577,6 +2704,75 @@ export type Database = {
         }
         Relationships: []
       }
+      cc_outreach: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          channel: string
+          created_at: string
+          id: string
+          lead_id: string | null
+          message_body: string
+          plan_id: string | null
+          replied_at: string | null
+          reply_content: string | null
+          sent_at: string | null
+          sequence_step: number | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          message_body: string
+          plan_id?: string | null
+          replied_at?: string | null
+          reply_content?: string | null
+          sent_at?: string | null
+          sequence_step?: number | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          message_body?: string
+          plan_id?: string | null
+          replied_at?: string | null
+          reply_content?: string | null
+          sent_at?: string | null
+          sequence_step?: number | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cc_outreach_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "cc_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cc_outreach_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "cc_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cc_plans: {
         Row: {
           created_at: string
@@ -2619,6 +2815,42 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      cc_revenue_metrics: {
+        Row: {
+          conversations_started: number | null
+          created_at: string
+          deals_closed: number | null
+          deals_qualified: number | null
+          id: string
+          leads_generated: number | null
+          metric_date: string
+          outreach_sent: number | null
+          revenue_amount: number | null
+        }
+        Insert: {
+          conversations_started?: number | null
+          created_at?: string
+          deals_closed?: number | null
+          deals_qualified?: number | null
+          id?: string
+          leads_generated?: number | null
+          metric_date?: string
+          outreach_sent?: number | null
+          revenue_amount?: number | null
+        }
+        Update: {
+          conversations_started?: number | null
+          created_at?: string
+          deals_closed?: number | null
+          deals_qualified?: number | null
+          id?: string
+          leads_generated?: number | null
+          metric_date?: string
+          outreach_sent?: number | null
+          revenue_amount?: number | null
         }
         Relationships: []
       }
