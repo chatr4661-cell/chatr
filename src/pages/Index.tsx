@@ -572,7 +572,7 @@ const Index = () => {
       title: 'Healthcare',
       description: 'Medicines & pharmacy',
       iconColor: 'bg-gradient-to-br from-emerald-400 to-teal-600',
-      route: '/healthcare'
+      route: '/local-healthcare'
     },
 
     // Row 4 — Work & Commerce
@@ -595,7 +595,7 @@ const Index = () => {
       title: 'Vendor Portal',
       description: 'Manage your storefront',
       iconColor: 'bg-gradient-to-br from-amber-500 to-orange-600',
-      route: '/vendor'
+      route: '/dhandha'
     },
 
     // Row 5 — Platform & Trust
