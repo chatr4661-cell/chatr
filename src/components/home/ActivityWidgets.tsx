@@ -79,12 +79,12 @@ export const ActivityWidgets = () => {
     {
       icon: Wallet,
       label: 'Wallet',
-      value: `₹${widgetData.walletBalance.toLocaleString()}`,
+      value: `${widgetData.walletBalance.toLocaleString()} coins`,
       color: 'from-amber-500 to-orange-600',
       bgColor: 'bg-amber-500/10',
       textColor: 'text-amber-600 dark:text-amber-400',
       route: '/chatr-wallet',
-      hasActivity: false
+      hasActivity: widgetData.walletBalance > 0
     },
     {
       icon: Bell,
