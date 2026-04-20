@@ -66,12 +66,18 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
                 {app.short_description || app.description || 'No description'}
               </p>
               <div className="flex items-center gap-2 mt-1.5">
-                <div className="flex items-center gap-0.5">
-                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  <span className="text-xs font-medium">{(app.rating_average || 0).toFixed(1)}</span>
-                </div>
-                <span className="text-muted-foreground text-[10px]">•</span>
-                <span className="text-xs text-muted-foreground">{formatCount(app.downloads_count || app.install_count)}</span>
+                {(app.rating_count || 0) >= 10 ? (
+                  <>
+                    <div className="flex items-center gap-0.5">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      <span className="text-xs font-medium">{(app.rating_average || 0).toFixed(1)}</span>
+                    </div>
+                    <span className="text-muted-foreground text-[10px]">•</span>
+                  </>
+                ) : (
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[9px] font-medium">NEW</Badge>
+                )}
+                <span className="text-xs text-muted-foreground">{formatCount(app.downloads_count || app.install_count)} {(app.downloads_count || app.install_count || 0) === 1 ? 'install' : 'installs'}</span>
               </div>
             </div>
           </div>
@@ -96,9 +102,15 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
           </div>
           <p className="text-xs text-muted-foreground truncate">{app.short_description || app.description || ''}</p>
           <div className="flex items-center gap-1 mt-0.5">
-            <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-            <span className="text-[11px]">{(app.rating_average || 0).toFixed(1)}</span>
-            <span className="text-[10px] text-muted-foreground ml-1">{formatCount(app.downloads_count || app.install_count)}</span>
+            {(app.rating_count || 0) >= 10 ? (
+              <>
+                <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                <span className="text-[11px]">{(app.rating_average || 0).toFixed(1)}</span>
+              </>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">New</span>
+            )}
+            <span className="text-[10px] text-muted-foreground ml-1">{formatCount(app.downloads_count || app.install_count)} installs</span>
           </div>
         </div>
         <Button size="sm" variant="outline" className="rounded-full text-xs h-8 px-4">
@@ -180,10 +192,20 @@ export default function MiniApps() {
     setCategories(data || []);
   };
 
-  const featured = apps.filter(a => a.is_trending || (a.rating_average && a.rating_average >= 4.5)).slice(0, 6);
-  const trending = apps.filter(a => a.is_trending).slice(0, 10);
-  const topRated = [...apps].sort((a, b) => (b.rating_average || 0) - (a.rating_average || 0)).slice(0, 10);
-  const newApps = [...apps].sort((a, b) => 0).slice(0, 10);
+  // Dedupe by app_name (case-insensitive) to avoid showing the same app twice
+  const dedupeByName = (list: StoreApp[]) => {
+    const seen = new Set<string>();
+    return list.filter(a => {
+      const key = a.app_name.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+  const uniqueApps = dedupeByName(apps);
+  const featured = dedupeByName(uniqueApps.filter(a => a.is_trending || (a.rating_average && a.rating_average >= 4.5))).slice(0, 6);
+  const trending = dedupeByName(uniqueApps.filter(a => a.is_trending)).slice(0, 10);
+  const topRated = dedupeByName([...uniqueApps].sort((a, b) => (b.rating_average || 0) - (a.rating_average || 0))).slice(0, 10);
 
   const filteredApps = apps.filter(app => {
     const matchesSearch = !search || 

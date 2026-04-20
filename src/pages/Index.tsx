@@ -856,7 +856,7 @@ const Index = () => {
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                placeholder="Search services, jobs, healthcare, food & more..."
+                placeholder="Search anything on Chatr"
                 className="pl-9 pr-10 h-11 bg-background/80 backdrop-blur text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

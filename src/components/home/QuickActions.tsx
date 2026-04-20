@@ -29,6 +29,7 @@ export const QuickActions = () => {
     {
       icon: Store,
       label: 'Dhandha',
+      sublabel: 'Business',
       color: 'from-amber-500 to-orange-600',
       action: () => navigate('/dhandha')
     },
