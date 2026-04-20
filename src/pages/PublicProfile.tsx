@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shield, MessageSquare, Phone, Globe, Briefcase, MapPin, Copy, Bot, Lock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Shield, MessageSquare, Phone, Globe, Briefcase, MapPin, Copy, Bot, Lock, CheckCircle2, QrCode, Share2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { TrustScoreBadge } from '@/components/TrustScoreBadge';
 import { toast } from 'sonner';
+import { QRCodeSVG } from 'qrcode.react';
 
 const PublicProfile = () => {
   const { handle } = useParams<{ handle: string }>();
