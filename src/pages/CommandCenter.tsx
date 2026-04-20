@@ -14,6 +14,9 @@ import {
   TrendingUp, Users, Target, DollarSign, Loader2, Zap, Brain
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
+import { RevenuePipelineWidget } from "@/components/command-center/RevenuePipelineWidget";
+import { SalesAgentPanel } from "@/components/command-center/SalesAgentPanel";
+import { EngineeringAgentPanel } from "@/components/command-center/EngineeringAgentPanel";
 
 type Plan = {
   id: string; title: string; description: string | null;
