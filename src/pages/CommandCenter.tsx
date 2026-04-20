@@ -50,6 +50,7 @@ export default function CommandCenter() {
   const [generating, setGenerating] = useState(false);
   const [goal, setGoal] = useState("");
   const [emergencyStop, setEmergencyStop] = useState(false);
+  const [pipeline, setPipeline] = useState({ leads: 0, outreach: 0, replied: 0, qualified: 0, closed: 0, revenue: 0 });
 
   const loadAll = async () => {
     const [{ data: p }, { data: l }] = await Promise.all([
