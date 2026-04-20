@@ -224,6 +224,14 @@ export default function CommandCenter() {
             {pending.map(p => <PlanCard key={p.id} plan={p} onApprove={() => decide(p, "approved")} onReject={() => decide(p, "rejected")} />)}
           </TabsContent>
 
+          <TabsContent value="sales" className="mt-4">
+            <SalesAgentPanel disabled={emergencyStop} />
+          </TabsContent>
+
+          <TabsContent value="engineering" className="mt-4">
+            <EngineeringAgentPanel disabled={emergencyStop} />
+          </TabsContent>
+
           <TabsContent value="all" className="space-y-3 mt-4">
             {plans.length === 0 && <EmptyState text="No plans yet." />}
             {plans.map(p => <PlanCard key={p.id} plan={p} onApprove={() => decide(p, "approved")} onReject={() => decide(p, "rejected")} />)}
