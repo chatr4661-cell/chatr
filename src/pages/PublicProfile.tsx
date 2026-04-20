@@ -18,6 +18,9 @@ const PublicProfile = () => {
   const [identities, setIdentities] = useState<any[]>([]);
   const [discovery, setDiscovery] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [qrOpen, setQrOpen] = useState(false);
+
+  const profileUrl = `https://chatr.chat/${handle}`;
 
   useEffect(() => {
     if (handle) loadProfile(handle);
