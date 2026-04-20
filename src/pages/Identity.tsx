@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Briefcase, Lock, Bot, Shield, Globe, Settings, Copy, ExternalLink, CheckCircle2, QrCode, Award, Share2 } from 'lucide-react';
+import { ArrowLeft, User, Briefcase, Lock, Bot, Shield, Globe, Settings, Copy, ExternalLink, CheckCircle2, QrCode, Award, Share2, MessageCircle, Send, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -86,6 +86,39 @@ const Identity = () => {
   const publicProfileUrl = buildPublicProfileUrl(handle);
   const publicProfilePath = buildPublicProfilePath(handle);
 
+  const handleInviteShare = async () => {
+    const message = `Join me on CHATR! Connect with me at ${publicProfileUrl}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join me on CHATR',
+          text: message,
+          url: publicProfileUrl,
+        });
+        return;
+      } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success('Invite copied! Paste it anywhere to share.');
+    } catch {
+      toast.error('Could not copy invite');
+    }
+  };
+
+  const handleInviteWhatsApp = () => {
+    const message = encodeURIComponent(`Join me on CHATR! Connect with me at ${publicProfileUrl}`);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+
+  const handleConnectChat = () => {
+    navigate('/chat');
+  };
+
+  const handleConnectAddContact = () => {
+    navigate('/contacts');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -167,6 +200,20 @@ const Identity = () => {
                   </Button>
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(publicProfilePath)}>
                     <ExternalLink className="h-4 w-4 mr-1.5" /> View Profile
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <Button size="sm" className="w-full" onClick={handleInviteShare}>
+                    <Send className="h-4 w-4 mr-1.5" /> Invite Friends
+                  </Button>
+                  <Button variant="secondary" size="sm" className="w-full" onClick={handleInviteWhatsApp}>
+                    <MessageCircle className="h-4 w-4 mr-1.5" /> Invite via WhatsApp
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full" onClick={handleConnectChat}>
+                    <MessageCircle className="h-4 w-4 mr-1.5" /> Start Chat
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full" onClick={handleConnectAddContact}>
+                    <UserPlus className="h-4 w-4 mr-1.5" /> Add Contact
                   </Button>
                 </div>
               </CardContent>
