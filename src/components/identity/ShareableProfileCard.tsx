@@ -3,6 +3,7 @@ import { Download, Share2, User, Briefcase, MapPin, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { buildPublicProfileUrl } from '@/lib/profileLinks';
 
 interface ShareableProfileCardProps {
   open: boolean;
@@ -29,6 +30,7 @@ export const ShareableProfileCard: React.FC<ShareableProfileCardProps> = ({
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const publicProfileUrl = buildPublicProfileUrl(handle);
 
   const getTrustColor = (score?: number) => {
     if (!score) return '#6b7280';
@@ -120,7 +122,7 @@ export const ShareableProfileCard: React.FC<ShareableProfileCardProps> = ({
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
       ctx.font = '12px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`chatr.chat/u/${handle}`, w / 2, h - 20);
+      ctx.fillText(publicProfileUrl.replace('https://', ''), w / 2, h - 20);
 
       // CHATR brand
       ctx.fillStyle = '#818cf8';
@@ -141,7 +143,7 @@ export const ShareableProfileCard: React.FC<ShareableProfileCardProps> = ({
   };
 
   const handleShare = async () => {
-    const url = `https://chatr.chat/u/${handle}`;
+    const url = publicProfileUrl;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -213,7 +215,7 @@ export const ShareableProfileCard: React.FC<ShareableProfileCardProps> = ({
 
           {/* Footer */}
           <div className="px-6 py-3 bg-black/20 flex items-center justify-between">
-            <span className="text-xs text-gray-500 font-mono">chatr.chat/u/{handle}</span>
+            <span className="text-xs text-gray-500 font-mono">{publicProfileUrl.replace('https://', '')}</span>
             <span className="text-xs font-bold text-indigo-400">CHATR++</span>
           </div>
         </div>

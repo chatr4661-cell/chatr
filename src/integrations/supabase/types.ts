@@ -18669,6 +18669,7 @@ export type Database = {
           status: string
         }[]
       }
+      get_public_profile: { Args: { handle_input: string }; Returns: Json }
       get_user_conversations: {
         Args: never
         Returns: {
