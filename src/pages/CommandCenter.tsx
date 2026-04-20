@@ -87,16 +87,6 @@ export default function CommandCenter() {
     return () => { supabase.removeChannel(ch); };
   }, [isCEO]);
 
-  useEffect(() => {
-    if (!isCEO) return;
-    loadAll();
-    const ch = supabase
-      .channel("cc-feed")
-      .on("postgres_changes", { event: "*", schema: "public", table: "cc_plans" }, loadAll)
-      .on("postgres_changes", { event: "*", schema: "public", table: "cc_logs" }, loadAll)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [isCEO]);
 
   if (roleLoading) {
     return <div className="min-h-screen grid place-items-center bg-background">
