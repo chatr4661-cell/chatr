@@ -80,7 +80,7 @@ export function SettingsPanel({ user }: SettingsPanelProps) {
           </Avatar>
           <h2 className="text-2xl font-bold text-gray-900">{profile?.username || 'User'}</h2>
           <p className="text-sm text-gray-600">{user?.email}</p>
-          <p className="text-sm text-gray-600 mt-1">{profile?.status || 'Hey there! I am using CHATR'}</p>
+          <p className="text-sm text-gray-600 mt-1">{profile?.status || 'Building on Chatr ✨'}</p>
         </div>
       </div>
 

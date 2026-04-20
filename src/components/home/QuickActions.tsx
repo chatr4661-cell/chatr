@@ -29,6 +29,7 @@ export const QuickActions = () => {
     {
       icon: Store,
       label: 'Dhandha',
+      sublabel: 'Business',
       color: 'from-amber-500 to-orange-600',
       action: () => navigate('/dhandha')
     },
@@ -67,8 +68,11 @@ export const QuickActions = () => {
           )}>
             <action.icon className="w-5 h-5 text-white" strokeWidth={2} />
           </div>
-          <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+          <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors leading-tight text-center">
             {action.label}
+            {(action as any).sublabel && (
+              <span className="block text-[8px] opacity-70">{(action as any).sublabel}</span>
+            )}
           </span>
         </button>
       ))}

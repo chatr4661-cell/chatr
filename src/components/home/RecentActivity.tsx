@@ -124,16 +124,34 @@ export const RecentActivity = () => {
         }
 
         if (calls) {
+          // Dedupe consecutive calls with the same other-party (keep most recent)
+          const seenKeys = new Set<string>();
           for (const call of calls) {
             const isOutgoing = call.caller_id === user.id;
             const otherUserId = isOutgoing ? call.receiver_id : call.caller_id;
-            const otherUserName = isOutgoing ? (call.receiver_name || 'Unknown') : (call.caller_name || 'Unknown');
-            
+            let otherUserName = isOutgoing ? (call.receiver_name || '') : (call.caller_name || '');
+
+            // Enrich raw phone numbers (digits only / starts with +)
+            const looksLikePhone = !otherUserName || /^\+?\d[\d\s\-]{6,}$/.test(otherUserName.trim());
+            if (looksLikePhone) {
+              const digits = (otherUserName || '').replace(/\D/g, '');
+              if (digits.length >= 10) {
+                const last10 = digits.slice(-10);
+                otherUserName = `+91 ${last10.slice(0, 5)} ${last10.slice(5)}`;
+              } else {
+                otherUserName = 'Unknown caller';
+              }
+            }
+
+            const dedupeKey = `${otherUserId || otherUserName}-${call.call_type}`;
+            if (seenKeys.has(dedupeKey)) continue;
+            seenKeys.add(dedupeKey);
+
             allActivities.push({
               id: call.id,
               type: 'call',
               title: otherUserName,
-              subtitle: `${call.call_type} call`,
+              subtitle: `${isOutgoing ? 'Outgoing' : 'Incoming'} ${call.call_type} call`,
               timestamp: new Date(call.created_at),
               route: '/calls',
               callData: {

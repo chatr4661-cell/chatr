@@ -298,7 +298,7 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
               id="status"
               value={formData.status}
               onChange={(e) => handleFieldChange('status', e.target.value)}
-              placeholder="Hey there! I am using Chatr"
+              placeholder="Building on Chatr ✨"
               rows={2}
             />
           </div>
