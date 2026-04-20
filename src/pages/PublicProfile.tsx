@@ -205,8 +205,62 @@ const PublicProfile = () => {
           </div>
         )}
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">Scan to connect with {profile.username}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div id="qr-wrapper" className="bg-white p-4 rounded-xl border">
+              <QRCodeSVG
+                value={profileUrl}
+                size={220}
+                level="H"
+                includeMargin={false}
+              />
+            </div>
+            <p className="text-sm font-mono text-muted-foreground">chatr.chat/{handle}</p>
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  navigator.clipboard.writeText(profileUrl);
+                  toast.success('Link copied!');
+                }}
+              >
+                <Copy className="h-4 w-4 mr-1" /> Copy
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={async () => {
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: `${profile.username} on CHATR`,
+                        text: `Connect with ${profile.username} on CHATR`,
+                        url: profileUrl,
+                      });
+                      return;
+                    } catch {}
+                  }
+                  navigator.clipboard.writeText(profileUrl);
+                  toast.success('Link copied!');
+                }}
+              >
+                <Share2 className="h-4 w-4 mr-1" /> Share
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+};
+
+export default PublicProfile;
 };
 
 export default PublicProfile;
