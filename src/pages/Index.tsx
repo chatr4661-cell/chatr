@@ -492,26 +492,43 @@ const Index = () => {
   };
 
   const mainHubs = [
-    {
-      icon: Fingerprint,
-      title: 'CHATR++ Identity',
-      description: 'Multi-layer identity & trust',
-      iconColor: 'bg-gradient-to-br from-teal-400 via-cyan-500 to-blue-600',
-      route: '/identity'
-    },
-    {
-      icon: Globe,
-      title: 'Discover People',
-      description: 'Find by skill, company, city',
-      iconColor: 'bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600',
-      route: '/discover'
-    },
+    // Row 1 — Identity & Communication (core)
     {
       icon: MessageCircle,
       title: 'Chat',
       description: 'Messages, calls & video',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-600',
       route: '/chat'
+    },
+    {
+      icon: Fingerprint,
+      title: 'Chatr++ Identity',
+      description: 'Multi-layer identity & trust',
+      iconColor: 'bg-gradient-to-br from-teal-400 via-cyan-500 to-blue-600',
+      route: '/identity'
+    },
+    {
+      icon: Globe,
+      title: 'Discover',
+      description: 'Find people by skill, city',
+      iconColor: 'bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600',
+      route: '/discover'
+    },
+    {
+      icon: Users,
+      title: 'Community',
+      description: 'Groups & stories',
+      iconColor: 'bg-gradient-to-br from-purple-400 to-pink-600',
+      route: '/community'
+    },
+
+    // Row 2 — Intelligence & Discovery
+    {
+      icon: Brain,
+      title: 'Chatr Intelligence',
+      description: 'Unified AI brain — 6 agents',
+      iconColor: 'bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600',
+      route: '/chat-ai'
     },
     {
       icon: Sparkles,
@@ -521,25 +538,27 @@ const Index = () => {
       route: '/ai-agents'
     },
     {
-      icon: Brain,
-      title: 'CHATR Intelligence',
-      description: 'Unified AI Brain',
-      iconColor: 'bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600',
-      route: '/chat-ai'
-    },
-    {
       icon: Zap,
       title: 'Chatr World',
-      description: 'AI Search + Location',
+      description: 'AI search + nearby',
       iconColor: 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-600',
       route: '/chatr-world'
     },
     {
       icon: Gamepad2,
-      title: 'CHATR Games',
+      title: 'Chatr Games',
       description: 'AI-native games',
       iconColor: 'bg-gradient-to-br from-violet-500 via-purple-500 to-pink-600',
       route: '/chatr-games'
+    },
+
+    // Row 3 — Life & Work (one healthcare entry, clear labels)
+    {
+      icon: Heart,
+      title: 'Health',
+      description: 'Records, doctors & medicine',
+      iconColor: 'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600',
+      route: '/health'
     },
     {
       icon: Briefcase,
@@ -549,74 +568,18 @@ const Index = () => {
       route: '/jobs'
     },
     {
-      icon: Stethoscope,
-      title: 'Healthcare',
-      description: 'Clinics & doctors nearby',
-      iconColor: 'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600',
-      route: '/local-healthcare'
-    },
-    {
-      icon: Search,
-      title: 'Chatr Browser',
-      description: 'Deep Multiverse Search Engine',
-      iconColor: 'bg-gradient-to-br from-violet-400 to-purple-600',
-      route: '/home'
-    },
-    {
-      icon: Heart,
-      title: 'Health Hub',
-      description: 'AI assistant, vitals & reports',
-      iconColor: 'bg-gradient-to-br from-emerald-400 to-teal-600',
-      route: '/health'
-    },
-    {
-      icon: Stethoscope,
-      title: 'Care Access',
-      description: 'Book doctors & emergency',
-      iconColor: 'bg-gradient-to-br from-blue-400 to-indigo-600',
-      route: '/care'
-    },
-    {
-      icon: Users,
-      title: 'Community',
-      description: 'Groups, stories & challenges',
-      iconColor: 'bg-gradient-to-br from-purple-400 to-pink-600',
-      route: '/community'
-    },
-    {
-      icon: Grid3x3,
-      title: 'Chatr App',
-      description: 'Discover & install apps',
-      iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
-      route: '/native-apps'
-    },
-    {
-      icon: CheckCircle,
-      title: 'Official',
-      description: 'Verified accounts & services',
-      iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
-      route: '/official-accounts'
-    },
-    {
-      icon: Building2,
-      title: 'Business',
-      description: 'CRM, inbox & analytics',
+      icon: Store,
+      title: 'For Business',
+      description: 'CRM, inbox & vendor portal',
       iconColor: 'bg-gradient-to-br from-blue-500 to-cyan-600',
       route: '/business'
     },
     {
-      icon: Pill,
-      title: 'Medicine',
-      description: 'Subscribe & save 25%',
-      iconColor: 'bg-gradient-to-br from-rose-400 to-pink-600',
-      route: '/care/medicines'
-    },
-    {
-      icon: Store,
-      title: 'Vendor Portal',
-      description: 'Sell food, deals & services',
-      iconColor: 'bg-gradient-to-br from-orange-400 to-amber-600',
-      route: '/vendor/login'
+      icon: Grid3x3,
+      title: 'Chatr Store',
+      description: 'Discover & install apps',
+      iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
+      route: '/native-apps'
     },
   ];
 

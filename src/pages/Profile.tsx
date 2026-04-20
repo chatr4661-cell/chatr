@@ -309,15 +309,16 @@ const Profile = () => {
               </button>
             </div>
 
-            {/* Sign Out */}
-            <AppleButton
-              onClick={handleSignOut}
-              variant="destructive"
-              fullWidth
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </AppleButton>
+            {/* Sign Out — de-emphasized text link (standard pattern) */}
+            <div className="pt-6 pb-4 flex justify-center">
+              <button
+                onClick={handleSignOut}
+                className="text-sm text-muted-foreground hover:text-destructive transition-colors inline-flex items-center gap-1.5"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out
+              </button>
+            </div>
           </TabsContent>
 
           <TabsContent value="albums">

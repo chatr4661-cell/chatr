@@ -330,7 +330,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
                       'User');
               const displayAvatar = conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url;
               const lastMessage = conv.last_message;
-              const messagePreview = lastMessage?.content || 'Hey there! I am using Chatr';
+              const messagePreview = lastMessage?.content || 'Tap to start chatting';
               
               let timestamp = '';
               try {
