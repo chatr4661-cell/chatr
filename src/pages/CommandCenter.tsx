@@ -135,6 +135,61 @@ export default function CommandCenter() {
   const approved = plans.filter(p => p.status === "approved");
   const rejected = plans.filter(p => p.status === "rejected");
 
+  const seedDemoData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setGenerating(true);
+    try {
+      // Seed a sample plan
+      const { data: plan } = await supabase.from("cc_plans").insert({
+        title: "Launch CHATR Growth Sprint — 1,000 paying users in 30 days",
+        description: "Coordinated push across sales, content, and product to acquire first 1,000 paying users via founder-led outreach + viral earn loops.",
+        department: "sales",
+        impact_level: "high",
+        status: "pending",
+        generated_by: "ai_ceo",
+        payload: {
+          tasks: [
+            { title: "Identify 200 ICP leads (Indian D2C founders)", description: "Use Sales Agent to draft", assigned_agent: "sales" },
+            { title: "Ship referral cashback v2", description: "₹50 per qualified signup", assigned_agent: "engineering" },
+            { title: "Publish 10 founder demo videos", description: "WhatsApp + Instagram reels", assigned_agent: "marketing" },
+            { title: "Daily revenue review at 9pm IST", description: "Track conversion funnel", assigned_agent: "ceo" },
+          ],
+        },
+      }).select().single();
+
+      // Seed sample leads
+      await supabase.from("cc_leads").insert([
+        { full_name: "Priya Sharma", company: "Bombay Skincare", role_title: "Founder", email: "priya@bombayskin.in", location: "Mumbai", industry: "D2C Beauty", icp_match_score: 92, status: "new" },
+        { full_name: "Rohan Mehta", company: "Chai Point Co", role_title: "CEO", email: "rohan@chaipoint.in", location: "Bangalore", industry: "F&B", icp_match_score: 88, status: "contacted" },
+        { full_name: "Sana Kapoor", company: "Kapoor Textiles", role_title: "Director", email: "sana@kapoortex.com", location: "Surat", industry: "Apparel", icp_match_score: 85, status: "replied" },
+        { full_name: "Vikram Iyer", company: "TechBazaar", role_title: "Co-founder", email: "vikram@techbazaar.io", location: "Pune", industry: "Marketplace", icp_match_score: 78, status: "qualified" },
+        { full_name: "Anika Reddy", company: "Hyderabad Bakes", role_title: "Owner", email: "anika@hydbakes.in", location: "Hyderabad", industry: "F&B", icp_match_score: 81, status: "converted" },
+      ]);
+
+      // Seed revenue
+      await supabase.from("cc_revenue_metrics").insert([
+        { revenue_amount: 4999, source: "subscription", description: "Hyderabad Bakes Pro plan" },
+        { revenue_amount: 2499, source: "addon", description: "AI Agent module" },
+      ]);
+
+      // Seed log
+      await supabase.from("cc_logs").insert({
+        agent: "ceo", action: "Demo data seeded for Command Center",
+        level: "success", plan_id: plan?.id,
+      });
+
+      toast.success("Demo data loaded — Command Center is now live!");
+      loadAll();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to seed demo data");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const isEmpty = plans.length === 0 && pipeline.leads === 0;
+
   // Quick metrics from plans
   const todayCount = plans.filter(p => new Date(p.created_at).toDateString() === new Date().toDateString()).length;
   const highImpactCount = plans.filter(p => p.impact_level === "high").length;
@@ -173,6 +228,26 @@ export default function CommandCenter() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {isEmpty && (
+          <Card className="border-primary/40 bg-gradient-to-br from-primary/10 via-card to-card">
+            <CardContent className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold text-lg">Command Center is ready</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  No data yet. Generate your first AI plan below, or load demo data to explore every panel instantly.
+                </p>
+              </div>
+              <Button onClick={seedDemoData} disabled={generating} variant="default" size="lg">
+                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
+                Load Demo Data
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Revenue Pipeline (business engine) */}
         <RevenuePipelineWidget stats={pipeline} />
 
