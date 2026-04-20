@@ -2471,6 +2471,204 @@ export type Database = {
           },
         ]
       }
+      cc_approvals: {
+        Row: {
+          created_at: string
+          decided_by: string
+          decision: string
+          id: string
+          notes: string | null
+          plan_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          notes?: string | null
+          plan_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          notes?: string | null
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cc_approvals_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "cc_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cc_logs: {
+        Row: {
+          action: string
+          agent: string
+          created_at: string
+          details: Json | null
+          id: string
+          level: string
+          plan_id: string | null
+        }
+        Insert: {
+          action: string
+          agent: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          level?: string
+          plan_id?: string | null
+        }
+        Update: {
+          action?: string
+          agent?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          level?: string
+          plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cc_logs_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "cc_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cc_metrics: {
+        Row: {
+          active_users: number | null
+          conversion_rate: number | null
+          created_at: string
+          extra: Json | null
+          id: string
+          leads_generated: number | null
+          metric_date: string
+          revenue: number | null
+        }
+        Insert: {
+          active_users?: number | null
+          conversion_rate?: number | null
+          created_at?: string
+          extra?: Json | null
+          id?: string
+          leads_generated?: number | null
+          metric_date?: string
+          revenue?: number | null
+        }
+        Update: {
+          active_users?: number | null
+          conversion_rate?: number | null
+          created_at?: string
+          extra?: Json | null
+          id?: string
+          leads_generated?: number | null
+          metric_date?: string
+          revenue?: number | null
+        }
+        Relationships: []
+      }
+      cc_plans: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          department: string
+          description: string | null
+          generated_by: string
+          id: string
+          impact_level: string
+          payload: Json | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          department: string
+          description?: string | null
+          generated_by?: string
+          id?: string
+          impact_level?: string
+          payload?: Json | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          department?: string
+          description?: string | null
+          generated_by?: string
+          id?: string
+          impact_level?: string
+          payload?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cc_tasks: {
+        Row: {
+          assigned_agent: string | null
+          created_at: string
+          department: string
+          description: string | null
+          id: string
+          plan_id: string | null
+          result: Json | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_agent?: string | null
+          created_at?: string
+          department: string
+          description?: string | null
+          id?: string
+          plan_id?: string | null
+          result?: Json | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_agent?: string | null
+          created_at?: string
+          department?: string
+          description?: string | null
+          id?: string
+          plan_id?: string | null
+          result?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cc_tasks_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "cc_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_participants: {
         Row: {
           challenge_id: string
