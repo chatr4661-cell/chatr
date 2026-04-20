@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shield, MessageSquare, Phone, Globe, Briefcase, MapPin, Copy, Bot, Lock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Shield, MessageSquare, Phone, Globe, Briefcase, MapPin, Copy, Bot, Lock, CheckCircle2, QrCode, Share2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { TrustScoreBadge } from '@/components/TrustScoreBadge';
 import { toast } from 'sonner';
+import { QRCodeSVG } from 'qrcode.react';
 
 const PublicProfile = () => {
   const { handle } = useParams<{ handle: string }>();
@@ -16,6 +18,9 @@ const PublicProfile = () => {
   const [identities, setIdentities] = useState<any[]>([]);
   const [discovery, setDiscovery] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [qrOpen, setQrOpen] = useState(false);
+
+  const profileUrl = `https://chatr.chat/${handle}`;
 
   useEffect(() => {
     if (handle) loadProfile(handle);
@@ -99,7 +104,10 @@ const PublicProfile = () => {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <span className="font-mono text-sm">chatr.me/{handle}</span>
+        <span className="font-mono text-sm flex-1">chatr.chat/{handle}</span>
+        <Button variant="ghost" size="icon" onClick={() => setQrOpen(true)} aria-label="Show QR code">
+          <QrCode className="h-5 w-5" />
+        </Button>
       </div>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
@@ -133,18 +141,27 @@ const PublicProfile = () => {
               )}
             </div>
 
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center flex-wrap">
               <Button size="sm">
                 <MessageSquare className="h-4 w-4 mr-1" /> Message
               </Button>
               <Button size="sm" variant="outline">
                 <Phone className="h-4 w-4 mr-1" /> Call
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => {
-                navigator.clipboard.writeText(`chatr.me/${handle}`);
+              <Button size="sm" variant="outline" onClick={() => setQrOpen(true)}>
+                <QrCode className="h-4 w-4 mr-1" /> QR
+              </Button>
+              <Button size="sm" variant="ghost" onClick={async () => {
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title: `${profile.username} on CHATR`, url: profileUrl });
+                    return;
+                  } catch {}
+                }
+                navigator.clipboard.writeText(profileUrl);
                 toast.success('Link copied!');
               }}>
-                <Copy className="h-4 w-4" />
+                <Share2 className="h-4 w-4" />
               </Button>
             </div>
           </CardContent>
@@ -188,8 +205,60 @@ const PublicProfile = () => {
           </div>
         )}
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">Scan to connect with {profile.username}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div id="qr-wrapper" className="bg-white p-4 rounded-xl border">
+              <QRCodeSVG
+                value={profileUrl}
+                size={220}
+                level="H"
+                includeMargin={false}
+              />
+            </div>
+            <p className="text-sm font-mono text-muted-foreground">chatr.chat/{handle}</p>
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  navigator.clipboard.writeText(profileUrl);
+                  toast.success('Link copied!');
+                }}
+              >
+                <Copy className="h-4 w-4 mr-1" /> Copy
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={async () => {
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: `${profile.username} on CHATR`,
+                        text: `Connect with ${profile.username} on CHATR`,
+                        url: profileUrl,
+                      });
+                      return;
+                    } catch {}
+                  }
+                  navigator.clipboard.writeText(profileUrl);
+                  toast.success('Link copied!');
+                }}
+              >
+                <Share2 className="h-4 w-4 mr-1" /> Share
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default PublicProfile;
+
