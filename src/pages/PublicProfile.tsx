@@ -104,7 +104,10 @@ const PublicProfile = () => {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <span className="font-mono text-sm">chatr.me/{handle}</span>
+        <span className="font-mono text-sm flex-1">chatr.chat/{handle}</span>
+        <Button variant="ghost" size="icon" onClick={() => setQrOpen(true)} aria-label="Show QR code">
+          <QrCode className="h-5 w-5" />
+        </Button>
       </div>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
