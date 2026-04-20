@@ -552,14 +552,30 @@ const Index = () => {
       route: '/chatr-games'
     },
 
-    // Row 3 — Life & Work (one healthcare entry, clear labels)
+    // Row 3 — Healthcare suite
     {
       icon: Heart,
-      title: 'Health',
-      description: 'Records, doctors & medicine',
+      title: 'Health Hub',
+      description: 'Records, vitals & reports',
       iconColor: 'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600',
       route: '/health'
     },
+    {
+      icon: Stethoscope,
+      title: 'Care Access',
+      description: 'Book doctors & emergency',
+      iconColor: 'bg-gradient-to-br from-blue-400 to-indigo-600',
+      route: '/care'
+    },
+    {
+      icon: Pill,
+      title: 'Healthcare',
+      description: 'Medicines & pharmacy',
+      iconColor: 'bg-gradient-to-br from-emerald-400 to-teal-600',
+      route: '/healthcare'
+    },
+
+    // Row 4 — Work & Commerce
     {
       icon: Briefcase,
       title: 'Jobs',
@@ -568,18 +584,41 @@ const Index = () => {
       route: '/jobs'
     },
     {
-      icon: Store,
-      title: 'For Business',
-      description: 'CRM, inbox & vendor portal',
+      icon: Building2,
+      title: 'Business',
+      description: 'CRM, inbox & analytics',
       iconColor: 'bg-gradient-to-br from-blue-500 to-cyan-600',
       route: '/business'
     },
+    {
+      icon: Store,
+      title: 'Vendor Portal',
+      description: 'Manage your storefront',
+      iconColor: 'bg-gradient-to-br from-amber-500 to-orange-600',
+      route: '/vendor'
+    },
+
+    // Row 5 — Platform & Trust
     {
       icon: Grid3x3,
       title: 'Chatr Store',
       description: 'Discover & install apps',
       iconColor: 'bg-gradient-to-br from-purple-400 to-purple-600',
       route: '/native-apps'
+    },
+    {
+      icon: CheckCircle,
+      title: 'Official',
+      description: 'Verified accounts & services',
+      iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
+      route: '/official-accounts'
+    },
+    {
+      icon: Globe,
+      title: 'Chatr Browser',
+      description: 'Search & browse with AI',
+      iconColor: 'bg-gradient-to-br from-blue-400 to-cyan-500',
+      route: '/ai-browser-home'
     },
   ];
 
