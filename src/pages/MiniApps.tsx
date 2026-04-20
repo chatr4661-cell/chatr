@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AppIconBadge } from '@/components/store/AppIconBadge';
 
 interface StoreApp {
   id: string;
@@ -38,9 +39,6 @@ const formatCount = (n: number | null) => {
 };
 
 const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClick: () => void; size?: 'normal' | 'large' | 'compact' }) => {
-  const [imgError, setImgError] = useState(false);
-  const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.app_name)}&background=6366f1&color=fff&size=64&bold=true`;
-
   if (size === 'large') {
     return (
       <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-all group" onClick={onClick}>
@@ -51,12 +49,7 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
         )}
         <div className="p-4">
           <div className="flex items-start gap-3">
-            <img
-              src={imgError ? fallback : (app.icon_url || fallback)}
-              alt={app.app_name}
-              className="w-14 h-14 rounded-2xl object-cover shadow-sm"
-              onError={() => setImgError(true)}
-            />
+            <AppIconBadge name={app.app_name} category={app.category_id} iconUrl={app.icon_url} size="md" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <h3 className="font-semibold text-sm truncate">{app.app_name}</h3>
@@ -89,12 +82,7 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
   if (size === 'compact') {
     return (
       <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent/50 cursor-pointer transition-colors" onClick={onClick}>
-        <img
-          src={imgError ? fallback : (app.icon_url || fallback)}
-          alt={app.app_name}
-          className="w-12 h-12 rounded-xl object-cover"
-          onError={() => setImgError(true)}
-        />
+        <AppIconBadge name={app.app_name} category={app.category_id} iconUrl={app.icon_url} size="sm" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <span className="font-medium text-sm truncate">{app.app_name}</span>
@@ -123,12 +111,7 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
   return (
     <div className="flex flex-col items-center gap-1.5 cursor-pointer group" onClick={onClick}>
       <div className="relative">
-        <img
-          src={imgError ? fallback : (app.icon_url || fallback)}
-          alt={app.app_name}
-          className="w-16 h-16 rounded-2xl object-cover shadow-sm group-hover:shadow-md transition-shadow"
-          onError={() => setImgError(true)}
-        />
+        <AppIconBadge name={app.app_name} category={app.category_id} iconUrl={app.icon_url} size="lg" className="group-hover:shadow-md transition-shadow" />
         {app.is_verified && (
           <div className="absolute -bottom-0.5 -right-0.5 bg-primary rounded-full p-0.5">
             <Shield className="h-2.5 w-2.5 text-primary-foreground" />
