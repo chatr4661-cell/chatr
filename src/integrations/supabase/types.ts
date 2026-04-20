@@ -18373,7 +18373,7 @@ export type Database = {
       update_cache_hit_count: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "consumer" | "doctor" | "nurse" | "pharmacy" | "admin"
+      app_role: "consumer" | "doctor" | "nurse" | "pharmacy" | "admin" | "ceo"
       vendor_type: "restaurant" | "deal_merchant" | "healthcare_provider"
     }
     CompositeTypes: {
@@ -18502,7 +18502,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["consumer", "doctor", "nurse", "pharmacy", "admin"],
+      app_role: ["consumer", "doctor", "nurse", "pharmacy", "admin", "ceo"],
       vendor_type: ["restaurant", "deal_merchant", "healthcare_provider"],
     },
   },
