@@ -173,6 +173,9 @@ export default function CommandCenter() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Revenue Pipeline (business engine) */}
+        <RevenuePipelineWidget stats={pipeline} />
+
         {/* Overview metrics */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard icon={<Sparkles className="h-4 w-4" />} label="Plans Today" value={todayCount} />
