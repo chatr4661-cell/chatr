@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { QRIdentityShare } from '@/components/identity/QRIdentityShare';
 import { VerifiedBadgePurchase } from '@/components/identity/VerifiedBadgePurchase';
 import { ShareableProfileCard } from '@/components/identity/ShareableProfileCard';
+import { buildPublicProfilePath, buildPublicProfileUrl } from '@/lib/profileLinks';
 
 const identityIcons: Record<string, React.ReactNode> = {
   personal: <User className="h-5 w-5" />,
@@ -82,6 +83,8 @@ const Identity = () => {
   };
 
   const selectedId = identities.find(i => i.id === selectedIdentity);
+  const publicProfileUrl = buildPublicProfileUrl(handle);
+  const publicProfilePath = buildPublicProfilePath(handle);
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,7 +147,7 @@ const Identity = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">Your CHATR ID</p>
-                    <p className="text-lg font-bold font-mono">chatr.me/{handle}</p>
+                    <p className="text-lg font-bold font-mono">chatr.chat{publicProfilePath}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="icon" onClick={() => setQrOpen(true)} title="QR Code">
@@ -153,7 +156,7 @@ const Identity = () => {
                     <Button variant="outline" size="icon" onClick={() => setCardOpen(true)} title="Share Card">
                       <Share2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => copyHandle(`chatr.me/${handle}`)}>
+                    <Button variant="outline" size="icon" onClick={() => copyHandle(publicProfileUrl)}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
@@ -162,7 +165,7 @@ const Identity = () => {
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => setBadgeOpen(true)}>
                     <Award className="h-4 w-4 mr-1.5" /> Get Verified
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/u/${handle}`)}>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(publicProfilePath)}>
                     <ExternalLink className="h-4 w-4 mr-1.5" /> View Profile
                   </Button>
                 </div>

@@ -4,6 +4,7 @@ import { Download, Share2, Copy, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { buildPublicProfileUrl } from '@/lib/profileLinks';
 
 interface QRIdentityShareProps {
   handle: string;
@@ -20,7 +21,7 @@ export const QRIdentityShare: React.FC<QRIdentityShareProps> = ({
   open,
   onOpenChange,
 }) => {
-  const profileUrl = `https://chatr.chat/u/${handle}`;
+  const profileUrl = buildPublicProfileUrl(handle);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(profileUrl);
@@ -67,7 +68,7 @@ export const QRIdentityShare: React.FC<QRIdentityShareProps> = ({
       ctx.fillStyle = '#000000';
       ctx.font = 'bold 24px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`chatr.me/${handle}`, size / 2, size + 50);
+      ctx.fillText(profileUrl.replace('https://', ''), size / 2, size + 50);
 
       const link = document.createElement('a');
       link.download = `chatr-${handle}-qr.png`;
