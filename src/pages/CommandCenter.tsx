@@ -211,8 +211,10 @@ export default function CommandCenter() {
 
         {/* Tabs */}
         <Tabs defaultValue="queue" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="queue">Queue ({pending.length})</TabsTrigger>
+            <TabsTrigger value="sales">Sales</TabsTrigger>
+            <TabsTrigger value="engineering">Engineering</TabsTrigger>
             <TabsTrigger value="all">All Plans</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
