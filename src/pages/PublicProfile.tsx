@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shield, MessageSquare, Phone, Globe, Briefcase, MapPin, Copy, Bot, Lock, CheckCircle2, QrCode, Share2, Download } from 'lucide-react';
+import { ArrowLeft, Shield, MessageSquare, Phone, Globe, Briefcase, MapPin, Copy, Bot, Lock, CheckCircle2, QrCode, Share2, Download, UserPlus, Check, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,13 +20,120 @@ const PublicProfile = () => {
   const [discovery, setDiscovery] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [qrOpen, setQrOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending' | 'connected'>('none');
+  const [connecting, setConnecting] = useState(false);
 
   const normalizedHandle = normalizePublicHandle(handle);
   const profileUrl = buildPublicProfileUrl(handle);
 
   useEffect(() => {
     if (handle) loadProfile(handle);
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, [handle]);
+
+  useEffect(() => {
+    if (currentUserId && profile?.id && currentUserId !== profile.id) {
+      checkConnectionStatus(currentUserId, profile.id);
+    }
+  }, [currentUserId, profile?.id]);
+
+  const checkConnectionStatus = async (me: string, them: string) => {
+    try {
+      const { data } = await supabase
+        .from('connection_requests')
+        .select('status, sender_id')
+        .or(`and(sender_id.eq.${me},receiver_id.eq.${them}),and(sender_id.eq.${them},receiver_id.eq.${me})`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.status === 'accepted') setConnectionStatus('connected');
+      else if (data?.status === 'pending') setConnectionStatus('pending');
+      else setConnectionStatus('none');
+    } catch {}
+  };
+
+  const requireAuth = () => {
+    if (!currentUserId) {
+      toast.info('Sign in to continue');
+      navigate(`/auth?redirect=/${normalizedHandle || handle}`);
+      return false;
+    }
+    if (profile?.id === currentUserId) {
+      toast.info('This is your own profile');
+      return false;
+    }
+    return true;
+  };
+
+  const handleMessage = async () => {
+    if (!requireAuth()) return;
+    try {
+      // Find or create conversation
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id, conversation_participants!inner(user_id)')
+        .eq('is_group', false)
+        .eq('conversation_participants.user_id', currentUserId);
+
+      const match = (existing || []).find((c: any) =>
+        c.conversation_participants?.some((p: any) => p.user_id === profile.id)
+      );
+
+      if (match) {
+        navigate(`/chat/${match.id}`);
+        return;
+      }
+
+      const { data: conv, error } = await supabase
+        .from('conversations')
+        .insert({ created_by: currentUserId!, is_group: false })
+        .select()
+        .single();
+      if (error) throw error;
+
+      await supabase.from('conversation_participants').insert([
+        { conversation_id: conv.id, user_id: currentUserId! },
+        { conversation_id: conv.id, user_id: profile.id },
+      ]);
+      navigate(`/chat/${conv.id}`);
+    } catch (e) {
+      console.error(e);
+      navigate(`/chat?userId=${profile.id}`);
+    }
+  };
+
+  const handleCall = () => {
+    if (!requireAuth()) return;
+    navigate(`/dialer?call=${profile.id}`);
+  };
+
+  const handleConnect = async () => {
+    if (!requireAuth()) return;
+    if (connectionStatus === 'connected') {
+      toast.info('Already connected');
+      return;
+    }
+    if (connectionStatus === 'pending') {
+      toast.info('Request already sent');
+      return;
+    }
+    setConnecting(true);
+    try {
+      const { error } = await supabase
+        .from('connection_requests')
+        .insert({ sender_id: currentUserId!, receiver_id: profile.id, status: 'pending' });
+      if (error) throw error;
+      setConnectionStatus('pending');
+      toast.success(`Connection request sent to ${profile.username}`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || 'Failed to send request');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
 
   const loadProfile = async (h: string) => {
     setLoading(true);
@@ -122,11 +229,25 @@ const PublicProfile = () => {
             </div>
 
             <div className="flex gap-2 justify-center flex-wrap">
-              <Button size="sm">
+              <Button size="sm" onClick={handleMessage}>
                 <MessageSquare className="h-4 w-4 mr-1" /> Message
               </Button>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" onClick={handleCall}>
                 <Phone className="h-4 w-4 mr-1" /> Call
+              </Button>
+              <Button
+                size="sm"
+                variant={connectionStatus === 'connected' ? 'secondary' : 'default'}
+                onClick={handleConnect}
+                disabled={connecting || connectionStatus !== 'none'}
+              >
+                {connectionStatus === 'connected' ? (
+                  <><Check className="h-4 w-4 mr-1" /> Connected</>
+                ) : connectionStatus === 'pending' ? (
+                  <><Clock className="h-4 w-4 mr-1" /> Pending</>
+                ) : (
+                  <><UserPlus className="h-4 w-4 mr-1" /> Connect</>
+                )}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setQrOpen(true)}>
                 <QrCode className="h-4 w-4 mr-1" /> QR
