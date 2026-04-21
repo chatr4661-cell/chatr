@@ -34,6 +34,12 @@ export const TrustScoreBreakdown: React.FC<TrustScoreBreakdownProps> = ({
 
   useEffect(() => {
     loadTasks();
+    const channel = supabase
+      .channel(`trust-breakdown-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trust_factors', filter: `user_id=eq.${userId}` }, () => loadTasks())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_trust_scores', filter: `user_id=eq.${userId}` }, () => loadTasks())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
