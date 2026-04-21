@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { QRIdentityShare } from '@/components/identity/QRIdentityShare';
 import { VerifiedBadgePurchase } from '@/components/identity/VerifiedBadgePurchase';
 import { ShareableProfileCard } from '@/components/identity/ShareableProfileCard';
+import { TrustScoreBreakdown } from '@/components/identity/TrustScoreBreakdown';
 import { buildPublicProfilePath, buildPublicProfileUrl } from '@/lib/profileLinks';
 
 const identityIcons: Record<string, React.ReactNode> = {
@@ -247,6 +248,15 @@ const Identity = () => {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Actionable Trust Score Breakdown */}
+            {currentUser && (
+              <TrustScoreBreakdown
+                userId={currentUser.id}
+                currentScore={trustProfile?.score ?? 50}
+                onOpenBadge={() => setBadgeOpen(true)}
+              />
             )}
 
             {/* Identity Cards */}
