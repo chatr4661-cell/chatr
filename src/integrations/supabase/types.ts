@@ -17136,24 +17136,33 @@ export type Database = {
       }
       user_badges: {
         Row: {
+          badge_name: string | null
           badge_type: string
           id: string
+          is_active: boolean
+          purchased_at: string | null
           user_id: string
           verification_details: Json | null
           verified_at: string | null
           verified_by: string | null
         }
         Insert: {
+          badge_name?: string | null
           badge_type: string
           id?: string
+          is_active?: boolean
+          purchased_at?: string | null
           user_id: string
           verification_details?: Json | null
           verified_at?: string | null
           verified_by?: string | null
         }
         Update: {
+          badge_name?: string | null
           badge_type?: string
           id?: string
+          is_active?: boolean
+          purchased_at?: string | null
           user_id?: string
           verification_details?: Json | null
           verified_at?: string | null
@@ -17981,6 +17990,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_trust_scores: {
+        Row: {
+          created_at: string
+          last_updated: string
+          trust_score: number
+          user_id: string
+          verification_level: string
+        }
+        Insert: {
+          created_at?: string
+          last_updated?: string
+          trust_score?: number
+          user_id: string
+          verification_level?: string
+        }
+        Update: {
+          created_at?: string
+          last_updated?: string
+          trust_score?: number
+          user_id?: string
+          verification_level?: string
+        }
+        Relationships: []
+      }
       vaccination_records: {
         Row: {
           administered_by: string | null
@@ -18548,6 +18581,16 @@ export type Database = {
     Functions: {
       add_call_participant: {
         Args: { p_call_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      award_trust_factor: {
+        Args: {
+          p_factor_type: string
+          p_factor_value: number
+          p_source: string
+          p_user_id: string
+          p_weight: number
+        }
         Returns: undefined
       }
       backfill_phone_hashes: { Args: never; Returns: undefined }
