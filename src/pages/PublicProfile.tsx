@@ -229,11 +229,25 @@ const PublicProfile = () => {
             </div>
 
             <div className="flex gap-2 justify-center flex-wrap">
-              <Button size="sm">
+              <Button size="sm" onClick={handleMessage}>
                 <MessageSquare className="h-4 w-4 mr-1" /> Message
               </Button>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" onClick={handleCall}>
                 <Phone className="h-4 w-4 mr-1" /> Call
+              </Button>
+              <Button
+                size="sm"
+                variant={connectionStatus === 'connected' ? 'secondary' : 'default'}
+                onClick={handleConnect}
+                disabled={connecting || connectionStatus !== 'none'}
+              >
+                {connectionStatus === 'connected' ? (
+                  <><Check className="h-4 w-4 mr-1" /> Connected</>
+                ) : connectionStatus === 'pending' ? (
+                  <><Clock className="h-4 w-4 mr-1" /> Pending</>
+                ) : (
+                  <><UserPlus className="h-4 w-4 mr-1" /> Connect</>
+                )}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setQrOpen(true)}>
                 <QrCode className="h-4 w-4 mr-1" /> QR
