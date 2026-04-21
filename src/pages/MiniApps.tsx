@@ -42,7 +42,7 @@ const formatCount = (n: number | null) => {
   return n.toString();
 };
 
-const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClick: () => void; size?: 'normal' | 'large' | 'compact' }) => {
+const AppCard = memo(({ app, onClick, onInstall, size = 'normal' }: { app: StoreApp; onClick: () => void; onInstall?: () => void; size?: 'normal' | 'large' | 'compact' }) => {
   if (size === 'large') {
     return (
       <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-all group" onClick={onClick}>
@@ -57,7 +57,7 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <h3 className="font-semibold text-sm truncate">{app.app_name}</h3>
-                {app.is_verified && <Shield className="h-3.5 w-3.5 text-primary flex-shrink-0" />}
+                {app.is_verified && <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />}
               </div>
               <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                 {app.short_description || app.description || 'No description'}
@@ -74,7 +74,7 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
                 ) : (
                   <Badge variant="secondary" className="h-4 px-1.5 text-[9px] font-medium">NEW</Badge>
                 )}
-                <span className="text-xs text-muted-foreground">{formatCount(app.downloads_count || app.install_count)} {(app.downloads_count || app.install_count || 0) === 1 ? 'install' : 'installs'}</span>
+                <span className="text-xs text-muted-foreground">{formatCount(app.downloads_count || app.install_count)} installs</span>
               </div>
             </div>
           </div>
@@ -90,7 +90,7 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <span className="font-medium text-sm truncate">{app.app_name}</span>
-            {app.is_verified && <Shield className="h-3 w-3 text-primary" />}
+            {app.is_verified && <ShieldCheck className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />}
           </div>
           <p className="text-xs text-muted-foreground truncate">{app.short_description || app.description || ''}</p>
           <div className="flex items-center gap-1 mt-0.5">
@@ -105,8 +105,12 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
             <span className="text-[10px] text-muted-foreground ml-1">{formatCount(app.downloads_count || app.install_count)} installs</span>
           </div>
         </div>
-        <Button size="sm" variant="outline" className="rounded-full text-xs h-8 px-4">
-          Get
+        <Button
+          size="sm"
+          className="rounded-full text-xs h-8 px-4"
+          onClick={(e) => { e.stopPropagation(); (onInstall || onClick)(); }}
+        >
+          Install
         </Button>
       </div>
     );
@@ -117,8 +121,8 @@ const AppCard = memo(({ app, onClick, size = 'normal' }: { app: StoreApp; onClic
       <div className="relative">
         <AppIconBadge name={app.app_name} category={app.category_id} iconUrl={app.icon_url} size="lg" className="group-hover:shadow-md transition-shadow" />
         {app.is_verified && (
-          <div className="absolute -bottom-0.5 -right-0.5 bg-primary rounded-full p-0.5">
-            <Shield className="h-2.5 w-2.5 text-primary-foreground" />
+          <div className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full p-0.5">
+            <ShieldCheck className="h-2.5 w-2.5 text-white" />
           </div>
         )}
       </div>
@@ -150,10 +154,13 @@ export default function MiniApps() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<{ id: string; name: string; icon: string | null }[]>([]);
+  const [installApp, setInstallApp] = useState<StoreApp | null>(null);
+  const [updateCount, setUpdateCount] = useState(0);
 
   useEffect(() => {
     loadApps();
     loadCategories();
+    loadUpdateCount();
   }, []);
 
   const loadApps = async () => {
@@ -179,7 +186,34 @@ export default function MiniApps() {
     setCategories(data || []);
   };
 
-  // Dedupe by app_name (case-insensitive) to avoid showing the same app twice
+  const loadUpdateCount = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: installs } = await supabase
+      .from('app_installs')
+      .select('installed_version, mini_apps:app_id(version)')
+      .eq('user_id', user.id)
+      .eq('is_active', true) as any;
+    const pending = (installs || []).filter((i: any) =>
+      i.mini_apps?.version && i.installed_version && i.mini_apps.version !== i.installed_version
+    );
+    setUpdateCount(pending.length);
+  };
+
+  const handleInstallConfirm = async () => {
+    if (!installApp) return;
+    const app: any = installApp;
+    if (app.apk_url) {
+      // Trigger actual APK download
+      window.location.href = app.apk_url;
+      toast({ title: 'Download started', description: `${app.app_name} is downloading securely from CHATR servers.` });
+    } else {
+      toast({ title: 'Coming soon', description: `${app.app_name} will be available shortly.` });
+    }
+    setInstallApp(null);
+  };
+
+  // Dedupe by app_name (case-insensitive)
   const dedupeByName = (list: StoreApp[]) => {
     const seen = new Set<string>();
     return list.filter(a => {
@@ -190,12 +224,13 @@ export default function MiniApps() {
     });
   };
   const uniqueApps = dedupeByName(apps);
-  const featured = dedupeByName(uniqueApps.filter(a => a.is_trending || (a.rating_average && a.rating_average >= 4.5))).slice(0, 6);
+  const heroApp = uniqueApps.find(a => a.is_trending) || uniqueApps[0];
+  const featured = dedupeByName(uniqueApps.filter(a => a !== heroApp && (a.is_trending || (a.rating_average && a.rating_average >= 4.5)))).slice(0, 6);
   const trending = dedupeByName(uniqueApps.filter(a => a.is_trending)).slice(0, 10);
   const topRated = dedupeByName([...uniqueApps].sort((a, b) => (b.rating_average || 0) - (a.rating_average || 0))).slice(0, 10);
 
   const filteredApps = apps.filter(app => {
-    const matchesSearch = !search || 
+    const matchesSearch = !search ||
       app.app_name.toLowerCase().includes(search.toLowerCase()) ||
       app.description?.toLowerCase().includes(search.toLowerCase());
     return matchesSearch;
@@ -211,7 +246,16 @@ export default function MiniApps() {
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-bold">CHATR Store</h1>
+            <p className="text-[10px] text-muted-foreground">Powered by CHATR Network</p>
           </div>
+          <Button variant="ghost" size="icon" className="rounded-full relative" onClick={() => navigate('/store/updates')}>
+            <RefreshCw className="h-5 w-5" />
+            {updateCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center">
+                {updateCount}
+              </span>
+            )}
+          </Button>
           <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/store/my-apps')}>
             <Download className="h-5 w-5" />
           </Button>
@@ -225,7 +269,7 @@ export default function MiniApps() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search apps & games"
+              placeholder="Search verified apps & games"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 rounded-full bg-muted/50 border-0"
@@ -233,6 +277,9 @@ export default function MiniApps() {
           </div>
         </div>
       </div>
+
+      {/* TRUST BANNER (always above content) */}
+      {!search && <TrustBanner />}
 
       {search ? (
         /* Search Results */
@@ -244,13 +291,28 @@ export default function MiniApps() {
             </div>
           ) : (
             filteredApps.map(app => (
-              <AppCard key={app.id} app={app} size="compact" onClick={() => navigate(`/store/app/${app.id}`)} />
+              <AppCard
+                key={app.id}
+                app={app}
+                size="compact"
+                onClick={() => navigate(`/store/app/${app.id}`)}
+                onInstall={() => setInstallApp(app)}
+              />
             ))
           )}
         </div>
       ) : (
         /* Store Home */
-        <div className="space-y-6 pt-4">
+        <div className="space-y-6 pt-5">
+          {/* HERO SECTION */}
+          {heroApp && (
+            <HeroAppCard
+              app={heroApp}
+              onClick={() => navigate(`/store/app/${heroApp.id}`)}
+              onInstall={() => setInstallApp(heroApp)}
+            />
+          )}
+
           {/* Categories */}
           <div>
             <ScrollArea className="w-full">
@@ -272,10 +334,10 @@ export default function MiniApps() {
             </ScrollArea>
           </div>
 
-          {/* Featured Banner */}
+          {/* Featured Apps */}
           {featured.length > 0 && (
             <div>
-              <SectionHeader title="Featured" icon={Sparkles} onSeeAll={() => navigate('/store/explore')} />
+              <SectionHeader title="Featured Apps" icon={Sparkles} onSeeAll={() => navigate('/store/explore')} />
               <ScrollArea className="w-full">
                 <div className="flex gap-3 px-4 pb-2">
                   {featured.map(app => (
@@ -292,13 +354,18 @@ export default function MiniApps() {
           {/* Trending */}
           {trending.length > 0 && (
             <div>
-              <SectionHeader title="Trending Now" icon={TrendingUp} onSeeAll={() => navigate('/store/explore?sort=trending')} />
+              <SectionHeader title="Trending" icon={TrendingUp} onSeeAll={() => navigate('/store/explore?sort=trending')} />
               <div className="px-4 space-y-1">
                 {trending.slice(0, 5).map((app, i) => (
                   <div key={app.id} className="flex items-center gap-3">
                     <span className="text-lg font-bold text-muted-foreground w-6 text-center">{i + 1}</span>
                     <div className="flex-1">
-                      <AppCard app={app} size="compact" onClick={() => navigate(`/store/app/${app.id}`)} />
+                      <AppCard
+                        app={app}
+                        size="compact"
+                        onClick={() => navigate(`/store/app/${app.id}`)}
+                        onInstall={() => setInstallApp(app)}
+                      />
                     </div>
                   </div>
                 ))}
@@ -321,35 +388,65 @@ export default function MiniApps() {
             </div>
           )}
 
-          {/* All Apps (when category selected) */}
+          {/* Updates shortcut */}
+          <div className="px-4">
+            <Card
+              className="p-4 cursor-pointer hover:bg-accent/40 transition-colors flex items-center gap-3"
+              onClick={() => navigate('/store/updates')}
+            >
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <RefreshCw className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm">Updates</h3>
+                <p className="text-xs text-muted-foreground">
+                  {updateCount > 0 ? `${updateCount} update${updateCount === 1 ? '' : 's'} available` : 'All apps are up to date'}
+                </p>
+              </div>
+              {updateCount > 0 && <Badge className="rounded-full">{updateCount}</Badge>}
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Card>
+          </div>
+
+          {/* Selected category list */}
           {selectedCategory !== 'All' && (
             <div className="px-4 space-y-1">
               <h2 className="font-bold text-base mb-3">{selectedCategory} Apps</h2>
               {apps
                 .filter(a => categories.find(c => c.id === a.category_id)?.name === selectedCategory)
                 .map(app => (
-                  <AppCard key={app.id} app={app} size="compact" onClick={() => navigate(`/store/app/${app.id}`)} />
+                  <AppCard
+                    key={app.id}
+                    app={app}
+                    size="compact"
+                    onClick={() => navigate(`/store/app/${app.id}`)}
+                    onInstall={() => setInstallApp(app)}
+                  />
                 ))}
             </div>
           )}
 
-          {/* Quick Links */}
+          {/* How to Install */}
+          <HowToInstall />
+
+          {/* Ecosystem footer */}
           <div className="px-4 pb-8">
-            <div className="grid grid-cols-2 gap-3">
-              <Card className="p-4 cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/store/my-apps')}>
-                <Download className="h-6 w-6 text-primary mb-2" />
-                <h3 className="font-semibold text-sm">My Apps</h3>
-                <p className="text-xs text-muted-foreground">Manage installed</p>
-              </Card>
-              <Card className="p-4 cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/store/updates')}>
-                <TrendingUp className="h-6 w-6 text-primary mb-2" />
-                <h3 className="font-semibold text-sm">Updates</h3>
-                <p className="text-xs text-muted-foreground">Check for updates</p>
-              </Card>
+            <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+              <Network className="h-3 w-3" />
+              <span>Powered by CHATR Network</span>
+              <span>•</span>
+              <span>Works with your CHATR account</span>
             </div>
           </div>
         </div>
       )}
+
+      <InstallConfirmDialog
+        open={!!installApp}
+        onOpenChange={(o) => !o && setInstallApp(null)}
+        app={installApp as any}
+        onConfirm={handleInstallConfirm}
+      />
     </div>
   );
 }
