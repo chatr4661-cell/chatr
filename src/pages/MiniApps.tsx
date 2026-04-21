@@ -1,5 +1,5 @@
-import { useEffect, useState, memo, useCallback } from 'react';
-import { ArrowLeft, Search, Sparkles, TrendingUp, Star, Download, ChevronRight, Code2, Shield } from 'lucide-react';
+import { useEffect, useState, memo } from 'react';
+import { ArrowLeft, Search, Sparkles, TrendingUp, Star, Download, ChevronRight, Code2, ShieldCheck, RefreshCw, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,10 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AppIconBadge } from '@/components/store/AppIconBadge';
+import { TrustBanner } from '@/components/store/TrustBanner';
+import { HeroAppCard } from '@/components/store/HeroAppCard';
+import { HowToInstall } from '@/components/store/HowToInstall';
+import { InstallConfirmDialog } from '@/components/store/InstallConfirmDialog';
 
 interface StoreApp {
   id: string;
