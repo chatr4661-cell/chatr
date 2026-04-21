@@ -250,6 +250,15 @@ const Identity = () => {
               </Card>
             )}
 
+            {/* Actionable Trust Score Breakdown */}
+            {currentUser && (
+              <TrustScoreBreakdown
+                userId={currentUser.id}
+                currentScore={trustProfile?.score ?? 50}
+                onOpenBadge={() => setBadgeOpen(true)}
+              />
+            )}
+
             {/* Identity Cards */}
             <Tabs defaultValue="identities">
               <TabsList className="w-full">
