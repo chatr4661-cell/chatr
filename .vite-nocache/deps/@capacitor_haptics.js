@@ -1,15 +1,15 @@
 import {
   ImpactStyle,
   NotificationType
-} from "./chunk-CN7A5DB7.js";
+} from "./chunk-GWQVTNSD.js";
 import {
   registerPlugin
-} from "./chunk-S7OKNGPJ.js";
+} from "./chunk-VYAGUGCM.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/@capacitor/haptics/dist/esm/index.js
+// node_modules/.bun/@capacitor+haptics@7.0.2+1d43a6a1837411c8/node_modules/@capacitor/haptics/dist/esm/index.js
 var Haptics = registerPlugin("Haptics", {
-  web: () => import("./web-LHCZNFPS.js").then((m) => new m.HapticsWeb())
+  web: () => import("./web-BBQEC2SD.js").then((m) => new m.HapticsWeb())
 });
 export {
   Haptics,

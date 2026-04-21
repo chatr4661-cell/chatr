@@ -1,9 +1,9 @@
 import {
   registerPlugin
-} from "./chunk-S7OKNGPJ.js";
+} from "./chunk-VYAGUGCM.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/@capacitor-community/contacts/dist/esm/definitions.js
+// node_modules/.bun/@capacitor-community+contacts@7.0.0+1d43a6a1837411c8/node_modules/@capacitor-community/contacts/dist/esm/definitions.js
 var PhoneType;
 (function(PhoneType2) {
   PhoneType2["Home"] = "home";
@@ -44,9 +44,9 @@ var PostalAddressType;
   PostalAddressType2["Custom"] = "custom";
 })(PostalAddressType || (PostalAddressType = {}));
 
-// node_modules/@capacitor-community/contacts/dist/esm/index.js
+// node_modules/.bun/@capacitor-community+contacts@7.0.0+1d43a6a1837411c8/node_modules/@capacitor-community/contacts/dist/esm/index.js
 var Contacts = registerPlugin("Contacts", {
-  web: () => import("./web-2ZGA5IEO.js").then((m) => new m.ContactsWeb())
+  web: () => import("./web-X4IE3ZUL.js").then((m) => new m.ContactsWeb())
 });
 export {
   Contacts,

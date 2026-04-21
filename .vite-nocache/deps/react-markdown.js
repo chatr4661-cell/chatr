@@ -1,18 +1,18 @@
 import {
   require_jsx_runtime
-} from "./chunk-JO3Y3TZY.js";
+} from "./chunk-EE3VTZNT.js";
 import {
   require_react
-} from "./chunk-65KY755N.js";
+} from "./chunk-C4EOH56T.js";
 import {
   __commonJS,
   __export,
   __toESM
 } from "./chunk-V4OQ3NZ2.js";
 
-// node_modules/inline-style-parser/cjs/index.js
+// node_modules/.bun/inline-style-parser@0.2.6/node_modules/inline-style-parser/cjs/index.js
 var require_cjs = __commonJS({
-  "node_modules/inline-style-parser/cjs/index.js"(exports, module) {
+  "node_modules/.bun/inline-style-parser@0.2.6/node_modules/inline-style-parser/cjs/index.js"(exports, module) {
     "use strict";
     var COMMENT_REGEX = /\/\*[^*]*\*+([^/*][^*]*\*+)*\//g;
     var NEWLINE_REGEX = /\n/g;
@@ -149,9 +149,9 @@ var require_cjs = __commonJS({
   }
 });
 
-// node_modules/style-to-object/cjs/index.js
+// node_modules/.bun/style-to-object@1.0.12/node_modules/style-to-object/cjs/index.js
 var require_cjs2 = __commonJS({
-  "node_modules/style-to-object/cjs/index.js"(exports) {
+  "node_modules/.bun/style-to-object@1.0.12/node_modules/style-to-object/cjs/index.js"(exports) {
     "use strict";
     var __importDefault = exports && exports.__importDefault || function(mod) {
       return mod && mod.__esModule ? mod : { "default": mod };
@@ -183,9 +183,9 @@ var require_cjs2 = __commonJS({
   }
 });
 
-// node_modules/style-to-js/cjs/utilities.js
+// node_modules/.bun/style-to-js@1.1.19/node_modules/style-to-js/cjs/utilities.js
 var require_utilities = __commonJS({
-  "node_modules/style-to-js/cjs/utilities.js"(exports) {
+  "node_modules/.bun/style-to-js@1.1.19/node_modules/style-to-js/cjs/utilities.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.camelCase = void 0;
@@ -222,9 +222,9 @@ var require_utilities = __commonJS({
   }
 });
 
-// node_modules/style-to-js/cjs/index.js
+// node_modules/.bun/style-to-js@1.1.19/node_modules/style-to-js/cjs/index.js
 var require_cjs3 = __commonJS({
-  "node_modules/style-to-js/cjs/index.js"(exports, module) {
+  "node_modules/.bun/style-to-js@1.1.19/node_modules/style-to-js/cjs/index.js"(exports, module) {
     "use strict";
     var __importDefault = exports && exports.__importDefault || function(mod) {
       return mod && mod.__esModule ? mod : { "default": mod };
@@ -248,9 +248,9 @@ var require_cjs3 = __commonJS({
   }
 });
 
-// node_modules/ms/index.js
+// node_modules/.bun/ms@2.1.3/node_modules/ms/index.js
 var require_ms = __commonJS({
-  "node_modules/ms/index.js"(exports, module) {
+  "node_modules/.bun/ms@2.1.3/node_modules/ms/index.js"(exports, module) {
     var s = 1e3;
     var m = s * 60;
     var h = m * 60;
@@ -364,9 +364,9 @@ var require_ms = __commonJS({
   }
 });
 
-// node_modules/debug/src/common.js
+// node_modules/.bun/debug@4.4.3/node_modules/debug/src/common.js
 var require_common = __commonJS({
-  "node_modules/debug/src/common.js"(exports, module) {
+  "node_modules/.bun/debug@4.4.3/node_modules/debug/src/common.js"(exports, module) {
     function setup(env2) {
       createDebug2.debug = createDebug2;
       createDebug2.default = createDebug2;
@@ -541,9 +541,9 @@ var require_common = __commonJS({
   }
 });
 
-// node_modules/debug/src/browser.js
+// node_modules/.bun/debug@4.4.3/node_modules/debug/src/browser.js
 var require_browser = __commonJS({
-  "node_modules/debug/src/browser.js"(exports, module) {
+  "node_modules/.bun/debug@4.4.3/node_modules/debug/src/browser.js"(exports, module) {
     exports.formatArgs = formatArgs;
     exports.save = save;
     exports.load = load;
@@ -711,9 +711,9 @@ var require_browser = __commonJS({
   }
 });
 
-// node_modules/extend/index.js
+// node_modules/.bun/extend@3.0.2/node_modules/extend/index.js
 var require_extend = __commonJS({
-  "node_modules/extend/index.js"(exports, module) {
+  "node_modules/.bun/extend@3.0.2/node_modules/extend/index.js"(exports, module) {
     "use strict";
     var hasOwn = Object.prototype.hasOwnProperty;
     var toStr = Object.prototype.toString;
@@ -802,7 +802,7 @@ var require_extend = __commonJS({
   }
 });
 
-// node_modules/devlop/lib/development.js
+// node_modules/.bun/devlop@1.1.0/node_modules/devlop/lib/development.js
 var AssertionError = class extends Error {
   name = (
     /** @type {const} */
@@ -865,7 +865,7 @@ function assert(bool, actual, expected, operator, defaultMessage, userMessage) {
   }
 }
 
-// node_modules/comma-separated-tokens/index.js
+// node_modules/.bun/comma-separated-tokens@2.0.3/node_modules/comma-separated-tokens/index.js
 function stringify(values2, options) {
   const settings = options || {};
   const input = values2[values2.length - 1] === "" ? [...values2, ""] : values2;
@@ -874,7 +874,7 @@ function stringify(values2, options) {
   ).trim();
 }
 
-// node_modules/estree-util-is-identifier-name/lib/index.js
+// node_modules/.bun/estree-util-is-identifier-name@3.0.0/node_modules/estree-util-is-identifier-name/lib/index.js
 var nameRe = /^[$_\p{ID_Start}][$_\u{200C}\u{200D}\p{ID_Continue}]*$/u;
 var nameReJsx = /^[$_\p{ID_Start}][-$_\u{200C}\u{200D}\p{ID_Continue}]*$/u;
 var emptyOptions = {};
@@ -884,7 +884,7 @@ function name(name2, options) {
   return re2.test(name2);
 }
 
-// node_modules/hast-util-whitespace/lib/index.js
+// node_modules/.bun/hast-util-whitespace@3.0.0/node_modules/hast-util-whitespace/lib/index.js
 var re = /[ \t\n\f\r]/g;
 function whitespace(thing) {
   return typeof thing === "object" ? thing.type === "text" ? empty(thing.value) : false : empty(thing);
@@ -893,7 +893,7 @@ function empty(value) {
   return value.replace(re, "") === "";
 }
 
-// node_modules/property-information/lib/util/schema.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/util/schema.js
 var Schema = class {
   /**
    * @param {SchemaType['property']} property
@@ -917,7 +917,7 @@ Schema.prototype.normal = {};
 Schema.prototype.property = {};
 Schema.prototype.space = void 0;
 
-// node_modules/property-information/lib/util/merge.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/util/merge.js
 function merge(definitions, space2) {
   const property = {};
   const normal = {};
@@ -928,12 +928,12 @@ function merge(definitions, space2) {
   return new Schema(property, normal, space2);
 }
 
-// node_modules/property-information/lib/normalize.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/normalize.js
 function normalize(value) {
   return value.toLowerCase();
 }
 
-// node_modules/property-information/lib/util/info.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/util/info.js
 var Info = class {
   /**
    * @param {string} property
@@ -961,7 +961,7 @@ Info.prototype.property = "";
 Info.prototype.spaceSeparated = false;
 Info.prototype.space = void 0;
 
-// node_modules/property-information/lib/util/types.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/util/types.js
 var types_exports = {};
 __export(types_exports, {
   boolean: () => boolean,
@@ -984,7 +984,7 @@ function increment() {
   return 2 ** ++powers;
 }
 
-// node_modules/property-information/lib/util/defined-info.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/util/defined-info.js
 var checks = (
   /** @type {ReadonlyArray<keyof typeof types>} */
   Object.keys(types_exports)
@@ -1022,7 +1022,7 @@ function mark(values2, key, value) {
   }
 }
 
-// node_modules/property-information/lib/util/create.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/util/create.js
 function create(definition2) {
   const properties = {};
   const normals = {};
@@ -1043,7 +1043,7 @@ function create(definition2) {
   return new Schema(properties, normals, definition2.space);
 }
 
-// node_modules/property-information/lib/aria.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/aria.js
 var aria = create({
   properties: {
     ariaActiveDescendant: null,
@@ -1101,17 +1101,17 @@ var aria = create({
   }
 });
 
-// node_modules/property-information/lib/util/case-sensitive-transform.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/util/case-sensitive-transform.js
 function caseSensitiveTransform(attributes, attribute) {
   return attribute in attributes ? attributes[attribute] : attribute;
 }
 
-// node_modules/property-information/lib/util/case-insensitive-transform.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/util/case-insensitive-transform.js
 function caseInsensitiveTransform(attributes, property) {
   return caseSensitiveTransform(attributes, property.toLowerCase());
 }
 
-// node_modules/property-information/lib/html.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/html.js
 var html = create({
   attributes: {
     acceptcharset: "accept-charset",
@@ -1475,7 +1475,7 @@ var html = create({
   transform: caseInsensitiveTransform
 });
 
-// node_modules/property-information/lib/svg.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/svg.js
 var svg = create({
   attributes: {
     accentHeight: "accent-height",
@@ -2037,7 +2037,7 @@ var svg = create({
   transform: caseSensitiveTransform
 });
 
-// node_modules/property-information/lib/xlink.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/xlink.js
 var xlink = create({
   properties: {
     xLinkActuate: null,
@@ -2054,7 +2054,7 @@ var xlink = create({
   }
 });
 
-// node_modules/property-information/lib/xmlns.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/xmlns.js
 var xmlns = create({
   attributes: { xmlnsxlink: "xmlns:xlink" },
   properties: { xmlnsXLink: null, xmlns: null },
@@ -2062,7 +2062,7 @@ var xmlns = create({
   transform: caseInsensitiveTransform
 });
 
-// node_modules/property-information/lib/xml.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/xml.js
 var xml = create({
   properties: { xmlBase: null, xmlLang: null, xmlSpace: null },
   space: "xml",
@@ -2071,7 +2071,7 @@ var xml = create({
   }
 });
 
-// node_modules/property-information/lib/hast-to-react.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/hast-to-react.js
 var hastToReact = {
   classId: "classID",
   dataType: "datatype",
@@ -2092,7 +2092,7 @@ var hastToReact = {
   xmlnsXLink: "xmlnsXlink"
 };
 
-// node_modules/property-information/lib/find.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/lib/find.js
 var cap = /[A-Z]/g;
 var dash = /-[a-z]/g;
 var valid = /^data[-\w.:]+$/i;
@@ -2128,19 +2128,19 @@ function camelcase($0) {
   return $0.charAt(1).toUpperCase();
 }
 
-// node_modules/property-information/index.js
+// node_modules/.bun/property-information@7.1.0/node_modules/property-information/index.js
 var html2 = merge([aria, html, xlink, xmlns, xml], "html");
 var svg2 = merge([aria, svg, xlink, xmlns, xml], "svg");
 
-// node_modules/space-separated-tokens/index.js
+// node_modules/.bun/space-separated-tokens@2.0.2/node_modules/space-separated-tokens/index.js
 function stringify2(values2) {
   return values2.join(" ").trim();
 }
 
-// node_modules/hast-util-to-jsx-runtime/lib/index.js
+// node_modules/.bun/hast-util-to-jsx-runtime@2.3.6/node_modules/hast-util-to-jsx-runtime/lib/index.js
 var import_style_to_js = __toESM(require_cjs3(), 1);
 
-// node_modules/unist-util-position/lib/index.js
+// node_modules/.bun/unist-util-position@5.0.0/node_modules/unist-util-position/lib/index.js
 var pointEnd = point("end");
 var pointStart = point("start");
 function point(type) {
@@ -2164,7 +2164,7 @@ function position(node2) {
   }
 }
 
-// node_modules/unist-util-stringify-position/lib/index.js
+// node_modules/.bun/unist-util-stringify-position@4.0.0/node_modules/unist-util-stringify-position/lib/index.js
 function stringifyPosition(value) {
   if (!value || typeof value !== "object") {
     return "";
@@ -2190,7 +2190,7 @@ function index(value) {
   return value && typeof value === "number" ? value : 1;
 }
 
-// node_modules/vfile-message/lib/index.js
+// node_modules/.bun/vfile-message@4.0.3/node_modules/vfile-message/lib/index.js
 var VFileMessage = class extends Error {
   /**
    * Create a message for `reason`.
@@ -2326,7 +2326,7 @@ VFileMessage.prototype.place = void 0;
 VFileMessage.prototype.ruleId = void 0;
 VFileMessage.prototype.source = void 0;
 
-// node_modules/hast-util-to-jsx-runtime/lib/index.js
+// node_modules/.bun/hast-util-to-jsx-runtime@2.3.6/node_modules/hast-util-to-jsx-runtime/lib/index.js
 var own = {}.hasOwnProperty;
 var emptyMap = /* @__PURE__ */ new Map();
 var cap2 = /[A-Z]/g;
@@ -2705,7 +2705,7 @@ function toDash($0) {
   return "-" + $0.toLowerCase();
 }
 
-// node_modules/html-url-attributes/lib/index.js
+// node_modules/.bun/html-url-attributes@3.0.1/node_modules/html-url-attributes/lib/index.js
 var urlAttributes = {
   action: ["form"],
   cite: ["blockquote", "del", "ins", "q"],
@@ -2730,11 +2730,11 @@ var urlAttributes = {
   ]
 };
 
-// node_modules/react-markdown/lib/index.js
+// node_modules/.bun/react-markdown@10.1.0+0e2fb8dbc083adda/node_modules/react-markdown/lib/index.js
 var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
 var import_react = __toESM(require_react(), 1);
 
-// node_modules/mdast-util-to-string/lib/index.js
+// node_modules/.bun/mdast-util-to-string@4.0.0/node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions2 = {};
 function toString(value, options) {
   const settings = options || emptyOptions2;
@@ -2771,7 +2771,7 @@ function node(value) {
   return Boolean(value && typeof value === "object");
 }
 
-// node_modules/decode-named-character-reference/index.dom.js
+// node_modules/.bun/decode-named-character-reference@1.2.0/node_modules/decode-named-character-reference/index.dom.js
 var element2 = document.createElement("i");
 function decodeNamedCharacterReference(value) {
   const characterReference2 = "&" + value + ";";
@@ -2787,7 +2787,7 @@ function decodeNamedCharacterReference(value) {
   return character === characterReference2 ? false : character;
 }
 
-// node_modules/micromark-util-symbol/lib/codes.js
+// node_modules/.bun/micromark-util-symbol@2.0.1/node_modules/micromark-util-symbol/lib/codes.js
 var codes = (
   /** @type {const} */
   {
@@ -3032,7 +3032,7 @@ var codes = (
   }
 );
 
-// node_modules/micromark-util-symbol/lib/constants.js
+// node_modules/.bun/micromark-util-symbol@2.0.1/node_modules/micromark-util-symbol/lib/constants.js
 var constants = (
   /** @type {const} */
   {
@@ -3100,7 +3100,7 @@ var constants = (
   }
 );
 
-// node_modules/micromark-util-symbol/lib/types.js
+// node_modules/.bun/micromark-util-symbol@2.0.1/node_modules/micromark-util-symbol/lib/types.js
 var types = (
   /** @type {const} */
   {
@@ -3451,7 +3451,7 @@ var types = (
   }
 );
 
-// node_modules/micromark-util-symbol/lib/values.js
+// node_modules/.bun/micromark-util-symbol@2.0.1/node_modules/micromark-util-symbol/lib/values.js
 var values = (
   /** @type {const} */
   {
@@ -3557,7 +3557,7 @@ var values = (
   }
 );
 
-// node_modules/micromark-util-chunked/dev/index.js
+// node_modules/.bun/micromark-util-chunked@2.0.1/node_modules/micromark-util-chunked/dev/index.js
 function splice(list3, start2, remove, items) {
   const end = list3.length;
   let chunkStart = 0;
@@ -3594,7 +3594,7 @@ function push(list3, items) {
   return items;
 }
 
-// node_modules/micromark-util-combine-extensions/index.js
+// node_modules/.bun/micromark-util-combine-extensions@2.0.1/node_modules/micromark-util-combine-extensions/index.js
 var hasOwnProperty = {}.hasOwnProperty;
 function combineExtensions(extensions) {
   const all2 = {};
@@ -3634,7 +3634,7 @@ function constructs(existing, list3) {
   splice(existing, 0, 0, before);
 }
 
-// node_modules/micromark-util-decode-numeric-character-reference/dev/index.js
+// node_modules/.bun/micromark-util-decode-numeric-character-reference@2.0.2/node_modules/micromark-util-decode-numeric-character-reference/dev/index.js
 function decodeNumericCharacterReference(value, base) {
   const code2 = Number.parseInt(value, base);
   if (
@@ -3652,12 +3652,12 @@ function decodeNumericCharacterReference(value, base) {
   return String.fromCodePoint(code2);
 }
 
-// node_modules/micromark-util-normalize-identifier/dev/index.js
+// node_modules/.bun/micromark-util-normalize-identifier@2.0.1/node_modules/micromark-util-normalize-identifier/dev/index.js
 function normalizeIdentifier(value) {
   return value.replace(/[\t\n\r ]+/g, values.space).replace(/^ | $/g, "").toLowerCase().toUpperCase();
 }
 
-// node_modules/micromark-util-character/dev/index.js
+// node_modules/.bun/micromark-util-character@2.1.1/node_modules/micromark-util-character/dev/index.js
 var asciiAlpha = regexCheck(/[A-Za-z]/);
 var asciiAlphanumeric = regexCheck(/[\dA-Za-z]/);
 var asciiAtext = regexCheck(/[#-'*+\--9=?A-Z^-~]/);
@@ -3689,7 +3689,7 @@ function regexCheck(regex) {
   }
 }
 
-// node_modules/micromark-util-sanitize-uri/dev/index.js
+// node_modules/.bun/micromark-util-sanitize-uri@2.0.1/node_modules/micromark-util-sanitize-uri/dev/index.js
 function normalizeUri(value) {
   const result = [];
   let index2 = -1;
@@ -3728,10 +3728,10 @@ function normalizeUri(value) {
   return result.join("") + value.slice(start2);
 }
 
-// node_modules/micromark/dev/lib/compile.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/compile.js
 var hasOwnProperty2 = {}.hasOwnProperty;
 
-// node_modules/micromark-factory-space/dev/index.js
+// node_modules/.bun/micromark-factory-space@2.0.1/node_modules/micromark-factory-space/dev/index.js
 function factorySpace(effects, ok3, type, max) {
   const limit = max ? max - 1 : Number.POSITIVE_INFINITY;
   let size = 0;
@@ -3753,7 +3753,7 @@ function factorySpace(effects, ok3, type, max) {
   }
 }
 
-// node_modules/micromark/dev/lib/initialize/content.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/initialize/content.js
 var content = { tokenize: initializeContent };
 function initializeContent(effects) {
   const contentStart = effects.attempt(
@@ -3813,7 +3813,7 @@ function initializeContent(effects) {
   }
 }
 
-// node_modules/micromark/dev/lib/initialize/document.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/initialize/document.js
 var document2 = { tokenize: initializeDocument };
 var containerConstruct = { tokenize: tokenizeContainer };
 function initializeDocument(effects) {
@@ -4048,7 +4048,7 @@ function tokenizeContainer(effects, ok3, nok) {
   );
 }
 
-// node_modules/micromark-util-classify-character/dev/index.js
+// node_modules/.bun/micromark-util-classify-character@2.0.1/node_modules/micromark-util-classify-character/dev/index.js
 function classifyCharacter(code2) {
   if (code2 === codes.eof || markdownLineEndingOrSpace(code2) || unicodeWhitespace(code2)) {
     return constants.characterGroupWhitespace;
@@ -4058,7 +4058,7 @@ function classifyCharacter(code2) {
   }
 }
 
-// node_modules/micromark-util-resolve-all/index.js
+// node_modules/.bun/micromark-util-resolve-all@2.0.1/node_modules/micromark-util-resolve-all/index.js
 function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
@@ -4072,7 +4072,7 @@ function resolveAll(constructs2, events, context) {
   return events;
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/attention.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/attention.js
 var attention = {
   name: "attention",
   resolveAll: resolveAllAttention,
@@ -4219,7 +4219,7 @@ function movePoint(point4, offset) {
   point4._bufferIndex += offset;
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/autolink.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/autolink.js
 var autolink = { name: "autolink", tokenize: tokenizeAutolink };
 function tokenizeAutolink(effects, ok3, nok) {
   let size = 0;
@@ -4318,7 +4318,7 @@ function tokenizeAutolink(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/blank-line.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/blank-line.js
 var blankLine = { partial: true, tokenize: tokenizeBlankLine };
 function tokenizeBlankLine(effects, ok3, nok) {
   return start2;
@@ -4330,7 +4330,7 @@ function tokenizeBlankLine(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/block-quote.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/block-quote.js
 var blockQuote = {
   continuation: { tokenize: tokenizeBlockQuoteContinuation },
   exit,
@@ -4394,7 +4394,7 @@ function exit(effects) {
   effects.exit(types.blockQuote);
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/character-escape.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/character-escape.js
 var characterEscape = {
   name: "characterEscape",
   tokenize: tokenizeCharacterEscape
@@ -4421,7 +4421,7 @@ function tokenizeCharacterEscape(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/character-reference.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/character-reference.js
 var characterReference = {
   name: "characterReference",
   tokenize: tokenizeCharacterReference
@@ -4487,7 +4487,7 @@ function tokenizeCharacterReference(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/code-fenced.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/code-fenced.js
 var nonLazyContinuation = {
   partial: true,
   tokenize: tokenizeNonLazyContinuation
@@ -4685,7 +4685,7 @@ function tokenizeNonLazyContinuation(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/code-indented.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/code-indented.js
 var codeIndented = {
   name: "codeIndented",
   tokenize: tokenizeCodeIndented
@@ -4757,7 +4757,7 @@ function tokenizeFurtherStart(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/code-text.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/code-text.js
 var codeText = {
   name: "codeText",
   previous,
@@ -4874,7 +4874,7 @@ function tokenizeCodeText(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-util-subtokenize/dev/lib/splice-buffer.js
+// node_modules/.bun/micromark-util-subtokenize@2.1.0/node_modules/micromark-util-subtokenize/dev/lib/splice-buffer.js
 var SpliceBuffer = class {
   /**
    * @param {ReadonlyArray<T> | null | undefined} [initial]
@@ -5083,7 +5083,7 @@ function chunkedPush(list3, right) {
   }
 }
 
-// node_modules/micromark-util-subtokenize/dev/index.js
+// node_modules/.bun/micromark-util-subtokenize@2.1.0/node_modules/micromark-util-subtokenize/dev/index.js
 function subtokenize(eventsArray) {
   const jumps = {};
   let index2 = -1;
@@ -5244,7 +5244,7 @@ function subcontent(events, eventIndex) {
   return gaps;
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/content.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/content.js
 var content2 = { resolve: resolveContent, tokenize: tokenizeContent };
 var continuationConstruct = { partial: true, tokenize: tokenizeContinuation };
 function resolveContent(events) {
@@ -5324,7 +5324,7 @@ function tokenizeContinuation(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-factory-destination/dev/index.js
+// node_modules/.bun/micromark-factory-destination@2.0.1/node_modules/micromark-factory-destination/dev/index.js
 function factoryDestination(effects, ok3, nok, type, literalType, literalMarkerType, rawType, stringType, max) {
   const limit = max || Number.POSITIVE_INFINITY;
   let balance = 0;
@@ -5412,7 +5412,7 @@ function factoryDestination(effects, ok3, nok, type, literalType, literalMarkerT
   }
 }
 
-// node_modules/micromark-factory-label/dev/index.js
+// node_modules/.bun/micromark-factory-label@2.0.1/node_modules/micromark-factory-label/dev/index.js
 function factoryLabel(effects, ok3, nok, type, markerType, stringType) {
   const self2 = this;
   let size = 0;
@@ -5472,7 +5472,7 @@ function factoryLabel(effects, ok3, nok, type, markerType, stringType) {
   }
 }
 
-// node_modules/micromark-factory-title/dev/index.js
+// node_modules/.bun/micromark-factory-title@2.0.1/node_modules/micromark-factory-title/dev/index.js
 function factoryTitle(effects, ok3, nok, type, markerType, stringType) {
   let marker;
   return start2;
@@ -5532,7 +5532,7 @@ function factoryTitle(effects, ok3, nok, type, markerType, stringType) {
   }
 }
 
-// node_modules/micromark-factory-whitespace/dev/index.js
+// node_modules/.bun/micromark-factory-whitespace@2.0.1/node_modules/micromark-factory-whitespace/dev/index.js
 function factoryWhitespace(effects, ok3) {
   let seen;
   return start2;
@@ -5555,7 +5555,7 @@ function factoryWhitespace(effects, ok3) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/definition.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/definition.js
 var definition = { name: "definition", tokenize: tokenizeDefinition };
 var titleBefore = { partial: true, tokenize: tokenizeTitleBefore };
 function tokenizeDefinition(effects, ok3, nok) {
@@ -5649,7 +5649,7 @@ function tokenizeTitleBefore(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/hard-break-escape.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/hard-break-escape.js
 var hardBreakEscape = {
   name: "hardBreakEscape",
   tokenize: tokenizeHardBreakEscape
@@ -5671,7 +5671,7 @@ function tokenizeHardBreakEscape(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/heading-atx.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/heading-atx.js
 var headingAtx = {
   name: "headingAtx",
   resolve: resolveHeadingAtx,
@@ -5768,7 +5768,7 @@ function tokenizeHeadingAtx(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-util-html-tag-name/index.js
+// node_modules/.bun/micromark-util-html-tag-name@2.0.1/node_modules/micromark-util-html-tag-name/index.js
 var htmlBlockNames = [
   "address",
   "article",
@@ -5835,7 +5835,7 @@ var htmlBlockNames = [
 ];
 var htmlRawNames = ["pre", "script", "style", "textarea"];
 
-// node_modules/micromark-core-commonmark/dev/lib/html-flow.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/html-flow.js
 var htmlFlow = {
   concrete: true,
   name: "htmlFlow",
@@ -6225,7 +6225,7 @@ function tokenizeBlankLineBefore(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/html-text.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/html-text.js
 var htmlText = { name: "htmlText", tokenize: tokenizeHtmlText };
 function tokenizeHtmlText(effects, ok3, nok) {
   const self2 = this;
@@ -6540,7 +6540,7 @@ function tokenizeHtmlText(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/label-end.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/label-end.js
 var labelEnd = {
   name: "labelEnd",
   resolveAll: resolveAllLabelEnd,
@@ -6815,7 +6815,7 @@ function tokenizeReferenceCollapsed(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/label-start-image.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/label-start-image.js
 var labelStartImage = {
   name: "labelStartImage",
   resolveAll: labelEnd.resolveAll,
@@ -6847,7 +6847,7 @@ function tokenizeLabelStartImage(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/label-start-link.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/label-start-link.js
 var labelStartLink = {
   name: "labelStartLink",
   resolveAll: labelEnd.resolveAll,
@@ -6870,7 +6870,7 @@ function tokenizeLabelStartLink(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/line-ending.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/line-ending.js
 var lineEnding = { name: "lineEnding", tokenize: tokenizeLineEnding };
 function tokenizeLineEnding(effects, ok3) {
   return start2;
@@ -6883,7 +6883,7 @@ function tokenizeLineEnding(effects, ok3) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/thematic-break.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/thematic-break.js
 var thematicBreak = {
   name: "thematicBreak",
   tokenize: tokenizeThematicBreak
@@ -6926,7 +6926,7 @@ function tokenizeThematicBreak(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/list.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/list.js
 var list = {
   continuation: { tokenize: tokenizeListContinuation },
   exit: tokenizeListEnd,
@@ -7097,7 +7097,7 @@ function tokenizeListItemPrefixWhitespace(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark-core-commonmark/dev/lib/setext-underline.js
+// node_modules/.bun/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/dev/lib/setext-underline.js
 var setextUnderline = {
   name: "setextUnderline",
   resolveTo: resolveToSetextUnderline,
@@ -7194,7 +7194,7 @@ function tokenizeSetextUnderline(effects, ok3, nok) {
   }
 }
 
-// node_modules/micromark/dev/lib/initialize/flow.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/initialize/flow.js
 var flow = { tokenize: initializeFlow };
 function initializeFlow(effects) {
   const self2 = this;
@@ -7250,7 +7250,7 @@ function initializeFlow(effects) {
   }
 }
 
-// node_modules/micromark/dev/lib/initialize/text.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/initialize/text.js
 var resolver = { resolveAll: createResolver() };
 var string = initializeFactory("string");
 var text2 = initializeFactory("text");
@@ -7391,7 +7391,7 @@ function resolveAllLineSuffixes(events, context) {
   return events;
 }
 
-// node_modules/micromark/dev/lib/constructs.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/constructs.js
 var constructs_exports = {};
 __export(constructs_exports, {
   attentionMarkers: () => attentionMarkers,
@@ -7460,7 +7460,7 @@ var insideSpan = { null: [attention, resolver] };
 var attentionMarkers = { null: [codes.asterisk, codes.underscore] };
 var disable = { null: [] };
 
-// node_modules/micromark/dev/lib/create-tokenizer.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/create-tokenizer.js
 var import_debug = __toESM(require_browser(), 1);
 var debug = (0, import_debug.default)("micromark");
 function createTokenizer(parser, initialize, from) {
@@ -7817,7 +7817,7 @@ function serializeChunks(chunks, expandTabs) {
   return result.join("");
 }
 
-// node_modules/micromark/dev/lib/parse.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/parse.js
 function parse(options) {
   const settings = options || {};
   const constructs2 = (
@@ -7843,14 +7843,14 @@ function parse(options) {
   }
 }
 
-// node_modules/micromark/dev/lib/postprocess.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/postprocess.js
 function postprocess(events) {
   while (!subtokenize(events)) {
   }
   return events;
 }
 
-// node_modules/micromark/dev/lib/preprocess.js
+// node_modules/.bun/micromark@4.0.2/node_modules/micromark/dev/lib/preprocess.js
 var search = /[\0\t\n\r]/g;
 function preprocess() {
   let column = 1;
@@ -7929,7 +7929,7 @@ function preprocess() {
   }
 }
 
-// node_modules/micromark-util-decode-string/dev/index.js
+// node_modules/.bun/micromark-util-decode-string@2.0.1/node_modules/micromark-util-decode-string/dev/index.js
 var characterEscapeOrReference = /\\([!-/:-@[-`{-~])|&(#(?:\d{1,7}|x[\da-f]{1,6})|[\da-z]{1,31});/gi;
 function decodeString(value) {
   return value.replace(characterEscapeOrReference, decode);
@@ -7950,7 +7950,7 @@ function decode($0, $1, $2) {
   return decodeNamedCharacterReference($2) || $0;
 }
 
-// node_modules/mdast-util-from-markdown/dev/lib/index.js
+// node_modules/.bun/mdast-util-from-markdown@2.0.2/node_modules/mdast-util-from-markdown/dev/lib/index.js
 var own2 = {}.hasOwnProperty;
 function fromMarkdown(value, encoding, options) {
   if (typeof encoding !== "string") {
@@ -8707,7 +8707,7 @@ function defaultOnError(left, right) {
   }
 }
 
-// node_modules/remark-parse/lib/index.js
+// node_modules/.bun/remark-parse@11.0.0/node_modules/remark-parse/lib/index.js
 function remarkParse(options) {
   const self2 = this;
   self2.parser = parser;
@@ -8724,7 +8724,7 @@ function remarkParse(options) {
   }
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/blockquote.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/blockquote.js
 function blockquote(state, node2) {
   const result = {
     type: "element",
@@ -8736,14 +8736,14 @@ function blockquote(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/break.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/break.js
 function hardBreak(state, node2) {
   const result = { type: "element", tagName: "br", properties: {}, children: [] };
   state.patch(node2, result);
   return [state.applyData(node2, result), { type: "text", value: "\n" }];
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/code.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/code.js
 function code(state, node2) {
   const value = node2.value ? node2.value + "\n" : "";
   const properties = {};
@@ -8766,7 +8766,7 @@ function code(state, node2) {
   return result;
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/delete.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/delete.js
 function strikethrough(state, node2) {
   const result = {
     type: "element",
@@ -8778,7 +8778,7 @@ function strikethrough(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/emphasis.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/emphasis.js
 function emphasis(state, node2) {
   const result = {
     type: "element",
@@ -8790,7 +8790,7 @@ function emphasis(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/footnote-reference.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/footnote-reference.js
 function footnoteReference(state, node2) {
   const clobberPrefix = typeof state.options.clobberPrefix === "string" ? state.options.clobberPrefix : "user-content-";
   const id = String(node2.identifier).toUpperCase();
@@ -8829,7 +8829,7 @@ function footnoteReference(state, node2) {
   return state.applyData(node2, sup);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/heading.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/heading.js
 function heading(state, node2) {
   const result = {
     type: "element",
@@ -8841,7 +8841,7 @@ function heading(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/html.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/html.js
 function html3(state, node2) {
   if (state.options.allowDangerousHtml) {
     const result = { type: "raw", value: node2.value };
@@ -8851,7 +8851,7 @@ function html3(state, node2) {
   return void 0;
 }
 
-// node_modules/mdast-util-to-hast/lib/revert.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/revert.js
 function revert(state, node2) {
   const subtype = node2.referenceType;
   let suffix = "]";
@@ -8879,7 +8879,7 @@ function revert(state, node2) {
   return contents;
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/image-reference.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/image-reference.js
 function imageReference(state, node2) {
   const id = String(node2.identifier).toUpperCase();
   const definition2 = state.definitionById.get(id);
@@ -8895,7 +8895,7 @@ function imageReference(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/image.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/image.js
 function image(state, node2) {
   const properties = { src: normalizeUri(node2.url) };
   if (node2.alt !== null && node2.alt !== void 0) {
@@ -8909,7 +8909,7 @@ function image(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/inline-code.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/inline-code.js
 function inlineCode(state, node2) {
   const text5 = { type: "text", value: node2.value.replace(/\r?\n|\r/g, " ") };
   state.patch(node2, text5);
@@ -8923,7 +8923,7 @@ function inlineCode(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/link-reference.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/link-reference.js
 function linkReference(state, node2) {
   const id = String(node2.identifier).toUpperCase();
   const definition2 = state.definitionById.get(id);
@@ -8944,7 +8944,7 @@ function linkReference(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/link.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/link.js
 function link(state, node2) {
   const properties = { href: normalizeUri(node2.url) };
   if (node2.title !== null && node2.title !== void 0) {
@@ -8960,7 +8960,7 @@ function link(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/list-item.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/list-item.js
 function listItem(state, node2, parent) {
   const results = state.all(node2);
   const loose = parent ? listLoose(parent) : listItemLoose(node2);
@@ -9023,7 +9023,7 @@ function listItemLoose(node2) {
   return spread === null || spread === void 0 ? node2.children.length > 1 : spread;
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/list.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/list.js
 function list2(state, node2) {
   const properties = {};
   const results = state.all(node2);
@@ -9048,7 +9048,7 @@ function list2(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/paragraph.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/paragraph.js
 function paragraph(state, node2) {
   const result = {
     type: "element",
@@ -9060,14 +9060,14 @@ function paragraph(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/root.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/root.js
 function root2(state, node2) {
   const result = { type: "root", children: state.wrap(state.all(node2)) };
   state.patch(node2, result);
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/strong.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/strong.js
 function strong(state, node2) {
   const result = {
     type: "element",
@@ -9079,7 +9079,7 @@ function strong(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/table.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/table.js
 function table(state, node2) {
   const rows = state.all(node2);
   const firstRow = rows.shift();
@@ -9116,7 +9116,7 @@ function table(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/table-row.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/table-row.js
 function tableRow(state, node2, parent) {
   const siblings = parent ? parent.children : void 0;
   const rowIndex = siblings ? siblings.indexOf(node2) : 1;
@@ -9150,7 +9150,7 @@ function tableRow(state, node2, parent) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/table-cell.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/table-cell.js
 function tableCell(state, node2) {
   const result = {
     type: "element",
@@ -9163,7 +9163,7 @@ function tableCell(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/trim-lines/index.js
+// node_modules/.bun/trim-lines@3.0.1/node_modules/trim-lines/index.js
 var tab = 9;
 var space = 32;
 function trimLines(value) {
@@ -9203,14 +9203,14 @@ function trimLine(value, start2, end) {
   return endIndex > startIndex ? value.slice(startIndex, endIndex) : "";
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/text.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/text.js
 function text4(state, node2) {
   const result = { type: "text", value: trimLines(String(node2.value)) };
   state.patch(node2, result);
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/thematic-break.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/thematic-break.js
 function thematicBreak2(state, node2) {
   const result = {
     type: "element",
@@ -9222,7 +9222,7 @@ function thematicBreak2(state, node2) {
   return state.applyData(node2, result);
 }
 
-// node_modules/mdast-util-to-hast/lib/handlers/index.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/handlers/index.js
 var handlers = {
   blockquote,
   break: hardBreak,
@@ -9257,7 +9257,7 @@ function ignore() {
   return void 0;
 }
 
-// node_modules/@ungap/structured-clone/esm/types.js
+// node_modules/.bun/@ungap+structured-clone@1.3.0/node_modules/@ungap/structured-clone/esm/types.js
 var VOID = -1;
 var PRIMITIVE = 0;
 var ARRAY = 1;
@@ -9269,7 +9269,7 @@ var SET = 6;
 var ERROR = 7;
 var BIGINT = 8;
 
-// node_modules/@ungap/structured-clone/esm/deserialize.js
+// node_modules/.bun/@ungap+structured-clone@1.3.0/node_modules/@ungap/structured-clone/esm/deserialize.js
 var env = typeof self === "object" ? self : globalThis;
 var deserializer = ($, _) => {
   const as = (out, index2) => {
@@ -9335,7 +9335,7 @@ var deserializer = ($, _) => {
 };
 var deserialize = (serialized) => deserializer(/* @__PURE__ */ new Map(), serialized)(0);
 
-// node_modules/@ungap/structured-clone/esm/serialize.js
+// node_modules/.bun/@ungap+structured-clone@1.3.0/node_modules/@ungap/structured-clone/esm/serialize.js
 var EMPTY = "";
 var { toString: toString2 } = {};
 var { keys } = Object;
@@ -9468,13 +9468,13 @@ var serialize = (value, { json, lossy } = {}) => {
   return serializer(!(json || lossy), !!json, /* @__PURE__ */ new Map(), _)(value), _;
 };
 
-// node_modules/@ungap/structured-clone/esm/index.js
+// node_modules/.bun/@ungap+structured-clone@1.3.0/node_modules/@ungap/structured-clone/esm/index.js
 var esm_default = typeof structuredClone === "function" ? (
   /* c8 ignore start */
   (any, options) => options && ("json" in options || "lossy" in options) ? deserialize(serialize(any, options)) : structuredClone(any)
 ) : (any, options) => deserialize(serialize(any, options));
 
-// node_modules/mdast-util-to-hast/lib/footer.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/footer.js
 function defaultFootnoteBackContent(_, rereferenceIndex) {
   const result = [{ type: "text", value: "↩" }];
   if (rereferenceIndex > 1) {
@@ -9584,7 +9584,7 @@ function footer(state) {
   };
 }
 
-// node_modules/unist-util-is/lib/index.js
+// node_modules/.bun/unist-util-is@6.0.1/node_modules/unist-util-is/lib/index.js
 var convert = (
   // Note: overloads in JSDoc can’t yet use different `@template`s.
   /**
@@ -9683,12 +9683,12 @@ function looksLikeANode(value) {
   return value !== null && typeof value === "object" && "type" in value;
 }
 
-// node_modules/unist-util-visit-parents/lib/color.js
+// node_modules/.bun/unist-util-visit-parents@6.0.2/node_modules/unist-util-visit-parents/lib/color.js
 function color(d) {
   return d;
 }
 
-// node_modules/unist-util-visit-parents/lib/index.js
+// node_modules/.bun/unist-util-visit-parents@6.0.2/node_modules/unist-util-visit-parents/lib/index.js
 var empty2 = [];
 var CONTINUE = true;
 var EXIT = false;
@@ -9765,7 +9765,7 @@ function toResult(value) {
   return value === null || value === void 0 ? empty2 : [value];
 }
 
-// node_modules/unist-util-visit/lib/index.js
+// node_modules/.bun/unist-util-visit@5.0.0/node_modules/unist-util-visit/lib/index.js
 function visit(tree, testOrVisitor, visitorOrReverse, maybeReverse) {
   let reverse;
   let test;
@@ -9787,7 +9787,7 @@ function visit(tree, testOrVisitor, visitorOrReverse, maybeReverse) {
   }
 }
 
-// node_modules/mdast-util-to-hast/lib/state.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/state.js
 var own3 = {}.hasOwnProperty;
 var emptyOptions3 = {};
 function createState(tree, options) {
@@ -9929,7 +9929,7 @@ function trimMarkdownSpaceStart(value) {
   return value.slice(index2);
 }
 
-// node_modules/mdast-util-to-hast/lib/index.js
+// node_modules/.bun/mdast-util-to-hast@13.2.0/node_modules/mdast-util-to-hast/lib/index.js
 function toHast(tree, options) {
   const state = createState(tree, options);
   const node2 = state.one(tree, void 0);
@@ -9942,7 +9942,7 @@ function toHast(tree, options) {
   return result;
 }
 
-// node_modules/remark-rehype/lib/index.js
+// node_modules/.bun/remark-rehype@11.1.2/node_modules/remark-rehype/lib/index.js
 function remarkRehype(destination, options) {
   if (destination && "run" in destination) {
     return async function(tree, file) {
@@ -9961,17 +9961,17 @@ function remarkRehype(destination, options) {
   };
 }
 
-// node_modules/bail/index.js
+// node_modules/.bun/bail@2.0.2/node_modules/bail/index.js
 function bail(error) {
   if (error) {
     throw error;
   }
 }
 
-// node_modules/unified/lib/index.js
+// node_modules/.bun/unified@11.0.5/node_modules/unified/lib/index.js
 var import_extend = __toESM(require_extend(), 1);
 
-// node_modules/is-plain-obj/index.js
+// node_modules/.bun/is-plain-obj@4.1.0/node_modules/is-plain-obj/index.js
 function isPlainObject(value) {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -9980,7 +9980,7 @@ function isPlainObject(value) {
   return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
 }
 
-// node_modules/trough/lib/index.js
+// node_modules/.bun/trough@2.2.0/node_modules/trough/lib/index.js
 function trough() {
   const fns = [];
   const pipeline = { run, use };
@@ -10064,7 +10064,7 @@ function wrap2(middleware, callback) {
   }
 }
 
-// node_modules/vfile/lib/minpath.browser.js
+// node_modules/.bun/vfile@6.0.3/node_modules/vfile/lib/minpath.browser.js
 var minpath = { basename, dirname, extname, join, sep: "/" };
 function basename(path, extname2) {
   if (extname2 !== void 0 && typeof extname2 !== "string") {
@@ -10277,13 +10277,13 @@ function assertPath(path) {
   }
 }
 
-// node_modules/vfile/lib/minproc.browser.js
+// node_modules/.bun/vfile@6.0.3/node_modules/vfile/lib/minproc.browser.js
 var minproc = { cwd };
 function cwd() {
   return "/";
 }
 
-// node_modules/vfile/lib/minurl.shared.js
+// node_modules/.bun/vfile@6.0.3/node_modules/vfile/lib/minurl.shared.js
 function isUrl(fileUrlOrPath) {
   return Boolean(
     fileUrlOrPath !== null && typeof fileUrlOrPath === "object" && "href" in fileUrlOrPath && fileUrlOrPath.href && "protocol" in fileUrlOrPath && fileUrlOrPath.protocol && // @ts-expect-error: indexing is fine.
@@ -10291,7 +10291,7 @@ function isUrl(fileUrlOrPath) {
   );
 }
 
-// node_modules/vfile/lib/minurl.browser.js
+// node_modules/.bun/vfile@6.0.3/node_modules/vfile/lib/minurl.browser.js
 function urlToPath(path) {
   if (typeof path === "string") {
     path = new URL(path);
@@ -10334,7 +10334,7 @@ function getPathFromURLPosix(url) {
   return decodeURIComponent(pathname);
 }
 
-// node_modules/vfile/lib/index.js
+// node_modules/.bun/vfile@6.0.3/node_modules/vfile/lib/index.js
 var order = (
   /** @type {const} */
   [
@@ -10790,7 +10790,7 @@ function isUint8Array(value) {
   );
 }
 
-// node_modules/unified/lib/callable-instance.js
+// node_modules/.bun/unified@11.0.5/node_modules/unified/lib/callable-instance.js
 var CallableInstance = (
   /**
    * @type {new <Parameters extends Array<unknown>, Result>(property: string | symbol) => (...parameters: Parameters) => Result}
@@ -10819,7 +10819,7 @@ var CallableInstance = (
   }
 );
 
-// node_modules/unified/lib/index.js
+// node_modules/.bun/unified@11.0.5/node_modules/unified/lib/index.js
 var own4 = {}.hasOwnProperty;
 var Processor = class _Processor extends CallableInstance {
   /**
@@ -11455,7 +11455,7 @@ function isUint8Array2(value) {
   );
 }
 
-// node_modules/react-markdown/lib/index.js
+// node_modules/.bun/react-markdown@10.1.0+0e2fb8dbc083adda/node_modules/react-markdown/lib/index.js
 var changelog = "https://github.com/remarkjs/react-markdown/blob/main/changelog.md";
 var emptyPlugins = [];
 var emptyRemarkRehypeOptions = { allowDangerousHtml: true };

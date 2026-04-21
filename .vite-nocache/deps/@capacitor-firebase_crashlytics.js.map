@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "sources": ["../../node_modules/@capacitor-firebase/crashlytics/src/index.ts"],
+  "sources": ["../../node_modules/.bun/@capacitor-firebase+crashlytics@7.4.0+1d43a6a1837411c8/node_modules/@capacitor-firebase/crashlytics/src/index.ts"],
   "sourcesContent": ["import { registerPlugin } from '@capacitor/core';\n\nimport type { FirebaseCrashlyticsPlugin } from './definitions';\n\nconst FirebaseCrashlytics = registerPlugin<FirebaseCrashlyticsPlugin>(\n  'FirebaseCrashlytics',\n  {\n    web: () => import('./web').then(m => new m.FirebaseCrashlyticsWeb()),\n  },\n);\n\nexport * from './definitions';\nexport { FirebaseCrashlytics };\n"],
   "mappings": ";;;;;;AAIA,IAAM,sBAAsB,eAC1B,uBACA;EACE,KAAK,MAAM,OAAO,mBAAO,EAAE,KAAK,OAAK,IAAI,EAAE,uBAAsB,CAAE;CACpE;",
   "names": []

@@ -8,7 +8,7 @@ import {
   WebView,
   buildRequestInit,
   registerPlugin
-} from "./chunk-S7OKNGPJ.js";
+} from "./chunk-VYAGUGCM.js";
 import "./chunk-V4OQ3NZ2.js";
 export {
   Capacitor,

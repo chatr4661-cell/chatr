@@ -1,6 +1,6 @@
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/fabric/dist/index.min.mjs
+// node_modules/.bun/fabric@6.9.0/node_modules/fabric/dist/index.min.mjs
 function t(t2, e3, s2) {
   return (e3 = function(t3) {
     var e4 = function(t4, e5) {

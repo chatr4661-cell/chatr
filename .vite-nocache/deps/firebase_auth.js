@@ -29,10 +29,10 @@ import {
   querystringDecode,
   registerVersion,
   updateEmulatorBanner
-} from "./chunk-XM6L7XYF.js";
+} from "./chunk-23AOO2QN.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/@firebase/auth/dist/esm/index-9ccb475d.js
+// node_modules/.bun/@firebase+auth@1.11.0+f7f207422f8d6c13/node_modules/@firebase/auth/dist/esm/index-9ccb475d.js
 var FactorId = {
   /** Phone as second factor */
   PHONE: "phone",

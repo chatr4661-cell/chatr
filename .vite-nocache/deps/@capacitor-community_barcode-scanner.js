@@ -1,15 +1,15 @@
 import {
   CameraDirection,
   SupportedFormat
-} from "./chunk-NGV7EVWM.js";
+} from "./chunk-OBGKVE3F.js";
 import {
   registerPlugin
-} from "./chunk-S7OKNGPJ.js";
+} from "./chunk-VYAGUGCM.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/@capacitor-community/barcode-scanner/dist/esm/index.js
+// node_modules/.bun/@capacitor-community+barcode-scanner@4.0.1+1d43a6a1837411c8/node_modules/@capacitor-community/barcode-scanner/dist/esm/index.js
 var BarcodeScanner = registerPlugin("BarcodeScanner", {
-  web: () => import("./web-H3G27O67.js").then((m) => new m.BarcodeScannerWeb())
+  web: () => import("./web-KJFAVGRH.js").then((m) => new m.BarcodeScannerWeb())
 });
 export {
   BarcodeScanner,

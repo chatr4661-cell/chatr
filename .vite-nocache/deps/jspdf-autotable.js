@@ -1,6 +1,6 @@
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/jspdf-autotable/dist/jspdf.plugin.autotable.mjs
+// node_modules/.bun/jspdf-autotable@5.0.2+784c251dd68177b4/node_modules/jspdf-autotable/dist/jspdf.plugin.autotable.mjs
 function autoTableText(text, x, y, styles, doc) {
   styles = styles || {};
   var PHYSICAL_LINE_HEIGHT = 1.15;

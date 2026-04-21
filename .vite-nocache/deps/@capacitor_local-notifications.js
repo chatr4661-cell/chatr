@@ -1,9 +1,9 @@
 import {
   registerPlugin
-} from "./chunk-S7OKNGPJ.js";
+} from "./chunk-VYAGUGCM.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/@capacitor/local-notifications/dist/esm/definitions.js
+// node_modules/.bun/@capacitor+local-notifications@7.0.3+1d43a6a1837411c8/node_modules/@capacitor/local-notifications/dist/esm/definitions.js
 var Weekday;
 (function(Weekday2) {
   Weekday2[Weekday2["Sunday"] = 1] = "Sunday";
@@ -15,9 +15,9 @@ var Weekday;
   Weekday2[Weekday2["Saturday"] = 7] = "Saturday";
 })(Weekday || (Weekday = {}));
 
-// node_modules/@capacitor/local-notifications/dist/esm/index.js
+// node_modules/.bun/@capacitor+local-notifications@7.0.3+1d43a6a1837411c8/node_modules/@capacitor/local-notifications/dist/esm/index.js
 var LocalNotifications = registerPlugin("LocalNotifications", {
-  web: () => import("./web-QGCK37SV.js").then((m) => new m.LocalNotificationsWeb())
+  web: () => import("./web-2VIWNNPU.js").then((m) => new m.LocalNotificationsWeb())
 });
 export {
   LocalNotifications,
