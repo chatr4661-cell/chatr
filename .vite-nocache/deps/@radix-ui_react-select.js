@@ -3,11 +3,11 @@ import {
   VISUALLY_HIDDEN_STYLES
 } from "./chunk-MTI7QQA4.js";
 import {
-  clamp
-} from "./chunk-IBYNPOIK.js";
-import {
   usePrevious
 } from "./chunk-CX7GQNR5.js";
+import {
+  clamp
+} from "./chunk-IBYNPOIK.js";
 import {
   createCollection
 } from "./chunk-CX2GNZ63.js";
@@ -29,13 +29,10 @@ import {
   FocusScope,
   hideOthers,
   useFocusGuards
-} from "./chunk-GERR4WLZ.js";
+} from "./chunk-P572CPVS.js";
 import {
   Portal
 } from "./chunk-NFGTZI7X.js";
-import {
-  useCallbackRef
-} from "./chunk-T4SRIF5A.js";
 import {
   useId
 } from "./chunk-PHZVOGYL.js";
@@ -45,6 +42,9 @@ import {
 import {
   composeEventHandlers
 } from "./chunk-QFY2MIVH.js";
+import {
+  useCallbackRef
+} from "./chunk-T4SRIF5A.js";
 import {
   useLayoutEffect2
 } from "./chunk-WQO7IIEA.js";
