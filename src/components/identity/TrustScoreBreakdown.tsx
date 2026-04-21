@@ -41,7 +41,7 @@ export const TrustScoreBreakdown: React.FC<TrustScoreBreakdownProps> = ({
     setLoading(true);
     try {
       const [profileRes, contactsRes, callsRes, badgeRes] = await Promise.all([
-        supabase.from('profiles').select('phone_number, avatar_url, username, bio').eq('id', userId).maybeSingle(),
+        supabase.from('profiles').select('phone_number, avatar_url, username').eq('id', userId).maybeSingle(),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('calls').select('id', { count: 'exact', head: true }).eq('caller_id', userId).eq('status', 'completed'),
         supabase.from('user_badges' as any).select('badge_type').eq('user_id', userId).eq('is_active', true).maybeSingle() as any,
