@@ -6520,6 +6520,63 @@ export type Database = {
         }
         Relationships: []
       }
+      earning_events: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          description: string | null
+          event_type: Database["public"]["Enums"]["earning_event_type"]
+          id: string
+          metadata: Json
+          occurred_at: string
+          paid_at: string | null
+          reward_coins: number
+          reward_rupees: number
+          source_id: string | null
+          source_table: string | null
+          status: Database["public"]["Enums"]["earning_event_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          description?: string | null
+          event_type: Database["public"]["Enums"]["earning_event_type"]
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          paid_at?: string | null
+          reward_coins?: number
+          reward_rupees?: number
+          source_id?: string | null
+          source_table?: string | null
+          status?: Database["public"]["Enums"]["earning_event_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          description?: string | null
+          event_type?: Database["public"]["Enums"]["earning_event_type"]
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          paid_at?: string | null
+          reward_coins?: number
+          reward_rupees?: number
+          source_id?: string | null
+          source_table?: string | null
+          status?: Database["public"]["Enums"]["earning_event_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_contacts: {
         Row: {
           created_at: string | null
@@ -14093,58 +14150,90 @@ export type Database = {
       }
       referral_rewards: {
         Row: {
+          approved_at: string | null
           completed_at: string | null
           created_at: string | null
+          earning_event_id: string | null
           id: string
+          paid_at: string | null
           points_awarded: number | null
           referral_code: string
           referred_user_id: string
           referrer_id: string
-          status: string | null
+          reward_rupees: number
+          status: Database["public"]["Enums"]["earning_event_status"]
         }
         Insert: {
+          approved_at?: string | null
           completed_at?: string | null
           created_at?: string | null
+          earning_event_id?: string | null
           id?: string
+          paid_at?: string | null
           points_awarded?: number | null
           referral_code: string
           referred_user_id: string
           referrer_id: string
-          status?: string | null
+          reward_rupees?: number
+          status?: Database["public"]["Enums"]["earning_event_status"]
         }
         Update: {
+          approved_at?: string | null
           completed_at?: string | null
           created_at?: string | null
+          earning_event_id?: string | null
           id?: string
+          paid_at?: string | null
           points_awarded?: number | null
           referral_code?: string
           referred_user_id?: string
           referrer_id?: string
-          status?: string | null
+          reward_rupees?: number
+          status?: Database["public"]["Enums"]["earning_event_status"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_earning_event_id_fkey"
+            columns: ["earning_event_id"]
+            isOneToOne: false
+            referencedRelation: "earning_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referrals: {
         Row: {
           created_at: string | null
           id: string
+          referral_code: string | null
           referred_id: string
           referrer_id: string
           reward_claimed: boolean | null
+          rewarded_at: string | null
+          status: Database["public"]["Enums"]["referral_status"]
+          verified_at: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          referral_code?: string | null
           referred_id: string
           referrer_id: string
           reward_claimed?: boolean | null
+          rewarded_at?: string | null
+          status?: Database["public"]["Enums"]["referral_status"]
+          verified_at?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          referral_code?: string | null
           referred_id?: string
           referrer_id?: string
           reward_claimed?: boolean | null
+          rewarded_at?: string | null
+          status?: Database["public"]["Enums"]["referral_status"]
+          verified_at?: string | null
         }
         Relationships: [
           {
@@ -18644,6 +18733,10 @@ export type Database = {
         Args: { user_id: string; value: string }
         Returns: string
       }
+      ensure_user_points_exists: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       expire_old_inter_app_messages: { Args: never; Returns: undefined }
       find_emotion_matches: {
         Args: { p_emotion: string; p_user_id: string }
@@ -18848,6 +18941,23 @@ export type Database = {
     }
     Enums: {
       app_role: "consumer" | "doctor" | "nurse" | "pharmacy" | "admin" | "ceo"
+      earning_event_status:
+        | "pending"
+        | "approved"
+        | "paid"
+        | "rejected"
+        | "cancelled"
+      earning_event_type:
+        | "micro_task_reward"
+        | "referral_referrer_bonus"
+        | "referral_signup_bonus"
+        | "manual_adjustment"
+      referral_status:
+        | "pending"
+        | "signed_up"
+        | "verified"
+        | "rewarded"
+        | "cancelled"
       vendor_type: "restaurant" | "deal_merchant" | "healthcare_provider"
     }
     CompositeTypes: {
@@ -18977,6 +19087,26 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["consumer", "doctor", "nurse", "pharmacy", "admin", "ceo"],
+      earning_event_status: [
+        "pending",
+        "approved",
+        "paid",
+        "rejected",
+        "cancelled",
+      ],
+      earning_event_type: [
+        "micro_task_reward",
+        "referral_referrer_bonus",
+        "referral_signup_bonus",
+        "manual_adjustment",
+      ],
+      referral_status: [
+        "pending",
+        "signed_up",
+        "verified",
+        "rewarded",
+        "cancelled",
+      ],
       vendor_type: ["restaurant", "deal_merchant", "healthcare_provider"],
     },
   },
