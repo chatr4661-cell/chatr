@@ -563,38 +563,29 @@ export const OnboardingDialog = ({ isOpen, userId, onComplete, onSkip }: Onboard
               <Button variant="outline" onClick={handleStep3Next} className="flex-1">
                 Skip
               </Button>
-              <Button 
-                onClick={async () => {
-                  if (referralCode.trim() || referrerId) {
-                    const { error } = await supabase.functions.invoke('process-referral', {
-                      body: { 
-                        referralCode: referralCode.trim(), 
-                        newUserId: userId,
-                        referrerId: referrerId
+                <Button 
+                  onClick={async () => {
+                    if (referralCode.trim()) {
+                      const { data, error } = await supabase.rpc('process_referral_reward', {
+                        referral_code_param: referralCode.trim().toUpperCase(),
+                      });
+
+                      if (error) {
+                        toast({
+                          title: 'Referral code could not be applied',
+                          description: error.message,
+                          variant: 'destructive',
+                        });
+                      } else if (data) {
+                        toast({ title: 'Referral reward applied successfully' });
+                        localStorage.removeItem('pending_invite_code');
+                        localStorage.removeItem('pending_referrer_id');
                       }
-                    });
-                    
-                    if (!error) {
-                      toast({ title: "Referral code applied! You earned 50 coins!" });
-                      const inviteCode = localStorage.getItem('pending_invite_code');
-                      const inviterRefId = localStorage.getItem('pending_referrer_id');
-                      
-                      supabase.functions.invoke('notify-referral-join', {
-                        body: { 
-                          newUserId: userId,
-                          inviteCode: inviteCode,
-                          referrerId: inviterRefId || referrerId
-                        }
-                      }).catch(err => console.log('Referral notification error:', err));
-                      
-                      localStorage.removeItem('pending_invite_code');
-                      localStorage.removeItem('pending_referrer_id');
                     }
-                  }
-                  handleStep3Next();
-                }} 
-                className="flex-1"
-              >
+                    handleStep3Next();
+                  }} 
+                  className="flex-1"
+                >
                 Continue
               </Button>
             </div>

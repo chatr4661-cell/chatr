@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, CheckCircle, XCircle, Clock, AlertTriangle,
-  Plus, Headphones, Camera, Star, Users, IndianRupee, MapPin
+  Plus, Headphones, Camera, Star, Users, IndianRupee, MapPin, Coins, Wallet
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -51,11 +51,23 @@ interface FraudUser {
   } | null;
 }
 
+interface EarningEventAdmin {
+  id: string;
+  user_id: string;
+  title: string;
+  event_type: string;
+  status: 'pending' | 'approved' | 'paid' | 'rejected' | 'cancelled';
+  reward_coins: number;
+  reward_rupees: number;
+  occurred_at: string;
+}
+
 export default function AdminMicroTasks() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('pending');
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [fraudUsers, setFraudUsers] = useState<FraudUser[]>([]);
+  const [earningEvents, setEarningEvents] = useState<EarningEventAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   
@@ -114,6 +126,15 @@ export default function AdminMicroTasks() {
 
         if (error) throw error;
         setFraudUsers((data || []) as unknown as FraudUser[]);
+      } else if (activeTab === 'earnings') {
+        const { data, error } = await supabase
+          .from('earning_events')
+          .select('id, user_id, title, event_type, status, reward_coins, reward_rupees, occurred_at')
+          .order('occurred_at', { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+        setEarningEvents((data || []) as EarningEventAdmin[]);
       }
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -292,6 +313,29 @@ export default function AdminMicroTasks() {
     }
   };
 
+  const handleEarningStatusUpdate = async (eventId: string, status: EarningEventAdmin['status']) => {
+    setProcessing(eventId);
+    try {
+      const payload: Record<string, string> = { status };
+      if (status === 'approved') payload.approved_at = new Date().toISOString();
+      if (status === 'paid') payload.paid_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('earning_events')
+        .update(payload)
+        .eq('id', eventId);
+
+      if (error) throw error;
+      toast.success(`Earning marked as ${status}`);
+      fetchData();
+    } catch (err) {
+      console.error('Error updating earning status:', err);
+      toast.error('Failed to update earning status');
+    } finally {
+      setProcessing(null);
+    }
+  };
+
   const getTaskIcon = (type: string) => {
     switch (type) {
       case 'audio_listen': return <Headphones className="w-4 h-4" />;
@@ -324,7 +368,7 @@ export default function AdminMicroTasks() {
 
       <div className="p-4 max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-3 w-full mb-4">
+          <TabsList className="grid grid-cols-4 w-full mb-4">
             <TabsTrigger value="pending">
               <Clock className="w-4 h-4 mr-1" />
               Pending
@@ -336,6 +380,10 @@ export default function AdminMicroTasks() {
             <TabsTrigger value="fraud">
               <AlertTriangle className="w-4 h-4 mr-1" />
               Fraud
+            </TabsTrigger>
+            <TabsTrigger value="earnings">
+              <Wallet className="w-4 h-4 mr-1" />
+              Earnings
             </TabsTrigger>
           </TabsList>
 
@@ -631,6 +679,58 @@ export default function AdminMicroTasks() {
                       >
                         {user.is_soft_blocked ? 'Unblock' : 'Block'}
                       </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="earnings" className="space-y-4">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-28" />
+              ))
+            ) : earningEvents.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Coins className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">No earning events yet</p>
+                </CardContent>
+              </Card>
+            ) : (
+              earningEvents.map((event) => (
+                <Card key={event.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">{event.title}</span>
+                          <Badge variant={event.status === 'paid' ? 'default' : event.status === 'approved' ? 'secondary' : event.status === 'pending' ? 'outline' : 'destructive'}>
+                            {event.status}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p>User: {event.user_id}</p>
+                          <p>Type: {event.event_type}</p>
+                          <p>Created: {format(new Date(event.occurred_at), 'MMM d, h:mm a')}</p>
+                          <p className="flex items-center gap-1">
+                            <IndianRupee className="w-3 h-3" />
+                            ₹{Number(event.reward_rupees || 0).toFixed(2)} · {event.reward_coins || 0} coins
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button size="sm" variant="outline" disabled={processing === event.id} onClick={() => handleEarningStatusUpdate(event.id, 'approved')}>
+                          Approve
+                        </Button>
+                        <Button size="sm" disabled={processing === event.id} onClick={() => handleEarningStatusUpdate(event.id, 'paid')}>
+                          Mark Paid
+                        </Button>
+                        <Button size="sm" variant="destructive" disabled={processing === event.id} onClick={() => handleEarningStatusUpdate(event.id, 'rejected')}>
+                          Reject
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

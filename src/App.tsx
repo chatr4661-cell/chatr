@@ -440,7 +440,6 @@ const App = () => {
             <Route path="/u/:handle" element={<LazyRoute component={LazyPages.PublicProfile} />} />
             <Route path="/ai-clone-settings" element={<ProtectedLazyRoute component={LazyPages.AICloneSettings} />} />
             <Route path="/caller-id" element={<ProtectedLazyRoute component={LazyPages.CallerIdHub} />} />
-            <Route path="/earn" element={<LazyRoute component={LazyPages.EarnCampaign} />} />
             
             {/* Public profile shortlink: /handle (must be last before 404) */}
             <Route path="/:handle" element={<LazyRoute component={LazyPages.PublicProfile} />} />
