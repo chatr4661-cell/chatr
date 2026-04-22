@@ -6,7 +6,8 @@ import {
   Stethoscope, 
   Utensils,
   Search,
-  Store
+  Store,
+  Coins
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,12 @@ export const QuickActions = () => {
       label: 'Call',
       color: 'from-blue-500 to-indigo-600',
       action: () => navigate('/calls')
+    },
+    {
+      icon: Coins,
+      label: 'Earn',
+      color: 'from-yellow-500 to-amber-600',
+      action: () => navigate('/earn')
     },
     {
       icon: Store,
