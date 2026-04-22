@@ -1,153 +1,102 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, CheckCircle, XCircle, Clock, IndianRupee } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { ArrowLeft, Clock, Coins, IndianRupee } from 'lucide-react';
 
-interface SubmissionWithTask {
+interface EarningEvent {
   id: string;
-  status: string;
-  created_at: string;
-  rejection_reason: string | null;
-  task: {
-    title: string;
-    task_type: string;
-    reward_rupees: number;
-  } | null;
+  title: string;
+  description: string | null;
+  event_type: string;
+  status: 'pending' | 'approved' | 'paid' | 'rejected' | 'cancelled';
+  reward_coins: number;
+  reward_rupees: number;
+  occurred_at: string;
 }
 
 export default function EarnHistory() {
   const navigate = useNavigate();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [submissions, setSubmissions] = useState<SubmissionWithTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<EarningEvent[]>([]);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-    };
-    getUser();
-  }, []);
-
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (!userId) return;
-
+    const loadHistory = async () => {
+      setLoading(true);
       const { data, error } = await supabase
-        .from('micro_task_submissions')
-        .select(`
-          id,
-          status,
-          created_at,
-          rejection_reason,
-          task:micro_tasks (
-            title,
-            task_type,
-            reward_rupees
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .from('earning_events')
+        .select('id, title, description, event_type, status, reward_coins, reward_rupees, occurred_at')
+        .order('occurred_at', { ascending: false })
+        .limit(100);
 
-      if (!error && data) {
-        setSubmissions(data as SubmissionWithTask[]);
-      }
+      if (!error) setEvents((data || []) as EarningEvent[]);
       setLoading(false);
     };
 
-    fetchHistory();
-  }, [userId]);
+    loadHistory();
+  }, []);
 
-  const getStatusBadge = (status: string) => {
+  const badgeVariant = (status: EarningEvent['status']) => {
     switch (status) {
+      case 'paid':
+        return 'default';
       case 'approved':
-      case 'auto_approved':
-        return <Badge className="bg-green-500">Approved</Badge>;
-      case 'rejected':
-      case 'auto_rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
+        return 'secondary';
       case 'pending':
-      case 'manual_review':
-        return <Badge variant="secondary">Pending</Badge>;
+        return 'outline';
       default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-      case 'auto_approved':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'rejected':
-      case 'auto_rejected':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      default:
-        return <Clock className="w-5 h-5 text-amber-500" />;
+        return 'destructive';
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
         <div className="flex items-center gap-3 p-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-5 h-5" />
+          <Button variant="ghost" size="icon" onClick={() => navigate('/earn')}>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="font-bold text-lg">Task History</h1>
-            <p className="text-xs text-muted-foreground">Your completed tasks</p>
+            <h1 className="text-lg font-semibold">Earning History</h1>
+            <p className="text-xs text-muted-foreground">Every reward event, timestamp, and payout state</p>
           </div>
         </div>
       </header>
 
-      <div className="p-4 space-y-3">
+      <div className="mx-auto max-w-4xl space-y-3 p-4">
         {loading ? (
-          <>
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </>
-        ) : submissions.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No task history yet</p>
-            <Button className="mt-4" onClick={() => navigate('/earn')}>
-              Start Earning
-            </Button>
+          Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-24 w-full" />)
+        ) : events.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground">
+            <Clock className="mx-auto mb-4 h-12 w-12 opacity-50" />
+            <p>No earning history yet</p>
           </div>
         ) : (
-          submissions.map((sub) => (
-            <Card key={sub.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(sub.status)}
-                    <div>
-                      <p className="font-medium">{sub.task?.title || 'Unknown Task'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(sub.created_at), 'MMM d, yyyy • h:mm a')}
-                      </p>
-                      {sub.rejection_reason && (
-                        <p className="text-xs text-red-500 mt-1">{sub.rejection_reason}</p>
-                      )}
-                    </div>
+          events.map((event) => (
+            <Card key={event.id}>
+              <CardContent className="flex items-center justify-between gap-4 p-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{event.title}</p>
+                    <Badge variant={badgeVariant(event.status)}>{event.status}</Badge>
                   </div>
-                  <div className="text-right">
-                    {getStatusBadge(sub.status)}
-                    {(sub.status === 'approved' || sub.status === 'auto_approved') && (
-                      <div className="flex items-center justify-end mt-1 text-green-600 font-semibold">
-                        <IndianRupee className="w-3 h-3" />
-                        <span>{sub.task?.reward_rupees || 0}</span>
-                      </div>
-                    )}
+                  <p className="text-sm text-muted-foreground">{event.description || event.event_type}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {format(new Date(event.occurred_at), 'MMM d, yyyy • h:mm a')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center justify-end gap-1 font-medium">
+                    <IndianRupee className="h-3.5 w-3.5" />
+                    <span>{Number(event.reward_rupees || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-end gap-1 text-sm text-muted-foreground">
+                    <Coins className="h-3.5 w-3.5" />
+                    <span>{event.reward_coins || 0} coins</span>
                   </div>
                 </div>
               </CardContent>
