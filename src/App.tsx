@@ -15,6 +15,7 @@ import { GlobalCallListener } from "./components/calling/GlobalCallListener";
 import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
 import { CallProvider } from "./contexts/CallContext";
 import { PageLoader } from "./components/PageLoader";
+import { useUISpeedBudget } from "./hooks/useUISpeedBudget";
 
 // ============================================
 // CRITICAL PAGES - Eagerly loaded for instant navigation
@@ -98,6 +99,9 @@ const ProtectedLazyRoute = ({ component: Component }: { component: React.Compone
 );
 
 const App = () => {
+  // UI Speed Budget — warn when interactions exceed 100ms (Nielsen "instant" threshold)
+  useUISpeedBudget({ budgetMs: 100 });
+
   // Register service worker once on mount
   useEffect(() => {
     let registered = false;
