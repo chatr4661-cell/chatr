@@ -68,6 +68,7 @@ export default function AdminMicroTasks() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [fraudUsers, setFraudUsers] = useState<FraudUser[]>([]);
   const [earningEvents, setEarningEvents] = useState<EarningEventAdmin[]>([]);
+  const [earningFilter, setEarningFilter] = useState<'all' | EarningEventAdmin['status']>('all');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   
