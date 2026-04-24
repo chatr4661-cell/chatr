@@ -68,6 +68,7 @@ export default function AdminMicroTasks() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [fraudUsers, setFraudUsers] = useState<FraudUser[]>([]);
   const [earningEvents, setEarningEvents] = useState<EarningEventAdmin[]>([]);
+  const [earningFilter, setEarningFilter] = useState<'all' | EarningEventAdmin['status']>('all');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   
@@ -396,7 +397,7 @@ export default function AdminMicroTasks() {
             ) : submissions.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+                  <CheckCircle className="w-12 h-12 mx-auto mb-4 text-primary opacity-50" />
                   <p className="text-muted-foreground">No pending submissions</p>
                 </CardContent>
               </Card>
@@ -436,7 +437,7 @@ export default function AdminMicroTasks() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-green-600">
+                        <span className="text-sm font-medium text-primary">
                           ₹{submission.task?.reward_rupees}
                         </span>
                         <Button
@@ -662,8 +663,8 @@ export default function AdminMicroTasks() {
                         </div>
                         <div className="text-sm text-muted-foreground space-y-0.5">
                           <p className="flex items-center gap-2">
-                            <AlertTriangle className="w-3 h-3 text-amber-500" />
-                            Risk Score: <span className="font-medium text-amber-600">{user.risk_score}</span>
+                            <AlertTriangle className="w-3 h-3 text-destructive" />
+                            Risk Score: <span className="font-medium text-destructive">{user.risk_score}</span>
                           </p>
                           <p>Tasks completed: {user.tasks_completed}</p>
                           <p className="flex items-center gap-1">
@@ -687,55 +688,98 @@ export default function AdminMicroTasks() {
           </TabsContent>
 
           <TabsContent value="earnings" className="space-y-4">
+            {/* Summary stats */}
+            {!loading && earningEvents.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {(['pending', 'approved', 'paid', 'rejected'] as const).map((s) => {
+                  const items = earningEvents.filter((e) => e.status === s);
+                  const total = items.reduce((sum, e) => sum + Number(e.reward_rupees || 0), 0);
+                  return (
+                    <Card key={s}>
+                      <CardContent className="p-3">
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground">{s}</div>
+                        <div className="mt-1 text-lg font-semibold">₹{total.toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">{items.length} events</div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Filter chips */}
+            <div className="flex flex-wrap gap-2">
+              {(['all', 'pending', 'approved', 'paid', 'rejected', 'cancelled'] as const).map((f) => (
+                <Button
+                  key={f}
+                  size="sm"
+                  variant={earningFilter === f ? 'default' : 'outline'}
+                  onClick={() => setEarningFilter(f)}
+                  className="capitalize"
+                >
+                  {f}
+                </Button>
+              ))}
+            </div>
+
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-28" />
               ))
-            ) : earningEvents.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Coins className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground">No earning events yet</p>
-                </CardContent>
-              </Card>
-            ) : (
-              earningEvents.map((event) => (
+            ) : (() => {
+              const filtered = earningFilter === 'all'
+                ? earningEvents
+                : earningEvents.filter((e) => e.status === earningFilter);
+              if (filtered.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Coins className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <p className="text-muted-foreground">No earning events for this filter</p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              return filtered.map((event) => (
                 <Card key={event.id}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-medium">{event.title}</span>
                           <Badge variant={event.status === 'paid' ? 'default' : event.status === 'approved' ? 'secondary' : event.status === 'pending' ? 'outline' : 'destructive'}>
                             {event.status}
                           </Badge>
+                          <Badge variant="outline" className="capitalize">{event.event_type.replace(/_/g, ' ')}</Badge>
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
-                          <p>User: {event.user_id}</p>
-                          <p>Type: {event.event_type}</p>
+                          <p className="truncate font-mono text-xs">User: {event.user_id}</p>
                           <p>Created: {format(new Date(event.occurred_at), 'MMM d, h:mm a')}</p>
-                          <p className="flex items-center gap-1">
+                          <p className="flex items-center gap-1 font-medium text-foreground">
                             <IndianRupee className="w-3 h-3" />
                             ₹{Number(event.reward_rupees || 0).toFixed(2)} · {event.reward_coins || 0} coins
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <Button size="sm" variant="outline" disabled={processing === event.id} onClick={() => handleEarningStatusUpdate(event.id, 'approved')}>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <Button size="sm" variant="outline" disabled={processing === event.id || event.status === 'approved' || event.status === 'paid'} onClick={() => handleEarningStatusUpdate(event.id, 'approved')}>
+                          <CheckCircle className="w-3.5 h-3.5 mr-1" />
                           Approve
                         </Button>
-                        <Button size="sm" disabled={processing === event.id} onClick={() => handleEarningStatusUpdate(event.id, 'paid')}>
+                        <Button size="sm" disabled={processing === event.id || event.status === 'paid'} onClick={() => handleEarningStatusUpdate(event.id, 'paid')}>
+                          <Wallet className="w-3.5 h-3.5 mr-1" />
                           Mark Paid
                         </Button>
-                        <Button size="sm" variant="destructive" disabled={processing === event.id} onClick={() => handleEarningStatusUpdate(event.id, 'rejected')}>
+                        <Button size="sm" variant="destructive" disabled={processing === event.id || event.status === 'rejected'} onClick={() => handleEarningStatusUpdate(event.id, 'rejected')}>
+                          <XCircle className="w-3.5 h-3.5 mr-1" />
                           Reject
                         </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              ))
-            )}
+              ));
+            })()}
           </TabsContent>
         </Tabs>
       </div>
