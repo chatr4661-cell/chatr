@@ -397,7 +397,7 @@ export default function AdminMicroTasks() {
             ) : submissions.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+                  <CheckCircle className="w-12 h-12 mx-auto mb-4 text-primary opacity-50" />
                   <p className="text-muted-foreground">No pending submissions</p>
                 </CardContent>
               </Card>
@@ -437,7 +437,7 @@ export default function AdminMicroTasks() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-green-600">
+                        <span className="text-sm font-medium text-primary">
                           ₹{submission.task?.reward_rupees}
                         </span>
                         <Button
@@ -663,8 +663,8 @@ export default function AdminMicroTasks() {
                         </div>
                         <div className="text-sm text-muted-foreground space-y-0.5">
                           <p className="flex items-center gap-2">
-                            <AlertTriangle className="w-3 h-3 text-amber-500" />
-                            Risk Score: <span className="font-medium text-amber-600">{user.risk_score}</span>
+                            <AlertTriangle className="w-3 h-3 text-destructive" />
+                            Risk Score: <span className="font-medium text-destructive">{user.risk_score}</span>
                           </p>
                           <p>Tasks completed: {user.tasks_completed}</p>
                           <p className="flex items-center gap-1">
