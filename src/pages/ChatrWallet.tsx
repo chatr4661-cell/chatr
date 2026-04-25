@@ -105,6 +105,36 @@ const ChatrWallet = () => {
   const [filter, setFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hideBalance, setHideBalance] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const PAGE_SIZE = 20;
+
+  const fetchTransactionsPage = useCallback(
+    async (userId: string, cursor?: { created_at: string; id: string }) => {
+      let query = supabase
+        .from('chatr_wallet_transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(PAGE_SIZE + 1);
+
+      if (cursor) {
+        // Cursor: fetch rows strictly older than the cursor, breaking ties by id
+        query = query.or(
+          `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`,
+        );
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      const rows = (data as Transaction[]) || [];
+      const more = rows.length > PAGE_SIZE;
+      return { rows: more ? rows.slice(0, PAGE_SIZE) : rows, more };
+    },
+    [],
+  );
 
   const loadWalletData = useCallback(async (silent = false) => {
     try {
@@ -132,21 +162,39 @@ const ChatrWallet = () => {
 
       setWallet(walletData as WalletData);
 
-      const { data: txData } = await supabase
-        .from('chatr_wallet_transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      setTransactions((txData as Transaction[]) || []);
+      const { rows, more } = await fetchTransactionsPage(user.id);
+      setTransactions(rows);
+      setHasMore(more);
     } catch (error) {
       console.error('Error loading wallet:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [navigate]);
+  }, [navigate, fetchTransactionsPage]);
+
+  const loadMoreTransactions = useCallback(async () => {
+    if (loadingMore || !hasMore || transactions.length === 0) return;
+    try {
+      setLoadingMore(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const last = transactions[transactions.length - 1];
+      const { rows, more } = await fetchTransactionsPage(user.id, {
+        created_at: last.created_at,
+        id: last.id,
+      });
+      setTransactions((prev) => {
+        const seen = new Set(prev.map((t) => t.id));
+        return [...prev, ...rows.filter((r) => !seen.has(r.id))];
+      });
+      setHasMore(more);
+    } catch (error) {
+      console.error('Error loading more transactions:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, transactions, fetchTransactionsPage]);
 
   useEffect(() => {
     loadWalletData(true);
