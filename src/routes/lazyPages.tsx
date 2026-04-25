@@ -272,6 +272,7 @@ export const Account = lazy(() => import('@/pages/Account'));
 export const Settings = lazy(() => import('@/pages/Settings'));
 export const NotificationSettings = lazy(() => import('@/pages/NotificationSettings'));
 export const Notifications = lazy(() => import('@/pages/Notifications'));
+export const DigestNotificationSettings = lazy(() => import('@/pages/DigestNotificationSettings'));
 export const DeviceManagement = lazy(() => import('@/pages/DeviceManagement'));
 export const StealthMode = lazy(() => import('@/pages/StealthMode'));
 export const Privacy = lazy(() => import('@/pages/Privacy'));
