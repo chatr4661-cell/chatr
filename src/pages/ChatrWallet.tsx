@@ -593,6 +593,19 @@ const ChatrWallet = () => {
                         </Card>
                       );
                     })}
+                    {hasMore && !searchQuery && filter === 'all' && (
+                      <div className="pt-2 flex justify-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={loadMoreTransactions}
+                          disabled={loadingMore}
+                          className="w-full"
+                        >
+                          {loadingMore ? 'Loading…' : 'Load more transactions'}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
