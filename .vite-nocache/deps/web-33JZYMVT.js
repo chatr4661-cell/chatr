@@ -1,7 +1,3 @@
-import {
-  ConsentStatus,
-  ConsentType
-} from "./chunk-J6T5ICL4.js";
 import "./chunk-AMSY7WY7.js";
 import {
   Component,
@@ -20,6 +16,10 @@ import {
   registerVersion,
   validateIndexedDBOpenable
 } from "./chunk-23AOO2QN.js";
+import {
+  ConsentStatus,
+  ConsentType
+} from "./chunk-J6T5ICL4.js";
 import {
   WebPlugin
 } from "./chunk-VYAGUGCM.js";
@@ -779,4 +779,4 @@ export {
    * limitations under the License.
    *)
 */
-//# sourceMappingURL=web-KFEDTBIZ.js.map
+//# sourceMappingURL=web-33JZYMVT.js.map
