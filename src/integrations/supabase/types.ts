@@ -12531,6 +12531,8 @@ export type Database = {
           call_notifications: boolean | null
           chat_notifications: boolean | null
           created_at: string | null
+          digest_categories: Json | null
+          digest_enabled: boolean | null
           group_notifications: boolean | null
           id: string
           marketing_alerts: boolean | null
@@ -12545,6 +12547,8 @@ export type Database = {
           call_notifications?: boolean | null
           chat_notifications?: boolean | null
           created_at?: string | null
+          digest_categories?: Json | null
+          digest_enabled?: boolean | null
           group_notifications?: boolean | null
           id?: string
           marketing_alerts?: boolean | null
@@ -12559,6 +12563,8 @@ export type Database = {
           call_notifications?: boolean | null
           chat_notifications?: boolean | null
           created_at?: string | null
+          digest_categories?: Json | null
+          digest_enabled?: boolean | null
           group_notifications?: boolean | null
           id?: string
           marketing_alerts?: boolean | null
@@ -12610,6 +12616,8 @@ export type Database = {
         Row: {
           action_url: string | null
           created_at: string | null
+          delivery_error: string | null
+          delivery_status: string | null
           description: string
           id: string
           metadata: Json | null
@@ -12621,6 +12629,8 @@ export type Database = {
         Insert: {
           action_url?: string | null
           created_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string | null
           description: string
           id?: string
           metadata?: Json | null
@@ -12632,6 +12642,8 @@ export type Database = {
         Update: {
           action_url?: string | null
           created_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string | null
           description?: string
           id?: string
           metadata?: Json | null
