@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Activity, AlertTriangle, CheckCircle2, Clock, RefreshCw, Timer, XCircle, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
-import cronParser from "cron-parser";
+import { CronExpressionParser } from "cron-parser";
 
 type RunDetail = {
   runid: number;
