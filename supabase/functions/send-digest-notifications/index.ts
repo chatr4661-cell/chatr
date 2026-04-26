@@ -13,6 +13,88 @@ const corsHeaders = {
 const WINDOW_HOURS = 3;
 const BATCH_SIZE = 50;
 const MAX_USERS_PER_RUN = 5000;
+const MAX_RETRIES = 5;
+const RETRY_BASE_MINUTES = 2; // exponential: 2, 4, 8, 16, 32 min
+const MAX_RETRY_BATCH = 500;
+
+function nextRetryAt(attempt: number): string {
+  // attempt is the upcoming attempt number (1..MAX_RETRIES)
+  const minutes = RETRY_BASE_MINUTES * Math.pow(2, Math.max(0, attempt - 1));
+  return new Date(Date.now() + minutes * 60 * 1000).toISOString();
+}
+
+async function attemptPush(
+  supabase: ReturnType<typeof createClient>,
+  notif: { id: string; user_id: string; title: string; description: string; metadata: any; retry_count: number; max_retries: number },
+): Promise<void> {
+  const nextAttempt = (notif.retry_count ?? 0) + 1;
+  const maxR = notif.max_retries ?? MAX_RETRIES;
+  const meta = notif.metadata ?? {};
+  const { error: invokeErr } = await supabase.functions.invoke("send-module-notification", {
+    body: {
+      userId: notif.user_id,
+      type: "digest_update",
+      title: notif.title,
+      body: notif.description,
+      data: {
+        route: meta.route ?? "/home",
+        action: meta.action ?? "open_digest",
+        notification_id: notif.id,
+        window_hours: String(meta.window_hours ?? WINDOW_HOURS),
+      },
+      skipInAppInsert: true,
+    },
+  });
+
+  const nowIso = new Date().toISOString();
+  if (!invokeErr) {
+    await supabase.from("notifications").update({
+      delivery_status: "delivered",
+      delivery_error: null,
+      retry_count: nextAttempt,
+      last_attempt_at: nowIso,
+      next_retry_at: null,
+    }).eq("id", notif.id);
+    return;
+  }
+
+  const exhausted = nextAttempt >= maxR;
+  await supabase.from("notifications").update({
+    delivery_status: exhausted ? "failed_permanent" : "failed",
+    delivery_error: invokeErr.message ?? "push failed",
+    retry_count: nextAttempt,
+    last_attempt_at: nowIso,
+    next_retry_at: exhausted ? null : nextRetryAt(nextAttempt),
+  }).eq("id", notif.id);
+}
+
+async function processRetryQueue(supabase: ReturnType<typeof createClient>): Promise<{ retried: number; recovered: number; stillFailing: number }> {
+  const nowIso = new Date().toISOString();
+  const { data: due, error } = await supabase
+    .from("notifications")
+    .select("id, user_id, title, description, metadata, retry_count, max_retries")
+    .eq("type", "digest_update")
+    .eq("delivery_status", "failed")
+    .lte("next_retry_at", nowIso)
+    .order("next_retry_at", { ascending: true })
+    .limit(MAX_RETRY_BATCH);
+
+  if (error || !due?.length) return { retried: 0, recovered: 0, stillFailing: 0 };
+
+  let recovered = 0, stillFailing = 0;
+  for (let i = 0; i < due.length; i += BATCH_SIZE) {
+    const slice = due.slice(i, i + BATCH_SIZE);
+    await Promise.all(slice.map(async (n: any) => {
+      const before = n.retry_count ?? 0;
+      await attemptPush(supabase, n);
+      const { data: after } = await supabase.from("notifications").select("delivery_status").eq("id", n.id).maybeSingle();
+      if (after?.delivery_status === "delivered") recovered++;
+      else stillFailing++;
+      void before;
+    }));
+  }
+  return { retried: due.length, recovered, stillFailing };
+}
 
 type CategoryKey =
   | "wallet" | "earnings" | "referrals" | "missions"
@@ -143,7 +225,7 @@ serve(async (req) => {
           const text = buildDigestText(summary, cats);
           if (!text) { skippedNoContent++; return; }
 
-          // Insert in-app notification with pending status, then update after push attempt
+          // Insert in-app notification with pending status, then attempt push
           const { data: notifRow, error: notifErr } = await supabase
             .from("notifications")
             .insert({
@@ -152,6 +234,8 @@ serve(async (req) => {
               title: text.title,
               description: text.body,
               delivery_status: "pending",
+              retry_count: 0,
+              max_retries: MAX_RETRIES,
               metadata: {
                 route: "/home",
                 action: "open_digest",
@@ -160,43 +244,25 @@ serve(async (req) => {
                 summary,
               },
             })
-            .select("id")
+            .select("id, user_id, title, description, metadata, retry_count, max_retries")
             .single();
 
-          if (notifErr) {
+          if (notifErr || !notifRow) {
             failed++;
-            console.error(`[digest] notif insert failed for ${userId}:`, notifErr.message);
+            console.error(`[digest] notif insert failed for ${userId}:`, notifErr?.message);
             return;
           }
 
-          // Fan-out push
-          const { error: invokeErr } = await supabase.functions.invoke("send-module-notification", {
-            body: {
-              userId,
-              type: "digest_update",
-              title: text.title,
-              body: text.body,
-              data: {
-                route: "/home",
-                action: "open_digest",
-                notification_id: notifRow.id,
-                window_hours: String(WINDOW_HOURS),
-              },
-              skipInAppInsert: true,
-            },
-          });
+          await attemptPush(supabase, notifRow as any);
 
-          await supabase.from("notifications").update({
-            delivery_status: invokeErr ? "failed" : "delivered",
-            delivery_error: invokeErr ? (invokeErr.message ?? "push failed") : null,
-          }).eq("id", notifRow.id);
+          const { data: after } = await supabase
+            .from("notifications")
+            .select("delivery_status")
+            .eq("id", (notifRow as any).id)
+            .maybeSingle();
 
-          if (invokeErr) {
-            failed++;
-            console.error(`[digest] invoke failed for ${userId}:`, invokeErr.message);
-          } else {
-            sent++;
-          }
+          if (after?.delivery_status === "delivered") sent++;
+          else failed++;
         } catch (e) {
           failed++;
           console.error(`[digest] user ${userId} failed:`, e);
@@ -204,12 +270,17 @@ serve(async (req) => {
       }));
     }
 
+    // Process retry queue for previously failed digests whose backoff window has elapsed
+    const retryStats = await processRetryQueue(supabase);
+    console.log(`[digest] retries — attempted: ${retryStats.retried}, recovered: ${retryStats.recovered}, still_failing: ${retryStats.stillFailing}`);
+
     const ms = Date.now() - startedAt;
     console.log(`[digest] done in ${ms}ms — sent: ${sent}, skipped_empty: ${skippedNoContent}, skipped_off: ${skippedDisabled}, failed: ${failed}`);
 
     return new Response(JSON.stringify({
       success: true, eligible: userIds.length,
       sent, skipped_no_content: skippedNoContent, skipped_disabled: skippedDisabled, failed,
+      retries: retryStats,
       duration_ms: ms,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {

@@ -12620,8 +12620,12 @@ export type Database = {
           delivery_status: string | null
           description: string
           id: string
+          last_attempt_at: string | null
+          max_retries: number
           metadata: Json | null
+          next_retry_at: string | null
           read: boolean | null
+          retry_count: number
           title: string
           type: string
           user_id: string
@@ -12633,8 +12637,12 @@ export type Database = {
           delivery_status?: string | null
           description: string
           id?: string
+          last_attempt_at?: string | null
+          max_retries?: number
           metadata?: Json | null
+          next_retry_at?: string | null
           read?: boolean | null
+          retry_count?: number
           title: string
           type: string
           user_id: string
@@ -12646,8 +12654,12 @@ export type Database = {
           delivery_status?: string | null
           description?: string
           id?: string
+          last_attempt_at?: string | null
+          max_retries?: number
           metadata?: Json | null
+          next_retry_at?: string | null
           read?: boolean | null
+          retry_count?: number
           title?: string
           type?: string
           user_id?: string
