@@ -15,7 +15,8 @@ import {
   LogOut,
   Wand2,
   Database,
-  Crown
+  Crown,
+  HeartPulse
 } from "lucide-react";
 import {
   Sidebar,
