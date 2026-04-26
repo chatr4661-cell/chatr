@@ -12,6 +12,7 @@ interface NotificationRequest {
   title: string;
   body: string;
   data?: Record<string, string>;
+  skipInAppInsert?: boolean;
 }
 
 // Channel mapping for Android notification channels
