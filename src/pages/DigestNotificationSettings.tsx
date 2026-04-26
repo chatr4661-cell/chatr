@@ -136,7 +136,7 @@ export default function DigestNotificationSettings() {
         </div>
       )}
 
-      <div className="px-4 py-3 space-y-3">
+      {userId && <div className="px-4 py-3 space-y-3">
         <AppleCard padding="md">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
