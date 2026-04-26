@@ -1,0 +1,1 @@
+UPDATE public.notifications SET next_retry_at = now() WHERE type = 'digest_update' AND delivery_status = 'failed' AND retry_count < COALESCE(max_retries, 5);

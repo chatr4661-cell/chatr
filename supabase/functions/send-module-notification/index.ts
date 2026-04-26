@@ -12,6 +12,7 @@ interface NotificationRequest {
   title: string;
   body: string;
   data?: Record<string, string>;
+  skipInAppInsert?: boolean;
 }
 
 // Channel mapping for Android notification channels
@@ -45,7 +46,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userId, type, title, body, data } = await req.json() as NotificationRequest;
+    const { userId, type, title, body, data, skipInAppInsert } = await req.json() as NotificationRequest;
 
     if (!userId || !type || !title || !body) {
       return new Response(
@@ -54,23 +55,25 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[send-module-notification] Sending ${type} notification to user ${userId}`);
+    console.log(`[send-module-notification] Sending ${type} notification to user ${userId} (skipInsert=${!!skipInAppInsert})`);
 
-    // 1. Store notification in database
-    const { error: dbError } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: userId,
-        title,
-        message: body,
-        type,
-        data: data || {},
-        read: false,
-        created_at: new Date().toISOString()
-      });
+    // 1. Store notification in database (skip when caller already inserted)
+    if (!skipInAppInsert) {
+      const { error: dbError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title,
+          message: body,
+          type,
+          data: data || {},
+          read: false,
+          created_at: new Date().toISOString()
+        });
 
-    if (dbError) {
-      console.error('[send-module-notification] DB insert error:', dbError);
+      if (dbError) {
+        console.error('[send-module-notification] DB insert error:', dbError);
+      }
     }
 
     // 2. Check user notification preferences
