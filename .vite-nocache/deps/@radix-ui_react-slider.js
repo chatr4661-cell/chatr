@@ -1,10 +1,10 @@
 "use client";
 import {
-  clamp
-} from "./chunk-IBYNPOIK.js";
-import {
   usePrevious
 } from "./chunk-CX7GQNR5.js";
+import {
+  clamp
+} from "./chunk-IBYNPOIK.js";
 import {
   createCollection
 } from "./chunk-CX2GNZ63.js";
@@ -15,11 +15,11 @@ import {
   useSize
 } from "./chunk-WGSIBC7Y.js";
 import {
-  composeEventHandlers
-} from "./chunk-QFY2MIVH.js";
-import {
   useControllableState
 } from "./chunk-JW3ZVZUI.js";
+import {
+  composeEventHandlers
+} from "./chunk-QFY2MIVH.js";
 import "./chunk-WQO7IIEA.js";
 import {
   createContextScope

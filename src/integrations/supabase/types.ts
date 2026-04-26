@@ -18817,6 +18817,7 @@ export type Database = {
           status: string
         }[]
       }
+      get_cron_jobs_health: { Args: { name_filter?: string }; Returns: Json }
       get_public_profile: { Args: { handle_input: string }; Returns: Json }
       get_user_conversations: {
         Args: never

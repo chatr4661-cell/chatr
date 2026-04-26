@@ -1,4 +1,4 @@
-// node_modules/.bun/@capacitor+core@3.9.0/node_modules/@capacitor/core/dist/index.js
+// node_modules/.bun/capacitor-native-biometric@4.2.2/node_modules/capacitor-native-biometric/node_modules/@capacitor/core/dist/index.js
 var createCapacitorPlatforms = (win) => {
   const defaultPlatformMap = /* @__PURE__ */ new Map();
   defaultPlatformMap.set("web", { name: "web" });
@@ -300,4 +300,4 @@ export {
 @capacitor/core/dist/index.js:
   (*! Capacitor: https://capacitorjs.com/ - MIT License *)
 */
-//# sourceMappingURL=chunk-V4DC6ORF.js.map
+//# sourceMappingURL=chunk-RNRH6KML.js.map

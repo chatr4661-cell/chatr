@@ -15,7 +15,8 @@ import {
   LogOut,
   Wand2,
   Database,
-  Crown
+  Crown,
+  HeartPulse
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,6 +42,7 @@ const adminMenuItems = [
   { title: "Schema Manager", url: "/admin/schema-manager", icon: Database },
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Job Health", url: "/admin/job-health", icon: HeartPulse },
   { title: "Announcements", url: "/admin/announcements", icon: Megaphone },
   { title: "Payments", url: "/admin/payments", icon: DollarSign },
   { title: "Documents", url: "/admin/documents", icon: FileText },
