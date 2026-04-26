@@ -176,7 +176,7 @@ export default function DigestNotificationSettings() {
             ))}
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
