@@ -280,6 +280,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true, eligible: userIds.length,
       sent, skipped_no_content: skippedNoContent, skipped_disabled: skippedDisabled, failed,
+      retries: retryStats,
       duration_ms: ms,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
