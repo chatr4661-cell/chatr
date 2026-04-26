@@ -265,6 +265,7 @@ export const AppApprovals = lazy(() => import('@/pages/admin/AppApprovals'));
 export const OfficialAccountsManager = lazy(() => import('@/pages/admin/OfficialAccountsManager'));
 export const BroadcastManager = lazy(() => import('@/pages/admin/BroadcastManager'));
 export const PaymentVerification = lazy(() => import('@/pages/admin/PaymentVerification'));
+export const AdminJobHealth = lazy(() => import('@/pages/admin/JobHealth'));
 export const ChatrWorldAdmin = lazy(() => import('@/pages/ChatrWorldAdmin'));
 
 // Settings & Account
