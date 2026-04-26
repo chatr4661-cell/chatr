@@ -52,7 +52,7 @@ export default function DigestNotificationSettings() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate('/auth');
+        setLoading(false);
         return;
       }
       setUserId(user.id);
