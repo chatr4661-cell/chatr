@@ -47,7 +47,7 @@ function parseCronToInterval(schedule: string): number | null {
 
 function nextRunFromCron(schedule: string): Date | null {
   try {
-    const it = cronParser.parseExpression(schedule, { utc: true });
+    const it = CronExpressionParser.parse(schedule, { tz: "UTC" });
     return it.next().toDate();
   } catch {
     return null;
