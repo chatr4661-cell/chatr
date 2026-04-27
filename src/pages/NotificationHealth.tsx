@@ -123,15 +123,26 @@ export default function NotificationHealth() {
       } else {
         await reregisterWeb(userId);
       }
-      toast.success("Device re-registered. Notifications restored.");
+      // Immediately refresh status so the user sees the updated result
+      // without leaving the screen.
       await loadHealth(userId);
+      toast.success("Device re-registered. Notifications restored.");
     } catch (e: any) {
       console.error("[NotificationHealth] Re-register failed:", e);
       toast.error(e?.message || "Failed to re-register device");
+      // Still refresh — backend may have flagged the failure.
+      await loadHealth(userId);
     } finally {
       setReregistering(false);
     }
   };
+
+  const formatTimestamp = (iso: string | null | undefined) => {
+    if (!iso) return "Never";
+    return new Date(iso).toLocaleString();
+  };
+
+  const lastCheckedDisplay = formatTimestamp(health?.last_checked_at ?? health?.updated_at);
 
   const isInvalid = health && health.has_valid_token === false;
 
