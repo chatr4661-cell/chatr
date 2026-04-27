@@ -66,6 +66,18 @@ async function attemptPush(
     last_attempt_at: nowIso,
     next_retry_at: exhausted ? null : nextRetryAt(nextAttempt),
   }).eq("id", notif.id);
+
+  // If retries exhausted, flag user as having invalid token to short-circuit future runs
+  if (exhausted) {
+    await supabase.from("user_push_health").upsert({
+      user_id: notif.user_id,
+      has_valid_token: false,
+      last_checked_at: nowIso,
+      last_error: invokeErr.message ?? "push failed",
+      consecutive_failures: nextAttempt,
+      updated_at: nowIso,
+    }, { onConflict: "user_id" });
+  }
 }
 
 async function processRetryQueue(supabase: ReturnType<typeof createClient>): Promise<{ retried: number; recovered: number; stillFailing: number }> {
@@ -199,8 +211,18 @@ serve(async (req) => {
     const { data: tokenRows, error: tokenErr } = await supabase.from("device_tokens").select("user_id").limit(MAX_USERS_PER_RUN);
     if (tokenErr) throw tokenErr;
 
-    const userIds = Array.from(new Set((tokenRows ?? []).map((r: any) => r.user_id).filter(Boolean)));
-    console.log(`[digest] eligible users: ${userIds.length}`);
+    const allUserIds = Array.from(new Set((tokenRows ?? []).map((r: any) => r.user_id).filter(Boolean)));
+
+    // Exclude users flagged with invalid push tokens (prevents pointless retries)
+    const { data: invalidUsers } = await supabase
+      .from("user_push_health")
+      .select("user_id")
+      .eq("has_valid_token", false);
+    const invalidSet = new Set((invalidUsers ?? []).map((r: any) => r.user_id));
+    const userIds = allUserIds.filter((id) => !invalidSet.has(id));
+    const skippedInvalidToken = allUserIds.length - userIds.length;
+
+    console.log(`[digest] eligible: ${userIds.length}, skipped invalid-token: ${skippedInvalidToken}`);
 
     let sent = 0, skippedNoContent = 0, skippedDisabled = 0, failed = 0;
 
@@ -279,7 +301,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true, eligible: userIds.length,
-      sent, skipped_no_content: skippedNoContent, skipped_disabled: skippedDisabled, failed,
+      sent, skipped_no_content: skippedNoContent, skipped_disabled: skippedDisabled,
+      skipped_invalid_token: skippedInvalidToken, failed,
       retries: retryStats,
       duration_ms: ms,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

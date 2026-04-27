@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../../node_modules/.bun/capacitor-native-biometric@4.2.2/node_modules/capacitor-native-biometric/src/web.ts"],
-  "sourcesContent": [null],
-  "mappings": ";;;;;;AAWM,IAAO,qBAAP,cACI,UAAS;EAGjB,cAAA;AACE,UAAK;EACP;EACA,cAAW;AACT,UAAM,IAAI,MAAM,yBAAyB;EAC3C;EAEA,eAAe,UAA2B;AACxC,UAAM,IAAI,MAAM,yBAAyB;EAC3C;EACA,eAAe,UAA8B;AAC3C,UAAM,IAAI,MAAM,yBAAyB;EAC3C;EACA,eAAe,UAA8B;AAC3C,UAAM,IAAI,MAAM,yBAAyB;EAC3C;EACA,kBAAkB,UAAiC;AACjD,UAAM,IAAI,MAAM,yBAAyB;EAC3C;;",
-  "names": []
-}

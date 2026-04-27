@@ -3,11 +3,11 @@ import {
   VISUALLY_HIDDEN_STYLES
 } from "./chunk-MTI7QQA4.js";
 import {
-  usePrevious
-} from "./chunk-CX7GQNR5.js";
-import {
   clamp
 } from "./chunk-IBYNPOIK.js";
+import {
+  usePrevious
+} from "./chunk-CX7GQNR5.js";
 import {
   createCollection
 } from "./chunk-CX2GNZ63.js";

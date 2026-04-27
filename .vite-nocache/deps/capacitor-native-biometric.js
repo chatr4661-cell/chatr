@@ -1,6 +1,6 @@
 import {
   registerPlugin
-} from "./chunk-RNRH6KML.js";
+} from "./chunk-V4DC6ORF.js";
 import "./chunk-V4OQ3NZ2.js";
 
 // node_modules/.bun/capacitor-native-biometric@4.2.2/node_modules/capacitor-native-biometric/dist/esm/definitions.js
@@ -33,7 +33,7 @@ var BiometricAuthError;
 
 // node_modules/.bun/capacitor-native-biometric@4.2.2/node_modules/capacitor-native-biometric/dist/esm/index.js
 var NativeBiometric = registerPlugin("NativeBiometric", {
-  web: () => import("./web-YR7ZP55V.js").then((m) => new m.NativeBiometricWeb())
+  web: () => import("./web-7U3AIQD5.js").then((m) => new m.NativeBiometricWeb())
 });
 export {
   BiometricAuthError,
