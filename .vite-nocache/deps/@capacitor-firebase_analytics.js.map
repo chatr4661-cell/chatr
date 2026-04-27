@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../node_modules/.bun/@capacitor-firebase+analytics@7.4.0+1476e03926521c16/node_modules/@capacitor-firebase/analytics/src/index.ts"],
+  "sourcesContent": ["import { registerPlugin } from '@capacitor/core';\n\nimport type { FirebaseAnalyticsPlugin } from './definitions';\n\nconst FirebaseAnalytics = registerPlugin<FirebaseAnalyticsPlugin>(\n  'FirebaseAnalytics',\n  {\n    web: () => import('./web').then(m => new m.FirebaseAnalyticsWeb()),\n  },\n);\n\nexport * from './definitions';\nexport { FirebaseAnalytics };\n"],
+  "mappings": ";;;;;;;;;;AAIA,IAAM,oBAAoB,eACxB,qBACA;EACE,KAAK,MAAM,OAAO,mBAAO,EAAE,KAAK,OAAK,IAAI,EAAE,qBAAoB,CAAE;CAClE;",
+  "names": []
+}
