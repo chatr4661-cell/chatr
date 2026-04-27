@@ -123,15 +123,26 @@ export default function NotificationHealth() {
       } else {
         await reregisterWeb(userId);
       }
-      toast.success("Device re-registered. Notifications restored.");
+      // Immediately refresh status so the user sees the updated result
+      // without leaving the screen.
       await loadHealth(userId);
+      toast.success("Device re-registered. Notifications restored.");
     } catch (e: any) {
       console.error("[NotificationHealth] Re-register failed:", e);
       toast.error(e?.message || "Failed to re-register device");
+      // Still refresh — backend may have flagged the failure.
+      await loadHealth(userId);
     } finally {
       setReregistering(false);
     }
   };
+
+  const formatTimestamp = (iso: string | null | undefined) => {
+    if (!iso) return "Never";
+    return new Date(iso).toLocaleString();
+  };
+
+  const lastCheckedDisplay = formatTimestamp(health?.last_checked_at ?? health?.updated_at);
 
   const isInvalid = health && health.has_valid_token === false;
 
@@ -182,16 +193,14 @@ export default function NotificationHealth() {
                     <span className="text-muted-foreground">Failed attempts</span>
                     <span>{health?.consecutive_failures ?? 0}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last checked</span>
+                    <span>{lastCheckedDisplay}</span>
+                  </div>
                   {health?.last_error && (
                     <div>
                       <div className="text-muted-foreground mb-1">Last error</div>
                       <code className="block text-xs p-2 bg-muted rounded break-all">{health.last_error}</code>
-                    </div>
-                  )}
-                  {health?.last_checked_at && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Last checked</span>
-                      <span>{new Date(health.last_checked_at).toLocaleString()}</span>
                     </div>
                   )}
                 </CardContent>
@@ -238,12 +247,10 @@ export default function NotificationHealth() {
                     <span className="text-muted-foreground">Token status</span>
                     <Badge variant="secondary">Valid</Badge>
                   </div>
-                  {health?.updated_at && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Last updated</span>
-                      <span>{new Date(health.updated_at).toLocaleString()}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last checked</span>
+                    <span>{lastCheckedDisplay}</span>
+                  </div>
                 </CardContent>
               </Card>
 

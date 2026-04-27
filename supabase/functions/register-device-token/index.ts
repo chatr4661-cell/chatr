@@ -43,7 +43,34 @@ serve(async (req) => {
 
     console.log(`Registering device token for user ${userId}, platform: ${platform}`);
 
-    // Upsert the device token (only using columns that exist in the table)
+    // Step 1: Remove any stale tokens for this user on the same platform that are NOT
+    // the new token. This prevents duplicate device records when FCM rotates the token.
+    const { error: cleanupError } = await supabase
+      .from('device_tokens')
+      .delete()
+      .eq('user_id', userId)
+      .eq('platform', platform)
+      .neq('device_token', token);
+
+    if (cleanupError) {
+      console.warn('Warning: failed to clean up stale device tokens:', cleanupError);
+    } else {
+      console.log(`Cleared stale ${platform} tokens for user ${userId}`);
+    }
+
+    // Step 2: Also remove this exact token if it exists for any OTHER user
+    // (token reassignment after device handoff/factory reset).
+    const { error: reassignError } = await supabase
+      .from('device_tokens')
+      .delete()
+      .eq('device_token', token)
+      .neq('user_id', userId);
+
+    if (reassignError) {
+      console.warn('Warning: failed to clear token from other users:', reassignError);
+    }
+
+    // Step 3: Upsert the fresh token (replaces existing row for same user+token)
     const { data, error } = await supabase
       .from('device_tokens')
       .upsert({
