@@ -193,16 +193,14 @@ export default function NotificationHealth() {
                     <span className="text-muted-foreground">Failed attempts</span>
                     <span>{health?.consecutive_failures ?? 0}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last checked</span>
+                    <span>{lastCheckedDisplay}</span>
+                  </div>
                   {health?.last_error && (
                     <div>
                       <div className="text-muted-foreground mb-1">Last error</div>
                       <code className="block text-xs p-2 bg-muted rounded break-all">{health.last_error}</code>
-                    </div>
-                  )}
-                  {health?.last_checked_at && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Last checked</span>
-                      <span>{new Date(health.last_checked_at).toLocaleString()}</span>
                     </div>
                   )}
                 </CardContent>
