@@ -247,12 +247,10 @@ export default function NotificationHealth() {
                     <span className="text-muted-foreground">Token status</span>
                     <Badge variant="secondary">Valid</Badge>
                   </div>
-                  {health?.updated_at && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Last updated</span>
-                      <span>{new Date(health.updated_at).toLocaleString()}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last checked</span>
+                    <span>{lastCheckedDisplay}</span>
+                  </div>
                 </CardContent>
               </Card>
 
