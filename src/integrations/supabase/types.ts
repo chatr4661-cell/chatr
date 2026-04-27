@@ -17789,6 +17789,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_push_health: {
+        Row: {
+          consecutive_failures: number
+          has_valid_token: boolean
+          invalid_token_count: number
+          last_checked_at: string
+          last_error: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          has_valid_token?: boolean
+          invalid_token_count?: number
+          last_checked_at?: string
+          last_error?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consecutive_failures?: number
+          has_valid_token?: boolean
+          invalid_token_count?: number
+          last_checked_at?: string
+          last_error?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_reward_redemptions: {
         Row: {
           expires_at: string
@@ -18831,6 +18861,7 @@ export type Database = {
       }
       get_cron_jobs_health: { Args: { name_filter?: string }; Returns: Json }
       get_public_profile: { Args: { handle_input: string }; Returns: Json }
+      get_push_token_diagnostics: { Args: never; Returns: Json }
       get_user_conversations: {
         Args: never
         Returns: {
