@@ -16,7 +16,8 @@ import {
   Wand2,
   Database,
   Crown,
-  HeartPulse
+  HeartPulse,
+  ShieldOff
 } from "lucide-react";
 import {
   Sidebar,
