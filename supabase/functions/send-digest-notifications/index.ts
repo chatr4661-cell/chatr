@@ -66,6 +66,18 @@ async function attemptPush(
     last_attempt_at: nowIso,
     next_retry_at: exhausted ? null : nextRetryAt(nextAttempt),
   }).eq("id", notif.id);
+
+  // If retries exhausted, flag user as having invalid token to short-circuit future runs
+  if (exhausted) {
+    await supabase.from("user_push_health").upsert({
+      user_id: notif.user_id,
+      has_valid_token: false,
+      last_checked_at: nowIso,
+      last_error: invokeErr.message ?? "push failed",
+      consecutive_failures: nextAttempt,
+      updated_at: nowIso,
+    }, { onConflict: "user_id" });
+  }
 }
 
 async function processRetryQueue(supabase: ReturnType<typeof createClient>): Promise<{ retried: number; recovered: number; stillFailing: number }> {
