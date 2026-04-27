@@ -358,6 +358,7 @@ const App = () => {
               <Route path="payment-verification" element={<LazyRoute component={LazyPages.PaymentVerification} />} />
               <Route path="micro-tasks" element={<LazyRoute component={LazyPages.AdminMicroTasks} />} />
               <Route path="job-health" element={<LazyRoute component={LazyPages.AdminJobHealth} />} />
+              <Route path="token-health" element={<LazyRoute component={LazyPages.AdminTokenHealth} />} />
             </Route>
             
             <Route path="/chatr-tutors" element={<LazyRoute component={LazyPages.ChatrTutors} />} />
