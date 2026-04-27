@@ -199,8 +199,18 @@ serve(async (req) => {
     const { data: tokenRows, error: tokenErr } = await supabase.from("device_tokens").select("user_id").limit(MAX_USERS_PER_RUN);
     if (tokenErr) throw tokenErr;
 
-    const userIds = Array.from(new Set((tokenRows ?? []).map((r: any) => r.user_id).filter(Boolean)));
-    console.log(`[digest] eligible users: ${userIds.length}`);
+    const allUserIds = Array.from(new Set((tokenRows ?? []).map((r: any) => r.user_id).filter(Boolean)));
+
+    // Exclude users flagged with invalid push tokens (prevents pointless retries)
+    const { data: invalidUsers } = await supabase
+      .from("user_push_health")
+      .select("user_id")
+      .eq("has_valid_token", false);
+    const invalidSet = new Set((invalidUsers ?? []).map((r: any) => r.user_id));
+    const userIds = allUserIds.filter((id) => !invalidSet.has(id));
+    const skippedInvalidToken = allUserIds.length - userIds.length;
+
+    console.log(`[digest] eligible: ${userIds.length}, skipped invalid-token: ${skippedInvalidToken}`);
 
     let sent = 0, skippedNoContent = 0, skippedDisabled = 0, failed = 0;
 
