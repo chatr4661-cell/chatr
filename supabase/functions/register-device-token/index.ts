@@ -63,6 +63,16 @@ serve(async (req) => {
       );
     }
 
+    // Clear any prior "invalid token" flag for this user — they have a fresh working token now
+    await supabase.from('user_push_health').upsert({
+      user_id: userId,
+      has_valid_token: true,
+      last_checked_at: new Date().toISOString(),
+      last_error: null,
+      consecutive_failures: 0,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+
     console.log('Device token registered successfully');
 
     return new Response(
