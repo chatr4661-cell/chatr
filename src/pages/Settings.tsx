@@ -96,6 +96,7 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="notifications" className="mt-6">
+            <TokenHealthBanner userId={userId} />
             <NotificationSettings userId={userId} />
           </TabsContent>
 
