@@ -13,6 +13,7 @@ import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { GlobalCallListener } from "./components/calling/GlobalCallListener";
 import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
+import { FeatureEngagementTracker } from "./components/FeatureEngagementTracker";
 import { CallProvider } from "./contexts/CallContext";
 import { PageLoader } from "./components/PageLoader";
 import { useUISpeedBudget } from "./hooks/useUISpeedBudget";
@@ -151,6 +152,7 @@ const App = () => {
             <OfflineIndicator />
             <GlobalCallListener />
             <GlobalNotificationListener />
+            <FeatureEngagementTracker />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />
@@ -329,6 +331,7 @@ const App = () => {
             <Route path="/notifications/settings" element={<LazyRoute component={LazyPages.NotificationSettings} />} />
             <Route path="/notifications/digest-settings" element={<LazyRoute component={LazyPages.DigestNotificationSettings} />} />
             <Route path="/notifications/health" element={<LazyRoute component={LazyPages.NotificationHealth} />} />
+            <Route path="/notifications/smart" element={<LazyRoute component={LazyPages.SmartPushPreferences} />} />
             <Route path="/settings" element={<LazyRoute component={LazyPages.Settings} />} />
             <Route path="/device-management" element={<LazyRoute component={LazyPages.DeviceManagement} />} />
             <Route path="/bluetooth-test" element={<LazyRoute component={LazyPages.BluetoothTest} />} />

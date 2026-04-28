@@ -274,6 +274,7 @@ export const Account = lazy(() => import('@/pages/Account'));
 export const Settings = lazy(() => import('@/pages/Settings'));
 export const NotificationSettings = lazy(() => import('@/pages/NotificationSettings'));
 export const NotificationHealth = lazy(() => import('@/pages/NotificationHealth'));
+export const SmartPushPreferences = lazy(() => import('@/pages/SmartPushPreferences'));
 export const Notifications = lazy(() => import('@/pages/Notifications'));
 export const DigestNotificationSettings = lazy(() => import('@/pages/DigestNotificationSettings'));
 export const DeviceManagement = lazy(() => import('@/pages/DeviceManagement'));
