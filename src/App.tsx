@@ -13,6 +13,7 @@ import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { GlobalCallListener } from "./components/calling/GlobalCallListener";
 import { GlobalNotificationListener } from "./components/GlobalNotificationListener";
+import { FeatureEngagementTracker } from "./components/FeatureEngagementTracker";
 import { CallProvider } from "./contexts/CallContext";
 import { PageLoader } from "./components/PageLoader";
 import { useUISpeedBudget } from "./hooks/useUISpeedBudget";
@@ -151,6 +152,7 @@ const App = () => {
             <OfflineIndicator />
             <GlobalCallListener />
             <GlobalNotificationListener />
+            <FeatureEngagementTracker />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />
