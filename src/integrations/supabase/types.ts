@@ -7301,6 +7301,54 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_catalog: {
+        Row: {
+          active: boolean
+          created_at: string
+          cta_route: string
+          description: string
+          emoji: string | null
+          feature_key: string
+          id: string
+          module: string
+          notification_templates: Json
+          priority: number
+          requires_location: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          cta_route: string
+          description: string
+          emoji?: string | null
+          feature_key: string
+          id?: string
+          module: string
+          notification_templates?: Json
+          priority?: number
+          requires_location?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          cta_route?: string
+          description?: string
+          emoji?: string | null
+          feature_key?: string
+          id?: string
+          module?: string
+          notification_templates?: Json
+          priority?: number
+          requires_location?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       food_menu_items: {
         Row: {
           category: string | null
@@ -16034,6 +16082,93 @@ export type Database = {
           },
         ]
       }
+      smart_push_log: {
+        Row: {
+          ai_reasoning: string | null
+          body: string
+          created_at: string
+          cta_route: string | null
+          delivery_status: string
+          error: string | null
+          feature_key: string
+          id: string
+          module: string
+          opened_at: string | null
+          sent_at: string
+          slot: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          body: string
+          created_at?: string
+          cta_route?: string | null
+          delivery_status?: string
+          error?: string | null
+          feature_key: string
+          id?: string
+          module: string
+          opened_at?: string | null
+          sent_at?: string
+          slot: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          ai_reasoning?: string | null
+          body?: string
+          created_at?: string
+          cta_route?: string | null
+          delivery_status?: string
+          error?: string | null
+          feature_key?: string
+          id?: string
+          module?: string
+          opened_at?: string | null
+          sent_at?: string
+          slot?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smart_push_preferences: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          language: string
+          max_per_day: number
+          muted_modules: string[]
+          quiet_hours_end: number
+          quiet_hours_start: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          language?: string
+          max_per_day?: number
+          muted_modules?: string[]
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          language?: string
+          max_per_day?: number
+          muted_modules?: string[]
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       specializations: {
         Row: {
           created_at: string | null
@@ -17511,6 +17646,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_feature_engagement: {
+        Row: {
+          conversion_count: number
+          created_at: string
+          feature_key: string
+          first_visited_at: string | null
+          id: string
+          last_visited_at: string | null
+          module: string
+          updated_at: string
+          user_id: string
+          visit_count: number
+        }
+        Insert: {
+          conversion_count?: number
+          created_at?: string
+          feature_key: string
+          first_visited_at?: string | null
+          id?: string
+          last_visited_at?: string | null
+          module: string
+          updated_at?: string
+          user_id: string
+          visit_count?: number
+        }
+        Update: {
+          conversion_count?: number
+          created_at?: string
+          feature_key?: string
+          first_visited_at?: string | null
+          id?: string
+          last_visited_at?: string | null
+          module?: string
+          updated_at?: string
+          user_id?: string
+          visit_count?: number
+        }
+        Relationships: []
       }
       user_health_profiles: {
         Row: {
