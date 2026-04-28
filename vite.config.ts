@@ -39,6 +39,10 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react-is'],
   },
+  esbuild: {
+    // Strip console.* and debugger statements in production builds
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
   build: {
     target: 'esnext',
     minify: 'esbuild',
