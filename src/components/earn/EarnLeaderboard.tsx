@@ -36,12 +36,14 @@ export function EarnLeaderboard() {
         .select('user_id, display_name')
         .in('user_id', ids);
 
-      const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p.display_name]));
+      const profileMap = new Map<string, string | null>(
+        (profiles || []).map((p: any) => [p.user_id as string, (p.display_name as string | null) ?? null])
+      );
       setRows(
         data.map((d: any) => ({
-          user_id: d.user_id,
-          total_coins: d.total_coins,
-          display_name: profileMap.get(d.user_id) ?? null,
+          user_id: d.user_id as string,
+          total_coins: d.total_coins as number,
+          display_name: profileMap.get(d.user_id as string) ?? null,
         }))
       );
       setLoading(false);
