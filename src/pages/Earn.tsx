@@ -1,16 +1,19 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, History, Shield } from 'lucide-react';
 import { TaskFeed } from '@/components/micro-tasks/TaskFeed';
 import { EarnExplainer } from '@/components/earn/EarnExplainer';
 import { EarnShareBlock } from '@/components/earn/EarnShareBlock';
 import { EarnLeaderboard } from '@/components/earn/EarnLeaderboard';
+import { EarnReferralAnalytics } from '@/components/earn/EarnReferralAnalytics';
 import { useUserRole } from '@/hooks/useUserRole';
 
 export default function Earn() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAdmin, isCEO } = useUserRole();
   const canManage = isAdmin || isCEO;
+  const deepLinkMissionId = searchParams.get('mission');
 
   return (
     <div className="min-h-screen bg-background">
@@ -47,12 +50,13 @@ export default function Earn() {
           {/* Main column: explainer + live mission feed */}
           <section className="space-y-4 min-w-0">
             <EarnExplainer />
-            <TaskFeed />
+            <TaskFeed autoClaimTaskId={deepLinkMissionId} />
           </section>
 
-          {/* Side column: viral share + leaderboard */}
+          {/* Side column: viral share + analytics + leaderboard */}
           <aside className="space-y-4">
             <EarnShareBlock />
+            <EarnReferralAnalytics />
             <EarnLeaderboard />
           </aside>
         </div>

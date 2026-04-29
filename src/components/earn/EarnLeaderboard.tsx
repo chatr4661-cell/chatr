@@ -33,11 +33,14 @@ export function EarnLeaderboard() {
       const ids = data.map((d: any) => d.user_id);
       const { data: profiles } = await (supabase as any)
         .from('profiles')
-        .select('user_id, display_name')
-        .in('user_id', ids);
+        .select('id, username, full_name, avatar_url')
+        .in('id', ids);
 
       const profileMap = new Map<string, string | null>(
-        (profiles || []).map((p: any) => [p.user_id as string, (p.display_name as string | null) ?? null])
+        (profiles || []).map((p: any) => [
+          p.id as string,
+          (p.username as string | null) || (p.full_name as string | null) || null,
+        ])
       );
       setRows(
         data.map((d: any) => ({
@@ -76,7 +79,7 @@ export function EarnLeaderboard() {
                 <Badge variant={i < 3 ? 'default' : 'outline'} className="h-5 w-5 justify-center p-0 text-[10px]">
                   {i + 1}
                 </Badge>
-                <span className="truncate text-sm">{row.display_name || `User ${row.user_id.slice(0, 6)}`}</span>
+                <span className="truncate text-sm">{row.display_name || 'Anonymous Earner'}</span>
               </div>
               <span className="text-sm font-semibold tabular-nums">{row.total_coins.toLocaleString()}</span>
             </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMicroTasks } from '@/hooks/useMicroTasks';
 import { TaskCard } from './TaskCard';
 import { TaskCompletionSheet } from './TaskCompletionSheet';
@@ -8,10 +8,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Headphones, Camera, Star, Wallet } from 'lucide-react';
 import type { MicroTask, TaskAssignment } from '@/hooks/useMicroTasks';
 
-export function TaskFeed() {
+interface TaskFeedProps {
+  /** When set, auto-claims this mission once it appears in the feed. Used for shared mission deep links. */
+  autoClaimTaskId?: string | null;
+}
+
+export function TaskFeed({ autoClaimTaskId }: TaskFeedProps = {}) {
   const { tasks, myAssignments, myScore, loading, claimTask, submitTask, refresh } = useMicroTasks();
   const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
   const [activeTask, setActiveTask] = useState<{ task: MicroTask; assignment: TaskAssignment } | null>(null);
+  const autoTriggeredRef = useRef<string | null>(null);
 
   const handleClaim = async (taskId: string) => {
     setClaimingTaskId(taskId);
@@ -25,6 +31,22 @@ export function TaskFeed() {
       }
     }
   };
+
+  // Deep-link auto-claim: when a shared mission link lands here, open it once.
+  useEffect(() => {
+    if (!autoClaimTaskId || loading) return;
+    if (autoTriggeredRef.current === autoClaimTaskId) return;
+    const target = tasks.find(t => t.id === autoClaimTaskId);
+    if (!target) return;
+    autoTriggeredRef.current = autoClaimTaskId;
+    // Scroll the matching card into view, then claim.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`task-card-${autoClaimTaskId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      handleClaim(autoClaimTaskId);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoClaimTaskId, loading, tasks]);
 
   const audioTasks = tasks.filter(t => t.task_type === 'audio_listen');
   const photoTasks = tasks.filter(t => t.task_type === 'photo_verify');

@@ -35,7 +35,7 @@ export function TaskCard({ task, onClaim, claiming }: TaskCardProps) {
   const isLimitedSpots = spotsLeft <= 20;
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card id={`task-card-${task.id}`} className="overflow-hidden hover:shadow-lg transition-shadow scroll-mt-20">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
