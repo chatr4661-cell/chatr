@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Headphones, Camera, Star, MapPin, Coins, IndianRupee } from 'lucide-react';
 import type { MicroTask } from '@/hooks/useMicroTasks';
+import { MissionShareButton } from '@/components/earn/EarnShareBlock';
 
 interface TaskCardProps {
   task: MicroTask;
@@ -95,6 +96,10 @@ export function TaskCard({ task, onClaim, claiming }: TaskCardProps) {
         >
           {claiming ? 'Claiming...' : `Earn ₹${task.reward_rupees}`}
         </Button>
+
+        <div className="flex justify-center pt-1">
+          <MissionShareButton taskId={task.id} taskTitle={task.title} rewardRupees={task.reward_rupees} />
+        </div>
       </CardContent>
     </Card>
   );
