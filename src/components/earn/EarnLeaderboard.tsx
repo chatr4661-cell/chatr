@@ -31,7 +31,7 @@ export function EarnLeaderboard() {
       }
 
       const ids = data.map((d: any) => d.user_id);
-      const { data: profiles } = await supabase
+      const { data: profiles } = await (supabase as any)
         .from('profiles')
         .select('user_id, display_name')
         .in('user_id', ids);
