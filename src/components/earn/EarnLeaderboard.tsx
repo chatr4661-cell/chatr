@@ -33,11 +33,14 @@ export function EarnLeaderboard() {
       const ids = data.map((d: any) => d.user_id);
       const { data: profiles } = await (supabase as any)
         .from('profiles')
-        .select('user_id, display_name')
-        .in('user_id', ids);
+        .select('id, username, full_name, avatar_url')
+        .in('id', ids);
 
       const profileMap = new Map<string, string | null>(
-        (profiles || []).map((p: any) => [p.user_id as string, (p.display_name as string | null) ?? null])
+        (profiles || []).map((p: any) => [
+          p.id as string,
+          (p.username as string | null) || (p.full_name as string | null) || null,
+        ])
       );
       setRows(
         data.map((d: any) => ({
