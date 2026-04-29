@@ -50,12 +50,13 @@ export default function Earn() {
           {/* Main column: explainer + live mission feed */}
           <section className="space-y-4 min-w-0">
             <EarnExplainer />
-            <TaskFeed />
+            <TaskFeed autoClaimTaskId={deepLinkMissionId} />
           </section>
 
-          {/* Side column: viral share + leaderboard */}
+          {/* Side column: viral share + analytics + leaderboard */}
           <aside className="space-y-4">
             <EarnShareBlock />
+            <EarnReferralAnalytics />
             <EarnLeaderboard />
           </aside>
         </div>
