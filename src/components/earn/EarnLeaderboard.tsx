@@ -79,7 +79,7 @@ export function EarnLeaderboard() {
                 <Badge variant={i < 3 ? 'default' : 'outline'} className="h-5 w-5 justify-center p-0 text-[10px]">
                   {i + 1}
                 </Badge>
-                <span className="truncate text-sm">{row.display_name || `User ${row.user_id.slice(0, 6)}`}</span>
+                <span className="truncate text-sm">{row.display_name || 'Anonymous Earner'}</span>
               </div>
               <span className="text-sm font-semibold tabular-nums">{row.total_coins.toLocaleString()}</span>
             </div>
