@@ -1,16 +1,19 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, History, Shield } from 'lucide-react';
 import { TaskFeed } from '@/components/micro-tasks/TaskFeed';
 import { EarnExplainer } from '@/components/earn/EarnExplainer';
 import { EarnShareBlock } from '@/components/earn/EarnShareBlock';
 import { EarnLeaderboard } from '@/components/earn/EarnLeaderboard';
+import { EarnReferralAnalytics } from '@/components/earn/EarnReferralAnalytics';
 import { useUserRole } from '@/hooks/useUserRole';
 
 export default function Earn() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAdmin, isCEO } = useUserRole();
   const canManage = isAdmin || isCEO;
+  const deepLinkMissionId = searchParams.get('mission');
 
   return (
     <div className="min-h-screen bg-background">
