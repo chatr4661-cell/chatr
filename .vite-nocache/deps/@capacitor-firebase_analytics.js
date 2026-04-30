@@ -9,7 +9,7 @@ import "./chunk-V4OQ3NZ2.js";
 
 // node_modules/.bun/@capacitor-firebase+analytics@7.4.0+1476e03926521c16/node_modules/@capacitor-firebase/analytics/dist/esm/index.js
 var FirebaseAnalytics = registerPlugin("FirebaseAnalytics", {
-  web: () => import("./web-33JZYMVT.js").then((m) => new m.FirebaseAnalyticsWeb())
+  web: () => import("./web-KFEDTBIZ.js").then((m) => new m.FirebaseAnalyticsWeb())
 });
 export {
   ConsentStatus,
