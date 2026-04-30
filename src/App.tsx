@@ -332,6 +332,7 @@ const App = () => {
             <Route path="/notifications/digest-settings" element={<LazyRoute component={LazyPages.DigestNotificationSettings} />} />
             <Route path="/notifications/health" element={<LazyRoute component={LazyPages.NotificationHealth} />} />
             <Route path="/notifications/smart" element={<LazyRoute component={LazyPages.SmartPushPreferences} />} />
+            <Route path="/notifications/templates" element={<LazyRoute component={LazyPages.NotificationTemplates} />} />
             <Route path="/settings" element={<LazyRoute component={LazyPages.Settings} />} />
             <Route path="/device-management" element={<LazyRoute component={LazyPages.DeviceManagement} />} />
             <Route path="/bluetooth-test" element={<LazyRoute component={LazyPages.BluetoothTest} />} />

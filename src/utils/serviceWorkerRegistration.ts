@@ -49,8 +49,20 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     // Listen for messages from service worker (e.g., navigate on notification click)
     navigator.serviceWorker.addEventListener('message', (event) => {
       console.log('📲 SW Message:', event.data);
-      if (event.data?.type === 'NAVIGATE' && event.data?.url) {
-        window.location.href = event.data.url;
+      const d = event.data || {};
+      // Generic navigate message
+      if (d.type === 'NAVIGATE' && d.url) {
+        window.location.href = d.url;
+        return;
+      }
+      // Smart-routed notification click from firebase-messaging-sw.js
+      if (d.type === 'NAVIGATE_TO_NOTIFICATION' && d.url) {
+        window.location.href = d.url;
+        return;
+      }
+      // Legacy chat-only message — kept for backwards compat
+      if (d.type === 'NAVIGATE_TO_CONVERSATION' && d.conversationId) {
+        window.location.href = `/chat?conversation=${d.conversationId}`;
       }
     });
 
