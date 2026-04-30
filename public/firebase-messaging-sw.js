@@ -47,19 +47,48 @@ self.addEventListener('notificationclick', (event) => {
   console.log('🔔 Notification clicked:', event.action);
   event.notification.close();
   
-  const conversationId = event.notification.data?.conversationId;
-  const messageId = event.notification.data?.messageId;
-  
-  let urlToOpen = '/chat';
-  
-  // Open specific conversation if available
-  if (conversationId) {
-    urlToOpen = `/chat?conversation=${conversationId}`;
+  const data = event.notification.data || {};
+  const conversationId = data.conversationId || data.conversation_id;
+  const messageId = data.messageId || data.message_id;
+
+  // Smart deep-link routing — mirrors src/utils/notificationRouter.ts
+  function resolveRoute(d) {
+    if (d.action_url && typeof d.action_url === 'string' && d.action_url.startsWith('/')) {
+      return d.action_url;
+    }
+    const t = (d.type || d.category || '').toLowerCase();
+    switch (t) {
+      case 'call':
+      case 'missed':
+      case 'missed_call':
+        return d.caller_id ? `/chat?user=${d.caller_id}` : '/calls';
+      case 'message':
+      case 'chat':
+      case 'unread_msgs':
+        if (d.conversation_id || d.conversationId) return `/chat?conversation=${d.conversation_id || d.conversationId}`;
+        if (d.sender_id) return `/chat?user=${d.sender_id}`;
+        return '/chat';
+      case 'appointment':
+      case 'booking':
+      case 'calendar':
+        return d.appointment_id ? `/appointments/${d.appointment_id}` : '/appointments';
+      case 'earning':
+      case 'mission':
+        return d.mission_id ? `/earn?mission=${d.mission_id}` : '/earn';
+      case 'wellness':
+      case 'lifestyle':
+        return d.route || '/home';
+      case 'payment':
+      case 'wallet':
+        return '/wallet';
+      default:
+        return d.route || '/notifications';
+    }
   }
-  
-  if (event.action === 'reply') {
-    // Handle inline reply action
-    urlToOpen += '&reply=true';
+
+  let urlToOpen = resolveRoute(data);
+  if (event.action === 'reply' && urlToOpen.includes('/chat')) {
+    urlToOpen += (urlToOpen.includes('?') ? '&' : '?') + 'reply=true';
   }
   
   event.waitUntil(
@@ -68,13 +97,14 @@ self.addEventListener('notificationclick', (event) => {
         // Check if there's already a window open
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
-          if (client.url.includes('/chat') && 'focus' in client) {
-            // Focus existing window and navigate to conversation
+          if ('focus' in client) {
             client.focus();
             client.postMessage({
-              type: 'NAVIGATE_TO_CONVERSATION',
+              type: 'NAVIGATE_TO_NOTIFICATION',
+              url: urlToOpen,
               conversationId: conversationId,
-              messageId: messageId
+              messageId: messageId,
+              data: data,
             });
             return;
           }

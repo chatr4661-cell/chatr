@@ -21,6 +21,7 @@ import { AppleCard } from '@/components/ui/AppleCard';
 import { AppleIconButton } from '@/components/ui/AppleButton';
 import { useNativeHaptics } from '@/hooks/useNativeHaptics';
 import { cn } from '@/lib/utils';
+import { resolveNotificationRoute } from '@/utils/notificationRouter';
 
 interface Notification {
   id: string;
@@ -120,7 +121,8 @@ export default function Notifications() {
       return;
     }
     if (!notification.read) markAsRead(notification.id);
-    if (notification.action_url) navigate(notification.action_url);
+    const route = resolveNotificationRoute(notification);
+    if (route) navigate(route);
   };
 
   const getIcon = (type: string) => {
