@@ -197,11 +197,18 @@ export default function Notifications() {
         onBack={() => { haptics.light(); navigate(-1); }}
         showBack
         rightElement={
-          <AppleIconButton
-            icon={<Settings className="w-5 h-5" />}
-            onClick={() => { haptics.light(); navigate('/notifications/settings'); }}
-            size="sm"
-          />
+          <div className="flex items-center gap-1">
+            <AppleIconButton
+              icon={<Sparkles className="w-5 h-5" />}
+              onClick={() => { haptics.light(); navigate('/notifications/templates'); }}
+              size="sm"
+            />
+            <AppleIconButton
+              icon={<Settings className="w-5 h-5" />}
+              onClick={() => { haptics.light(); navigate('/notifications/settings'); }}
+              size="sm"
+            />
+          </div>
         }
       />
 
