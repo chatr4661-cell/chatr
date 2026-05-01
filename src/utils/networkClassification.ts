@@ -9,7 +9,7 @@
  * Assumes HOSTILE by default (India-first approach)
  */
 
-export type NetworkQuality = 'GOOD' | 'MODERATE' | 'HOSTILE';
+export type NetworkQuality = 'GOOD' | 'MODERATE' | 'HOSTILE' | 'EXTREME_LOW';
 
 interface NetworkInfo {
   effectiveType: string;
