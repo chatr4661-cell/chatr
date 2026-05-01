@@ -938,6 +938,10 @@ export class SimpleWebRTCCall {
           
           // Always send answer for offers (including renegotiation)
           const answer = await this.pc.createAnswer();
+          if (this.networkQuality === 'EXTREME_LOW' && answer.sdp) {
+            answer.sdp = muneOpusForExtremeLow(answer.sdp);
+            console.log('🐌 [WebRTC] EXTREME_LOW: munged answer SDP for 6 kbps Opus');
+          }
           await this.pc.setLocalDescription(answer);
           await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
           console.log('✅ [WebRTC] ANSWER sent');
