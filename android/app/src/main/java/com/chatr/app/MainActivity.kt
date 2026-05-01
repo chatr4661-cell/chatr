@@ -89,8 +89,22 @@ class MainActivity : BridgeActivity() {
             webView.webChromeClient = object : WebChromeClient() {
                 override fun onPermissionRequest(request: PermissionRequest?) {
                     Log.i(TAG, "🎥 WebView permission request: ${request?.resources?.joinToString()}")
-                    runOnUiThread {
-                        request?.grant(request.resources)
+                    if (request == null) return
+                    val needsMic = request.resources.any { it == PermissionRequest.RESOURCE_AUDIO_CAPTURE }
+                    val needsCam = request.resources.any { it == PermissionRequest.RESOURCE_VIDEO_CAPTURE }
+                    val hostMicOk = !needsMic || ContextCompat.checkSelfPermission(
+                        this@MainActivity, Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                    val hostCamOk = !needsCam || ContextCompat.checkSelfPermission(
+                        this@MainActivity, Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
+
+                    if (hostMicOk && hostCamOk) {
+                        runOnUiThread { request.grant(request.resources) }
+                    } else {
+                        Log.w(TAG, "🎥 Host permissions missing — requesting before granting WebView")
+                        pendingPermissionRequest = request
+                        ensureCallMediaPermissions()
                     }
                 }
             }
