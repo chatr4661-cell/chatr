@@ -263,10 +263,17 @@ export class SimpleWebRTCCall {
         googBeamforming: true,
       };
 
+      // EXTREME_LOW (1G/slow-2G): force audio-only — video cannot survive sub-50 kbps links
+      const effectiveIsVideo = this.networkQuality === 'EXTREME_LOW' ? false : this.isVideo;
+      if (this.isVideo && !effectiveIsVideo) {
+        console.warn('🐌 [WebRTC] EXTREME_LOW network — auto-downgraded video → audio-only');
+        this.emit('videoDowngraded', { reason: 'extreme_low_network' });
+      }
+
       // ULTRA HD VIDEO with progressive fallback
       const constraints: MediaStreamConstraints = {
         audio: audioConstraints,
-        video: this.isVideo ? {
+        video: effectiveIsVideo ? {
           width: { ideal: 3840, min: 640 },
           height: { ideal: 2160, min: 480 },
           frameRate: { ideal: 60, min: 15 },
@@ -279,7 +286,7 @@ export class SimpleWebRTCCall {
       const startTime = Date.now();
       
       // Progressive fallback: 4K → 1080p60 → 1080p30 → 720p → 480p → minimal
-      const videoProfiles = this.isVideo ? [
+      const videoProfiles = effectiveIsVideo ? [
         { width: 3840, height: 2160, fps: 60, label: '4K@60fps' },
         { width: 1920, height: 1080, fps: 60, label: '1080p@60fps' },
         { width: 1920, height: 1080, fps: 30, label: '1080p@30fps' },
