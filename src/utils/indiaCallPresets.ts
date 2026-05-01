@@ -228,6 +228,9 @@ export const INDIA_QUALITY: CallPreset = {
  */
 export function getCallPreset(networkQuality: NetworkQuality, isVideo: boolean): CallPreset {
   switch (networkQuality) {
+    case 'EXTREME_LOW':
+      console.log('📱 [Preset] Using INDIA_EXTREME_LOW (1G/slow-2G — audio-only forced)');
+      return INDIA_EXTREME_LOW;
     case 'HOSTILE':
       console.log('📱 [Preset] Using INDIA_SURVIVAL (hostile network)');
       return INDIA_SURVIVAL;
