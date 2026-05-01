@@ -64,6 +64,45 @@ const BASE_ICE_SERVERS: RTCIceServer[] = [
 ];
 
 /**
+ * EXTREME_LOW PRESET - 1G / slow-2G / deep-rural
+ *
+ * Strategy:
+ *  - Audio-only (forced)
+ *  - Ultra-low Opus bitrate (6 kbps), 8 kHz narrowband
+ *  - Long timeouts, TURN-tolerant
+ *  - DTX/FEC enabled via SDP munging in simpleWebRTC
+ *
+ * Real-world budget: ~10-15 kbps total payload. Survives sub-50 kbps links.
+ */
+export const INDIA_EXTREME_LOW: CallPreset = {
+  name: 'INDIA_EXTREME_LOW',
+  description: '1G / slow-2G survival — audio-only, 6 kbps Opus',
+
+  iceServers: [], // filled below to share BASE list
+  iceTransportPolicy: 'all',
+
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
+  iceCandidatePoolSize: 4, // fewer probes — saves precious bandwidth
+
+  connectionTimeoutMs: 60000, // 60s — slow networks need patience
+  iceDisconnectToleranceMs: 20000, // 20s — don't drop on transient stalls
+  maxReconnectAttempts: 5,
+
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    sampleRate: 8000, // narrowband — lowest viable
+    channelCount: 1,
+  },
+  video: false, // hard-disabled at preset level
+
+  maxAudioBitrate: 6, // 6 kbps Opus (DTX makes effective rate even lower)
+  maxVideoBitrate: 0,
+};
+
+/**
  * SURVIVAL PRESET - Default for India
  * 
  * Optimized for: 2G, basements, elevators, rural
