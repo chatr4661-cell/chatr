@@ -1027,6 +1027,10 @@ export class SimpleWebRTCCall {
       this.offerSent = true;
       
       const offer = await this.pc.createOffer();
+      if (this.networkQuality === 'EXTREME_LOW' && offer.sdp) {
+        offer.sdp = muneOpusForExtremeLow(offer.sdp);
+        console.log('🐌 [WebRTC] EXTREME_LOW: munged offer SDP for 6 kbps Opus');
+      }
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
       console.log('✅ [WebRTC] Offer sent');
