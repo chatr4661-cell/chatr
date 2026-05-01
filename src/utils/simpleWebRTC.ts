@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { classifyNetwork, NetworkQuality, onNetworkChange } from "./networkClassification";
-import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits, CallPreset } from "./indiaCallPresets";
+import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits, muneOpusForExtremeLow, CallPreset } from "./indiaCallPresets";
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
