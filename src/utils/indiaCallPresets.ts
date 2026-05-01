@@ -78,7 +78,7 @@ export const INDIA_EXTREME_LOW: CallPreset = {
   name: 'INDIA_EXTREME_LOW',
   description: '1G / slow-2G survival — audio-only, 6 kbps Opus',
 
-  iceServers: [], // filled below to share BASE list
+  iceServers: BASE_ICE_SERVERS,
   iceTransportPolicy: 'all',
 
   bundlePolicy: 'max-bundle',
