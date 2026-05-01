@@ -731,6 +731,24 @@ export class SimpleWebRTCCall {
     const oldQuality = this.networkQuality;
     this.networkQuality = newQuality;
     
+    // EXTREME_LOW (1G/slow-2G): kill video, drop to ultra-low Opus
+    if (newQuality === 'EXTREME_LOW' && oldQuality !== 'EXTREME_LOW') {
+      console.warn('🐌 [WebRTC] Network collapsed to EXTREME_LOW - audio-only survival mode');
+      this.emit('networkQuality', 'poor');
+      this.emit('videoDowngraded', { reason: 'extreme_low_network_runtime' });
+
+      // Disable outgoing video tracks (do NOT stop them — keep for fast re-up)
+      this.localStream?.getVideoTracks().forEach(t => { t.enabled = false; });
+
+      if (this.pc && this.callState === 'connected') {
+        const extremePreset = getCallPreset('EXTREME_LOW', false);
+        applyBitrateLimits(this.pc, extremePreset).catch(e =>
+          console.warn('⚠️ [WebRTC] Failed to apply EXTREME_LOW bitrate:', e)
+        );
+      }
+      return;
+    }
+
     // Only adapt if quality degraded
     if (newQuality === 'HOSTILE' && oldQuality !== 'HOSTILE') {
       console.log('📶 [WebRTC] Network degraded to HOSTILE - reducing quality');
