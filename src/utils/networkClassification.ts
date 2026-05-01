@@ -64,8 +64,19 @@ export function classifyNetwork(): NetworkQuality {
   
   console.log('📶 [Network] Classification input:', info);
   
+  // EXTREME_LOW conditions (1G/slow-2G — true India edge)
+  // Strategy: audio-only at ultra-low Opus bitrate, TURN-relay tolerant
+  if (info.effectiveType === 'slow-2g') {
+    console.log('📶 [Network] Classified: EXTREME_LOW (slow-2g detected)');
+    return 'EXTREME_LOW';
+  }
+  if (info.rtt > 1500 || info.downlink < 0.05) { // < 50 kbps or RTT > 1.5s
+    console.log('📶 [Network] Classified: EXTREME_LOW (RTT>1500ms or downlink<50kbps)');
+    return 'EXTREME_LOW';
+  }
+  
   // HOSTILE conditions (India 2G/edge cases)
-  if (info.effectiveType === '2g' || info.effectiveType === 'slow-2g') {
+  if (info.effectiveType === '2g') {
     console.log('📶 [Network] Classified: HOSTILE (2G detected)');
     return 'HOSTILE';
   }
