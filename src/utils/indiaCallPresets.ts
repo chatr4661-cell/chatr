@@ -64,6 +64,45 @@ const BASE_ICE_SERVERS: RTCIceServer[] = [
 ];
 
 /**
+ * EXTREME_LOW PRESET - 1G / slow-2G / deep-rural
+ *
+ * Strategy:
+ *  - Audio-only (forced)
+ *  - Ultra-low Opus bitrate (6 kbps), 8 kHz narrowband
+ *  - Long timeouts, TURN-tolerant
+ *  - DTX/FEC enabled via SDP munging in simpleWebRTC
+ *
+ * Real-world budget: ~10-15 kbps total payload. Survives sub-50 kbps links.
+ */
+export const INDIA_EXTREME_LOW: CallPreset = {
+  name: 'INDIA_EXTREME_LOW',
+  description: '1G / slow-2G survival — audio-only, 6 kbps Opus',
+
+  iceServers: BASE_ICE_SERVERS,
+  iceTransportPolicy: 'all',
+
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
+  iceCandidatePoolSize: 4, // fewer probes — saves precious bandwidth
+
+  connectionTimeoutMs: 60000, // 60s — slow networks need patience
+  iceDisconnectToleranceMs: 20000, // 20s — don't drop on transient stalls
+  maxReconnectAttempts: 5,
+
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    sampleRate: 8000, // narrowband — lowest viable
+    channelCount: 1,
+  },
+  video: false, // hard-disabled at preset level
+
+  maxAudioBitrate: 6, // 6 kbps Opus (DTX makes effective rate even lower)
+  maxVideoBitrate: 0,
+};
+
+/**
  * SURVIVAL PRESET - Default for India
  * 
  * Optimized for: 2G, basements, elevators, rural
@@ -189,6 +228,9 @@ export const INDIA_QUALITY: CallPreset = {
  */
 export function getCallPreset(networkQuality: NetworkQuality, isVideo: boolean): CallPreset {
   switch (networkQuality) {
+    case 'EXTREME_LOW':
+      console.log('📱 [Preset] Using INDIA_EXTREME_LOW (1G/slow-2G — audio-only forced)');
+      return INDIA_EXTREME_LOW;
     case 'HOSTILE':
       console.log('📱 [Preset] Using INDIA_SURVIVAL (hostile network)');
       return INDIA_SURVIVAL;
@@ -264,4 +306,31 @@ export async function applyBitrateLimits(
       console.warn('⚠️ [Preset] Failed to set bitrate:', e);
     }
   }
+}
+
+/**
+ * SDP munger for EXTREME_LOW: ultra-low Opus (6 kbps), narrowband, DTX, FEC.
+ * Apply to both offer.sdp and answer.sdp BEFORE setLocalDescription.
+ *
+ * Real-world: drops effective audio payload to ~5–8 kbps with DTX silence
+ * suppression — survivable on 1G/slow-2G links.
+ */
+export function muneOpusForExtremeLow(sdp: string): string {
+  if (!sdp) return sdp;
+  // Find Opus payload type
+  const opusMatch = sdp.match(/a=rtpmap:(\d+)\s+opus\/\d+/i);
+  if (!opusMatch) return sdp;
+  const pt = opusMatch[1];
+
+  const fmtpLine = `a=fmtp:${pt} minptime=60;maxaveragebitrate=6000;maxplaybackrate=8000;stereo=0;sprop-stereo=0;useinbandfec=1;usedtx=1;cbr=0`;
+  // Remove any existing fmtp line for this PT
+  let out = sdp.replace(new RegExp(`a=fmtp:${pt}[^\\r\\n]*\\r?\\n`, 'g'), '');
+  // Insert our fmtp right after the rtpmap line
+  out = out.replace(
+    new RegExp(`(a=rtpmap:${pt}\\s+opus\\/\\d+(?:\\/\\d+)?\\r?\\n)`, 'i'),
+    `$1${fmtpLine}\r\n`
+  );
+  // Add b=AS bandwidth cap (kbps) on the audio m-line
+  out = out.replace(/(m=audio[^\r\n]*\r?\n)/, `$1b=AS:8\r\nb=TIAS:8000\r\n`);
+  return out;
 }

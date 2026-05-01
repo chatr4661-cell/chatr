@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { classifyNetwork, NetworkQuality, onNetworkChange } from "./networkClassification";
-import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits, CallPreset } from "./indiaCallPresets";
+import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits, muneOpusForExtremeLow, CallPreset } from "./indiaCallPresets";
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
@@ -263,10 +263,17 @@ export class SimpleWebRTCCall {
         googBeamforming: true,
       };
 
+      // EXTREME_LOW (1G/slow-2G): force audio-only — video cannot survive sub-50 kbps links
+      const effectiveIsVideo = this.networkQuality === 'EXTREME_LOW' ? false : this.isVideo;
+      if (this.isVideo && !effectiveIsVideo) {
+        console.warn('🐌 [WebRTC] EXTREME_LOW network — auto-downgraded video → audio-only');
+        this.emit('videoDowngraded', { reason: 'extreme_low_network' });
+      }
+
       // ULTRA HD VIDEO with progressive fallback
       const constraints: MediaStreamConstraints = {
         audio: audioConstraints,
-        video: this.isVideo ? {
+        video: effectiveIsVideo ? {
           width: { ideal: 3840, min: 640 },
           height: { ideal: 2160, min: 480 },
           frameRate: { ideal: 60, min: 15 },
@@ -279,7 +286,7 @@ export class SimpleWebRTCCall {
       const startTime = Date.now();
       
       // Progressive fallback: 4K → 1080p60 → 1080p30 → 720p → 480p → minimal
-      const videoProfiles = this.isVideo ? [
+      const videoProfiles = effectiveIsVideo ? [
         { width: 3840, height: 2160, fps: 60, label: '4K@60fps' },
         { width: 1920, height: 1080, fps: 60, label: '1080p@60fps' },
         { width: 1920, height: 1080, fps: 30, label: '1080p@30fps' },
@@ -316,7 +323,7 @@ export class SimpleWebRTCCall {
       
       // Final fallback: audio only or basic video
       if (!acquired) {
-        if (this.isVideo) {
+        if (effectiveIsVideo) {
           try {
             this.localStream = await navigator.mediaDevices.getUserMedia({ 
               audio: audioConstraints, 
@@ -724,6 +731,24 @@ export class SimpleWebRTCCall {
     const oldQuality = this.networkQuality;
     this.networkQuality = newQuality;
     
+    // EXTREME_LOW (1G/slow-2G): kill video, drop to ultra-low Opus
+    if (newQuality === 'EXTREME_LOW' && oldQuality !== 'EXTREME_LOW') {
+      console.warn('🐌 [WebRTC] Network collapsed to EXTREME_LOW - audio-only survival mode');
+      this.emit('networkQuality', 'poor');
+      this.emit('videoDowngraded', { reason: 'extreme_low_network_runtime' });
+
+      // Disable outgoing video tracks (do NOT stop them — keep for fast re-up)
+      this.localStream?.getVideoTracks().forEach(t => { t.enabled = false; });
+
+      if (this.pc && this.callState === 'connected') {
+        const extremePreset = getCallPreset('EXTREME_LOW', false);
+        applyBitrateLimits(this.pc, extremePreset).catch(e =>
+          console.warn('⚠️ [WebRTC] Failed to apply EXTREME_LOW bitrate:', e)
+        );
+      }
+      return;
+    }
+
     // Only adapt if quality degraded
     if (newQuality === 'HOSTILE' && oldQuality !== 'HOSTILE') {
       console.log('📶 [WebRTC] Network degraded to HOSTILE - reducing quality');
@@ -938,6 +963,10 @@ export class SimpleWebRTCCall {
           
           // Always send answer for offers (including renegotiation)
           const answer = await this.pc.createAnswer();
+          if (this.networkQuality === 'EXTREME_LOW' && answer.sdp) {
+            answer.sdp = muneOpusForExtremeLow(answer.sdp);
+            console.log('🐌 [WebRTC] EXTREME_LOW: munged answer SDP for 6 kbps Opus');
+          }
           await this.pc.setLocalDescription(answer);
           await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
           console.log('✅ [WebRTC] ANSWER sent');
@@ -1027,6 +1056,10 @@ export class SimpleWebRTCCall {
       this.offerSent = true;
       
       const offer = await this.pc.createOffer();
+      if (this.networkQuality === 'EXTREME_LOW' && offer.sdp) {
+        offer.sdp = muneOpusForExtremeLow(offer.sdp);
+        console.log('🐌 [WebRTC] EXTREME_LOW: munged offer SDP for 6 kbps Opus');
+      }
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
       console.log('✅ [WebRTC] Offer sent');
