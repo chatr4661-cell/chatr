@@ -323,7 +323,7 @@ export class SimpleWebRTCCall {
       
       // Final fallback: audio only or basic video
       if (!acquired) {
-        if (this.isVideo) {
+        if (effectiveIsVideo) {
           try {
             this.localStream = await navigator.mediaDevices.getUserMedia({ 
               audio: audioConstraints, 
