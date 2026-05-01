@@ -38,6 +38,7 @@ class MainActivity : BridgeActivity() {
     }
 
     private var voipBridge: VoIPBridgeService? = null
+    private var pendingPermissionRequest: PermissionRequest? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +46,10 @@ class MainActivity : BridgeActivity() {
 
         // Required for Android 13+: without this, call notifications (and fullscreen intents) will not show.
         ensureNotificationPermission()
+        // CRITICAL for WebRTC voice/video: host app MUST hold RECORD_AUDIO + CAMERA at runtime
+        // before the WebView can grant getUserMedia. Without this, calls connect but produce
+        // no audio and no video frames (silent / black call).
+        ensureCallMediaPermissions()
         logFullScreenIntentStatus()
 
         // Initialize VoIP services
