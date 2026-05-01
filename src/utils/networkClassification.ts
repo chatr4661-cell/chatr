@@ -121,6 +121,8 @@ export function getNetworkStatusText(quality: NetworkQuality): string {
       return 'Weak network';
     case 'HOSTILE':
       return 'Very weak network';
+    case 'EXTREME_LOW':
+      return '1G/2G — audio only';
   }
 }
 
