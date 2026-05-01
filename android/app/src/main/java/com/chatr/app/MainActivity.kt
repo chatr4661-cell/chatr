@@ -298,7 +298,43 @@ class MainActivity : BridgeActivity() {
     }
 
     /**
-     * Android 14+ may require the user to allow Full-screen intents for the app.
+     * Ensure RECORD_AUDIO + CAMERA are granted at runtime. WebRTC voice/video will
+     * silently fail (connect with no audio/video) if the host app does not hold these.
+     */
+    private fun ensureCallMediaPermissions() {
+        val needed = mutableListOf<String>()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED) {
+            needed.add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
+            needed.add(Manifest.permission.CAMERA)
+        }
+        if (needed.isNotEmpty()) {
+            Log.w(TAG, "🎙️ Requesting runtime permissions: ${needed.joinToString()}")
+            ActivityCompat.requestPermissions(this, needed.toTypedArray(), 10002)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 10002) {
+            val allGranted = grantResults.isNotEmpty() &&
+                grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            Log.i(TAG, "🎙️ Call media permissions result: allGranted=$allGranted")
+            pendingPermissionRequest?.let { req ->
+                runOnUiThread {
+                    if (allGranted) req.grant(req.resources) else req.deny()
+                }
+                pendingPermissionRequest = null
+            }
+        }
+    }
      * We only log here to avoid hijacking navigation.
      */
     private fun logFullScreenIntentStatus() {
