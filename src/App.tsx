@@ -16,6 +16,9 @@ import { GlobalNotificationListener } from "./components/GlobalNotificationListe
 import { FeatureEngagementTracker } from "./components/FeatureEngagementTracker";
 import { CallProvider } from "./contexts/CallContext";
 import { PageLoader } from "./components/PageLoader";
+import { VoicePlayerProvider } from "./voice/VoicePlayerContext";
+import { MiniPlayer } from "./components/voice/MiniPlayer";
+import { VoiceAutoReadListener } from "./components/voice/VoiceAutoReadListener";
 import { useUISpeedBudget } from "./hooks/useUISpeedBudget";
 
 // ============================================
@@ -149,9 +152,12 @@ const App = () => {
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <NativeAppProvider>
             <CallProvider>
+            <VoicePlayerProvider>
             <OfflineIndicator />
             <GlobalCallListener />
             <GlobalNotificationListener />
+            <VoiceAutoReadListener />
+            <MiniPlayer />
             <FeatureEngagementTracker />
             <Routes>
             {/* Public Routes */}
@@ -460,6 +466,7 @@ const App = () => {
             <Route path="*" element={<LazyRoute component={LazyPages.NotFound} />} />
           </Routes>
           {/* Toasters removed for clean WhatsApp-style UX */}
+          </VoicePlayerProvider>
           </CallProvider>
           </NativeAppProvider>
         </BrowserRouter>
