@@ -466,6 +466,7 @@ const App = () => {
             <Route path="*" element={<LazyRoute component={LazyPages.NotFound} />} />
           </Routes>
           {/* Toasters removed for clean WhatsApp-style UX */}
+          </VoicePlayerProvider>
           </CallProvider>
           </NativeAppProvider>
         </BrowserRouter>
