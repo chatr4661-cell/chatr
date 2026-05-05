@@ -8,14 +8,14 @@ import {
   numbersToDataView,
   textToDataView,
   webUUIDToString
-} from "./chunk-UV63KMRD.js";
+} from "./chunk-TWCNEOCB.js";
 import {
   Capacitor,
   registerPlugin
-} from "./chunk-VYAGUGCM.js";
+} from "./chunk-S7OKNGPJ.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/.bun/@capacitor-community+bluetooth-le@7.2.0+1d43a6a1837411c8/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.js
+// node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.js
 var ScanMode;
 (function(ScanMode2) {
   ScanMode2[ScanMode2["SCAN_MODE_LOW_POWER"] = 0] = "SCAN_MODE_LOW_POWER";
@@ -29,12 +29,12 @@ var ConnectionPriority;
   ConnectionPriority2[ConnectionPriority2["CONNECTION_PRIORITY_LOW_POWER"] = 2] = "CONNECTION_PRIORITY_LOW_POWER";
 })(ConnectionPriority || (ConnectionPriority = {}));
 
-// node_modules/.bun/@capacitor-community+bluetooth-le@7.2.0+1d43a6a1837411c8/node_modules/@capacitor-community/bluetooth-le/dist/esm/plugin.js
+// node_modules/@capacitor-community/bluetooth-le/dist/esm/plugin.js
 var BluetoothLe = registerPlugin("BluetoothLe", {
-  web: () => import("./web-NFZMQA3Q.js").then((m) => new m.BluetoothLeWeb())
+  web: () => import("./web-JTWCSHAU.js").then((m) => new m.BluetoothLeWeb())
 });
 
-// node_modules/.bun/@capacitor-community+bluetooth-le@7.2.0+1d43a6a1837411c8/node_modules/@capacitor-community/bluetooth-le/dist/esm/queue.js
+// node_modules/@capacitor-community/bluetooth-le/dist/esm/queue.js
 var makeQueue = () => {
   let currentTask = Promise.resolve();
   return (fn) => new Promise((resolve, reject) => {
@@ -48,7 +48,7 @@ function getQueue(enabled) {
   return (fn) => fn();
 }
 
-// node_modules/.bun/@capacitor-community+bluetooth-le@7.2.0+1d43a6a1837411c8/node_modules/@capacitor-community/bluetooth-le/dist/esm/validators.js
+// node_modules/@capacitor-community/bluetooth-le/dist/esm/validators.js
 function parseUUID(uuid) {
   if (typeof uuid !== "string") {
     throw new Error(`Invalid UUID type ${typeof uuid}. Expected string.`);
@@ -61,7 +61,7 @@ function parseUUID(uuid) {
   return uuid;
 }
 
-// node_modules/.bun/@capacitor-community+bluetooth-le@7.2.0+1d43a6a1837411c8/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.js
+// node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.js
 var BleClientClass = class {
   constructor() {
     this.scanListener = null;

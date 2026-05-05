@@ -2,10 +2,10 @@ import {
   CapacitorException,
   WebPlugin,
   registerPlugin
-} from "./chunk-VYAGUGCM.js";
+} from "./chunk-S7OKNGPJ.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/.bun/@capacitor+camera@7.0.2+1d43a6a1837411c8/node_modules/@capacitor/camera/dist/esm/definitions.js
+// node_modules/@capacitor/camera/dist/esm/definitions.js
 var CameraSource;
 (function(CameraSource2) {
   CameraSource2["Prompt"] = "PROMPT";
@@ -24,7 +24,7 @@ var CameraResultType;
   CameraResultType2["DataUrl"] = "dataUrl";
 })(CameraResultType || (CameraResultType = {}));
 
-// node_modules/.bun/@capacitor+camera@7.0.2+1d43a6a1837411c8/node_modules/@capacitor/camera/dist/esm/web.js
+// node_modules/@capacitor/camera/dist/esm/web.js
 var CameraWeb = class extends WebPlugin {
   async getPhoto(options) {
     return new Promise(async (resolve, reject) => {
@@ -251,7 +251,7 @@ var CameraWeb = class extends WebPlugin {
 };
 var Camera = new CameraWeb();
 
-// node_modules/.bun/@capacitor+camera@7.0.2+1d43a6a1837411c8/node_modules/@capacitor/camera/dist/esm/index.js
+// node_modules/@capacitor/camera/dist/esm/index.js
 var Camera2 = registerPlugin("Camera", {
   web: () => new CameraWeb()
 });

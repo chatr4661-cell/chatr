@@ -1,9 +1,9 @@
 import {
   registerPlugin
-} from "./chunk-VYAGUGCM.js";
+} from "./chunk-S7OKNGPJ.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/.bun/@capacitor+synapse@1.0.4/node_modules/@capacitor/synapse/dist/synapse.mjs
+// node_modules/@capacitor/synapse/dist/synapse.mjs
 function s(t) {
   t.CapacitorUtils.Synapse = new Proxy(
     {},
@@ -50,9 +50,9 @@ function f(t = false) {
   typeof window > "u" || (window.CapacitorUtils = window.CapacitorUtils || {}, window.Capacitor !== void 0 && !t ? s(window) : window.cordova !== void 0 && u(window));
 }
 
-// node_modules/.bun/@capacitor+geolocation@7.1.5+1d43a6a1837411c8/node_modules/@capacitor/geolocation/dist/esm/index.js
+// node_modules/@capacitor/geolocation/dist/esm/index.js
 var Geolocation = registerPlugin("Geolocation", {
-  web: () => import("./web-D2AF72QK.js").then((m) => new m.GeolocationWeb())
+  web: () => import("./web-PDYO2KFG.js").then((m) => new m.GeolocationWeb())
 });
 f();
 export {

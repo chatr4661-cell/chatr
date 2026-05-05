@@ -1,15 +1,15 @@
 import {
   ConsentStatus,
   ConsentType
-} from "./chunk-J6T5ICL4.js";
+} from "./chunk-DPRSY54C.js";
 import {
   registerPlugin
-} from "./chunk-VYAGUGCM.js";
+} from "./chunk-S7OKNGPJ.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/.bun/@capacitor-firebase+analytics@7.4.0+1476e03926521c16/node_modules/@capacitor-firebase/analytics/dist/esm/index.js
+// node_modules/@capacitor-firebase/analytics/dist/esm/index.js
 var FirebaseAnalytics = registerPlugin("FirebaseAnalytics", {
-  web: () => import("./web-KFEDTBIZ.js").then((m) => new m.FirebaseAnalyticsWeb())
+  web: () => import("./web-7MBXVZSC.js").then((m) => new m.FirebaseAnalyticsWeb())
 });
 export {
   ConsentStatus,

@@ -1,6 +1,6 @@
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/.bun/canvas-confetti@1.9.4/node_modules/canvas-confetti/dist/confetti.module.mjs
+// node_modules/canvas-confetti/dist/confetti.module.mjs
 var module = {};
 (function main(global, module2, isWorker, workerSize) {
   var canUseWorker = !!(global.Worker && global.Blob && global.Promise && global.OffscreenCanvas && global.OffscreenCanvasRenderingContext2D && global.HTMLCanvasElement && global.HTMLCanvasElement.prototype.transferControlToOffscreen && global.URL && global.URL.createObjectURL);

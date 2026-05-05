@@ -1,11 +1,11 @@
 import {
   require_react
-} from "./chunk-C4EOH56T.js";
+} from "./chunk-65KY755N.js";
 import {
   __toESM
 } from "./chunk-V4OQ3NZ2.js";
 
-// node_modules/.bun/@use-gesture+core@10.3.1/node_modules/@use-gesture/core/dist/maths-0ab39ae9.esm.js
+// node_modules/@use-gesture/core/dist/maths-0ab39ae9.esm.js
 function clamp(v, min, max) {
   return Math.max(min, Math.min(v, max));
 }
@@ -44,7 +44,7 @@ function computeRubberband(bounds, [Vx, Vy], [Rx, Ry]) {
   return [rubberbandIfOutOfBounds(Vx, X0, X1, Rx), rubberbandIfOutOfBounds(Vy, Y0, Y1, Ry)];
 }
 
-// node_modules/.bun/@use-gesture+core@10.3.1/node_modules/@use-gesture/core/dist/actions-fe213e88.esm.js
+// node_modules/@use-gesture/core/dist/actions-fe213e88.esm.js
 function _toPrimitive(input, hint) {
   if (typeof input !== "object" || input === null) return input;
   var prim = input[Symbol.toPrimitive];
@@ -1507,10 +1507,10 @@ var wheelAction = {
   resolver: wheelConfigResolver
 };
 
-// node_modules/.bun/@use-gesture+react@10.3.1+f4eacebf2041cd4f/node_modules/@use-gesture/react/dist/use-gesture-react.esm.js
+// node_modules/@use-gesture/react/dist/use-gesture-react.esm.js
 var import_react = __toESM(require_react());
 
-// node_modules/.bun/@use-gesture+core@10.3.1/node_modules/@use-gesture/core/dist/use-gesture-core.esm.js
+// node_modules/@use-gesture/core/dist/use-gesture-core.esm.js
 function _objectWithoutPropertiesLoose(source, excluded) {
   if (source == null) return {};
   var target = {};
@@ -1832,7 +1832,7 @@ function parseMergedHandlers(mergedHandlers, mergedConfig) {
   };
 }
 
-// node_modules/.bun/@use-gesture+react@10.3.1+f4eacebf2041cd4f/node_modules/@use-gesture/react/dist/use-gesture-react.esm.js
+// node_modules/@use-gesture/react/dist/use-gesture-react.esm.js
 function useRecognizers(handlers, config = {}, gestureKey, nativeHandlers) {
   const ctrl = import_react.default.useMemo(() => new Controller(handlers), []);
   ctrl.applyHandlers(handlers, nativeHandlers);

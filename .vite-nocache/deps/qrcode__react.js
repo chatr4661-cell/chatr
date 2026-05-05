@@ -1,11 +1,11 @@
 import {
   require_react
-} from "./chunk-C4EOH56T.js";
+} from "./chunk-65KY755N.js";
 import {
   __toESM
 } from "./chunk-V4OQ3NZ2.js";
 
-// node_modules/.bun/qrcode.react@4.2.0+f4eacebf2041cd4f/node_modules/qrcode.react/lib/esm/index.js
+// node_modules/qrcode.react/lib/esm/index.js
 var import_react = __toESM(require_react());
 var __defProp = Object.defineProperty;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;

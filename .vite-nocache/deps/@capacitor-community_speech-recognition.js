@@ -1,11 +1,11 @@
 import {
   registerPlugin
-} from "./chunk-VYAGUGCM.js";
+} from "./chunk-S7OKNGPJ.js";
 import "./chunk-V4OQ3NZ2.js";
 
-// node_modules/.bun/@capacitor-community+speech-recognition@7.0.1+1d43a6a1837411c8/node_modules/@capacitor-community/speech-recognition/dist/esm/index.js
+// node_modules/@capacitor-community/speech-recognition/dist/esm/index.js
 var SpeechRecognition = registerPlugin("SpeechRecognition", {
-  web: () => import("./web-Z54OH2QX.js").then((m) => new m.SpeechRecognitionWeb())
+  web: () => import("./web-VLDJUK32.js").then((m) => new m.SpeechRecognitionWeb())
 });
 export {
   SpeechRecognition
