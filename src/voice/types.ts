@@ -52,4 +52,5 @@ export const DEFAULT_PREFS: VoicePersisted = {
   speech_rate: 1,
   speech_pitch: 1,
   mode: 'device',
+  stt_lang: 'en-US',
 };
