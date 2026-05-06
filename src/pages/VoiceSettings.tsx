@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSpeechInput } from '@/voice/useSpeechInput';
+import { STT_LANGUAGES } from '@/voice/types';
 import { ArrowLeft, Volume2, Mic, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -101,13 +102,27 @@ export default function VoiceSettings() {
         </Section>
 
         {/* STT */}
-        <Section icon={<Mic className="w-4 h-4" />} title="Voice input" desc="Hold the mic in chat to dictate. Audio is processed on-device.">
+        <Section icon={<Mic className="w-4 h-4" />} title="Voice input" desc="Tap the mic in chat to dictate. Audio is processed on-device.">
           <Row label="Enable voice input">
             <Switch
               checked={prefs.voice_input_enabled}
               disabled={!sttSupported}
               onCheckedChange={(v) => updatePrefs({ voice_input_enabled: v })}
             />
+          </Row>
+          <Row label="Recognition language" desc="Used for push-to-talk dictation.">
+            <Select
+              value={prefs.stt_lang}
+              disabled={!sttSupported || !prefs.voice_input_enabled}
+              onValueChange={(v) => updatePrefs({ stt_lang: v })}
+            >
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                {STT_LANGUAGES.map((l) => (
+                  <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Row>
           {!sttSupported && (
             <p className="text-xs text-muted-foreground">Voice input is not supported on this browser.</p>
