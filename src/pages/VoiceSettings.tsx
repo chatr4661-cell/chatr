@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSpeechInput } from '@/voice/useSpeechInput';
+import { STT_LANGUAGES } from '@/voice/types';
 import { ArrowLeft, Volume2, Mic, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
