@@ -7,11 +7,22 @@ import { useSpeechInput } from '@/voice/useSpeechInput';
 import { STT_LANGUAGES } from '@/voice/types';
 import { ArrowLeft, Volume2, Mic, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MicPermissionBanner } from '@/components/voice/MicPermissionBanner';
 
 export default function VoiceSettings() {
   const navigate = useNavigate();
   const { prefs, voices, deviceSupported, updatePrefs, play, stop } = useVoiceContext();
-  const { supported: sttSupported } = useSpeechInput();
+  const { supported: sttSupported, permission, checkPermission, start, stop: stopSTT } = useSpeechInput();
+
+  const requestMic = async () => {
+    const p = await checkPermission();
+    if (p === 'granted') { updatePrefs({ voice_input_enabled: true }); return; }
+    // Trigger native browser prompt
+    await start();
+    stopSTT();
+    const after = await checkPermission();
+    if (after === 'granted') updatePrefs({ voice_input_enabled: true });
+  };
 
   const sample = 'Hi, this is your Chatr voice assistant.';
 
