@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { STT_LANGUAGES } from '@/voice/types';
+import { MicPermissionBanner } from './MicPermissionBanner';
 
 interface Props {
   onTranscript: (text: string) => void;
