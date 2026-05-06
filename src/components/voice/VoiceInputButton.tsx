@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { STT_LANGUAGES } from '@/voice/types';
+import { MicPermissionBanner } from './MicPermissionBanner';
 
 interface Props {
   onTranscript: (text: string) => void;
@@ -28,7 +29,7 @@ export function VoiceInputButton({ onTranscript, className, lang }: Props) {
 
   const activeLang = lang || prefs.stt_lang || 'en-US';
 
-  const { supported, listening, interim, start, stop } = useSpeechInput({
+  const { supported, listening, interim, start, stop, permission, checkPermission } = useSpeechInput({
     lang: activeLang,
     continuous: true,
     interimResults: true,
@@ -114,7 +115,13 @@ export function VoiceInputButton({ onTranscript, className, lang }: Props) {
               )}
             </div>
 
-            {error && <p className="text-xs text-destructive">Error: {error}</p>}
+            <MicPermissionBanner
+              permission={permission}
+              onRetry={async () => { setError(null); const p = await checkPermission(); if (p !== 'denied') start(); }}
+            />
+            {error && permission !== 'denied' && permission !== 'unsupported' && (
+              <p className="text-xs text-destructive">Error: {error}</p>
+            )}
 
             <div className="flex items-center justify-between gap-2 pt-1">
               <Button type="button" size="sm" variant="ghost" onClick={() => setDraft('')} disabled={!preview}>

@@ -7,11 +7,22 @@ import { useSpeechInput } from '@/voice/useSpeechInput';
 import { STT_LANGUAGES } from '@/voice/types';
 import { ArrowLeft, Volume2, Mic, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MicPermissionBanner } from '@/components/voice/MicPermissionBanner';
 
 export default function VoiceSettings() {
   const navigate = useNavigate();
   const { prefs, voices, deviceSupported, updatePrefs, play, stop } = useVoiceContext();
-  const { supported: sttSupported } = useSpeechInput();
+  const { supported: sttSupported, permission, checkPermission, start, stop: stopSTT } = useSpeechInput();
+
+  const requestMic = async () => {
+    const p = await checkPermission();
+    if (p === 'granted') { updatePrefs({ voice_input_enabled: true }); return; }
+    // Trigger native browser prompt
+    await start();
+    stopSTT();
+    const after = await checkPermission();
+    if (after === 'granted') updatePrefs({ voice_input_enabled: true });
+  };
 
   const sample = 'Hi, this is your Chatr voice assistant.';
 
@@ -105,15 +116,23 @@ export default function VoiceSettings() {
         <Section icon={<Mic className="w-4 h-4" />} title="Voice input" desc="Tap the mic in chat to dictate. Audio is processed on-device.">
           <Row label="Enable voice input">
             <Switch
-              checked={prefs.voice_input_enabled}
-              disabled={!sttSupported}
-              onCheckedChange={(v) => updatePrefs({ voice_input_enabled: v })}
+              checked={prefs.voice_input_enabled && permission !== 'denied'}
+              disabled={!sttSupported || permission === 'denied'}
+              onCheckedChange={async (v) => {
+                if (!v) { updatePrefs({ voice_input_enabled: false }); return; }
+                if (permission === 'granted') { updatePrefs({ voice_input_enabled: true }); return; }
+                await requestMic();
+              }}
             />
           </Row>
+          <MicPermissionBanner
+            permission={permission}
+            onRetry={requestMic}
+          />
           <Row label="Recognition language" desc="Used for push-to-talk dictation.">
             <Select
               value={prefs.stt_lang}
-              disabled={!sttSupported || !prefs.voice_input_enabled}
+              disabled={!sttSupported || !prefs.voice_input_enabled || permission === 'denied'}
               onValueChange={(v) => updatePrefs({ stt_lang: v })}
             >
               <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
