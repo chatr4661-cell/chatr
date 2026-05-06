@@ -28,7 +28,7 @@ export function VoiceInputButton({ onTranscript, className, lang }: Props) {
 
   const activeLang = lang || prefs.stt_lang || 'en-US';
 
-  const { supported, listening, interim, start, stop } = useSpeechInput({
+  const { supported, listening, interim, start, stop, permission, checkPermission } = useSpeechInput({
     lang: activeLang,
     continuous: true,
     interimResults: true,
