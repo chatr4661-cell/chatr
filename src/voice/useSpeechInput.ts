@@ -7,6 +7,8 @@ const getSR = (): SR | null => {
   return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
 };
 
+export type MicPermission = 'unknown' | 'prompt' | 'granted' | 'denied' | 'unsupported';
+
 export interface SpeechInputOptions {
   lang?: string;
   continuous?: boolean;
@@ -14,6 +16,18 @@ export interface SpeechInputOptions {
   onFinal?: (text: string) => void;
   onInterim?: (text: string) => void;
   onError?: (err: string) => void;
+  onPermissionChange?: (p: MicPermission) => void;
+}
+
+async function queryMicPermission(): Promise<MicPermission> {
+  try {
+    const anyNav: any = navigator;
+    if (anyNav?.permissions?.query) {
+      const res = await anyNav.permissions.query({ name: 'microphone' as PermissionName });
+      return (res.state as MicPermission) || 'unknown';
+    }
+  } catch {}
+  return 'unknown';
 }
 
 export function useSpeechInput(opts: SpeechInputOptions = {}) {
@@ -22,7 +36,44 @@ export function useSpeechInput(opts: SpeechInputOptions = {}) {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interim, setInterim] = useState('');
+  const [permission, setPermission] = useState<MicPermission>(supported ? 'unknown' : 'unsupported');
   const recRef = useRef<any>(null);
+  const permRef = useRef<any>(null);
+
+  const updatePerm = useCallback((p: MicPermission) => {
+    setPermission(p);
+    opts.onPermissionChange?.(p);
+  }, [opts]);
+
+  // Probe + subscribe to permission changes
+  useEffect(() => {
+    if (!supported) return;
+    let cancelled = false;
+    (async () => {
+      const p = await queryMicPermission();
+      if (cancelled) return;
+      updatePerm(p);
+      try {
+        const anyNav: any = navigator;
+        if (anyNav?.permissions?.query) {
+          const status: any = await anyNav.permissions.query({ name: 'microphone' as PermissionName });
+          permRef.current = status;
+          status.onchange = () => updatePerm(status.state as MicPermission);
+        }
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+      if (permRef.current) try { permRef.current.onchange = null; } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supported]);
+
+  const checkPermission = useCallback(async () => {
+    const p = await queryMicPermission();
+    updatePerm(p);
+    return p;
+  }, [updatePerm]);
 
   const stop = useCallback(() => {
     try { recRef.current?.stop(); } catch {}
@@ -30,15 +81,23 @@ export function useSpeechInput(opts: SpeechInputOptions = {}) {
   }, []);
 
   const start = useCallback(async () => {
-    if (!SR) { opts.onError?.('not_supported'); return; }
+    if (!SR) { updatePerm('unsupported'); opts.onError?.('not_supported'); return; }
     try {
-      // Request mic permission upfront for clear consent UX
       if (navigator.mediaDevices?.getUserMedia) {
         const s = await navigator.mediaDevices.getUserMedia({ audio: true });
         s.getTracks().forEach((t) => t.stop());
+        updatePerm('granted');
       }
-    } catch {
-      opts.onError?.('permission_denied');
+    } catch (err: any) {
+      const name = err?.name || '';
+      if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
+        updatePerm('denied');
+        opts.onError?.('permission_denied');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        opts.onError?.('no_microphone');
+      } else {
+        opts.onError?.(name || 'permission_error');
+      }
       return;
     }
     const rec = new SR();
@@ -62,15 +121,20 @@ export function useSpeechInput(opts: SpeechInputOptions = {}) {
         opts.onFinal?.(finalText.trim());
       }
     };
-    rec.onerror = (e: any) => { opts.onError?.(e?.error || 'unknown'); setListening(false); };
+    rec.onerror = (e: any) => {
+      const code = e?.error || 'unknown';
+      if (code === 'not-allowed' || code === 'service-not-allowed') updatePerm('denied');
+      opts.onError?.(code);
+      setListening(false);
+    };
     rec.onend = () => setListening(false);
 
     recRef.current = rec;
     setTranscript(''); setInterim('');
     try { rec.start(); setListening(true); } catch (err) { opts.onError?.(String(err)); }
-  }, [SR, opts]);
+  }, [SR, opts, updatePerm]);
 
   useEffect(() => () => { try { recRef.current?.abort?.(); } catch {} }, []);
 
-  return { supported, listening, transcript, interim, start, stop };
+  return { supported, listening, transcript, interim, permission, checkPermission, start, stop };
 }
