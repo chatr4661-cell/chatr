@@ -114,7 +114,13 @@ export function VoiceInputButton({ onTranscript, className, lang }: Props) {
               )}
             </div>
 
-            {error && <p className="text-xs text-destructive">Error: {error}</p>}
+            <MicPermissionBanner
+              permission={permission}
+              onRetry={async () => { setError(null); const p = await checkPermission(); if (p !== 'denied') start(); }}
+            />
+            {error && permission !== 'denied' && permission !== 'unsupported' && (
+              <p className="text-xs text-destructive">Error: {error}</p>
+            )}
 
             <div className="flex items-center justify-between gap-2 pt-1">
               <Button type="button" size="sm" variant="ghost" onClick={() => setDraft('')} disabled={!preview}>
