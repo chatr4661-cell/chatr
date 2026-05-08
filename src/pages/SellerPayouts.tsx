@@ -102,9 +102,18 @@ export default function SellerPayouts() {
   }, []);
 
   useEffect(() => {
-    if (providerId) {
-      fetchAllData();
-    }
+    if (!providerId) return;
+    fetchAllData();
+    const ch = supabase
+      .channel(`seller-payouts-rt-${providerId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'seller_withdrawal_requests', filter: `provider_id=eq.${providerId}` },
+        () => fetchAllData())
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'provider_payouts', filter: `provider_id=eq.${providerId}` },
+        () => fetchAllData())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [providerId, selectedPeriod]);
 
   const fetchProviderProfile = async () => {
