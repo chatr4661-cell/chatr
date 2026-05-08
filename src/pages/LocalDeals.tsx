@@ -95,22 +95,22 @@ export default function LocalDeals() {
       const results = await chatrLocalSearch(searchTerm, activeLocation?.lat, activeLocation?.lon);
       
       if (results && results.length > 0) {
-        const mappedProviders: ServiceProvider[] = results.map((item: any) => ({
-          id: item.id || Math.random().toString(),
+        const mappedProviders: ServiceProvider[] = results.map((item: any, idx: number) => ({
+          id: item.id || item.url || `prov-${idx}`,
           name: item.name,
           category: selectedCategory?.name || 'Service',
-          rating: item.rating || (4 + Math.random() * 0.9),
-          reviews: item.rating_count || Math.floor(Math.random() * 3000) + 200,
-          experience: `${Math.floor(Math.random() * 8) + 2} yrs`,
-          price: item.price || Math.floor(Math.random() * 600) + 199,
-          originalPrice: item.price ? Math.floor(item.price * 1.25) : Math.floor(Math.random() * 800) + 300,
-          distance: item.distance ? `${item.distance.toFixed(1)} km` : `${(Math.random() * 4).toFixed(1)} km`,
+          rating: item.rating ?? null,
+          reviews: item.rating_count ?? null,
+          experience: null,
+          price: item.price ?? null,
+          originalPrice: item.price ? Math.floor(item.price * 1.25) : null,
+          distance: item.distance ? `${item.distance.toFixed(1)} km` : null,
           image_url: item.image_url,
           phone: item.phone,
           description: item.description,
           address: item.address,
-          verified: Math.random() > 0.3,
-          jobsCompleted: Math.floor(Math.random() * 1500) + 100,
+          verified: !!item.verified,
+          jobsCompleted: null,
         }));
         setProviders(mappedProviders);
       } else {
