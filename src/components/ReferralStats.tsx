@@ -25,37 +25,47 @@ export const ReferralStats = ({ userId }: ReferralStatsProps) => {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        // Get invite stats
-        const { data: invites } = await supabase
-          .from('contact_invites')
-          .select('status, reward_given')
-          .eq('inviter_id', userId);
+  const loadStats = async () => {
+    try {
+      const { data: invites } = await supabase
+        .from('contact_invites')
+        .select('status, reward_given')
+        .eq('inviter_id', userId);
 
-        if (invites) {
-          const sent = invites.length;
-          const clicked = invites.filter(i => i.status === 'clicked' || i.status === 'joined').length;
-          const joined = invites.filter(i => i.status === 'joined').length;
-          const rewarded = invites.filter(i => i.reward_given).length;
-          
-          setStats({
-            totalInvitesSent: sent,
-            totalClicks: clicked,
-            totalJoined: joined,
-            totalCoinsEarned: rewarded * 50, // 50 coins per successful referral
-            conversionRate: sent > 0 ? Math.round((joined / sent) * 100) : 0,
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load referral stats:', error);
-      } finally {
-        setLoading(false);
+      if (invites) {
+        const sent = invites.length;
+        const clicked = invites.filter(i => i.status === 'clicked' || i.status === 'joined').length;
+        const joined = invites.filter(i => i.status === 'joined').length;
+        const rewarded = invites.filter(i => i.reward_given).length;
+
+        setStats({
+          totalInvitesSent: sent,
+          totalClicks: clicked,
+          totalJoined: joined,
+          totalCoinsEarned: rewarded * 50,
+          conversionRate: sent > 0 ? Math.round((joined / sent) * 100) : 0,
+        });
       }
-    };
+    } catch (error) {
+      console.error('Failed to load referral stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadStats();
+    const ch = supabase
+      .channel(`referral-stats-rt-${userId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'contact_invites', filter: `inviter_id=eq.${userId}` },
+        () => loadStats())
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'referral_rewards', filter: `referrer_id=eq.${userId}` },
+        () => loadStats())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   if (loading) {

@@ -21,6 +21,12 @@ export function ReferralLeaderboard() {
 
   useEffect(() => {
     fetchLeaderboard();
+    const ch = supabase
+      .channel('referral-leaderboard-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chatr_referrals' }, () => fetchLeaderboard())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_rewards' }, () => fetchLeaderboard())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   const fetchLeaderboard = async () => {
