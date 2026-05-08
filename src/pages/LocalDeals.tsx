@@ -425,7 +425,7 @@ export default function LocalDeals() {
                     </div>
                     <div>
                       <p className="font-medium">{sub}</p>
-                      <p className="text-xs text-muted-foreground">From ₹{Math.floor(Math.random() * 500) + 199}</p>
+                      <p className="text-xs text-muted-foreground">View providers</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
