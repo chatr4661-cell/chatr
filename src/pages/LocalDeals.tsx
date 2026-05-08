@@ -499,24 +499,30 @@ export default function LocalDeals() {
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <h3 className="font-semibold line-clamp-1">{provider.name}</h3>
-                              <div className="flex items-center gap-2 mt-1">
-                                <div className="bg-green-600 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                  <Star className="w-2.5 h-2.5 fill-current" />
-                                  {provider.rating.toFixed(1)}
+                              {(provider.rating != null || provider.reviews != null) && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  {provider.rating != null && (
+                                    <div className="bg-green-600 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                      <Star className="w-2.5 h-2.5 fill-current" />
+                                      {provider.rating.toFixed(1)}
+                                    </div>
+                                  )}
+                                  {provider.reviews != null && (
+                                    <span className="text-xs text-muted-foreground">({provider.reviews.toLocaleString()})</span>
+                                  )}
                                 </div>
-                                <span className="text-xs text-muted-foreground">({provider.reviews.toLocaleString()})</span>
-                              </div>
+                              )}
                             </div>
                             <div className="text-right">
-                              <p className="font-bold">₹{provider.price}</p>
+                              {provider.price != null && <p className="font-bold">₹{provider.price}</p>}
                               {provider.originalPrice && <p className="text-xs text-muted-foreground line-through">₹{provider.originalPrice}</p>}
                             </div>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{provider.experience}</span>
-                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{provider.distance}</span>
-                            <span className="flex items-center gap-1"><Award className="w-3 h-3" />{provider.jobsCompleted}+ jobs</span>
+                            {provider.experience && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{provider.experience}</span>}
+                            {provider.distance && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{provider.distance}</span>}
+                            {provider.jobsCompleted != null && <span className="flex items-center gap-1"><Award className="w-3 h-3" />{provider.jobsCompleted}+ jobs</span>}
                           </div>
                         </div>
                       </div>
