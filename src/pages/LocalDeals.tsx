@@ -46,18 +46,18 @@ interface ServiceProvider {
   id: string;
   name: string;
   category: string;
-  rating: number;
-  reviews: number;
-  experience: string;
-  price: number;
-  originalPrice?: number;
-  distance: string;
+  rating?: number | null;
+  reviews?: number | null;
+  experience?: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
+  distance?: string | null;
   image_url?: string;
   phone?: string;
   description?: string;
   address?: string;
   verified?: boolean;
-  jobsCompleted?: number;
+  jobsCompleted?: number | null;
 }
 
 export default function LocalDeals() {
