@@ -74,21 +74,21 @@ export async function chatrLocalSearch(query: string, lat?: number, lon?: number
       return [];
     }
 
-    // Map Google results to ChatrResult format
+    // Map Google results to ChatrResult format — only real, parsed values (no random fakes)
     const results: ChatrResult[] = data.results.map((r: any, idx: number) => {
-      // Extract structured data from snippet/title
       const priceMatch = r.snippet?.match(/₹[\d,]+|Rs\.?\s*[\d,]+|\$[\d,]+/);
       const ratingMatch = r.snippet?.match(/(\d\.\d)\s*(?:stars?|rating)/i);
-      
+      const reviewCountMatch = r.snippet?.match(/(\d[\d,]*)\s*(?:reviews?|ratings?)/i);
+
       return {
         id: r.url || `result-${idx}`,
         name: r.title,
         address: r.displayUrl,
         description: r.snippet,
         category: r.detectedType || 'web',
-        rating: ratingMatch ? parseFloat(ratingMatch[1]) : 4.0 + Math.random(),
-        rating_count: Math.floor(Math.random() * 5000) + 500,
-        distance: lat && lon ? Math.random() * 5 : undefined, // km (mock for now)
+        rating: ratingMatch ? parseFloat(ratingMatch[1]) : undefined,
+        rating_count: reviewCountMatch ? parseInt(reviewCountMatch[1].replace(/,/g, ''), 10) : undefined,
+        distance: undefined, // only set when backend returns real geo distance
         price: priceMatch ? parseInt(priceMatch[0].replace(/[^\d]/g, '')) : undefined,
         image_url: r.faviconUrl,
         phone: extractPhone(r.snippet),
