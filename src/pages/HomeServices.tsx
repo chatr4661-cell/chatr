@@ -78,15 +78,15 @@ const HomeServices = () => {
       const results = await chatrLocalSearch(searchTerm, location.lat, location.lon);
       
       if (results && results.length > 0) {
-        const mappedProviders = results.map((item: any) => ({
-          id: item.id || Math.random().toString(),
+        const mappedProviders = results.map((item: any, idx: number) => ({
+          id: item.id || item.url || `prov-${idx}`,
           business_name: item.name,
-          description: item.description || 'Professional service provider',
-          hourly_rate: item.price || 50,
-          rating_average: item.rating || 4.5,
-          rating_count: item.rating_count || 0,
-          completed_jobs: Math.floor(Math.random() * 100) + 10,
-          phone_number: item.phone || '+92 300 1234567',
+          description: item.description || 'Service provider',
+          hourly_rate: item.price ?? null,
+          rating_average: item.rating ?? null,
+          rating_count: item.rating_count ?? 0,
+          completed_jobs: null,
+          phone_number: item.phone || null,
           avatar_url: item.image_url,
           category_id: selectedCategory,
         }));

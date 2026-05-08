@@ -46,18 +46,18 @@ interface ServiceProvider {
   id: string;
   name: string;
   category: string;
-  rating: number;
-  reviews: number;
-  experience: string;
-  price: number;
-  originalPrice?: number;
-  distance: string;
+  rating?: number | null;
+  reviews?: number | null;
+  experience?: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
+  distance?: string | null;
   image_url?: string;
   phone?: string;
   description?: string;
   address?: string;
   verified?: boolean;
-  jobsCompleted?: number;
+  jobsCompleted?: number | null;
 }
 
 export default function LocalDeals() {
@@ -95,22 +95,22 @@ export default function LocalDeals() {
       const results = await chatrLocalSearch(searchTerm, activeLocation?.lat, activeLocation?.lon);
       
       if (results && results.length > 0) {
-        const mappedProviders: ServiceProvider[] = results.map((item: any) => ({
-          id: item.id || Math.random().toString(),
+        const mappedProviders: ServiceProvider[] = results.map((item: any, idx: number) => ({
+          id: item.id || item.url || `prov-${idx}`,
           name: item.name,
           category: selectedCategory?.name || 'Service',
-          rating: item.rating || (4 + Math.random() * 0.9),
-          reviews: item.rating_count || Math.floor(Math.random() * 3000) + 200,
-          experience: `${Math.floor(Math.random() * 8) + 2} yrs`,
-          price: item.price || Math.floor(Math.random() * 600) + 199,
-          originalPrice: item.price ? Math.floor(item.price * 1.25) : Math.floor(Math.random() * 800) + 300,
-          distance: item.distance ? `${item.distance.toFixed(1)} km` : `${(Math.random() * 4).toFixed(1)} km`,
+          rating: item.rating ?? null,
+          reviews: item.rating_count ?? null,
+          experience: null,
+          price: item.price ?? null,
+          originalPrice: item.price ? Math.floor(item.price * 1.25) : null,
+          distance: item.distance ? `${item.distance.toFixed(1)} km` : null,
           image_url: item.image_url,
           phone: item.phone,
           description: item.description,
           address: item.address,
-          verified: Math.random() > 0.3,
-          jobsCompleted: Math.floor(Math.random() * 1500) + 100,
+          verified: !!item.verified,
+          jobsCompleted: null,
         }));
         setProviders(mappedProviders);
       } else {
@@ -425,7 +425,7 @@ export default function LocalDeals() {
                     </div>
                     <div>
                       <p className="font-medium">{sub}</p>
-                      <p className="text-xs text-muted-foreground">From ₹{Math.floor(Math.random() * 500) + 199}</p>
+                      <p className="text-xs text-muted-foreground">View providers</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -499,24 +499,30 @@ export default function LocalDeals() {
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <h3 className="font-semibold line-clamp-1">{provider.name}</h3>
-                              <div className="flex items-center gap-2 mt-1">
-                                <div className="bg-green-600 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                  <Star className="w-2.5 h-2.5 fill-current" />
-                                  {provider.rating.toFixed(1)}
+                              {(provider.rating != null || provider.reviews != null) && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  {provider.rating != null && (
+                                    <div className="bg-green-600 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                      <Star className="w-2.5 h-2.5 fill-current" />
+                                      {provider.rating.toFixed(1)}
+                                    </div>
+                                  )}
+                                  {provider.reviews != null && (
+                                    <span className="text-xs text-muted-foreground">({provider.reviews.toLocaleString()})</span>
+                                  )}
                                 </div>
-                                <span className="text-xs text-muted-foreground">({provider.reviews.toLocaleString()})</span>
-                              </div>
+                              )}
                             </div>
                             <div className="text-right">
-                              <p className="font-bold">₹{provider.price}</p>
+                              {provider.price != null && <p className="font-bold">₹{provider.price}</p>}
                               {provider.originalPrice && <p className="text-xs text-muted-foreground line-through">₹{provider.originalPrice}</p>}
                             </div>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{provider.experience}</span>
-                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{provider.distance}</span>
-                            <span className="flex items-center gap-1"><Award className="w-3 h-3" />{provider.jobsCompleted}+ jobs</span>
+                            {provider.experience && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{provider.experience}</span>}
+                            {provider.distance && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{provider.distance}</span>}
+                            {provider.jobsCompleted != null && <span className="flex items-center gap-1"><Award className="w-3 h-3" />{provider.jobsCompleted}+ jobs</span>}
                           </div>
                         </div>
                       </div>

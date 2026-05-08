@@ -32,51 +32,13 @@ export function HealthAppSync({ onDataSync }: HealthAppSyncProps) {
     });
 
     try {
-      if (isNative && appId === 'apple' && platform === 'ios') {
-        // Request iOS HealthKit permissions
-        const dataTypes = ['steps', 'heartRate', 'sleep', 'weight', 'bloodPressure'];
-        
-        // In a real implementation, you would use the Health plugin here
-        // For now, we'll simulate the data
-        const mockData = {
-          steps: Math.floor(Math.random() * 5000) + 5000,
-          heart_rate: Math.floor(Math.random() * 20) + 60,
-          sleep_hours: (Math.random() * 2 + 6).toFixed(1),
-          weight_kg: (Math.random() * 10 + 65).toFixed(1),
-        };
-
-        onDataSync(mockData);
-        toast({
-          title: '✅ Sync Complete',
-          description: 'Your Apple Health data has been imported!',
-        });
-      } else if (isNative && appId === 'google' && platform === 'android') {
-        // Request Google Fit permissions
-        const mockData = {
-          steps: Math.floor(Math.random() * 5000) + 5000,
-          heart_rate: Math.floor(Math.random() * 20) + 60,
-          sleep_hours: (Math.random() * 2 + 6).toFixed(1),
-        };
-
-        onDataSync(mockData);
-        toast({
-          title: '✅ Sync Complete',
-          description: 'Your Google Fit data has been imported!',
-        });
-      } else {
-        // Web or unavailable platform - use mock data
-        const mockData = {
-          steps: Math.floor(Math.random() * 5000) + 5000,
-          heart_rate: Math.floor(Math.random() * 20) + 60,
-          sleep_hours: (Math.random() * 2 + 6).toFixed(1),
-        };
-
-        onDataSync(mockData);
-        toast({
-          title: '✅ Demo Sync Complete',
-          description: 'Simulated health data imported (available on mobile)',
-        });
-      }
+      // Native HealthKit / Google Fit integration not yet wired.
+      // Refuse to inject fake data — fail explicitly so users aren't misled.
+      toast({
+        title: 'Health sync not available yet',
+        description: 'Native HealthKit / Google Fit integration is coming soon. No demo data will be imported.',
+        variant: 'destructive',
+      });
     } catch (error) {
       console.error('Health sync error:', error);
       toast({

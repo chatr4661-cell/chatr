@@ -16,42 +16,47 @@ export function EarnLeaderboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const load = async () => {
+    const { data } = await supabase
+      .from('chatr_coin_balances')
+      .select('user_id, total_coins')
+      .order('total_coins', { ascending: false })
+      .limit(5);
+
+    if (!data) { setLoading(false); return; }
+
+    const ids = data.map((d: any) => d.user_id);
+    const { data: profiles } = await (supabase as any)
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .in('id', ids);
+
+    const profileMap = new Map<string, string | null>(
+      (profiles || []).map((p: any) => [
+        p.id as string,
+        (p.username as string | null) || (p.full_name as string | null) || null,
+      ])
+    );
+    setRows(
+      data.map((d: any) => ({
+        user_id: d.user_id as string,
+        total_coins: d.total_coins as number,
+        display_name: profileMap.get(d.user_id as string) ?? null,
+      }))
+    );
+    setLoading(false);
+  };
+
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { data } = await supabase
-        .from('chatr_coin_balances')
-        .select('user_id, total_coins')
-        .order('total_coins', { ascending: false })
-        .limit(5);
-
-      if (!mounted || !data) {
-        if (mounted) setLoading(false);
-        return;
-      }
-
-      const ids = data.map((d: any) => d.user_id);
-      const { data: profiles } = await (supabase as any)
-        .from('profiles')
-        .select('id, username, full_name, avatar_url')
-        .in('id', ids);
-
-      const profileMap = new Map<string, string | null>(
-        (profiles || []).map((p: any) => [
-          p.id as string,
-          (p.username as string | null) || (p.full_name as string | null) || null,
-        ])
-      );
-      setRows(
-        data.map((d: any) => ({
-          user_id: d.user_id as string,
-          total_coins: d.total_coins as number,
-          display_name: profileMap.get(d.user_id as string) ?? null,
-        }))
-      );
-      setLoading(false);
-    })();
-    return () => { mounted = false; };
+    load();
+    // Realtime: refresh leaderboard when balances change
+    const ch = supabase
+      .channel('earn-leaderboard')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'chatr_coin_balances' },
+        () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   return (

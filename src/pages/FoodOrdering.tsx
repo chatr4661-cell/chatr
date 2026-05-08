@@ -81,20 +81,20 @@ export default function FoodOrdering() {
       if (activeLocation?.lat && activeLocation?.lon) {
         const results = await chatrLocalSearch('restaurant food', activeLocation.lat, activeLocation.lon);
         if (results && results.length > 0) {
-          externalVendors = results.map((item: any) => ({
-            id: item.id || Math.random().toString(),
+          externalVendors = results.map((item: any, idx: number) => ({
+            id: item.id || item.url || `ext-${idx}`,
             name: item.name,
             description: item.description || 'Local restaurant',
             avatar_url: item.image_url,
-            rating: item.rating || (4 + Math.random() * 0.8),
-            reviews: item.rating_count || Math.floor(Math.random() * 2000) + 100,
-            delivery_time: Math.floor(Math.random() * 20) + 20,
+            rating: item.rating ?? null,
+            reviews: item.rating_count ?? null,
+            delivery_time: null,
             cuisine_type: item.category || 'Multi-cuisine',
             distance: item.distance,
-            price: item.price || Math.floor(Math.random() * 200) + 150,
-            isVeg: Math.random() > 0.7,
-            isBestseller: Math.random() > 0.7,
-            offer: Math.random() > 0.5 ? `${Math.floor(Math.random() * 30) + 10}% OFF` : null,
+            price: item.price ?? null,
+            isVeg: false,
+            isBestseller: false,
+            offer: null,
             isFromDb: false
           }));
         }
