@@ -24,20 +24,24 @@ export default function EarnHistory() {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<EarningEvent[]>([]);
 
+  const loadHistory = async () => {
+    const { data, error } = await supabase
+      .from('earning_events')
+      .select('id, title, description, event_type, status, reward_coins, reward_rupees, occurred_at')
+      .order('occurred_at', { ascending: false })
+      .limit(100);
+
+    if (!error) setEvents((data || []) as EarningEvent[]);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const loadHistory = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('earning_events')
-        .select('id, title, description, event_type, status, reward_coins, reward_rupees, occurred_at')
-        .order('occurred_at', { ascending: false })
-        .limit(100);
-
-      if (!error) setEvents((data || []) as EarningEvent[]);
-      setLoading(false);
-    };
-
     loadHistory();
+    const ch = supabase
+      .channel('earn-history-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'earning_events' }, () => loadHistory())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   const badgeVariant = (status: EarningEvent['status']) => {
