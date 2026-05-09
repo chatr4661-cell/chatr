@@ -60,7 +60,7 @@ export const useTrustScore = () => {
           .eq('user_id', userId) as any,
       ]);
 
-      const score = scoreRes.data?.trust_score ?? 50;
+      const score = Math.round(Number(scoreRes.data?.trust_score ?? 50));
       const level = scoreRes.data?.verification_level ?? 'unverified';
       const tier = getTrustTier(score);
 
