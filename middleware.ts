@@ -110,7 +110,7 @@ function buildMeta(handle: string, profile: any, discovery: any) {
   `;
 }
 
-export default async function middleware(req: NextRequest) {
+export default async function middleware(req: Request) {
   const url = new URL(req.url);
   const seg = url.pathname.replace(/^\/+|\/+$/g, '');
   if (!seg || seg.includes('/')) return;
