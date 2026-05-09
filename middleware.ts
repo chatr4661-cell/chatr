@@ -3,12 +3,9 @@
 // handle in Supabase, and injects og:/twitter:/JSON-LD into the SPA shell
 // before serving. The SPA then hydrates normally on the client.
 
-import type { NextRequest } from 'next/server';
-
+// Framework-agnostic Vercel Edge Middleware (works with Vite SPAs).
 export const config = {
-  // Only run on root-level single-segment paths. Static assets, api/, _next,
-  // dotfiles, and anything containing a "." (extensions) are skipped.
-  matcher: ['/((?!api/|assets/|_next/|.*\\..*).*)'],
+  matcher: '/((?!api/|assets/|_next/|.*\\..*).*)',
 };
 
 const SUPABASE_URL = 'https://sbayuqgomlflmxgicplz.supabase.co';
