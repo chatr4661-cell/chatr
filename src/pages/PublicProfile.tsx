@@ -32,6 +32,62 @@ const PublicProfile = () => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, [handle]);
 
+  // Client-side SEO fallback (mirrors edge middleware) for SPA navigations + crawlers without JS-rendering wait.
+  useEffect(() => {
+    if (!profile) return;
+    const name = profile.username || normalizedHandle;
+    const headline =
+      discovery?.headline ||
+      [discovery?.job_title, discovery?.company].filter(Boolean).join(' at ') ||
+      profile.bio || `${name} is on Chatr — message, call, and connect instantly.`;
+    const description = String(headline).slice(0, 200);
+    const image = profile.avatar_url || 'https://chatr.chat/assets/chatrplus-logo512.png';
+    const url = profileUrl;
+
+    document.title = `${name} (@${normalizedHandle}) · Chatr`;
+
+    const setMeta = (sel: string, attr: string, key: string, val: string) => {
+      let el = document.head.querySelector(sel) as HTMLMetaElement | HTMLLinkElement | null;
+      if (!el) {
+        el = document.createElement(sel.startsWith('link') ? 'link' : 'meta') as any;
+        (el as any).setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      (el as any).setAttribute(attr === 'rel' ? 'href' : 'content', val);
+    };
+    setMeta('meta[name="description"]', 'name', 'description', description);
+    setMeta('link[rel="canonical"]', 'rel', 'canonical', url);
+    setMeta('meta[property="og:type"]', 'property', 'og:type', 'profile');
+    setMeta('meta[property="og:title"]', 'property', 'og:title', `${name} (@${normalizedHandle}) · Chatr`);
+    setMeta('meta[property="og:description"]', 'property', 'og:description', description);
+    setMeta('meta[property="og:url"]', 'property', 'og:url', url);
+    setMeta('meta[property="og:image"]', 'property', 'og:image', image);
+    setMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
+    setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', `${name} (@${normalizedHandle}) · Chatr`);
+    setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
+    setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image);
+
+    // JSON-LD
+    const existing = document.getElementById('ld-person');
+    if (existing) existing.remove();
+    const ld = document.createElement('script');
+    ld.type = 'application/ld+json';
+    ld.id = 'ld-person';
+    ld.text = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Person',
+      name, alternateName: `@${normalizedHandle}`,
+      description, image, url,
+      jobTitle: discovery?.job_title || undefined,
+      worksFor: discovery?.company ? { '@type': 'Organization', name: discovery.company } : undefined,
+      address: (discovery?.city || discovery?.country) ? {
+        '@type': 'PostalAddress', addressLocality: discovery?.city, addressCountry: discovery?.country,
+      } : undefined,
+      knowsAbout: discovery?.skills || undefined,
+      sameAs: discovery?.website ? [discovery.website] : undefined,
+    });
+    document.head.appendChild(ld);
+  }, [profile, discovery, normalizedHandle, profileUrl]);
+
   useEffect(() => {
     if (currentUserId && profile?.id && currentUserId !== profile.id) {
       checkConnectionStatus(currentUserId, profile.id);
