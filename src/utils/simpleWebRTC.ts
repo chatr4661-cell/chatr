@@ -383,23 +383,45 @@ export class SimpleWebRTCCall {
     const isAndroid = typeof navigator !== 'undefined' && 
       /Android/i.test(navigator.userAgent);
     
-    // ULTRA-FAST: Minimal ICE config for <2s connections
+    // Robust ICE config — covers Wi-Fi, mobile data (Jio/Airtel symmetric NAT),
+    // and carrier UDP blocking by including TURN over UDP, TCP and TLS/443.
     const config: RTCConfiguration = {
       iceServers: [
-        // STUN only - fastest for direct P2P (works 80%+ of the time)
+        // STUN — fast direct P2P when possible
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        // Single TURN for NAT traversal fallback
+        { urls: 'stun:stun.cloudflare.com:3478' },
+
+        // OpenRelay TURN (free) — UDP, TCP and TLS variants for carrier-NAT traversal
         {
-          urls: 'turn:openrelay.metered.ca:443',
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:80?transport=tcp',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp',
+            'turns:openrelay.metered.ca:443?transport=tcp',
+          ],
           username: 'openrelayproject',
-          credential: 'openrelayproject'
-        }
+          credential: 'openrelayproject',
+        },
+
+        // Metered.ca shared TURN — secondary relay (helps when openrelay is congested)
+        {
+          urls: [
+            'turn:a.relay.metered.ca:80',
+            'turn:a.relay.metered.ca:80?transport=tcp',
+            'turn:a.relay.metered.ca:443',
+            'turn:a.relay.metered.ca:443?transport=tcp',
+            'turns:a.relay.metered.ca:443?transport=tcp',
+          ],
+          username: 'e8dd65c92ae9a3b9bfcbeb6e',
+          credential: 'uWdWNmkhvyqTW1QP',
+        },
       ],
       iceTransportPolicy: 'all',
       bundlePolicy: 'max-bundle',
       rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 2, // Minimal pre-gathering
+      iceCandidatePoolSize: 4,
     };
 
     console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
