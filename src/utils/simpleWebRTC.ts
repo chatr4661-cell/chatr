@@ -830,6 +830,88 @@ export class SimpleWebRTCCall {
     });
   }
 
+  /**
+   * Prefer Opus for audio on every audio transceiver.
+   * Ensures both peers negotiate the same codec (avoids G722/PCMU fallback that
+   * some Jio/Airtel networks/proxies have triggered, leaving silent audio).
+   */
+  private preferAudioOpus() {
+    if (!this.pc) return;
+    try {
+      const caps = (RTCRtpSender as any).getCapabilities?.('audio') ||
+                   (RTCRtpReceiver as any).getCapabilities?.('audio');
+      const codecs = caps?.codecs || [];
+      if (!codecs.length) return;
+      const opus = codecs.filter((c: any) => /opus/i.test(c.mimeType));
+      const dtmf = codecs.filter((c: any) => /telephone-event/i.test(c.mimeType));
+      const rest = codecs.filter((c: any) => !/opus|telephone-event/i.test(c.mimeType));
+      const ordered = [...opus, ...dtmf, ...rest];
+      this.pc.getTransceivers().forEach(t => {
+        const kind = t.sender.track?.kind || t.receiver.track?.kind;
+        if (kind === 'audio' && (t as any).setCodecPreferences) {
+          try {
+            (t as any).setCodecPreferences(ordered);
+            console.log('🎙️ [WebRTC] Audio codec preference: Opus first');
+          } catch (e) {
+            console.warn('⚠️ [WebRTC] Audio setCodecPreferences failed:', e);
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('⚠️ [WebRTC] preferAudioOpus error:', e);
+    }
+  }
+
+  /**
+   * Prefer VP8 then H264 for video (universal interop including Jio/Airtel
+   * Android devices). Reuses forceVP8Codec ordering — safe on all peers.
+   */
+  private preferVideoCodecs() {
+    this.forceVP8Codec();
+  }
+
+  /**
+   * Ensure Opus SDP carries FEC, DTX, and a sensible bitrate cap so Jio/Airtel
+   * NAT/proxies don't strip media. Idempotent — only adds missing params.
+   */
+  private mungeOpusSdp(sdp: string): string {
+    if (!sdp) return sdp;
+    try {
+      const ptMatch = sdp.match(/a=rtpmap:(\d+) opus\/48000/i);
+      if (!ptMatch) return sdp;
+      const pt = ptMatch[1];
+      const fmtpRe = new RegExp(`a=fmtp:${pt} ([^\\r\\n]*)`, 'i');
+      const desired: Record<string, string> = {
+        'minptime': '10',
+        'useinbandfec': '1',
+        'usedtx': '1',
+        'stereo': '0',
+        'maxaveragebitrate': '40000',
+      };
+      if (fmtpRe.test(sdp)) {
+        sdp = sdp.replace(fmtpRe, (_m, params: string) => {
+          const map = new Map<string, string>();
+          params.split(';').map(p => p.trim()).filter(Boolean).forEach(p => {
+            const [k, v] = p.split('=');
+            if (k) map.set(k.trim(), (v ?? '').trim());
+          });
+          Object.entries(desired).forEach(([k, v]) => { if (!map.has(k)) map.set(k, v); });
+          const merged = Array.from(map.entries()).map(([k, v]) => v ? `${k}=${v}` : k).join(';');
+          return `a=fmtp:${pt} ${merged}`;
+        });
+      } else {
+        const params = Object.entries(desired).map(([k, v]) => `${k}=${v}`).join(';');
+        sdp = sdp.replace(
+          new RegExp(`(a=rtpmap:${pt} opus/48000[^\\r\\n]*\\r?\\n)`, 'i'),
+          `$1a=fmtp:${pt} ${params}\r\n`
+        );
+      }
+    } catch (e) {
+      console.warn('⚠️ [WebRTC] mungeOpusSdp failed:', e);
+    }
+    return sdp;
+  }
+
   private async fetchPastSignals() {
     console.log('📥 [WebRTC] Fetching past signals...');
     
