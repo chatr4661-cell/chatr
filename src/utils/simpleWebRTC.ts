@@ -1075,6 +1075,8 @@ export class SimpleWebRTCCall {
           if (this.networkQuality === 'EXTREME_LOW' && answer.sdp) {
             answer.sdp = muneOpusForExtremeLow(answer.sdp);
             console.log('🐌 [WebRTC] EXTREME_LOW: munged answer SDP for 6 kbps Opus');
+          } else if (answer.sdp) {
+            answer.sdp = this.mungeOpusSdp(answer.sdp);
           }
           await this.pc.setLocalDescription(answer);
           await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
