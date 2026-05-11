@@ -207,7 +207,21 @@ export default function NetworkDiagnosticsPanel({ peerConnection, isVisible, onC
             <Row label="Tier" value={stats.tier} />
             <Row label="Path" value={stats.candidateType} />
             <Row label="Network" value={stats.connectionType} />
+            {tele && (
+              <>
+                <div className="border-t border-white/10 pt-1.5 mt-1.5" />
+                <Row label="Conn type" value={tele.connectionType} good={tele.connectionType === 'host' || tele.connectionType === 'srflx'} bad={tele.connectionType === 'relay'} />
+                <Row label="Relay" value={tele.relayProvider} />
+                <Row label="Net type" value={tele.networkType} />
+                <Row label="ICE state" value={tele.iceState || '--'} />
+                <Row label="ICE restarts" value={String(tele.iceRestarts)} bad={tele.iceRestarts > 2} />
+                <Row label="Reconnects" value={`${tele.reconnectSuccesses}/${tele.reconnectSuccesses + tele.reconnectFailures}`} />
+                <Row label="Setup" value={tele.setupTimeMs ? `${tele.setupTimeMs}ms` : '--'} good={(tele.setupTimeMs || 9999) < 2500} />
+                <Row label="Relay-only" value={tele.forcedRelayOnly ? 'YES' : 'no'} bad={tele.forcedRelayOnly} />
+              </>
+            )}
           </div>
+
         </motion.div>
       )}
     </AnimatePresence>
