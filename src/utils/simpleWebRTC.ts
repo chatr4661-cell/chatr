@@ -503,18 +503,45 @@ export class SimpleWebRTCCall {
       }
     });
 
-    // ICE connection state (backup handler)
+    // ICE connection state (backup handler) + telemetry
     this.pc.oniceconnectionstatechange = () => {
       const state = this.pc!.iceConnectionState;
       console.log('❄️ [WebRTC] ICE state:', state);
-      
+      telemetry.setIceState(this.callId, state);
+
       if (state === 'connected' || state === 'completed') {
         this.handleConnected();
       } else if (state === 'failed') {
         this.handleConnectionFailed();
+      } else if (state === 'checking') {
+        // Catch the "stuck on checking" pattern (common on symmetric NAT) —
+        // if we are still in `checking` after 12s, force an ICE restart.
+        setTimeout(() => {
+          if (this.pc?.iceConnectionState === 'checking' && this.callState === 'connecting') {
+            console.warn('⚠️ [WebRTC] Stuck in ICE checking — forcing restart');
+            telemetry.markIceRestart(this.callId);
+            try { this.pc.restartIce(); } catch {}
+          }
+        }, 12000);
       }
-      // Note: 'disconnected' is now handled by ICE monitor with tolerance
+      // Note: 'disconnected' is handled by ICE monitor with tolerance
     };
+
+    // NETWORK CHANGE DETECTION: Wi-Fi ↔ mobile, IPv4 ↔ IPv6.
+    // Indian users frequently switch networks mid-call (commute, lift, etc.)
+    // and we MUST renegotiate candidate pairs or the call goes silent.
+    if (!this.networkChangeCleanup) {
+      this.networkChangeCleanup = onNetworkChange((newQuality) => {
+        // Update preset/quality state
+        this.handleNetworkChange(newQuality);
+        // Always force ICE restart on a network transition once connected.
+        if (this.pc && (this.callState === 'connected' || this.callState === 'connecting')) {
+          console.log('🌐 [WebRTC] Network transition detected — restarting ICE');
+          telemetry.markIceRestart(this.callId);
+          try { this.pc.restartIce(); } catch (e) { console.warn('ICE restart failed:', e); }
+        }
+      });
+    }
 
     console.log(`✅ [WebRTC] Peer connection created with ${toleranceMs}ms disconnect tolerance`);
   }
