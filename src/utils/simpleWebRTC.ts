@@ -1689,6 +1689,12 @@ export class SimpleWebRTCCall {
       this.adaptiveMonitorInterval = null;
     }
 
+    // Cleanup candidate-pair sampler
+    if (this.candidateSampleInterval) {
+      clearInterval(this.candidateSampleInterval);
+      this.candidateSampleInterval = null;
+    }
+
     // Cleanup ICE monitor
     if (this.iceMonitor) {
       this.iceMonitor.cleanup();
