@@ -184,6 +184,10 @@ export class SimpleWebRTCCall {
           console.log('➕ [WebRTC] Adding track:', track.kind);
           this.pc!.addTrack(track, this.localStream!);
         });
+        // Apply explicit codec preferences (Opus for audio, VP8/H264 for video)
+        // Critical for Jio/Airtel mobile-data interop where SDP/codec mismatches cause silent media
+        this.preferAudioOpus();
+        if (this.isVideo) this.preferVideoCodecs();
       }
 
       // Fetch past signals (for late joiners) with retry for race condition
