@@ -5,6 +5,8 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
+import { getIceServers, invalidateIceCache } from "./iceServerProvider";
+import * as telemetry from "./callTelemetry";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
@@ -382,51 +384,32 @@ export class SimpleWebRTCCall {
     }
   }
 
+  /** Set to true after first connection failure to force TURN/relay-only retry. */
+  private relayOnlyMode: boolean = false;
+  /** Selected-candidate sampler interval. */
+  private candidateSampleInterval: NodeJS.Timeout | null = null;
+
   private async createPeerConnection() {
     // Detect Android WebView
-    const isAndroid = typeof navigator !== 'undefined' && 
+    const isAndroid = typeof navigator !== 'undefined' &&
       /Android/i.test(navigator.userAgent);
-    
-    // Robust ICE config — covers Wi-Fi, mobile data (Jio/Airtel symmetric NAT),
-    // and carrier UDP blocking by including TURN over UDP, TCP and TLS/443.
-    const config: RTCConfiguration = {
-      iceServers: [
-        // STUN — fast direct P2P when possible
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.cloudflare.com:3478' },
 
-        // OpenRelay TURN (free) — UDP, TCP and TLS variants for carrier-NAT traversal
-        {
-          urls: [
-            'turn:openrelay.metered.ca:80',
-            'turn:openrelay.metered.ca:80?transport=tcp',
-            'turn:openrelay.metered.ca:443',
-            'turn:openrelay.metered.ca:443?transport=tcp',
-            'turns:openrelay.metered.ca:443?transport=tcp',
-          ],
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
+    // Telemetry — start tracking this call (idempotent)
+    telemetry.startCall(this.callId, this.isVideo);
 
-        // Metered.ca shared TURN — secondary relay (helps when openrelay is congested)
-        {
-          urls: [
-            'turn:a.relay.metered.ca:80',
-            'turn:a.relay.metered.ca:80?transport=tcp',
-            'turn:a.relay.metered.ca:443',
-            'turn:a.relay.metered.ca:443?transport=tcp',
-            'turns:a.relay.metered.ca:443?transport=tcp',
-          ],
-          username: 'e8dd65c92ae9a3b9bfcbeb6e',
-          credential: 'uWdWNmkhvyqTW1QP',
-        },
-      ],
-      iceTransportPolicy: 'all',
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 4,
-    };
+    // PROVIDER-AGNOSTIC ICE: async-fetched from edge function with regional
+    // priority (Mumbai/Delhi → Singapore → global). Falls back to a baked-in
+    // OpenRelay config if the edge function is unreachable so calls never
+    // break due to a backend hiccup.
+    //
+    // `relayOnlyMode` is flipped on after a P2P attempt fails — Indian
+    // mobile carriers (Jio/Airtel/Vi/BSNL) commonly need TURN/TLS:443 to
+    // connect at all because of CGNAT + symmetric NAT + UDP blocking.
+    const { config, source } = await getIceServers({
+      region: 'in',
+      relayOnly: this.relayOnlyMode,
+    });
+    console.log(`🧊 [WebRTC] ICE config from ${source}, relayOnly=${this.relayOnlyMode}, servers=${config.iceServers?.length}`);
 
     console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
@@ -520,34 +503,73 @@ export class SimpleWebRTCCall {
       }
     });
 
-    // ICE connection state (backup handler)
+    // ICE connection state (backup handler) + telemetry
     this.pc.oniceconnectionstatechange = () => {
       const state = this.pc!.iceConnectionState;
       console.log('❄️ [WebRTC] ICE state:', state);
-      
+      telemetry.setIceState(this.callId, state);
+
       if (state === 'connected' || state === 'completed') {
         this.handleConnected();
       } else if (state === 'failed') {
         this.handleConnectionFailed();
+      } else if (state === 'checking') {
+        // Catch the "stuck on checking" pattern (common on symmetric NAT) —
+        // if we are still in `checking` after 12s, force an ICE restart.
+        setTimeout(() => {
+          if (this.pc?.iceConnectionState === 'checking' && this.callState === 'connecting') {
+            console.warn('⚠️ [WebRTC] Stuck in ICE checking — forcing restart');
+            telemetry.markIceRestart(this.callId);
+            try { this.pc.restartIce(); } catch {}
+          }
+        }, 12000);
       }
-      // Note: 'disconnected' is now handled by ICE monitor with tolerance
+      // Note: 'disconnected' is handled by ICE monitor with tolerance
     };
+
+    // NETWORK CHANGE DETECTION: Wi-Fi ↔ mobile, IPv4 ↔ IPv6.
+    // Indian users frequently switch networks mid-call (commute, lift, etc.)
+    // and we MUST renegotiate candidate pairs or the call goes silent.
+    if (!this.networkChangeCleanup) {
+      this.networkChangeCleanup = onNetworkChange((newQuality) => {
+        // Update preset/quality state
+        this.handleNetworkChange(newQuality);
+        // Always force ICE restart on a network transition once connected.
+        if (this.pc && (this.callState === 'connected' || this.callState === 'connecting')) {
+          console.log('🌐 [WebRTC] Network transition detected — restarting ICE');
+          telemetry.markIceRestart(this.callId);
+          try { this.pc.restartIce(); } catch (e) { console.warn('ICE restart failed:', e); }
+        }
+      });
+    }
 
     console.log(`✅ [WebRTC] Peer connection created with ${toleranceMs}ms disconnect tolerance`);
   }
 
   private handleConnected() {
     if (this.callState === 'connected') return;
-    
+
     console.log(`🎉 [WebRTC] CONNECTED! [${this.instanceId}]`);
     this.callState = 'connected';
     this.clearConnectionTimeout();
     this.emit('connected');
     this.emit('networkQuality', 'good');
-    
+
+    // Telemetry — record setup time + start sampling selected candidate pair
+    telemetry.markConnected(this.callId);
+    if (telemetry.getSnapshot(this.callId)?.iceRestarts) {
+      telemetry.markReconnect(this.callId, true);
+    }
+    if (this.candidateSampleInterval) clearInterval(this.candidateSampleInterval);
+    this.candidateSampleInterval = setInterval(() => {
+      if (this.pc) telemetry.sampleSelectedCandidate(this.callId, this.pc);
+    }, 5000);
+    if (this.pc) telemetry.sampleSelectedCandidate(this.callId, this.pc);
+
     // CRITICAL: Update call status to 'active' in database
     // This ensures UI and native shells know the call is truly connected
     this.updateCallToActive();
+
     
     // ADAPTIVE BITRATE ENGINE: Start smart quality scaling (720p → 4K)
     // CRITICAL: Serialize - apply initial bitrate FIRST, then start ABR engine AFTER
@@ -726,20 +748,59 @@ export class SimpleWebRTCCall {
 
   private handleConnectionFailed() {
     if (this.callState === 'ended') return;
-    
+
     console.warn('⚠️ [WebRTC] Connection failed - attempting recovery...');
-    
-    // Try ICE restart if we have remote description
-    if (this.pc?.remoteDescription && this.isInitiator) {
+    telemetry.markReconnect(this.callId, false);
+
+    // First failure → try in-place ICE restart (cheap, fast).
+    if (this.pc?.remoteDescription && this.isInitiator && !this.relayOnlyMode) {
+      telemetry.markIceRestart(this.callId);
       this.attemptIceRestart();
-    } else {
-      this.emit('recoveryStatus', { message: 'Reconnecting...' });
+      return;
     }
+
+    // Second failure (or non-initiator) → fall back to TURN/relay-only.
+    // Indian carriers (Jio/Airtel/Vi/BSNL) commonly need TURNS:443 to
+    // connect at all. We rebuild the peer connection with relay-only ICE
+    // and renegotiate. This is the last resort before giving up.
+    if (!this.relayOnlyMode && this.isInitiator) {
+      console.warn('🚧 [WebRTC] Forcing TURN-only relay fallback (carrier NAT survival)');
+      this.relayOnlyMode = true;
+      telemetry.markRelayOnlyFallback(this.callId);
+      invalidateIceCache();
+      this.rebuildAsRelayOnly().catch((e) =>
+        console.error('❌ [WebRTC] Relay-only fallback failed:', e),
+      );
+      return;
+    }
+
+    this.emit('recoveryStatus', { message: 'Reconnecting...' });
+  }
+
+  /**
+   * Tear down the current peer connection and rebuild with TURN/relay-only
+   * ICE. Re-attaches existing local tracks so we don't ask for media again.
+   */
+  private async rebuildAsRelayOnly() {
+    if (!this.pc) return;
+    const oldTracks = this.localStream?.getTracks() ?? [];
+    try { this.pc.close(); } catch {}
+    this.pc = null;
+    this.offerSent = false;
+    this.answerSent = false;
+    this.hasReceivedAnswer = false;
+    await this.createPeerConnection();
+    if (this.pc && oldTracks.length) {
+      oldTracks.forEach((t) => this.pc!.addTrack(t, this.localStream!));
+      this.preferAudioOpus();
+      if (this.isVideo) this.preferVideoCodecs();
+    }
+    if (this.isInitiator) await this.createAndSendOffer();
   }
 
   private async attemptIceRestart() {
     if (!this.pc || this.callState === 'ended') return;
-    
+
     try {
       console.log('🔄 [WebRTC] ICE restart...');
       const offer = await this.pc.createOffer({ iceRestart: true });
@@ -1596,15 +1657,20 @@ export class SimpleWebRTCCall {
 
   async end() {
     console.log('👋 [WebRTC] Ending call...');
+    const wasConnected = this.callState === 'connected';
     this.callState = 'ended';
     this.clearConnectionTimeout();
-    
+
+    // Telemetry — capture failure reason if we never connected
+    telemetry.endCall(this.callId, wasConnected ? undefined : 'timeout');
+
     // Remove from active instances
     activeCallInstances.delete(this.callId);
-    
+
     await this.cleanup();
     this.emit('ended');
   }
+
 
   private async cleanup() {
     // Stop local tracks
@@ -1621,6 +1687,12 @@ export class SimpleWebRTCCall {
     if (this.adaptiveMonitorInterval) {
       clearInterval(this.adaptiveMonitorInterval);
       this.adaptiveMonitorInterval = null;
+    }
+
+    // Cleanup candidate-pair sampler
+    if (this.candidateSampleInterval) {
+      clearInterval(this.candidateSampleInterval);
+      this.candidateSampleInterval = null;
     }
 
     // Cleanup ICE monitor
