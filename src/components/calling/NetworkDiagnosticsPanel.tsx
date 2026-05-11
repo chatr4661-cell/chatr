@@ -40,7 +40,17 @@ interface Props {
 }
 
 
-export default function NetworkDiagnosticsPanel({ peerConnection, isVisible, onClose, currentTier = '' }: Props) {
+export default function NetworkDiagnosticsPanel({ peerConnection, isVisible, onClose, currentTier = '', callId }: Props) {
+  const [tele, setTele] = useState<telemetry.CallTelemetrySnapshot | undefined>(
+    callId ? telemetry.getSnapshot(callId) : undefined,
+  );
+  useEffect(() => {
+    if (!callId) return;
+    setTele(telemetry.getSnapshot(callId));
+    const unsub = telemetry.subscribe((s) => { if (s.callId === callId) setTele({ ...s }); });
+    return () => { unsub(); };
+  }, [callId]);
+
   const [stats, setStats] = useState<DiagnosticStats>({
     resolution: '--',
     fps: 0,
