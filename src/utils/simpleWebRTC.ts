@@ -384,51 +384,32 @@ export class SimpleWebRTCCall {
     }
   }
 
+  /** Set to true after first connection failure to force TURN/relay-only retry. */
+  private relayOnlyMode: boolean = false;
+  /** Selected-candidate sampler interval. */
+  private candidateSampleInterval: NodeJS.Timeout | null = null;
+
   private async createPeerConnection() {
     // Detect Android WebView
-    const isAndroid = typeof navigator !== 'undefined' && 
+    const isAndroid = typeof navigator !== 'undefined' &&
       /Android/i.test(navigator.userAgent);
-    
-    // Robust ICE config — covers Wi-Fi, mobile data (Jio/Airtel symmetric NAT),
-    // and carrier UDP blocking by including TURN over UDP, TCP and TLS/443.
-    const config: RTCConfiguration = {
-      iceServers: [
-        // STUN — fast direct P2P when possible
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.cloudflare.com:3478' },
 
-        // OpenRelay TURN (free) — UDP, TCP and TLS variants for carrier-NAT traversal
-        {
-          urls: [
-            'turn:openrelay.metered.ca:80',
-            'turn:openrelay.metered.ca:80?transport=tcp',
-            'turn:openrelay.metered.ca:443',
-            'turn:openrelay.metered.ca:443?transport=tcp',
-            'turns:openrelay.metered.ca:443?transport=tcp',
-          ],
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
+    // Telemetry — start tracking this call (idempotent)
+    telemetry.startCall(this.callId, this.isVideo);
 
-        // Metered.ca shared TURN — secondary relay (helps when openrelay is congested)
-        {
-          urls: [
-            'turn:a.relay.metered.ca:80',
-            'turn:a.relay.metered.ca:80?transport=tcp',
-            'turn:a.relay.metered.ca:443',
-            'turn:a.relay.metered.ca:443?transport=tcp',
-            'turns:a.relay.metered.ca:443?transport=tcp',
-          ],
-          username: 'e8dd65c92ae9a3b9bfcbeb6e',
-          credential: 'uWdWNmkhvyqTW1QP',
-        },
-      ],
-      iceTransportPolicy: 'all',
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 4,
-    };
+    // PROVIDER-AGNOSTIC ICE: async-fetched from edge function with regional
+    // priority (Mumbai/Delhi → Singapore → global). Falls back to a baked-in
+    // OpenRelay config if the edge function is unreachable so calls never
+    // break due to a backend hiccup.
+    //
+    // `relayOnlyMode` is flipped on after a P2P attempt fails — Indian
+    // mobile carriers (Jio/Airtel/Vi/BSNL) commonly need TURN/TLS:443 to
+    // connect at all because of CGNAT + symmetric NAT + UDP blocking.
+    const { config, source } = await getIceServers({
+      region: 'in',
+      relayOnly: this.relayOnlyMode,
+    });
+    console.log(`🧊 [WebRTC] ICE config from ${source}, relayOnly=${this.relayOnlyMode}, servers=${config.iceServers?.length}`);
 
     console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
