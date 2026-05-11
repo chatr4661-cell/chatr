@@ -743,6 +743,7 @@ export class SimpleWebRTCCall {
     try {
       console.log('🔄 [WebRTC] ICE restart...');
       const offer = await this.pc.createOffer({ iceRestart: true });
+      if (offer.sdp) offer.sdp = this.mungeOpusSdp(offer.sdp);
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
     } catch (e) {
