@@ -1657,15 +1657,20 @@ export class SimpleWebRTCCall {
 
   async end() {
     console.log('👋 [WebRTC] Ending call...');
+    const wasConnected = this.callState === 'connected';
     this.callState = 'ended';
     this.clearConnectionTimeout();
-    
+
+    // Telemetry — capture failure reason if we never connected
+    telemetry.endCall(this.callId, wasConnected ? undefined : 'timeout');
+
     // Remove from active instances
     activeCallInstances.delete(this.callId);
-    
+
     await this.cleanup();
     this.emit('ended');
   }
+
 
   private async cleanup() {
     // Stop local tracks
