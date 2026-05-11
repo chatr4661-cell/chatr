@@ -1469,6 +1469,7 @@ export class SimpleWebRTCCall {
       
       const offer = await this.pc.createOffer();
       (offer as any).__chatr = { reason: 'video-upgrade' };
+      if (offer.sdp) offer.sdp = this.mungeOpusSdp(offer.sdp);
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
       console.log('📤 [WebRTC] Sent renegotiation offer with video');
