@@ -5,8 +5,6 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
-import { getIceServers, invalidateIceCache } from "./iceServerProvider";
-import * as telemetry from "./callTelemetry";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
@@ -186,10 +184,6 @@ export class SimpleWebRTCCall {
           console.log('➕ [WebRTC] Adding track:', track.kind);
           this.pc!.addTrack(track, this.localStream!);
         });
-        // Apply explicit codec preferences (Opus for audio, VP8/H264 for video)
-        // Critical for Jio/Airtel mobile-data interop where SDP/codec mismatches cause silent media
-        this.preferAudioOpus();
-        if (this.isVideo) this.preferVideoCodecs();
       }
 
       // Fetch past signals (for late joiners) with retry for race condition
@@ -384,32 +378,29 @@ export class SimpleWebRTCCall {
     }
   }
 
-  /** Set to true after first connection failure to force TURN/relay-only retry. */
-  private relayOnlyMode: boolean = false;
-  /** Selected-candidate sampler interval. */
-  private candidateSampleInterval: NodeJS.Timeout | null = null;
-
   private async createPeerConnection() {
     // Detect Android WebView
-    const isAndroid = typeof navigator !== 'undefined' &&
+    const isAndroid = typeof navigator !== 'undefined' && 
       /Android/i.test(navigator.userAgent);
-
-    // Telemetry — start tracking this call (idempotent)
-    telemetry.startCall(this.callId, this.isVideo);
-
-    // PROVIDER-AGNOSTIC ICE: async-fetched from edge function with regional
-    // priority (Mumbai/Delhi → Singapore → global). Falls back to a baked-in
-    // OpenRelay config if the edge function is unreachable so calls never
-    // break due to a backend hiccup.
-    //
-    // `relayOnlyMode` is flipped on after a P2P attempt fails — Indian
-    // mobile carriers (Jio/Airtel/Vi/BSNL) commonly need TURN/TLS:443 to
-    // connect at all because of CGNAT + symmetric NAT + UDP blocking.
-    const { config, source } = await getIceServers({
-      region: 'in',
-      relayOnly: this.relayOnlyMode,
-    });
-    console.log(`🧊 [WebRTC] ICE config from ${source}, relayOnly=${this.relayOnlyMode}, servers=${config.iceServers?.length}`);
+    
+    // ULTRA-FAST: Minimal ICE config for <2s connections
+    const config: RTCConfiguration = {
+      iceServers: [
+        // STUN only - fastest for direct P2P (works 80%+ of the time)
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        // Single TURN for NAT traversal fallback
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
+      ],
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
+      iceCandidatePoolSize: 2, // Minimal pre-gathering
+    };
 
     console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
@@ -503,73 +494,34 @@ export class SimpleWebRTCCall {
       }
     });
 
-    // ICE connection state (backup handler) + telemetry
+    // ICE connection state (backup handler)
     this.pc.oniceconnectionstatechange = () => {
       const state = this.pc!.iceConnectionState;
       console.log('❄️ [WebRTC] ICE state:', state);
-      telemetry.setIceState(this.callId, state);
-
+      
       if (state === 'connected' || state === 'completed') {
         this.handleConnected();
       } else if (state === 'failed') {
         this.handleConnectionFailed();
-      } else if (state === 'checking') {
-        // Catch the "stuck on checking" pattern (common on symmetric NAT) —
-        // if we are still in `checking` after 12s, force an ICE restart.
-        setTimeout(() => {
-          if (this.pc?.iceConnectionState === 'checking' && this.callState === 'connecting') {
-            console.warn('⚠️ [WebRTC] Stuck in ICE checking — forcing restart');
-            telemetry.markIceRestart(this.callId);
-            try { this.pc.restartIce(); } catch {}
-          }
-        }, 12000);
       }
-      // Note: 'disconnected' is handled by ICE monitor with tolerance
+      // Note: 'disconnected' is now handled by ICE monitor with tolerance
     };
-
-    // NETWORK CHANGE DETECTION: Wi-Fi ↔ mobile, IPv4 ↔ IPv6.
-    // Indian users frequently switch networks mid-call (commute, lift, etc.)
-    // and we MUST renegotiate candidate pairs or the call goes silent.
-    if (!this.networkChangeCleanup) {
-      this.networkChangeCleanup = onNetworkChange((newQuality) => {
-        // Update preset/quality state
-        this.handleNetworkChange(newQuality);
-        // Always force ICE restart on a network transition once connected.
-        if (this.pc && (this.callState === 'connected' || this.callState === 'connecting')) {
-          console.log('🌐 [WebRTC] Network transition detected — restarting ICE');
-          telemetry.markIceRestart(this.callId);
-          try { this.pc.restartIce(); } catch (e) { console.warn('ICE restart failed:', e); }
-        }
-      });
-    }
 
     console.log(`✅ [WebRTC] Peer connection created with ${toleranceMs}ms disconnect tolerance`);
   }
 
   private handleConnected() {
     if (this.callState === 'connected') return;
-
+    
     console.log(`🎉 [WebRTC] CONNECTED! [${this.instanceId}]`);
     this.callState = 'connected';
     this.clearConnectionTimeout();
     this.emit('connected');
     this.emit('networkQuality', 'good');
-
-    // Telemetry — record setup time + start sampling selected candidate pair
-    telemetry.markConnected(this.callId);
-    if (telemetry.getSnapshot(this.callId)?.iceRestarts) {
-      telemetry.markReconnect(this.callId, true);
-    }
-    if (this.candidateSampleInterval) clearInterval(this.candidateSampleInterval);
-    this.candidateSampleInterval = setInterval(() => {
-      if (this.pc) telemetry.sampleSelectedCandidate(this.callId, this.pc);
-    }, 5000);
-    if (this.pc) telemetry.sampleSelectedCandidate(this.callId, this.pc);
-
+    
     // CRITICAL: Update call status to 'active' in database
     // This ensures UI and native shells know the call is truly connected
     this.updateCallToActive();
-
     
     // ADAPTIVE BITRATE ENGINE: Start smart quality scaling (720p → 4K)
     // CRITICAL: Serialize - apply initial bitrate FIRST, then start ABR engine AFTER
@@ -748,63 +700,23 @@ export class SimpleWebRTCCall {
 
   private handleConnectionFailed() {
     if (this.callState === 'ended') return;
-
+    
     console.warn('⚠️ [WebRTC] Connection failed - attempting recovery...');
-    telemetry.markReconnect(this.callId, false);
-
-    // First failure → try in-place ICE restart (cheap, fast).
-    if (this.pc?.remoteDescription && this.isInitiator && !this.relayOnlyMode) {
-      telemetry.markIceRestart(this.callId);
+    
+    // Try ICE restart if we have remote description
+    if (this.pc?.remoteDescription && this.isInitiator) {
       this.attemptIceRestart();
-      return;
+    } else {
+      this.emit('recoveryStatus', { message: 'Reconnecting...' });
     }
-
-    // Second failure (or non-initiator) → fall back to TURN/relay-only.
-    // Indian carriers (Jio/Airtel/Vi/BSNL) commonly need TURNS:443 to
-    // connect at all. We rebuild the peer connection with relay-only ICE
-    // and renegotiate. This is the last resort before giving up.
-    if (!this.relayOnlyMode && this.isInitiator) {
-      console.warn('🚧 [WebRTC] Forcing TURN-only relay fallback (carrier NAT survival)');
-      this.relayOnlyMode = true;
-      telemetry.markRelayOnlyFallback(this.callId);
-      invalidateIceCache();
-      this.rebuildAsRelayOnly().catch((e) =>
-        console.error('❌ [WebRTC] Relay-only fallback failed:', e),
-      );
-      return;
-    }
-
-    this.emit('recoveryStatus', { message: 'Reconnecting...' });
-  }
-
-  /**
-   * Tear down the current peer connection and rebuild with TURN/relay-only
-   * ICE. Re-attaches existing local tracks so we don't ask for media again.
-   */
-  private async rebuildAsRelayOnly() {
-    if (!this.pc) return;
-    const oldTracks = this.localStream?.getTracks() ?? [];
-    try { this.pc.close(); } catch {}
-    this.pc = null;
-    this.offerSent = false;
-    this.answerSent = false;
-    this.hasReceivedAnswer = false;
-    await this.createPeerConnection();
-    if (this.pc && oldTracks.length) {
-      oldTracks.forEach((t) => this.pc!.addTrack(t, this.localStream!));
-      this.preferAudioOpus();
-      if (this.isVideo) this.preferVideoCodecs();
-    }
-    if (this.isInitiator) await this.createAndSendOffer();
   }
 
   private async attemptIceRestart() {
     if (!this.pc || this.callState === 'ended') return;
-
+    
     try {
       console.log('🔄 [WebRTC] ICE restart...');
       const offer = await this.pc.createOffer({ iceRestart: true });
-      if (offer.sdp) offer.sdp = this.mungeOpusSdp(offer.sdp);
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
     } catch (e) {
@@ -890,88 +802,6 @@ export class SimpleWebRTCCall {
         }
       }
     });
-  }
-
-  /**
-   * Prefer Opus for audio on every audio transceiver.
-   * Ensures both peers negotiate the same codec (avoids G722/PCMU fallback that
-   * some Jio/Airtel networks/proxies have triggered, leaving silent audio).
-   */
-  private preferAudioOpus() {
-    if (!this.pc) return;
-    try {
-      const caps = (RTCRtpSender as any).getCapabilities?.('audio') ||
-                   (RTCRtpReceiver as any).getCapabilities?.('audio');
-      const codecs = caps?.codecs || [];
-      if (!codecs.length) return;
-      const opus = codecs.filter((c: any) => /opus/i.test(c.mimeType));
-      const dtmf = codecs.filter((c: any) => /telephone-event/i.test(c.mimeType));
-      const rest = codecs.filter((c: any) => !/opus|telephone-event/i.test(c.mimeType));
-      const ordered = [...opus, ...dtmf, ...rest];
-      this.pc.getTransceivers().forEach(t => {
-        const kind = t.sender.track?.kind || t.receiver.track?.kind;
-        if (kind === 'audio' && (t as any).setCodecPreferences) {
-          try {
-            (t as any).setCodecPreferences(ordered);
-            console.log('🎙️ [WebRTC] Audio codec preference: Opus first');
-          } catch (e) {
-            console.warn('⚠️ [WebRTC] Audio setCodecPreferences failed:', e);
-          }
-        }
-      });
-    } catch (e) {
-      console.warn('⚠️ [WebRTC] preferAudioOpus error:', e);
-    }
-  }
-
-  /**
-   * Prefer VP8 then H264 for video (universal interop including Jio/Airtel
-   * Android devices). Reuses forceVP8Codec ordering — safe on all peers.
-   */
-  private preferVideoCodecs() {
-    this.forceVP8Codec();
-  }
-
-  /**
-   * Ensure Opus SDP carries FEC, DTX, and a sensible bitrate cap so Jio/Airtel
-   * NAT/proxies don't strip media. Idempotent — only adds missing params.
-   */
-  private mungeOpusSdp(sdp: string): string {
-    if (!sdp) return sdp;
-    try {
-      const ptMatch = sdp.match(/a=rtpmap:(\d+) opus\/48000/i);
-      if (!ptMatch) return sdp;
-      const pt = ptMatch[1];
-      const fmtpRe = new RegExp(`a=fmtp:${pt} ([^\\r\\n]*)`, 'i');
-      const desired: Record<string, string> = {
-        'minptime': '10',
-        'useinbandfec': '1',
-        'usedtx': '1',
-        'stereo': '0',
-        'maxaveragebitrate': '40000',
-      };
-      if (fmtpRe.test(sdp)) {
-        sdp = sdp.replace(fmtpRe, (_m, params: string) => {
-          const map = new Map<string, string>();
-          params.split(';').map(p => p.trim()).filter(Boolean).forEach(p => {
-            const [k, v] = p.split('=');
-            if (k) map.set(k.trim(), (v ?? '').trim());
-          });
-          Object.entries(desired).forEach(([k, v]) => { if (!map.has(k)) map.set(k, v); });
-          const merged = Array.from(map.entries()).map(([k, v]) => v ? `${k}=${v}` : k).join(';');
-          return `a=fmtp:${pt} ${merged}`;
-        });
-      } else {
-        const params = Object.entries(desired).map(([k, v]) => `${k}=${v}`).join(';');
-        sdp = sdp.replace(
-          new RegExp(`(a=rtpmap:${pt} opus/48000[^\\r\\n]*\\r?\\n)`, 'i'),
-          `$1a=fmtp:${pt} ${params}\r\n`
-        );
-      }
-    } catch (e) {
-      console.warn('⚠️ [WebRTC] mungeOpusSdp failed:', e);
-    }
-    return sdp;
   }
 
   private async fetchPastSignals() {
@@ -1136,8 +966,6 @@ export class SimpleWebRTCCall {
           if (this.networkQuality === 'EXTREME_LOW' && answer.sdp) {
             answer.sdp = muneOpusForExtremeLow(answer.sdp);
             console.log('🐌 [WebRTC] EXTREME_LOW: munged answer SDP for 6 kbps Opus');
-          } else if (answer.sdp) {
-            answer.sdp = this.mungeOpusSdp(answer.sdp);
           }
           await this.pc.setLocalDescription(answer);
           await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
@@ -1231,8 +1059,6 @@ export class SimpleWebRTCCall {
       if (this.networkQuality === 'EXTREME_LOW' && offer.sdp) {
         offer.sdp = muneOpusForExtremeLow(offer.sdp);
         console.log('🐌 [WebRTC] EXTREME_LOW: munged offer SDP for 6 kbps Opus');
-      } else if (offer.sdp) {
-        offer.sdp = this.mungeOpusSdp(offer.sdp);
       }
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
@@ -1530,7 +1356,6 @@ export class SimpleWebRTCCall {
       
       const offer = await this.pc.createOffer();
       (offer as any).__chatr = { reason: 'video-upgrade' };
-      if (offer.sdp) offer.sdp = this.mungeOpusSdp(offer.sdp);
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
       console.log('📤 [WebRTC] Sent renegotiation offer with video');
@@ -1657,20 +1482,15 @@ export class SimpleWebRTCCall {
 
   async end() {
     console.log('👋 [WebRTC] Ending call...');
-    const wasConnected = this.callState === 'connected';
     this.callState = 'ended';
     this.clearConnectionTimeout();
-
-    // Telemetry — capture failure reason if we never connected
-    telemetry.endCall(this.callId, wasConnected ? undefined : 'timeout');
-
+    
     // Remove from active instances
     activeCallInstances.delete(this.callId);
-
+    
     await this.cleanup();
     this.emit('ended');
   }
-
 
   private async cleanup() {
     // Stop local tracks
@@ -1687,12 +1507,6 @@ export class SimpleWebRTCCall {
     if (this.adaptiveMonitorInterval) {
       clearInterval(this.adaptiveMonitorInterval);
       this.adaptiveMonitorInterval = null;
-    }
-
-    // Cleanup candidate-pair sampler
-    if (this.candidateSampleInterval) {
-      clearInterval(this.candidateSampleInterval);
-      this.candidateSampleInterval = null;
     }
 
     // Cleanup ICE monitor

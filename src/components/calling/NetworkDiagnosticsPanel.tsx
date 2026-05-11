@@ -13,7 +13,6 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Activity } from 'lucide-react';
 import type { VideoTier } from '@/utils/adaptiveBitrateEngine';
-import * as telemetry from '@/utils/callTelemetry';
 
 interface DiagnosticStats {
   resolution: string;
@@ -35,22 +34,9 @@ interface Props {
   isVisible: boolean;
   onClose: () => void;
   currentTier?: VideoTier | string;
-  /** Optional — when provided, the panel surfaces relay/provider/reconnect info. */
-  callId?: string;
 }
 
-
-export default function NetworkDiagnosticsPanel({ peerConnection, isVisible, onClose, currentTier = '', callId }: Props) {
-  const [tele, setTele] = useState<telemetry.CallTelemetrySnapshot | undefined>(
-    callId ? telemetry.getSnapshot(callId) : undefined,
-  );
-  useEffect(() => {
-    if (!callId) return;
-    setTele(telemetry.getSnapshot(callId));
-    const unsub = telemetry.subscribe((s) => { if (s.callId === callId) setTele({ ...s }); });
-    return () => { unsub(); };
-  }, [callId]);
-
+export default function NetworkDiagnosticsPanel({ peerConnection, isVisible, onClose, currentTier = '' }: Props) {
   const [stats, setStats] = useState<DiagnosticStats>({
     resolution: '--',
     fps: 0,
@@ -207,21 +193,7 @@ export default function NetworkDiagnosticsPanel({ peerConnection, isVisible, onC
             <Row label="Tier" value={stats.tier} />
             <Row label="Path" value={stats.candidateType} />
             <Row label="Network" value={stats.connectionType} />
-            {tele && (
-              <>
-                <div className="border-t border-white/10 pt-1.5 mt-1.5" />
-                <Row label="Conn type" value={tele.connectionType} good={tele.connectionType === 'host' || tele.connectionType === 'srflx'} bad={tele.connectionType === 'relay'} />
-                <Row label="Relay" value={tele.relayProvider} />
-                <Row label="Net type" value={tele.networkType} />
-                <Row label="ICE state" value={tele.iceState || '--'} />
-                <Row label="ICE restarts" value={String(tele.iceRestarts)} bad={tele.iceRestarts > 2} />
-                <Row label="Reconnects" value={`${tele.reconnectSuccesses}/${tele.reconnectSuccesses + tele.reconnectFailures}`} />
-                <Row label="Setup" value={tele.setupTimeMs ? `${tele.setupTimeMs}ms` : '--'} good={(tele.setupTimeMs || 9999) < 2500} />
-                <Row label="Relay-only" value={tele.forcedRelayOnly ? 'YES' : 'no'} bad={tele.forcedRelayOnly} />
-              </>
-            )}
           </div>
-
         </motion.div>
       )}
     </AnimatePresence>

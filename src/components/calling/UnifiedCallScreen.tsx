@@ -1197,15 +1197,9 @@ export default function UnifiedCallScreen({
         duration={duration}
         partnerId={partnerId}
         onHoldChange={(held) => {
-          // Pause both audio and video while held
-          webrtcRef.current?.toggleAudio(!held);
-          if (localStream) {
-            localStream.getVideoTracks().forEach(t => { t.enabled = !held; });
+          if (webrtcRef.current) {
+            webrtcRef.current.toggleAudio(!held);
           }
-        }}
-        remoteAudioEl={remoteAudioRef.current}
-        onReplaceMicTrack={async (track) => {
-          await webrtcRef.current?.replaceTrack?.(track);
         }}
       />
     </div>
