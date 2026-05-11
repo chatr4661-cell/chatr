@@ -548,16 +548,28 @@ export class SimpleWebRTCCall {
 
   private handleConnected() {
     if (this.callState === 'connected') return;
-    
+
     console.log(`🎉 [WebRTC] CONNECTED! [${this.instanceId}]`);
     this.callState = 'connected';
     this.clearConnectionTimeout();
     this.emit('connected');
     this.emit('networkQuality', 'good');
-    
+
+    // Telemetry — record setup time + start sampling selected candidate pair
+    telemetry.markConnected(this.callId);
+    if (telemetry.getSnapshot(this.callId)?.iceRestarts) {
+      telemetry.markReconnect(this.callId, true);
+    }
+    if (this.candidateSampleInterval) clearInterval(this.candidateSampleInterval);
+    this.candidateSampleInterval = setInterval(() => {
+      if (this.pc) telemetry.sampleSelectedCandidate(this.callId, this.pc);
+    }, 5000);
+    if (this.pc) telemetry.sampleSelectedCandidate(this.callId, this.pc);
+
     // CRITICAL: Update call status to 'active' in database
     // This ensures UI and native shells know the call is truly connected
     this.updateCallToActive();
+
     
     // ADAPTIVE BITRATE ENGINE: Start smart quality scaling (720p → 4K)
     // CRITICAL: Serialize - apply initial bitrate FIRST, then start ABR engine AFTER
