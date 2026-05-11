@@ -13,6 +13,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Activity } from 'lucide-react';
 import type { VideoTier } from '@/utils/adaptiveBitrateEngine';
+import * as telemetry from '@/utils/callTelemetry';
 
 interface DiagnosticStats {
   resolution: string;
@@ -34,7 +35,10 @@ interface Props {
   isVisible: boolean;
   onClose: () => void;
   currentTier?: VideoTier | string;
+  /** Optional — when provided, the panel surfaces relay/provider/reconnect info. */
+  callId?: string;
 }
+
 
 export default function NetworkDiagnosticsPanel({ peerConnection, isVisible, onClose, currentTier = '' }: Props) {
   const [stats, setStats] = useState<DiagnosticStats>({
