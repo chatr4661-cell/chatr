@@ -748,20 +748,59 @@ export class SimpleWebRTCCall {
 
   private handleConnectionFailed() {
     if (this.callState === 'ended') return;
-    
+
     console.warn('⚠️ [WebRTC] Connection failed - attempting recovery...');
-    
-    // Try ICE restart if we have remote description
-    if (this.pc?.remoteDescription && this.isInitiator) {
+    telemetry.markReconnect(this.callId, false);
+
+    // First failure → try in-place ICE restart (cheap, fast).
+    if (this.pc?.remoteDescription && this.isInitiator && !this.relayOnlyMode) {
+      telemetry.markIceRestart(this.callId);
       this.attemptIceRestart();
-    } else {
-      this.emit('recoveryStatus', { message: 'Reconnecting...' });
+      return;
     }
+
+    // Second failure (or non-initiator) → fall back to TURN/relay-only.
+    // Indian carriers (Jio/Airtel/Vi/BSNL) commonly need TURNS:443 to
+    // connect at all. We rebuild the peer connection with relay-only ICE
+    // and renegotiate. This is the last resort before giving up.
+    if (!this.relayOnlyMode && this.isInitiator) {
+      console.warn('🚧 [WebRTC] Forcing TURN-only relay fallback (carrier NAT survival)');
+      this.relayOnlyMode = true;
+      telemetry.markRelayOnlyFallback(this.callId);
+      invalidateIceCache();
+      this.rebuildAsRelayOnly().catch((e) =>
+        console.error('❌ [WebRTC] Relay-only fallback failed:', e),
+      );
+      return;
+    }
+
+    this.emit('recoveryStatus', { message: 'Reconnecting...' });
+  }
+
+  /**
+   * Tear down the current peer connection and rebuild with TURN/relay-only
+   * ICE. Re-attaches existing local tracks so we don't ask for media again.
+   */
+  private async rebuildAsRelayOnly() {
+    if (!this.pc) return;
+    const oldTracks = this.localStream?.getTracks() ?? [];
+    try { this.pc.close(); } catch {}
+    this.pc = null;
+    this.offerSent = false;
+    this.answerSent = false;
+    this.hasReceivedAnswer = false;
+    await this.createPeerConnection();
+    if (this.pc && oldTracks.length) {
+      oldTracks.forEach((t) => this.pc!.addTrack(t, this.localStream!));
+      this.preferAudioOpus();
+      if (this.isVideo) this.preferVideoCodecs();
+    }
+    if (this.isInitiator) await this.createAndSendOffer();
   }
 
   private async attemptIceRestart() {
     if (!this.pc || this.callState === 'ended') return;
-    
+
     try {
       console.log('🔄 [WebRTC] ICE restart...');
       const offer = await this.pc.createOffer({ iceRestart: true });
