@@ -151,6 +151,15 @@ class WebRTCManager {
       switch (state) {
         case 'connected':
           this.setState('connected');
+          // RTP watchdog: catch "connected but no media" within 5s.
+          // If no inbound RTP, rebuild peer with iceTransportPolicy='relay'.
+          this.rtpWatchdogStop?.();
+          this.rtpWatchdogStop = attachRtpWatchdog(this.pc!, () => {
+            if (this.relayRecoveryAttempted) return;
+            this.relayRecoveryAttempted = true;
+            console.warn('🔁 [WebRTCManager] Forcing relay-only recovery');
+            this.forceRelayRecovery();
+          });
           break;
         case 'disconnected':
           this.setState('reconnecting');
