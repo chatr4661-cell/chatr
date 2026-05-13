@@ -434,6 +434,8 @@ class WebRTCManager {
   async end() {
     console.log('👋 [WebRTCManager] Ending...');
     this.setState('closed');
+    this.rtpWatchdogStop?.();
+    this.rtpWatchdogStop = null;
     
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
