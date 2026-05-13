@@ -120,13 +120,8 @@ class WebRTCManager {
     }
   }
 
-  private createPeerConnection() {
-    this.pc = new RTCPeerConnection({
-      iceServers: this.iceServers,
-      iceTransportPolicy: 'all',
-      bundlePolicy: 'max-bundle',
-      iceCandidatePoolSize: 10,
-    });
+  private createPeerConnection(forceRelay = false) {
+    this.pc = new RTCPeerConnection(buildRtcConfig({ forceRelay }));
 
     // Add tracks
     if (this.localStream) {
