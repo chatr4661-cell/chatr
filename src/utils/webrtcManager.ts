@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { buildRtcConfig, attachRtpWatchdog } from "./iceTransportStrategy";
 
 /**
  * WebRTC Manager - Singleton for managing WebRTC connections
@@ -39,22 +40,10 @@ class WebRTCManager {
   private userId: string = '';
   private isInitiator = false;
 
-  // ICE Servers with reliable TURN for India
-  private readonly iceServers: RTCIceServer[] = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' },
-    {
-      urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turns:openrelay.metered.ca:443'],
-      username: 'openrelayproject',
-      credential: 'openrelayproject',
-    },
-    {
-      urls: ['turn:a.relay.metered.ca:80', 'turn:a.relay.metered.ca:443'],
-      username: 'e8dd65c92ae9a3b9bfcbeb6e',
-      credential: 'uWdWNmkhvyqTW1QP',
-    },
-  ];
+  // ICE config is built dynamically per-call (network-aware, CGNAT-aware).
+  // See src/utils/iceTransportStrategy.ts for rationale.
+  private rtpWatchdogStop: (() => void) | null = null;
+  private relayRecoveryAttempted = false;
 
   on<K extends keyof WebRTCManagerEvents>(event: K, handler: WebRTCManagerEvents[K]) {
     this.handlers[event] = handler;
@@ -131,13 +120,8 @@ class WebRTCManager {
     }
   }
 
-  private createPeerConnection() {
-    this.pc = new RTCPeerConnection({
-      iceServers: this.iceServers,
-      iceTransportPolicy: 'all',
-      bundlePolicy: 'max-bundle',
-      iceCandidatePoolSize: 10,
-    });
+  private createPeerConnection(forceRelay = false) {
+    this.pc = new RTCPeerConnection(buildRtcConfig({ forceRelay }));
 
     // Add tracks
     if (this.localStream) {
@@ -167,6 +151,15 @@ class WebRTCManager {
       switch (state) {
         case 'connected':
           this.setState('connected');
+          // RTP watchdog: catch "connected but no media" within 5s.
+          // If no inbound RTP, rebuild peer with iceTransportPolicy='relay'.
+          this.rtpWatchdogStop?.();
+          this.rtpWatchdogStop = attachRtpWatchdog(this.pc!, () => {
+            if (this.relayRecoveryAttempted) return;
+            this.relayRecoveryAttempted = true;
+            console.warn('🔁 [WebRTCManager] Forcing relay-only recovery');
+            this.forceRelayRecovery();
+          });
           break;
         case 'disconnected':
           this.setState('reconnecting');
@@ -357,6 +350,44 @@ class WebRTCManager {
     }
   }
 
+  /**
+   * "Connected but no media" recovery: rebuild the peer connection with
+   * iceTransportPolicy='relay' to force traffic through TURN/443/TCP.
+   * Triggered by attachRtpWatchdog when 0 inbound RTP after connection.
+   */
+  private async forceRelayRecovery() {
+    try {
+      console.log('🔁 [WebRTCManager] Rebuilding peer in relay-only mode');
+      this.rtpWatchdogStop?.();
+      this.rtpWatchdogStop = null;
+
+      // Tear down existing peer (keep signaling channel + local stream)
+      if (this.pc) {
+        this.pc.onconnectionstatechange = null;
+        this.pc.oniceconnectionstatechange = null;
+        this.pc.ontrack = null;
+        this.pc.onicecandidate = null;
+        this.pc.close();
+        this.pc = null;
+      }
+
+      // Reset signaling state for fresh offer/answer
+      this.offerSent = false;
+      this.answerSent = false;
+      this.pendingCandidates = [];
+      this.processedSignals.clear();
+
+      this.createPeerConnection(true); // forceRelay=true
+
+      if (this.isInitiator) {
+        await this.createOffer();
+      }
+    } catch (err) {
+      console.error('❌ [WebRTCManager] Relay recovery failed:', err);
+      this.setState('failed');
+    }
+  }
+
   toggleAudio(enabled: boolean) {
     this.localStream?.getAudioTracks().forEach(t => { t.enabled = enabled; });
   }
@@ -403,6 +434,8 @@ class WebRTCManager {
   async end() {
     console.log('👋 [WebRTCManager] Ending...');
     this.setState('closed');
+    this.rtpWatchdogStop?.();
+    this.rtpWatchdogStop = null;
     
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;

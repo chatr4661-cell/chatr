@@ -5,6 +5,7 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
+import { buildRtcConfig } from "./iceTransportStrategy";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
@@ -383,26 +384,11 @@ export class SimpleWebRTCCall {
     const isAndroid = typeof navigator !== 'undefined' && 
       /Android/i.test(navigator.userAgent);
     
-    // ULTRA-FAST: Minimal ICE config for <2s connections
-    const config: RTCConfiguration = {
-      iceServers: [
-        // STUN only - fastest for direct P2P (works 80%+ of the time)
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        // Single TURN for NAT traversal fallback
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        }
-      ],
-      iceTransportPolicy: 'all',
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 2, // Minimal pre-gathering
-    };
+    // CGNAT-aware ICE config: forces TURN-relay on cellular, uses turns:443/tcp
+    // Replaces the previous openrelay.metered.ca config (oversubscribed, drops media).
+    const config: RTCConfiguration = buildRtcConfig();
 
-    console.log(`🔧 [WebRTC] Creating FAST peer connection (Android: ${isAndroid})`);
+    console.log(`🔧 [WebRTC] Creating peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
     
     // SMART CODEC NEGOTIATION: Apply optimal codec order based on device capabilities
