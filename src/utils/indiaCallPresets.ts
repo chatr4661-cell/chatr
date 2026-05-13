@@ -40,27 +40,27 @@ export interface CallPreset {
 const BASE_ICE_SERVERS: RTCIceServer[] = [
   // STUN servers
   { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun.cloudflare.com:3478' },
-  
-  // TURN servers (metered.ca free tier)
+
+  // TURN over TLS on 443/TCP — survives Indian carrier CGNAT and UDP blocks
+  // (looks like normal HTTPS traffic to the firewall)
   {
     urls: [
-      'turn:openrelay.metered.ca:80',
-      'turn:openrelay.metered.ca:443',
-      'turns:openrelay.metered.ca:443'
+      'turns:a.relay.metered.ca:443?transport=tcp',
+      'turn:a.relay.metered.ca:443?transport=tcp',
     ],
-    username: 'openrelayproject',
-    credential: 'openrelayproject'
+    username: 'e8dd65c92ae9a3b9bfcbeb6e',
+    credential: 'uWdWNmkhvyqTW1QP',
   },
+  // TURN UDP — fast path when carrier permits
   {
     urls: [
       'turn:a.relay.metered.ca:80',
       'turn:a.relay.metered.ca:443',
     ],
     username: 'e8dd65c92ae9a3b9bfcbeb6e',
-    credential: 'uWdWNmkhvyqTW1QP'
-  }
+    credential: 'uWdWNmkhvyqTW1QP',
+  },
 ];
 
 /**
