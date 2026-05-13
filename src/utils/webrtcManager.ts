@@ -40,22 +40,10 @@ class WebRTCManager {
   private userId: string = '';
   private isInitiator = false;
 
-  // ICE Servers with reliable TURN for India
-  private readonly iceServers: RTCIceServer[] = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' },
-    {
-      urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turns:openrelay.metered.ca:443'],
-      username: 'openrelayproject',
-      credential: 'openrelayproject',
-    },
-    {
-      urls: ['turn:a.relay.metered.ca:80', 'turn:a.relay.metered.ca:443'],
-      username: 'e8dd65c92ae9a3b9bfcbeb6e',
-      credential: 'uWdWNmkhvyqTW1QP',
-    },
-  ];
+  // ICE config is built dynamically per-call (network-aware, CGNAT-aware).
+  // See src/utils/iceTransportStrategy.ts for rationale.
+  private rtpWatchdogStop: (() => void) | null = null;
+  private relayRecoveryAttempted = false;
 
   on<K extends keyof WebRTCManagerEvents>(event: K, handler: WebRTCManagerEvents[K]) {
     this.handlers[event] = handler;
