@@ -5,6 +5,7 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
+import { buildRtcConfig } from "./iceTransportStrategy";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
