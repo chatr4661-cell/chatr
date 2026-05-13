@@ -350,6 +350,44 @@ class WebRTCManager {
     }
   }
 
+  /**
+   * "Connected but no media" recovery: rebuild the peer connection with
+   * iceTransportPolicy='relay' to force traffic through TURN/443/TCP.
+   * Triggered by attachRtpWatchdog when 0 inbound RTP after connection.
+   */
+  private async forceRelayRecovery() {
+    try {
+      console.log('🔁 [WebRTCManager] Rebuilding peer in relay-only mode');
+      this.rtpWatchdogStop?.();
+      this.rtpWatchdogStop = null;
+
+      // Tear down existing peer (keep signaling channel + local stream)
+      if (this.pc) {
+        this.pc.onconnectionstatechange = null;
+        this.pc.oniceconnectionstatechange = null;
+        this.pc.ontrack = null;
+        this.pc.onicecandidate = null;
+        this.pc.close();
+        this.pc = null;
+      }
+
+      // Reset signaling state for fresh offer/answer
+      this.offerSent = false;
+      this.answerSent = false;
+      this.pendingCandidates = [];
+      this.processedSignals.clear();
+
+      this.createPeerConnection(true); // forceRelay=true
+
+      if (this.isInitiator) {
+        await this.createOffer();
+      }
+    } catch (err) {
+      console.error('❌ [WebRTCManager] Relay recovery failed:', err);
+      this.setState('failed');
+    }
+  }
+
   toggleAudio(enabled: boolean) {
     this.localStream?.getAudioTracks().forEach(t => { t.enabled = enabled; });
   }
