@@ -1,5 +1,7 @@
 // CRITICAL: Import hybrid optimizations FIRST for instant skeleton
 import './utils/hybridAppOptimizations';
+import { warmIceCredentials } from './utils/iceTransportStrategy';
+warmIceCredentials();
 
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
