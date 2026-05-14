@@ -1109,6 +1109,14 @@ export class SimpleWebRTCCall {
   private async sendSignal(signal: Signal) {
     const startTime = Date.now();
     try {
+      if (signal.type === 'ice-candidate') {
+        logIceCandidateDiagnostics(signal.data, 'sent', {
+          label: 'SimpleWebRTC',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
+      }
       // FAST: Don't wait for select - fire and forget for speed
       const { error } = await supabase.from('webrtc_signals').insert({
         call_id: this.callId,
