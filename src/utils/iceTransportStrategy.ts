@@ -291,6 +291,7 @@ export function detectNetworkClass(): NetworkClass {
 export function startStatsObserver(
   pc: RTCPeerConnection,
   intervalMs = 3000,
+  context: IceTelemetryContext = {},
 ): () => void {
   let stopped = false;
   let lastBytesRecv = 0;
@@ -305,7 +306,9 @@ export function startStatsObserver(
     try {
       const stats = await pc.getStats();
       let pair: any = null;
+      let selectedPairId: string | null = null;
       const candidates = new Map<string, any>();
+      const candidatePairs: any[] = [];
       let inboundBytes = 0;
       let outboundBytes = 0;
       let packetsLost = 0;
@@ -315,11 +318,14 @@ export function startStatsObserver(
         if (r.type === 'local-candidate' || r.type === 'remote-candidate') {
           candidates.set(r.id, r);
         }
+        if (r.type === 'candidate-pair') {
+          candidatePairs.push(r);
+        }
         if (r.type === 'candidate-pair' && (r.nominated || r.selected) && r.state === 'succeeded') {
           if (!pair || (r.bytesSent ?? 0) > (pair.bytesSent ?? 0)) pair = r;
         }
         if (r.type === 'transport' && r.selectedCandidatePairId) {
-          // fallback path
+          selectedPairId = r.selectedCandidatePairId;
         }
         if (r.type === 'inbound-rtp' && !r.isRemote) {
           inboundBytes += r.bytesReceived || 0;
@@ -330,6 +336,10 @@ export function startStatsObserver(
           outboundBytes += r.bytesSent || 0;
         }
       });
+
+      if (!pair && selectedPairId) {
+        pair = candidatePairs.find((candidatePair) => candidatePair.id === selectedPairId) || null;
+      }
 
       const now = Date.now();
       const dt = (now - lastTs) / 1000;
@@ -344,12 +354,24 @@ export function startStatsObserver(
         const remote = candidates.get(pair.remoteCandidateId);
         const lossPct = packetsRecv > 0 ? ((packetsLost / (packetsLost + packetsRecv)) * 100).toFixed(1) : '0';
         console.log(
-          `📊 [ICE] path=${local?.candidateType}/${remote?.candidateType} ` +
-            `proto=${local?.protocol ?? '?'} ` +
+          `📊 [ICE-SELECTED][7r2mwx] ${context.label || 'WebRTC'} ` +
+            `call=${shortId(context.callId)} path=${local?.candidateType}/${remote?.candidateType} ` +
+            `localProto=${local?.protocol ?? '?'} remoteProto=${remote?.protocol ?? '?'} ` +
+            `localRelayProto=${local?.relayProtocol ?? '?'} remoteRelayProto=${remote?.relayProtocol ?? '?'} ` +
+            `localIp=${inferIpVersion(local?.address || local?.ip || '')} remoteIp=${inferIpVersion(remote?.address || remote?.ip || '')} ` +
             `local=${local?.address ?? '?'}:${local?.port ?? '?'} ` +
             `remote=${remote?.address ?? '?'}:${remote?.port ?? '?'} ` +
+            `nominated=${Boolean(pair.nominated)} state=${pair.state ?? '?'} selectedId=${selectedPairId || pair.id} ` +
             `rtt=${pair.currentRoundTripTime ? Math.round(pair.currentRoundTripTime * 1000) + 'ms' : '?'} ` +
             `loss=${lossPct}% in=${kbpsIn}kbps out=${kbpsOut}kbps`,
+        );
+      } else {
+        const succeeded = candidatePairs.filter((candidatePair) => candidatePair.state === 'succeeded').length;
+        const inProgress = candidatePairs.filter((candidatePair) => candidatePair.state === 'in-progress').length;
+        const failed = candidatePairs.filter((candidatePair) => candidatePair.state === 'failed').length;
+        console.log(
+          `📊 [ICE-SELECTED][7r2mwx] ${context.label || 'WebRTC'} call=${shortId(context.callId)} ` +
+            `no selected pair yet; pairs succeeded=${succeeded} inProgress=${inProgress} failed=${failed}`,
         );
       }
     } catch {}
