@@ -240,6 +240,12 @@ class WebRTCManager {
       
       // Then ICE candidates
       for (const sig of data.filter(s => s.signal_type === 'ice-candidate')) {
+        logIceCandidateDiagnostics(sig.signal_data as any, 'received-past', {
+          label: 'WebRTCManager',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: sig.from_user,
+        });
         await this.handleSignal(sig);
       }
       
@@ -258,6 +264,14 @@ class WebRTCManager {
     
     const { signal_type: type, signal_data: data } = signal;
     console.log(`📥 [WebRTCManager] Signal: ${type}`);
+    if (type === 'ice-candidate') {
+      logIceCandidateDiagnostics(data as any, 'received', {
+        label: 'WebRTCManager',
+        callId: this.callId,
+        userId: this.userId,
+        peerId: signal.from_user,
+      });
+    }
 
     try {
       switch (type) {
@@ -290,8 +304,20 @@ class WebRTCManager {
 
         case 'ice-candidate':
           if (this.pc.remoteDescription) {
+            logIceCandidateDiagnostics(data as any, 'applied', {
+              label: 'WebRTCManager',
+              callId: this.callId,
+              userId: this.userId,
+              peerId: signal.from_user,
+            });
             await this.pc.addIceCandidate(new RTCIceCandidate(data));
           } else {
+            logIceCandidateDiagnostics(data as any, 'queued', {
+              label: 'WebRTCManager',
+              callId: this.callId,
+              userId: this.userId,
+              peerId: signal.from_user,
+            });
             this.pendingCandidates.push(new RTCIceCandidate(data));
           }
           break;
@@ -307,6 +333,12 @@ class WebRTCManager {
     
     for (const candidate of this.pendingCandidates) {
       try {
+        logIceCandidateDiagnostics(candidate, 'applied', {
+          label: 'WebRTCManager',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
         await this.pc?.addIceCandidate(candidate);
       } catch (e) {
         console.warn('⚠️ Candidate add failed:', e);
@@ -336,6 +368,14 @@ class WebRTCManager {
 
   private async sendSignal(type: string, data: any) {
     try {
+      if (type === 'ice-candidate') {
+        logIceCandidateDiagnostics(data, 'sent', {
+          label: 'WebRTCManager',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
+      }
       await supabase.from('webrtc_signals').insert({
         call_id: this.callId,
         signal_type: type,
