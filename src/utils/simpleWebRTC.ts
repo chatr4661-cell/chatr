@@ -75,7 +75,28 @@ export class SimpleWebRTCCall {
   private networkQuality: NetworkQuality = 'HOSTILE'; // Default to worst-case
   private callPreset: CallPreset | null = null;
   private iceMonitor: (ICEMonitorState & { cleanup: () => void }) | null = null;
-  private abrEngine: AdaptiveBitrateEngine | null = null;
+ private abrEngine: AdaptiveBitrateEngine | null = null;
+ private mediaAdaptationEngine: MediaAdaptationEngine | null = null;
+ private startMediaAdaptationEngine() {
+   if (!this.pc || this.mediaAdaptationEngine) return;
+   this.mediaAdaptationEngine = new MediaAdaptationEngine(this.pc, {
+     label: 'SimpleWebRTC:Adapt',
+     onStagnantMedia: async () => {
+       try {
+         if (this.pc && this.callState === 'connected') {
+           console.warn('🔁 [WebRTC] Stagnant media — requesting ICE restart');
+           const offer = await this.pc.createOffer({ iceRestart: true });
+           if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
+           await this.pc.setLocalDescription(offer);
+           await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+         }
+       } catch (err) {
+         console.warn('ICE restart from stagnant media failed', err);
+       }
+     },
+   });
+   this.mediaAdaptationEngine.start().catch((e) => console.warn('mediaAdaptation start failed', e));
+ }
   private networkChangeCleanup: (() => void) | null = null;
   private statsObserverStop: (() => void) | null = null;
 
