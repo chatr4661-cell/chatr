@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { buildRtcConfig, attachRtpWatchdog } from "./iceTransportStrategy";
+import { buildRtcConfig, startStatsObserver } from "./iceTransportStrategy";
 
 /**
  * WebRTC Manager - Singleton for managing WebRTC connections
@@ -40,10 +40,9 @@ class WebRTCManager {
   private userId: string = '';
   private isInitiator = false;
 
-  // ICE config is built dynamically per-call (network-aware, CGNAT-aware).
+  // ICE config is built dynamically per-call (Cloudflare TURN + Google STUN).
   // See src/utils/iceTransportStrategy.ts for rationale.
-  private rtpWatchdogStop: (() => void) | null = null;
-  private relayRecoveryAttempted = false;
+  private statsObserverStop: (() => void) | null = null;
 
   on<K extends keyof WebRTCManagerEvents>(event: K, handler: WebRTCManagerEvents[K]) {
     this.handlers[event] = handler;
@@ -98,9 +97,8 @@ class WebRTCManager {
       }
       this.emit('localStream', this.localStream);
 
-      // 2. Create peer connection
-      this.createPeerConnection();
-
+      // 2. Create peer connection (async — fetches Cloudflare TURN creds)
+      await this.createPeerConnection();
       // 3. Subscribe to signals
       await this.subscribeToSignals();
 
@@ -120,8 +118,14 @@ class WebRTCManager {
     }
   }
 
-  private createPeerConnection(forceRelay = false) {
-    this.pc = new RTCPeerConnection(buildRtcConfig({ forceRelay }));
+  private async createPeerConnection() {
+    const config = await buildRtcConfig();
+    console.log('🧊 [WebRTCManager] RTCConfiguration:', {
+      iceServers: config.iceServers?.length,
+      policy: config.iceTransportPolicy,
+      pool: config.iceCandidatePoolSize,
+    });
+    this.pc = new RTCPeerConnection(config);
 
     // Add tracks
     if (this.localStream) {
@@ -143,34 +147,30 @@ class WebRTCManager {
       }
     };
 
-    // Connection state
+    // ICE gathering — observability only
+    this.pc.onicegatheringstatechange = () => {
+      console.log('🧊 [WebRTCManager] ICE gathering:', this.pc?.iceGatheringState);
+    };
+
+    // Connection state — minimal intervention; trust ICE.
     this.pc.onconnectionstatechange = () => {
       const state = this.pc?.connectionState;
       console.log('🔌 [WebRTCManager] Connection:', state);
-      
+
       switch (state) {
         case 'connected':
           this.setState('connected');
-          // RTP watchdog: catch "connected but no media" within 5s.
-          // If no inbound RTP, rebuild peer with iceTransportPolicy='relay'.
-          this.rtpWatchdogStop?.();
-          this.rtpWatchdogStop = attachRtpWatchdog(this.pc!, () => {
-            if (this.relayRecoveryAttempted) return;
-            this.relayRecoveryAttempted = true;
-            console.warn('🔁 [WebRTCManager] Forcing relay-only recovery');
-            this.forceRelayRecovery();
-          });
+          // Start passive stats observer (telemetry only — does NOT control routing)
+          this.statsObserverStop?.();
+          this.statsObserverStop = startStatsObserver(this.pc!, 3000);
           break;
         case 'disconnected':
+          // Transient on mobile networks. ICE handles its own retries.
+          // Do NOT destroy the peer; do NOT aggressively restart.
           this.setState('reconnecting');
-          // Wait 3s before restart
-          setTimeout(() => {
-            if (this.pc?.connectionState === 'disconnected') {
-              this.pc?.restartIce();
-            }
-          }, 3000);
           break;
         case 'failed':
+          // Only here do we ask ICE to restart (single attempt, no rebuild).
           this.attemptRecovery();
           break;
         case 'closed':
@@ -179,11 +179,10 @@ class WebRTCManager {
       }
     };
 
-    // ICE connection state
+    // ICE connection state — observe; promote to 'connected' when ICE confirms it.
     this.pc.oniceconnectionstatechange = () => {
       const state = this.pc?.iceConnectionState;
       console.log('❄️ [WebRTCManager] ICE:', state);
-      
       if (state === 'connected' || state === 'completed') {
         this.setState('connected');
       }
@@ -350,43 +349,9 @@ class WebRTCManager {
     }
   }
 
-  /**
-   * "Connected but no media" recovery: rebuild the peer connection with
-   * iceTransportPolicy='relay' to force traffic through TURN/443/TCP.
-   * Triggered by attachRtpWatchdog when 0 inbound RTP after connection.
-   */
-  private async forceRelayRecovery() {
-    try {
-      console.log('🔁 [WebRTCManager] Rebuilding peer in relay-only mode');
-      this.rtpWatchdogStop?.();
-      this.rtpWatchdogStop = null;
-
-      // Tear down existing peer (keep signaling channel + local stream)
-      if (this.pc) {
-        this.pc.onconnectionstatechange = null;
-        this.pc.oniceconnectionstatechange = null;
-        this.pc.ontrack = null;
-        this.pc.onicecandidate = null;
-        this.pc.close();
-        this.pc = null;
-      }
-
-      // Reset signaling state for fresh offer/answer
-      this.offerSent = false;
-      this.answerSent = false;
-      this.pendingCandidates = [];
-      this.processedSignals.clear();
-
-      this.createPeerConnection(true); // forceRelay=true
-
-      if (this.isInitiator) {
-        await this.createOffer();
-      }
-    } catch (err) {
-      console.error('❌ [WebRTCManager] Relay recovery failed:', err);
-      this.setState('failed');
-    }
-  }
+  // Forced relay-only recovery removed by design.
+  // Trust ICE: relay candidates are gathered up-front (pool=10) and ICE
+  // will nominate them naturally if direct paths fail.
 
   toggleAudio(enabled: boolean) {
     this.localStream?.getAudioTracks().forEach(t => { t.enabled = enabled; });
@@ -434,8 +399,8 @@ class WebRTCManager {
   async end() {
     console.log('👋 [WebRTCManager] Ending...');
     this.setState('closed');
-    this.rtpWatchdogStop?.();
-    this.rtpWatchdogStop = null;
+    this.statsObserverStop?.();
+    this.statsObserverStop = null;
     
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;

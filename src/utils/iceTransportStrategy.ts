@@ -1,138 +1,215 @@
 /**
- * ICE Transport Strategy
- * 
- * Determines the optimal RTCConfiguration for the current network.
- * 
- * Background:
- *   Indian mobile carriers (Jio, Airtel, Vi) use Carrier-Grade NAT (CGNAT)
- *   with symmetric NAT mappings. When BOTH peers are on cellular, srflx
- *   (STUN-derived) candidates cannot reach each other — TURN relay is the
- *   ONLY viable path. STUN/UDP/3478 is also widely blocked by carriers.
+ * Adaptive ICE Configuration — CHATR locked architecture
  *
- *   Therefore we:
- *   - Force iceTransportPolicy='relay' on cellular networks
- *   - Use turns:443?transport=tcp (TLS over TCP/443) which traverses every
- *     carrier firewall as it looks like normal HTTPS traffic
+ * Philosophy: trust ICE. Provide good candidates (host, srflx, IPv6, relay)
+ * from the start, set iceTransportPolicy='all', and let ICE nominate the
+ * best path naturally. No forced relay, no manual escalation, no aggressive
+ * intervention. TURN exists as fallback infrastructure — gathered early,
+ * never injected later.
+ *
+ * ICE servers:
+ *   - Google STUN (IPv4 + IPv6 srflx, including IPv6 direct on Jio/Airtel LTE)
+ *   - Cloudflare TURN UDP/TCP/TLS (fetched from /api/turn-credentials)
+ *   - Metered TURN (static fallback if Cloudflare endpoint unavailable)
  */
 
-export type NetworkClass = 'wifi' | 'cellular' | 'unknown';
+const TURN_ENDPOINT = '/api/turn-credentials';
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1h — Cloudflare creds are 24h TTL
 
+const GOOGLE_STUN: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+];
+
+// Static Metered fallback (only if /api/turn-credentials is unreachable).
+const METERED_FALLBACK: RTCIceServer[] = [
+  {
+    urls: [
+      'turns:a.relay.metered.ca:443?transport=tcp',
+      'turn:a.relay.metered.ca:443?transport=tcp',
+      'turn:a.relay.metered.ca:80',
+    ],
+    username: 'e8dd65c92ae9a3b9bfcbeb6e',
+    credential: 'uWdWNmkhvyqTW1QP',
+  },
+];
+
+let cache: { servers: RTCIceServer[]; ts: number } | null = null;
+let inflight: Promise<RTCIceServer[]> | null = null;
+
+async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
+  if (cache && Date.now() - cache.ts < CACHE_TTL_MS) return cache.servers;
+  if (inflight) return inflight;
+
+  inflight = (async () => {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 4000);
+      const res = await fetch(TURN_ENDPOINT, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
+      const data = await res.json();
+      // Cloudflare returns { iceServers: [...] } or a flat array.
+      const servers: RTCIceServer[] = Array.isArray(data?.iceServers)
+        ? data.iceServers
+        : Array.isArray(data)
+        ? data
+        : [];
+      if (!servers.length) throw new Error('empty iceServers');
+      cache = { servers, ts: Date.now() };
+      console.log('🧊 [ICE] Cloudflare TURN credentials loaded:', servers.length, 'entries');
+      return servers;
+    } catch (err) {
+      console.warn('⚠️ [ICE] Cloudflare TURN fetch failed, using fallback:', err);
+      return METERED_FALLBACK;
+    } finally {
+      inflight = null;
+    }
+  })();
+
+  return inflight;
+}
+
+/**
+ * Pre-warm TURN credentials at app boot so the first call has them ready.
+ */
+export function warmIceCredentials(): void {
+  fetchCloudflareTurn().catch(() => {});
+}
+
+/**
+ * Build the production RTCConfiguration.
+ *
+ * - iceTransportPolicy: 'all' — let ICE pick host / srflx / relay naturally
+ * - bundlePolicy: 'max-bundle' — single transport
+ * - iceCandidatePoolSize: 10 — early gathering, faster setup, TURN ready up-front
+ *
+ * NOTE: now async. TURN must be present from the start, not injected later.
+ */
+export async function buildRtcConfig(_opts?: { forceRelay?: boolean }): Promise<RTCConfiguration> {
+  const turn = await fetchCloudflareTurn();
+  return {
+    iceServers: [...GOOGLE_STUN, ...turn],
+    iceTransportPolicy: 'all',
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
+    iceCandidatePoolSize: 10,
+  };
+}
+
+/**
+ * Synchronous variant — only for code paths that cannot await.
+ * Uses cached creds if available, otherwise the static fallback.
+ */
+export function buildRtcConfigSync(): RTCConfiguration {
+  const turn = cache?.servers ?? METERED_FALLBACK;
+  return {
+    iceServers: [...GOOGLE_STUN, ...turn],
+    iceTransportPolicy: 'all',
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
+    iceCandidatePoolSize: 10,
+  };
+}
+
+export type NetworkClass = 'wifi' | 'cellular' | 'unknown';
 export function detectNetworkClass(): NetworkClass {
   try {
-    // @ts-ignore - non-standard NetworkInformation API
-    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    const conn =
+      (navigator as any).connection ||
+      (navigator as any).mozConnection ||
+      (navigator as any).webkitConnection;
     if (conn?.type === 'cellular') return 'cellular';
     if (conn?.type === 'wifi' || conn?.type === 'ethernet') return 'wifi';
-    // Effective type heuristic for browsers without `type`
-    if (conn?.effectiveType && ['slow-2g', '2g', '3g'].includes(conn.effectiveType)) {
-      return 'cellular';
-    }
   } catch {}
   return 'unknown';
 }
 
 /**
- * Production-grade ICE servers.
- * Priority order:
- *   1. STUN (skipped on cellular relay-only mode)
- *   2. TURN over TLS on 443/TCP — ALWAYS works (looks like HTTPS)
- *   3. TURN UDP — fast path when carrier allows
+ * Passive observability poller — logs the selected candidate pair, transport,
+ * RTT, packet loss, and bitrate every `intervalMs`. Does NOT modify routing.
  *
- * NOTE: openrelay.metered.ca (the free public one) is intentionally NOT used.
- * It is rate-limited, oversubscribed, and a primary cause of the
- * "connected-but-no-media" symptom.
+ * Telemetry observes; ICE controls.
  */
-const TURN_USERNAME = 'e8dd65c92ae9a3b9bfcbeb6e';
-const TURN_CREDENTIAL = 'uWdWNmkhvyqTW1QP';
+export function startStatsObserver(
+  pc: RTCPeerConnection,
+  intervalMs = 3000,
+): () => void {
+  let stopped = false;
+  let lastBytesRecv = 0;
+  let lastBytesSent = 0;
+  let lastTs = Date.now();
 
-export function buildIceServers(forceRelay: boolean): RTCIceServer[] {
-  const turnOnly: RTCIceServer[] = [
-    // TURN over TLS on 443 — survives every carrier/firewall (looks like HTTPS)
-    {
-      urls: [
-        'turns:a.relay.metered.ca:443?transport=tcp',
-        'turn:a.relay.metered.ca:443?transport=tcp',
-      ],
-      username: TURN_USERNAME,
-      credential: TURN_CREDENTIAL,
-    },
-    // TURN UDP — fast when allowed
-    {
-      urls: ['turn:a.relay.metered.ca:80', 'turn:a.relay.metered.ca:443'],
-      username: TURN_USERNAME,
-      credential: TURN_CREDENTIAL,
-    },
-  ];
+  const tick = async () => {
+    if (stopped || !pc || pc.connectionState === 'closed') return;
+    if (pc.connectionState !== 'connected' && pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
+      return;
+    }
+    try {
+      const stats = await pc.getStats();
+      let pair: any = null;
+      const candidates = new Map<string, any>();
+      let inboundBytes = 0;
+      let outboundBytes = 0;
+      let packetsLost = 0;
+      let packetsRecv = 0;
 
-  if (forceRelay) return turnOnly;
+      stats.forEach((r: any) => {
+        if (r.type === 'local-candidate' || r.type === 'remote-candidate') {
+          candidates.set(r.id, r);
+        }
+        if (r.type === 'candidate-pair' && (r.nominated || r.selected) && r.state === 'succeeded') {
+          if (!pair || (r.bytesSent ?? 0) > (pair.bytesSent ?? 0)) pair = r;
+        }
+        if (r.type === 'transport' && r.selectedCandidatePairId) {
+          // fallback path
+        }
+        if (r.type === 'inbound-rtp' && !r.isRemote) {
+          inboundBytes += r.bytesReceived || 0;
+          packetsLost += r.packetsLost || 0;
+          packetsRecv += r.packetsReceived || 0;
+        }
+        if (r.type === 'outbound-rtp' && !r.isRemote) {
+          outboundBytes += r.bytesSent || 0;
+        }
+      });
 
-  // STUN + TURN for permissive networks
-  return [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' },
-    ...turnOnly,
-  ];
-}
+      const now = Date.now();
+      const dt = (now - lastTs) / 1000;
+      const kbpsIn = dt > 0 ? Math.round(((inboundBytes - lastBytesRecv) * 8) / 1000 / dt) : 0;
+      const kbpsOut = dt > 0 ? Math.round(((outboundBytes - lastBytesSent) * 8) / 1000 / dt) : 0;
+      lastBytesRecv = inboundBytes;
+      lastBytesSent = outboundBytes;
+      lastTs = now;
 
-export function buildRtcConfig(opts?: { forceRelay?: boolean }): RTCConfiguration {
-  const network = detectNetworkClass();
-  // Force relay on cellular OR when explicitly requested (recovery path)
-  const forceRelay = opts?.forceRelay ?? network === 'cellular';
+      if (pair) {
+        const local = candidates.get(pair.localCandidateId);
+        const remote = candidates.get(pair.remoteCandidateId);
+        const lossPct = packetsRecv > 0 ? ((packetsLost / (packetsLost + packetsRecv)) * 100).toFixed(1) : '0';
+        console.log(
+          `📊 [ICE] path=${local?.candidateType}/${remote?.candidateType} ` +
+            `proto=${local?.protocol ?? '?'} ` +
+            `local=${local?.address ?? '?'}:${local?.port ?? '?'} ` +
+            `remote=${remote?.address ?? '?'}:${remote?.port ?? '?'} ` +
+            `rtt=${pair.currentRoundTripTime ? Math.round(pair.currentRoundTripTime * 1000) + 'ms' : '?'} ` +
+            `loss=${lossPct}% in=${kbpsIn}kbps out=${kbpsOut}kbps`,
+        );
+      }
+    } catch {}
+  };
 
-  console.log(`🧊 [ICE] Network=${network} forceRelay=${forceRelay}`);
-
-  return {
-    iceServers: buildIceServers(forceRelay),
-    iceTransportPolicy: forceRelay ? 'relay' : 'all',
-    bundlePolicy: 'max-bundle',
-    rtcpMuxPolicy: 'require',
-    iceCandidatePoolSize: forceRelay ? 0 : 4,
+  const id = setInterval(tick, intervalMs);
+  return () => {
+    stopped = true;
+    clearInterval(id);
   };
 }
 
 /**
- * RTP Watchdog: detects "connected but no media" within 5s
- * and invokes the recovery callback (typically ICE restart with relay-only).
+ * @deprecated kept for backward compat; observability replaces forced recovery.
+ * Returns a no-op stop function.
  */
-export function attachRtpWatchdog(
-  pc: RTCPeerConnection,
-  onStalled: () => void,
-  timeoutMs = 5000,
-): () => void {
-  let cancelled = false;
-  let lastInboundBytes = 0;
-
-  const start = Date.now();
-  const interval = setInterval(async () => {
-    if (cancelled || pc.connectionState === 'closed') return;
-    if (pc.connectionState !== 'connected') return;
-
-    try {
-      const stats = await pc.getStats();
-      let inboundBytes = 0;
-      stats.forEach((report: any) => {
-        if (report.type === 'inbound-rtp' && !report.isRemote) {
-          inboundBytes += report.bytesReceived || 0;
-        }
-      });
-
-      if (inboundBytes > lastInboundBytes + 1024) {
-        // Media is flowing — stop watching
-        lastInboundBytes = inboundBytes;
-        clearInterval(interval);
-        return;
-      }
-
-      if (Date.now() - start > timeoutMs && inboundBytes === 0) {
-        console.warn('🚨 [RTP Watchdog] connected but 0 inbound bytes — recovering');
-        clearInterval(interval);
-        onStalled();
-      }
-    } catch {}
-  }, 1000);
-
-  return () => {
-    cancelled = true;
-    clearInterval(interval);
-  };
+export function attachRtpWatchdog(_pc: RTCPeerConnection, _onStalled: () => void): () => void {
+  return () => {};
 }
