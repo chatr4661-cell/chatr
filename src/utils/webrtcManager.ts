@@ -119,8 +119,14 @@ class WebRTCManager {
     }
   }
 
-  private createPeerConnection(forceRelay = false) {
-    this.pc = new RTCPeerConnection(buildRtcConfig({ forceRelay }));
+  private async createPeerConnection() {
+    const config = await buildRtcConfig();
+    console.log('🧊 [WebRTCManager] RTCConfiguration:', {
+      iceServers: config.iceServers?.length,
+      policy: config.iceTransportPolicy,
+      pool: config.iceCandidatePoolSize,
+    });
+    this.pc = new RTCPeerConnection(config);
 
     // Add tracks
     if (this.localStream) {
@@ -142,34 +148,30 @@ class WebRTCManager {
       }
     };
 
-    // Connection state
+    // ICE gathering — observability only
+    this.pc.onicegatheringstatechange = () => {
+      console.log('🧊 [WebRTCManager] ICE gathering:', this.pc?.iceGatheringState);
+    };
+
+    // Connection state — minimal intervention; trust ICE.
     this.pc.onconnectionstatechange = () => {
       const state = this.pc?.connectionState;
       console.log('🔌 [WebRTCManager] Connection:', state);
-      
+
       switch (state) {
         case 'connected':
           this.setState('connected');
-          // RTP watchdog: catch "connected but no media" within 5s.
-          // If no inbound RTP, rebuild peer with iceTransportPolicy='relay'.
-          this.rtpWatchdogStop?.();
-          this.rtpWatchdogStop = attachRtpWatchdog(this.pc!, () => {
-            if (this.relayRecoveryAttempted) return;
-            this.relayRecoveryAttempted = true;
-            console.warn('🔁 [WebRTCManager] Forcing relay-only recovery');
-            this.forceRelayRecovery();
-          });
+          // Start passive stats observer (telemetry only — does NOT control routing)
+          this.statsObserverStop?.();
+          this.statsObserverStop = startStatsObserver(this.pc!, 3000);
           break;
         case 'disconnected':
+          // Transient on mobile networks. ICE handles its own retries.
+          // Do NOT destroy the peer; do NOT aggressively restart.
           this.setState('reconnecting');
-          // Wait 3s before restart
-          setTimeout(() => {
-            if (this.pc?.connectionState === 'disconnected') {
-              this.pc?.restartIce();
-            }
-          }, 3000);
           break;
         case 'failed':
+          // Only here do we ask ICE to restart (single attempt, no rebuild).
           this.attemptRecovery();
           break;
         case 'closed':
@@ -178,11 +180,10 @@ class WebRTCManager {
       }
     };
 
-    // ICE connection state
+    // ICE connection state — observe; promote to 'connected' when ICE confirms it.
     this.pc.oniceconnectionstatechange = () => {
       const state = this.pc?.iceConnectionState;
       console.log('❄️ [WebRTCManager] ICE:', state);
-      
       if (state === 'connected' || state === 'completed') {
         this.setState('connected');
       }
