@@ -176,7 +176,15 @@ export class MediaAdaptationEngine {
     console.log(`📡 [${this.opts.label}] stopped`);
   }
 
-  private async configureAudioSender(): Promise<void> {
+  /**
+   * Phase 2: external mobility signal from NetworkMigrationManager.
+   * Sticky for 15s. While active, upgrades require extra cycles (delayed escalation).
+   */
+  setMobilityMode(active: boolean, stickyMs = 15_000) {
+    this.mobilityMode = active;
+    this.mobilityUntil = active ? Date.now() + stickyMs : 0;
+    logDiag('MOBILITY', `mobilityMode=${active}`);
+  }
     const audioSender = this.pc.getSenders().find((s) => s.track?.kind === 'audio');
     if (!audioSender) return;
     const params = audioSender.getParameters();
