@@ -2,6 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 import { MediaAdaptationEngine, applyOpusParameters } from "./mediaAdaptationEngine";
+import { NetworkMigrationManager } from "./networkMigrationManager";
+import { logDiag } from "./rtcDiagnosticsHistory";
 
 /**
  * WebRTC Manager - Singleton for managing WebRTC connections
