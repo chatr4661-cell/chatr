@@ -199,23 +199,35 @@ async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
   if (inflight) return inflight;
 
   inflight = (async () => {
+    const endpoints = [TURN_ENDPOINT, PRODUCTION_TURN_ENDPOINT];
+    let lastError: unknown = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 4000);
+        const res = await fetch(endpoint, { signal: ctrl.signal });
+        clearTimeout(t);
+        if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
+        const data = await res.json();
+        // Cloudflare returns { iceServers: [...] } or a flat array.
+        const servers: RTCIceServer[] = Array.isArray(data?.iceServers)
+          ? data.iceServers
+          : Array.isArray(data)
+          ? data
+          : [];
+        if (!servers.length) throw new Error('empty iceServers');
+        cache = { servers, ts: Date.now() };
+        console.log('🧊 [ICE] Cloudflare TURN credentials loaded:', servers.length, 'entries', `source=${endpoint}`);
+        return servers;
+      } catch (err) {
+        lastError = err;
+        console.warn(`⚠️ [ICE] TURN credential fetch failed at ${endpoint}:`, err);
+      }
+    }
+
     try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
-      const res = await fetch(TURN_ENDPOINT, { signal: ctrl.signal });
-      clearTimeout(t);
-      if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
-      const data = await res.json();
-      // Cloudflare returns { iceServers: [...] } or a flat array.
-      const servers: RTCIceServer[] = Array.isArray(data?.iceServers)
-        ? data.iceServers
-        : Array.isArray(data)
-        ? data
-        : [];
-      if (!servers.length) throw new Error('empty iceServers');
-      cache = { servers, ts: Date.now() };
-      console.log('🧊 [ICE] Cloudflare TURN credentials loaded:', servers.length, 'entries');
-      return servers;
+      throw lastError || new Error('turn credential endpoints unavailable');
     } catch (err) {
       console.warn('⚠️ [ICE] Cloudflare TURN fetch failed, using fallback:', err);
       return METERED_FALLBACK;
