@@ -380,9 +380,10 @@ export class MediaAdaptationEngine {
         await this.applyTier(this.currentTier);
         this.opts.onTierChange?.(this.currentTier, { bitrate, rtt, jitter, lossRate, tier: this.currentTier });
       } else {
-        // Delayed upgrade (hysteresis)
+        // Delayed upgrade (hysteresis). Mobility mode = stricter (5 cycles).
         this.goodCycles++;
-        if (this.goodCycles >= 3) {
+        const required = this.mobilityMode ? 5 : 3;
+        if (this.goodCycles >= required) {
           this.currentTier = nextTier;
           this.goodCycles = 0;
           await this.applyTier(this.currentTier);
