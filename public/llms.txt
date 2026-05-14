@@ -1,0 +1,28 @@
+# Chatr+
+
+> Chatr+ is an AI superapp for India: chat, calls, healthcare, business tools, local commerce, and earning — all in one app by TalentXcel Services.
+
+## Pages
+
+- [Home](/): Overview of the Chatr+ superapp.
+- [About](/about): Company, mission, and team behind Chatr+.
+- [Help](/help): Support center and FAQs.
+- [Contact](/contact): Get in touch with the Chatr+ team.
+- [Download](/download): Install Chatr+ on Android and iOS.
+- [Health Hub](/health): Personalized AI wellness dashboard.
+- [Care Access](/care): Book doctors and access healthcare services.
+- [Local Jobs](/local-jobs): Discover hyperlocal job opportunities.
+- [Marketplace](/marketplace): Shop products and local services.
+- [AI Browser](/ai-browser): AI-powered web browsing assistant.
+- [Communities](/communities): Join interest-based groups and circles.
+- [Chatr Studio](/chatr-studio): Creator tools for stories and content.
+- [Chatr Games](/chatr-games): Play and earn rewards.
+- [Chatr Wallet](/chatr-wallet): Coins, rewards, and UPI payouts.
+- [Chatr World](/chatr-world): Geo discovery of local services.
+
+## Optional
+
+- [Privacy Policy](/privacy)
+- [Terms of Service](/terms)
+- [Refund Policy](/refund)
+- [Disclaimer](/disclaimer)

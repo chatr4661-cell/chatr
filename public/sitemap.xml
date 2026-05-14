@@ -1,343 +1,343 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://chatr.chat/</loc>
+    <loc>https://chatr.lovable.app/</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/auth</loc>
+    <loc>https://chatr.lovable.app/auth</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/chat</loc>
+    <loc>https://chatr.lovable.app/chat</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>always</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/contacts</loc>
+    <loc>https://chatr.lovable.app/contacts</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/global-contacts</loc>
+    <loc>https://chatr.lovable.app/global-contacts</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/call-history</loc>
+    <loc>https://chatr.lovable.app/call-history</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/smart-inbox</loc>
+    <loc>https://chatr.lovable.app/smart-inbox</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/stories</loc>
+    <loc>https://chatr.lovable.app/stories</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/communities</loc>
+    <loc>https://chatr.lovable.app/communities</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/create-community</loc>
+    <loc>https://chatr.lovable.app/create-community</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/health</loc>
+    <loc>https://chatr.lovable.app/health</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/wellness-tracking</loc>
+    <loc>https://chatr.lovable.app/wellness-tracking</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/health-passport</loc>
+    <loc>https://chatr.lovable.app/health-passport</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/lab-reports</loc>
+    <loc>https://chatr.lovable.app/lab-reports</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/medicine-reminders</loc>
+    <loc>https://chatr.lovable.app/medicine-reminders</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/care</loc>
+    <loc>https://chatr.lovable.app/care</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/booking</loc>
+    <loc>https://chatr.lovable.app/booking</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/allied-healthcare</loc>
+    <loc>https://chatr.lovable.app/allied-healthcare</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/local-healthcare</loc>
+    <loc>https://chatr.lovable.app/local-healthcare</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/marketplace</loc>
+    <loc>https://chatr.lovable.app/marketplace</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/home-services</loc>
+    <loc>https://chatr.lovable.app/home-services</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/native-apps</loc>
+    <loc>https://chatr.lovable.app/native-apps</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/local-jobs</loc>
+    <loc>https://chatr.lovable.app/local-jobs</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/ai-agents</loc>
+    <loc>https://chatr.lovable.app/ai-agents</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/ai-assistant</loc>
+    <loc>https://chatr.lovable.app/ai-assistant</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/ai-browser</loc>
+    <loc>https://chatr.lovable.app/ai-browser</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/official-accounts</loc>
+    <loc>https://chatr.lovable.app/official-accounts</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/tutors</loc>
+    <loc>https://chatr.lovable.app/tutors</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/points</loc>
+    <loc>https://chatr.lovable.app/points</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/rewards</loc>
+    <loc>https://chatr.lovable.app/rewards</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/growth</loc>
+    <loc>https://chatr.lovable.app/growth</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/ambassador</loc>
+    <loc>https://chatr.lovable.app/ambassador</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/youth</loc>
+    <loc>https://chatr.lovable.app/youth</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/youth-feed</loc>
+    <loc>https://chatr.lovable.app/youth-feed</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/settings</loc>
+    <loc>https://chatr.lovable.app/settings</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/privacy</loc>
+    <loc>https://chatr.lovable.app/privacy</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/notifications</loc>
+    <loc>https://chatr.lovable.app/notifications</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/geofences</loc>
+    <loc>https://chatr.lovable.app/geofences</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/qr-payment</loc>
+    <loc>https://chatr.lovable.app/qr-payment</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/download</loc>
+    <loc>https://chatr.lovable.app/download</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/install</loc>
+    <loc>https://chatr.lovable.app/install</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/emergency</loc>
+    <loc>https://chatr.lovable.app/emergency</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/emergency-services</loc>
+    <loc>https://chatr.lovable.app/emergency-services</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/wellness-circles</loc>
+    <loc>https://chatr.lovable.app/wellness-circles</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/expert-sessions</loc>
+    <loc>https://chatr.lovable.app/expert-sessions</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/about</loc>
+    <loc>https://chatr.lovable.app/about</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/help</loc>
+    <loc>https://chatr.lovable.app/help</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/contact</loc>
+    <loc>https://chatr.lovable.app/contact</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/terms</loc>
+    <loc>https://chatr.lovable.app/terms</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/privacy-policy</loc>
+    <loc>https://chatr.lovable.app/privacy-policy</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/refund</loc>
+    <loc>https://chatr.lovable.app/refund</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/disclaimer</loc>
+    <loc>https://chatr.lovable.app/disclaimer</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/chatr-world</loc>
+    <loc>https://chatr.lovable.app/chatr-world</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/chatr-wallet</loc>
+    <loc>https://chatr.lovable.app/chatr-wallet</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/chatr-studio</loc>
+    <loc>https://chatr.lovable.app/chatr-studio</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/chatr-games</loc>
+    <loc>https://chatr.lovable.app/chatr-games</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/stealth-mode</loc>
+    <loc>https://chatr.lovable.app/stealth-mode</loc>
     <lastmod>2024-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

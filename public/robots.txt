@@ -15,7 +15,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://chatr.chat/sitemap.xml
+Sitemap: https://chatr.lovable.app/sitemap.xml
 
 # Disallow admin and auth-protected routes
 Disallow: /admin
@@ -27,18 +27,3 @@ Disallow: /onboarding
 Disallow: /account
 Disallow: /notification-settings
 Disallow: /geofence-history
-
-# Allow main content
-Allow: /health
-Allow: /care
-Allow: /local-jobs
-Allow: /ai-browser
-Allow: /communities
-Allow: /chatr-games
-Allow: /chatr-studio
-Allow: /marketplace
-Allow: /about
-Allow: /help
-Allow: /contact
-Allow: /chatr-wallet
-Allow: /chatr-world
