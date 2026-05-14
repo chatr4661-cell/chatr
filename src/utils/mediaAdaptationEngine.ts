@@ -17,7 +17,17 @@
  *   - Stagnant-media (frozen) detection -> delegated ICE-restart callback
  */
 
+import { logDiag } from './rtcDiagnosticsHistory';
+
 export type NetworkTier = 'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL';
+
+/**
+ * Phase 2 safety floors. Soft constraints only — browser GCC still controls
+ * congestion. We just refuse to let encoders fully starve.
+ */
+export const VIDEO_MIN_BITRATE = 80_000; // 80 kbps floor
+export const VIDEO_MIN_FRAMERATE = 10;   // 10 fps floor
+export const AUDIO_MAX_BITRATE = 32_000; // existing voice cap
 
 export interface VideoProfile {
   name: NetworkTier;
@@ -130,6 +140,13 @@ export class MediaAdaptationEngine {
   private currentTier: NetworkTier | '' = '';
   private started = false;
 
+  // Phase 2: jitter smoothing + mobility hysteresis
+  private jitterSamples: number[] = [];          // seconds, last 5 samples
+  private rttSamples: number[] = [];             // ms, last 5 samples
+  private jitterSpikeCycles = 0;                 // # cycles avg jitter > 300ms
+  private mobilityMode = false;
+  private mobilityUntil = 0;                     // epoch ms; stay sticky until then
+
   constructor(pc: RTCPeerConnection, options: EngineOptions = {}) {
     this.pc = pc;
     this.opts = {
@@ -157,6 +174,16 @@ export class MediaAdaptationEngine {
     }
     this.started = false;
     console.log(`📡 [${this.opts.label}] stopped`);
+  }
+
+  /**
+   * Phase 2: external mobility signal from NetworkMigrationManager.
+   * Sticky for 15s. While active, upgrades require extra cycles (delayed escalation).
+   */
+  setMobilityMode(active: boolean, stickyMs = 15_000) {
+    this.mobilityMode = active;
+    this.mobilityUntil = active ? Date.now() + stickyMs : 0;
+    logDiag('MOBILITY', `mobilityMode=${active}`);
   }
 
   private async configureAudioSender(): Promise<void> {
@@ -187,12 +214,19 @@ export class MediaAdaptationEngine {
       ...params.encodings[0],
       maxBitrate: profile.maxBitrate,
       maxFramerate: profile.maxFramerate,
+      // Phase 2: soft floors — protects against full encoder starvation (6kbps / 2fps cases)
+      // @ts-ignore - minBitrate widely supported (Chrome/Edge/Android); ignored elsewhere
+      minBitrate: VIDEO_MIN_BITRATE,
       // @ts-ignore - scaleResolutionDownBy is widely supported
       scaleResolutionDownBy: profile.scaleResolutionDownBy,
     };
     try {
       await videoSender.setParameters(params);
-      console.log(`[${this.opts.label}] video profile ->`, profile.name);
+      logDiag('QUALITY', `video profile -> ${profile.name}`, {
+        maxBitrate: profile.maxBitrate,
+        maxFramerate: profile.maxFramerate,
+        minBitrate: VIDEO_MIN_BITRATE,
+      });
     } catch (err) {
       console.error(`[${this.opts.label}] video setParameters failed`, err);
     }
@@ -306,7 +340,32 @@ export class MediaAdaptationEngine {
       }
     }
 
-    const nextTier = determineNetworkTier({ bitrate, rtt, lossRate });
+    // Phase 2: rolling jitter/rtt smoothing (5-sample window)
+    this.jitterSamples.push(jitter);
+    if (this.jitterSamples.length > 5) this.jitterSamples.shift();
+    this.rttSamples.push(rtt);
+    if (this.rttSamples.length > 5) this.rttSamples.shift();
+    const avgJitterMs =
+      (this.jitterSamples.reduce((a, b) => a + b, 0) / this.jitterSamples.length) * 1000;
+
+    // Jitter spike: > 300ms sustained for >=2 cycles (~6s) → force WEAK demotion
+    if (avgJitterMs > 300) {
+      this.jitterSpikeCycles++;
+    } else {
+      this.jitterSpikeCycles = 0;
+    }
+
+    // Mobility mode auto-expiry
+    if (this.mobilityMode && Date.now() > this.mobilityUntil) {
+      this.mobilityMode = false;
+      logDiag('MOBILITY', 'mobilityMode auto-cleared');
+    }
+
+    let nextTier = determineNetworkTier({ bitrate, rtt, lossRate });
+    if (this.jitterSpikeCycles >= 2 && TIER_ORDER[nextTier] > TIER_ORDER.WEAK) {
+      nextTier = 'WEAK';
+      logDiag('QUALITY', 'jitter spike → forced WEAK', { avgJitterMs });
+    }
 
     if (!this.currentTier) {
       this.currentTier = nextTier;
@@ -321,9 +380,10 @@ export class MediaAdaptationEngine {
         await this.applyTier(this.currentTier);
         this.opts.onTierChange?.(this.currentTier, { bitrate, rtt, jitter, lossRate, tier: this.currentTier });
       } else {
-        // Delayed upgrade (hysteresis)
+        // Delayed upgrade (hysteresis). Mobility mode = stricter (5 cycles).
         this.goodCycles++;
-        if (this.goodCycles >= 3) {
+        const required = this.mobilityMode ? 5 : 3;
+        if (this.goodCycles >= required) {
           this.currentTier = nextTier;
           this.goodCycles = 0;
           await this.applyTier(this.currentTier);

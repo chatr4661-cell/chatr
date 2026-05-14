@@ -2,6 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 import { MediaAdaptationEngine, applyOpusParameters } from "./mediaAdaptationEngine";
+import { NetworkMigrationManager } from "./networkMigrationManager";
+import { logDiag } from "./rtcDiagnosticsHistory";
 
 /**
  * WebRTC Manager - Singleton for managing WebRTC connections
@@ -44,6 +46,15 @@ class WebRTCManager {
   // ICE config is built dynamically per-call (Cloudflare TURN + Google STUN).
   // See src/utils/iceTransportStrategy.ts for rationale.
   private statsObserverStop: (() => void) | null = null;
+
+  // Phase 2: ICE restart cooldown + migration manager
+  private static readonly ICE_RESTART_COOLDOWN_MS = 15_000;
+  private static readonly DISCONNECT_TOLERANCE_MS = 4_000;
+  private lastIceRestartAt = 0;
+  private migrationInProgress = false;
+  private disconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private migrationMgr: NetworkMigrationManager | null = null;
+  private iceRestartCount = 0;
 
   on<K extends keyof WebRTCManagerEvents>(event: K, handler: WebRTCManagerEvents[K]) {
     this.handlers[event] = handler;
@@ -173,6 +184,11 @@ class WebRTCManager {
       switch (state) {
         case 'connected':
           this.setState('connected');
+          // Cancel any pending disconnect-tolerance timer
+          if (this.disconnectTimer) {
+            clearTimeout(this.disconnectTimer);
+            this.disconnectTimer = null;
+          }
           // Start passive stats observer (telemetry only — does NOT control routing)
           this.statsObserverStop?.();
           this.statsObserverStop = startStatsObserver(this.pc!, 3000, {
@@ -183,15 +199,27 @@ class WebRTCManager {
           });
           // Start media adaptation (audio cap + tiered video + survival mode)
           this.startMediaAdaptation();
+          // Phase 2: start passive network migration manager
+          this.startMigrationManager();
           break;
         case 'disconnected':
-          // Transient on mobile networks. ICE handles its own retries.
-          // Do NOT destroy the peer; do NOT aggressively restart.
+          // Phase 2: extended tolerance (4s) before any recovery action.
+          // ICE itself often heals these transients on mobile networks.
           this.setState('reconnecting');
+          if (!this.disconnectTimer) {
+            this.disconnectTimer = setTimeout(() => {
+              this.disconnectTimer = null;
+              const s = this.pc?.connectionState;
+              if (s === 'disconnected' || s === 'failed') {
+                logDiag('RECOVERY', `disconnect-tolerance expired (${s})`);
+                this.attemptRecovery('disconnect-tolerance');
+              }
+            }, WebRTCManager.DISCONNECT_TOLERANCE_MS);
+          }
           break;
         case 'failed':
           // Only here do we ask ICE to restart (single attempt, no rebuild).
-          this.attemptRecovery();
+          this.attemptRecovery('connection-failed');
           break;
         case 'closed':
           this.setState('closed');
@@ -393,22 +421,66 @@ class WebRTCManager {
     }
   }
 
-  private async attemptRecovery() {
+  private async attemptRecovery(reason: string = 'unspecified') {
     if (this.state === 'closed') return;
-    
-    console.log('🔄 [WebRTCManager] Attempting recovery...');
+
+    // Phase 2: ICE restart cooldown — max 1 per 15s; no concurrent attempts.
+    const now = Date.now();
+    if (this.migrationInProgress) {
+      logDiag('RECOVERY', `skipped (migration in progress) reason=${reason}`);
+      return;
+    }
+    if (now - this.lastIceRestartAt < WebRTCManager.ICE_RESTART_COOLDOWN_MS) {
+      logDiag('RECOVERY', `skipped (cooldown) reason=${reason}`, {
+        sinceLastMs: now - this.lastIceRestartAt,
+      });
+      return;
+    }
+
+    this.migrationInProgress = true;
+    this.lastIceRestartAt = now;
+    this.iceRestartCount++;
+    logDiag('RECOVERY', `ICE restart #${this.iceRestartCount} reason=${reason}`);
     this.setState('reconnecting');
-    
+
     try {
       if (this.pc && this.isInitiator) {
         const offer = await this.pc.createOffer({ iceRestart: true });
+        if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
         await this.pc.setLocalDescription(offer);
         await this.sendSignal('offer', offer);
+      } else if (this.pc) {
+        // Non-initiator: passive — wait for fresh offer from peer.
+        // (Original behavior preserved.)
       }
     } catch (err) {
       console.error('❌ [WebRTCManager] Recovery failed:', err);
       this.setState('failed');
+    } finally {
+      // Release migration lock after a short grace window so simultaneous
+      // events don't pile up but legitimate later attempts can proceed.
+      setTimeout(() => { this.migrationInProgress = false; }, 5000);
     }
+  }
+
+  private startMigrationManager() {
+    if (!this.pc || this.migrationMgr) return;
+    this.migrationMgr = new NetworkMigrationManager(this.pc, {
+      debounceMs: 4000,
+      onTransition: (r) => logDiag('NETWORK', `transition: ${r}`),
+      onStableMigration: (reason) => {
+        // Inform adaptation engine to favor stability over upgrades.
+        this.adaptationEngine?.setMobilityMode(true, 15_000);
+        // Only attempt recovery if ICE actually looks broken — cooldown gates this.
+        const s = this.pc?.iceConnectionState;
+        if (s === 'disconnected' || s === 'failed') {
+          this.attemptRecovery(`migration:${reason}`);
+        } else {
+          logDiag('MOBILITY', `migration ack (no recovery needed) reason=${reason}`);
+        }
+      },
+    });
+    this.migrationMgr.start();
   }
 
   // Forced relay-only recovery removed by design.
@@ -475,6 +547,12 @@ class WebRTCManager {
     this.statsObserverStop = null;
     this.adaptationEngine?.stop();
     this.adaptationEngine = null;
+    this.migrationMgr?.stop();
+    this.migrationMgr = null;
+    if (this.disconnectTimer) {
+      clearTimeout(this.disconnectTimer);
+      this.disconnectTimer = null;
+    }
     
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
