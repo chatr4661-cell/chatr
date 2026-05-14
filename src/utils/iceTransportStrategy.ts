@@ -39,6 +39,13 @@ const METERED_FALLBACK: RTCIceServer[] = [
 let cache: { servers: RTCIceServer[]; ts: number } | null = null;
 let inflight: Promise<RTCIceServer[]> | null = null;
 
+function normalizeIceServers(payload: any): RTCIceServer[] {
+  const candidate = payload?.iceServers ?? payload;
+  if (Array.isArray(candidate)) return candidate;
+  if (candidate?.urls) return [candidate];
+  return [];
+}
+
 type IceCandidateDirection = 'gathered' | 'sent' | 'received' | 'queued' | 'applied' | 'received-past';
 
 interface IceTelemetryContext {
@@ -210,12 +217,8 @@ async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
         clearTimeout(t);
         if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
         const data = await res.json();
-        // Cloudflare returns { iceServers: [...] } or a flat array.
-        const servers: RTCIceServer[] = Array.isArray(data?.iceServers)
-          ? data.iceServers
-          : Array.isArray(data)
-          ? data
-          : [];
+        // Cloudflare may return { iceServers: { urls: [...] } }, { iceServers: [...] }, or a flat server object/array.
+        const servers = normalizeIceServers(data);
         if (!servers.length) throw new Error('empty iceServers');
         cache = { servers, ts: Date.now() };
         console.log('🧊 [ICE] Cloudflare TURN credentials loaded:', servers.length, 'entries', `source=${endpoint}`);
