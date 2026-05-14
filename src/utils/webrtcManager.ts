@@ -421,22 +421,66 @@ class WebRTCManager {
     }
   }
 
-  private async attemptRecovery() {
+  private async attemptRecovery(reason: string = 'unspecified') {
     if (this.state === 'closed') return;
-    
-    console.log('🔄 [WebRTCManager] Attempting recovery...');
+
+    // Phase 2: ICE restart cooldown — max 1 per 15s; no concurrent attempts.
+    const now = Date.now();
+    if (this.migrationInProgress) {
+      logDiag('RECOVERY', `skipped (migration in progress) reason=${reason}`);
+      return;
+    }
+    if (now - this.lastIceRestartAt < WebRTCManager.ICE_RESTART_COOLDOWN_MS) {
+      logDiag('RECOVERY', `skipped (cooldown) reason=${reason}`, {
+        sinceLastMs: now - this.lastIceRestartAt,
+      });
+      return;
+    }
+
+    this.migrationInProgress = true;
+    this.lastIceRestartAt = now;
+    this.iceRestartCount++;
+    logDiag('RECOVERY', `ICE restart #${this.iceRestartCount} reason=${reason}`);
     this.setState('reconnecting');
-    
+
     try {
       if (this.pc && this.isInitiator) {
         const offer = await this.pc.createOffer({ iceRestart: true });
+        if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
         await this.pc.setLocalDescription(offer);
         await this.sendSignal('offer', offer);
+      } else if (this.pc) {
+        // Non-initiator: passive — wait for fresh offer from peer.
+        // (Original behavior preserved.)
       }
     } catch (err) {
       console.error('❌ [WebRTCManager] Recovery failed:', err);
       this.setState('failed');
+    } finally {
+      // Release migration lock after a short grace window so simultaneous
+      // events don't pile up but legitimate later attempts can proceed.
+      setTimeout(() => { this.migrationInProgress = false; }, 5000);
     }
+  }
+
+  private startMigrationManager() {
+    if (!this.pc || this.migrationMgr) return;
+    this.migrationMgr = new NetworkMigrationManager(this.pc, {
+      debounceMs: 4000,
+      onTransition: (r) => logDiag('NETWORK', `transition: ${r}`),
+      onStableMigration: (reason) => {
+        // Inform adaptation engine to favor stability over upgrades.
+        this.adaptationEngine?.setMobilityMode(true, 15_000);
+        // Only attempt recovery if ICE actually looks broken — cooldown gates this.
+        const s = this.pc?.iceConnectionState;
+        if (s === 'disconnected' || s === 'failed') {
+          this.attemptRecovery(`migration:${reason}`);
+        } else {
+          logDiag('MOBILITY', `migration ack (no recovery needed) reason=${reason}`);
+        }
+      },
+    });
+    this.migrationMgr.start();
   }
 
   // Forced relay-only recovery removed by design.
