@@ -386,7 +386,7 @@ export class SimpleWebRTCCall {
     
     // CGNAT-aware ICE config: forces TURN-relay on cellular, uses turns:443/tcp
     // Replaces the previous openrelay.metered.ca config (oversubscribed, drops media).
-    const config: RTCConfiguration = buildRtcConfig();
+    const config: RTCConfiguration = await buildRtcConfig();
 
     console.log(`🔧 [WebRTC] Creating peer connection (Android: ${isAndroid})`);
     this.pc = new RTCPeerConnection(config);
