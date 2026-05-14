@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
+import { MediaAdaptationEngine, applyOpusParameters } from "./mediaAdaptationEngine";
 
 /**
  * WebRTC Manager - Singleton for managing WebRTC connections
@@ -180,6 +181,8 @@ class WebRTCManager {
             userId: this.userId,
             peerId: this.partnerId,
           });
+          // Start media adaptation (audio cap + tiered video + survival mode)
+          this.startMediaAdaptation();
           break;
         case 'disconnected':
           // Transient on mobile networks. ICE handles its own retries.
@@ -285,6 +288,7 @@ class WebRTCManager {
           
           if (!this.answerSent) {
             const answer = await this.pc.createAnswer();
+            if (answer.sdp) answer.sdp = applyOpusParameters(answer.sdp);
             await this.pc.setLocalDescription(answer);
             await this.sendSignal('answer', answer);
             this.answerSent = true;
@@ -355,6 +359,7 @@ class WebRTCManager {
       this.offerSent = true;
       
       const offer = await this.pc.createOffer();
+      if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
       await this.pc.setLocalDescription(offer);
       await this.sendSignal('offer', offer);
       
@@ -453,11 +458,23 @@ class WebRTCManager {
     return this.pc?.getStats() ?? null;
   }
 
+  private adaptationEngine: MediaAdaptationEngine | null = null;
+  private startMediaAdaptation() {
+    if (!this.pc || this.adaptationEngine) return;
+    this.adaptationEngine = new MediaAdaptationEngine(this.pc, {
+      label: 'WebRTCManager:Adapt',
+      onStagnantMedia: () => this.attemptRecovery(),
+    });
+    this.adaptationEngine.start().catch((e) => console.warn('adaptation start failed', e));
+  }
+
   async end() {
     console.log('👋 [WebRTCManager] Ending...');
     this.setState('closed');
     this.statsObserverStop?.();
     this.statsObserverStop = null;
+    this.adaptationEngine?.stop();
+    this.adaptationEngine = null;
     
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
