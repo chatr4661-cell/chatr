@@ -4,12 +4,6 @@
   "framework": "vite",
   "installCommand": "npm install --legacy-peer-deps",
 
-  "functions": {
-    "api/*.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
-
   "rewrites": [
     {
       "source": "/assets/:path*",
