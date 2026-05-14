@@ -860,7 +860,7 @@ export class SimpleWebRTCCall {
           
         console.log(`📥 [WebRTC] Processing ${candidates.length} ICE candidates`);
         for (const c of candidates) {
-          logIceCandidateDiagnostics(c.signal_data, 'received-past', {
+          logIceCandidateDiagnostics(c.signal_data as any, 'received-past', {
             label: 'SimpleWebRTC',
             callId: this.callId,
             userId: this.userId,
@@ -901,6 +901,14 @@ export class SimpleWebRTCCall {
               this.processedSignalIds.add(signal.id);
               
               console.log('📥 [WebRTC] Signal received via realtime:', signal.signal_type);
+              if (signal.signal_type === 'ice-candidate') {
+                logIceCandidateDiagnostics(signal.signal_data as any, 'received', {
+                  label: 'SimpleWebRTC',
+                  callId: this.callId,
+                  userId: this.userId,
+                  peerId: signal.from_user,
+                });
+              }
               this.handleSignal({
                 type: signal.signal_type,
                 data: signal.signal_data,
