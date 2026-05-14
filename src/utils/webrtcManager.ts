@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { buildRtcConfig, startStatsObserver } from "./iceTransportStrategy";
+import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 
 /**
  * WebRTC Manager - Singleton for managing WebRTC connections
@@ -125,6 +125,12 @@ class WebRTCManager {
       policy: config.iceTransportPolicy,
       pool: config.iceCandidatePoolSize,
     });
+    logRtcConfiguration(config, {
+      label: 'WebRTCManager',
+      callId: this.callId,
+      userId: this.userId,
+      peerId: this.partnerId,
+    });
     this.pc = new RTCPeerConnection(config);
 
     // Add tracks
@@ -143,6 +149,12 @@ class WebRTCManager {
     // ICE candidates
     this.pc.onicecandidate = (e) => {
       if (e.candidate) {
+        logIceCandidateDiagnostics(e.candidate, 'gathered', {
+          label: 'WebRTCManager',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
         this.sendSignal('ice-candidate', e.candidate);
       }
     };
@@ -162,7 +174,12 @@ class WebRTCManager {
           this.setState('connected');
           // Start passive stats observer (telemetry only — does NOT control routing)
           this.statsObserverStop?.();
-          this.statsObserverStop = startStatsObserver(this.pc!, 3000);
+          this.statsObserverStop = startStatsObserver(this.pc!, 3000, {
+            label: 'WebRTCManager',
+            callId: this.callId,
+            userId: this.userId,
+            peerId: this.partnerId,
+          });
           break;
         case 'disconnected':
           // Transient on mobile networks. ICE handles its own retries.
