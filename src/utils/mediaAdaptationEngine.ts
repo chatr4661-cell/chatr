@@ -185,6 +185,8 @@ export class MediaAdaptationEngine {
     this.mobilityUntil = active ? Date.now() + stickyMs : 0;
     logDiag('MOBILITY', `mobilityMode=${active}`);
   }
+
+  private async configureAudioSender(): Promise<void> {
     const audioSender = this.pc.getSenders().find((s) => s.track?.kind === 'audio');
     if (!audioSender) return;
     const params = audioSender.getParameters();
