@@ -5,7 +5,7 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
-import { buildRtcConfig } from "./iceTransportStrategy";
+import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
@@ -76,6 +76,7 @@ export class SimpleWebRTCCall {
   private iceMonitor: (ICEMonitorState & { cleanup: () => void }) | null = null;
   private abrEngine: AdaptiveBitrateEngine | null = null;
   private networkChangeCleanup: (() => void) | null = null;
+  private statsObserverStop: (() => void) | null = null;
 
   // Factory method - use this instead of constructor
   static create(
@@ -389,6 +390,12 @@ export class SimpleWebRTCCall {
     const config: RTCConfiguration = await buildRtcConfig();
 
     console.log(`🔧 [WebRTC] Creating peer connection (Android: ${isAndroid})`);
+    logRtcConfiguration(config, {
+      label: 'SimpleWebRTC',
+      callId: this.callId,
+      userId: this.userId,
+      peerId: this.partnerId,
+    });
     this.pc = new RTCPeerConnection(config);
     
     // SMART CODEC NEGOTIATION: Apply optimal codec order based on device capabilities
@@ -428,8 +435,12 @@ export class SimpleWebRTCCall {
     // Handle ICE candidates - CRITICAL for connection establishment
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
-        const candidateType = event.candidate.type || 'unknown';
-        console.log(`🧊 [WebRTC] ICE candidate: ${candidateType} (${event.candidate.protocol || 'udp'})`);
+        logIceCandidateDiagnostics(event.candidate, 'gathered', {
+          label: 'SimpleWebRTC',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
         this.sendSignal({ type: 'ice-candidate', data: event.candidate.toJSON(), from: this.userId });
       } else {
         console.log('✅ [WebRTC] ICE gathering complete');
