@@ -4,6 +4,7 @@ import { classifyNetwork, NetworkQuality, onNetworkChange } from "./networkClass
 import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits, muneOpusForExtremeLow, CallPreset } from "./indiaCallPresets";
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
+import { MediaAdaptationEngine, applyOpusParameters } from "./mediaAdaptationEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 
@@ -526,6 +527,9 @@ export class SimpleWebRTCCall {
     // CRITICAL: Update call status to 'active' in database
     // This ensures UI and native shells know the call is truly connected
     this.updateCallToActive();
+
+    // Start media adaptation engine (audio cap + tiered video + survival mode)
+    this.startMediaAdaptationEngine();
     
     // ADAPTIVE BITRATE ENGINE: Start smart quality scaling (720p → 4K)
     // CRITICAL: Serialize - apply initial bitrate FIRST, then start ABR engine AFTER
@@ -984,6 +988,8 @@ export class SimpleWebRTCCall {
           if (this.networkQuality === 'EXTREME_LOW' && answer.sdp) {
             answer.sdp = muneOpusForExtremeLow(answer.sdp);
             console.log('🐌 [WebRTC] EXTREME_LOW: munged answer SDP for 6 kbps Opus');
+          } else if (answer.sdp) {
+            answer.sdp = applyOpusParameters(answer.sdp);
           }
           await this.pc.setLocalDescription(answer);
           await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
@@ -1095,6 +1101,8 @@ export class SimpleWebRTCCall {
       if (this.networkQuality === 'EXTREME_LOW' && offer.sdp) {
         offer.sdp = muneOpusForExtremeLow(offer.sdp);
         console.log('🐌 [WebRTC] EXTREME_LOW: munged offer SDP for 6 kbps Opus');
+      } else if (offer.sdp) {
+        offer.sdp = applyOpusParameters(offer.sdp);
       }
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
@@ -1399,6 +1407,7 @@ export class SimpleWebRTCCall {
       this.offerSent = false;
       
       const offer = await this.pc.createOffer();
+      if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
       (offer as any).__chatr = { reason: 'video-upgrade' };
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
@@ -1549,6 +1558,12 @@ export class SimpleWebRTCCall {
     if (this.abrEngine) {
       this.abrEngine.stop();
       this.abrEngine = null;
+    }
+
+    // Cleanup media adaptation engine (Opus cap + tiered video + survival)
+    if (this.mediaAdaptationEngine) {
+      this.mediaAdaptationEngine.stop();
+      this.mediaAdaptationEngine = null;
     }
 
     // Cleanup adaptive bitrate monitor
