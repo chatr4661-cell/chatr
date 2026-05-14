@@ -547,6 +547,12 @@ class WebRTCManager {
     this.statsObserverStop = null;
     this.adaptationEngine?.stop();
     this.adaptationEngine = null;
+    this.migrationMgr?.stop();
+    this.migrationMgr = null;
+    if (this.disconnectTimer) {
+      clearTimeout(this.disconnectTimer);
+      this.disconnectTimer = null;
+    }
     
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
