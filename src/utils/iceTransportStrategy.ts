@@ -14,6 +14,7 @@
  */
 
 const TURN_ENDPOINT = '/api/turn-credentials';
+const PRODUCTION_TURN_ENDPOINT = 'https://chatr.chat/api/turn-credentials';
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h — Cloudflare creds are 24h TTL
 
 const GOOGLE_STUN: RTCIceServer[] = [
@@ -37,6 +38,161 @@ const METERED_FALLBACK: RTCIceServer[] = [
 
 let cache: { servers: RTCIceServer[]; ts: number } | null = null;
 let inflight: Promise<RTCIceServer[]> | null = null;
+
+type IceCandidateDirection = 'gathered' | 'sent' | 'received' | 'queued' | 'applied' | 'received-past';
+
+interface IceTelemetryContext {
+  label?: string;
+  callId?: string;
+  userId?: string;
+  peerId?: string;
+}
+
+interface IceCandidateSummary {
+  raw: string;
+  foundation: string;
+  type: string;
+  protocol: string;
+  address: string;
+  port: string | number;
+  ipVersion: 'IPv4' | 'IPv6' | 'mDNS' | 'masked' | 'unknown';
+  tcpType: string;
+  url: string;
+  relayTransport: 'UDP' | 'TCP' | 'TLS' | 'unknown';
+}
+
+function shortId(value?: string): string {
+  return value ? value.slice(0, 8) : 'n/a';
+}
+
+function getCandidateLine(candidate: RTCIceCandidate | RTCIceCandidateInit | string | null | undefined): string {
+  if (!candidate) return '';
+  if (typeof candidate === 'string') return candidate;
+  return (candidate as RTCIceCandidateInit).candidate || '';
+}
+
+function inferIpVersion(address: string): IceCandidateSummary['ipVersion'] {
+  if (!address) return 'unknown';
+  if (address.includes(':')) return 'IPv6';
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(address)) return 'IPv4';
+  if (address.endsWith('.local')) return 'mDNS';
+  return 'masked';
+}
+
+function inferRelayTransport(url: string, protocol: string, port: string | number, tcpType = ''): IceCandidateSummary['relayTransport'] {
+  const normalizedUrl = url.toLowerCase();
+  const normalizedProtocol = protocol.toLowerCase();
+  const normalizedTcpType = tcpType.toLowerCase();
+
+  if (normalizedUrl.startsWith('turns:') || normalizedUrl.includes(':5349') || Number(port) === 5349) return 'TLS';
+  if (normalizedUrl.includes('transport=tcp') || normalizedProtocol === 'tcp' || normalizedTcpType) return 'TCP';
+  if (normalizedUrl.includes('transport=udp') || normalizedProtocol === 'udp') return 'UDP';
+  return 'unknown';
+}
+
+function summarizeCandidate(candidate: RTCIceCandidate | RTCIceCandidateInit | string | null | undefined): IceCandidateSummary {
+  const raw = getCandidateLine(candidate);
+  const parts = raw.trim().split(/\s+/).filter(Boolean);
+  const typIndex = parts.indexOf('typ');
+  const tcpTypeIndex = parts.indexOf('tcptype');
+  const anyCandidate = (candidate || {}) as any;
+  const address = String(anyCandidate.address || anyCandidate.ip || parts[4] || '');
+  const port = anyCandidate.port || parts[5] || '';
+  const protocol = String(anyCandidate.protocol || parts[2] || 'unknown').toLowerCase();
+  const tcpType = String(anyCandidate.tcpType || (tcpTypeIndex >= 0 ? parts[tcpTypeIndex + 1] : '') || 'n/a');
+  const url = String(anyCandidate.url || 'n/a');
+
+  return {
+    raw,
+    foundation: parts[0]?.replace('candidate:', '') || 'n/a',
+    type: String(anyCandidate.type || (typIndex >= 0 ? parts[typIndex + 1] : '') || 'unknown'),
+    protocol,
+    address,
+    port,
+    ipVersion: inferIpVersion(address),
+    tcpType,
+    url,
+    relayTransport: inferRelayTransport(url === 'n/a' ? '' : url, protocol, port, tcpType === 'n/a' ? '' : tcpType),
+  };
+}
+
+export function logIceCandidateDiagnostics(
+  candidate: RTCIceCandidate | RTCIceCandidateInit | string | null | undefined,
+  direction: IceCandidateDirection,
+  context: IceTelemetryContext = {},
+): void {
+  const info = summarizeCandidate(candidate);
+  if (!info.raw) return;
+
+  const prefix = context.label || 'WebRTC';
+  console.log(
+    `🧊 [ICE-CANDIDATE][8q4mnj] ${prefix} ${direction} ` +
+      `call=${shortId(context.callId)} user=${shortId(context.userId)} peer=${shortId(context.peerId)} ` +
+      `type=${info.type} protocol=${info.protocol} transport=${info.relayTransport} ip=${info.ipVersion} ` +
+      `address=${info.address || '?'}:${info.port || '?'} tcpType=${info.tcpType} foundation=${info.foundation} url=${info.url}`,
+  );
+
+  if (info.type === 'relay') {
+    console.log(
+      `🧊 [ICE-RELAY][n3w8jq] ${prefix} ${direction} relay candidate present ` +
+        `transport=${info.relayTransport} protocol=${info.protocol} ip=${info.ipVersion} ` +
+        `address=${info.address || '?'}:${info.port || '?'} url=${info.url}`,
+    );
+  }
+
+  if (info.type === 'relay' && (info.relayTransport === 'TLS' || info.url.toLowerCase().startsWith('turns:'))) {
+    console.log(
+      `🔐 [ICE-TLS][x4k0vp] ${prefix} ${direction} TURN/TLS relay candidate visible ` +
+        `url=${info.url} candidate=${info.address || '?'}:${info.port || '?'}`,
+    );
+  } else if (info.type === 'relay' && info.protocol === 'tcp' && info.url === 'n/a') {
+    console.log(
+      `🔐 [ICE-TLS][x4k0vp] ${prefix} ${direction} relay/TCP candidate visible; ` +
+        `remote signaling does not expose original TURN URL, verify sender-side gathered log for turns:5349`,
+    );
+  }
+}
+
+function flattenIceServerUrls(servers: RTCIceServer[]): string[] {
+  return servers.flatMap((server) => {
+    const urls = server.urls;
+    if (!urls) return [];
+    return Array.isArray(urls) ? urls : [urls];
+  });
+}
+
+function describeIceUrl(url: string): string {
+  const scheme = url.startsWith('turns:') ? 'turns' : url.startsWith('turn:') ? 'turn' : url.startsWith('stun:') ? 'stun' : 'unknown';
+  const withoutScheme = url.replace(/^(turns|turn|stun):/, '');
+  const [hostPort, query = ''] = withoutScheme.split('?');
+  return `${scheme}:${hostPort}${query ? `?${query}` : ''}`;
+}
+
+export function logRtcConfiguration(config: RTCConfiguration, context: IceTelemetryContext = {}): void {
+  const urls = flattenIceServerUrls(config.iceServers || []);
+  const described = urls.map(describeIceUrl);
+  const hasTls = urls.some((url) => url.toLowerCase().startsWith('turns:') || url.includes(':5349'));
+  const relayUrls = described.filter((url) => url.startsWith('turn'));
+
+  console.log('🧊 [ICE-CONFIG] RTCConfiguration', {
+    label: context.label || 'WebRTC',
+    call: shortId(context.callId),
+    policy: config.iceTransportPolicy,
+    bundlePolicy: config.bundlePolicy,
+    pool: config.iceCandidatePoolSize,
+    urlCount: urls.length,
+    relayUrls,
+  });
+
+  if (hasTls) {
+    console.log(
+      `🔐 [ICE-TLS][x4k0vp] ${context.label || 'WebRTC'} TURN/TLS server configured: ` +
+        described.filter((url) => url.startsWith('turns') || url.includes(':5349')).join(', '),
+    );
+  } else {
+    console.warn(`⚠️ [ICE-TLS][x4k0vp] ${context.label || 'WebRTC'} TURN/TLS server NOT present in RTCConfiguration`);
+  }
+}
 
 async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
   if (cache && Date.now() - cache.ts < CACHE_TTL_MS) return cache.servers;
