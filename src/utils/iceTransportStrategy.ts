@@ -312,9 +312,6 @@ export function startStatsObserver(
 
   const tick = async () => {
     if (stopped || !pc || pc.connectionState === 'closed') return;
-    if (pc.connectionState !== 'connected' && pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
-      return;
-    }
     try {
       const stats = await pc.getStats();
       let pair: any = null;
