@@ -97,9 +97,8 @@ class WebRTCManager {
       }
       this.emit('localStream', this.localStream);
 
-      // 2. Create peer connection
-      this.createPeerConnection();
-
+      // 2. Create peer connection (async — fetches Cloudflare TURN creds)
+      await this.createPeerConnection();
       // 3. Subscribe to signals
       await this.subscribeToSignals();
 
