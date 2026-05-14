@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { buildRtcConfig, attachRtpWatchdog } from "./iceTransportStrategy";
+import { buildRtcConfig, startStatsObserver } from "./iceTransportStrategy";
 
 /**
  * WebRTC Manager - Singleton for managing WebRTC connections
