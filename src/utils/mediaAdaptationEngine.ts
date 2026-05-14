@@ -17,7 +17,17 @@
  *   - Stagnant-media (frozen) detection -> delegated ICE-restart callback
  */
 
+import { logDiag } from './rtcDiagnosticsHistory';
+
 export type NetworkTier = 'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL';
+
+/**
+ * Phase 2 safety floors. Soft constraints only — browser GCC still controls
+ * congestion. We just refuse to let encoders fully starve.
+ */
+export const VIDEO_MIN_BITRATE = 80_000; // 80 kbps floor
+export const VIDEO_MIN_FRAMERATE = 10;   // 10 fps floor
+export const AUDIO_MAX_BITRATE = 32_000; // existing voice cap
 
 export interface VideoProfile {
   name: NetworkTier;
