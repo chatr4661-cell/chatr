@@ -512,6 +512,13 @@ export class SimpleWebRTCCall {
     
     console.log(`🎉 [WebRTC] CONNECTED! [${this.instanceId}]`);
     this.callState = 'connected';
+    this.statsObserverStop?.();
+    this.statsObserverStop = startStatsObserver(this.pc!, 3000, {
+      label: 'SimpleWebRTC',
+      callId: this.callId,
+      userId: this.userId,
+      peerId: this.partnerId,
+    });
     this.clearConnectionTimeout();
     this.emit('connected');
     this.emit('networkQuality', 'good');
@@ -853,6 +860,12 @@ export class SimpleWebRTCCall {
           
         console.log(`📥 [WebRTC] Processing ${candidates.length} ICE candidates`);
         for (const c of candidates) {
+          logIceCandidateDiagnostics(c.signal_data, 'received-past', {
+            label: 'SimpleWebRTC',
+            callId: this.callId,
+            userId: this.userId,
+            peerId: c.from_user,
+          });
           await this.handleSignal({ type: 'ice-candidate', data: c.signal_data, from: c.from_user });
         }
       } else {
@@ -1000,8 +1013,20 @@ export class SimpleWebRTCCall {
 
         case 'ice-candidate':
           if (this.pc.remoteDescription) {
+            logIceCandidateDiagnostics(signal.data, 'applied', {
+              label: 'SimpleWebRTC',
+              callId: this.callId,
+              userId: this.userId,
+              peerId: signal.from,
+            });
             await this.pc.addIceCandidate(new RTCIceCandidate(signal.data));
           } else {
+            logIceCandidateDiagnostics(signal.data, 'queued', {
+              label: 'SimpleWebRTC',
+              callId: this.callId,
+              userId: this.userId,
+              peerId: signal.from,
+            });
             this.pendingIceCandidates.push(new RTCIceCandidate(signal.data));
           }
           break;
@@ -1037,6 +1062,12 @@ export class SimpleWebRTCCall {
     console.log(`📥 [WebRTC] Flushing ${this.pendingIceCandidates.length} queued candidates`);
     for (const candidate of this.pendingIceCandidates) {
       try {
+        logIceCandidateDiagnostics(candidate, 'applied', {
+          label: 'SimpleWebRTC',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
         await this.pc?.addIceCandidate(candidate);
       } catch (e) {
         console.warn('⚠️ [WebRTC] Failed to add queued candidate:', e);
