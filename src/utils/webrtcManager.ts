@@ -40,10 +40,9 @@ class WebRTCManager {
   private userId: string = '';
   private isInitiator = false;
 
-  // ICE config is built dynamically per-call (network-aware, CGNAT-aware).
+  // ICE config is built dynamically per-call (Cloudflare TURN + Google STUN).
   // See src/utils/iceTransportStrategy.ts for rationale.
-  private rtpWatchdogStop: (() => void) | null = null;
-  private relayRecoveryAttempted = false;
+  private statsObserverStop: (() => void) | null = null;
 
   on<K extends keyof WebRTCManagerEvents>(event: K, handler: WebRTCManagerEvents[K]) {
     this.handlers[event] = handler;
