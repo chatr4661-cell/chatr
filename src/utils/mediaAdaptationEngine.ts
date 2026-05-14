@@ -340,7 +340,32 @@ export class MediaAdaptationEngine {
       }
     }
 
-    const nextTier = determineNetworkTier({ bitrate, rtt, lossRate });
+    // Phase 2: rolling jitter/rtt smoothing (5-sample window)
+    this.jitterSamples.push(jitter);
+    if (this.jitterSamples.length > 5) this.jitterSamples.shift();
+    this.rttSamples.push(rtt);
+    if (this.rttSamples.length > 5) this.rttSamples.shift();
+    const avgJitterMs =
+      (this.jitterSamples.reduce((a, b) => a + b, 0) / this.jitterSamples.length) * 1000;
+
+    // Jitter spike: > 300ms sustained for >=2 cycles (~6s) → force WEAK demotion
+    if (avgJitterMs > 300) {
+      this.jitterSpikeCycles++;
+    } else {
+      this.jitterSpikeCycles = 0;
+    }
+
+    // Mobility mode auto-expiry
+    if (this.mobilityMode && Date.now() > this.mobilityUntil) {
+      this.mobilityMode = false;
+      logDiag('MOBILITY', 'mobilityMode auto-cleared');
+    }
+
+    let nextTier = determineNetworkTier({ bitrate, rtt, lossRate });
+    if (this.jitterSpikeCycles >= 2 && TIER_ORDER[nextTier] > TIER_ORDER.WEAK) {
+      nextTier = 'WEAK';
+      logDiag('QUALITY', 'jitter spike → forced WEAK', { avgJitterMs });
+    }
 
     if (!this.currentTier) {
       this.currentTier = nextTier;
