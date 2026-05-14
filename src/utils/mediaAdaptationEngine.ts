@@ -140,6 +140,13 @@ export class MediaAdaptationEngine {
   private currentTier: NetworkTier | '' = '';
   private started = false;
 
+  // Phase 2: jitter smoothing + mobility hysteresis
+  private jitterSamples: number[] = [];          // seconds, last 5 samples
+  private rttSamples: number[] = [];             // ms, last 5 samples
+  private jitterSpikeCycles = 0;                 // # cycles avg jitter > 300ms
+  private mobilityMode = false;
+  private mobilityUntil = 0;                     // epoch ms; stay sticky until then
+
   constructor(pc: RTCPeerConnection, options: EngineOptions = {}) {
     this.pc = pc;
     this.opts = {
