@@ -197,12 +197,19 @@ export class MediaAdaptationEngine {
       ...params.encodings[0],
       maxBitrate: profile.maxBitrate,
       maxFramerate: profile.maxFramerate,
+      // Phase 2: soft floors — protects against full encoder starvation (6kbps / 2fps cases)
+      // @ts-ignore - minBitrate widely supported (Chrome/Edge/Android); ignored elsewhere
+      minBitrate: VIDEO_MIN_BITRATE,
       // @ts-ignore - scaleResolutionDownBy is widely supported
       scaleResolutionDownBy: profile.scaleResolutionDownBy,
     };
     try {
       await videoSender.setParameters(params);
-      console.log(`[${this.opts.label}] video profile ->`, profile.name);
+      logDiag('QUALITY', `video profile -> ${profile.name}`, {
+        maxBitrate: profile.maxBitrate,
+        maxFramerate: profile.maxFramerate,
+        minBitrate: VIDEO_MIN_BITRATE,
+      });
     } catch (err) {
       console.error(`[${this.opts.label}] video setParameters failed`, err);
     }
