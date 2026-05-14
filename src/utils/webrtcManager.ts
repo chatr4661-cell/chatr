@@ -47,6 +47,15 @@ class WebRTCManager {
   // See src/utils/iceTransportStrategy.ts for rationale.
   private statsObserverStop: (() => void) | null = null;
 
+  // Phase 2: ICE restart cooldown + migration manager
+  private static readonly ICE_RESTART_COOLDOWN_MS = 15_000;
+  private static readonly DISCONNECT_TOLERANCE_MS = 4_000;
+  private lastIceRestartAt = 0;
+  private migrationInProgress = false;
+  private disconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private migrationMgr: NetworkMigrationManager | null = null;
+  private iceRestartCount = 0;
+
   on<K extends keyof WebRTCManagerEvents>(event: K, handler: WebRTCManagerEvents[K]) {
     this.handlers[event] = handler;
   }
