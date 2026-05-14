@@ -5,7 +5,7 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
-import { buildRtcConfig } from "./iceTransportStrategy";
+import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
@@ -76,6 +76,7 @@ export class SimpleWebRTCCall {
   private iceMonitor: (ICEMonitorState & { cleanup: () => void }) | null = null;
   private abrEngine: AdaptiveBitrateEngine | null = null;
   private networkChangeCleanup: (() => void) | null = null;
+  private statsObserverStop: (() => void) | null = null;
 
   // Factory method - use this instead of constructor
   static create(
@@ -389,7 +390,20 @@ export class SimpleWebRTCCall {
     const config: RTCConfiguration = await buildRtcConfig();
 
     console.log(`🔧 [WebRTC] Creating peer connection (Android: ${isAndroid})`);
+    logRtcConfiguration(config, {
+      label: 'SimpleWebRTC',
+      callId: this.callId,
+      userId: this.userId,
+      peerId: this.partnerId,
+    });
     this.pc = new RTCPeerConnection(config);
+    this.statsObserverStop?.();
+    this.statsObserverStop = startStatsObserver(this.pc, 3000, {
+      label: 'SimpleWebRTC',
+      callId: this.callId,
+      userId: this.userId,
+      peerId: this.partnerId,
+    });
     
     // SMART CODEC NEGOTIATION: Apply optimal codec order based on device capabilities
     // CRITICAL: When ANY peer is Android (native or WebView), force VP8 for maximum compatibility
@@ -428,8 +442,12 @@ export class SimpleWebRTCCall {
     // Handle ICE candidates - CRITICAL for connection establishment
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
-        const candidateType = event.candidate.type || 'unknown';
-        console.log(`🧊 [WebRTC] ICE candidate: ${candidateType} (${event.candidate.protocol || 'udp'})`);
+        logIceCandidateDiagnostics(event.candidate, 'gathered', {
+          label: 'SimpleWebRTC',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
         this.sendSignal({ type: 'ice-candidate', data: event.candidate.toJSON(), from: this.userId });
       } else {
         console.log('✅ [WebRTC] ICE gathering complete');
@@ -842,6 +860,12 @@ export class SimpleWebRTCCall {
           
         console.log(`📥 [WebRTC] Processing ${candidates.length} ICE candidates`);
         for (const c of candidates) {
+          logIceCandidateDiagnostics(c.signal_data as any, 'received-past', {
+            label: 'SimpleWebRTC',
+            callId: this.callId,
+            userId: this.userId,
+            peerId: c.from_user,
+          });
           await this.handleSignal({ type: 'ice-candidate', data: c.signal_data, from: c.from_user });
         }
       } else {
@@ -877,6 +901,14 @@ export class SimpleWebRTCCall {
               this.processedSignalIds.add(signal.id);
               
               console.log('📥 [WebRTC] Signal received via realtime:', signal.signal_type);
+              if (signal.signal_type === 'ice-candidate') {
+                logIceCandidateDiagnostics(signal.signal_data as any, 'received', {
+                  label: 'SimpleWebRTC',
+                  callId: this.callId,
+                  userId: this.userId,
+                  peerId: signal.from_user,
+                });
+              }
               this.handleSignal({
                 type: signal.signal_type,
                 data: signal.signal_data,
@@ -989,8 +1021,20 @@ export class SimpleWebRTCCall {
 
         case 'ice-candidate':
           if (this.pc.remoteDescription) {
+            logIceCandidateDiagnostics(signal.data, 'applied', {
+              label: 'SimpleWebRTC',
+              callId: this.callId,
+              userId: this.userId,
+              peerId: signal.from,
+            });
             await this.pc.addIceCandidate(new RTCIceCandidate(signal.data));
           } else {
+            logIceCandidateDiagnostics(signal.data, 'queued', {
+              label: 'SimpleWebRTC',
+              callId: this.callId,
+              userId: this.userId,
+              peerId: signal.from,
+            });
             this.pendingIceCandidates.push(new RTCIceCandidate(signal.data));
           }
           break;
@@ -1026,6 +1070,12 @@ export class SimpleWebRTCCall {
     console.log(`📥 [WebRTC] Flushing ${this.pendingIceCandidates.length} queued candidates`);
     for (const candidate of this.pendingIceCandidates) {
       try {
+        logIceCandidateDiagnostics(candidate, 'applied', {
+          label: 'SimpleWebRTC',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
         await this.pc?.addIceCandidate(candidate);
       } catch (e) {
         console.warn('⚠️ [WebRTC] Failed to add queued candidate:', e);
@@ -1059,6 +1109,14 @@ export class SimpleWebRTCCall {
   private async sendSignal(signal: Signal) {
     const startTime = Date.now();
     try {
+      if (signal.type === 'ice-candidate') {
+        logIceCandidateDiagnostics(signal.data, 'sent', {
+          label: 'SimpleWebRTC',
+          callId: this.callId,
+          userId: this.userId,
+          peerId: this.partnerId,
+        });
+      }
       // FAST: Don't wait for select - fire and forget for speed
       const { error } = await supabase.from('webrtc_signals').insert({
         call_id: this.callId,
@@ -1482,6 +1540,10 @@ export class SimpleWebRTCCall {
     // Stop local tracks
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
+
+    // Cleanup adaptive bitrate engine
+    this.statsObserverStop?.();
+    this.statsObserverStop = null;
 
     // Cleanup adaptive bitrate engine
     if (this.abrEngine) {
