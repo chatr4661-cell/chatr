@@ -397,6 +397,13 @@ export class SimpleWebRTCCall {
       peerId: this.partnerId,
     });
     this.pc = new RTCPeerConnection(config);
+    this.statsObserverStop?.();
+    this.statsObserverStop = startStatsObserver(this.pc, 3000, {
+      label: 'SimpleWebRTC',
+      callId: this.callId,
+      userId: this.userId,
+      peerId: this.partnerId,
+    });
     
     // SMART CODEC NEGOTIATION: Apply optimal codec order based on device capabilities
     // CRITICAL: When ANY peer is Android (native or WebView), force VP8 for maximum compatibility
@@ -512,13 +519,6 @@ export class SimpleWebRTCCall {
     
     console.log(`🎉 [WebRTC] CONNECTED! [${this.instanceId}]`);
     this.callState = 'connected';
-    this.statsObserverStop?.();
-    this.statsObserverStop = startStatsObserver(this.pc!, 3000, {
-      label: 'SimpleWebRTC',
-      callId: this.callId,
-      userId: this.userId,
-      peerId: this.partnerId,
-    });
     this.clearConnectionTimeout();
     this.emit('connected');
     this.emit('networkQuality', 'good');
@@ -1540,6 +1540,10 @@ export class SimpleWebRTCCall {
     // Stop local tracks
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
+
+    // Cleanup adaptive bitrate engine
+    this.statsObserverStop?.();
+    this.statsObserverStop = null;
 
     // Cleanup adaptive bitrate engine
     if (this.abrEngine) {
