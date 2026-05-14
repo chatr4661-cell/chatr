@@ -225,19 +225,6 @@ class WebRTCManager {
           this.setState('closed');
           break;
       }
-        case 'disconnected':
-          // Transient on mobile networks. ICE handles its own retries.
-          // Do NOT destroy the peer; do NOT aggressively restart.
-          this.setState('reconnecting');
-          break;
-        case 'failed':
-          // Only here do we ask ICE to restart (single attempt, no rebuild).
-          this.attemptRecovery();
-          break;
-        case 'closed':
-          this.setState('closed');
-          break;
-      }
     };
 
     // ICE connection state — observe; promote to 'connected' when ICE confirms it.
