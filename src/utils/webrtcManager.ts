@@ -184,6 +184,11 @@ class WebRTCManager {
       switch (state) {
         case 'connected':
           this.setState('connected');
+          // Cancel any pending disconnect-tolerance timer
+          if (this.disconnectTimer) {
+            clearTimeout(this.disconnectTimer);
+            this.disconnectTimer = null;
+          }
           // Start passive stats observer (telemetry only — does NOT control routing)
           this.statsObserverStop?.();
           this.statsObserverStop = startStatsObserver(this.pc!, 3000, {
@@ -194,7 +199,32 @@ class WebRTCManager {
           });
           // Start media adaptation (audio cap + tiered video + survival mode)
           this.startMediaAdaptation();
+          // Phase 2: start passive network migration manager
+          this.startMigrationManager();
           break;
+        case 'disconnected':
+          // Phase 2: extended tolerance (4s) before any recovery action.
+          // ICE itself often heals these transients on mobile networks.
+          this.setState('reconnecting');
+          if (!this.disconnectTimer) {
+            this.disconnectTimer = setTimeout(() => {
+              this.disconnectTimer = null;
+              const s = this.pc?.connectionState;
+              if (s === 'disconnected' || s === 'failed') {
+                logDiag('RECOVERY', `disconnect-tolerance expired (${s})`);
+                this.attemptRecovery('disconnect-tolerance');
+              }
+            }, WebRTCManager.DISCONNECT_TOLERANCE_MS);
+          }
+          break;
+        case 'failed':
+          // Only here do we ask ICE to restart (single attempt, no rebuild).
+          this.attemptRecovery('connection-failed');
+          break;
+        case 'closed':
+          this.setState('closed');
+          break;
+      }
         case 'disconnected':
           // Transient on mobile networks. ICE handles its own retries.
           // Do NOT destroy the peer; do NOT aggressively restart.
