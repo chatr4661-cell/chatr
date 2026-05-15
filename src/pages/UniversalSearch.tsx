@@ -84,11 +84,8 @@ const UniversalSearch = () => {
   const [isFavorite, setIsFavorite] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('all');
   
-  // Job Intent Engine state
-  const [jobIntent, setJobIntent] = useState<JobIntent | null>(null);
-  const [jobListings, setJobListings] = useState<JobListing[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(false);
-  
+
+
   // Local AI for instant responses
   const { analyzeIntent, supportsWebGPU } = useLocalAI();
   const [instantAnswer, setInstantAnswer] = useState<string | null>(null);
