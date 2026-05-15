@@ -309,7 +309,7 @@ const Home = memo(() => {
               >
                 <MessageCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                 <span className="text-[11px] font-medium text-muted-foreground">Chats</span>
-                <span className="text-sm font-bold text-green-600 dark:text-green-400">Open</span>
+                <span className="text-sm font-bold text-green-600 dark:text-green-400">{activityData.unreadChats > 0 ? (activityData.unreadChats > 99 ? '99+' : activityData.unreadChats) : 'Open'}</span>
               </AppleCard>
               <AppleCard 
                 variant="elevated" 
