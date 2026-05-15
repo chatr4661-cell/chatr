@@ -234,13 +234,6 @@ const handleAddRestaurant = async () => {
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-4 text-center">
-              <Briefcase className="h-8 w-8 mx-auto text-blue-500 mb-2" />
-              <p className="text-2xl font-bold">{stats.totalJobs}</p>
-              <p className="text-xs text-muted-foreground">Jobs</p>
-            </CardContent>
-          </Card>
           <Card className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950 dark:to-pink-950 border-red-200 dark:border-red-800">
             <CardContent className="p-4 text-center">
               <Heart className="h-8 w-8 mx-auto text-red-500 mb-2" />
@@ -262,13 +255,6 @@ const handleAddRestaurant = async () => {
               <p className="text-xs text-muted-foreground">Restaurants</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800">
-            <CardContent className="p-4 text-center">
-              <Users className="h-8 w-8 mx-auto text-purple-500 mb-2" />
-              <p className="text-2xl font-bold">{stats.totalApplications}</p>
-              <p className="text-xs text-muted-foreground">Applications</p>
-            </CardContent>
-          </Card>
           <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950 dark:to-cyan-950 border-teal-200 dark:border-teal-800">
             <CardContent className="p-4 text-center">
               <Calendar className="h-8 w-8 mx-auto text-teal-500 mb-2" />
@@ -279,11 +265,8 @@ const handleAddRestaurant = async () => {
         </div>
 
         {/* Content Tabs */}
-        <Tabs defaultValue="jobs" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="jobs" className="gap-2">
-              <Briefcase className="h-4 w-4" /> Jobs
-            </TabsTrigger>
+        <Tabs defaultValue="healthcare" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="healthcare" className="gap-2">
               <Heart className="h-4 w-4" /> Healthcare
             </TabsTrigger>
