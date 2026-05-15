@@ -12660,6 +12660,57 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_templates: {
+        Row: {
+          action_url: string | null
+          body: string
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          rationale: string
+          slug: string
+          sort_order: number
+          title: string
+          trigger_when: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          action_url?: string | null
+          body: string
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          rationale: string
+          slug: string
+          sort_order?: number
+          title: string
+          trigger_when: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          action_url?: string | null
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          rationale?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+          trigger_when?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
