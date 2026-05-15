@@ -76,7 +76,7 @@ export const lazyLoadHeavyComponents = () => {
     MiniAppsStore: () => import('@/pages/MiniAppsStore'),
     ChatrWorld: () => import('@/pages/ChatrWorld'),
     LocalHealthcare: () => import('@/pages/LocalHealthcare'),
-    LocalJobs: () => import('@/pages/LocalJobs'),
+    TalentxcelJobs: () => import('@/pages/TalentxcelJobs'),
     Communities: () => import('@/pages/Communities')
   };
 };
