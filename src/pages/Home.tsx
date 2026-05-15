@@ -364,7 +364,7 @@ const Home = memo(() => {
               onChange={setQuery}
               onClear={() => setQuery('')}
               onSubmit={handleSearch}
-              placeholder="Search jobs, doctors, food, services..."
+              placeholder="Search anything on Chatr"
               rightIcon={
                 <button
                   onClick={startVoiceSearch}
