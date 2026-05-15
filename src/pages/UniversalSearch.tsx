@@ -171,6 +171,10 @@ const UniversalSearch = () => {
     setWebResults(null);
     setAiSummaryError(null);
 
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+
       // Generate or get session ID
       let sessionId = localStorage.getItem('chatr_session_id');
       if (!sessionId) {
