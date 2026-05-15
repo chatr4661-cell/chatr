@@ -311,7 +311,8 @@ const App = () => {
             <Route path="/ai-agents/chat/:agentId" element={<LazyRoute component={LazyPages.AIAgentChatNew} />} />
             <Route path="/ai-agents/settings/:agentId" element={<LazyRoute component={LazyPages.AIAgents} />} />
             <Route path="/ai-assistant" element={<LazyRoute component={LazyPages.AIAssistant} />} />
-            <Route path="/jobs" element={<LazyRoute component={LazyPages.LocalJobs} />} />
+            <Route path="/jobs" element={<LazyRoute component={LazyPages.TalentxcelJobs} />} />
+            <Route path="/jobs/:jobId" element={<LazyRoute component={LazyPages.TalentxcelJobs} />} />
             <Route path="/local-jobs" element={<Navigate to="/jobs" replace />} />
             <Route path="/local-healthcare" element={<LazyRoute component={LazyPages.LocalHealthcare} />} />
             <Route path="/geofences" element={<LazyRoute component={LazyPages.Geofences} />} />
