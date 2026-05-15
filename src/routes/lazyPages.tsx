@@ -293,9 +293,7 @@ export const BluetoothTest = lazy(() => import('@/pages/BluetoothTest'));
 export const UniversalSearch = lazy(() => import('@/pages/UniversalSearch'));
 export const UserSubscription = lazy(() => import('@/pages/UserSubscription'));
 export const KYCVerificationPage = lazy(() => import('@/pages/KYCVerification'));
-export const LocalJobs = lazy(() => import('@/pages/LocalJobs'));
 export const TalentxcelJobs = lazy(() => import('@/pages/TalentxcelJobs'));
-export const JobDetail = lazy(() => import('@/pages/JobDetail'));
 export const OfficialAccounts = lazy(() => import('@/pages/OfficialAccounts'));
 
 // Static Pages
