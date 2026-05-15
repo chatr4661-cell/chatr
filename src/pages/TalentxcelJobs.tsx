@@ -1,54 +1,79 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, WifiOff } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, ExternalLink, RefreshCw, WifiOff, Briefcase } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import chatrIconLogo from '@/assets/chatr-icon-logo.png';
 
-const JOBS_URL = 'https://talentxcel.in/jobs';
+const JOBS_BASE = 'https://talentxcel.in/jobs';
 
 /**
- * Native-feeling Jobs module — embeds TalentXcel inside a WebView/iframe.
- * Keeps CHATR shell visible, hides browser chrome, native loader + offline retry.
+ * Native-feeling Jobs module powered by TalentXcel.
+ * - Native (Capacitor): launches in-app WebView via @capacitor/browser (no Chrome chrome).
+ * - Web: TalentXcel sends X-Frame-Options: DENY so iframe is impossible —
+ *   render a CHATR-branded launch screen that opens it in a new tab.
  */
 export default function TalentxcelJobs() {
   const navigate = useNavigate();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [errored, setErrored] = useState(false);
+  const { jobId } = useParams();
+  const targetUrl = jobId ? `${JOBS_BASE}/${jobId}` : JOBS_BASE;
+  const launchedRef = useRef(false);
+  const [opening, setOpening] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
-  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const on = () => setOnline(true);
     const off = () => setOnline(false);
     window.addEventListener('online', on);
     window.addEventListener('offline', off);
-
-    // Haptic feedback on entry (native only)
-    if (Capacitor.isNativePlatform()) {
-      import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
-        Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
-      }).catch(() => {});
-    }
-
-    // Safety timeout to hide loader if iframe load event never fires
-    const t = window.setTimeout(() => setLoading(false), 8000);
     return () => {
       window.removeEventListener('online', on);
       window.removeEventListener('offline', off);
-      window.clearTimeout(t);
     };
-  }, [reloadKey]);
+  }, []);
 
-  const handleReload = () => {
-    setLoading(true);
-    setErrored(false);
-    setReloadKey((k) => k + 1);
+  const launch = async () => {
+    if (opening) return;
+    setOpening(true);
+
+    // Haptic feedback on native
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+        await Haptics.impact({ style: ImpactStyle.Light });
+      } catch {}
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      // In-app WebView — no browser chrome, themed, stays inside CHATR shell.
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({
+          url: targetUrl,
+          presentationStyle: 'popover',
+          toolbarColor: '#0F172A',
+        });
+      } catch (e) {
+        window.location.href = targetUrl;
+      }
+    } else {
+      // Web: site blocks iframe embedding — open in new tab.
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    setTimeout(() => setOpening(false), 800);
   };
+
+  // Auto-launch once on native so it really feels like a native screen.
+  useEffect(() => {
+    if (Capacitor.isNativePlatform() && !launchedRef.current && online) {
+      launchedRef.current = true;
+      launch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online]);
 
   return (
     <div className="fixed inset-0 bg-background flex flex-col z-0">
-      {/* Native header */}
       <header
         className="flex items-center gap-3 px-3 border-b border-border bg-background/95 backdrop-blur-md"
         style={{ paddingTop: 'max(env(safe-area-inset-top), 8px)', paddingBottom: 8 }}
@@ -65,79 +90,75 @@ export default function TalentxcelJobs() {
           <p className="text-[11px] text-muted-foreground truncate">Powered by TalentXcel</p>
         </div>
         <button
-          onClick={handleReload}
+          onClick={launch}
           className="w-9 h-9 rounded-full hover:bg-muted active:scale-95 transition flex items-center justify-center"
-          aria-label="Refresh"
+          aria-label="Reopen"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${opening ? 'animate-spin' : ''}`} />
         </button>
       </header>
 
-      {/* Top progress bar */}
-      {loading && !errored && online && (
-        <div className="h-0.5 w-full bg-muted overflow-hidden">
-          <div className="h-full w-1/3 bg-primary animate-[slide_1.2s_ease-in-out_infinite]" />
-        </div>
-      )}
-
-      <div className="flex-1 relative overflow-hidden">
-        {/* Native loader */}
-        {loading && !errored && online && (
-          <div className="absolute inset-0 z-10 bg-background flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
-            <img src={chatrIconLogo} alt="Chatr" className="h-16 w-16 animate-pulse" />
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-8 h-8 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-muted-foreground">Loading CHATR Jobs…</p>
-            </div>
-          </div>
-        )}
-
-        {/* Offline / error state */}
-        {(!online || errored) && (
-          <div className="absolute inset-0 z-20 bg-background flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <div className="flex-1 relative overflow-hidden flex items-center justify-center px-6">
+        {!online ? (
+          <div className="flex flex-col items-center justify-center gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
               <WifiOff className="w-8 h-8 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">{!online ? 'You are offline' : "Couldn't load Jobs"}</h2>
+              <h2 className="text-lg font-semibold">You are offline</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                {!online ? 'Check your connection and try again.' : 'Something went wrong. Please retry.'}
+                Reconnect to browse jobs.
               </p>
             </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center text-center max-w-sm w-full">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 rounded-3xl bg-primary/20 blur-2xl" />
+              <img
+                src={chatrIconLogo}
+                alt="Chatr"
+                className="relative h-20 w-20 rounded-2xl"
+              />
+            </div>
+
+            <h2 className="text-xl font-semibold tracking-tight">CHATR Jobs</h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              Discover and apply to thousands of roles, powered by TalentXcel.
+              Sign in inside the app to apply.
+            </p>
+
             <button
-              onClick={handleReload}
-              className="px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-medium active:scale-95 transition"
+              onClick={launch}
+              disabled={opening}
+              className="mt-6 w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-70"
             >
-              Retry
+              {opening ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Opening…
+                </>
+              ) : (
+                <>
+                  <Briefcase className="w-4 h-4" />
+                  Open Jobs
+                </>
+              )}
             </button>
+
+            <button
+              onClick={() => window.open(targetUrl, '_blank', 'noopener,noreferrer')}
+              className="mt-3 text-xs text-muted-foreground inline-flex items-center gap-1 hover:text-foreground transition"
+            >
+              View on talentxcel.in <ExternalLink className="w-3 h-3" />
+            </button>
+
+            <p className="mt-8 text-[11px] text-muted-foreground/70">
+              Chatr — A product of Talentxcel Services Pvt Ltd
+            </p>
           </div>
         )}
-
-        {/* Embedded TalentXcel — full-bleed, no browser chrome */}
-        {online && (
-          <iframe
-            key={reloadKey}
-            ref={iframeRef}
-            src={JOBS_URL}
-            title="CHATR Jobs"
-            className="absolute inset-0 w-full h-full border-0 bg-background"
-            onLoad={() => setLoading(false)}
-            onError={() => {
-              setLoading(false);
-              setErrored(true);
-            }}
-            allow="geolocation; clipboard-read; clipboard-write; camera; microphone; identity-credentials-get; publickey-credentials-get *"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        )}
       </div>
-
-      <style>{`
-        @keyframes slide {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(400%); }
-        }
-      `}</style>
     </div>
   );
 }
