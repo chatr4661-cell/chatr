@@ -35,9 +35,6 @@ import { useLocation } from '@/contexts/LocationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AISummaryContent } from '@/components/ai/AISummaryContent';
 import { useLocalAI } from '@/hooks/useLocalAI';
-import { detectJobIntent, JobIntent } from '@/services/intentEngine/jobIntentDetector';
-import { JobActionCards, JobListing } from '@/components/jobs/JobActionCards';
-import { crawlJobs } from '@/lib/api/jobCrawler';
 
 interface SearchResult {
   id: string;
@@ -86,11 +83,6 @@ const UniversalSearch = () => {
   const { location, isLoading: locationLoading, error: locationError } = useLocation();
   const [isFavorite, setIsFavorite] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('all');
-  
-  // Job Intent Engine state
-  const [jobIntent, setJobIntent] = useState<JobIntent | null>(null);
-  const [jobListings, setJobListings] = useState<JobListing[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(false);
   
   // Local AI for instant responses
   const { analyzeIntent, supportsWebGPU } = useLocalAI();
@@ -178,119 +170,10 @@ const UniversalSearch = () => {
     setInstantAnswer(null);
     setWebResults(null);
     setAiSummaryError(null);
-    setJobListings([]);
-    setJobIntent(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // 🔥 INTENT ENGINE: Check if this is a job search
-      const detectedJobIntent = detectJobIntent(fullQuery);
-      
-      if (detectedJobIntent.isJobSearch && detectedJobIntent.confidence > 0.3) {
-        // This is a job search - use Action Engine instead of web search
-        setJobIntent(detectedJobIntent);
-        setJobsLoading(true);
-        
-        // Fetch jobs from internal database first
-        let jobQuery = supabase
-          .from('chatr_jobs')
-          .select('*')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(20);
-        
-        // Apply location filter if detected
-        if (detectedJobIntent.extractedData.location) {
-          jobQuery = jobQuery.ilike('location', `%${detectedJobIntent.extractedData.location}%`);
-        }
-        
-        // Apply job type filter if detected
-        if (detectedJobIntent.extractedData.jobType) {
-          jobQuery = jobQuery.eq('job_type', detectedJobIntent.extractedData.jobType);
-        }
-        
-        // Apply category filter if detected
-        if (detectedJobIntent.extractedData.category) {
-          jobQuery = jobQuery.eq('category', detectedJobIntent.extractedData.category);
-        }
-        
-        const { data: jobs, error: jobsError } = await jobQuery;
-        
-        if (!jobsError && jobs && jobs.length > 0) {
-          // Calculate posted_ago
-          const jobsWithMeta = jobs.map(job => ({
-            ...job,
-            posted_ago: getTimeAgo(job.created_at),
-            is_urgent: detectedJobIntent.extractedData.urgency === 'immediate',
-          }));
-          
-          setJobListings(jobsWithMeta);
-          setJobsLoading(false);
-          setLoading(false);
-          setWebSearchLoading(false);
-          
-          // Also set AI intent for display
-          setAiIntent({
-            intent: `Found ${jobs.length} job${jobs.length > 1 ? 's' : ''} matching your search`,
-            suggestions: detectedJobIntent.suggestedFilters,
-          });
-          
-          // Save search
-          if (user && query) {
-            try {
-              await supabase.from('saved_searches').upsert({
-                user_id: user.id,
-                query,
-                results_count: jobs.length
-              }, {
-                onConflict: 'user_id,query',
-                ignoreDuplicates: false
-              });
-            } catch (err) {
-              console.error('Failed to save search:', err);
-            }
-          }
-          
-          return; // Exit early - job action cards will be shown
-        }
-        
-        // No internal jobs found - trigger crawler to fetch from public sources
-        console.log('🔄 No internal jobs found, triggering crawler...');
-        
-        // Trigger background crawl for this location/query
-        const crawlResult = await crawlJobs({
-          query: detectedJobIntent.extractedData.category || fullQuery,
-          location: detectedJobIntent.extractedData.location || 'India',
-          limit: 15
-        });
-        
-        if (crawlResult.success && crawlResult.jobs && crawlResult.jobs.length > 0) {
-          // Use the crawled & normalized jobs
-          const crawledJobs = crawlResult.jobs.map((job: any) => ({
-            ...job,
-            id: job.id || `crawled-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            posted_ago: 'Just added',
-            is_urgent: detectedJobIntent.extractedData.urgency === 'immediate',
-          }));
-          
-          setJobListings(crawledJobs);
-          setJobsLoading(false);
-          setLoading(false);
-          setWebSearchLoading(false);
-          
-          setAiIntent({
-            intent: `Found ${crawledJobs.length} jobs from public sources`,
-            suggestions: detectedJobIntent.suggestedFilters,
-          });
-          
-          toast.success(`Found ${crawledJobs.length} jobs matching your search`);
-          return;
-        }
-        
-        setJobsLoading(false);
-        // If crawl also failed, fall through to web search
-      }
+
 
       // Generate or get session ID
       let sessionId = localStorage.getItem('chatr_session_id');
@@ -676,30 +559,20 @@ const UniversalSearch = () => {
           </Card>
         )}
 
-        {/* 🔥 JOB ACTION CARDS - Show when job intent detected */}
-        {jobIntent?.isJobSearch && jobListings.length > 0 && (
-          <JobActionCards
-            jobs={jobListings}
-            intent={jobIntent}
-            onApply={(job) => navigate(`/jobs/${job.id}`)}
-            onFilterSelect={(filter) => performSearch(searchQuery, filter)}
-            isLoading={jobsLoading}
-          />
-        )}
 
-        {loading && results.length === 0 && !jobListings.length ? (
+        {loading && results.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground font-medium mb-1">Searching the web at lightning speed...</p>
             <p className="text-xs text-muted-foreground">Powered by DuckDuckGo + AI</p>
           </div>
-        ) : results.length === 0 && searchQuery && !jobListings.length ? (
+        ) : results.length === 0 && searchQuery ? (
           <div className="text-center py-16">
             <Search className="w-20 h-20 mx-auto text-muted-foreground/30 mb-4" />
             <p className="text-lg font-medium mb-2">No results found</p>
             <p className="text-muted-foreground mb-4">Try different keywords</p>
           </div>
-        ) : results.length > 0 && !jobListings.length ? (
+        ) : results.length > 0 ? (
           <div className="space-y-3">
             {/* Map placeholder */}
             {location && (

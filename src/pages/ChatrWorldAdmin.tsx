@@ -22,29 +22,13 @@ export default function ChatrWorldAdmin() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
-    totalJobs: 0,
     totalHealthcare: 0,
     totalDeals: 0,
     totalRestaurants: 0,
-    totalApplications: 0,
     totalAppointments: 0
   });
 
   // Form states
-  const [jobForm, setJobForm] = useState({
-    title: '',
-    company_name: '',
-    description: '',
-    location: '',
-    salary_min: '',
-    salary_max: '',
-    salary_type: 'year',
-    job_type: 'full-time',
-    skills: '',
-    experience_years: '0',
-    category: 'IT & Software',
-    image_url: ''
-  });
 
   const [healthcareForm, setHealthcareForm] = useState({
     name: '',
@@ -94,52 +78,21 @@ export default function ChatrWorldAdmin() {
 
   const fetchStats = async () => {
     try {
-      const [jobs, healthcare, deals, restaurants, applications, appointments] = await Promise.all([
-        supabase.from('chatr_jobs').select('id', { count: 'exact', head: true }),
+      const [healthcare, deals, restaurants, appointments] = await Promise.all([
         supabase.from('chatr_healthcare').select('id', { count: 'exact', head: true }),
         supabase.from('chatr_deals').select('id', { count: 'exact', head: true }),
         supabase.from('chatr_restaurants').select('id', { count: 'exact', head: true }),
-        supabase.from('chatr_job_applications').select('id', { count: 'exact', head: true }),
         supabase.from('chatr_healthcare_appointments').select('id', { count: 'exact', head: true })
       ]);
 
       setStats({
-        totalJobs: jobs.count || 0,
         totalHealthcare: healthcare.count || 0,
         totalDeals: deals.count || 0,
         totalRestaurants: restaurants.count || 0,
-        totalApplications: applications.count || 0,
         totalAppointments: appointments.count || 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
-    }
-  };
-
-  const handleAddJob = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('chatr_jobs').insert({
-        ...jobForm,
-        salary_min: jobForm.salary_min ? parseInt(jobForm.salary_min) : null,
-        salary_max: jobForm.salary_max ? parseInt(jobForm.salary_max) : null,
-        experience_years: parseInt(jobForm.experience_years),
-        skills: jobForm.skills.split(',').map(s => s.trim()).filter(Boolean),
-        is_active: true
-      });
-
-      if (error) throw error;
-      toast.success('Job added successfully!');
-      setJobForm({
-        title: '', company_name: '', description: '', location: '',
-        salary_min: '', salary_max: '', salary_type: 'year', job_type: 'full-time',
-        skills: '', experience_years: '0', category: 'IT & Software', image_url: ''
-      });
-      fetchStats();
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -263,13 +216,6 @@ const handleAddRestaurant = async () => {
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-4 text-center">
-              <Briefcase className="h-8 w-8 mx-auto text-blue-500 mb-2" />
-              <p className="text-2xl font-bold">{stats.totalJobs}</p>
-              <p className="text-xs text-muted-foreground">Jobs</p>
-            </CardContent>
-          </Card>
           <Card className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950 dark:to-pink-950 border-red-200 dark:border-red-800">
             <CardContent className="p-4 text-center">
               <Heart className="h-8 w-8 mx-auto text-red-500 mb-2" />
@@ -291,13 +237,6 @@ const handleAddRestaurant = async () => {
               <p className="text-xs text-muted-foreground">Restaurants</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800">
-            <CardContent className="p-4 text-center">
-              <Users className="h-8 w-8 mx-auto text-purple-500 mb-2" />
-              <p className="text-2xl font-bold">{stats.totalApplications}</p>
-              <p className="text-xs text-muted-foreground">Applications</p>
-            </CardContent>
-          </Card>
           <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950 dark:to-cyan-950 border-teal-200 dark:border-teal-800">
             <CardContent className="p-4 text-center">
               <Calendar className="h-8 w-8 mx-auto text-teal-500 mb-2" />
@@ -308,11 +247,8 @@ const handleAddRestaurant = async () => {
         </div>
 
         {/* Content Tabs */}
-        <Tabs defaultValue="jobs" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="jobs" className="gap-2">
-              <Briefcase className="h-4 w-4" /> Jobs
-            </TabsTrigger>
+        <Tabs defaultValue="healthcare" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="healthcare" className="gap-2">
               <Heart className="h-4 w-4" /> Healthcare
             </TabsTrigger>
@@ -323,124 +259,6 @@ const handleAddRestaurant = async () => {
               <UtensilsCrossed className="h-4 w-4" /> Food
             </TabsTrigger>
           </TabsList>
-
-          {/* Jobs Tab */}
-          <TabsContent value="jobs">
-            <Card>
-              <CardHeader>
-                <CardTitle>Add New Job</CardTitle>
-                <CardDescription>Create a new job listing</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Job Title *</Label>
-                    <Input
-                      value={jobForm.title}
-                      onChange={(e) => setJobForm({...jobForm, title: e.target.value})}
-                      placeholder="e.g. Senior React Developer"
-                    />
-                  </div>
-                  <div>
-                    <Label>Company Name *</Label>
-                    <Input
-                      value={jobForm.company_name}
-                      onChange={(e) => setJobForm({...jobForm, company_name: e.target.value})}
-                      placeholder="e.g. Tech Corp"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label>Description</Label>
-                  <Textarea
-                    value={jobForm.description}
-                    onChange={(e) => setJobForm({...jobForm, description: e.target.value})}
-                    placeholder="Job description..."
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>Location</Label>
-                    <Input
-                      value={jobForm.location}
-                      onChange={(e) => setJobForm({...jobForm, location: e.target.value})}
-                      placeholder="e.g. Mumbai, India"
-                    />
-                  </div>
-                  <div>
-                    <Label>Job Type</Label>
-                    <Select value={jobForm.job_type} onValueChange={(v) => setJobForm({...jobForm, job_type: v})}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full-time">Full-time</SelectItem>
-                        <SelectItem value="part-time">Part-time</SelectItem>
-                        <SelectItem value="contract">Contract</SelectItem>
-                        <SelectItem value="freelance">Freelance</SelectItem>
-                        <SelectItem value="internship">Internship</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Experience (years)</Label>
-                    <Input
-                      type="number"
-                      value={jobForm.experience_years}
-                      onChange={(e) => setJobForm({...jobForm, experience_years: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>Min Salary (₹)</Label>
-                    <Input
-                      type="number"
-                      value={jobForm.salary_min}
-                      onChange={(e) => setJobForm({...jobForm, salary_min: e.target.value})}
-                      placeholder="e.g. 500000"
-                    />
-                  </div>
-                  <div>
-                    <Label>Max Salary (₹)</Label>
-                    <Input
-                      type="number"
-                      value={jobForm.salary_max}
-                      onChange={(e) => setJobForm({...jobForm, salary_max: e.target.value})}
-                      placeholder="e.g. 1200000"
-                    />
-                  </div>
-                  <div>
-                    <Label>Salary Type</Label>
-                    <Select value={jobForm.salary_type} onValueChange={(v) => setJobForm({...jobForm, salary_type: v})}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="year">Per Year</SelectItem>
-                        <SelectItem value="month">Per Month</SelectItem>
-                        <SelectItem value="hour">Per Hour</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Skills (comma separated)</Label>
-                  <Input
-                    value={jobForm.skills}
-                    onChange={(e) => setJobForm({...jobForm, skills: e.target.value})}
-                    placeholder="React, TypeScript, Node.js"
-                  />
-                </div>
-
-                <Button onClick={handleAddJob} disabled={loading || !jobForm.title || !jobForm.company_name}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                  Add Job
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Healthcare Tab */}
           <TabsContent value="healthcare">
