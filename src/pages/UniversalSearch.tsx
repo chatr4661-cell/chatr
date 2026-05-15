@@ -84,11 +84,6 @@ const UniversalSearch = () => {
   const [isFavorite, setIsFavorite] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('all');
   
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-
   // Local AI for instant responses
   const { analyzeIntent, supportsWebGPU } = useLocalAI();
   const [instantAnswer, setInstantAnswer] = useState<string | null>(null);
