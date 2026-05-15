@@ -332,7 +332,7 @@ const App = () => {
             <Route path="/capture" element={<LazyRoute component={LazyPages.Capture} />} />
             <Route path="/account" element={<LazyRoute component={LazyPages.Account} />} />
             <Route path="/prechu-ai" element={<ProtectedLazyRoute component={LazyPages.PrechuAI} />} />
-            <Route path="/job/:id" element={<ProtectedLazyRoute component={LazyPages.JobDetail} />} />
+            <Route path="/job/:id" element={<Navigate to="/jobs" replace />} />
             <Route path="/notifications" element={<LazyRoute component={LazyPages.Notifications} />} />
             <Route path="/notification-settings" element={<LazyRoute component={LazyPages.NotificationSettings} />} />
             <Route path="/notifications/settings" element={<LazyRoute component={LazyPages.NotificationSettings} />} />
