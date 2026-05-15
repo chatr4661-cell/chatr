@@ -35,9 +35,6 @@ import { useLocation } from '@/contexts/LocationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AISummaryContent } from '@/components/ai/AISummaryContent';
 import { useLocalAI } from '@/hooks/useLocalAI';
-import { detectJobIntent, JobIntent } from '@/services/intentEngine/jobIntentDetector';
-import { JobActionCards, JobListing } from '@/components/jobs/JobActionCards';
-import { crawlJobs } from '@/lib/api/jobCrawler';
 
 interface SearchResult {
   id: string;
