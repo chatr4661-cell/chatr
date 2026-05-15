@@ -94,52 +94,23 @@ export default function ChatrWorldAdmin() {
 
   const fetchStats = async () => {
     try {
-      const [jobs, healthcare, deals, restaurants, applications, appointments] = await Promise.all([
-        supabase.from('chatr_jobs').select('id', { count: 'exact', head: true }),
+      const [healthcare, deals, restaurants, appointments] = await Promise.all([
         supabase.from('chatr_healthcare').select('id', { count: 'exact', head: true }),
         supabase.from('chatr_deals').select('id', { count: 'exact', head: true }),
         supabase.from('chatr_restaurants').select('id', { count: 'exact', head: true }),
-        supabase.from('chatr_job_applications').select('id', { count: 'exact', head: true }),
         supabase.from('chatr_healthcare_appointments').select('id', { count: 'exact', head: true })
       ]);
 
       setStats({
-        totalJobs: jobs.count || 0,
+        totalJobs: 0,
         totalHealthcare: healthcare.count || 0,
         totalDeals: deals.count || 0,
         totalRestaurants: restaurants.count || 0,
-        totalApplications: applications.count || 0,
+        totalApplications: 0,
         totalAppointments: appointments.count || 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
-    }
-  };
-
-  const handleAddJob = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('chatr_jobs').insert({
-        ...jobForm,
-        salary_min: jobForm.salary_min ? parseInt(jobForm.salary_min) : null,
-        salary_max: jobForm.salary_max ? parseInt(jobForm.salary_max) : null,
-        experience_years: parseInt(jobForm.experience_years),
-        skills: jobForm.skills.split(',').map(s => s.trim()).filter(Boolean),
-        is_active: true
-      });
-
-      if (error) throw error;
-      toast.success('Job added successfully!');
-      setJobForm({
-        title: '', company_name: '', description: '', location: '',
-        salary_min: '', salary_max: '', salary_type: 'year', job_type: 'full-time',
-        skills: '', experience_years: '0', category: 'IT & Software', image_url: ''
-      });
-      fetchStats();
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
