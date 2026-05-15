@@ -101,71 +101,101 @@ const Home = memo(() => {
   }, [navigate, haptics]);
 
 
-  // Fetch user data with caching and non-blocking updates
+  // Fetch user data + realtime subscriptions for live activity
   useEffect(() => {
     let isMounted = true;
-    
+    let userId: string | null = null;
+    const channels: any[] = [];
+
+    const refreshActivity = async (uid: string, firstName?: string) => {
+      const [notifRes, apptRes, walletRes, partsRes] = await Promise.all([
+        supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', uid).eq('read', false),
+        supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('patient_id', uid).gte('appointment_date', new Date().toISOString()),
+        supabase.from('chatr_coin_balances').select('total_coins').eq('user_id', uid).maybeSingle(),
+        supabase.from('conversation_participants').select('conversation_id, conversations!inner(id, updated_at, is_group, group_name)').eq('user_id', uid).order('updated_at', { ascending: false, referencedTable: 'conversations' }).limit(3),
+      ]);
+
+      // Real unread chats: messages in user's conversations from others without read_at
+      let unread = 0;
+      const convIds = (partsRes.data || []).map((c: any) => c.conversations?.id).filter(Boolean);
+      if (convIds.length) {
+        const { count } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .in('conversation_id', convIds)
+          .neq('sender_id', uid)
+          .is('read_at', null);
+        unread = count || 0;
+      }
+
+      if (!isMounted) return;
+
+      const newActivityData = {
+        unreadChats: unread,
+        appointments: apptRes.count || 0,
+        walletBalance: walletRes.data?.total_coins || 0,
+        notifications: notifRes.count || 0,
+      };
+      setActivityData(newActivityData);
+
+      const newChats = (partsRes.data || []).map((c: any) => ({
+        id: c.conversations.id,
+        title: c.conversations.is_group ? (c.conversations.group_name || 'Group Chat') : 'Conversation',
+        route: `/chat/${c.conversations.id}`,
+      }));
+      setRecentChats(newChats);
+
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          data: { userName: firstName ?? userName, isAuthenticated: true, activityData: newActivityData, recentChats: newChats },
+          timestamp: Date.now(),
+        }));
+      } catch {}
+    };
+
     const fetchData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
         if (!isMounted) return;
-        
-        if (user) {
-          // Set authenticated immediately
-          if (!isAuthenticated) setIsAuthenticated(true);
-          
-          // Fetch profile first (critical for UI)
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, username')
-            .eq('id', user.id)
-            .maybeSingle();
 
-          if (!isMounted) return;
-          
-          const firstName = profile?.full_name?.split(' ')[0] || profile?.username || 'there';
-          setUserName(firstName);
-          setLoading(false);
-
-          // Non-blocking: fetch activity data in background
-          startTransition(() => {
-            Promise.all([
-              supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false),
-              supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('patient_id', user.id).gte('appointment_date', new Date().toISOString()),
-              supabase.from('chatr_coin_balances').select('total_coins').eq('user_id', user.id).maybeSingle(),
-              supabase.from('conversation_participants').select('conversation_id, conversations!inner(id, updated_at, is_group, group_name)').eq('user_id', user.id).limit(3)
-            ]).then(([notifRes, apptRes, walletRes, chatsRes]) => {
-              if (!isMounted) return;
-              
-              const newActivityData = {
-                unreadChats: 0,
-                appointments: notifRes.count || 0,
-                walletBalance: walletRes.data?.total_coins || 0,
-                notifications: notifRes.count || 0
-              };
-              setActivityData(newActivityData);
-              
-              const newChats = chatsRes.data?.map((c: any) => ({
-                id: c.conversations.id,
-                title: c.conversations.is_group ? (c.conversations.group_name || 'Group Chat') : 'Conversation',
-                route: `/chat/${c.conversations.id}`
-              })) || [];
-              setRecentChats(newChats);
-              
-              // Cache for instant next load
-              try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({
-                  data: { userName: firstName, isAuthenticated: true, activityData: newActivityData, recentChats: newChats },
-                  timestamp: Date.now()
-                }));
-              } catch {}
-            });
-          });
-        } else {
+        if (!user) {
           setUserName('there');
           setLoading(false);
+          return;
         }
+
+        userId = user.id;
+        if (!isAuthenticated) setIsAuthenticated(true);
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, username')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!isMounted) return;
+
+        const firstName = profile?.full_name?.split(' ')[0] || profile?.username || 'there';
+        setUserName(firstName);
+        setLoading(false);
+
+        startTransition(() => { refreshActivity(user.id, firstName); });
+
+        // Realtime subscriptions — live data, no mocks
+        const refresh = () => { if (userId) refreshActivity(userId); };
+        channels.push(
+          supabase.channel(`home_notif_${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, refresh)
+            .subscribe(),
+          supabase.channel(`home_appt_${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `patient_id=eq.${user.id}` }, refresh)
+            .subscribe(),
+          supabase.channel(`home_wallet_${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'chatr_coin_balances', filter: `user_id=eq.${user.id}` }, refresh)
+            .subscribe(),
+          supabase.channel(`home_msgs_${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, refresh)
+            .subscribe(),
+        );
       } catch (error) {
         console.error('Error:', error);
         if (isMounted) setLoading(false);
@@ -173,8 +203,11 @@ const Home = memo(() => {
     };
 
     fetchData();
-    return () => { isMounted = false; };
-  }, [isAuthenticated]);
+    return () => {
+      isMounted = false;
+      channels.forEach((ch) => { try { supabase.removeChannel(ch); } catch {} });
+    };
+  }, []);
 
   const handleSearch = useCallback((searchQuery?: string) => {
     const q = searchQuery || query;
