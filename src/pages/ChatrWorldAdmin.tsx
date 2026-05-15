@@ -22,29 +22,13 @@ export default function ChatrWorldAdmin() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
-    totalJobs: 0,
     totalHealthcare: 0,
     totalDeals: 0,
     totalRestaurants: 0,
-    totalApplications: 0,
     totalAppointments: 0
   });
 
   // Form states
-  const [jobForm, setJobForm] = useState({
-    title: '',
-    company_name: '',
-    description: '',
-    location: '',
-    salary_min: '',
-    salary_max: '',
-    salary_type: 'year',
-    job_type: 'full-time',
-    skills: '',
-    experience_years: '0',
-    category: 'IT & Software',
-    image_url: ''
-  });
 
   const [healthcareForm, setHealthcareForm] = useState({
     name: '',
