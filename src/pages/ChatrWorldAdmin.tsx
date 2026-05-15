@@ -86,11 +86,9 @@ export default function ChatrWorldAdmin() {
       ]);
 
       setStats({
-        totalJobs: 0,
         totalHealthcare: healthcare.count || 0,
         totalDeals: deals.count || 0,
         totalRestaurants: restaurants.count || 0,
-        totalApplications: 0,
         totalAppointments: appointments.count || 0
       });
     } catch (error) {
