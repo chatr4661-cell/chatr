@@ -85,6 +85,9 @@ const UniversalSearch = () => {
   const [activeTab, setActiveTab] = useState('all');
   
 
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
 
   // Local AI for instant responses
   const { analyzeIntent, supportsWebGPU } = useLocalAI();
