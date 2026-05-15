@@ -559,30 +559,20 @@ const UniversalSearch = () => {
           </Card>
         )}
 
-        {/* 🔥 JOB ACTION CARDS - Show when job intent detected */}
-        {jobIntent?.isJobSearch && jobListings.length > 0 && (
-          <JobActionCards
-            jobs={jobListings}
-            intent={jobIntent}
-            onApply={(job) => navigate(`/jobs/${job.id}`)}
-            onFilterSelect={(filter) => performSearch(searchQuery, filter)}
-            isLoading={jobsLoading}
-          />
-        )}
 
-        {loading && results.length === 0 && !jobListings.length ? (
+        {loading && results.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground font-medium mb-1">Searching the web at lightning speed...</p>
             <p className="text-xs text-muted-foreground">Powered by DuckDuckGo + AI</p>
           </div>
-        ) : results.length === 0 && searchQuery && !jobListings.length ? (
+        ) : results.length === 0 && searchQuery ? (
           <div className="text-center py-16">
             <Search className="w-20 h-20 mx-auto text-muted-foreground/30 mb-4" />
             <p className="text-lg font-medium mb-2">No results found</p>
             <p className="text-muted-foreground mb-4">Try different keywords</p>
           </div>
-        ) : results.length > 0 && !jobListings.length ? (
+        ) : results.length > 0 ? (
           <div className="space-y-3">
             {/* Map placeholder */}
             {location && (
