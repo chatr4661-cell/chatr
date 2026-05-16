@@ -822,6 +822,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={handleSignOut}
+                  aria-label="Sign out"
                   className="rounded-full h-9 w-9 hover:bg-red-50 transition-colors"
                 >
                   <LogOut className="h-4 w-4 text-destructive" />
