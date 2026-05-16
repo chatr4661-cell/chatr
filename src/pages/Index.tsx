@@ -734,8 +734,8 @@ const Index = () => {
   return (
     <>
       <SEOHead
-        title="Chatr+ - The AI Superapp for India | Chat, Healthcare, Jobs & More"
-        description="Chatr+ is India's all-in-one AI superapp. Chat with friends, find healthcare providers, discover local jobs, order food, and access 100+ services - all in one app."
+        title="Chatr+ — India's AI Superapp"
+        description="Chat, calls, healthcare, jobs, payments and local services — all in one AI superapp built for India."
         keywords="chatr, superapp, india, messaging app, healthcare app, job search, food delivery, AI assistant, local services, telemedicine"
         schemaData={{
           "@context": "https://schema.org",
@@ -757,6 +757,7 @@ const Index = () => {
         }}
       />
       <div className="min-h-screen bg-background pb-0">{/* Removed pb-32 for full screen */}
+      <h1 className="sr-only">Chatr+ — India's AI Superapp for Chat, Healthcare, Jobs and Local Services</h1>
       {/* Enhanced Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -767,7 +768,7 @@ const Index = () => {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && navigate('/stealth-mode')}
           >
-            <img src={chatrIconLogo} alt="Chatr Logo" className="h-10 w-10" loading="eager" />
+            <img src={chatrIconLogo} alt="Chatr+ Logo" className="h-10 w-10" loading="eager" />
             <div>
               <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
@@ -821,6 +822,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={handleSignOut}
+                  aria-label="Sign out"
                   className="rounded-full h-9 w-9 hover:bg-red-50 transition-colors"
                 >
                   <LogOut className="h-4 w-4 text-destructive" />
