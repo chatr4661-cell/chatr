@@ -210,6 +210,28 @@ export class SimpleWebRTCCall {
         });
       }
 
+      // CRITICAL FIX: For video calls, guarantee an m=video section in SDP
+      // even if local video acquisition failed (audio-only fallback) or the
+      // user hasn't enabled their camera yet. Without this, the remote peer's
+      // video has no receive slot and "Remote video never appears".
+      if (this.pc && this.isVideo) {
+        const hasVideoSender = this.pc.getSenders().some(s => s.track?.kind === 'video');
+        if (!hasVideoSender) {
+          try {
+            this.pc.addTransceiver('video', { direction: 'recvonly' });
+            console.log('📥 [WebRTC] Added recvonly video transceiver (no local video)');
+          } catch (e) {
+            console.warn('addTransceiver(video, recvonly) failed', e);
+          }
+        }
+        const hasAudioSender = this.pc.getSenders().some(s => s.track?.kind === 'audio');
+        if (!hasAudioSender) {
+          try {
+            this.pc.addTransceiver('audio', { direction: 'recvonly' });
+          } catch {}
+        }
+      }
+
       // Fetch past signals (for late joiners) with retry for race condition
       await this.fetchPastSignals();
       
