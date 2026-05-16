@@ -768,7 +768,7 @@ const Index = () => {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && navigate('/stealth-mode')}
           >
-            <img src={chatrIconLogo} alt="Chatr Logo" className="h-10 w-10" loading="eager" />
+            <img src={chatrIconLogo} alt="Chatr+ Logo" className="h-10 w-10" loading="eager" />
             <div>
               <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
