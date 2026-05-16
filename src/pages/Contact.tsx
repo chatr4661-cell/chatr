@@ -148,8 +148,9 @@ export default function Contact() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Name</label>
+                <label htmlFor="contact-name" className="text-sm font-medium mb-1.5 block">Name</label>
                 <Input
+                  id="contact-name"
                   placeholder="Your name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -157,8 +158,9 @@ export default function Contact() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Email</label>
+                <label htmlFor="contact-email" className="text-sm font-medium mb-1.5 block">Email</label>
                 <Input
+                  id="contact-email"
                   type="email"
                   placeholder="your@email.com"
                   value={formData.email}
@@ -168,8 +170,9 @@ export default function Contact() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Subject</label>
+              <label htmlFor="contact-subject" className="text-sm font-medium mb-1.5 block">Subject</label>
               <Input
+                id="contact-subject"
                 placeholder="What is this regarding?"
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
@@ -177,8 +180,9 @@ export default function Contact() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Message</label>
+              <label htmlFor="contact-message" className="text-sm font-medium mb-1.5 block">Message</label>
               <Textarea
+                id="contact-message"
                 placeholder="Tell us more..."
                 rows={6}
                 value={formData.message}
