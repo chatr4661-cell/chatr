@@ -757,6 +757,7 @@ const Index = () => {
         }}
       />
       <div className="min-h-screen bg-background pb-0">{/* Removed pb-32 for full screen */}
+      <h1 className="sr-only">Chatr+ — India's AI Superapp for Chat, Healthcare, Jobs and Local Services</h1>
       {/* Enhanced Header */}
       <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
