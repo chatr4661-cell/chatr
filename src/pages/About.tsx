@@ -51,8 +51,8 @@ export default function About() {
   return (
     <>
       <SEOHead
-        title="About Chatr+ | India's AI Superapp for Chat, Healthcare & Services"
-        description="Learn about Chatr+, India's next-generation superapp integrating communication, healthcare, business tools, and lifestyle services. Mission, vision, and company info."
+        title="About Chatr+ | India's AI Superapp"
+        description="Chatr+ is India's AI superapp uniting chat, calls, healthcare, jobs and local services. Learn our mission, vision and team."
       />
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5">
       {/* Header */}
@@ -62,6 +62,7 @@ export default function About() {
             variant="ghost"
             size="icon"
             onClick={() => navigate(-1)}
+            aria-label="Go back"
             className="rounded-full"
           >
             <ArrowLeft className="h-5 w-5" />
