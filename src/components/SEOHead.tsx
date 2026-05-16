@@ -21,10 +21,10 @@ interface SEOHeadProps {
 const BASE_URL = 'https://chatr.chat';
 
 export const SEOHead = ({
-  title = 'Chatr - Universal Search | AI-Powered Multi-Source Search Engine',
-  description = 'Discover Chatr\'s Universal Search - Find anything instantly across web, local services, jobs, healthcare, and marketplace. AI-powered search with GPS, visual search, and smart recommendations.',
-  keywords = 'universal search, AI search, multi-source search, local search, GPS search, visual search, smart search, web search, perplexity, openai search, services search',
-  ogImage = '/og-image.jpg',
+  title = 'Chatr+ — India\'s AI Superapp',
+  description = 'Chatr+ is India\'s AI superapp for chat, calls, healthcare, jobs, payments and local services — all in one app.',
+  keywords = 'chatr, superapp, AI search, india, messaging, healthcare, jobs, payments, local services',
+  ogImage = '/chatr-logo.png',
   ogUrl,
   canonicalUrl,
   schemaData,
