@@ -275,6 +275,7 @@ export default function HealthHub() {
       />
       
       <div className="min-h-screen bg-background pb-24">
+        <h1 className="sr-only">Health Hub — Personalized Wellness Dashboard</h1>
         {/* Header */}
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border">
           <div className="px-4 py-3 max-w-lg mx-auto">
@@ -284,13 +285,14 @@ export default function HealthHub() {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/')}
+                  aria-label="Go back to home"
                   className="h-9 w-9 rounded-xl"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <img 
                   src={logo} 
-                  alt="Chatr" 
+                  alt="Chatr+ Logo" 
                   className="h-6 cursor-pointer" 
                   onClick={() => navigate('/')} 
                 />
@@ -300,6 +302,7 @@ export default function HealthHub() {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/notifications')}
+                  aria-label="View notifications"
                   className="h-9 w-9 rounded-xl relative"
                 >
                   <Bell className="h-5 w-5" />
@@ -311,6 +314,7 @@ export default function HealthHub() {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/settings')}
+                  aria-label="Open settings"
                   className="h-9 w-9 rounded-xl"
                 >
                   <Settings className="h-5 w-5" />
