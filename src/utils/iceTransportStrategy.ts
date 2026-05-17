@@ -201,12 +201,23 @@ export function logRtcConfiguration(config: RTCConfiguration, context: IceTeleme
   }
 }
 
+function shouldUseRelativeTurnEndpoint(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  // Only the production site actually hosts /api/turn-credentials.
+  // Lovable preview, lovableproject.com, localhost etc. return SPA index.html.
+  return host === 'chatr.chat' || host === 'www.chatr.chat';
+}
+
 async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
   if (cache && Date.now() - cache.ts < CACHE_TTL_MS) return cache.servers;
   if (inflight) return inflight;
 
   inflight = (async () => {
-    const endpoints = [TURN_ENDPOINT, PRODUCTION_TURN_ENDPOINT];
+    const endpoints: string[] = [];
+    if (shouldUseRelativeTurnEndpoint()) endpoints.push(TURN_ENDPOINT);
+    endpoints.push(PRODUCTION_TURN_ENDPOINT);
+
     let lastError: unknown = null;
 
     for (const endpoint of endpoints) {
@@ -216,6 +227,10 @@ async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
         const res = await fetch(endpoint, { signal: ctrl.signal });
         clearTimeout(t);
         if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          throw new Error(`turn-credentials non-JSON content-type=${ct}`);
+        }
         const data = await res.json();
         // Cloudflare may return { iceServers: { urls: [...] } }, { iceServers: [...] }, or a flat server object/array.
         const servers = normalizeIceServers(data);
@@ -225,7 +240,10 @@ async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
         return servers;
       } catch (err) {
         lastError = err;
-        console.warn(`⚠️ [ICE] TURN credential fetch failed at ${endpoint}:`, err);
+        // Only warn for the last endpoint; earlier failures are expected fallthrough.
+        if (endpoint === endpoints[endpoints.length - 1]) {
+          console.warn(`⚠️ [ICE] TURN credential fetch failed at ${endpoint}:`, err);
+        }
       }
     }
 

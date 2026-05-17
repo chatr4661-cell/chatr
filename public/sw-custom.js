@@ -76,8 +76,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // JS/CSS/HTML - Stale-while-revalidate (instant from cache, update in bg)
-  if (['script', 'style', 'document'].includes(request.destination)) {
+  // HTML documents - NETWORK-FIRST to avoid stale app shell after deploys
+  if (request.destination === 'document' || request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).then((response) => {
+        if (request.method === 'GET' && response.ok) {
+          const cloned = response.clone();
+          caches.open(RUNTIME_CACHE).then((c) => c.put(request, cloned));
+        }
+        return response;
+      }).catch(() => caches.match(request).then((r) => r || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // JS/CSS - Stale-while-revalidate (instant from cache, update in bg)
+  if (['script', 'style'].includes(request.destination)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         const networkFetch = fetch(request).then((response) => {

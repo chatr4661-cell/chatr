@@ -470,10 +470,19 @@ export class SimpleWebRTCCall {
       const track = event.track;
       const [remoteStream] = event.streams;
       console.log(`📺 [WebRTC] Remote track received: ${track.kind}, id: ${track.id.slice(0,8)}, stream tracks: ${remoteStream.getTracks().length}`);
-      
+
+      // CRITICAL: ensure remote tracks are enabled — some browsers/WebViews
+      // (notably Android WebView after renegotiation) keep them paused on attach.
+      try {
+        remoteStream.getTracks().forEach((t) => { t.enabled = true; });
+        track.enabled = true;
+      } catch (err) {
+        console.warn('[WebRTC] failed to re-enable remote tracks', err);
+      }
+
       // Emit stream for EVERY track to ensure UI updates for both audio AND video
       this.emit('remoteStream', remoteStream);
-      
+
       // CRITICAL for video upgrade: Emit dedicated event when VIDEO track arrives
       // This ensures the UI rebinds the video element even if stream reference is same
       if (track.kind === 'video') {

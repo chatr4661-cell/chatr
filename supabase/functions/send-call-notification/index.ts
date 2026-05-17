@@ -231,28 +231,13 @@ serve(async (req) => {
 
     console.log(`[FCM-v1] Found FCM token for platform: ${tokenData.platform}`)
 
-    // Get Firebase service account credentials
+    // Get Firebase service account credentials (FCM HTTP v1 only — legacy endpoint is dead)
     const firebaseServiceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT')
     if (!firebaseServiceAccountJson) {
-      console.error('[FCM-v1] FIREBASE_SERVICE_ACCOUNT not configured')
-      
-      // Fallback to legacy API if v1 not configured
-      const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY')
-      if (firebaseServerKey) {
-        console.log('[FCM-v1] Falling back to legacy FCM API...')
-        return await sendLegacyFCM(firebaseServerKey, tokenData.device_token, {
-          callId,
-          callerId: user.id,
-          callerName,
-          callerAvatar,
-          isVideo: callType === 'video',
-          conversationId
-        }, serviceClient, corsHeaders)
-      }
-      
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'FCM not configured'
+      console.error('[send-call-notification] FIREBASE_SERVICE_ACCOUNT not configured')
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'FIREBASE_SERVICE_ACCOUNT not configured'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -309,78 +294,5 @@ serve(async (req) => {
   }
 })
 
-// Legacy FCM fallback (for backward compatibility)
-async function sendLegacyFCM(
-  serverKey: string,
-  fcmToken: string,
-  callData: {
-    callId: string
-    callerId: string
-    callerName: string
-    callerAvatar: string
-    isVideo: boolean
-    conversationId: string
-  },
-  serviceClient: any,
-  corsHeaders: Record<string, string>
-): Promise<Response> {
-  console.log('[FCM-Legacy] Using legacy /fcm/send endpoint')
-  
-  const fcmPayload = {
-    to: fcmToken,
-    priority: "high",
-    android: {
-      priority: "high"
-    },
-    data: {
-      type: "call",
-      call_id: callData.callId,
-      caller_id: callData.callerId,
-      caller_name: callData.callerName || "Unknown",
-      caller_avatar: callData.callerAvatar || "",
-      is_video: callData.isVideo ? "true" : "false",
-      conversation_id: callData.conversationId || "",
-      timestamp: Date.now().toString()
-    },
-    time_to_live: 30
-  }
+// Legacy FCM /fcm/send endpoint was decommissioned by Google. v1 only.
 
-  console.log('[FCM-Legacy] Payload:', JSON.stringify(fcmPayload, null, 2))
-
-  const fcmResponse = await fetch('https://fcm.googleapis.com/fcm/send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `key=${serverKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(fcmPayload)
-  })
-
-  const fcmResult = await fcmResponse.json()
-  console.log('[FCM-Legacy] Result:', JSON.stringify(fcmResult))
-
-  if (fcmResult.success === 1) {
-    await serviceClient
-      .from('device_tokens')
-      .update({ last_used_at: new Date().toISOString() })
-      .eq('device_token', fcmToken)
-  }
-
-  if (fcmResult.results?.[0]?.error === 'NotRegistered' || 
-      fcmResult.results?.[0]?.error === 'InvalidRegistration') {
-    console.log('[FCM-Legacy] Removing invalid token')
-    await serviceClient
-      .from('device_tokens')
-      .delete()
-      .eq('device_token', fcmToken)
-  }
-
-  return new Response(JSON.stringify({ 
-    success: true, 
-    fcmSent: fcmResult.success === 1,
-    fcmResult,
-    api: 'legacy'
-  }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  })
-}
