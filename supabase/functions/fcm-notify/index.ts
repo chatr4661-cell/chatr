@@ -378,15 +378,16 @@ async function handleCallNotificationV1(
   const firebaseServiceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
   
   if (!firebaseServiceAccountJson) {
-    console.error('❌ FIREBASE_SERVICE_ACCOUNT not configured - cannot use FCM v1 API');
-    console.log('⚠️ Falling back to legacy FCM API (not recommended for calls)');
-    // Log validation failure
+    console.error('❌ FIREBASE_SERVICE_ACCOUNT not configured - cannot send FCM v1');
     await logDeliveryResult(supabase, {
       callId, receiverId, callerId, tokensFound: 0, tokensSent: 0, tokensFailed: 0,
       status: 'config_error', error: 'FIREBASE_SERVICE_ACCOUNT not configured',
-      apiVersion: 'legacy_fallback', latencyMs: Date.now() - startTime,
+      apiVersion: 'v1', latencyMs: Date.now() - startTime,
     });
-    return await handleCallNotificationLegacy(supabase, payload);
+    return new Response(
+      JSON.stringify({ error: 'FIREBASE_SERVICE_ACCOUNT not configured' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   const serviceAccount = JSON.parse(firebaseServiceAccountJson);
