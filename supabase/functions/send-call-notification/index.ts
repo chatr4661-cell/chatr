@@ -231,28 +231,13 @@ serve(async (req) => {
 
     console.log(`[FCM-v1] Found FCM token for platform: ${tokenData.platform}`)
 
-    // Get Firebase service account credentials
+    // Get Firebase service account credentials (FCM HTTP v1 only — legacy endpoint is dead)
     const firebaseServiceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT')
     if (!firebaseServiceAccountJson) {
-      console.error('[FCM-v1] FIREBASE_SERVICE_ACCOUNT not configured')
-      
-      // Fallback to legacy API if v1 not configured
-      const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY')
-      if (firebaseServerKey) {
-        console.log('[FCM-v1] Falling back to legacy FCM API...')
-        return await sendLegacyFCM(firebaseServerKey, tokenData.device_token, {
-          callId,
-          callerId: user.id,
-          callerName,
-          callerAvatar,
-          isVideo: callType === 'video',
-          conversationId
-        }, serviceClient, corsHeaders)
-      }
-      
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'FCM not configured'
+      console.error('[send-call-notification] FIREBASE_SERVICE_ACCOUNT not configured')
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'FIREBASE_SERVICE_ACCOUNT not configured'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
