@@ -1,9 +1,5 @@
 import "./chunk-L2XE7MNY.js";
 import {
-  ConsentStatus,
-  ConsentType
-} from "./chunk-DPRSY54C.js";
-import {
   Component,
   ErrorFactory,
   FirebaseError,
@@ -20,6 +16,10 @@ import {
   registerVersion,
   validateIndexedDBOpenable
 } from "./chunk-XM6L7XYF.js";
+import {
+  ConsentStatus,
+  ConsentType
+} from "./chunk-DPRSY54C.js";
 import {
   WebPlugin
 } from "./chunk-S7OKNGPJ.js";
@@ -779,4 +779,4 @@ export {
    * limitations under the License.
    *)
 */
-//# sourceMappingURL=web-RTYSJIZX.js.map
+//# sourceMappingURL=web-7MBXVZSC.js.map
