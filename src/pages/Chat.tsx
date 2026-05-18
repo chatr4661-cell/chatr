@@ -66,6 +66,8 @@ const ChatEnhancedContent = () => {
   const location = useLocation();
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
   const [activeConversationId, setActiveConversationId] = React.useState<string | null>(urlConversationId || null);
+  // Voice AI side-effects (replaces former render-null <VoiceInterface /> component)
+  useVoiceInterface();
   
   // Sync URL param to state when it changes
   React.useEffect(() => {
