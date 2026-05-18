@@ -13,7 +13,11 @@
  *   - Metered TURN (static fallback if Cloudflare endpoint unavailable)
  */
 
-const TURN_ENDPOINT = '/api/turn-credentials';
+// Production-only absolute endpoint. The relative `/api/turn-credentials`
+// path was removed because Lovable preview, lovableproject.com, localhost,
+// and Capacitor WebViews return SPA index.html (HTML) for it, producing
+// noisy JSON-parse failures and wasted round-trips. ICE now uses this
+// absolute endpoint directly, falling back to the static Metered relay.
 const PRODUCTION_TURN_ENDPOINT = 'https://chatr.chat/api/turn-credentials';
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h — Cloudflare creds are 24h TTL
 
@@ -201,54 +205,27 @@ export function logRtcConfiguration(config: RTCConfiguration, context: IceTeleme
   }
 }
 
-function shouldUseRelativeTurnEndpoint(): boolean {
-  if (typeof window === 'undefined') return false;
-  const host = window.location.hostname;
-  // Only the production site actually hosts /api/turn-credentials.
-  // Lovable preview, lovableproject.com, localhost etc. return SPA index.html.
-  return host === 'chatr.chat' || host === 'www.chatr.chat';
-}
-
 async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
   if (cache && Date.now() - cache.ts < CACHE_TTL_MS) return cache.servers;
   if (inflight) return inflight;
 
   inflight = (async () => {
-    const endpoints: string[] = [];
-    if (shouldUseRelativeTurnEndpoint()) endpoints.push(TURN_ENDPOINT);
-    endpoints.push(PRODUCTION_TURN_ENDPOINT);
-
-    let lastError: unknown = null;
-
-    for (const endpoint of endpoints) {
-      try {
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 4000);
-        const res = await fetch(endpoint, { signal: ctrl.signal });
-        clearTimeout(t);
-        if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
-        const ct = res.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) {
-          throw new Error(`turn-credentials non-JSON content-type=${ct}`);
-        }
-        const data = await res.json();
-        // Cloudflare may return { iceServers: { urls: [...] } }, { iceServers: [...] }, or a flat server object/array.
-        const servers = normalizeIceServers(data);
-        if (!servers.length) throw new Error('empty iceServers');
-        cache = { servers, ts: Date.now() };
-        console.log('🧊 [ICE] Cloudflare TURN credentials loaded:', servers.length, 'entries', `source=${endpoint}`);
-        return servers;
-      } catch (err) {
-        lastError = err;
-        // Only warn for the last endpoint; earlier failures are expected fallthrough.
-        if (endpoint === endpoints[endpoints.length - 1]) {
-          console.warn(`⚠️ [ICE] TURN credential fetch failed at ${endpoint}:`, err);
-        }
-      }
-    }
-
     try {
-      throw lastError || new Error('turn credential endpoints unavailable');
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 4000);
+      const res = await fetch(PRODUCTION_TURN_ENDPOINT, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error(`turn-credentials non-JSON content-type=${ct}`);
+      }
+      const data = await res.json();
+      const servers = normalizeIceServers(data);
+      if (!servers.length) throw new Error('empty iceServers');
+      cache = { servers, ts: Date.now() };
+      console.log('🧊 [ICE] Cloudflare TURN credentials loaded:', servers.length, 'entries');
+      return servers;
     } catch (err) {
       console.warn('⚠️ [ICE] Cloudflare TURN fetch failed, using fallback:', err);
       return METERED_FALLBACK;
