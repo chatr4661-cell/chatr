@@ -32,7 +32,7 @@ import { PulseCreator } from '@/components/chat/PulseCreator';
 import { GroupChatCreator } from '@/components/GroupChatCreator';
 import { DisappearingMessagesDialog } from '@/components/DisappearingMessagesDialog';
 import { BroadcastCreator } from '@/components/BroadcastCreator';
-import { VoiceInterface } from '@/components/voice/VoiceInterface';
+import { useVoiceInterface } from '@/hooks/useVoiceInterface';
 import { EmotionCircleMatch } from '@/components/EmotionCircleMatch';
 import { LiveRooms } from '@/components/LiveRooms';
 import { AIMoments } from '@/components/AIMoments';
@@ -66,6 +66,8 @@ const ChatEnhancedContent = () => {
   const location = useLocation();
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
   const [activeConversationId, setActiveConversationId] = React.useState<string | null>(urlConversationId || null);
+  // Voice AI side-effects (replaces former render-null <VoiceInterface /> component)
+  useVoiceInterface();
   
   // Sync URL param to state when it changes
   React.useEffect(() => {
@@ -1273,7 +1275,7 @@ const ChatEnhancedContent = () => {
                   <div className="text-sm text-muted-foreground mb-4">
                     Talk to your AI friend powered by OpenAI Realtime
                   </div>
-                  <VoiceInterface />
+                  {/* Voice AI side-effects mounted once via useVoiceInterface below */}
                 </TabsContent>
                 <TabsContent value="connect" className="space-y-4 mt-4">
                   <div className="space-y-4">
@@ -1425,8 +1427,7 @@ const ChatEnhancedContent = () => {
         currentUserId={user?.id}
       />
       
-      {/* Voice AI Interface - Always available */}
-      <VoiceInterface />
+      {/* Voice AI side-effects (replaces former render-null VoiceInterface) */}
 
       {/* Message Forward Dialog */}
       <MessageForwardDialog
