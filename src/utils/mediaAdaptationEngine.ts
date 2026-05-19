@@ -65,10 +65,22 @@ const TIER_ORDER: Record<NetworkTier, number> = {
 };
 
 /**
- * Safe Opus SDP parameter injection.
- * Adds FEC + DTX + narrow bitrate without overwriting existing keys.
+ * Safe Opus SDP parameter injection — FaceTime-grade defaults.
+ *
+ * Upgrades for premium voice quality (Phase 1 audio):
+ *   - stereo=1 + sprop-stereo=1 (rich audio for music/multi-speaker)
+ *   - useinbandfec=1 (in-band Forward Error Correction → packet loss concealment)
+ *   - usedtx=1 (Discontinuous Transmission → silence suppression saves uplink)
+ *   - maxaveragebitrate=48000 (48 kbps — premium voice, still 4G-safe)
+ *   - maxplaybackrate=48000 + sprop-maxcapturerate=48000 (fullband audio)
+ *   - minptime=10 + ptime=20 (low-latency packetization, FaceTime parity)
+ *   - cbr=0 (let encoder breathe under congestion)
+ *
+ * NOTE: caller may pass `voiceOnly=true` to cap at 32 kbps for audio-only calls
+ * where stereo provides no benefit; default 48 kbps targets video-call audio
+ * which is where perceived quality matters most.
  */
-export function applyOpusParameters(sdp: string): string {
+export function applyOpusParameters(sdp: string, voiceOnly = false): string {
   if (!sdp) return sdp;
   const opusMatch = sdp.match(/a=rtpmap:(\d+) opus\/48000/i);
   if (!opusMatch) {
@@ -77,10 +89,21 @@ export function applyOpusParameters(sdp: string): string {
   }
   const pt = opusMatch[1];
   const fmtpRegex = new RegExp(`a=fmtp:${pt} (.*)\\r\\n`);
-  const desired = ['minptime=10', 'useinbandfec=1', 'usedtx=1', 'maxaveragebitrate=32000'];
+  const maxBr = voiceOnly ? 32000 : 48000;
+  const desired = [
+    'minptime=10',
+    'ptime=20',
+    'useinbandfec=1',
+    'usedtx=1',
+    'stereo=1',
+    'sprop-stereo=1',
+    `maxaveragebitrate=${maxBr}`,
+    'maxplaybackrate=48000',
+    'sprop-maxcapturerate=48000',
+    'cbr=0',
+  ];
 
   if (!fmtpRegex.test(sdp)) {
-    // No existing fmtp line — insert one after the rtpmap line.
     return sdp.replace(
       new RegExp(`(a=rtpmap:${pt} opus/48000[^\\r\\n]*\\r\\n)`, 'i'),
       `$1a=fmtp:${pt} ${desired.join(';')}\r\n`,
@@ -89,9 +112,14 @@ export function applyOpusParameters(sdp: string): string {
 
   return sdp.replace(fmtpRegex, (_match, params: string) => {
     const existing = params.split(';').filter(Boolean);
-    const existingKeys = existing.map((p) => p.split('=')[0]);
-    const filtered = desired.filter((p) => !existingKeys.includes(p.split('=')[0]));
-    const updated = [...existing, ...filtered].join(';');
+    const existingKeys = new Set(existing.map((p) => p.split('=')[0]));
+    // Premium params win: replace stereo/bitrate/playbackrate if already present
+    const overrides = new Set([
+      'stereo', 'sprop-stereo', 'maxaveragebitrate', 'maxplaybackrate',
+      'sprop-maxcapturerate', 'useinbandfec', 'usedtx', 'ptime', 'cbr', 'minptime',
+    ]);
+    const kept = existing.filter((p) => !overrides.has(p.split('=')[0]));
+    const updated = [...kept, ...desired].join(';');
     return `a=fmtp:${pt} ${updated}\r\n`;
   });
 }
