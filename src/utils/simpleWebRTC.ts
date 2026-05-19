@@ -101,6 +101,106 @@ export class SimpleWebRTCCall {
   private networkChangeCleanup: (() => void) | null = null;
   private statsObserverStop: (() => void) | null = null;
 
+  // Phase 2A — Network handoff resilience
+  private transportEngine: TransportAdaptationEngine | null = null;
+  private resilienceCleanup: (() => void) | null = null;
+  private lastIceRestartAt = 0;
+  private pendingRestartTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly ICE_RESTART_MIN_INTERVAL_MS = 4_000;
+  private readonly ICE_RESTART_DEBOUNCE_MS = 600;
+
+  /**
+   * Debounced ICE restart. Coalesces burst of network events (online +
+   * visibility + connection-change firing within 600 ms of each other into a
+   * single restart). Enforces 4 s min interval between restarts to avoid
+   * restart storms during unstable transitions. Only the initiator triggers
+   * the restart (single source of truth — answerer follows offer).
+   */
+  private requestIceRestart(reason: string) {
+    if (this.callState !== 'connected' && this.callState !== 'connecting') return;
+    if (!this.pc) return;
+    if (this.pendingRestartTimer) clearTimeout(this.pendingRestartTimer);
+    this.pendingRestartTimer = setTimeout(() => {
+      this.pendingRestartTimer = null;
+      const now = Date.now();
+      if (now - this.lastIceRestartAt < this.ICE_RESTART_MIN_INTERVAL_MS) {
+        console.log(`🕒 [WebRTC] ICE restart suppressed (cooldown) reason=${reason}`);
+        return;
+      }
+      // If we're already healthy connected, skip — listener was a false alarm.
+      const pcState = this.pc?.connectionState;
+      const iceState = this.pc?.iceConnectionState;
+      if (pcState === 'connected' && (iceState === 'connected' || iceState === 'completed')) {
+        // Only restart on actual network change events even when "connected" —
+        // visibility/online ticks while healthy shouldn't restart.
+        if (reason !== 'network-change' && reason !== 'offline-recovery') {
+          console.log(`✅ [WebRTC] ICE restart skipped (healthy) reason=${reason}`);
+          return;
+        }
+      }
+      // Only initiator drives restart to avoid duplicate offers.
+      if (!this.isInitiator) {
+        console.log(`👂 [WebRTC] ICE restart deferred (answerer) reason=${reason}`);
+        return;
+      }
+      this.lastIceRestartAt = now;
+      console.log(`🔄 [WebRTC] Triggering ICE restart reason=${reason}`);
+      this.attemptIceRestart().catch((e) =>
+        console.warn('[WebRTC] requested ICE restart failed:', e)
+      );
+    }, this.ICE_RESTART_DEBOUNCE_MS);
+  }
+
+  /**
+   * Phase 2A — Wire browser/OS lifecycle events that indicate the underlying
+   * network path may have changed (WiFi↔LTE, backgrounding, suspended tab).
+   * MUST NOT recreate tracks. MUST NOT recreate peer connection.
+   */
+  private setupNetworkResilience() {
+    if (this.resilienceCleanup || typeof window === 'undefined') return;
+
+    const onOnline = () => this.requestIceRestart('offline-recovery');
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        this.requestIceRestart('visibility-regain');
+      }
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) this.requestIceRestart('pageshow-restore');
+    };
+
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onPageShow);
+
+    // NetworkInformation.change — fires on WiFi↔cellular transitions
+    const conn: any =
+      (navigator as any).connection ||
+      (navigator as any).mozConnection ||
+      (navigator as any).webkitConnection;
+    let lastType: string | undefined = conn?.type ?? conn?.effectiveType;
+    const onConnChange = () => {
+      const nowType: string | undefined = conn?.type ?? conn?.effectiveType;
+      if (nowType && nowType !== lastType) {
+        console.log(`📶 [WebRTC] Network type changed: ${lastType} → ${nowType}`);
+        lastType = nowType;
+        this.requestIceRestart('network-change');
+      }
+    };
+    conn?.addEventListener?.('change', onConnChange);
+
+    this.resilienceCleanup = () => {
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onPageShow);
+      conn?.removeEventListener?.('change', onConnChange);
+      if (this.pendingRestartTimer) {
+        clearTimeout(this.pendingRestartTimer);
+        this.pendingRestartTimer = null;
+      }
+    };
+  }
+
   // Factory method - use this instead of constructor
   static create(
     callId: string,
