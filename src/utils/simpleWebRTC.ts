@@ -5,6 +5,7 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { MediaAdaptationEngine, applyOpusParameters } from "./mediaAdaptationEngine";
+import { TransportAdaptationEngine } from "./transportAdaptationEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 
@@ -99,6 +100,106 @@ export class SimpleWebRTCCall {
  }
   private networkChangeCleanup: (() => void) | null = null;
   private statsObserverStop: (() => void) | null = null;
+
+  // Phase 2A — Network handoff resilience
+  private transportEngine: TransportAdaptationEngine | null = null;
+  private resilienceCleanup: (() => void) | null = null;
+  private lastIceRestartAt = 0;
+  private pendingRestartTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly ICE_RESTART_MIN_INTERVAL_MS = 4_000;
+  private readonly ICE_RESTART_DEBOUNCE_MS = 600;
+
+  /**
+   * Debounced ICE restart. Coalesces burst of network events (online +
+   * visibility + connection-change firing within 600 ms of each other into a
+   * single restart). Enforces 4 s min interval between restarts to avoid
+   * restart storms during unstable transitions. Only the initiator triggers
+   * the restart (single source of truth — answerer follows offer).
+   */
+  private requestIceRestart(reason: string) {
+    if (this.callState !== 'connected' && this.callState !== 'connecting') return;
+    if (!this.pc) return;
+    if (this.pendingRestartTimer) clearTimeout(this.pendingRestartTimer);
+    this.pendingRestartTimer = setTimeout(() => {
+      this.pendingRestartTimer = null;
+      const now = Date.now();
+      if (now - this.lastIceRestartAt < this.ICE_RESTART_MIN_INTERVAL_MS) {
+        console.log(`🕒 [WebRTC] ICE restart suppressed (cooldown) reason=${reason}`);
+        return;
+      }
+      // If we're already healthy connected, skip — listener was a false alarm.
+      const pcState = this.pc?.connectionState;
+      const iceState = this.pc?.iceConnectionState;
+      if (pcState === 'connected' && (iceState === 'connected' || iceState === 'completed')) {
+        // Only restart on actual network change events even when "connected" —
+        // visibility/online ticks while healthy shouldn't restart.
+        if (reason !== 'network-change' && reason !== 'offline-recovery') {
+          console.log(`✅ [WebRTC] ICE restart skipped (healthy) reason=${reason}`);
+          return;
+        }
+      }
+      // Only initiator drives restart to avoid duplicate offers.
+      if (!this.isInitiator) {
+        console.log(`👂 [WebRTC] ICE restart deferred (answerer) reason=${reason}`);
+        return;
+      }
+      this.lastIceRestartAt = now;
+      console.log(`🔄 [WebRTC] Triggering ICE restart reason=${reason}`);
+      this.attemptIceRestart().catch((e) =>
+        console.warn('[WebRTC] requested ICE restart failed:', e)
+      );
+    }, this.ICE_RESTART_DEBOUNCE_MS);
+  }
+
+  /**
+   * Phase 2A — Wire browser/OS lifecycle events that indicate the underlying
+   * network path may have changed (WiFi↔LTE, backgrounding, suspended tab).
+   * MUST NOT recreate tracks. MUST NOT recreate peer connection.
+   */
+  private setupNetworkResilience() {
+    if (this.resilienceCleanup || typeof window === 'undefined') return;
+
+    const onOnline = () => this.requestIceRestart('offline-recovery');
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        this.requestIceRestart('visibility-regain');
+      }
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) this.requestIceRestart('pageshow-restore');
+    };
+
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onPageShow);
+
+    // NetworkInformation.change — fires on WiFi↔cellular transitions
+    const conn: any =
+      (navigator as any).connection ||
+      (navigator as any).mozConnection ||
+      (navigator as any).webkitConnection;
+    let lastType: string | undefined = conn?.type ?? conn?.effectiveType;
+    const onConnChange = () => {
+      const nowType: string | undefined = conn?.type ?? conn?.effectiveType;
+      if (nowType && nowType !== lastType) {
+        console.log(`📶 [WebRTC] Network type changed: ${lastType} → ${nowType}`);
+        lastType = nowType;
+        this.requestIceRestart('network-change');
+      }
+    };
+    conn?.addEventListener?.('change', onConnChange);
+
+    this.resilienceCleanup = () => {
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onPageShow);
+      conn?.removeEventListener?.('change', onConnChange);
+      if (this.pendingRestartTimer) {
+        clearTimeout(this.pendingRestartTimer);
+        this.pendingRestartTimer = null;
+      }
+    };
+  }
 
   // Factory method - use this instead of constructor
   static create(
@@ -537,6 +638,8 @@ export class SimpleWebRTCCall {
       maxReconnectAttempts: maxAttempts,
       onRecoveryStart: () => {
         this.emit('recoveryStatus', { message: 'Reconnecting...' });
+        // Phase 2A — ICE monitor detected disconnect; request debounced restart
+        this.requestIceRestart('ice-disconnect');
       },
       onRecoverySuccess: () => {
         console.log('✅ [WebRTC] Recovery successful');
@@ -565,6 +668,9 @@ export class SimpleWebRTCCall {
     };
 
     console.log(`✅ [WebRTC] Peer connection created with ${toleranceMs}ms disconnect tolerance`);
+
+    // Phase 2A — wire network lifecycle handlers (online, visibility, conn change)
+    this.setupNetworkResilience();
   }
 
   private handleConnected() {
@@ -602,6 +708,29 @@ export class SimpleWebRTCCall {
         });
         this.abrEngine.start();
         console.log(`📊 [WebRTC] ABR engine started (max: ${maxTier})`);
+
+        // Phase 2B — 1 s transport adaptation loop (RTT/jitter/loss/freeze)
+        // Sits on top of ABR engine; ABR picks the *max* tier ceiling,
+        // transport engine fine-tunes bitrate/fps inside that ceiling every 1 s.
+        try {
+          if (this.transportEngine) this.transportEngine.stop();
+          this.transportEngine = new TransportAdaptationEngine(this.pc!, {
+            label: `Transport:${this.callId.slice(0, 8)}`,
+            intervalMs: 1000,
+            startLevel: 1,
+            onChange: (level, sample, reason) => {
+              this.emit('transportTier', { level, sample, reason });
+              if (reason === 'freeze') {
+                // Phase 2A — frozen media despite "connected" → restart ICE
+                this.requestIceRestart('frozen-media');
+              }
+            },
+          });
+          this.transportEngine.start();
+          console.log('🚦 [WebRTC] Transport adaptation engine started (1s cadence)');
+        } catch (e) {
+          console.warn('⚠️ [WebRTC] Transport engine start failed (non-fatal):', e);
+        }
       }).catch((e) => {
         console.warn('⚠️ [WebRTC] ABR setup error (non-fatal):', e);
       });
@@ -1610,6 +1739,18 @@ export class SimpleWebRTCCall {
     if (this.abrEngine) {
       this.abrEngine.stop();
       this.abrEngine = null;
+    }
+
+    // Phase 2B — stop transport adaptation engine
+    if (this.transportEngine) {
+      this.transportEngine.stop();
+      this.transportEngine = null;
+    }
+
+    // Phase 2A — remove network resilience listeners
+    if (this.resilienceCleanup) {
+      this.resilienceCleanup();
+      this.resilienceCleanup = null;
     }
 
     // Cleanup media adaptation engine (Opus cap + tiered video + survival)
