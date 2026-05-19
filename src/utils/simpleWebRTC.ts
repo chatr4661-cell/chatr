@@ -638,6 +638,8 @@ export class SimpleWebRTCCall {
       maxReconnectAttempts: maxAttempts,
       onRecoveryStart: () => {
         this.emit('recoveryStatus', { message: 'Reconnecting...' });
+        // Phase 2A — ICE monitor detected disconnect; request debounced restart
+        this.requestIceRestart('ice-disconnect');
       },
       onRecoverySuccess: () => {
         console.log('✅ [WebRTC] Recovery successful');
