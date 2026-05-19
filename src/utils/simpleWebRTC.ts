@@ -1741,6 +1741,18 @@ export class SimpleWebRTCCall {
       this.abrEngine = null;
     }
 
+    // Phase 2B — stop transport adaptation engine
+    if (this.transportEngine) {
+      this.transportEngine.stop();
+      this.transportEngine = null;
+    }
+
+    // Phase 2A — remove network resilience listeners
+    if (this.resilienceCleanup) {
+      this.resilienceCleanup();
+      this.resilienceCleanup = null;
+    }
+
     // Cleanup media adaptation engine (Opus cap + tiered video + survival)
     if (this.mediaAdaptationEngine) {
       this.mediaAdaptationEngine.stop();
