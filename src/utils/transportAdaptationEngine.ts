@@ -319,7 +319,7 @@ export class TransportAdaptationEngine {
         else this.lastUpAt = now;
         await this.applyStep(reason);
         try {
-          logDiag('info', `[${this.opts.label}] tier ${prevLevel}→${newLevel} (${reason}) ` +
+          logDiag('QUALITY', `[${this.opts.label}] tier ${prevLevel}→${newLevel} (${reason}) ` +
             `loss=${(lossRate*100).toFixed(1)}% rtt=${Math.round(rttMs)}ms ` +
             `freeze=${this.freezeBumpsInWindow} enc=${encodeMs.toFixed(0)}ms`, {
             callId: this.opts.label,
