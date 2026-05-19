@@ -708,6 +708,29 @@ export class SimpleWebRTCCall {
         });
         this.abrEngine.start();
         console.log(`📊 [WebRTC] ABR engine started (max: ${maxTier})`);
+
+        // Phase 2B — 1 s transport adaptation loop (RTT/jitter/loss/freeze)
+        // Sits on top of ABR engine; ABR picks the *max* tier ceiling,
+        // transport engine fine-tunes bitrate/fps inside that ceiling every 1 s.
+        try {
+          if (this.transportEngine) this.transportEngine.stop();
+          this.transportEngine = new TransportAdaptationEngine(this.pc!, {
+            label: `Transport:${this.callId.slice(0, 8)}`,
+            intervalMs: 1000,
+            startLevel: 1,
+            onChange: (level, sample, reason) => {
+              this.emit('transportTier', { level, sample, reason });
+              if (reason === 'freeze') {
+                // Phase 2A — frozen media despite "connected" → restart ICE
+                this.requestIceRestart('frozen-media');
+              }
+            },
+          });
+          this.transportEngine.start();
+          console.log('🚦 [WebRTC] Transport adaptation engine started (1s cadence)');
+        } catch (e) {
+          console.warn('⚠️ [WebRTC] Transport engine start failed (non-fatal):', e);
+        }
       }).catch((e) => {
         console.warn('⚠️ [WebRTC] ABR setup error (non-fatal):', e);
       });
