@@ -5,6 +5,7 @@ import { getCallPreset, getWebRTCConfig, getMediaConstraints, applyBitrateLimits
 import { createICEMonitor, ICEMonitorState } from "./iceConnectionMonitor";
 import { AdaptiveBitrateEngine, type VideoTier } from "./adaptiveBitrateEngine";
 import { MediaAdaptationEngine, applyOpusParameters } from "./mediaAdaptationEngine";
+import { TransportAdaptationEngine } from "./transportAdaptationEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 
