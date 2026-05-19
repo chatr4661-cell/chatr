@@ -666,6 +666,9 @@ export class SimpleWebRTCCall {
     };
 
     console.log(`✅ [WebRTC] Peer connection created with ${toleranceMs}ms disconnect tolerance`);
+
+    // Phase 2A — wire network lifecycle handlers (online, visibility, conn change)
+    this.setupNetworkResilience();
   }
 
   private handleConnected() {
