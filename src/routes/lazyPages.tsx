@@ -329,3 +329,6 @@ export const DesktopCalls = lazy(() => import('@/pages/desktop/DesktopCalls'));
 export const CarePathDetail = lazy(() => import('@/components/care/CarePathDetail'));
 
 export const VoiceSettings = lazy(() => import('@/pages/VoiceSettings'));
+
+export const Apply = lazy(() => import('@/pages/Apply'));
+export const ApplyManage = lazy(() => import('@/pages/ApplyManage'));
