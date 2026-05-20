@@ -137,7 +137,7 @@ export const OfficialAccountFeed: React.FC<OfficialAccountFeedProps> = ({ accoun
         <Card key={post.id} className="p-4">
           <div className="flex items-start gap-3 mb-3">
             <Avatar>
-              <AvatarImage src={post.official_accounts.avatar_url} />
+              <AvatarImage src={post.official_accounts.logo_url || undefined} />
               <AvatarFallback>{post.official_accounts.account_name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
