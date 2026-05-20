@@ -80,7 +80,7 @@ export default function Help() {
         },
         {
           q: 'What can I do with Chatr Points?',
-          a: 'Redeem points in the Reward Shop for: Premium features, Gift vouchers, Health checkups, Local deals & discounts.'
+          a: 'Redeem points in the Reward Shop for: Premium features, Gift vouchers, Health checkups, Home services & discounts.'
         },
         {
           q: 'Do points expire?',
