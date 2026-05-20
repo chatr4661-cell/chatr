@@ -2984,6 +2984,111 @@ export type Database = {
           },
         ]
       }
+      champion_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          new_value: string
+          old_value: string | null
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          message: string
+          new_value: string
+          old_value?: string | null
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          new_value?: string
+          old_value?: string | null
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      champion_tier_rewards: {
+        Row: {
+          badge_color: string
+          badge_icon: string
+          created_at: string
+          id: string
+          min_points: number
+          perks: Json
+          tier: string
+        }
+        Insert: {
+          badge_color: string
+          badge_icon?: string
+          created_at?: string
+          id?: string
+          min_points: number
+          perks?: Json
+          tier: string
+        }
+        Update: {
+          badge_color?: string
+          badge_icon?: string
+          created_at?: string
+          id?: string
+          min_points?: number
+          perks?: Json
+          tier?: string
+        }
+        Relationships: []
+      }
+      champions: {
+        Row: {
+          badge_earned_at: string | null
+          calls_made: number
+          id: string
+          points: number
+          previous_rank: number | null
+          rank: number | null
+          referral_count: number
+          streak_days: number
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_earned_at?: string | null
+          calls_made?: number
+          id?: string
+          points?: number
+          previous_rank?: number | null
+          rank?: number | null
+          referral_count?: number
+          streak_days?: number
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          badge_earned_at?: string | null
+          calls_made?: number
+          id?: string
+          points?: number
+          previous_rank?: number | null
+          rank?: number | null
+          referral_count?: number
+          streak_days?: number
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_brand_triggers: {
         Row: {
           brand_id: string | null
@@ -18810,6 +18915,7 @@ export type Database = {
         }
         Returns: Json
       }
+      recompute_champions: { Args: never; Returns: number }
       refresh_contact_intelligence: {
         Args: { p_contact_id: string; p_user_id: string }
         Returns: undefined
