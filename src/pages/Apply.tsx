@@ -15,7 +15,7 @@ type Job = {
   id: string; title: string; company: string; description: string; requirements: string | null;
   salary_min: number | null; salary_max: number | null; location: string | null;
   employment_type: string; category: string | null; is_remote: boolean; posted_by: string;
-  applications_count: number; created_at: string;
+  applications_count: number; created_at: string; is_active: boolean;
 };
 
 type Application = {
