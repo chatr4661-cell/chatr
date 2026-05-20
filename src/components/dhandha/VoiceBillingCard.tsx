@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Share2, RotateCcw, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Share2, RotateCcw, Volume2, User } from 'lucide-react';
 import { useDhandhaVoice } from '@/hooks/useDhandhaVoice';
 import { generateUPILink, generatePaymentCard, formatAmount } from '@/utils/upiGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface VoiceBillingCardProps {
   merchantProfile: {
