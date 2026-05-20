@@ -38,20 +38,36 @@ export const TrustScoreBreakdown: React.FC<TrustScoreBreakdownProps> = ({
       .channel(`trust-breakdown-${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trust_factors', filter: `user_id=eq.${userId}` }, () => loadTasks())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_trust_scores', filter: `user_id=eq.${userId}` }, () => loadTasks())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calls', filter: `caller_id=eq.${userId}` }, () => loadTasks())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calls', filter: `callee_id=eq.${userId}` }, () => loadTasks())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `sender_id=eq.${userId}` }, () => loadTasks())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts', filter: `user_id=eq.${userId}` }, () => loadTasks())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, () => loadTasks())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_badges', filter: `user_id=eq.${userId}` }, () => loadTasks())
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    // Refresh when tab regains focus (e.g. after a call ends elsewhere)
+    const onVisible = () => { if (document.visibilityState === 'visible') loadTasks(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const loadTasks = async () => {
     setLoading(true);
     try {
-      const [profileRes, contactsRes, callsRes, badgeRes] = await Promise.all([
+      // Count successful calls where user was caller OR callee, and the call actually connected
+      // (status 'ended' with duration > 0 is the real signal — 'completed' is never set)
+      const [profileRes, contactsRes, callsOutRes, callsInRes, badgeRes] = await Promise.all([
         supabase.from('profiles').select('phone_number, avatar_url, username').eq('id', userId).maybeSingle(),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('calls').select('id', { count: 'exact', head: true }).eq('caller_id', userId).eq('status', 'completed'),
+        supabase.from('calls').select('id', { count: 'exact', head: true }).eq('caller_id', userId).eq('status', 'ended').gt('duration', 0),
+        supabase.from('calls').select('id', { count: 'exact', head: true }).eq('callee_id', userId).eq('status', 'ended').gt('duration', 0),
         supabase.from('user_badges' as any).select('badge_type').eq('user_id', userId).eq('is_active', true).maybeSingle() as any,
       ]);
+
 
       const profile = profileRes.data;
       const contactCount = contactsRes.count || 0;
