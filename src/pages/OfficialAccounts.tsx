@@ -28,7 +28,7 @@ const OfficialAccounts = () => {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [following, setFollowing] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'discover' | 'feed'>('discover');
+  const [activeTab, setActiveTab] = useState<'discover' | 'feed' | 'manage'>('discover');
 
   useEffect(() => {
     loadAccounts();
