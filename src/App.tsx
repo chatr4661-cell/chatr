@@ -455,6 +455,7 @@ const App = () => {
             <Route path="/champions" element={<ProtectedLazyRoute component={LazyPages.Champions} />} />
             <Route path="/apply" element={<ProtectedLazyRoute component={LazyPages.Apply} />} />
             <Route path="/apply/manage/:jobId" element={<ProtectedLazyRoute component={LazyPages.ApplyManage} />} />
+            <Route path="/ecosystem" element={<ProtectedLazyRoute component={LazyPages.EcosystemHub} />} />
             
             {/* Mini Apps */}
             <Route path="/mini-apps" element={<LazyRoute component={LazyPages.MiniAppsStore} />} />
