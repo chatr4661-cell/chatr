@@ -2984,6 +2984,92 @@ export type Database = {
           },
         ]
       }
+      champion_mission_progress: {
+        Row: {
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          mission_id: string
+          progress_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          mission_id: string
+          progress_value?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          mission_id?: string
+          progress_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "champion_mission_progress_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "champion_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      champion_missions: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          period: string
+          points_reward: number
+          starts_at: string
+          target_value: number
+          title: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          description: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          period?: string
+          points_reward?: number
+          starts_at?: string
+          target_value: number
+          title: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          period?: string
+          points_reward?: number
+          starts_at?: string
+          target_value?: number
+          title?: string
+        }
+        Relationships: []
+      }
       champion_notifications: {
         Row: {
           created_at: string
@@ -3014,6 +3100,86 @@ export type Database = {
           old_value?: string | null
           read_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      champion_reward_redemptions: {
+        Row: {
+          created_at: string
+          delivery_meta: Json
+          id: string
+          points_spent: number
+          reward_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_meta?: Json
+          id?: string
+          points_spent: number
+          reward_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivery_meta?: Json
+          id?: string
+          points_spent?: number
+          reward_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "champion_reward_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "champion_rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      champion_rewards: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean
+          points_cost: number
+          stock: number | null
+          tier_required: string
+          title: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          points_cost: number
+          stock?: number | null
+          tier_required?: string
+          title: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          points_cost?: number
+          stock?: number | null
+          tier_required?: string
+          title?: string
         }
         Relationships: []
       }
