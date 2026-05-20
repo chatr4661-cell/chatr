@@ -34,6 +34,10 @@ export default function AppDetail() {
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     if (id) {
