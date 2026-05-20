@@ -104,9 +104,9 @@ export async function enhanceMicTrack(
       // @ts-ignore
       rnnoiseNode = new AudioWorkletNode(ctx, 'rnnoise-processor');
       rnnoiseActive = true;
-      logDiag('AUDIO', 'rnnoise worklet attached');
+      logDiag('QUALITY', 'rnnoise worklet attached');
     } catch (e) {
-      logDiag('AUDIO', `rnnoise unavailable: ${(e as Error).message}`);
+      logDiag('QUALITY', `rnnoise unavailable: ${(e as Error).message}`);
     }
   }
 
@@ -157,7 +157,7 @@ export async function enhanceMicTrack(
     try { processedTrack.stop(); } catch { }
     rawTrack.removeEventListener('mute', mirrorEnabled);
     rawTrack.removeEventListener('unmute', mirrorEnabled);
-    logDiag('AUDIO', 'enhancement pipeline disposed');
+    logDiag('QUALITY', 'enhancement pipeline disposed');
   };
 
   logDiag(
