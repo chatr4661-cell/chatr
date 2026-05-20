@@ -323,7 +323,6 @@ export default function AppDetail() {
           <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={() => setReviewOpen(true)}>
             Write a review <ChevronRight className="h-3 w-3 ml-0.5" />
           </Button>
-          </Button>
         </div>
 
         <div className="flex gap-6 mb-4">
