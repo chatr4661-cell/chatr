@@ -229,8 +229,10 @@ const OfficialAccounts = () => {
               ))}
             </div>
           </>
-        ) : (
+        ) : activeTab === 'feed' ? (
           <OfficialAccountFeed />
+        ) : (
+          <OfficialAccountManager />
         )}
       </div>
     </div>
