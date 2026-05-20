@@ -161,7 +161,7 @@ export async function enhanceMicTrack(
   };
 
   logDiag(
-    'AUDIO',
+    'QUALITY',
     `enhancement active hpf=${hpfHz}Hz comp=${compressorThreshold}dB limit=${limiterCeiling}dB rnnoise=${rnnoiseActive}`
   );
 
