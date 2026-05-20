@@ -90,8 +90,9 @@ export const VoiceBillingCard = ({ merchantProfile, onTransactionCreated }: Voic
           fee_coins: 1,
           status: 'pending',
           upi_link: upiLink,
-          voice_input: transcript
-        })
+          voice_input: transcript,
+          customer_id: selectedCustomer?.id ?? null,
+        } as any)
         .select('id')
         .single();
 
