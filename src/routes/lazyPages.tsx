@@ -335,3 +335,4 @@ export const ApplyManage = lazy(() => import('@/pages/ApplyManage'));
 export const DoctorPortal = lazy(() => import('@/pages/DoctorPortal'));
 export const StudioDesignView = lazy(() => import('@/pages/StudioDesignView'));
 export const EcosystemHub = lazy(() => import('@/pages/EcosystemHub'));
+export const CommunityDetail = lazy(() => import('@/pages/CommunityDetail'));
