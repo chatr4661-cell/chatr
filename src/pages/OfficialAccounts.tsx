@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Search, Users, CheckCircle, Building2, Heart, Newspaper } from 'lucide-react';
 import { toast } from 'sonner';
 import { OfficialAccountFeed } from '@/components/OfficialAccountFeed';
+import { OfficialAccountManager } from '@/components/OfficialAccountManager';
 
 interface OfficialAccount {
   id: string;
