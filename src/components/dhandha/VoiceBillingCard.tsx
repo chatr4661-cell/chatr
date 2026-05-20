@@ -28,6 +28,17 @@ export const VoiceBillingCard = ({ merchantProfile, onTransactionCreated }: Voic
     upiLink: string;
     shareText: string;
   } | null>(null);
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    supabase.from('dhandha_customers' as any)
+      .select('id, name')
+      .eq('merchant_id', merchantProfile.id)
+      .order('name')
+      .then(({ data }) => setCustomers((data ?? []) as any));
+  }, [merchantProfile.id, createdTransaction]);
+
 
   // Real-time amount detection while speaking
   useEffect(() => {
