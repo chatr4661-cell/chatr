@@ -389,6 +389,34 @@ export default function AppDetail() {
           )}
         </div>
       </div>
+
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Write a review</DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-1 justify-center py-2">
+            {[1,2,3,4,5].map(s => (
+              <button key={s} onClick={() => setReviewRating(s)} type="button">
+                <Star className={`h-7 w-7 ${s <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
+              </button>
+            ))}
+          </div>
+          <Textarea
+            placeholder="Share your experience (optional)"
+            value={reviewText}
+            onChange={(e) => setReviewText(e.target.value)}
+            rows={4}
+            maxLength={500}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReviewOpen(false)}>Cancel</Button>
+            <Button onClick={submitReview} disabled={submittingReview}>
+              {submittingReview ? 'Submitting…' : 'Submit'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
