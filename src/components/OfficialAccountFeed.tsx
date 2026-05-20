@@ -43,7 +43,7 @@ export const OfficialAccountFeed: React.FC<OfficialAccountFeedProps> = ({ accoun
     try {
       let query = (supabase as any)
         .from('official_account_posts')
-        .select('*, official_accounts(account_name, avatar_url, is_verified)')
+        .select('*, official_accounts(account_name, logo_url, is_verified)')
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
