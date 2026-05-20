@@ -4991,6 +4991,35 @@ export type Database = {
           },
         ]
       }
+      circle_members: {
+        Row: {
+          circle_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          circle_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          circle_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_members_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "wellness_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       click_logs: {
         Row: {
           created_at: string | null
@@ -15803,6 +15832,35 @@ export type Database = {
         }
         Relationships: []
       }
+      story_likes: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_likes_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "wellness_stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_reactions: {
         Row: {
           created_at: string | null
@@ -17552,6 +17610,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_stats: {
+        Row: {
+          level: number
+          streak_days: number
+          total_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          level?: number
+          streak_days?: number
+          total_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          level?: number
+          streak_days?: number
+          total_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_status: {
         Row: {
           background_color: string | null
@@ -18116,6 +18198,191 @@ export type Database = {
           signal_data?: Json
           signal_type?: string
           to_user?: string
+        }
+        Relationships: []
+      }
+      wellness_circles: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_private: boolean
+          members_count: number
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_private?: boolean
+          members_count?: number
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_private?: boolean
+          members_count?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      wellness_communities: {
+        Row: {
+          category: string | null
+          city: string | null
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          members_count: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          city?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          members_count?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          city?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          members_count?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wellness_community_members: {
+        Row: {
+          community_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wellness_community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "wellness_communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wellness_programs: {
+        Row: {
+          city: string | null
+          cover_image: string | null
+          created_at: string
+          description: string | null
+          event_date: string
+          event_type: string
+          host_id: string | null
+          id: string
+          is_active: boolean
+          title: string
+          venue: string | null
+        }
+        Insert: {
+          city?: string | null
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          event_date: string
+          event_type?: string
+          host_id?: string | null
+          id?: string
+          is_active?: boolean
+          title: string
+          venue?: string | null
+        }
+        Update: {
+          city?: string | null
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          event_type?: string
+          host_id?: string | null
+          id?: string
+          is_active?: boolean
+          title?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
+      wellness_stories: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          is_public: boolean
+          likes_count: number
+          media_url: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          likes_count?: number
+          media_url?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          likes_count?: number
+          media_url?: string | null
+          title?: string | null
+          user_id?: string
         }
         Relationships: []
       }
