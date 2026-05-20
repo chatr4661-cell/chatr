@@ -314,7 +314,7 @@ export default function FoodOrdering() {
                         <Badge className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[9px] px-1.5 py-0.5">{vendor.offer}</Badge>
                       )}
                       <div className={`absolute bottom-1.5 left-1.5 ${getRatingColor(vendor.rating)} text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5`}>
-                        <Star className="w-2.5 h-2.5 fill-current" />{vendor.rating.toFixed(1)}
+                        <Star className="w-2.5 h-2.5 fill-current" />{(vendor.rating ?? 0).toFixed(1)}
                       </div>
                     </div>
 
