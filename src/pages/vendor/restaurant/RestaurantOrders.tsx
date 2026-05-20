@@ -125,6 +125,7 @@ export default function RestaurantOrders() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
+      const order = orders.find(o => o.id === orderId);
       const { error } = await supabase
         .from('food_orders')
         .update({ 
@@ -138,6 +139,20 @@ export default function RestaurantOrders() {
       setOrders(prev => 
         prev.map(o => o.id === orderId ? { ...o, order_status: newStatus } : o)
       );
+
+      // Push customer notification (silent invoke; do not surface)
+      if (order && (order as any).user_id) {
+        supabase.functions.invoke('send-module-notification', {
+          body: {
+            user_id: (order as any).user_id,
+            module: 'food',
+            title: `Order ${newStatus}`,
+            body: `Your order is now ${newStatus}.`,
+            data: { order_id: orderId, status: newStatus, route: `/booking/track/${orderId}` },
+          },
+        }).catch(() => {});
+      }
+
       toast.success(`Order ${newStatus}`);
       setSelectedOrder(null);
     } catch (error: any) {
