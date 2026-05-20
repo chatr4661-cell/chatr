@@ -12216,6 +12216,56 @@ export type Database = {
         }
         Relationships: []
       }
+      official_account_posts: {
+        Row: {
+          account_id: string
+          content: string
+          created_at: string
+          id: string
+          is_published: boolean
+          like_count: number
+          media_url: string | null
+          post_type: string
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          account_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          like_count?: number
+          media_url?: string | null
+          post_type?: string
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          account_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          like_count?: number
+          media_url?: string | null
+          post_type?: string
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "official_account_posts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "official_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       official_accounts: {
         Row: {
           account_name: string
