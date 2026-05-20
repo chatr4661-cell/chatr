@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -32,6 +34,10 @@ export default function AppDetail() {
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -130,6 +136,27 @@ export default function AppDetail() {
       toast.success('Link copied!');
     }
   };
+
+  const submitReview = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { navigate('/auth'); return; }
+    setSubmittingReview(true);
+    const { error } = await supabase
+      .from('app_reviews')
+      .upsert({
+        app_id: id!,
+        user_id: user.id,
+        rating: reviewRating,
+        review_text: reviewText.trim() || null,
+      } as any, { onConflict: 'app_id,user_id' } as any);
+    setSubmittingReview(false);
+    if (error) { toast.error('Could not submit review'); return; }
+    setReviewOpen(false);
+    setReviewText('');
+    toast.success('Review submitted');
+    loadReviews();
+  };
+
 
   if (loading) {
     return (
@@ -293,7 +320,7 @@ export default function AppDetail() {
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-base">Ratings & Reviews</h2>
-          <Button variant="ghost" size="sm" className="text-xs text-primary">
+          <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={() => setReviewOpen(true)}>
             Write a review <ChevronRight className="h-3 w-3 ml-0.5" />
           </Button>
         </div>
@@ -362,6 +389,34 @@ export default function AppDetail() {
           )}
         </div>
       </div>
+
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Write a review</DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-1 justify-center py-2">
+            {[1,2,3,4,5].map(s => (
+              <button key={s} onClick={() => setReviewRating(s)} type="button">
+                <Star className={`h-7 w-7 ${s <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
+              </button>
+            ))}
+          </div>
+          <Textarea
+            placeholder="Share your experience (optional)"
+            value={reviewText}
+            onChange={(e) => setReviewText(e.target.value)}
+            rows={4}
+            maxLength={500}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReviewOpen(false)}>Cancel</Button>
+            <Button onClick={submitReview} disabled={submittingReview}>
+              {submittingReview ? 'Submitting…' : 'Submit'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

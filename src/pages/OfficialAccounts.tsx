@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Search, Users, CheckCircle, Building2, Heart, Newspaper } from 'lucide-react';
 import { toast } from 'sonner';
 import { OfficialAccountFeed } from '@/components/OfficialAccountFeed';
+import { OfficialAccountManager } from '@/components/OfficialAccountManager';
 
 interface OfficialAccount {
   id: string;
@@ -27,7 +28,7 @@ const OfficialAccounts = () => {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [following, setFollowing] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'discover' | 'feed'>('discover');
+  const [activeTab, setActiveTab] = useState<'discover' | 'feed' | 'manage'>('discover');
 
   useEffect(() => {
     loadAccounts();
@@ -141,10 +142,11 @@ const OfficialAccounts = () => {
 
       <div className="max-w-7xl mx-auto p-4">
         {/* Main Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'discover' | 'feed')} className="mb-6">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mb-6">
           <TabsList className="w-full justify-start">
             <TabsTrigger value="discover">Discover</TabsTrigger>
             <TabsTrigger value="feed">Feed</TabsTrigger>
+            <TabsTrigger value="manage">My Account</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -227,8 +229,10 @@ const OfficialAccounts = () => {
               ))}
             </div>
           </>
-        ) : (
+        ) : activeTab === 'feed' ? (
           <OfficialAccountFeed />
+        ) : (
+          <OfficialAccountManager />
         )}
       </div>
     </div>

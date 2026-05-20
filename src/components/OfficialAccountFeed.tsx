@@ -19,7 +19,7 @@ interface Post {
   created_at: string;
   official_accounts: {
     account_name: string;
-    avatar_url: string;
+    logo_url: string | null;
     is_verified: boolean;
   };
 }
@@ -43,7 +43,7 @@ export const OfficialAccountFeed: React.FC<OfficialAccountFeedProps> = ({ accoun
     try {
       let query = (supabase as any)
         .from('official_account_posts')
-        .select('*, official_accounts(account_name, avatar_url, is_verified)')
+        .select('*, official_accounts(account_name, logo_url, is_verified)')
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
@@ -137,7 +137,7 @@ export const OfficialAccountFeed: React.FC<OfficialAccountFeedProps> = ({ accoun
         <Card key={post.id} className="p-4">
           <div className="flex items-start gap-3 mb-3">
             <Avatar>
-              <AvatarImage src={post.official_accounts.avatar_url} />
+              <AvatarImage src={post.official_accounts.logo_url || undefined} />
               <AvatarFallback>{post.official_accounts.account_name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
