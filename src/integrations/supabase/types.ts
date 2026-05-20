@@ -6428,10 +6428,58 @@ export type Database = {
           },
         ]
       }
+      dhandha_customers: {
+        Row: {
+          created_at: string
+          id: string
+          merchant_id: string
+          name: string
+          notes: string | null
+          outstanding_balance: number
+          phone: string | null
+          total_billed: number
+          total_paid: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          merchant_id: string
+          name: string
+          notes?: string | null
+          outstanding_balance?: number
+          phone?: string | null
+          total_billed?: number
+          total_paid?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          name?: string
+          notes?: string | null
+          outstanding_balance?: number
+          phone?: string | null
+          total_billed?: number
+          total_paid?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dhandha_customers_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dhandha_transactions: {
         Row: {
           amount: number
           created_at: string
+          customer_id: string | null
           fee_coins: number
           id: string
           merchant_id: string
@@ -6443,6 +6491,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          customer_id?: string | null
           fee_coins?: number
           id?: string
           merchant_id: string
@@ -6454,6 +6503,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          customer_id?: string | null
           fee_coins?: number
           id?: string
           merchant_id?: string
@@ -6463,6 +6513,13 @@ export type Database = {
           voice_input?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "dhandha_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "dhandha_customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dhandha_transactions_merchant_id_fkey"
             columns: ["merchant_id"]
