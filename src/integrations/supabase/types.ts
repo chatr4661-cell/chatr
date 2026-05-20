@@ -9075,6 +9075,145 @@ export type Database = {
           },
         ]
       }
+      job_applications: {
+        Row: {
+          applicant_id: string
+          cover_letter: string | null
+          created_at: string
+          employer_notes: string | null
+          expected_salary: number | null
+          id: string
+          job_id: string
+          resume_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          cover_letter?: string | null
+          created_at?: string
+          employer_notes?: string | null
+          expected_salary?: number | null
+          id?: string
+          job_id: string
+          resume_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          cover_letter?: string | null
+          created_at?: string
+          employer_notes?: string | null
+          expected_salary?: number | null
+          id?: string
+          job_id?: string
+          resume_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_listings: {
+        Row: {
+          applications_count: number
+          category: string | null
+          company: string
+          created_at: string
+          description: string
+          employment_type: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          is_remote: boolean
+          location: string | null
+          posted_by: string
+          requirements: string | null
+          salary_max: number | null
+          salary_min: number | null
+          title: string
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          applications_count?: number
+          category?: string | null
+          company: string
+          created_at?: string
+          description: string
+          employment_type?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_remote?: boolean
+          location?: string | null
+          posted_by: string
+          requirements?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          title: string
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          applications_count?: number
+          category?: string | null
+          company?: string
+          created_at?: string
+          description?: string
+          employment_type?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_remote?: boolean
+          location?: string | null
+          posted_by?: string
+          requirements?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          title?: string
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: []
+      }
+      job_saved: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_saved_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_documents: {
         Row: {
           created_at: string | null
