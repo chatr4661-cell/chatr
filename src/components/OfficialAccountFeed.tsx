@@ -19,7 +19,7 @@ interface Post {
   created_at: string;
   official_accounts: {
     account_name: string;
-    avatar_url: string;
+    logo_url: string | null;
     is_verified: boolean;
   };
 }
