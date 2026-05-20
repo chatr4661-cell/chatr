@@ -292,6 +292,7 @@ const App = () => {
             <Route path="/chatr-plus-subscribe" element={<LazyRoute component={LazyPages.ChatrPlusSubscribe} />} />
             <Route path="/ambassador-program" element={<LazyRoute component={LazyPages.AmbassadorProgram} />} />
             <Route path="/doctor-onboarding" element={<LazyRoute component={LazyPages.DoctorOnboarding} />} />
+            <Route path="/doctor-portal" element={<ProtectedLazyRoute component={LazyPages.DoctorPortal} />} />
             <Route path="/qr-payment" element={<LazyRoute component={LazyPages.QRPayment} />} />
             <Route path="/kyc-verification" element={<ProtectedLazyRoute component={LazyPages.KYCVerificationPage} />} />
             
