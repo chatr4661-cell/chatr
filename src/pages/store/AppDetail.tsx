@@ -137,6 +137,27 @@ export default function AppDetail() {
     }
   };
 
+  const submitReview = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { navigate('/auth'); return; }
+    setSubmittingReview(true);
+    const { error } = await supabase
+      .from('app_reviews')
+      .upsert({
+        app_id: id!,
+        user_id: user.id,
+        rating: reviewRating,
+        review_text: reviewText.trim() || null,
+      } as any, { onConflict: 'app_id,user_id' } as any);
+    setSubmittingReview(false);
+    if (error) { toast.error('Could not submit review'); return; }
+    setReviewOpen(false);
+    setReviewText('');
+    toast.success('Review submitted');
+    loadReviews();
+  };
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
