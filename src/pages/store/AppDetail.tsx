@@ -320,8 +320,9 @@ export default function AppDetail() {
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-base">Ratings & Reviews</h2>
-          <Button variant="ghost" size="sm" className="text-xs text-primary">
+          <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={() => setReviewOpen(true)}>
             Write a review <ChevronRight className="h-3 w-3 ml-0.5" />
+          </Button>
           </Button>
         </div>
 
