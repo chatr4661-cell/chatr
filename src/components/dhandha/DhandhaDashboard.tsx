@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { IndianRupee, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { formatAmount } from '@/utils/upiGenerator';
@@ -22,38 +23,63 @@ export const DhandhaDashboard = ({ merchantId, refreshTrigger }: DhandhaDashboar
   const [todayTotal, setTodayTotal] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [markingId, setMarkingId] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabase
+      .from('dhandha_transactions')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .gte('created_at', today.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setTransactions(data);
+      const total = data
+        .filter((t) => t.status === 'paid')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      setTodayTotal(total);
+    }
+    setIsLoading(false);
+  }, [merchantId]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-
-      // Get today's start
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Fetch today's transactions
-      const { data, error } = await supabase
-        .from('dhandha_transactions')
-        .select('*')
-        .eq('merchant_id', merchantId)
-        .gte('created_at', today.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setTransactions(data);
-        
-        // Calculate today's total (only paid transactions)
-        const total = data
-          .filter(t => t.status === 'paid')
-          .reduce((sum, t) => sum + Number(t.amount), 0);
-        setTodayTotal(total);
-      }
-
-      setIsLoading(false);
-    };
-
+    setIsLoading(true);
     fetchData();
-  }, [merchantId, refreshTrigger]);
+  }, [fetchData, refreshTrigger]);
+
+  // Realtime: live update when bills are inserted or marked paid
+  useEffect(() => {
+    const channel = supabase
+      .channel(`dhandha-${merchantId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'dhandha_transactions',
+          filter: `merchant_id=eq.${merchantId}`,
+        },
+        () => fetchData()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [merchantId, fetchData]);
+
+  const handleMarkPaid = async (id: string) => {
+    setMarkingId(id);
+    const { error } = await supabase
+      .from('dhandha_transactions')
+      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .eq('id', id);
+    setMarkingId(null);
+    if (!error) fetchData();
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -68,7 +94,6 @@ export const DhandhaDashboard = ({ merchantId, refreshTrigger }: DhandhaDashboar
 
   return (
     <div className="space-y-4">
-      {/* Today's Total Card */}
       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
@@ -86,7 +111,6 @@ export const DhandhaDashboard = ({ merchantId, refreshTrigger }: DhandhaDashboar
         </CardContent>
       </Card>
 
-      {/* Recent Transactions */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -96,39 +120,46 @@ export const DhandhaDashboard = ({ merchantId, refreshTrigger }: DhandhaDashboar
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 text-center text-muted-foreground">
-              Loading...
-            </div>
+            <div className="p-6 text-center text-muted-foreground">Loading...</div>
           ) : transactions.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">
-              No bills yet today.<br />
-              Use voice to create your first bill!
+              No bills yet today.<br />Use voice to create your first bill!
             </div>
           ) : (
             <div className="divide-y">
-              {transactions.slice(0, 5).map((transaction) => (
-                <div 
-                  key={transaction.id}
-                  className="flex items-center justify-between p-4"
-                >
-                  <div className="flex items-center gap-3">
+              {transactions.slice(0, 8).map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-4 gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     {getStatusIcon(transaction.status)}
-                    <div>
-                      <p className="font-medium">
-                        {formatAmount(Number(transaction.amount))}
-                      </p>
+                    <div className="min-w-0">
+                      <p className="font-medium">{formatAmount(Number(transaction.amount))}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(transaction.created_at), 'h:mm a')}
                       </p>
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    transaction.status === 'paid' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {transaction.status}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        transaction.status === 'paid'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700'
+                      }`}
+                    >
+                      {transaction.status}
+                    </span>
+                    {transaction.status !== 'paid' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs"
+                        disabled={markingId === transaction.id}
+                        onClick={() => handleMarkPaid(transaction.id)}
+                      >
+                        {markingId === transaction.id ? '…' : 'Mark paid'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

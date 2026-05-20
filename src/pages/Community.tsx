@@ -215,7 +215,7 @@ export default function Community() {
     }
 
     const { error } = await supabase
-      .from('community_members' as any)
+      .from('wellness_community_members' as any)
       .insert({ community_id: communityId, user_id: userId });
 
     if (error) {
