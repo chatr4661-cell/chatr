@@ -220,7 +220,33 @@ export const VoiceBillingCard = ({ merchantProfile, onTransactionCreated }: Voic
             )}
           </AnimatePresence>
 
-          {/* Action Buttons */}
+          {/* Customer attach */}
+          {!createdTransaction && customers.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  {selectedCustomer ? selectedCustomer.name : 'Attach customer (optional)'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2">
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  <button
+                    className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted"
+                    onClick={() => setSelectedCustomer(null)}
+                  >No customer</button>
+                  {customers.map(c => (
+                    <button
+                      key={c.id}
+                      className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted"
+                      onClick={() => setSelectedCustomer(c)}
+                    >{c.name}</button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
           <div className="flex gap-3 pt-2">
             {createdTransaction ? (
               <>
