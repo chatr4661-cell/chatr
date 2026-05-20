@@ -199,6 +199,7 @@ export const YouthEngagement = lazy(() => import('@/pages/YouthEngagement'));
 export const YouthFeed = lazy(() => import('@/pages/YouthFeed'));
 export const FameCam = lazy(() => import('@/pages/FameCam'));
 export const FameLeaderboard = lazy(() => import('@/pages/FameLeaderboard'));
+export const Champions = lazy(() => import('@/pages/Champions'));
 export const Capture = lazy(() => import('@/pages/Capture'));
 export const Referrals = lazy(() => import('@/pages/Referrals'));
 export const AmbassadorProgram = lazy(() => import('@/pages/AmbassadorProgram'));
