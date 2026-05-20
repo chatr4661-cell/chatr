@@ -58,21 +58,18 @@ export const CommunitiesExplorer = ({ userId }: { userId: string }) => {
 
   const joinCommunity = async (communityId: string) => {
     try {
-      // Check if already a member
       const { data: existing } = await supabase
         .from('conversation_participants')
         .select('id')
         .eq('conversation_id', communityId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
-        toast.info('You are already a member of this community');
-        navigate(`/chat?conversation=${communityId}`);
+        navigate(`/community/${communityId}`);
         return;
       }
 
-      // Join community
       const { error } = await supabase
         .from('conversation_participants')
         .insert({
@@ -83,13 +80,11 @@ export const CommunitiesExplorer = ({ userId }: { userId: string }) => {
 
       if (error) throw error;
 
-      // Update member count
-      await supabase.rpc('increment_community_members', {
+      await supabase.rpc('increment_community_members' as any, {
         community_id: communityId
-      });
+      } as any);
 
-      toast.success('Successfully joined community!');
-      navigate(`/chat?conversation=${communityId}`);
+      navigate(`/community/${communityId}`);
     } catch (error) {
       console.error('Error joining community:', error);
       toast.error('Failed to join community');
