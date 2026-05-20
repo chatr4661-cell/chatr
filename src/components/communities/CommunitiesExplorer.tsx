@@ -154,8 +154,8 @@ export const CommunitiesExplorer = ({ userId }: { userId: string }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCommunities.map(community => (
-            <Card key={community.id} className="p-6 hover:shadow-lg transition-shadow">
-              <div className="space-y-4">
+            <Card key={community.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/community/${community.id}`)}>
+              <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
                 {/* Icon */}
                 {community.group_icon_url ? (
                   <img
