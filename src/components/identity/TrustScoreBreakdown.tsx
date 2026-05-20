@@ -63,15 +63,15 @@ export const TrustScoreBreakdown: React.FC<TrustScoreBreakdownProps> = ({
       const [profileRes, contactsRes, callsOutRes, callsInRes, badgeRes] = await Promise.all([
         supabase.from('profiles').select('phone_number, avatar_url, username').eq('id', userId).maybeSingle(),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('calls').select('id', { count: 'exact', head: true }).eq('caller_id', userId).eq('status', 'ended').gt('duration', 0),
-        supabase.from('calls').select('id', { count: 'exact', head: true }).eq('callee_id', userId).eq('status', 'ended').gt('duration', 0),
+        (supabase.from('calls') as any).select('id', { count: 'exact', head: true }).eq('caller_id', userId).eq('status', 'ended').gt('duration', 0),
+        (supabase.from('calls') as any).select('id', { count: 'exact', head: true }).eq('callee_id', userId).eq('status', 'ended').gt('duration', 0),
         supabase.from('user_badges' as any).select('badge_type').eq('user_id', userId).eq('is_active', true).maybeSingle() as any,
       ]);
 
 
       const profile = profileRes.data;
       const contactCount = contactsRes.count || 0;
-      const callCount = callsRes.count || 0;
+      const callCount = (callsOutRes.count || 0) + (callsInRes.count || 0);
       const badge = badgeRes.data;
 
       setTasks([
