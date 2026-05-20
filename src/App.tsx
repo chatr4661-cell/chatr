@@ -451,6 +451,8 @@ const App = () => {
             <Route path="/fame-cam" element={<ProtectedLazyRoute component={LazyPages.FameCam} />} />
             <Route path="/fame-leaderboard" element={<ProtectedLazyRoute component={LazyPages.FameLeaderboard} />} />
             <Route path="/champions" element={<ProtectedLazyRoute component={LazyPages.Champions} />} />
+            <Route path="/apply" element={<ProtectedLazyRoute component={LazyPages.Apply} />} />
+            <Route path="/apply/manage/:jobId" element={<ProtectedLazyRoute component={LazyPages.ApplyManage} />} />
             
             {/* Mini Apps */}
             <Route path="/mini-apps" element={<LazyRoute component={LazyPages.MiniAppsStore} />} />
