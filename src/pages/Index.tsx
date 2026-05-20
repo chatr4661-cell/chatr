@@ -663,8 +663,8 @@ const Index = () => {
     },
     {
       icon: Percent,
-      title: 'Local Deals',
-      description: 'Exclusive community offers',
+      title: 'Home Services',
+      description: 'Book trusted home professionals',
       iconColor: 'bg-gradient-to-br from-green-400 to-emerald-500',
       route: '/local-deals'
     },
@@ -961,7 +961,7 @@ const Index = () => {
               className="h-14 rounded-[24px] bg-gradient-to-r from-green-400 to-green-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               <Percent className="w-6 h-6 text-white/90" strokeWidth={1.5} />
-              <span className="text-[10px] text-white font-medium mt-0.5">Local Deals</span>
+              <span className="text-[10px] text-white font-medium mt-0.5">Home Services</span>
             </button>
             <button
               onClick={() => navigate('/chatr-plus-subscribe')}
