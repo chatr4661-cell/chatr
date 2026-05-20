@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trophy, Medal, Award, Crown, ArrowLeft, Flame, Users, PhoneCall, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import type { User } from "@supabase/supabase-js";
 
 interface Champion {
   user_id: string;
@@ -32,7 +32,7 @@ const TIER_ICON: Record<string, any> = { Bronze: Medal, Silver: Award, Gold: Tro
 
 export default function Champions() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [top, setTop] = useState<Champion[]>([]);
@@ -71,6 +71,12 @@ export default function Champions() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user ?? null));
+    return () => { sub.subscription.unsubscribe(); };
+  }, []);
 
   useEffect(() => {
     load();
