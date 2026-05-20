@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Share2, RotateCcw, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Share2, RotateCcw, Volume2, User } from 'lucide-react';
 import { useDhandhaVoice } from '@/hooks/useDhandhaVoice';
 import { generateUPILink, generatePaymentCard, formatAmount } from '@/utils/upiGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface VoiceBillingCardProps {
   merchantProfile: {
@@ -27,6 +28,17 @@ export const VoiceBillingCard = ({ merchantProfile, onTransactionCreated }: Voic
     upiLink: string;
     shareText: string;
   } | null>(null);
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    supabase.from('dhandha_customers' as any)
+      .select('id, name')
+      .eq('merchant_id', merchantProfile.id)
+      .order('name')
+      .then(({ data }) => setCustomers((data ?? []) as any));
+  }, [merchantProfile.id, createdTransaction]);
+
 
   // Real-time amount detection while speaking
   useEffect(() => {
@@ -78,8 +90,9 @@ export const VoiceBillingCard = ({ merchantProfile, onTransactionCreated }: Voic
           fee_coins: 1,
           status: 'pending',
           upi_link: upiLink,
-          voice_input: transcript
-        })
+          voice_input: transcript,
+          customer_id: selectedCustomer?.id ?? null,
+        } as any)
         .select('id')
         .single();
 
@@ -207,7 +220,33 @@ export const VoiceBillingCard = ({ merchantProfile, onTransactionCreated }: Voic
             )}
           </AnimatePresence>
 
-          {/* Action Buttons */}
+          {/* Customer attach */}
+          {!createdTransaction && customers.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  {selectedCustomer ? selectedCustomer.name : 'Attach customer (optional)'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2">
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  <button
+                    className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted"
+                    onClick={() => setSelectedCustomer(null)}
+                  >No customer</button>
+                  {customers.map(c => (
+                    <button
+                      key={c.id}
+                      className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted"
+                      onClick={() => setSelectedCustomer(c)}
+                    >{c.name}</button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
           <div className="flex gap-3 pt-2">
             {createdTransaction ? (
               <>
