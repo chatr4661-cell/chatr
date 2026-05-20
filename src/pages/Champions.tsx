@@ -4,9 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Medal, Award, Crown, ArrowLeft, Flame, Users, PhoneCall, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
+import { MissionsTab } from "@/components/champions/MissionsTab";
+import { RewardsTab } from "@/components/champions/RewardsTab";
 
 interface Champion {
   user_id: string;
