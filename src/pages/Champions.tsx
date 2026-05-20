@@ -144,63 +144,81 @@ export default function Champions() {
           </Card>
         )}
 
-        {/* Tier perks */}
-        {!loading && tiers.length > 0 && (
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Tier rewards</h2>
-            <div className="grid grid-cols-2 gap-2">
-              {tiers.map((t) => {
-                const Icon = TIER_ICON[t.tier] ?? Medal;
-                return (
-                  <Card key={t.tier} className="p-3 rounded-2xl">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon className="w-4 h-4" style={{ color: t.badge_color }} />
-                      <span className="text-sm font-semibold">{t.tier}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">{t.min_points}+ pts</p>
-                    <ul className="text-[11px] mt-1 space-y-0.5 text-foreground/80">
-                      {(t.perks as string[]).slice(0, 2).map((p) => (
-                        <li key={p}>• {p}</li>
-                      ))}
-                    </ul>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <Tabs defaultValue="leaderboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 h-9">
+            <TabsTrigger value="leaderboard" className="text-xs">Leaders</TabsTrigger>
+            <TabsTrigger value="missions" className="text-xs">Missions</TabsTrigger>
+            <TabsTrigger value="rewards" className="text-xs">Rewards</TabsTrigger>
+          </TabsList>
 
-        {/* Leaderboard */}
-        <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Top 10</h2>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full rounded-xl" />
-              ))}
+          <TabsContent value="leaderboard" className="space-y-4 mt-3">
+            {/* Tier perks */}
+            {!loading && tiers.length > 0 && (
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Tier rewards</h2>
+                <div className="grid grid-cols-2 gap-2">
+                  {tiers.map((t) => {
+                    const Icon = TIER_ICON[t.tier] ?? Medal;
+                    return (
+                      <Card key={t.tier} className="p-3 rounded-2xl">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Icon className="w-4 h-4" style={{ color: t.badge_color }} />
+                          <span className="text-sm font-semibold">{t.tier}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{t.min_points}+ pts</p>
+                        <ul className="text-[11px] mt-1 space-y-0.5 text-foreground/80">
+                          {(t.perks as string[]).slice(0, 2).map((p) => (
+                            <li key={p}>• {p}</li>
+                          ))}
+                        </ul>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Leaderboard */}
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Top 10</h2>
+              {loading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-14 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : error ? (
+                <Card className="p-4 rounded-2xl text-center">
+                  <p className="text-sm text-destructive">{error}</p>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={load}>Retry</Button>
+                </Card>
+              ) : top.length === 0 ? (
+                <Card className="p-6 rounded-2xl text-center">
+                  <Trophy className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm font-medium">No champions yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Be the first to climb the ladder.</p>
+                  <Button size="sm" className="mt-3" onClick={triggerRecompute} disabled={recomputing}>
+                    Run first calculation
+                  </Button>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {top.map((c) => (
+                    <LeaderRow key={c.user_id} c={c} highlight={c.user_id === user?.id} />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : error ? (
-            <Card className="p-4 rounded-2xl text-center">
-              <p className="text-sm text-destructive">{error}</p>
-              <Button size="sm" variant="outline" className="mt-2" onClick={load}>Retry</Button>
-            </Card>
-          ) : top.length === 0 ? (
-            <Card className="p-6 rounded-2xl text-center">
-              <Trophy className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">No champions yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Be the first to climb the ladder.</p>
-              <Button size="sm" className="mt-3" onClick={triggerRecompute} disabled={recomputing}>
-                Run first calculation
-              </Button>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {top.map((c) => (
-                <LeaderRow key={c.user_id} c={c} highlight={c.user_id === user?.id} />
-              ))}
-            </div>
-          )}
-        </div>
+          </TabsContent>
+
+          <TabsContent value="missions" className="mt-3">
+            <MissionsTab userId={user?.id ?? null} />
+          </TabsContent>
+
+          <TabsContent value="rewards" className="mt-3">
+            <RewardsTab userId={user?.id ?? null} userPoints={me?.points ?? 0} userTier={me?.tier ?? "Bronze"} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
