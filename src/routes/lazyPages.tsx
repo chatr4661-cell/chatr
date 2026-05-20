@@ -333,3 +333,4 @@ export const VoiceSettings = lazy(() => import('@/pages/VoiceSettings'));
 export const Apply = lazy(() => import('@/pages/Apply'));
 export const ApplyManage = lazy(() => import('@/pages/ApplyManage'));
 export const DoctorPortal = lazy(() => import('@/pages/DoctorPortal'));
+export const StudioDesignView = lazy(() => import('@/pages/StudioDesignView'));

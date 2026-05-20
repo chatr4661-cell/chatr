@@ -167,6 +167,16 @@ export const AdvancedDesignEditor = ({ template, onBack }: AdvancedDesignEditorP
       if (!user) throw new Error('Not authenticated');
 
       const canvasJson = canvas.toJSON();
+      // Generate a small thumbnail data URL for gallery previews
+      let thumbnail_url: string | null = null;
+      try {
+        const z = canvas.getZoom();
+        const { width, height } = template.dimensions;
+        canvas.setZoom(1);
+        canvas.setDimensions({ width, height });
+        thumbnail_url = canvas.toDataURL({ format: 'png', multiplier: 0.25 });
+        canvas.setZoom(z);
+      } catch {}
 
       const { error } = await supabase
         .from('studio_user_designs' as any)
@@ -174,7 +184,8 @@ export const AdvancedDesignEditor = ({ template, onBack }: AdvancedDesignEditorP
           user_id: user.id,
           template_id: template.id,
           name: designName,
-          design_data: canvasJson
+          design_data: canvasJson,
+          thumbnail_url,
         });
 
       if (error) throw error;
