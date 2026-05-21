@@ -425,6 +425,10 @@ export class MediaAdaptationEngine {
     if (this.rttSamples.length > 5) this.rttSamples.shift();
     const avgJitterMs =
       (this.jitterSamples.reduce((a, b) => a + b, 0) / this.jitterSamples.length) * 1000;
+    const avgRttMs = this.rttSamples.reduce((a, b) => a + b, 0) / this.rttSamples.length;
+
+    // Adaptive jitter buffer — auto-tune receiver playoutDelayHint to RTT
+    this.applyAdaptiveJitterBuffer(avgRttMs);
 
     // Jitter spike: > 300ms sustained for >=2 cycles (~6s) → force WEAK demotion
     if (avgJitterMs > 300) {
