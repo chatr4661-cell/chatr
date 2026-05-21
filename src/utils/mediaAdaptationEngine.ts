@@ -326,18 +326,22 @@ export class MediaAdaptationEngine {
     switch (tier) {
       case 'GOOD':
         this.restoreVideo();
+        await this.restoreNormalAudio();
         await this.applyVideoProfile(GOOD_PROFILE);
         break;
       case 'MEDIUM':
         this.restoreVideo();
+        await this.restoreNormalAudio();
         await this.applyVideoProfile(MEDIUM_PROFILE);
         break;
       case 'WEAK':
         this.restoreVideo();
+        await this.restoreNormalAudio();
         await this.applyVideoProfile(WEAK_PROFILE);
         break;
       case 'SURVIVAL':
         this.enableAudioOnlyMode();
+        await this.enableUltraLowAudio();
         break;
     }
   }
