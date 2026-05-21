@@ -209,61 +209,27 @@ export function logRtcConfiguration(config: RTCConfiguration, context: IceTeleme
   }
 }
 
-async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
-  if (cache && Date.now() - cache.ts < CACHE_TTL_MS) return cache.servers;
-  if (inflight) return inflight;
-
-  inflight = (async () => {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
-      const res = await fetch(PRODUCTION_TURN_ENDPOINT, { signal: ctrl.signal });
-      clearTimeout(t);
-      if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
-      const ct = res.headers.get('content-type') || '';
-      if (!ct.includes('application/json')) {
-        throw new Error(`turn-credentials non-JSON content-type=${ct}`);
-      }
-      const data = await res.json();
-      const servers = normalizeIceServers(data);
-      if (!servers.length) throw new Error('empty iceServers');
-      cache = { servers, ts: Date.now() };
-      console.log('🧊 [ICE] Cloudflare TURN credentials loaded:', servers.length, 'entries');
-      return servers;
-    } catch (err) {
-      console.warn('⚠️ [ICE] Cloudflare TURN fetch failed, using fallback:', err);
-      return METERED_FALLBACK;
-    } finally {
-      inflight = null;
-    }
-  })();
-
-  return inflight;
-}
-
 /**
- * Pre-warm TURN credentials at app boot so the first call has them ready.
+ * Pre-warm — no-op now that all TURN servers are static & free.
+ * Kept for backward compatibility with existing callers.
  */
 export function warmIceCredentials(): void {
-  fetchCloudflareTurn().catch(() => {});
+  /* zero-cost stack: nothing to fetch */
 }
 
 /**
- * Build the production RTCConfiguration.
+ * Build the production RTCConfiguration using only free infrastructure.
  *
  * - iceTransportPolicy: 'all' — let ICE pick host / srflx / relay naturally
  * - bundlePolicy: 'max-bundle' — single transport
- * - iceCandidatePoolSize: 10 — early gathering, faster setup, TURN ready up-front
+ * - iceCandidatePoolSize: 10 — early gathering, faster setup
  *
- * NOTE: now async. TURN must be present from the start, not injected later.
+ * Mobile-data ↔ mobile-data (CGNAT): both Metered & OpenRelay free TURN are
+ * included so ICE has redundant relay paths on UDP/TCP/TLS:443.
  */
 export async function buildRtcConfig(_opts?: { forceRelay?: boolean }): Promise<RTCConfiguration> {
-  const turn = await fetchCloudflareTurn();
-  // CRITICAL for mobile-data ↔ mobile-data (CGNAT): always include BOTH
-  // Cloudflare TURN and Metered TURN so ICE has redundant relay paths.
-  // If one carrier blocks a given TURN host/port, the other can still relay.
   return {
-    iceServers: [...GOOGLE_STUN, ...turn, ...METERED_FALLBACK],
+    iceServers: [...GOOGLE_STUN, ...FREE_TURN],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
@@ -271,14 +237,10 @@ export async function buildRtcConfig(_opts?: { forceRelay?: boolean }): Promise<
   };
 }
 
-/**
- * Synchronous variant — only for code paths that cannot await.
- * Uses cached creds if available, otherwise the static fallback.
- */
+/** Synchronous variant — same free static config. */
 export function buildRtcConfigSync(): RTCConfiguration {
-  const turn = cache?.servers ?? [];
   return {
-    iceServers: [...GOOGLE_STUN, ...turn, ...METERED_FALLBACK],
+    iceServers: [...GOOGLE_STUN, ...FREE_TURN],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
