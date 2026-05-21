@@ -374,16 +374,8 @@ export default function UnifiedCallScreen({
             videoPlaybackCleanupRef.current();
           }
           
-          // Try muted play first (avoids AbortError on Android WebView), then unmute
-          remoteVideoRef.current.play().then(() => {
-            // Successfully started muted, now unmute after small delay
-            setTimeout(() => {
-              if (remoteVideoRef.current) {
-                remoteVideoRef.current.muted = false;
-                console.log('📺 [UnifiedCall] Video unmuted after muted start');
-              }
-            }, 100);
-          }).catch(() => {
+          // Video element stays muted (audio comes from separate <audio> el) — required for iOS Safari autoplay
+          remoteVideoRef.current.play().catch(() => {
             console.log('📺 [UnifiedCall] Initial muted play attempt failed, relying on retry loop...');
           });
           
