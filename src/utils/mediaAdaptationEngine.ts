@@ -315,11 +315,33 @@ export class MediaAdaptationEngine {
   }
 
   private restoreVideo(): void {
+    if (this.forcedAudioOnly) return; // user has locked into audio-only
     const videoSender = this.pc.getSenders().find((s) => s.track?.kind === 'video');
     if (videoSender?.track && !videoSender.track.enabled) {
       videoSender.track.enabled = true;
       console.log(`[${this.opts.label}] video restored`);
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Public: emergency audio-only lock (user-triggered "Audio Only").
+  // Survives tier changes — only the user can flip it back off.
+  // ─────────────────────────────────────────────────────────────────
+  private forcedAudioOnly = false;
+  public async forceAudioOnly(enabled: boolean): Promise<void> {
+    this.forcedAudioOnly = enabled;
+    if (enabled) {
+      this.enableAudioOnlyMode();
+      await this.enableUltraLowAudio();
+      logDiag('QUALITY', 'EMERGENCY: user forced audio-only mode');
+    } else {
+      this.currentTier = ''; // force re-apply on next tick
+      logDiag('QUALITY', 'EMERGENCY: audio-only mode released');
+    }
+  }
+
+  public getCurrentTier(): NetworkTier | '' {
+    return this.currentTier;
   }
 
   private async applyTier(tier: NetworkTier): Promise<void> {

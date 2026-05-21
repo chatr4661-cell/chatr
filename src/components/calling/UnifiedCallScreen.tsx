@@ -18,6 +18,7 @@ import useUltraLowBandwidth from '@/hooks/useUltraLowBandwidth';
 import { MediaQuality } from '@/utils/gracefulDegradation';
 import { stopAllRingtones } from '@/hooks/useNativeRingtone';
 import NetworkDiagnosticsPanel from './NetworkDiagnosticsPanel';
+import VoiceNoteFallbackSheet from './VoiceNoteFallbackSheet';
 import { useVideoZoom } from '@/hooks/useVideoZoom';
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
@@ -63,6 +64,9 @@ export default function UnifiedCallScreen({
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [currentTier, setCurrentTier] = useState<string>('720p');
+  const [survivalTier, setSurvivalTier] = useState<'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL' | null>(null);
+  const [audioOnlyForced, setAudioOnlyForced] = useState(false);
+  const [showVoiceNoteFallback, setShowVoiceNoteFallback] = useState(false);
   
   // Video upgrade states (simplified - no request/accept flow, FaceTime-style auto)
 
@@ -533,6 +537,19 @@ export default function UnifiedCallScreen({
         console.log(`📊 [UnifiedCall] Tier: ${tier} (${reason})`);
         setCurrentTier(tier);
       });
+
+      // Sub-2G survival tier (from media adaptation engine)
+      call.on('survivalTier', ({ tier }: { tier: 'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL' }) => {
+        console.log(`🩺 [UnifiedCall] Survival tier: ${tier}`);
+        setSurvivalTier(tier);
+      });
+
+      // Call fully failed after 90s resume window — offer voice-note fallback
+      call.on('callFailed', () => {
+        console.warn('📮 [UnifiedCall] Call failed — offering voice-note fallback');
+        setShowVoiceNoteFallback(true);
+      });
+
 
       // Auto video enable: partner clicked video, we auto-enable too
       call.on('videoEnableRequested', async (fromUserId: string) => {
@@ -1038,10 +1055,39 @@ export default function UnifiedCallScreen({
                 {callState === 'reconnecting' && (uiState.message || 'Reconnecting...')}
                 {callState === 'failed' && 'Connection failed'}
               </p>
+
+              {/* Survival banner — sub-2G network warning + emergency audio-only */}
+              {(survivalTier === 'SURVIVAL' || survivalTier === 'WEAK' || audioOnlyForced) && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                  className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 backdrop-blur"
+                >
+                  <span className="text-[11px] text-amber-300 font-medium">
+                    {audioOnlyForced
+                      ? 'Audio-only mode'
+                      : survivalTier === 'SURVIVAL'
+                        ? 'Survival mode · 8 kbps audio'
+                        : 'Weak network'}
+                  </span>
+                  {isVideo && (
+                    <button
+                      onClick={async () => {
+                        const next = !audioOnlyForced;
+                        setAudioOnlyForced(next);
+                        try { await webrtcRef.current?.forceAudioOnly(next); } catch {}
+                      }}
+                      className="text-[11px] font-semibold text-white px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25 transition"
+                    >
+                      {audioOnlyForced ? 'Resume video' : 'Audio only'}
+                    </button>
+                  )}
+                </motion.div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
 
       {/* Keypad Overlay */}
       <AnimatePresence>
@@ -1196,6 +1242,14 @@ export default function UnifiedCallScreen({
             webrtcRef.current.toggleAudio(!held);
           }
         }}
+      />
+
+      {/* Voice-note SMS fallback — shown when WebRTC truly cannot recover */}
+      <VoiceNoteFallbackSheet
+        open={showVoiceNoteFallback}
+        contactName={contactName}
+        contactPhone={contactPhone}
+        onClose={() => { setShowVoiceNoteFallback(false); handleEndCall(); }}
       />
     </div>
   );

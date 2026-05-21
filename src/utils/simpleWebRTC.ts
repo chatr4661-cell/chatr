@@ -82,6 +82,10 @@ export class SimpleWebRTCCall {
    if (!this.pc || this.mediaAdaptationEngine) return;
    this.mediaAdaptationEngine = new MediaAdaptationEngine(this.pc, {
      label: 'SimpleWebRTC:Adapt',
+     onTierChange: (tier, metrics) => {
+       // Surface SURVIVAL/WEAK/MEDIUM/GOOD to UI for emergency banners
+       this.emit('survivalTier', { tier, metrics });
+     },
      onStagnantMedia: async () => {
        try {
          if (this.pc && this.callState === 'connected') {
@@ -97,6 +101,14 @@ export class SimpleWebRTCCall {
      },
    });
    this.mediaAdaptationEngine.start().catch((e) => console.warn('mediaAdaptation start failed', e));
+ }
+
+ /**
+  * Public API: user-triggered emergency audio-only lock.
+  * Use when network is too poor for video — guarantees the call survives.
+  */
+ public async forceAudioOnly(enabled: boolean): Promise<void> {
+   await this.mediaAdaptationEngine?.forceAudioOnly(enabled);
  }
   private networkChangeCleanup: (() => void) | null = null;
   private statsObserverStop: (() => void) | null = null;
@@ -913,6 +925,8 @@ export class SimpleWebRTCCall {
       console.error('❌ [WebRTC] Resume window expired — ending call');
       this.resumeStartedAt = 0;
       this.emit('recoveryStatus', { message: null });
+      // Surface fallback opportunity (voice-note via SMS) BEFORE ending
+      this.emit('callFailed', { reason: 'resume-window-expired', partnerId: this.partnerId });
       this.emit('ended');
       return;
     }
