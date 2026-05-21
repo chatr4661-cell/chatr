@@ -679,6 +679,11 @@ export class SimpleWebRTCCall {
     console.log(`🎉 [WebRTC] CONNECTED! [${this.instanceId}]`);
     this.callState = 'connected';
     this.clearConnectionTimeout();
+    // Reset 90s resume window on successful (re)connection
+    if (this.resumeTimer) { clearTimeout(this.resumeTimer); this.resumeTimer = null; }
+    this.resumeStartedAt = 0;
+    this.resumeAttempts = 0;
+    this.emit('recoveryStatus', { message: null });
     this.emit('connected');
     this.emit('networkQuality', 'good');
     
