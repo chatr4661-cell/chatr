@@ -18,6 +18,7 @@ import useUltraLowBandwidth from '@/hooks/useUltraLowBandwidth';
 import { MediaQuality } from '@/utils/gracefulDegradation';
 import { stopAllRingtones } from '@/hooks/useNativeRingtone';
 import NetworkDiagnosticsPanel from './NetworkDiagnosticsPanel';
+import VoiceNoteFallbackSheet from './VoiceNoteFallbackSheet';
 import { useVideoZoom } from '@/hooks/useVideoZoom';
 
 type AudioRoute = 'earpiece' | 'speaker' | 'bluetooth';
