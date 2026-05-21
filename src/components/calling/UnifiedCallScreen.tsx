@@ -853,6 +853,9 @@ export default function UnifiedCallScreen({
           ref={remoteVideoRef}
           autoPlay
           playsInline
+          muted
+          // @ts-ignore - iOS Safari needs webkit-playsinline attribute
+          webkit-playsinline="true"
           className="w-full h-full bg-black"
           style={{
             width: '100vw',
