@@ -538,6 +538,19 @@ export default function UnifiedCallScreen({
         setCurrentTier(tier);
       });
 
+      // Sub-2G survival tier (from media adaptation engine)
+      call.on('survivalTier', ({ tier }: { tier: 'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL' }) => {
+        console.log(`🩺 [UnifiedCall] Survival tier: ${tier}`);
+        setSurvivalTier(tier);
+      });
+
+      // Call fully failed after 90s resume window — offer voice-note fallback
+      call.on('callFailed', () => {
+        console.warn('📮 [UnifiedCall] Call failed — offering voice-note fallback');
+        setShowVoiceNoteFallback(true);
+      });
+
+
       // Auto video enable: partner clicked video, we auto-enable too
       call.on('videoEnableRequested', async (fromUserId: string) => {
         console.log('📹 [UnifiedCall] Partner requested video enable - auto-enabling...');
