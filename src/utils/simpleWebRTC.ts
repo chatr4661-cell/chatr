@@ -679,6 +679,11 @@ export class SimpleWebRTCCall {
     console.log(`🎉 [WebRTC] CONNECTED! [${this.instanceId}]`);
     this.callState = 'connected';
     this.clearConnectionTimeout();
+    // Reset 90s resume window on successful (re)connection
+    if (this.resumeTimer) { clearTimeout(this.resumeTimer); this.resumeTimer = null; }
+    this.resumeStartedAt = 0;
+    this.resumeAttempts = 0;
+    this.emit('recoveryStatus', { message: null });
     this.emit('connected');
     this.emit('networkQuality', 'good');
     
@@ -887,22 +892,51 @@ export class SimpleWebRTCCall {
     }
   }
 
+  private resumeAttempts = 0;
+  private resumeStartedAt = 0;
+  private resumeTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly RESUME_WINDOW_MS = 90_000; // 90s grace period (WhatsApp-grade)
+
   private handleConnectionFailed() {
     if (this.callState === 'ended') return;
-    
-    console.warn('⚠️ [WebRTC] Connection failed - attempting recovery...');
-    
-    // Try ICE restart if we have remote description
-    if (this.pc?.remoteDescription && this.isInitiator) {
-      this.attemptIceRestart();
-    } else {
-      this.emit('recoveryStatus', { message: 'Reconnecting...' });
+
+    // Start the 90s resume window on first failure
+    if (this.resumeStartedAt === 0) {
+      this.resumeStartedAt = Date.now();
+      this.resumeAttempts = 0;
+      console.warn('⚠️ [WebRTC] Connection failed — entering 90s resume window');
+      this.emit('recoveryStatus', { message: 'Reconnecting…' });
     }
+
+    const elapsed = Date.now() - this.resumeStartedAt;
+    if (elapsed >= this.RESUME_WINDOW_MS) {
+      console.error('❌ [WebRTC] Resume window expired — ending call');
+      this.resumeStartedAt = 0;
+      this.emit('recoveryStatus', { message: null });
+      this.emit('ended');
+      return;
+    }
+
+    // Exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
+    this.resumeAttempts++;
+    const backoff = Math.min(1000 * Math.pow(2, this.resumeAttempts - 1), 10_000);
+    console.log(`🔄 [WebRTC] Resume attempt ${this.resumeAttempts} in ${backoff}ms (elapsed ${elapsed}ms)`);
+
+    if (this.resumeTimer) clearTimeout(this.resumeTimer);
+    this.resumeTimer = setTimeout(() => {
+      if (this.callState === 'ended') return;
+      if (this.pc?.remoteDescription && this.isInitiator) {
+        this.attemptIceRestart().catch(() => this.handleConnectionFailed());
+      } else {
+        // Non-initiator: just keep waiting; initiator will restart
+        this.handleConnectionFailed();
+      }
+    }, backoff);
   }
 
   private async attemptIceRestart() {
     if (!this.pc || this.callState === 'ended') return;
-    
+
     try {
       console.log('🔄 [WebRTC] ICE restart...');
       const offer = await this.pc.createOffer({ iceRestart: true });
@@ -910,6 +944,7 @@ export class SimpleWebRTCCall {
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
     } catch (e) {
       console.error('❌ [WebRTC] ICE restart failed:', e);
+      throw e;
     }
   }
 
@@ -1763,6 +1798,12 @@ export class SimpleWebRTCCall {
     if (this.adaptiveMonitorInterval) {
       clearInterval(this.adaptiveMonitorInterval);
       this.adaptiveMonitorInterval = null;
+    }
+
+    // Cleanup 90s resume timer
+    if (this.resumeTimer) {
+      clearTimeout(this.resumeTimer);
+      this.resumeTimer = null;
     }
 
     // Cleanup ICE monitor

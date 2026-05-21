@@ -214,7 +214,7 @@ export class MediaAdaptationEngine {
     logDiag('MOBILITY', `mobilityMode=${active}`);
   }
 
-  private async configureAudioSender(): Promise<void> {
+  private async configureAudioSender(maxBitrate = AUDIO_MAX_BITRATE, ptimeOverride?: number): Promise<void> {
     const audioSender = this.pc.getSenders().find((s) => s.track?.kind === 'audio');
     if (!audioSender) return;
     const params = audioSender.getParameters();
@@ -222,11 +222,57 @@ export class MediaAdaptationEngine {
       console.warn(`[${this.opts.label}] audio encodings unavailable`);
       return;
     }
-    params.encodings[0] = { ...params.encodings[0], maxBitrate: 32_000 };
+    params.encodings[0] = {
+      ...params.encodings[0],
+      maxBitrate,
+      // @ts-ignore — supported in Chrome/Edge/Android WebView, ignored elsewhere
+      ...(ptimeOverride ? { ptime: ptimeOverride } : {}),
+    };
     try {
       await audioSender.setParameters(params);
     } catch (err) {
       console.error(`[${this.opts.label}] audio setParameters failed`, err);
+    }
+  }
+
+  /**
+   * Sub-2G survival: drop Opus to ~8 kbps mono with ptime=60ms.
+   * Per RFC 6716, Opus can stay intelligible down to ~6 kbps SILK mode.
+   * Larger ptime = fewer packets = less header overhead on GPRS/EDGE.
+   */
+  private async enableUltraLowAudio(): Promise<void> {
+    await this.configureAudioSender(8_000, 60);
+    logDiag('QUALITY', 'SURVIVAL: opus → 8kbps / ptime=60ms (sub-2G mode)');
+  }
+
+  private async restoreNormalAudio(): Promise<void> {
+    await this.configureAudioSender(AUDIO_MAX_BITRATE, 20);
+  }
+
+  /**
+   * Adaptive jitter buffer: scale receiver playoutDelayHint to smoothed RTT.
+   * Low RTT (<150ms) → 50ms buffer (responsive). High RTT (>500ms) → up to 2s
+   * (handles severe packet reordering on EDGE/2G without audible gaps).
+   */
+  private applyAdaptiveJitterBuffer(avgRttMs: number): void {
+    if (!this.pc) return;
+    let hintSec: number;
+    if (avgRttMs < 150) hintSec = 0.05;
+    else if (avgRttMs < 300) hintSec = 0.15;
+    else if (avgRttMs < 600) hintSec = 0.4;
+    else if (avgRttMs < 1000) hintSec = 1.0;
+    else hintSec = 2.0;
+
+    for (const receiver of this.pc.getReceivers()) {
+      if (!receiver.track) continue;
+      // playoutDelayHint is a hint, browsers may clamp. Supported in Chromium 109+.
+      // @ts-ignore — newer WebRTC API, no DOM types yet in all envs
+      if ('playoutDelayHint' in receiver) {
+        try {
+          // @ts-ignore
+          (receiver as any).playoutDelayHint = hintSec;
+        } catch { /* swallow */ }
+      }
     }
   }
 
@@ -280,18 +326,22 @@ export class MediaAdaptationEngine {
     switch (tier) {
       case 'GOOD':
         this.restoreVideo();
+        await this.restoreNormalAudio();
         await this.applyVideoProfile(GOOD_PROFILE);
         break;
       case 'MEDIUM':
         this.restoreVideo();
+        await this.restoreNormalAudio();
         await this.applyVideoProfile(MEDIUM_PROFILE);
         break;
       case 'WEAK':
         this.restoreVideo();
+        await this.restoreNormalAudio();
         await this.applyVideoProfile(WEAK_PROFILE);
         break;
       case 'SURVIVAL':
         this.enableAudioOnlyMode();
+        await this.enableUltraLowAudio();
         break;
     }
   }
@@ -375,6 +425,10 @@ export class MediaAdaptationEngine {
     if (this.rttSamples.length > 5) this.rttSamples.shift();
     const avgJitterMs =
       (this.jitterSamples.reduce((a, b) => a + b, 0) / this.jitterSamples.length) * 1000;
+    const avgRttMs = this.rttSamples.reduce((a, b) => a + b, 0) / this.rttSamples.length;
+
+    // Adaptive jitter buffer — auto-tune receiver playoutDelayHint to RTT
+    this.applyAdaptiveJitterBuffer(avgRttMs);
 
     // Jitter spike: > 300ms sustained for >=2 cycles (~6s) → force WEAK demotion
     if (avgJitterMs > 300) {
