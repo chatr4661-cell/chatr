@@ -255,8 +255,11 @@ export function warmIceCredentials(): void {
  */
 export async function buildRtcConfig(_opts?: { forceRelay?: boolean }): Promise<RTCConfiguration> {
   const turn = await fetchCloudflareTurn();
+  // CRITICAL for mobile-data ↔ mobile-data (CGNAT): always include BOTH
+  // Cloudflare TURN and Metered TURN so ICE has redundant relay paths.
+  // If one carrier blocks a given TURN host/port, the other can still relay.
   return {
-    iceServers: [...GOOGLE_STUN, ...turn],
+    iceServers: [...GOOGLE_STUN, ...turn, ...METERED_FALLBACK],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
@@ -269,9 +272,9 @@ export async function buildRtcConfig(_opts?: { forceRelay?: boolean }): Promise<
  * Uses cached creds if available, otherwise the static fallback.
  */
 export function buildRtcConfigSync(): RTCConfiguration {
-  const turn = cache?.servers ?? METERED_FALLBACK;
+  const turn = cache?.servers ?? [];
   return {
-    iceServers: [...GOOGLE_STUN, ...turn],
+    iceServers: [...GOOGLE_STUN, ...turn, ...METERED_FALLBACK],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
