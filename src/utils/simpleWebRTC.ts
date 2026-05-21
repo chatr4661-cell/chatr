@@ -299,21 +299,20 @@ export class SimpleWebRTCCall {
     const startTime = Date.now();
     
     try {
-      console.log('🚀 [WebRTC] FAST START - targeting <2s connection...');
-      
-      // PARALLEL: Create peer connection and subscribe to signals simultaneously
-      // This saves ~200-300ms by not waiting sequentially
-      const [_, __] = await Promise.all([
-        this.createPeerConnection(),
-        this.subscribeToSignals()
-      ]);
+      console.log('🚀 [WebRTC] FAST START - targeting <3s connection...');
 
-      // Get media (may already be provided)
-      if (!this.localStream) {
-        await this.acquireMedia();
-      } else {
-        this.emit('localStream', this.localStream);
-      }
+      // PARALLEL: peer connection + signal subscription + media acquisition all at once.
+      // Media is the slowest step (~300-800ms) — running it alongside peer setup
+      // shaves 500ms-1s off total connect time.
+      const mediaPromise = this.localStream
+        ? Promise.resolve().then(() => { this.emit('localStream', this.localStream); })
+        : this.acquireMedia();
+
+      await Promise.all([
+        this.createPeerConnection(),
+        this.subscribeToSignals(),
+        mediaPromise,
+      ]);
 
       // Add tracks to peer connection
       if (this.localStream && this.pc) {
@@ -324,48 +323,34 @@ export class SimpleWebRTCCall {
       }
 
       // CRITICAL FIX: For video calls, guarantee an m=video section in SDP
-      // even if local video acquisition failed (audio-only fallback) or the
-      // user hasn't enabled their camera yet. Without this, the remote peer's
-      // video has no receive slot and "Remote video never appears".
       if (this.pc && this.isVideo) {
         const hasVideoSender = this.pc.getSenders().some(s => s.track?.kind === 'video');
         if (!hasVideoSender) {
           try {
             this.pc.addTransceiver('video', { direction: 'recvonly' });
-            console.log('📥 [WebRTC] Added recvonly video transceiver (no local video)');
           } catch (e) {
             console.warn('addTransceiver(video, recvonly) failed', e);
           }
         }
         const hasAudioSender = this.pc.getSenders().some(s => s.track?.kind === 'audio');
         if (!hasAudioSender) {
-          try {
-            this.pc.addTransceiver('audio', { direction: 'recvonly' });
-          } catch {}
+          try { this.pc.addTransceiver('audio', { direction: 'recvonly' }); } catch {}
         }
       }
 
       // Fetch past signals (for late joiners) with retry for race condition
       await this.fetchPastSignals();
-      
-      // RECEIVER: If no offer found/processed, retry (race condition with INSERT)
-      // Check if remote description was set (means offer was processed)
+
+      // RECEIVER: tightened retry delays 200/400/800 to hit sub-3s target.
       if (!this.isInitiator && !this.pc?.remoteDescription) {
-        console.log('🔄 [WebRTC] Receiver: No offer processed yet, retrying in 500ms...');
-        await this.delay(500);
+        await this.delay(200);
         await this.fetchPastSignals();
-        
-        // Second retry after 1s if still no offer
         if (!this.pc?.remoteDescription) {
-          console.log('🔄 [WebRTC] Receiver: Still no offer, retrying in 1s...');
-          await this.delay(1000);
+          await this.delay(400);
           await this.fetchPastSignals();
         }
-        
-        // Third retry after 2s if still no offer (slow networks)
         if (!this.pc?.remoteDescription) {
-          console.log('🔄 [WebRTC] Receiver: Still no offer, final retry in 2s...');
-          await this.delay(2000);
+          await this.delay(800);
           await this.fetchPastSignals();
         }
       }
