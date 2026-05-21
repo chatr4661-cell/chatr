@@ -1,25 +1,12 @@
 /**
- * Adaptive ICE Configuration — CHATR locked architecture
+ * Adaptive ICE Configuration — CHATR ZERO-COST architecture
  *
- * Philosophy: trust ICE. Provide good candidates (host, srflx, IPv6, relay)
- * from the start, set iceTransportPolicy='all', and let ICE nominate the
- * best path naturally. No forced relay, no manual escalation, no aggressive
- * intervention. TURN exists as fallback infrastructure — gathered early,
- * never injected later.
- *
- * ICE servers:
- *   - Google STUN (IPv4 + IPv6 srflx, including IPv6 direct on Jio/Airtel LTE)
- *   - Cloudflare TURN UDP/TCP/TLS (fetched from /api/turn-credentials)
- *   - Metered TURN (static fallback if Cloudflare endpoint unavailable)
+ * 100% free infrastructure. Cloudflare TURN removed (paid beyond free tier).
+ * Stack: Google/Cloudflare public STUN + Metered.ca free TURN + OpenRelay
+ * free TURN as redundancy. Mobile-data ↔ mobile-data (CGNAT) survives via
+ * multiple free TURN relays on UDP/TCP/TLS 443 so at least one path
+ * penetrates carrier NATs.
  */
-
-// Production-only absolute endpoint. The relative `/api/turn-credentials`
-// path was removed because Lovable preview, lovableproject.com, localhost,
-// and Capacitor WebViews return SPA index.html (HTML) for it, producing
-// noisy JSON-parse failures and wasted round-trips. ICE now uses this
-// absolute endpoint directly, falling back to the static Metered relay.
-const PRODUCTION_TURN_ENDPOINT = 'https://chatr.chat/api/turn-credentials';
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1h — Cloudflare creds are 24h TTL
 
 const GOOGLE_STUN: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -27,18 +14,35 @@ const GOOGLE_STUN: RTCIceServer[] = [
   { urls: 'stun:stun.cloudflare.com:3478' },
 ];
 
-// Static Metered fallback (only if /api/turn-credentials is unreachable).
-const METERED_FALLBACK: RTCIceServer[] = [
+// Free TURN #1 — Metered.ca free tier
+const METERED_FREE: RTCIceServer[] = [
   {
     urls: [
       'turns:a.relay.metered.ca:443?transport=tcp',
       'turn:a.relay.metered.ca:443?transport=tcp',
       'turn:a.relay.metered.ca:80',
+      'turn:a.relay.metered.ca:80?transport=tcp',
     ],
     username: 'e8dd65c92ae9a3b9bfcbeb6e',
     credential: 'uWdWNmkhvyqTW1QP',
   },
 ];
+
+// Free TURN #2 — OpenRelay public (no signup, no cost)
+const OPENRELAY_FREE: RTCIceServer[] = [
+  {
+    urls: [
+      'turn:openrelay.metered.ca:80',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp',
+      'turns:openrelay.metered.ca:443?transport=tcp',
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+];
+
+const FREE_TURN: RTCIceServer[] = [...METERED_FREE, ...OPENRELAY_FREE];
 
 let cache: { servers: RTCIceServer[]; ts: number } | null = null;
 let inflight: Promise<RTCIceServer[]> | null = null;
@@ -205,61 +209,27 @@ export function logRtcConfiguration(config: RTCConfiguration, context: IceTeleme
   }
 }
 
-async function fetchCloudflareTurn(): Promise<RTCIceServer[]> {
-  if (cache && Date.now() - cache.ts < CACHE_TTL_MS) return cache.servers;
-  if (inflight) return inflight;
-
-  inflight = (async () => {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
-      const res = await fetch(PRODUCTION_TURN_ENDPOINT, { signal: ctrl.signal });
-      clearTimeout(t);
-      if (!res.ok) throw new Error(`turn-credentials ${res.status}`);
-      const ct = res.headers.get('content-type') || '';
-      if (!ct.includes('application/json')) {
-        throw new Error(`turn-credentials non-JSON content-type=${ct}`);
-      }
-      const data = await res.json();
-      const servers = normalizeIceServers(data);
-      if (!servers.length) throw new Error('empty iceServers');
-      cache = { servers, ts: Date.now() };
-      console.log('🧊 [ICE] Cloudflare TURN credentials loaded:', servers.length, 'entries');
-      return servers;
-    } catch (err) {
-      console.warn('⚠️ [ICE] Cloudflare TURN fetch failed, using fallback:', err);
-      return METERED_FALLBACK;
-    } finally {
-      inflight = null;
-    }
-  })();
-
-  return inflight;
-}
-
 /**
- * Pre-warm TURN credentials at app boot so the first call has them ready.
+ * Pre-warm — no-op now that all TURN servers are static & free.
+ * Kept for backward compatibility with existing callers.
  */
 export function warmIceCredentials(): void {
-  fetchCloudflareTurn().catch(() => {});
+  /* zero-cost stack: nothing to fetch */
 }
 
 /**
- * Build the production RTCConfiguration.
+ * Build the production RTCConfiguration using only free infrastructure.
  *
  * - iceTransportPolicy: 'all' — let ICE pick host / srflx / relay naturally
  * - bundlePolicy: 'max-bundle' — single transport
- * - iceCandidatePoolSize: 10 — early gathering, faster setup, TURN ready up-front
+ * - iceCandidatePoolSize: 10 — early gathering, faster setup
  *
- * NOTE: now async. TURN must be present from the start, not injected later.
+ * Mobile-data ↔ mobile-data (CGNAT): both Metered & OpenRelay free TURN are
+ * included so ICE has redundant relay paths on UDP/TCP/TLS:443.
  */
 export async function buildRtcConfig(_opts?: { forceRelay?: boolean }): Promise<RTCConfiguration> {
-  const turn = await fetchCloudflareTurn();
-  // CRITICAL for mobile-data ↔ mobile-data (CGNAT): always include BOTH
-  // Cloudflare TURN and Metered TURN so ICE has redundant relay paths.
-  // If one carrier blocks a given TURN host/port, the other can still relay.
   return {
-    iceServers: [...GOOGLE_STUN, ...turn, ...METERED_FALLBACK],
+    iceServers: [...GOOGLE_STUN, ...FREE_TURN],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
@@ -267,14 +237,10 @@ export async function buildRtcConfig(_opts?: { forceRelay?: boolean }): Promise<
   };
 }
 
-/**
- * Synchronous variant — only for code paths that cannot await.
- * Uses cached creds if available, otherwise the static fallback.
- */
+/** Synchronous variant — same free static config. */
 export function buildRtcConfigSync(): RTCConfiguration {
-  const turn = cache?.servers ?? [];
   return {
-    iceServers: [...GOOGLE_STUN, ...turn, ...METERED_FALLBACK],
+    iceServers: [...GOOGLE_STUN, ...FREE_TURN],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
