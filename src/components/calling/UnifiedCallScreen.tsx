@@ -1055,10 +1055,39 @@ export default function UnifiedCallScreen({
                 {callState === 'reconnecting' && (uiState.message || 'Reconnecting...')}
                 {callState === 'failed' && 'Connection failed'}
               </p>
+
+              {/* Survival banner — sub-2G network warning + emergency audio-only */}
+              {(survivalTier === 'SURVIVAL' || survivalTier === 'WEAK' || audioOnlyForced) && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                  className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 backdrop-blur"
+                >
+                  <span className="text-[11px] text-amber-300 font-medium">
+                    {audioOnlyForced
+                      ? 'Audio-only mode'
+                      : survivalTier === 'SURVIVAL'
+                        ? 'Survival mode · 8 kbps audio'
+                        : 'Weak network'}
+                  </span>
+                  {isVideo && (
+                    <button
+                      onClick={async () => {
+                        const next = !audioOnlyForced;
+                        setAudioOnlyForced(next);
+                        try { await webrtcRef.current?.forceAudioOnly(next); } catch {}
+                      }}
+                      className="text-[11px] font-semibold text-white px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25 transition"
+                    >
+                      {audioOnlyForced ? 'Resume video' : 'Audio only'}
+                    </button>
+                  )}
+                </motion.div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
 
       {/* Keypad Overlay */}
       <AnimatePresence>
