@@ -1800,6 +1800,12 @@ export class SimpleWebRTCCall {
       this.adaptiveMonitorInterval = null;
     }
 
+    // Cleanup 90s resume timer
+    if (this.resumeTimer) {
+      clearTimeout(this.resumeTimer);
+      this.resumeTimer = null;
+    }
+
     // Cleanup ICE monitor
     if (this.iceMonitor) {
       this.iceMonitor.cleanup();
