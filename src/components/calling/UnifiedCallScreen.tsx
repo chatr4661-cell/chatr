@@ -64,6 +64,9 @@ export default function UnifiedCallScreen({
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [currentTier, setCurrentTier] = useState<string>('720p');
+  const [survivalTier, setSurvivalTier] = useState<'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL' | null>(null);
+  const [audioOnlyForced, setAudioOnlyForced] = useState(false);
+  const [showVoiceNoteFallback, setShowVoiceNoteFallback] = useState(false);
   
   // Video upgrade states (simplified - no request/accept flow, FaceTime-style auto)
 
