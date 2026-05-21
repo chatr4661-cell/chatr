@@ -925,6 +925,8 @@ export class SimpleWebRTCCall {
       console.error('❌ [WebRTC] Resume window expired — ending call');
       this.resumeStartedAt = 0;
       this.emit('recoveryStatus', { message: null });
+      // Surface fallback opportunity (voice-note via SMS) BEFORE ending
+      this.emit('callFailed', { reason: 'resume-window-expired', partnerId: this.remoteUserId });
       this.emit('ended');
       return;
     }
