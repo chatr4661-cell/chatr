@@ -1243,6 +1243,14 @@ export default function UnifiedCallScreen({
           }
         }}
       />
+
+      {/* Voice-note SMS fallback — shown when WebRTC truly cannot recover */}
+      <VoiceNoteFallbackSheet
+        open={showVoiceNoteFallback}
+        contactName={contactName}
+        contactPhone={contactPhone}
+        onClose={() => { setShowVoiceNoteFallback(false); handleEndCall(); }}
+      />
     </div>
   );
 
