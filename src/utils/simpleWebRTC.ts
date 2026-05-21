@@ -414,82 +414,50 @@ export class SimpleWebRTCCall {
         this.emit('videoDowngraded', { reason: 'extreme_low_network' });
       }
 
-      // ULTRA HD VIDEO with progressive fallback
+      // FAST INITIAL ACQUIRE: start at 720p directly — Adaptive Bitrate Engine
+      // will upgrade to 1080p/4K post-connect. Trying 4K/1080p@60 first costs
+      // 1-3s per failed attempt on most webcams, blowing the sub-3s budget.
       const constraints: MediaStreamConstraints = {
         audio: audioConstraints,
         video: effectiveIsVideo ? {
-          width: { ideal: 3840, min: 640 },
-          height: { ideal: 2160, min: 480 },
-          frameRate: { ideal: 60, min: 15 },
+          width: { ideal: 1280, min: 320 },
+          height: { ideal: 720, min: 240 },
+          frameRate: { ideal: 30, min: 10 },
           facingMode: 'user',
-          aspectRatio: { ideal: 16/9 },
-        } : false
+          aspectRatio: { ideal: 16 / 9 },
+        } : false,
       };
 
-      console.log('🎬 [WebRTC] Requesting ULTRA HD media with AUTO NOISE CANCELLATION...');
+      console.log('🎬 [WebRTC] Requesting 720p fast-start media...');
       const startTime = Date.now();
-      
-      // Progressive fallback: 4K → 1080p60 → 1080p30 → 720p → 480p → minimal
-      const videoProfiles = effectiveIsVideo ? [
-        { width: 3840, height: 2160, fps: 60, label: '4K@60fps' },
-        { width: 1920, height: 1080, fps: 60, label: '1080p@60fps' },
-        { width: 1920, height: 1080, fps: 30, label: '1080p@30fps' },
-        { width: 1280, height: 720, fps: 30, label: '720p@30fps' },
-        { width: 640, height: 480, fps: 24, label: '480p@24fps' },
-        { width: 320, height: 240, fps: 15, label: '240p@15fps' }, // Ultra-low bandwidth
-      ] : [];
-      
-      let acquired = false;
-      
-      for (const profile of videoProfiles) {
-        if (acquired) break;
-        try {
-          const profileConstraints: MediaStreamConstraints = {
-            audio: audioConstraints,
-            video: {
-              width: { ideal: profile.width, min: 320 },
-              height: { ideal: profile.height, min: 240 },
-              frameRate: { ideal: profile.fps, min: 10 },
-              facingMode: 'user',
-            }
-          };
-          this.localStream = await navigator.mediaDevices.getUserMedia(profileConstraints);
-          const videoTrack = this.localStream.getVideoTracks()[0];
-          if (videoTrack) {
-            const settings = videoTrack.getSettings();
-            console.log(`✅ [WebRTC] Video acquired: ${settings.width}x${settings.height}@${settings.frameRate}fps (${profile.label}) in ${Date.now() - startTime}ms`);
-          }
-          acquired = true;
-        } catch (e) {
-          console.log(`⚠️ [WebRTC] ${profile.label} failed, trying lower...`);
-        }
-      }
-      
-      // Final fallback: audio only or basic video
-      if (!acquired) {
-        if (effectiveIsVideo) {
-          try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({ 
-              audio: audioConstraints, 
-              video: true 
-            });
-            console.log(`✅ [WebRTC] Basic video acquired in ${Date.now() - startTime}ms`);
-          } catch (basicVideoError) {
-            // Audio only fallback
-            this.localStream = await navigator.mediaDevices.getUserMedia({ 
-              audio: audioConstraints, 
-              video: false 
-            });
-            console.log(`✅ [WebRTC] Audio-only fallback in ${Date.now() - startTime}ms`);
-          }
+
+      try {
+        this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const vt = this.localStream.getVideoTracks()[0];
+        if (vt) {
+          const s = vt.getSettings();
+          console.log(`✅ [WebRTC] Media acquired: ${s.width}x${s.height}@${s.frameRate}fps in ${Date.now() - startTime}ms`);
         } else {
-          this.localStream = await navigator.mediaDevices.getUserMedia({ 
-            audio: audioConstraints, 
-            video: false 
-          });
           console.log(`✅ [WebRTC] Audio acquired in ${Date.now() - startTime}ms`);
         }
+      } catch (primaryErr) {
+        console.warn('⚠️ [WebRTC] 720p failed, falling back to basic constraints:', primaryErr);
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia({
+            audio: audioConstraints,
+            video: effectiveIsVideo ? true : false,
+          });
+          console.log(`✅ [WebRTC] Basic media acquired in ${Date.now() - startTime}ms`);
+        } catch (basicErr) {
+          // Audio-only last resort for video calls
+          this.localStream = await navigator.mediaDevices.getUserMedia({
+            audio: audioConstraints,
+            video: false,
+          });
+          console.log(`✅ [WebRTC] Audio-only fallback in ${Date.now() - startTime}ms`);
+        }
       }
+
       
       this.emit('localStream', this.localStream);
     } catch (error: any) {
