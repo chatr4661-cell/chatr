@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSmartReplies } from '@/hooks/useOnDeviceAI';
 
 interface SmartComposeProps {
   messages: any[];
@@ -11,6 +12,7 @@ interface SmartComposeProps {
 
 export const SmartCompose = ({ messages, onSelectSuggestion }: SmartComposeProps) => {
   const { toast } = useToast();
+  const { getSuggestedReplies, device } = useSmartReplies();
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -22,28 +24,17 @@ export const SmartCompose = ({ messages, onSelectSuggestion }: SmartComposeProps
 
   const generateSuggestions = async () => {
     setIsLoading(true);
-    
     try {
       const recentMessages = messages.slice(-5).map(msg => ({
         sender: msg.sender?.username || 'User',
         content: msg.content
       }));
-
-      const { data, error } = await supabase.functions.invoke('smart-compose', {
-        body: { recentMessages, context: 'general conversation' }
-      });
-
-      if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setSuggestions(data.suggestions || []);
+      // On-device Nano first; transparent cloud fallback inside the hook
+      const result = await getSuggestedReplies(recentMessages);
+      setSuggestions(result || []);
+      console.log(`[SmartCompose] generated via ${device}`);
     } catch (error: any) {
       console.error('Smart compose error:', error);
-      
-      // Only show toast for errors other than rate limits
       if (!error.message?.includes('Rate limit') && !error.message?.includes('credits')) {
         toast({
           title: 'Smart Compose Unavailable',
@@ -51,7 +42,6 @@ export const SmartCompose = ({ messages, onSelectSuggestion }: SmartComposeProps
           variant: 'destructive',
         });
       }
-      
       setSuggestions([]);
     } finally {
       setIsLoading(false);
