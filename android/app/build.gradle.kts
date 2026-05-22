@@ -113,6 +113,9 @@ dependencies {
     implementation("com.capacitorjs:clipboard:6.0.0")
     implementation("com.capacitorjs:device:6.0.0")
     implementation("com.capacitorjs:local-notifications:6.0.0")
+
+    // On-device Gemini Nano (Android AICore via ML Kit GenAI) — zero server cost
+    implementation("com.google.mlkit:genai-prompt:1.0.0-beta01")
     
     // Testing
     testImplementation("junit:junit:4.13.2")
