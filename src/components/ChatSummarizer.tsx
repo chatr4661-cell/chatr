@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useOnDeviceAI } from '@/hooks/useOnDeviceAI';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ interface ChatSummarizerProps {
 
 export const ChatSummarizer = ({ messages }: ChatSummarizerProps) => {
   const { toast } = useToast();
+  const { summarize, device } = useOnDeviceAI();
   const [summary, setSummary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
@@ -40,17 +42,11 @@ export const ChatSummarizer = ({ messages }: ChatSummarizerProps) => {
         content: msg.content
       }));
 
-      const { data, error } = await supabase.functions.invoke('summarize-chat', {
-        body: { messages: formattedMessages }
-      });
-
-      if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setSummary(data.summary);
+      // On-device Nano when available, transparent cloud fallback
+      const text = await summarize(formattedMessages);
+      if (!text) throw new Error('Empty summary');
+      setSummary(text);
+      console.log(`[ChatSummarizer] generated via ${device}`);
     } catch (error: any) {
       console.error('Summarization error:', error);
       toast({

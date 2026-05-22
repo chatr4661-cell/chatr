@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.chatr.app.services.CallForegroundService
 import com.chatr.app.services.VoIPBridgeService
 import com.chatr.app.services.CallBlockingManager
+import com.chatr.app.plugins.OnDeviceAiPlugin
 import com.getcapacitor.BridgeActivity
 
 /**
@@ -41,6 +42,8 @@ class MainActivity : BridgeActivity() {
     private var pendingPermissionRequest: PermissionRequest? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Register Capacitor plugins BEFORE super.onCreate so bridge picks them up
+        registerPlugin(OnDeviceAiPlugin::class.java)
         super.onCreate(savedInstanceState)
         Log.i(TAG, "🚀 MainActivity onCreate")
 
