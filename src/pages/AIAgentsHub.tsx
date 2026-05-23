@@ -57,45 +57,7 @@ const AGENT_CATEGORIES = [
   { id: 'fun', label: 'Fun', icon: Star },
 ];
 
-// Featured/trending agents (mock data - replace with DB)
-const FEATURED_AGENTS = [
-  {
-    id: 'luna',
-    name: 'Luna',
-    tagline: 'Your empathetic AI friend',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=luna',
-    category: 'fun',
-    creator: 'CHATR',
-    rating: 4.9,
-    conversations: 125000,
-    isOfficial: true,
-    personality: 'Warm, understanding, always there to listen',
-  },
-  {
-    id: 'dr-health',
-    name: 'Dr. Health',
-    tagline: 'AI health advisor',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=doctor',
-    category: 'health',
-    creator: 'CHATR',
-    rating: 4.8,
-    conversations: 89000,
-    isOfficial: true,
-    personality: 'Professional, caring, evidence-based',
-  },
-  {
-    id: 'biz-assistant',
-    name: 'Business Pro',
-    tagline: 'Your 24/7 business assistant',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=business',
-    category: 'business',
-    creator: 'CHATR',
-    rating: 4.7,
-    conversations: 56000,
-    isOfficial: true,
-    personality: 'Professional, efficient, goal-oriented',
-  },
-];
+// No mock agents — Discover/Marketplace shows only real agents from DB.
 
 interface UserAgent {
   id: string;
