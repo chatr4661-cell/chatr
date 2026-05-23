@@ -392,7 +392,13 @@ export default function AIAgentsHub() {
             </div>
             <ScrollArea className="w-full">
               <div className="flex gap-3 pb-2">
-                {(publicAgents.length > 0 ? publicAgents.slice(0, 5) : FEATURED_AGENTS).map((agent) => (
+                {publicAgents.length === 0 ? (
+                  <Card className="min-w-[280px] border-dashed">
+                    <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                      No public agents yet. Be the first to publish one.
+                    </CardContent>
+                  </Card>
+                ) : publicAgents.slice(0, 5).map((agent) => (
                   <Card 
                     key={agent.id}
                     className="min-w-[280px] cursor-pointer hover:bg-muted/50 transition-colors"
@@ -401,19 +407,19 @@ export default function AIAgentsHub() {
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3 mb-3">
                         <Avatar className="h-14 w-14">
-                          <AvatarImage src={agent.agent_avatar_url || agent.avatar} />
+                          <AvatarImage src={agent.agent_avatar_url || undefined} />
                           <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600">
                             <Bot className="h-6 w-6 text-white" />
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold">{agent.agent_name || agent.name}</h3>
+                            <h3 className="font-bold">{agent.agent_name}</h3>
                             {agent.is_active && (
                               <Shield className="h-4 w-4 text-primary" />
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">{agent.agent_description || agent.tagline}</p>
+                          <p className="text-xs text-muted-foreground">{agent.agent_description || agent.agent_purpose}</p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
