@@ -57,45 +57,7 @@ const AGENT_CATEGORIES = [
   { id: 'fun', label: 'Fun', icon: Star },
 ];
 
-// Featured/trending agents (mock data - replace with DB)
-const FEATURED_AGENTS = [
-  {
-    id: 'luna',
-    name: 'Luna',
-    tagline: 'Your empathetic AI friend',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=luna',
-    category: 'fun',
-    creator: 'CHATR',
-    rating: 4.9,
-    conversations: 125000,
-    isOfficial: true,
-    personality: 'Warm, understanding, always there to listen',
-  },
-  {
-    id: 'dr-health',
-    name: 'Dr. Health',
-    tagline: 'AI health advisor',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=doctor',
-    category: 'health',
-    creator: 'CHATR',
-    rating: 4.8,
-    conversations: 89000,
-    isOfficial: true,
-    personality: 'Professional, caring, evidence-based',
-  },
-  {
-    id: 'biz-assistant',
-    name: 'Business Pro',
-    tagline: 'Your 24/7 business assistant',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=business',
-    category: 'business',
-    creator: 'CHATR',
-    rating: 4.7,
-    conversations: 56000,
-    isOfficial: true,
-    personality: 'Professional, efficient, goal-oriented',
-  },
-];
+// No mock agents — Discover/Marketplace shows only real agents from DB.
 
 interface UserAgent {
   id: string;
@@ -430,7 +392,13 @@ export default function AIAgentsHub() {
             </div>
             <ScrollArea className="w-full">
               <div className="flex gap-3 pb-2">
-                {(publicAgents.length > 0 ? publicAgents.slice(0, 5) : FEATURED_AGENTS).map((agent) => (
+                {publicAgents.length === 0 ? (
+                  <Card className="min-w-[280px] border-dashed">
+                    <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                      No public agents yet. Be the first to publish one.
+                    </CardContent>
+                  </Card>
+                ) : publicAgents.slice(0, 5).map((agent) => (
                   <Card 
                     key={agent.id}
                     className="min-w-[280px] cursor-pointer hover:bg-muted/50 transition-colors"
@@ -439,19 +407,19 @@ export default function AIAgentsHub() {
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3 mb-3">
                         <Avatar className="h-14 w-14">
-                          <AvatarImage src={agent.agent_avatar_url || agent.avatar} />
+                          <AvatarImage src={agent.agent_avatar_url || undefined} />
                           <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600">
                             <Bot className="h-6 w-6 text-white" />
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold">{agent.agent_name || agent.name}</h3>
+                            <h3 className="font-bold">{agent.agent_name}</h3>
                             {agent.is_active && (
                               <Shield className="h-4 w-4 text-primary" />
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">{agent.agent_description || agent.tagline}</p>
+                          <p className="text-xs text-muted-foreground">{agent.agent_description || agent.agent_purpose}</p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -485,16 +453,22 @@ export default function AIAgentsHub() {
               <Button variant="ghost" size="sm">See all</Button>
             </div>
             <div className="grid gap-3">
-              {(trendingAgents.length > 0 ? trendingAgents : [1, 2, 3].map(i => ({ id: i, agent_name: `Study Buddy ${i}`, agent_description: 'Helps with homework & learning', total_messages: (50 - i * 10) * 1000 }))).map((agent, idx) => (
+              {trendingAgents.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                    No trending agents yet. Start chatting to fuel the leaderboard.
+                  </CardContent>
+                </Card>
+              ) : trendingAgents.map((agent, idx) => (
                 <Card 
                   key={agent.id} 
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => typeof agent.id === 'string' && navigate(`/ai-agents/chat/${agent.id}`)}
+                  onClick={() => navigate(`/ai-agents/chat/${agent.id}`)}
                 >
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="font-bold text-xl text-muted-foreground w-6">#{idx + 1}</div>
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={agent.agent_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=trend${agent.id}`} />
+                      <AvatarImage src={agent.agent_avatar_url || undefined} />
                       <AvatarFallback>AI</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -563,9 +537,24 @@ export default function AIAgentsHub() {
           </ScrollArea>
 
           {/* Agent Grid */}
+          {publicAgents.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                No public agents in the marketplace yet.
+              </CardContent>
+            </Card>
+          ) : (
           <div className="grid sm:grid-cols-2 gap-4">
-            {(publicAgents.length > 0 ? publicAgents : FEATURED_AGENTS)
-              .filter(agent => selectedCategory === 'all' || agent.category === selectedCategory)
+            {publicAgents
+              .filter(agent => {
+                if (selectedCategory === 'all') return true;
+                const p = (agent.agent_purpose || '').toLowerCase();
+                if (selectedCategory === 'personal') return /personal|habit|friend/.test(p);
+                if (selectedCategory === 'business') return /business|work|support/.test(p);
+                if (selectedCategory === 'health') return /health|doctor|wellness/.test(p);
+                if (selectedCategory === 'local') return /local|service|near/.test(p);
+                return !/personal|habit|friend|business|work|support|health|doctor|wellness|local|service|near/.test(p);
+              })
               .map((agent) => (
               <Card 
                 key={agent.id}
@@ -575,23 +564,23 @@ export default function AIAgentsHub() {
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3 mb-4">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage src={agent.agent_avatar_url || agent.avatar} />
+                      <AvatarImage src={agent.agent_avatar_url || undefined} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600">
                         <Bot className="h-8 w-8 text-white" />
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold">{agent.agent_name || agent.name}</h3>
+                        <h3 className="font-bold">{agent.agent_name}</h3>
                         {agent.is_active && (
                           <Badge variant="secondary" className="text-xs">Active</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{agent.agent_description || agent.tagline}</p>
+                      <p className="text-sm text-muted-foreground">{agent.agent_description || agent.agent_purpose}</p>
                       <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <MessageSquare className="h-3 w-3" />
-                          {formatNumber(agent.total_messages || agent.conversations || 0)}
+                          {formatNumber(agent.total_messages || 0)}
                         </span>
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
@@ -613,6 +602,7 @@ export default function AIAgentsHub() {
               </Card>
             ))}
           </div>
+          )}
         </TabsContent>
 
         {/* AI Brain Tab */}
