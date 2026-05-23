@@ -537,9 +537,24 @@ export default function AIAgentsHub() {
           </ScrollArea>
 
           {/* Agent Grid */}
+          {publicAgents.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                No public agents in the marketplace yet.
+              </CardContent>
+            </Card>
+          ) : (
           <div className="grid sm:grid-cols-2 gap-4">
-            {(publicAgents.length > 0 ? publicAgents : FEATURED_AGENTS)
-              .filter(agent => selectedCategory === 'all' || agent.category === selectedCategory)
+            {publicAgents
+              .filter(agent => {
+                if (selectedCategory === 'all') return true;
+                const p = (agent.agent_purpose || '').toLowerCase();
+                if (selectedCategory === 'personal') return /personal|habit|friend/.test(p);
+                if (selectedCategory === 'business') return /business|work|support/.test(p);
+                if (selectedCategory === 'health') return /health|doctor|wellness/.test(p);
+                if (selectedCategory === 'local') return /local|service|near/.test(p);
+                return !/personal|habit|friend|business|work|support|health|doctor|wellness|local|service|near/.test(p);
+              })
               .map((agent) => (
               <Card 
                 key={agent.id}
@@ -549,23 +564,23 @@ export default function AIAgentsHub() {
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3 mb-4">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage src={agent.agent_avatar_url || agent.avatar} />
+                      <AvatarImage src={agent.agent_avatar_url || undefined} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600">
                         <Bot className="h-8 w-8 text-white" />
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold">{agent.agent_name || agent.name}</h3>
+                        <h3 className="font-bold">{agent.agent_name}</h3>
                         {agent.is_active && (
                           <Badge variant="secondary" className="text-xs">Active</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{agent.agent_description || agent.tagline}</p>
+                      <p className="text-sm text-muted-foreground">{agent.agent_description || agent.agent_purpose}</p>
                       <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <MessageSquare className="h-3 w-3" />
-                          {formatNumber(agent.total_messages || agent.conversations || 0)}
+                          {formatNumber(agent.total_messages || 0)}
                         </span>
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
@@ -587,6 +602,7 @@ export default function AIAgentsHub() {
               </Card>
             ))}
           </div>
+          )}
         </TabsContent>
 
         {/* AI Brain Tab */}
