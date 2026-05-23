@@ -453,16 +453,22 @@ export default function AIAgentsHub() {
               <Button variant="ghost" size="sm">See all</Button>
             </div>
             <div className="grid gap-3">
-              {(trendingAgents.length > 0 ? trendingAgents : [1, 2, 3].map(i => ({ id: i, agent_name: `Study Buddy ${i}`, agent_description: 'Helps with homework & learning', total_messages: (50 - i * 10) * 1000 }))).map((agent, idx) => (
+              {trendingAgents.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                    No trending agents yet. Start chatting to fuel the leaderboard.
+                  </CardContent>
+                </Card>
+              ) : trendingAgents.map((agent, idx) => (
                 <Card 
                   key={agent.id} 
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => typeof agent.id === 'string' && navigate(`/ai-agents/chat/${agent.id}`)}
+                  onClick={() => navigate(`/ai-agents/chat/${agent.id}`)}
                 >
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="font-bold text-xl text-muted-foreground w-6">#{idx + 1}</div>
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={agent.agent_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=trend${agent.id}`} />
+                      <AvatarImage src={agent.agent_avatar_url || undefined} />
                       <AvatarFallback>AI</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
