@@ -151,6 +151,7 @@ export const OrderSuccessPage = lazy(() => import('@/pages/marketplace/OrderSucc
 // Food & Deals
 export const FoodOrdering = lazy(() => import('@/pages/FoodOrdering'));
 export const LocalDeals = lazy(() => import('@/pages/LocalDeals'));
+export const NexgennHomeSolutions = lazy(() => import('@/pages/NexgennHomeSolutions'));
 export const RestaurantDetail = lazy(() => import('@/pages/food/RestaurantDetail'));
 export const FoodCheckout = lazy(() => import('@/pages/food/FoodCheckout'));
 export const OrderTracking = lazy(() => import('@/pages/food/OrderTracking'));
