@@ -275,6 +275,7 @@ const App = () => {
             <Route path="/order-tracking/:orderId" element={<LazyRoute component={LazyPages.OrderTracking} />} />
             <Route path="/order-history" element={<LazyRoute component={LazyPages.OrderHistory} />} />
             <Route path="/local-deals" element={<LazyRoute component={LazyPages.LocalDeals} />} />
+            <Route path="/home-solutions" element={<LazyRoute component={LazyPages.NexgennHomeSolutions} />} />
             
             {/* Earning / Micro-Tasks Routes */}
             <Route path="/earn" element={<ProtectedLazyRoute component={LazyPages.Earn} />} />
