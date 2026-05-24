@@ -299,6 +299,41 @@ export default function LocalDeals() {
             </ScrollArea>
           </div>
 
+          {/* Home Solutions by Nexgenn */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="font-bold">Home Solutions by Nexgenn</h2>
+                <p className="text-xs text-muted-foreground">Workers, materials & interior design — powered by Chatr+</p>
+              </div>
+              <Button variant="link" size="sm" className="text-primary p-0 h-auto" onClick={() => navigate('/home-solutions')}>Explore</Button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div
+                onClick={() => navigate('/home-solutions?section=construction')}
+                className="cursor-pointer rounded-2xl p-4 relative overflow-hidden text-white"
+                style={{ background: 'linear-gradient(135deg, #1A1A2E 0%, #0F3460 100%)', minHeight: 140 }}
+              >
+                <div className="absolute -bottom-3 -right-2 text-6xl opacity-10">🏗️</div>
+                <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: '#FF6B35' }}>CONSTRUCTION</div>
+                <div className="font-extrabold text-base leading-tight">Workers, Labour & Materials</div>
+                <div className="text-[11px] opacity-70 mt-1">From ₹700/day</div>
+                <div className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: 'rgba(255,107,53,0.2)', color: '#FF6B35' }}>↗ Book Now</div>
+              </div>
+              <div
+                onClick={() => navigate('/home-solutions?section=interior')}
+                className="cursor-pointer rounded-2xl p-4 relative overflow-hidden text-white"
+                style={{ background: 'linear-gradient(135deg, #2C1F3E 0%, #5C3D6B 60%, #8B5E8B 100%)', minHeight: 140 }}
+              >
+                <div className="absolute -bottom-3 -right-2 text-6xl opacity-10">🏡</div>
+                <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: '#C9A96E' }}>INTERIOR DESIGN</div>
+                <div className="font-extrabold text-base leading-tight">Transform Your Spaces</div>
+                <div className="text-[11px] opacity-70 mt-1">From ₹3,500 · Women-led ✨</div>
+                <div className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: 'rgba(201,169,110,0.25)', color: '#C9A96E' }}>↗ Explore</div>
+              </div>
+            </div>
+          </div>
+
           {/* All Categories */}
           <div>
             <h2 className="font-bold mb-3">All Services</h2>
