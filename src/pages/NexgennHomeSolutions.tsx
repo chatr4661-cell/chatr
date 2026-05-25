@@ -541,10 +541,12 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
 
   useEffect(() => {
     if (!userId) return;
-    supabase.from("profiles").select("display_name,phone_number").eq("user_id", userId).maybeSingle().then(({ data }) => {
-      if (data?.display_name) setName(data.display_name);
-      if (data?.phone_number) setPhone(data.phone_number);
-    }).then(undefined, () => {});
+    (async () => {
+      const { data } = await supabase.from("profiles").select("full_name,username,phone_number").eq("id", userId).maybeSingle();
+      const d: any = data;
+      if (d?.full_name || d?.username) setName(d.full_name || d.username);
+      if (d?.phone_number) setPhone(d.phone_number);
+    })();
   }, [userId]);
 
   const isWorker = selected.category === "worker";
