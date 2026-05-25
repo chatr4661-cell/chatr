@@ -9207,6 +9207,69 @@ export type Database = {
           },
         ]
       }
+      home_solutions_bookings: {
+        Row: {
+          address: string
+          category: Database["public"]["Enums"]["home_solutions_category"]
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          id: string
+          item_code: string
+          item_icon: string | null
+          item_title: string
+          items: Json
+          notes: string | null
+          preferred_date: string | null
+          price_label: string | null
+          quantity: number
+          status: Database["public"]["Enums"]["home_solutions_status"]
+          total_amount: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          category: Database["public"]["Enums"]["home_solutions_category"]
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          id?: string
+          item_code: string
+          item_icon?: string | null
+          item_title: string
+          items?: Json
+          notes?: string | null
+          preferred_date?: string | null
+          price_label?: string | null
+          quantity?: number
+          status?: Database["public"]["Enums"]["home_solutions_status"]
+          total_amount?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          category?: Database["public"]["Enums"]["home_solutions_category"]
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          item_code?: string
+          item_icon?: string | null
+          item_title?: string
+          items?: Json
+          notes?: string | null
+          preferred_date?: string | null
+          price_label?: string | null
+          quantity?: number
+          status?: Database["public"]["Enums"]["home_solutions_status"]
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       identity_access_rules: {
         Row: {
           created_at: string
@@ -19467,6 +19530,13 @@ export type Database = {
         | "referral_referrer_bonus"
         | "referral_signup_bonus"
         | "manual_adjustment"
+      home_solutions_category: "worker" | "interior" | "material"
+      home_solutions_status:
+        | "pending"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
       referral_status:
         | "pending"
         | "signed_up"
@@ -19614,6 +19684,14 @@ export const Constants = {
         "referral_referrer_bonus",
         "referral_signup_bonus",
         "manual_adjustment",
+      ],
+      home_solutions_category: ["worker", "interior", "material"],
+      home_solutions_status: [
+        "pending",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "cancelled",
       ],
       referral_status: [
         "pending",
