@@ -131,7 +131,7 @@ export default function NexgennHomeSolutions() {
           onAuthRequired={() => { setCartOpen(false); navigate("/auth?next=/home-solutions"); }}
         />
       )}
-      {booked && <SuccessToast booked={booked} onClose={() => setBooked(null)} onViewOrders={() => { setBooked(null); setSection("orders"); }} theme={section === "interior" ? "interior" : "navy"} />}
+      {booked && <ConfirmationSheet booked={booked} onClose={() => setBooked(null)} onViewOrders={() => { setBooked(null); setSection("orders"); }} theme={section === "interior" ? "interior" : "navy"} />}
     </>
   );
 }
