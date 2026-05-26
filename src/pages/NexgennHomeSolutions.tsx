@@ -526,6 +526,15 @@ function WorkerCard({ worker, onBook, theme }: any) {
 }
 
 // ─── Booking Modal ───────────────────────────────────────────────────────────
+// E.164 normalization (defaults to +91 for 10-digit IN numbers per project standard)
+function normalizePhone(raw: string): string | null {
+  const cleaned = raw.replace(/[\s\-()]/g, "");
+  if (/^\+[1-9]\d{9,14}$/.test(cleaned)) return cleaned;
+  if (/^[6-9]\d{9}$/.test(cleaned)) return `+91${cleaned}`;
+  if (/^0[6-9]\d{9}$/.test(cleaned)) return `+91${cleaned.slice(1)}`;
+  return null;
+}
+
 function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequired }: any) {
   const accent = theme === "interior" ? "linear-gradient(135deg, #2C1F3E, #5C3D6B)" : "linear-gradient(135deg, #0F3460, #5B67FF)";
   const isInterior = theme === "interior";
@@ -536,16 +545,16 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
   const [date, setDate] = useState("");
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
+  const [payMethod, setPayMethod] = useState<"cod" | "upi_advance">("cod");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const { data } = await supabase.from("profiles").select("full_name,username,phone_number").eq("id", userId).maybeSingle();
-      const d: any = data;
-      if (d?.full_name || d?.username) setName(d.full_name || d.username);
-      if (d?.phone_number) setPhone(d.phone_number);
+      const { data } = await supabase.from("profiles").select("username,phone_number").eq("id", userId).maybeSingle();
+      if (data?.username) setName(data.username);
+      if (data?.phone_number) setPhone(data.phone_number);
     })();
   }, [userId]);
 
@@ -557,25 +566,27 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
     setErr("");
     if (!userId) { onAuthRequired(); return; }
     if (!name.trim() || name.trim().length < 2) { setErr("Please enter your name"); return; }
-    if (!/^\+?[1-9]\d{9,14}$/.test(phone.replace(/\s/g, ""))) { setErr("Please enter a valid phone number"); return; }
+    const normPhone = normalizePhone(phone);
+    if (!normPhone) { setErr("Enter a valid 10-digit Indian mobile or full international number"); return; }
     if (address.trim().length < 10) { setErr("Please enter complete address (min 10 chars)"); return; }
 
     setSubmitting(true);
+    // total_amount is intentionally omitted — server trigger recomputes from catalog
     const { data, error } = await supabase.from("home_solutions_bookings").insert({
       user_id: userId,
       category: selected.category,
       item_code: selected.id,
       item_title: selected.title,
       item_icon: selected.icon || null,
-      items: [{ id: selected.id, title: selected.title, qty, unitPrice: selected.unitPrice || 0 }],
+      items: [{ id: selected.id, title: selected.title, qty }],
       quantity: qty,
       price_label: unitDisplay,
-      total_amount: total > 0 ? total : null,
       contact_name: name.trim(),
-      contact_phone: phone.trim(),
+      contact_phone: normPhone,
       address: address.trim(),
       preferred_date: date || null,
       notes: notes.trim() || null,
+      payment_method: selected.unitPrice > 0 ? payMethod : "cod",
     }).select().single();
     setSubmitting(false);
 
@@ -599,7 +610,7 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Full name" style={inputStyle} />
         </Field>
         <Field label="Phone Number *">
-          <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 98765 43210" inputMode="tel" style={inputStyle} />
+          <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="98765 43210" inputMode="tel" style={inputStyle} />
         </Field>
         <Field label="Service Address *">
           <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="House no., street, area, city, pincode" rows={2} style={{ ...inputStyle, resize: "vertical" as const }} />
@@ -616,6 +627,16 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
             </div>
           </Field>
         )}
+        {selected.unitPrice > 0 && (
+          <Field label="Payment">
+            <div style={{ display: "flex", gap: 8 }}>
+              {([["cod","Pay after service"],["upi_advance","UPI advance (10%)"]] as const).map(([v,l]) => (
+                <button key={v} onClick={() => setPayMethod(v as any)}
+                  style={{ flex: 1, padding: "10px", borderRadius: 10, border: payMethod === v ? `2px solid ${isInterior ? "#5C3D6B" : "#0F3460"}` : "2px solid #ddd", background: payMethod === v ? (isInterior ? "#F9F4EE" : "#EEF0FF") : "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{l}</button>
+              ))}
+            </div>
+          </Field>
+        )}
         <Field label="Notes (optional)">
           <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any specific requirements" rows={2} style={{ ...inputStyle, resize: "vertical" as const }} />
         </Field>
@@ -628,6 +649,7 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
             <Row bold label="Estimated Total" value={total > 0 ? `₹${total.toLocaleString("en-IN")}` : unitDisplay} />
           </div>
           {selected.unitPrice === 0 && <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Final quote confirmed after site visit.</div>}
+          <div style={{ fontSize: 10, color: "#999", marginTop: 6 }}>🔒 Final price confirmed server-side from live catalog.</div>
         </div>
 
         {err && <div style={{ color: "#C62828", fontSize: 12, marginTop: 8 }}>{err}</div>}
