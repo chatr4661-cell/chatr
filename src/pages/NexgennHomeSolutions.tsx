@@ -679,10 +679,9 @@ function CartSheet({ cart, setCart, updateQty, onClose, userId, onCheckout, onAu
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const { data } = await supabase.from("profiles").select("full_name,username,phone_number").eq("id", userId).maybeSingle();
-      const d: any = data;
-      if (d?.full_name || d?.username) setName(d.full_name || d.username);
-      if (d?.phone_number) setPhone(d.phone_number);
+      const { data } = await supabase.from("profiles").select("username,phone_number").eq("id", userId).maybeSingle();
+      if (data?.username) setName(data.username);
+      if (data?.phone_number) setPhone(data.phone_number);
     })();
   }, [userId]);
 
@@ -691,26 +690,28 @@ function CartSheet({ cart, setCart, updateQty, onClose, userId, onCheckout, onAu
     if (!userId) { onAuthRequired(); return; }
     if (cart.length === 0) return;
     if (!name.trim() || name.trim().length < 2) { setErr("Please enter your name"); return; }
-    if (!/^\+?[1-9]\d{9,14}$/.test(phone.replace(/\s/g, ""))) { setErr("Please enter a valid phone number"); return; }
+    const normPhone = normalizePhone(phone);
+    if (!normPhone) { setErr("Enter a valid 10-digit Indian mobile or full international number"); return; }
     if (address.trim().length < 10) { setErr("Please enter complete delivery address"); return; }
 
     setSubmitting(true);
     const titles = cart.map((c: CartItem) => `${c.qty}× ${c.name}`).join(", ");
+    // total_amount intentionally omitted — server recomputes from catalog
     const { data, error } = await supabase.from("home_solutions_bookings").insert({
       user_id: userId,
       category: "material",
       item_code: "materials_cart",
       item_title: `Materials Order (${cart.length} item${cart.length > 1 ? "s" : ""})`,
       item_icon: "🏺",
-      items: cart,
+      items: cart.map((c: CartItem) => ({ id: c.id, qty: c.qty, name: c.name })),
       quantity: cart.reduce((s: number, c: CartItem) => s + c.qty, 0),
       price_label: `₹${total.toLocaleString("en-IN")}`,
-      total_amount: total,
       contact_name: name.trim(),
-      contact_phone: phone.trim(),
+      contact_phone: normPhone,
       address: address.trim(),
       preferred_date: date || null,
       notes: titles,
+      payment_method: "cod",
     }).select().single();
     setSubmitting(false);
 
