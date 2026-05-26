@@ -777,14 +777,30 @@ function CartSheet({ cart, setCart, updateQty, onClose, userId, onCheckout, onAu
   );
 }
 
-function SuccessToast({ booked, onClose, onViewOrders, theme }: any) {
-  const bg = theme === "interior" ? "#2C1F3E" : "#0F3460";
+// Silent UX-compliant inline bottom sheet (no system toasts)
+function ConfirmationSheet({ booked, onClose, onViewOrders, theme }: any) {
+  const accent = theme === "interior" ? "#5C3D6B" : "#0F3460";
+  const isPaid = booked.payment_status === "paid";
   return (
-    <div style={{ position: "fixed", top: 60, left: "50%", transform: "translateX(-50%)", background: bg, color: "#fff", padding: "14px 20px", borderRadius: 16, fontWeight: 600, fontSize: 13, zIndex: 200, boxShadow: "0 8px 30px rgba(0,0,0,0.3)", maxWidth: 360, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div>✅ Order placed! We'll confirm by phone shortly.</div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={onViewOrders} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>View Orders</button>
-        <button onClick={onClose} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Dismiss</button>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", zIndex: 200 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "24px 20px 28px", width: "100%", maxWidth: 420, margin: "0 auto" }}>
+        <div style={{ width: 40, height: 4, background: "#ddd", borderRadius: 2, margin: "0 auto 18px" }} />
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: accent, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 32, marginBottom: 10 }}>✓</div>
+          <div style={{ fontWeight: 800, fontSize: 18, color: "#111" }}>Booking confirmed</div>
+          <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>Order #{String(booked.id).slice(0, 8).toUpperCase()}</div>
+        </div>
+        <div style={{ background: "#F4F5F9", borderRadius: 12, padding: "12px 14px", fontSize: 13, color: "#333", marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>{booked.item_title}</div>
+          <div style={{ fontSize: 11, color: "#666" }}>📞 We'll call {booked.contact_phone} to confirm timing.</div>
+          {booked.payment_method === "upi_advance" && !isPaid && (
+            <div style={{ marginTop: 8, padding: "8px 10px", background: "#FFF4E5", color: "#9A6700", borderRadius: 8, fontSize: 11, fontWeight: 600 }}>UPI advance pending — link will be shared on confirmation call.</div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 12, border: "2px solid #ddd", background: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Close</button>
+          <button onClick={onViewOrders} style={{ flex: 2, padding: "12px", borderRadius: 12, border: "none", background: accent, color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>View My Orders</button>
+        </div>
       </div>
     </div>
   );
