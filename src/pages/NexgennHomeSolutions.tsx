@@ -425,14 +425,30 @@ function OrdersScreen({ onBack, userId }: { onBack: () => void; userId: string |
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
+    let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("home_solutions_bookings")
         .select("*")
         .order("created_at", { ascending: false });
-      setOrders(data || []);
-      setLoading(false);
+      if (!cancelled) { setOrders(data || []); setLoading(false); }
     })();
+
+    // Realtime: vendor status updates appear instantly
+    const channel = supabase
+      .channel(`hsb-user-${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "home_solutions_bookings", filter: `user_id=eq.${userId}` },
+        (payload: any) => {
+          setOrders(prev => {
+            if (payload.eventType === "INSERT") return [payload.new, ...prev];
+            if (payload.eventType === "UPDATE") return prev.map(o => o.id === payload.new.id ? payload.new : o);
+            if (payload.eventType === "DELETE") return prev.filter(o => o.id !== payload.old.id);
+            return prev;
+          });
+        })
+      .subscribe();
+
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [userId]);
 
   const cancel = async (id: string) => {
