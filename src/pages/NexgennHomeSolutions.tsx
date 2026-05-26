@@ -131,7 +131,7 @@ export default function NexgennHomeSolutions() {
           onAuthRequired={() => { setCartOpen(false); navigate("/auth?next=/home-solutions"); }}
         />
       )}
-      {booked && <SuccessToast booked={booked} onClose={() => setBooked(null)} onViewOrders={() => { setBooked(null); setSection("orders"); }} theme={section === "interior" ? "interior" : "navy"} />}
+      {booked && <ConfirmationSheet booked={booked} onClose={() => setBooked(null)} onViewOrders={() => { setBooked(null); setSection("orders"); }} theme={section === "interior" ? "interior" : "navy"} />}
     </>
   );
 }
@@ -425,14 +425,30 @@ function OrdersScreen({ onBack, userId }: { onBack: () => void; userId: string |
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
+    let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("home_solutions_bookings")
         .select("*")
         .order("created_at", { ascending: false });
-      setOrders(data || []);
-      setLoading(false);
+      if (!cancelled) { setOrders(data || []); setLoading(false); }
     })();
+
+    // Realtime: vendor status updates appear instantly
+    const channel = supabase
+      .channel(`hsb-user-${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "home_solutions_bookings", filter: `user_id=eq.${userId}` },
+        (payload: any) => {
+          setOrders(prev => {
+            if (payload.eventType === "INSERT") return [payload.new, ...prev];
+            if (payload.eventType === "UPDATE") return prev.map(o => o.id === payload.new.id ? payload.new : o);
+            if (payload.eventType === "DELETE") return prev.filter(o => o.id !== payload.old.id);
+            return prev;
+          });
+        })
+      .subscribe();
+
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [userId]);
 
   const cancel = async (id: string) => {
@@ -526,6 +542,15 @@ function WorkerCard({ worker, onBook, theme }: any) {
 }
 
 // ─── Booking Modal ───────────────────────────────────────────────────────────
+// E.164 normalization (defaults to +91 for 10-digit IN numbers per project standard)
+function normalizePhone(raw: string): string | null {
+  const cleaned = raw.replace(/[\s\-()]/g, "");
+  if (/^\+[1-9]\d{9,14}$/.test(cleaned)) return cleaned;
+  if (/^[6-9]\d{9}$/.test(cleaned)) return `+91${cleaned}`;
+  if (/^0[6-9]\d{9}$/.test(cleaned)) return `+91${cleaned.slice(1)}`;
+  return null;
+}
+
 function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequired }: any) {
   const accent = theme === "interior" ? "linear-gradient(135deg, #2C1F3E, #5C3D6B)" : "linear-gradient(135deg, #0F3460, #5B67FF)";
   const isInterior = theme === "interior";
@@ -536,16 +561,16 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
   const [date, setDate] = useState("");
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
+  const [payMethod, setPayMethod] = useState<"cod" | "upi_advance">("cod");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const { data } = await supabase.from("profiles").select("full_name,username,phone_number").eq("id", userId).maybeSingle();
-      const d: any = data;
-      if (d?.full_name || d?.username) setName(d.full_name || d.username);
-      if (d?.phone_number) setPhone(d.phone_number);
+      const { data } = await supabase.from("profiles").select("username,phone_number").eq("id", userId).maybeSingle();
+      if (data?.username) setName(data.username);
+      if (data?.phone_number) setPhone(data.phone_number);
     })();
   }, [userId]);
 
@@ -557,25 +582,27 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
     setErr("");
     if (!userId) { onAuthRequired(); return; }
     if (!name.trim() || name.trim().length < 2) { setErr("Please enter your name"); return; }
-    if (!/^\+?[1-9]\d{9,14}$/.test(phone.replace(/\s/g, ""))) { setErr("Please enter a valid phone number"); return; }
+    const normPhone = normalizePhone(phone);
+    if (!normPhone) { setErr("Enter a valid 10-digit Indian mobile or full international number"); return; }
     if (address.trim().length < 10) { setErr("Please enter complete address (min 10 chars)"); return; }
 
     setSubmitting(true);
+    // total_amount is intentionally omitted — server trigger recomputes from catalog
     const { data, error } = await supabase.from("home_solutions_bookings").insert({
       user_id: userId,
       category: selected.category,
       item_code: selected.id,
       item_title: selected.title,
       item_icon: selected.icon || null,
-      items: [{ id: selected.id, title: selected.title, qty, unitPrice: selected.unitPrice || 0 }],
+      items: [{ id: selected.id, title: selected.title, qty }],
       quantity: qty,
       price_label: unitDisplay,
-      total_amount: total > 0 ? total : null,
       contact_name: name.trim(),
-      contact_phone: phone.trim(),
+      contact_phone: normPhone,
       address: address.trim(),
       preferred_date: date || null,
       notes: notes.trim() || null,
+      payment_method: selected.unitPrice > 0 ? payMethod : "cod",
     }).select().single();
     setSubmitting(false);
 
@@ -599,7 +626,7 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Full name" style={inputStyle} />
         </Field>
         <Field label="Phone Number *">
-          <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 98765 43210" inputMode="tel" style={inputStyle} />
+          <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="98765 43210" inputMode="tel" style={inputStyle} />
         </Field>
         <Field label="Service Address *">
           <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="House no., street, area, city, pincode" rows={2} style={{ ...inputStyle, resize: "vertical" as const }} />
@@ -616,6 +643,16 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
             </div>
           </Field>
         )}
+        {selected.unitPrice > 0 && (
+          <Field label="Payment">
+            <div style={{ display: "flex", gap: 8 }}>
+              {([["cod","Pay after service"],["upi_advance","UPI advance (10%)"]] as const).map(([v,l]) => (
+                <button key={v} onClick={() => setPayMethod(v as any)}
+                  style={{ flex: 1, padding: "10px", borderRadius: 10, border: payMethod === v ? `2px solid ${isInterior ? "#5C3D6B" : "#0F3460"}` : "2px solid #ddd", background: payMethod === v ? (isInterior ? "#F9F4EE" : "#EEF0FF") : "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{l}</button>
+              ))}
+            </div>
+          </Field>
+        )}
         <Field label="Notes (optional)">
           <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any specific requirements" rows={2} style={{ ...inputStyle, resize: "vertical" as const }} />
         </Field>
@@ -628,6 +665,7 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
             <Row bold label="Estimated Total" value={total > 0 ? `₹${total.toLocaleString("en-IN")}` : unitDisplay} />
           </div>
           {selected.unitPrice === 0 && <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Final quote confirmed after site visit.</div>}
+          <div style={{ fontSize: 10, color: "#999", marginTop: 6 }}>🔒 Final price confirmed server-side from live catalog.</div>
         </div>
 
         {err && <div style={{ color: "#C62828", fontSize: 12, marginTop: 8 }}>{err}</div>}
@@ -657,10 +695,9 @@ function CartSheet({ cart, setCart, updateQty, onClose, userId, onCheckout, onAu
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const { data } = await supabase.from("profiles").select("full_name,username,phone_number").eq("id", userId).maybeSingle();
-      const d: any = data;
-      if (d?.full_name || d?.username) setName(d.full_name || d.username);
-      if (d?.phone_number) setPhone(d.phone_number);
+      const { data } = await supabase.from("profiles").select("username,phone_number").eq("id", userId).maybeSingle();
+      if (data?.username) setName(data.username);
+      if (data?.phone_number) setPhone(data.phone_number);
     })();
   }, [userId]);
 
@@ -669,26 +706,28 @@ function CartSheet({ cart, setCart, updateQty, onClose, userId, onCheckout, onAu
     if (!userId) { onAuthRequired(); return; }
     if (cart.length === 0) return;
     if (!name.trim() || name.trim().length < 2) { setErr("Please enter your name"); return; }
-    if (!/^\+?[1-9]\d{9,14}$/.test(phone.replace(/\s/g, ""))) { setErr("Please enter a valid phone number"); return; }
+    const normPhone = normalizePhone(phone);
+    if (!normPhone) { setErr("Enter a valid 10-digit Indian mobile or full international number"); return; }
     if (address.trim().length < 10) { setErr("Please enter complete delivery address"); return; }
 
     setSubmitting(true);
     const titles = cart.map((c: CartItem) => `${c.qty}× ${c.name}`).join(", ");
+    // total_amount intentionally omitted — server recomputes from catalog
     const { data, error } = await supabase.from("home_solutions_bookings").insert({
       user_id: userId,
       category: "material",
       item_code: "materials_cart",
       item_title: `Materials Order (${cart.length} item${cart.length > 1 ? "s" : ""})`,
       item_icon: "🏺",
-      items: cart,
+      items: cart.map((c: CartItem) => ({ id: c.id, qty: c.qty, name: c.name })),
       quantity: cart.reduce((s: number, c: CartItem) => s + c.qty, 0),
       price_label: `₹${total.toLocaleString("en-IN")}`,
-      total_amount: total,
       contact_name: name.trim(),
-      contact_phone: phone.trim(),
+      contact_phone: normPhone,
       address: address.trim(),
       preferred_date: date || null,
       notes: titles,
+      payment_method: "cod",
     }).select().single();
     setSubmitting(false);
 
@@ -754,14 +793,30 @@ function CartSheet({ cart, setCart, updateQty, onClose, userId, onCheckout, onAu
   );
 }
 
-function SuccessToast({ booked, onClose, onViewOrders, theme }: any) {
-  const bg = theme === "interior" ? "#2C1F3E" : "#0F3460";
+// Silent UX-compliant inline bottom sheet (no system toasts)
+function ConfirmationSheet({ booked, onClose, onViewOrders, theme }: any) {
+  const accent = theme === "interior" ? "#5C3D6B" : "#0F3460";
+  const isPaid = booked.payment_status === "paid";
   return (
-    <div style={{ position: "fixed", top: 60, left: "50%", transform: "translateX(-50%)", background: bg, color: "#fff", padding: "14px 20px", borderRadius: 16, fontWeight: 600, fontSize: 13, zIndex: 200, boxShadow: "0 8px 30px rgba(0,0,0,0.3)", maxWidth: 360, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div>✅ Order placed! We'll confirm by phone shortly.</div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={onViewOrders} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>View Orders</button>
-        <button onClick={onClose} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Dismiss</button>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", zIndex: 200 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "24px 20px 28px", width: "100%", maxWidth: 420, margin: "0 auto" }}>
+        <div style={{ width: 40, height: 4, background: "#ddd", borderRadius: 2, margin: "0 auto 18px" }} />
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: accent, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 32, marginBottom: 10 }}>✓</div>
+          <div style={{ fontWeight: 800, fontSize: 18, color: "#111" }}>Booking confirmed</div>
+          <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>Order #{String(booked.id).slice(0, 8).toUpperCase()}</div>
+        </div>
+        <div style={{ background: "#F4F5F9", borderRadius: 12, padding: "12px 14px", fontSize: 13, color: "#333", marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>{booked.item_title}</div>
+          <div style={{ fontSize: 11, color: "#666" }}>📞 We'll call {booked.contact_phone} to confirm timing.</div>
+          {booked.payment_method === "upi_advance" && !isPaid && (
+            <div style={{ marginTop: 8, padding: "8px 10px", background: "#FFF4E5", color: "#9A6700", borderRadius: 8, fontSize: 11, fontWeight: 600 }}>UPI advance pending — link will be shared on confirmation call.</div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 12, border: "2px solid #ddd", background: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Close</button>
+          <button onClick={onViewOrders} style={{ flex: 2, padding: "12px", borderRadius: 12, border: "none", background: accent, color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>View My Orders</button>
+        </div>
       </div>
     </div>
   );
