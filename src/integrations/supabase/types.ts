@@ -9210,6 +9210,7 @@ export type Database = {
       home_solutions_bookings: {
         Row: {
           address: string
+          cancellation_reason: string | null
           category: Database["public"]["Enums"]["home_solutions_category"]
           contact_name: string
           contact_phone: string
@@ -9220,6 +9221,8 @@ export type Database = {
           item_title: string
           items: Json
           notes: string | null
+          payment_method: string
+          payment_status: string
           preferred_date: string | null
           price_label: string | null
           quantity: number
@@ -9230,6 +9233,7 @@ export type Database = {
         }
         Insert: {
           address: string
+          cancellation_reason?: string | null
           category: Database["public"]["Enums"]["home_solutions_category"]
           contact_name: string
           contact_phone: string
@@ -9240,6 +9244,8 @@ export type Database = {
           item_title: string
           items?: Json
           notes?: string | null
+          payment_method?: string
+          payment_status?: string
           preferred_date?: string | null
           price_label?: string | null
           quantity?: number
@@ -9250,6 +9256,7 @@ export type Database = {
         }
         Update: {
           address?: string
+          cancellation_reason?: string | null
           category?: Database["public"]["Enums"]["home_solutions_category"]
           contact_name?: string
           contact_phone?: string
@@ -9260,6 +9267,8 @@ export type Database = {
           item_title?: string
           items?: Json
           notes?: string | null
+          payment_method?: string
+          payment_status?: string
           preferred_date?: string | null
           price_label?: string | null
           quantity?: number
@@ -9267,6 +9276,63 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      home_solutions_catalog: {
+        Row: {
+          category: Database["public"]["Enums"]["home_solutions_category"]
+          code: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          price_label: string | null
+          rating: number | null
+          sort_order: number
+          tag: string | null
+          tag_color: string | null
+          title: string
+          unit: string | null
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["home_solutions_category"]
+          code: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          price_label?: string | null
+          rating?: number | null
+          sort_order?: number
+          tag?: string | null
+          tag_color?: string | null
+          title: string
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["home_solutions_category"]
+          code?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          price_label?: string | null
+          rating?: number | null
+          sort_order?: number
+          tag?: string | null
+          tag_color?: string | null
+          title?: string
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
         }
         Relationships: []
       }
