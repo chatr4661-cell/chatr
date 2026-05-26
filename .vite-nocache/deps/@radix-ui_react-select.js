@@ -1,13 +1,13 @@
 "use client";
 import {
-  clamp
-} from "./chunk-TCQMTAGU.js";
-import {
   VISUALLY_HIDDEN_STYLES
 } from "./chunk-FEPBK7EZ.js";
 import {
   usePrevious
 } from "./chunk-5CYKUGYT.js";
+import {
+  clamp
+} from "./chunk-TCQMTAGU.js";
 import {
   createCollection
 } from "./chunk-T6MQHAQ3.js";
@@ -34,17 +34,17 @@ import {
   Portal
 } from "./chunk-BKWD4KFR.js";
 import {
-  useId
-} from "./chunk-NX45TAAP.js";
-import {
   useCallbackRef
 } from "./chunk-SW7TCIU5.js";
 import {
-  composeEventHandlers
-} from "./chunk-CML62DWG.js";
+  useId
+} from "./chunk-NX45TAAP.js";
 import {
   useControllableState
 } from "./chunk-ABSJRA6I.js";
+import {
+  composeEventHandlers
+} from "./chunk-CML62DWG.js";
 import {
   useLayoutEffect2
 } from "./chunk-JFB3BJE6.js";
