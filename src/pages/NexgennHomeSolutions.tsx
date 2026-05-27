@@ -607,6 +607,7 @@ function BookingModal({ selected, userId, onClose, onSuccess, theme, onAuthRequi
     setSubmitting(false);
 
     if (error) { setErr(error.message); return; }
+    supabase.functions.invoke("notify-home-solutions-vendors", { body: { bookingId: data.id } }).catch(() => {});
     onSuccess(data);
   };
 
