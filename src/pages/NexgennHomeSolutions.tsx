@@ -733,6 +733,7 @@ function CartSheet({ cart, setCart, updateQty, onClose, userId, onCheckout, onAu
     setSubmitting(false);
 
     if (error) { setErr(error.message); return; }
+    supabase.functions.invoke("notify-home-solutions-vendors", { body: { bookingId: data.id } }).catch(() => {});
     onCheckout(data);
   };
 
