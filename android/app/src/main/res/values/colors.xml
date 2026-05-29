@@ -31,4 +31,6 @@
     
     <!-- Notification Colors -->
     <color name="notification_icon">#6200EE</color>
+    <!-- Chatr brand teal — used as notification accent + large icon backdrop -->
+    <color name="chatr_brand">#1BC5BD</color>
 </resources>
