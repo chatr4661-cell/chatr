@@ -305,11 +305,13 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Build messaging style notification
-        val person = Person.Builder()
+        // Build messaging style notification (with sender avatar / brand logo)
+        val largeIcon = loadLargeIcon(senderAvatar)
+        val personBuilder = Person.Builder()
             .setName(senderName)
             .setKey(senderId)
-            .build()
+        largeIcon?.let { personBuilder.setIcon(IconCompat.createWithBitmap(it)) }
+        val person = personBuilder.build()
 
         val messagingStyle = NotificationCompat.MessagingStyle(person)
             .setConversationTitle(senderName)
