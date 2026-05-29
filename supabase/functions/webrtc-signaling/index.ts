@@ -57,8 +57,8 @@ serve(async (req) => {
         call_id: callId,
         signal_type: signalType,
         signal_data: data,
-        from_user_id: user.id,
-        to_user_id: toUser,
+        from_user: user.id,
+        to_user: toUser,
       });
 
       if (error) {
@@ -84,7 +84,7 @@ serve(async (req) => {
         .from("webrtc_signals")
         .select("*")
         .eq("call_id", callId)
-        .eq("to_user_id", user.id)
+        .eq("to_user", user.id)
         .order("created_at", { ascending: true });
 
       if (error) {
@@ -122,7 +122,7 @@ serve(async (req) => {
         .from("webrtc_signals")
         .select("*")
         .eq("call_id", callId)
-        .eq("to_user_id", user.id)
+        .eq("to_user", user.id)
         .eq("signal_type", "offer")
         .order("created_at", { ascending: false })
         .limit(1);
