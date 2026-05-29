@@ -86,11 +86,39 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
         val type = data["type"] ?: data["notificationType"] ?: data["notification_type"] ?: "message"
 
         when (type.lowercase()) {
-            "call" -> handleCallNotification(data)
-            "message", "chat" -> handleMessageNotification(data)
+            "call", "incoming_call", "missed_call" -> handleCallNotification(data)
+            "message", "chat", "chat_message", "group", "group_message" -> handleMessageNotification(data)
             "urgent", "alert" -> handleUrgentNotification(data)
             else -> handleGenericNotification(data)
         }
+    }
+
+    // ---- Branding helpers ---------------------------------------------------
+    /** Chatr brand accent color applied to every notification. */
+    private fun brandColor(): Int =
+        androidx.core.content.ContextCompat.getColor(this, R.color.chatr_brand)
+
+    /** Decodes the Chatr logo used as the large icon for branding. */
+    private fun brandLargeIcon(): Bitmap? = try {
+        BitmapFactory.decodeResource(resources, R.drawable.ic_chatr_logo)
+    } catch (e: Exception) {
+        Log.w(TAG, "Failed to load brand large icon", e)
+        null
+    }
+
+    /** Downloads a remote avatar; falls back to the Chatr logo for branding. */
+    private fun loadLargeIcon(url: String?): Bitmap? {
+        if (!url.isNullOrBlank()) {
+            try {
+                URL(url).openStream().use { stream ->
+                    BitmapFactory.decodeStream(stream)?.let { return it }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to load avatar, using brand logo", e)
+            }
+        }
+        return brandLargeIcon()
+    }
     }
 
     /**
@@ -199,6 +227,8 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
 
         val notification = NotificationCompat.Builder(this, ChatrApplication.CHANNEL_CALLS_HIGH)
             .setSmallIcon(R.drawable.ic_call)
+            .setLargeIcon(loadLargeIcon(callerAvatar))
+            .setColor(brandColor())
             .setContentTitle("$callTypeEmoji Incoming ${if (callType == "video") "Video" else "Voice"} Call")
             .setContentText(callerName)
             .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -275,11 +305,13 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Build messaging style notification
-        val person = Person.Builder()
+        // Build messaging style notification (with sender avatar / brand logo)
+        val largeIcon = loadLargeIcon(senderAvatar)
+        val personBuilder = Person.Builder()
             .setName(senderName)
             .setKey(senderId)
-            .build()
+        largeIcon?.let { personBuilder.setIcon(IconCompat.createWithBitmap(it)) }
+        val person = personBuilder.build()
 
         val messagingStyle = NotificationCompat.MessagingStyle(person)
             .setConversationTitle(senderName)
@@ -287,12 +319,14 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
 
         val notification = NotificationCompat.Builder(this, ChatrApplication.CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_message)
+            .setLargeIcon(largeIcon)
+            .setColor(brandColor())
             .setContentTitle(senderName)
             .setContentText(messageText)
             .setStyle(messagingStyle)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .setContentIntent(openPendingIntent)
             .addAction(replyAction)
@@ -332,8 +366,11 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
 
         val notification = NotificationCompat.Builder(this, ChatrApplication.CHANNEL_URGENT)
             .setSmallIcon(R.drawable.ic_warning)
+            .setLargeIcon(brandLargeIcon())
+            .setColor(brandColor())
             .setContentTitle(title)
             .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(body))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -345,13 +382,10 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
         Log.i(TAG, "📢 Urgent notification shown: $title")
     }
 
-    /**
-     * Handles generic notifications
-     */
     private fun handleGenericNotification(data: Map<String, String>) {
         val title = data["title"] ?: "Chatr+"
         val body = data["body"] ?: data["message"] ?: ""
-        val clickAction = data["click_action"] ?: ""
+        val clickAction = data["click_action"] ?: data["action_url"] ?: ""
 
         if (body.isEmpty()) return
 
@@ -370,11 +404,19 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
 
         val notification = NotificationCompat.Builder(this, ChatrApplication.CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(brandLargeIcon())
+            .setColor(brandColor())
             .setContentTitle(title)
             .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .build()
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+    }
             .build()
 
         notificationManager.notify(System.currentTimeMillis().toInt(), notification)

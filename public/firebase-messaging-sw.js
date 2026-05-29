@@ -17,20 +17,30 @@ const messaging = firebase.messaging();
 // Handle background messages (when app is closed or in background)
 messaging.onBackgroundMessage((payload) => {
   console.log('📬 Background message received:', payload);
-  
-  const notificationTitle = payload.notification?.title || 'New message';
+messaging.onBackgroundMessage((payload) => {
+  console.log('📬 Background message received:', payload);
+
+  // Backend sends DATA-ONLY messages, so read from data first, then notification block.
+  const d = payload.data || {};
+  const n = payload.notification || {};
+
+  const notificationTitle = n.title || d.title || d.sender_name || 'Chatr+';
+  const bodyText = n.body || d.body || d.message || d.content || 'You have a new notification';
+
   const notificationOptions = {
-    body: payload.notification?.body || 'You have a new message',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
-    tag: 'chatr-message',
+    body: bodyText,
+    icon: d.sender_avatar || '/icons/chatr-logo-192.png',
+    badge: '/icons/chatr-logo-192.png',
+    image: d.image || undefined,
+    tag: d.conversation_id || d.tag || 'chatr-message',
+    renotify: true,
     requireInteraction: true, // Keep notification visible
     vibrate: [200, 100, 200], // Vibration pattern
-    data: payload.data,
+    data: { ...d, ...(payload.data || {}) },
     actions: [
       {
         action: 'open',
-        title: 'Open Chat'
+        title: 'Open'
       },
       {
         action: 'reply',
@@ -41,8 +51,6 @@ messaging.onBackgroundMessage((payload) => {
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
-
-// Handle notification click (when app is closed)
 self.addEventListener('notificationclick', (event) => {
   console.log('🔔 Notification clicked:', event.action);
   event.notification.close();

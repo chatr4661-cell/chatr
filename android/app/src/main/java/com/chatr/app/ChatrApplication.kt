@@ -30,7 +30,8 @@ class ChatrApplication : Application() {
         // Notification Channel IDs
         const val CHANNEL_CALLS = "calls"
         const val CHANNEL_CALLS_HIGH = "calls_high_v2"
-        const val CHANNEL_MESSAGES = "messages"
+        // Bumped to v2 so the public lock-screen visibility + full preview apply on existing installs
+        const val CHANNEL_MESSAGES = "messages_v2"
         const val CHANNEL_URGENT = "urgent"
         const val CHANNEL_LOCATION = "location"
         const val CHANNEL_HEALTH = "health"
@@ -151,7 +152,7 @@ class ChatrApplication : Application() {
             description = "Chat messages and replies"
             enableVibration(true)
             vibrationPattern = longArrayOf(0, 250, 100, 250)
-            lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
+            lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             setShowBadge(true)
         }
 
