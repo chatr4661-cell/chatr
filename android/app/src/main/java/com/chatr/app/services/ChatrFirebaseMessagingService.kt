@@ -86,11 +86,39 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
         val type = data["type"] ?: data["notificationType"] ?: data["notification_type"] ?: "message"
 
         when (type.lowercase()) {
-            "call" -> handleCallNotification(data)
-            "message", "chat" -> handleMessageNotification(data)
+            "call", "incoming_call", "missed_call" -> handleCallNotification(data)
+            "message", "chat", "chat_message", "group", "group_message" -> handleMessageNotification(data)
             "urgent", "alert" -> handleUrgentNotification(data)
             else -> handleGenericNotification(data)
         }
+    }
+
+    // ---- Branding helpers ---------------------------------------------------
+    /** Chatr brand accent color applied to every notification. */
+    private fun brandColor(): Int =
+        androidx.core.content.ContextCompat.getColor(this, R.color.chatr_brand)
+
+    /** Decodes the Chatr logo used as the large icon for branding. */
+    private fun brandLargeIcon(): Bitmap? = try {
+        BitmapFactory.decodeResource(resources, R.drawable.ic_chatr_logo)
+    } catch (e: Exception) {
+        Log.w(TAG, "Failed to load brand large icon", e)
+        null
+    }
+
+    /** Downloads a remote avatar; falls back to the Chatr logo for branding. */
+    private fun loadLargeIcon(url: String?): Bitmap? {
+        if (!url.isNullOrBlank()) {
+            try {
+                URL(url).openStream().use { stream ->
+                    BitmapFactory.decodeStream(stream)?.let { return it }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to load avatar, using brand logo", e)
+            }
+        }
+        return brandLargeIcon()
+    }
     }
 
     /**
