@@ -230,7 +230,10 @@
         <!-- Firebase Default Notification Channel -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="messages" />
+            android:value="messages_v2" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/chatr_brand" />
 
         <!-- Firebase Auto-Init -->
         <meta-data
