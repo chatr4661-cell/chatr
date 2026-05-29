@@ -149,7 +149,8 @@ function clampImportance(v: unknown): number {
 }
 
 async function extractMemories(transcript: string): Promise<ExtractedMemory[]> {
-  const geminiApiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY");
+  const geminiApiKey = Deno.env.get("GOOGLE_GEMINI_API_KEY") ||
+    Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY");
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
 
   const prompt = `You are an AI memory extractor. From the call transcript below, extract durable, useful facts worth remembering for future conversations (preferences, personal facts, commitments, important events, names/relationships). Ignore small talk and ephemeral details.
