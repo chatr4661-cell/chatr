@@ -366,8 +366,11 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
 
         val notification = NotificationCompat.Builder(this, ChatrApplication.CHANNEL_URGENT)
             .setSmallIcon(R.drawable.ic_warning)
+            .setLargeIcon(brandLargeIcon())
+            .setColor(brandColor())
             .setContentTitle(title)
             .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(body))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
