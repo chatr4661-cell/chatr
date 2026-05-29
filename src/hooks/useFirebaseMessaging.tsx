@@ -79,19 +79,25 @@ export const useFirebaseMessaging = (userId?: string) => {
     // Handle foreground messages
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log("📬 Foreground message received:", payload);
-      
+
+      // Backend sends DATA-ONLY messages — read data first, then notification block.
+      const d = (payload.data || {}) as Record<string, string>;
+      const title = payload.notification?.title || d.title || d.sender_name || "Chatr+";
+      const body =
+        payload.notification?.body || d.body || d.message || d.content || "You have a new notification";
+
       toast({
-        title: payload.notification?.title || "New message",
-        description: payload.notification?.body || "You have a new message",
+        title,
+        description: body,
       });
 
       // Show browser notification
       if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
-        new Notification(payload.notification?.title || "New message", {
-          body: payload.notification?.body,
-          icon: "/icons/icon-192x192.png",
-          badge: "/icons/icon-192x192.png",
-          tag: 'chatr-notification',
+        new Notification(title, {
+          body,
+          icon: d.sender_avatar || "/icons/chatr-logo-192.png",
+          badge: "/icons/chatr-logo-192.png",
+          tag: d.conversation_id || 'chatr-notification',
           requireInteraction: true,
           data: payload.data
         });
