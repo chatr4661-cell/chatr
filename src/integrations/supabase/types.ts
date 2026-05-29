@@ -1954,6 +1954,54 @@ export type Database = {
         }
         Relationships: []
       }
+      call_memories: {
+        Row: {
+          call_id: string | null
+          content: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          importance: number
+          memory_type: string
+          peer_id: string | null
+          peer_phone: string | null
+          source: string
+          tags: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          call_id?: string | null
+          content: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          importance?: number
+          memory_type?: string
+          peer_id?: string | null
+          peer_phone?: string | null
+          source?: string
+          tags?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string | null
+          content?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          importance?: number
+          memory_type?: string
+          peer_id?: string | null
+          peer_phone?: string | null
+          source?: string
+          tags?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       call_participants: {
         Row: {
           audio_enabled: boolean | null
