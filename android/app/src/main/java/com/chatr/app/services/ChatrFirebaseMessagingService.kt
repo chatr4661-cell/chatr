@@ -227,6 +227,8 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
 
         val notification = NotificationCompat.Builder(this, ChatrApplication.CHANNEL_CALLS_HIGH)
             .setSmallIcon(R.drawable.ic_call)
+            .setLargeIcon(loadLargeIcon(callerAvatar))
+            .setColor(brandColor())
             .setContentTitle("$callTypeEmoji Incoming ${if (callType == "video") "Video" else "Voice"} Call")
             .setContentText(callerName)
             .setPriority(NotificationCompat.PRIORITY_MAX)
