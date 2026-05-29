@@ -382,13 +382,10 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
         Log.i(TAG, "📢 Urgent notification shown: $title")
     }
 
-    /**
-     * Handles generic notifications
-     */
     private fun handleGenericNotification(data: Map<String, String>) {
         val title = data["title"] ?: "Chatr+"
         val body = data["body"] ?: data["message"] ?: ""
-        val clickAction = data["click_action"] ?: ""
+        val clickAction = data["click_action"] ?: data["action_url"] ?: ""
 
         if (body.isEmpty()) return
 
@@ -407,11 +404,19 @@ class ChatrFirebaseMessagingService : FirebaseMessagingService() {
 
         val notification = NotificationCompat.Builder(this, ChatrApplication.CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(brandLargeIcon())
+            .setColor(brandColor())
             .setContentTitle(title)
             .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .build()
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+    }
             .build()
 
         notificationManager.notify(System.currentTimeMillis().toInt(), notification)
