@@ -152,7 +152,7 @@ class ChatrApplication : Application() {
             description = "Chat messages and replies"
             enableVibration(true)
             vibrationPattern = longArrayOf(0, 250, 100, 250)
-            lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
+            lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             setShowBadge(true)
         }
 
