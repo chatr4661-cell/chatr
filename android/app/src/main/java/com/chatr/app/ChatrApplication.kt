@@ -30,7 +30,8 @@ class ChatrApplication : Application() {
         // Notification Channel IDs
         const val CHANNEL_CALLS = "calls"
         const val CHANNEL_CALLS_HIGH = "calls_high_v2"
-        const val CHANNEL_MESSAGES = "messages"
+        // Bumped to v2 so the public lock-screen visibility + full preview apply on existing installs
+        const val CHANNEL_MESSAGES = "messages_v2"
         const val CHANNEL_URGENT = "urgent"
         const val CHANNEL_LOCATION = "location"
         const val CHANNEL_HEALTH = "health"
