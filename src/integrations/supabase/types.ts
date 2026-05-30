@@ -2041,6 +2041,13 @@ export type Database = {
             foreignKeyName: "call_participants_call_id_fkey"
             columns: ["call_id"]
             isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
             referencedRelation: "calls"
             referencedColumns: ["id"]
           },
@@ -17789,6 +17796,13 @@ export type Database = {
             foreignKeyName: "user_devices_active_call_id_fkey"
             columns: ["active_call_id"]
             isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_devices_active_call_id_fkey"
+            columns: ["active_call_id"]
+            isOneToOne: false
             referencedRelation: "calls"
             referencedColumns: ["id"]
           },
@@ -19324,6 +19338,90 @@ export type Database = {
       }
     }
     Views: {
+      call_history: {
+        Row: {
+          call_type: string | null
+          caller_avatar: string | null
+          caller_id: string | null
+          caller_name: string | null
+          caller_phone: string | null
+          connection_quality: string | null
+          conversation_id: string | null
+          created_at: string | null
+          duration: number | null
+          ended_at: string | null
+          id: string | null
+          is_group: boolean | null
+          missed: boolean | null
+          quality_rating: number | null
+          receiver_avatar: string | null
+          receiver_id: string | null
+          receiver_name: string | null
+          receiver_phone: string | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          call_type?: string | null
+          caller_avatar?: string | null
+          caller_id?: string | null
+          caller_name?: string | null
+          caller_phone?: string | null
+          connection_quality?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          duration?: number | null
+          ended_at?: string | null
+          id?: string | null
+          is_group?: boolean | null
+          missed?: boolean | null
+          quality_rating?: number | null
+          receiver_avatar?: string | null
+          receiver_id?: string | null
+          receiver_name?: string | null
+          receiver_phone?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          call_type?: string | null
+          caller_avatar?: string | null
+          caller_id?: string | null
+          caller_name?: string | null
+          caller_phone?: string | null
+          connection_quality?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          duration?: number | null
+          ended_at?: string | null
+          id?: string | null
+          is_group?: boolean | null
+          missed?: boolean | null
+          quality_rating?: number | null
+          receiver_avatar?: string | null
+          receiver_id?: string | null
+          receiver_name?: string | null
+          receiver_phone?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calls_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       missed_calls_view: {
         Row: {
           call_type: string | null
