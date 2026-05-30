@@ -66,7 +66,7 @@ export function useWebRTCSignaling({
             event: 'INSERT',
             schema: 'public',
             table: 'webrtc_signals',
-            filter: `to_user_id=eq.${user.id}`,
+            filter: `to_user=eq.${user.id}`,
           },
           (payload) => {
             const signal = payload.new as SignalData;
@@ -76,7 +76,7 @@ export function useWebRTCSignaling({
 
             switch (signal.signal_type) {
               case 'offer':
-                onOffer?.(signal.signal_data, signal.from_user_id);
+                onOffer?.(signal.signal_data, (signal as any).from_user ?? signal.from_user_id);
                 break;
               case 'answer':
                 onAnswer?.(signal.signal_data);
