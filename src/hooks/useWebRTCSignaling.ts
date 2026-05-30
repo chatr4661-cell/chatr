@@ -66,7 +66,7 @@ export function useWebRTCSignaling({
             event: 'INSERT',
             schema: 'public',
             table: 'webrtc_signals',
-            filter: `to_user_id=eq.${user.id}`,
+            filter: `to_user=eq.${user.id}`,
           },
           (payload) => {
             const signal = payload.new as SignalData;
