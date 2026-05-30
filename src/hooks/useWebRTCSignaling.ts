@@ -76,7 +76,7 @@ export function useWebRTCSignaling({
 
             switch (signal.signal_type) {
               case 'offer':
-                onOffer?.(signal.signal_data, signal.from_user_id);
+                onOffer?.(signal.signal_data, (signal as any).from_user ?? signal.from_user_id);
                 break;
               case 'answer':
                 onAnswer?.(signal.signal_data);
