@@ -28,6 +28,31 @@ function decodeUserIdFromToken(authHeader: string | null): string | null {
   }
 }
 
+/**
+ * Generate a coturn TURN-REST time-limited credential (RFC draft "turn-rest").
+ * username = "<unix-expiry>:<userId>", credential = base64(HMAC-SHA1(secret, username)).
+ * These are short-lived and validated by coturn using the same shared secret
+ * (`static-auth-secret` / `use-auth-secret`). No DB round-trip, works offline.
+ */
+async function makeCoturnCredential(
+  secret: string,
+  userId: string,
+  ttlSeconds = 86400,
+): Promise<{ username: string; credential: string }> {
+  const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const username = `${expiry}:${userId}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(username));
+  const credential = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return { username, credential };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -173,41 +198,98 @@ serve(async (req) => {
 
     // ════════════════════════════════════════════════════════════════
     // ACTION: get_ice_servers — STUN + TURN with dynamic credentials
-    // TURN is critical: 30-50% of calls fail without it
+    // TURN is MANDATORY for cellular↔cellular: both phones sit behind
+    // carrier CGNAT, so host/STUN candidates never connect — only a TURN
+    // relay (preferably TCP/443 + TLS) gets media through.
     // ════════════════════════════════════════════════════════════════
     if (action === "get_ice_servers") {
-      const meteredApiKey = Deno.env.get("METERED_API_KEY");
-
       const iceServers: any[] = [
-        // Google STUN (free, unlimited)
+        // Google STUN (free, unlimited) — helps for the lucky non-CGNAT cases
         { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
       ];
 
-      // Try Metered.ca for TURN credentials
+      // ── Primary: self-hosted coturn with time-limited HMAC credentials ──
+      // Uses TURN_HOST / TURN_SECRET (and optional TURN_REALM) you configured.
+      const turnHost = Deno.env.get("TURN_HOST");
+      const turnSecret = Deno.env.get("TURN_SECRET");
+      if (turnHost && turnSecret) {
+        try {
+          const { username, credential } = await makeCoturnCredential(turnSecret, userId);
+          iceServers.push(
+            { urls: `turn:${turnHost}:3478?transport=udp`, username, credential },
+            { urls: `turn:${turnHost}:3478?transport=tcp`, username, credential },
+            // 443/TLS is the key to traversing restrictive mobile firewalls
+            { urls: `turns:${turnHost}:5349?transport=tcp`, username, credential },
+            { urls: `turns:${turnHost}:443?transport=tcp`, username, credential },
+          );
+          console.log("[webrtc-signaling] ✅ coturn TURN credentials minted", { turnHost });
+        } catch (e) {
+          console.warn("[webrtc-signaling] ⚠️ coturn credential generation failed", e);
+        }
+      }
+
+      // ── Optional: Cloudflare TURN (set CLOUDFLARE_TURN_TOKEN_ID + _API_TOKEN) ──
+      const cfTokenId = Deno.env.get("CLOUDFLARE_TURN_TOKEN_ID");
+      const cfApiToken = Deno.env.get("CLOUDFLARE_TURN_API_TOKEN");
+      if (cfTokenId && cfApiToken) {
+        try {
+          const cfRes = await fetch(
+            `https://rtc.live.cloudflare.com/v1/turn/keys/${cfTokenId}/credentials/generate`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${cfApiToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ ttl: 86400 }),
+              signal: AbortSignal.timeout(3000),
+            },
+          );
+          if (cfRes.ok) {
+            const cf = await cfRes.json();
+            if (cf?.iceServers) {
+              const list = Array.isArray(cf.iceServers) ? cf.iceServers : [cf.iceServers];
+              iceServers.push(...list);
+              console.log("[webrtc-signaling] ✅ Cloudflare TURN credentials fetched");
+            }
+          } else {
+            console.warn("[webrtc-signaling] ⚠️ Cloudflare TURN failed", cfRes.status);
+          }
+        } catch (e) {
+          console.warn("[webrtc-signaling] ⚠️ Cloudflare TURN fetch error", e);
+        }
+      }
+
+      // ── Optional: Metered.ca dynamic credentials ──
+      const meteredApiKey = Deno.env.get("METERED_API_KEY");
       if (meteredApiKey) {
         try {
           const turnRes = await fetch(
             `https://chatr.metered.live/api/v1/turn/credentials?apiKey=${meteredApiKey}`,
-            { signal: AbortSignal.timeout(3000) }
+            { signal: AbortSignal.timeout(3000) },
           );
-
           if (turnRes.ok) {
             const turnServers = await turnRes.json();
             iceServers.push(...turnServers);
-            console.log("[webrtc-signaling] ✅ Dynamic TURN credentials fetched", { count: turnServers.length });
+            console.log("[webrtc-signaling] ✅ Metered TURN credentials fetched", { count: turnServers.length });
           }
         } catch (e) {
-          console.warn("[webrtc-signaling] ⚠️ TURN fetch failed, using fallback", e);
+          console.warn("[webrtc-signaling] ⚠️ Metered TURN fetch failed", e);
         }
       }
 
-      // Fallback TURN servers (always include)
-      if (iceServers.length <= 1) {
+      // ── Last-resort fallback: shared public relay (only if no TURN above) ──
+      const hasTurn = iceServers.some((s) => {
+        const u = Array.isArray(s.urls) ? s.urls.join(" ") : String(s.urls || "");
+        return u.includes("turn:") || u.includes("turns:");
+      });
+      if (!hasTurn) {
+        console.warn("[webrtc-signaling] ⚠️ No TURN configured — using public fallback relay");
         iceServers.push(
           { urls: "turn:a.relay.metered.ca:80", username: "chatr", credential: "chatr2026" },
           { urls: "turn:a.relay.metered.ca:80?transport=tcp", username: "chatr", credential: "chatr2026" },
           { urls: "turn:a.relay.metered.ca:443", username: "chatr", credential: "chatr2026" },
-          { urls: "turns:a.relay.metered.ca:443", username: "chatr", credential: "chatr2026" }
+          { urls: "turns:a.relay.metered.ca:443?transport=tcp", username: "chatr", credential: "chatr2026" },
         );
       }
 
