@@ -28,6 +28,31 @@ function decodeUserIdFromToken(authHeader: string | null): string | null {
   }
 }
 
+/**
+ * Generate a coturn TURN-REST time-limited credential (RFC draft "turn-rest").
+ * username = "<unix-expiry>:<userId>", credential = base64(HMAC-SHA1(secret, username)).
+ * These are short-lived and validated by coturn using the same shared secret
+ * (`static-auth-secret` / `use-auth-secret`). No DB round-trip, works offline.
+ */
+async function makeCoturnCredential(
+  secret: string,
+  userId: string,
+  ttlSeconds = 86400,
+): Promise<{ username: string; credential: string }> {
+  const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const username = `${expiry}:${userId}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(username));
+  const credential = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return { username, credential };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
