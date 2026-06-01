@@ -8,6 +8,7 @@ import { MediaAdaptationEngine, applyOpusParameters } from "./mediaAdaptationEng
 import { TransportAdaptationEngine } from "./transportAdaptationEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
+import { CallEvidenceLogger } from "./callEvidence";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
@@ -112,6 +113,8 @@ export class SimpleWebRTCCall {
  }
   private networkChangeCleanup: (() => void) | null = null;
   private statsObserverStop: (() => void) | null = null;
+  // TELEMETRY ONLY — read-only evidence logger (disabled by default).
+  private evidence: CallEvidenceLogger | null = null;
 
   // Phase 2A — Network handoff resilience
   private transportEngine: TransportAdaptationEngine | null = null;
@@ -514,6 +517,19 @@ export class SimpleWebRTCCall {
       userId: this.userId,
       peerId: this.partnerId,
     });
+
+    // TELEMETRY ONLY — capture read-only call evidence (no-op when flag disabled).
+    try {
+      this.evidence = new CallEvidenceLogger(this.pc, {
+        callId: this.callId,
+        userId: this.userId,
+        contactId: this.partnerId,
+        iceServers: config.iceServers,
+      });
+      this.evidence.start();
+    } catch { /* telemetry must never affect calls */ }
+
+
     
     // SMART CODEC NEGOTIATION: Apply optimal codec order based on device capabilities
     // CRITICAL: When ANY peer is Android (native or WebView), force VP8 for maximum compatibility
@@ -1720,13 +1736,20 @@ export class SimpleWebRTCCall {
     console.log('👋 [WebRTC] Ending call...');
     this.callState = 'ended';
     this.clearConnectionTimeout();
-    
+
+    // TELEMETRY ONLY — persist single evidence row before tearing down the PC.
+    // Runs BEFORE cleanup() so getStats() can still read the live connection.
+    try {
+      await this.evidence?.finalize('call-ended');
+    } catch { /* telemetry must never affect calls */ }
+
     // Remove from active instances
     activeCallInstances.delete(this.callId);
-    
+
     await this.cleanup();
     this.emit('ended');
   }
+
 
   private async cleanup() {
     // Stop local tracks

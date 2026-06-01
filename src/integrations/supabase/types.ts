@@ -2176,58 +2176,112 @@ export type Database = {
       }
       call_telemetry: {
         Row: {
+          audio_active_timestamp: string | null
+          audio_bytes_received: number | null
+          audio_bytes_sent: number | null
+          audio_packets_received: number | null
+          audio_packets_sent: number | null
           call_duration_s: number | null
           call_id: string
           closed_at: string | null
           codec_degradations: number
           contact_id: string | null
           created_at: string
+          end_reason: string | null
+          ice_completed_timestamp: string | null
+          ice_connected_timestamp: string | null
           id: string
+          local_candidate_type: string | null
           network_start_state: Json
           outcome_tag: string | null
           peak_jitter_ms: number | null
           peak_rtt_ms: number | null
+          remote_candidate_type: string | null
           retry_attempts: number
           route_chosen: string
           route_switches: number
+          selected_candidate_pair: Json | null
           silence_ratio: number | null
+          turn_fetch_success: boolean | null
+          turn_server_count: number | null
+          turn_urls: Json | null
           user_id: string | null
+          video_bytes_received: number | null
+          video_bytes_sent: number | null
+          video_packets_received: number | null
+          video_packets_sent: number | null
         }
         Insert: {
+          audio_active_timestamp?: string | null
+          audio_bytes_received?: number | null
+          audio_bytes_sent?: number | null
+          audio_packets_received?: number | null
+          audio_packets_sent?: number | null
           call_duration_s?: number | null
           call_id: string
           closed_at?: string | null
           codec_degradations?: number
           contact_id?: string | null
           created_at?: string
+          end_reason?: string | null
+          ice_completed_timestamp?: string | null
+          ice_connected_timestamp?: string | null
           id?: string
+          local_candidate_type?: string | null
           network_start_state?: Json
           outcome_tag?: string | null
           peak_jitter_ms?: number | null
           peak_rtt_ms?: number | null
+          remote_candidate_type?: string | null
           retry_attempts?: number
           route_chosen?: string
           route_switches?: number
+          selected_candidate_pair?: Json | null
           silence_ratio?: number | null
+          turn_fetch_success?: boolean | null
+          turn_server_count?: number | null
+          turn_urls?: Json | null
           user_id?: string | null
+          video_bytes_received?: number | null
+          video_bytes_sent?: number | null
+          video_packets_received?: number | null
+          video_packets_sent?: number | null
         }
         Update: {
+          audio_active_timestamp?: string | null
+          audio_bytes_received?: number | null
+          audio_bytes_sent?: number | null
+          audio_packets_received?: number | null
+          audio_packets_sent?: number | null
           call_duration_s?: number | null
           call_id?: string
           closed_at?: string | null
           codec_degradations?: number
           contact_id?: string | null
           created_at?: string
+          end_reason?: string | null
+          ice_completed_timestamp?: string | null
+          ice_connected_timestamp?: string | null
           id?: string
+          local_candidate_type?: string | null
           network_start_state?: Json
           outcome_tag?: string | null
           peak_jitter_ms?: number | null
           peak_rtt_ms?: number | null
+          remote_candidate_type?: string | null
           retry_attempts?: number
           route_chosen?: string
           route_switches?: number
+          selected_candidate_pair?: Json | null
           silence_ratio?: number | null
+          turn_fetch_success?: boolean | null
+          turn_server_count?: number | null
+          turn_urls?: Json | null
           user_id?: string | null
+          video_bytes_received?: number | null
+          video_bytes_sent?: number | null
+          video_packets_received?: number | null
+          video_packets_sent?: number | null
         }
         Relationships: [
           {
