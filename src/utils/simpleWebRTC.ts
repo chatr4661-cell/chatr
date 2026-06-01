@@ -1736,13 +1736,20 @@ export class SimpleWebRTCCall {
     console.log('👋 [WebRTC] Ending call...');
     this.callState = 'ended';
     this.clearConnectionTimeout();
-    
+
+    // TELEMETRY ONLY — persist single evidence row before tearing down the PC.
+    // Runs BEFORE cleanup() so getStats() can still read the live connection.
+    try {
+      await this.evidence?.finalize('call-ended');
+    } catch { /* telemetry must never affect calls */ }
+
     // Remove from active instances
     activeCallInstances.delete(this.callId);
-    
+
     await this.cleanup();
     this.emit('ended');
   }
+
 
   private async cleanup() {
     // Stop local tracks
