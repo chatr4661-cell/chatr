@@ -517,6 +517,19 @@ export class SimpleWebRTCCall {
       userId: this.userId,
       peerId: this.partnerId,
     });
+
+    // TELEMETRY ONLY — capture read-only call evidence (no-op when flag disabled).
+    try {
+      this.evidence = new CallEvidenceLogger(this.pc, {
+        callId: this.callId,
+        userId: this.userId,
+        contactId: this.partnerId,
+        iceServers: config.iceServers,
+      });
+      this.evidence.start();
+    } catch { /* telemetry must never affect calls */ }
+
+
     
     // SMART CODEC NEGOTIATION: Apply optimal codec order based on device capabilities
     // CRITICAL: When ANY peer is Android (native or WebView), force VP8 for maximum compatibility
