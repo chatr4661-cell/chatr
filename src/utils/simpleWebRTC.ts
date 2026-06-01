@@ -113,6 +113,8 @@ export class SimpleWebRTCCall {
  }
   private networkChangeCleanup: (() => void) | null = null;
   private statsObserverStop: (() => void) | null = null;
+  // TELEMETRY ONLY — read-only evidence logger (disabled by default).
+  private evidence: CallEvidenceLogger | null = null;
 
   // Phase 2A — Network handoff resilience
   private transportEngine: TransportAdaptationEngine | null = null;
