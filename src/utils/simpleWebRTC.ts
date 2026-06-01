@@ -8,6 +8,7 @@ import { MediaAdaptationEngine, applyOpusParameters } from "./mediaAdaptationEng
 import { TransportAdaptationEngine } from "./transportAdaptationEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
+import { CallEvidenceLogger } from "./callEvidence";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
