@@ -11,6 +11,7 @@
         "@capacitor-community/file-opener": "^7.0.1",
         "@capacitor-community/speech-recognition": "^7.0.1",
         "@capacitor-firebase/analytics": "^7.4.0",
+        "@capacitor-firebase/authentication": "^8.2.0",
         "@capacitor-firebase/crashlytics": "^7.4.0",
         "@capacitor/android": "^7.4.3",
         "@capacitor/app": "^7.1.0",
@@ -154,6 +155,8 @@
     "@capacitor-community/speech-recognition": ["@capacitor-community/speech-recognition@7.0.1", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-ykpBZziR575X0eURO5vXaD9gVrXXC/7Ra2qql/2KP6/jxWOqAFuw4eKjSPjwdAgGE6a/Z+v8FJm4SVh57MVwDA=="],
 
     "@capacitor-firebase/analytics": ["@capacitor-firebase/analytics@7.4.0", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0", "firebase": "^11.2.0" } }, "sha512-GlJgFsLJEK8SLngANu4WZbsiHxWusR9ChrvRXTycj9xUWRF+iiAEylyREJHdjbD4+1cEUJz2tTZ2kEM3LrgaXQ=="],
+
+    "@capacitor-firebase/authentication": ["@capacitor-firebase/authentication@8.2.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor-firebase/authentication/-/authentication-8.2.0.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.0", "firebase": "^12.6.0" }, "optionalPeers": ["firebase"] }, "sha512-9TXdnxnDVuptwUM0fcChnAbejYAjO6UR7VHWHak7PRaBL/6MyHKtb8vgorFMH3Gf+pInZ6jAJUVpVBcaJ5HnLw=="],
 
     "@capacitor-firebase/crashlytics": ["@capacitor-firebase/crashlytics@7.4.0", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-g4li6KbqW3zbGrTsA7bURMDL4W+Xsi+X72Lql+kXR2kvtrexlDLMFmEawNOq/ecE3+I+0Kj2Y4KQ83DA09QtFA=="],
 
