@@ -138,10 +138,17 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       if (err.code === 'auth/invalid-phone-number') {
         msg = 'Invalid phone number';
       } else if (err.code === 'auth/too-many-requests') {
-        msg = 'Too many attempts. Please wait or use Google login.';
+        msg = 'Too many attempts. Please wait and try again.';
         waitTime = 180;
-      } else if (err.message?.includes('Hostname')) {
-        msg = 'Domain not authorized';
+      } else if (
+        err.code === 'auth/captcha-check-failed' ||
+        err.message?.includes('Hostname')
+      ) {
+        // This domain is not listed in Firebase Authorized Domains.
+        // Add the app's current domain in Firebase Console → Authentication → Settings.
+        msg = `This app's domain (${window.location.hostname}) is not authorized for OTP. Please add it to Firebase Authorized Domains.`;
+      } else if (err.code === 'auth/network-request-failed') {
+        msg = 'Network error. Check your connection and try again.';
       }
       
       setError(msg);
