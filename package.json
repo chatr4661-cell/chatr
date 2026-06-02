@@ -17,6 +17,7 @@
     "@capacitor-community/file-opener": "^7.0.1",
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor-firebase/analytics": "^7.4.0",
+    "@capacitor-firebase/authentication": "^8.2.0",
     "@capacitor-firebase/crashlytics": "^7.4.0",
     "@capacitor/android": "^7.4.3",
     "@capacitor/app": "^7.1.0",

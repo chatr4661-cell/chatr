@@ -10,6 +10,10 @@ const config: CapacitorConfig = {
     cleartext: true
   },
   plugins: {
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ['phone'],
+    },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
       iconColor: '#6200ee',
