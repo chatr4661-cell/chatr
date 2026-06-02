@@ -4,9 +4,15 @@ import {
   signInWithPhoneNumber, 
   ConfirmationResult,
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth } from '@/firebase';
 import { supabase } from '@/integrations/supabase/client';
 
+// On native (Android/iOS) Firebase verifies the phone number through
+// Play Integrity / APNs — NO web reCAPTCHA and NO authorized-domain check.
+// On web we keep the invisible reCAPTCHA flow.
+const isNative = Capacitor.isNativePlatform();
 
 export type PhoneAuthStep = 'phone' | 'otp' | 'syncing';
 
@@ -35,11 +41,19 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   const [isExistingUser, setIsExistingUser] = useState(false);
   const [recaptchaReady, setRecaptchaReady] = useState(false);
   
+  // Web flow
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  // Native flow
+  const verificationIdRef = useRef<string | null>(null);
 
-  // PRE-INITIALIZE reCAPTCHA on mount for instant OTP
+  // PRE-INITIALIZE reCAPTCHA on mount for instant OTP (web only)
   useEffect(() => {
+    if (isNative) {
+      setRecaptchaReady(true);
+      return;
+    }
+
     const initRecaptcha = async () => {
       try {
         const container = document.getElementById('recaptcha-container');
@@ -106,7 +120,63 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     return await sendOTP(phone);
   }, []);
 
+  /**
+   * Native phone verification (Android/iOS) — uses the device's native
+   * Firebase SDK. Resolves with a verificationId once the SMS is dispatched.
+   */
+  const sendOTPNative = async (phone: string): Promise<boolean> => {
+    try {
+      const verificationId = await new Promise<string>(async (resolve, reject) => {
+        let codeListener: { remove: () => Promise<void> } | null = null;
+        try {
+          codeListener = await FirebaseAuthentication.addListener(
+            'phoneCodeSent',
+            async (event: { verificationId: string }) => {
+              await codeListener?.remove();
+              resolve(event.verificationId);
+            }
+          );
+
+          await FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: phone });
+        } catch (e) {
+          await codeListener?.remove();
+          reject(e);
+        }
+      });
+
+      verificationIdRef.current = verificationId;
+      setStep('otp');
+      setCountdown(30);
+      setLoading(false);
+      console.log('📱 [Auth] OTP sent successfully (native)');
+      return true;
+    } catch (err: any) {
+      console.error('[Firebase Native] OTP error:', err);
+      setFailedAttempts(prev => prev + 1);
+
+      let msg = 'Failed to send OTP';
+      const code: string = err?.code || err?.message || '';
+      if (/invalid.*phone|phone.*invalid/i.test(code)) {
+        msg = 'Invalid phone number';
+      } else if (/too-many|quota/i.test(code)) {
+        msg = 'Too many attempts. Please wait and try again.';
+        setCountdown(180);
+      } else if (/network/i.test(code)) {
+        msg = 'Network error. Check your connection and try again.';
+      }
+
+      setError(msg);
+      setStep('phone');
+      setLoading(false);
+      return false;
+    }
+  };
+
   const sendOTP = async (phone: string): Promise<boolean> => {
+    if (isNative) {
+      return sendOTPNative(phone);
+    }
+
     try {
       // Use pre-initialized reCAPTCHA or create new one
       if (!recaptchaVerifierRef.current) {
@@ -160,58 +230,88 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     }
   };
 
-  const verifyOTP = useCallback(async (otp: string): Promise<boolean> => {
-    if (!confirmationResultRef.current) {
-      setError('Session expired. Please try again.');
-      return false;
+  /**
+   * Exchange a verified Firebase user for a Supabase session via edge function.
+   */
+  const completeSupabaseSession = async (firebaseUid: string): Promise<boolean> => {
+    const normalizedPhone = phoneNumber.replace(/\s/g, '');
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/firebase-phone-auth`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          phone_number: normalizedPhone,
+          firebase_uid: firebaseUid,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      throw new Error(data.error || 'Authentication failed');
     }
 
+    if (data.session) {
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+    }
+
+    return true;
+  };
+
+  const verifyOTP = useCallback(async (otp: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
     try {
-      // Step 1: Verify OTP with Firebase (~1-2s)
-      const result = await confirmationResultRef.current.confirm(otp);
-      const firebaseUser = result.user;
-      
-      const normalizedPhone = phoneNumber.replace(/\s/g, '');
+      let firebaseUid: string | undefined;
 
-      // Step 2: Use edge function to handle Supabase auth (handles password mismatch)
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/firebase-phone-auth`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            phone_number: normalizedPhone,
-            firebase_uid: firebaseUser.uid,
-          }),
+      if (isNative) {
+        if (!verificationIdRef.current) {
+          setError('Session expired. Please try again.');
+          setLoading(false);
+          return false;
         }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || data.error) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
-      // Set the session in Supabase client
-      if (data.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
+        // Step 1: Confirm code with native Firebase SDK
+        await FirebaseAuthentication.confirmVerificationCode({
+          verificationId: verificationIdRef.current,
+          verificationCode: otp,
         });
+        const { user } = await FirebaseAuthentication.getCurrentUser();
+        firebaseUid = user?.uid;
+      } else {
+        if (!confirmationResultRef.current) {
+          setError('Session expired. Please try again.');
+          setLoading(false);
+          return false;
+        }
+        // Step 1: Verify OTP with Firebase web SDK (~1-2s)
+        const result = await confirmationResultRef.current.confirm(otp);
+        firebaseUid = result.user.uid;
       }
+
+      if (!firebaseUid) {
+        throw new Error('Verification failed');
+      }
+
+      // Step 2: Exchange for a Supabase session
+      await completeSupabaseSession(firebaseUid);
 
       setLoading(false);
       return true;
     } catch (err: any) {
       console.error('[OTP Verify] Error:', err);
-      const msg = err.code === 'auth/invalid-verification-code' 
-        ? 'Invalid code. Please check and try again.' 
+      const codeStr: string = err?.code || err?.message || '';
+      const msg = /invalid.*(verification|code)|code.*invalid/i.test(codeStr)
+        ? 'Invalid code. Please check and try again.'
         : err.message || 'Verification failed';
       setError(msg);
       setLoading(false);
@@ -221,8 +321,10 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
 
   const resendOTP = useCallback(async (): Promise<boolean> => {
     if (countdown > 0) return false;
-    recaptchaVerifierRef.current = null;
-    setRecaptchaReady(false);
+    if (!isNative) {
+      recaptchaVerifierRef.current = null;
+      setRecaptchaReady(false);
+    }
     return sendOTP(phoneNumber);
   }, [countdown, phoneNumber]);
 
@@ -235,6 +337,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     setIsExistingUser(false);
     setFailedAttempts(0);
     confirmationResultRef.current = null;
+    verificationIdRef.current = null;
   }, []);
 
   return {
