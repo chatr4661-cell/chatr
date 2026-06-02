@@ -129,7 +129,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       const verificationId = await new Promise<string>(async (resolve, reject) => {
         let codeListener: { remove: () => Promise<void> } | null = null;
         try {
-          codeListener = await FirebaseAuthentication.addListener(
+          codeListener = await (FirebaseAuthentication as any).addListener(
             'phoneCodeSent',
             async (event: { verificationId: string }) => {
               await codeListener?.remove();
