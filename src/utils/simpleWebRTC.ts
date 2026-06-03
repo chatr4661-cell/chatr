@@ -22,6 +22,31 @@ interface Signal {
 // Video upgrade callback type
 export type VideoUpgradeCallback = (fromUserId: string) => void;
 
+/**
+ * Native call foreground-service bridge (Android hybrid shell only).
+ * Keeps the WebView process alive for the full call so the OS cannot reclaim it
+ * mid-negotiation. No-op on web/iOS or when the bridge is absent. Never throws.
+ */
+function startNativeCallForegroundService(callType: 'audio' | 'video') {
+  try {
+    const bridge = (window as any)?.ChatrVoIP;
+    if (bridge?.startCallForegroundService) {
+      bridge.startCallForegroundService(callType, 'Chatr call');
+    }
+  } catch { /* native bridge must never affect calls */ }
+}
+
+function stopNativeCallForegroundService() {
+  try {
+    const bridge = (window as any)?.ChatrVoIP;
+    if (bridge?.stopCallForegroundService) {
+      bridge.stopCallForegroundService();
+    }
+  } catch { /* native bridge must never affect calls */ }
+}
+
+
+
 // GLOBAL: Prevent duplicate WebRTC instances for same call
 const activeCallInstances = new Map<string, SimpleWebRTCCall>();
 // CRITICAL: Prevent race conditions during instance creation
@@ -510,6 +535,14 @@ export class SimpleWebRTCCall {
       peerId: this.partnerId,
     });
     this.pc = new RTCPeerConnection(config);
+
+    // ROOT CAUSE FIX (LTE↔LTE process death): keep the WebView process alive for the
+    // ENTIRE call. WebRTC state lives in this JS heap; without a foreground service the
+    // OS reclaims the process when the proximity sensor blanks the screen during the
+    // (slower) cellular relay negotiation. Started here so it covers every call path
+    // (outgoing AND web-answered), not just native-notification answers.
+    startNativeCallForegroundService(this.isVideo ? 'video' : 'audio');
+
     this.statsObserverStop?.();
     this.statsObserverStop = startStatsObserver(this.pc, 3000, {
       label: 'SimpleWebRTC',
@@ -1736,6 +1769,11 @@ export class SimpleWebRTCCall {
     console.log('👋 [WebRTC] Ending call...');
     this.callState = 'ended';
     this.clearConnectionTimeout();
+
+    // ROOT CAUSE FIX: release the call foreground service so the process is no longer
+    // pinned once the call is over.
+    stopNativeCallForegroundService();
+
 
     // TELEMETRY ONLY — persist single evidence row before tearing down the PC.
     // Runs BEFORE cleanup() so getStats() can still read the live connection.

@@ -1,6 +1,8 @@
 package com.chatr.app.services
 
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -30,6 +32,51 @@ class VoIPBridgeService(
 
     init {
         Log.i(TAG, "📞 VoIPBridgeService initialized")
+    }
+
+    // ==================== CALL FOREGROUND SERVICE (keep WebRTC process alive) ====================
+
+    /**
+     * Start the call foreground service for ANY active call (outgoing or web-answered).
+     *
+     * ROOT CAUSE FIX: WebRTC runs entirely inside the WebView's JS heap. Previously the
+     * foreground service was started ONLY when a call was answered from a native
+     * notification (MainActivity.handleAnswerCall). For outgoing calls and calls answered
+     * from the in-app UI, no FGS ran — so when the proximity sensor blanked the screen
+     * (onPause/onStop) Android reclaimed the cached process mid-ICE-negotiation, destroying
+     * all PeerConnection/ICE/SDP state. This is why slow LTE↔LTE relay setups failed while
+     * fast WiFi host-candidate setups survived.
+     */
+    @JavascriptInterface
+    fun startCallForegroundService(callType: String, partnerName: String) {
+        try {
+            Log.i(TAG, "🟢 JS: startCallForegroundService($callType, $partnerName)")
+            val intent = Intent(context, CallForegroundService::class.java).apply {
+                action = CallForegroundService.ACTION_START
+                putExtra("call_type", callType)
+                putExtra("partner_name", partnerName)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to start call foreground service", e)
+        }
+    }
+
+    @JavascriptInterface
+    fun stopCallForegroundService() {
+        try {
+            Log.i(TAG, "🔴 JS: stopCallForegroundService()")
+            val intent = Intent(context, CallForegroundService::class.java).apply {
+                action = CallForegroundService.ACTION_STOP
+            }
+            context.startService(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to stop call foreground service", e)
+        }
     }
 
     // ==================== CALL TRANSFER ====================
