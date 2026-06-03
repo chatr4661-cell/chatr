@@ -510,6 +510,14 @@ export class SimpleWebRTCCall {
       peerId: this.partnerId,
     });
     this.pc = new RTCPeerConnection(config);
+
+    // ROOT CAUSE FIX (LTE↔LTE process death): keep the WebView process alive for the
+    // ENTIRE call. WebRTC state lives in this JS heap; without a foreground service the
+    // OS reclaims the process when the proximity sensor blanks the screen during the
+    // (slower) cellular relay negotiation. Started here so it covers every call path
+    // (outgoing AND web-answered), not just native-notification answers.
+    startNativeCallForegroundService(this.isVideo ? 'video' : 'audio');
+
     this.statsObserverStop?.();
     this.statsObserverStop = startStatsObserver(this.pc, 3000, {
       label: 'SimpleWebRTC',
