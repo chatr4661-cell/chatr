@@ -22,6 +22,31 @@ interface Signal {
 // Video upgrade callback type
 export type VideoUpgradeCallback = (fromUserId: string) => void;
 
+/**
+ * Native call foreground-service bridge (Android hybrid shell only).
+ * Keeps the WebView process alive for the full call so the OS cannot reclaim it
+ * mid-negotiation. No-op on web/iOS or when the bridge is absent. Never throws.
+ */
+function startNativeCallForegroundService(callType: 'audio' | 'video') {
+  try {
+    const bridge = (window as any)?.ChatrVoIP;
+    if (bridge?.startCallForegroundService) {
+      bridge.startCallForegroundService(callType, 'Chatr call');
+    }
+  } catch { /* native bridge must never affect calls */ }
+}
+
+function stopNativeCallForegroundService() {
+  try {
+    const bridge = (window as any)?.ChatrVoIP;
+    if (bridge?.stopCallForegroundService) {
+      bridge.stopCallForegroundService();
+    }
+  } catch { /* native bridge must never affect calls */ }
+}
+
+
+
 // GLOBAL: Prevent duplicate WebRTC instances for same call
 const activeCallInstances = new Map<string, SimpleWebRTCCall>();
 // CRITICAL: Prevent race conditions during instance creation
