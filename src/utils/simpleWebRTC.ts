@@ -1770,6 +1770,11 @@ export class SimpleWebRTCCall {
     this.callState = 'ended';
     this.clearConnectionTimeout();
 
+    // ROOT CAUSE FIX: release the call foreground service so the process is no longer
+    // pinned once the call is over.
+    stopNativeCallForegroundService();
+
+
     // TELEMETRY ONLY — persist single evidence row before tearing down the PC.
     // Runs BEFORE cleanup() so getStats() can still read the live connection.
     try {
