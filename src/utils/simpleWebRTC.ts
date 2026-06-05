@@ -1348,8 +1348,10 @@ export class SimpleWebRTCCall {
     try {
       console.log('📤 [WebRTC] Creating offer...');
       this.offerSent = true;
-      
+
+      markOfferCreateStart(this.callId);
       const offer = await this.pc.createOffer();
+      markOfferCreated(this.callId);
       if (this.networkQuality === 'EXTREME_LOW' && offer.sdp) {
         offer.sdp = muneOpusForExtremeLow(offer.sdp);
         console.log('🐌 [WebRTC] EXTREME_LOW: munged offer SDP for 6 kbps Opus');
@@ -1357,10 +1359,14 @@ export class SimpleWebRTCCall {
         offer.sdp = applyOpusParameters(offer.sdp);
       }
       await this.pc.setLocalDescription(offer);
+      markLocalDescriptionSet(this.callId);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
       console.log('✅ [WebRTC] Offer sent');
+      // Emit a one-line caller health verdict for production log triage.
+      console.log('🩺 [WebRTC] Caller signaling summary:', summarizeCall(this.callId));
     } catch (error) {
       console.error('❌ [WebRTC] Failed to create offer:', error);
+      markOfferCreateError(this.callId, error);
       this.offerSent = false;
       throw error;
     }
@@ -1385,15 +1391,18 @@ export class SimpleWebRTCCall {
         from_user: this.userId,
         to_user: this.partnerId
       });
-      
+
       if (error) {
         console.error(`❌ [WebRTC] Signal send failed (${signal.type}):`, error.message);
+        markSignalSend(this.callId, signal.type, false, Date.now() - startTime, error.message);
         throw error;
       }
-      
+
       console.log(`📤 [WebRTC] Signal sent: ${signal.type} (${Date.now() - startTime}ms)`);
+      markSignalSend(this.callId, signal.type, true, Date.now() - startTime);
     } catch (error: any) {
       console.error(`❌ [WebRTC] Failed to send ${signal.type}:`, error?.message || error);
+      markSignalSend(this.callId, signal.type, false, Date.now() - startTime, error?.message || String(error));
     }
   }
 
