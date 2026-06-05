@@ -625,21 +625,26 @@ export class SimpleWebRTCCall {
     // Handle ICE candidates - CRITICAL for connection establishment
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
+        const candidateJson = event.candidate.toJSON();
         logIceCandidateDiagnostics(event.candidate, 'gathered', {
           label: 'SimpleWebRTC',
           callId: this.callId,
           userId: this.userId,
           peerId: this.partnerId,
         });
-        this.sendSignal({ type: 'ice-candidate', data: event.candidate.toJSON(), from: this.userId });
+        markIceCandidateGathered(this.callId, candidateJson);
+        this.sendSignal({ type: 'ice-candidate', data: candidateJson, from: this.userId });
       } else {
         console.log('✅ [WebRTC] ICE gathering complete');
+        markIceGatheringComplete(this.callId);
       }
     };
 
     // Track ICE gathering state for debugging
     this.pc.onicegatheringstatechange = () => {
-      console.log(`🧊 [WebRTC] ICE gathering state: ${this.pc?.iceGatheringState}`);
+      const state = this.pc?.iceGatheringState ?? 'unknown';
+      console.log(`🧊 [WebRTC] ICE gathering state: ${state}`);
+      markIceGatheringState(this.callId, state);
     };
 
     // Connection state changes
