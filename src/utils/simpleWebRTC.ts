@@ -308,6 +308,9 @@ export class SimpleWebRTCCall {
       console.log('🎤 [WebRTC] Using pre-acquired media stream');
     }
     console.log(`🎬 [WebRTC] Init [${this.instanceId}]:`, { isVideo, isInitiator, userId: userId.slice(0, 8) });
+
+    // Caller-side signaling instrumentation (telemetry-only)
+    initCallerTracking(callId, { userId, partnerId, isInitiator });
     
     // India-first: Classify network immediately
     this.networkQuality = classifyNetwork();
