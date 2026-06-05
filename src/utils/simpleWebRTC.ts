@@ -9,6 +9,18 @@ import { TransportAdaptationEngine } from "./transportAdaptationEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 import { CallEvidenceLogger } from "./callEvidence";
+import {
+  initCallerTracking,
+  markOfferCreateStart,
+  markOfferCreated,
+  markOfferCreateError,
+  markLocalDescriptionSet,
+  markIceGatheringState,
+  markIceCandidateGathered,
+  markIceGatheringComplete,
+  markSignalSend,
+  summarizeCall,
+} from "./callerSignalingTracker";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
