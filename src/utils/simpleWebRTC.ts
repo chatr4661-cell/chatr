@@ -9,6 +9,18 @@ import { TransportAdaptationEngine } from "./transportAdaptationEngine";
 import { detectDeviceCapabilities, applyOptimalCodecs } from "./deviceCapabilities";
 import { buildRtcConfig, logIceCandidateDiagnostics, logRtcConfiguration, startStatsObserver } from "./iceTransportStrategy";
 import { CallEvidenceLogger } from "./callEvidence";
+import {
+  initCallerTracking,
+  markOfferCreateStart,
+  markOfferCreated,
+  markOfferCreateError,
+  markLocalDescriptionSet,
+  markIceGatheringState,
+  markIceCandidateGathered,
+  markIceGatheringComplete,
+  markSignalSend,
+  summarizeCall,
+} from "./callerSignalingTracker";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
 type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
@@ -296,6 +308,9 @@ export class SimpleWebRTCCall {
       console.log('🎤 [WebRTC] Using pre-acquired media stream');
     }
     console.log(`🎬 [WebRTC] Init [${this.instanceId}]:`, { isVideo, isInitiator, userId: userId.slice(0, 8) });
+
+    // Caller-side signaling instrumentation (telemetry-only)
+    initCallerTracking(callId, { userId, partnerId, isInitiator });
     
     // India-first: Classify network immediately
     this.networkQuality = classifyNetwork();
@@ -610,21 +625,26 @@ export class SimpleWebRTCCall {
     // Handle ICE candidates - CRITICAL for connection establishment
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
+        const candidateJson = event.candidate.toJSON();
         logIceCandidateDiagnostics(event.candidate, 'gathered', {
           label: 'SimpleWebRTC',
           callId: this.callId,
           userId: this.userId,
           peerId: this.partnerId,
         });
-        this.sendSignal({ type: 'ice-candidate', data: event.candidate.toJSON(), from: this.userId });
+        markIceCandidateGathered(this.callId, candidateJson);
+        this.sendSignal({ type: 'ice-candidate', data: candidateJson, from: this.userId });
       } else {
         console.log('✅ [WebRTC] ICE gathering complete');
+        markIceGatheringComplete(this.callId);
       }
     };
 
     // Track ICE gathering state for debugging
     this.pc.onicegatheringstatechange = () => {
-      console.log(`🧊 [WebRTC] ICE gathering state: ${this.pc?.iceGatheringState}`);
+      const state = this.pc?.iceGatheringState ?? 'unknown';
+      console.log(`🧊 [WebRTC] ICE gathering state: ${state}`);
+      markIceGatheringState(this.callId, state);
     };
 
     // Connection state changes
@@ -1328,8 +1348,10 @@ export class SimpleWebRTCCall {
     try {
       console.log('📤 [WebRTC] Creating offer...');
       this.offerSent = true;
-      
+
+      markOfferCreateStart(this.callId);
       const offer = await this.pc.createOffer();
+      markOfferCreated(this.callId);
       if (this.networkQuality === 'EXTREME_LOW' && offer.sdp) {
         offer.sdp = muneOpusForExtremeLow(offer.sdp);
         console.log('🐌 [WebRTC] EXTREME_LOW: munged offer SDP for 6 kbps Opus');
@@ -1337,10 +1359,14 @@ export class SimpleWebRTCCall {
         offer.sdp = applyOpusParameters(offer.sdp);
       }
       await this.pc.setLocalDescription(offer);
+      markLocalDescriptionSet(this.callId);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
       console.log('✅ [WebRTC] Offer sent');
+      // Emit a one-line caller health verdict for production log triage.
+      console.log('🩺 [WebRTC] Caller signaling summary:', summarizeCall(this.callId));
     } catch (error) {
       console.error('❌ [WebRTC] Failed to create offer:', error);
+      markOfferCreateError(this.callId, error);
       this.offerSent = false;
       throw error;
     }
@@ -1365,15 +1391,18 @@ export class SimpleWebRTCCall {
         from_user: this.userId,
         to_user: this.partnerId
       });
-      
+
       if (error) {
         console.error(`❌ [WebRTC] Signal send failed (${signal.type}):`, error.message);
+        markSignalSend(this.callId, signal.type, false, Date.now() - startTime, error.message);
         throw error;
       }
-      
+
       console.log(`📤 [WebRTC] Signal sent: ${signal.type} (${Date.now() - startTime}ms)`);
+      markSignalSend(this.callId, signal.type, true, Date.now() - startTime);
     } catch (error: any) {
       console.error(`❌ [WebRTC] Failed to send ${signal.type}:`, error?.message || error);
+      markSignalSend(this.callId, signal.type, false, Date.now() - startTime, error?.message || String(error));
     }
   }
 
