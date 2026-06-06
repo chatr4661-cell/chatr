@@ -5,88 +5,123 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Always-available STUN servers (no credentials required)
+const STUN_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+];
+
+// Generate HMAC-SHA1 time-limited credentials for a self-hosted coturn server.
+// coturn "use-auth-secret" / "static-auth-secret" scheme:
+//   username = <expiry-unix-ts>:<optional-label>
+//   credential = base64(HMAC_SHA1(static_auth_secret, username))
+async function buildCoturnCredentials(
+  host: string,
+  realm: string | undefined,
+  secret: string,
+  ttlSeconds = 86400,
+) {
+  const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const username = `${expiry}:chatr`;
+
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(username));
+  const credential = btoa(String.fromCharCode(...new Uint8Array(sig)));
+
+  const urls = [
+    `turn:${host}:3478?transport=udp`,
+    `turn:${host}:3478?transport=tcp`,
+    `turns:${host}:5349?transport=tcp`,
+  ];
+
+  return { urls, username, credential, realm };
+}
+
+// Fetch short-lived TURN credentials from Cloudflare Calls.
+async function fetchCloudflareTurn(appId: string, apiToken: string, ttlSeconds = 86400) {
+  const res = await fetch(
+    `https://rtc.live.cloudflare.com/v1/turn/keys/${appId}/credentials/generate`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ttl: ttlSeconds }),
+    },
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Cloudflare TURN error ${res.status}: ${text}`);
+  }
+
+  const data = await res.json();
+  // Cloudflare returns { iceServers: { urls: [...], username, credential } }
+  return data?.iceServers ?? null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  try {
-    // Reliable STUN/TURN server configuration for video calls
-    const iceServers = [
-      // Google STUN servers (highly reliable, globally distributed)
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
-      
-      // Cloudflare STUN (fast, reliable)
-      { urls: 'stun:stun.cloudflare.com:3478' },
-      
-      // Mozilla STUN
-      { urls: 'stun:stun.services.mozilla.com:3478' },
-      
-      // Metered.ca TURN servers (free tier - reliable)
-      { 
-        urls: [
-          'turn:a.relay.metered.ca:80',
-          'turn:a.relay.metered.ca:80?transport=tcp',
-          'turn:a.relay.metered.ca:443',
-          'turn:a.relay.metered.ca:443?transport=tcp'
-        ],
-        username: 'e8dd65c92ae9a3b9bfcbeb6e',
-        credential: 'uWdWNmkhvyqTW1QP'
-      },
-      
-      // Xirsys free TURN (backup)
-      {
-        urls: [
-          'turn:fr-turn1.xirsys.com:80?transport=udp',
-          'turn:fr-turn1.xirsys.com:3478?transport=tcp',
-          'turn:fr-turn1.xirsys.com:443?transport=tcp'
-        ],
-        username: '6820e6b6-bcd2-11ef-8ba9-0242ac120004',
-        credential: '6820e852-bcd2-11ef-8ba9-0242ac120004'
-      },
-      
-      // Additional TURN relay for strict NAT
-      {
-        urls: 'turn:relay.metered.ca:443?transport=tcp',
-        username: 'e8dd65c92ae9a3b9bfcbeb6e',
-        credential: 'uWdWNmkhvyqTW1QP'
-      }
-    ];
+  const iceServers: any[] = [...STUN_SERVERS];
+  const diagnostics: Record<string, string> = {};
 
-    console.log('Returning', iceServers.length, 'ICE server configurations');
+  // 1) Cloudflare TURN (preferred relay)
+  const cfAppId = Deno.env.get('CF_TURN_APP_ID');
+  const cfApiToken = Deno.env.get('CF_TURN_API_TOKEN');
 
-    return new Response(
-      JSON.stringify({ iceServers }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+  if (cfAppId && cfApiToken) {
+    try {
+      const cf = await fetchCloudflareTurn(cfAppId, cfApiToken);
+      if (cf) {
+        iceServers.push(cf);
+        diagnostics.cloudflare = 'ok';
+      } else {
+        diagnostics.cloudflare = 'empty-response';
       }
-    );
-  } catch (error) {
-    console.error('Error getting TURN credentials:', error);
-    
-    // Return basic STUN servers as fallback
-    const fallbackServers = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun.cloudflare.com:3478' }
-    ];
-    
-    return new Response(
-      JSON.stringify({ iceServers: fallbackServers }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    );
+    } catch (e) {
+      console.error('[get-turn-credentials] Cloudflare TURN failed:', e);
+      diagnostics.cloudflare = `error: ${(e as Error).message}`;
+    }
+  } else {
+    diagnostics.cloudflare = 'not-configured';
   }
+
+  // 2) Self-hosted coturn (HMAC fallback)
+  const turnHost = Deno.env.get('TURN_HOST');
+  const turnRealm = Deno.env.get('TURN_REALM');
+  const coturnSecret =
+    Deno.env.get('COTURN_STATIC_AUTH_SECRET') ?? Deno.env.get('TURN_SECRET');
+
+  if (turnHost && coturnSecret) {
+    try {
+      const coturn = await buildCoturnCredentials(turnHost, turnRealm, coturnSecret);
+      iceServers.push(coturn);
+      diagnostics.coturn = 'ok';
+    } catch (e) {
+      console.error('[get-turn-credentials] coturn HMAC failed:', e);
+      diagnostics.coturn = `error: ${(e as Error).message}`;
+    }
+  } else {
+    diagnostics.coturn = 'not-configured';
+  }
+
+  console.log('[get-turn-credentials] diagnostics:', JSON.stringify(diagnostics));
+  console.log('[get-turn-credentials] returning', iceServers.length, 'ICE servers');
+
+  return new Response(
+    JSON.stringify({ iceServers, diagnostics }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
 });
