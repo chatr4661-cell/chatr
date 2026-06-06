@@ -217,19 +217,29 @@ export function warmIceCredentials(): void {
   /* zero-cost stack: nothing to fetch */
 }
 
+import { getTurnConfig } from './webrtcSignaling';
+
 /**
- * Build the production RTCConfiguration using only free infrastructure.
+ * Build the production RTCConfiguration.
  *
  * - iceTransportPolicy: 'all' — let ICE pick host / srflx / relay naturally
  * - bundlePolicy: 'max-bundle' — single transport
  * - iceCandidatePoolSize: 10 — early gathering, faster setup
  *
- * Mobile-data ↔ mobile-data (CGNAT): both Metered & OpenRelay free TURN are
- * included so ICE has redundant relay paths on UDP/TCP/TLS:443.
+ * Mobile-data ↔ mobile-data (CGNAT): uses dynamic Cloudflare TURN servers
+ * to ensure reliable relay paths.
  */
 export async function buildRtcConfig(_opts?: { forceRelay?: boolean }): Promise<RTCConfiguration> {
+  let dynamicIceServers: RTCIceServer[] = [];
+  try {
+    dynamicIceServers = await getTurnConfig();
+  } catch (e) {
+    console.warn('⚠️ [ICE-CONFIG] Failed to fetch dynamic TURN config, falling back to static FREE_TURN:', e);
+    dynamicIceServers = FREE_TURN;
+  }
+
   return {
-    iceServers: [...GOOGLE_STUN, ...FREE_TURN],
+    iceServers: [...GOOGLE_STUN, ...dynamicIceServers],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
