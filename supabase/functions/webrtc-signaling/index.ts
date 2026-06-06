@@ -6,52 +6,64 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/**
- * Decode the `sub` (user id) from a Supabase access token WITHOUT verifying
- * expiry. The token is still cryptographically signed by Supabase, so the
- * subject is trustworthy enough for WebRTC signaling. This lets calls keep
- * signaling even when the client's access token has expired mid-call
- * (root cause of "JWT expired" 401s that produce 0 RTP / 0 frames).
- */
-function decodeUserIdFromToken(authHeader: string | null): string | null {
-  if (!authHeader) return null;
-  try {
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-    const payloadPart = token.split(".")[1];
-    if (!payloadPart) return null;
-    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-    const json = JSON.parse(atob(padded));
-    return typeof json.sub === "string" ? json.sub : null;
-  } catch (_e) {
-    return null;
-  }
-}
+const canonicalSignalType = (signalType: string | undefined | null) => {
+  const normalized = (signalType ?? "").toLowerCase();
+  if (normalized === "ice-candidate" || normalized === "ice_candidate") return "candidate";
+  return normalized;
+};
 
-/**
- * Generate a coturn TURN-REST time-limited credential (RFC draft "turn-rest").
- * username = "<unix-expiry>:<userId>", credential = base64(HMAC-SHA1(secret, username)).
- * These are short-lived and validated by coturn using the same shared secret
- * (`static-auth-secret` / `use-auth-secret`). No DB round-trip, works offline.
- */
-async function makeCoturnCredential(
-  secret: string,
-  userId: string,
-  ttlSeconds = 86400,
-): Promise<{ username: string; credential: string }> {
-  const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
-  const username = `${expiry}:${userId}`;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(username));
-  const credential = btoa(String.fromCharCode(...new Uint8Array(sig)));
-  return { username, credential };
-}
+const candidateObject = (signalData: any) => {
+  if (!signalData || typeof signalData !== "object") return {};
+  if (signalData.candidate && typeof signalData.candidate === "object") return signalData.candidate;
+  if (signalData.data && typeof signalData.data === "object") return signalData.data;
+  return signalData;
+};
+
+const candidateTypeFromSdp = (candidate: string | undefined | null) => {
+  const match = (candidate ?? "").match(/\styp\s+(\w+)/);
+  return match?.[1] ?? "unknown";
+};
+
+const candidateProtocolFromSdp = (candidate: string | undefined | null) => {
+  const parts = (candidate ?? "").split(/\s+/);
+  return parts[2] || "unknown";
+};
+
+const candidateLogFields = (signalData: any) => {
+  const candidateData = candidateObject(signalData);
+  const candidate = candidateData?.candidate ?? "";
+  return {
+    type: candidateTypeFromSdp(candidate),
+    protocol: candidateProtocolFromSdp(candidate),
+    sdpMid: candidateData?.sdpMid ?? candidateData?.id ?? "unknown",
+    sdpMLineIndex: candidateData?.sdpMLineIndex ?? candidateData?.label ?? -1,
+  };
+};
+
+const offerLogFields = (signalData: any) => {
+  const sdp = signalData?.sdp ?? signalData?.description ?? "";
+  return { sdpBytes: String(sdp).length };
+};
+
+const normalizeIceServers = (input: any): any[] => {
+  if (Array.isArray(input)) return input;
+  if (Array.isArray(input?.iceServers)) return input.iceServers;
+  if (input?.iceServers?.urls) return [input.iceServers];
+  if (input?.urls) return [input];
+  return [];
+};
+
+const sanitizeIceServers = (servers: any[]): any[] =>
+  normalizeIceServers(servers).map((server) => {
+    if (!server?.urls) return null;
+    const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+    const filteredUrls = urls.filter((url: string) => !String(url).toLowerCase().includes(":53"));
+    if (filteredUrls.length === 0) return null;
+    return {
+      ...server,
+      urls: filteredUrls.length === 1 ? filteredUrls[0] : filteredUrls,
+    };
+  }).filter(Boolean);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -63,33 +75,24 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: authHeader ? { Authorization: authHeader } : {},
+        },
+      },
+    );
 
-    // Auth client (validates a *fresh* token when present)
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: authHeader ? { Authorization: authHeader } : {} },
-    });
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabaseClient.auth.getUser();
 
-    // Service-role client for DB ops — bypasses RLS & token expiry so signaling
-    // survives an expired (but signed) access token mid-call.
-    const db = serviceRoleKey
-      ? createClient(supabaseUrl, serviceRoleKey)
-      : authClient;
+    if (userErr) console.log("[webrtc-signaling] getUser error", userErr);
 
-    // Resolve the user id: prefer a valid session, fall back to the token sub.
-    let userId: string | null = null;
-    const { data: { user }, error: userErr } = await authClient.auth.getUser();
-    if (userErr) console.log("[webrtc-signaling] getUser error (will try token sub)", userErr.message);
-    if (user) {
-      userId = user.id;
-    } else {
-      userId = decodeUserIdFromToken(authHeader);
-      if (userId) console.log("[webrtc-signaling] Using sub from (expired) token", { userId });
-    }
-
-    if (!userId) {
+    if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -98,22 +101,33 @@ serve(async (req) => {
 
     const body = await req.json();
     const { action, ...signalData } = body;
-    console.log("[webrtc-signaling] Action", { action, userId, callId: signalData.callId || signalData.call_id });
+    console.log("[webrtc-signaling] Action", { action, userId: user.id, callId: signalData.callId || signalData.call_id });
 
-    // ════════════════════════════════════════════════════════════════
-    // ACTION: send_signal (unified — web + Android use this)
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
+    // ACTION: send_signal (unified web + Android use this)
+    // ----------------------------------------------------------------
     if (action === "send_signal" || action === "send-signal") {
       const callId = signalData.call_id || signalData.callId;
-      const toUser = signalData.to_user_id || signalData.to;
+      const toUser = signalData.to_user_id || signalData.to_user || signalData.to;
       const signalType = signalData.signal_type || signalData.type;
       const data = signalData.signal_data || signalData.data;
+      const canonicalType = canonicalSignalType(signalType);
 
-      const { error } = await db.from("webrtc_signals").insert({
+      if (canonicalType === "candidate") {
+        console.log("[webrtc-signaling] SIGNAL_CANDIDATE_PERSISTENCE_ATTEMPT", {
+          callId,
+          fromUser: user.id,
+          toUser,
+          ...candidateLogFields(data),
+          timestamp: Date.now(),
+        });
+      }
+
+      const { error } = await supabaseClient.from("webrtc_signals").insert({
         call_id: callId,
         signal_type: signalType,
         signal_data: data,
-        from_user: userId,
+        from_user: user.id,
         to_user: toUser,
       });
 
@@ -122,25 +136,47 @@ serve(async (req) => {
         throw error;
       }
 
-      console.log("[webrtc-signaling] ✅ Signal stored", { type: signalType, to: toUser });
+      console.log("[webrtc-signaling] Signal stored", { type: signalType, to: toUser });
+
+      if (canonicalType === "candidate") {
+        console.log("[webrtc-signaling] SIGNAL_CANDIDATE_PERSISTED", {
+          callId,
+          fromUser: user.id,
+          toUser,
+          ...candidateLogFields(data),
+          timestamp: Date.now(),
+        });
+      }
+      if (canonicalType === "offer") {
+        console.log("[webrtc-signaling] OFFER_INSERTED", {
+          callId,
+          fromUser: user.id,
+          toUser,
+          ...offerLogFields(data),
+          timestamp: Date.now(),
+        });
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // ACTION: get_signals — Fetch pending signals (dual-channel reliability)
+    // ----------------------------------------------------------------
+    // ACTION: get_signals - Fetch pending signals (dual-channel reliability)
     // Android polls this + Realtime subscription = guaranteed delivery
-    // ════════════════════════════════════════════════════════════════
+    // NOTE: Signals are NOT deleted here; they expire via DB TTL or
+    // are cleaned up by the caller after ICE completes. Deleting here
+    // caused lost offers when callee fetched before caller sent them.
+    // ----------------------------------------------------------------
     if (action === "get_signals" || action === "get-signals") {
       const callId = signalData.call_id || signalData.callId;
-
-      const { data, error } = await db
+      
+      const { data, error } = await supabaseClient
         .from("webrtc_signals")
         .select("*")
         .eq("call_id", callId)
-        .eq("to_user", userId)
+        .eq("to_user", user.id)
         .order("created_at", { ascending: true });
 
       if (error) {
@@ -148,37 +184,50 @@ serve(async (req) => {
         throw error;
       }
 
-      console.log("[webrtc-signaling] ✅ Signals fetched", { count: data?.length ?? 0 });
+      console.log("[webrtc-signaling] Signals fetched", { count: data?.length ?? 0 });
 
-      // Delete retrieved signals (consumed)
-      if (data && data.length > 0) {
-        const ids = data.map((s: any) => s.id);
-        const { error: delErr } = await db
-          .from("webrtc_signals")
-          .delete()
-          .in("id", ids);
-
-        if (delErr) console.error("[webrtc-signaling] delete error", delErr);
-      }
+      const candidateRows = (data ?? []).filter((row: any) => canonicalSignalType(row.signal_type) === "candidate");
+      console.log("[webrtc-signaling] SIGNAL_CANDIDATE_RETRIEVAL", {
+        callId,
+        userId: user.id,
+        count: candidateRows.length,
+        candidates: candidateRows.map((row: any) => candidateLogFields(row.signal_data)),
+        timestamp: Date.now(),
+      });
+      const offerRows = (data ?? []).filter((row: any) => canonicalSignalType(row.signal_type) === "offer");
+      console.log("[webrtc-signaling] OFFER_RETRIEVED", {
+        callId,
+        userId: user.id,
+        found: offerRows.length > 0,
+        count: offerRows.length,
+        offers: offerRows.map((row: any) => ({
+          id: row.id,
+          fromUser: row.from_user,
+          toUser: row.to_user,
+          ...offerLogFields(row.signal_data),
+        })),
+        source: "get_signals",
+        timestamp: Date.now(),
+      });
 
       return new Response(JSON.stringify({ signals: data || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // ACTION: get_buffered_offer — CRITICAL for pre-warm
+    // ----------------------------------------------------------------
+    // ACTION: get_buffered_offer - CRITICAL for pre-warm
     // Fetches the OFFER that was stored before callee connected
     // This prevents lost offers when caller sends before callee is ready
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     if (action === "get_buffered_offer") {
       const callId = signalData.call_id || signalData.callId;
 
-      const { data, error } = await db
+      const { data, error } = await supabaseClient
         .from("webrtc_signals")
         .select("*")
         .eq("call_id", callId)
-        .eq("to_user", userId)
+        .eq("to_user", user.id)
         .eq("signal_type", "offer")
         .order("created_at", { ascending: false })
         .limit(1);
@@ -189,108 +238,133 @@ serve(async (req) => {
       }
 
       const offer = data && data.length > 0 ? data[0] : null;
-      console.log("[webrtc-signaling] ✅ Buffered offer", { found: !!offer });
+      console.log("[webrtc-signaling] Buffered offer", { found: !!offer });
+
+      console.log("[webrtc-signaling] OFFER_RETRIEVED", {
+        callId,
+        userId: user.id,
+        found: !!offer,
+        count: offer ? 1 : 0,
+        source: "get_buffered_offer",
+        fromUser: offer?.from_user,
+        toUser: offer?.to_user,
+        ...(offer ? offerLogFields(offer.signal_data) : { sdpBytes: 0 }),
+        timestamp: Date.now(),
+      });
 
       return new Response(JSON.stringify({ offer }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // ACTION: get_ice_servers — STUN + TURN with dynamic credentials
-    // TURN is MANDATORY for cellular↔cellular: both phones sit behind
-    // carrier CGNAT, so host/STUN candidates never connect — only a TURN
-    // relay (preferably TCP/443 + TLS) gets media through.
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
+    // ACTION: get_ice_servers - STUN + TURN with dynamic credentials
+    // TURN is critical: 30-50% of calls fail without it (symmetric NAT)
+    // ----------------------------------------------------------------
     if (action === "get_ice_servers") {
+      const meteredApiKey = Deno.env.get("METERED_API_KEY");
+      const cfTurnKeyId =
+        Deno.env.get("CF_TURN_KEY_ID") ||
+        Deno.env.get("TURN_KEY_ID") ||
+        Deno.env.get("CF_TURN_APP_ID");
+      const cfApiToken =
+        Deno.env.get("CF_TURN_API_TOKEN") ||
+        Deno.env.get("TURN_KEY_API_TOKEN") ||
+        Deno.env.get("CLOUDFLARE_TURN_API_TOKEN");
+      // Legacy static TURN env vars (fallback)
+      const cfTurnUrl = Deno.env.get("TURN_URLS");
+      const cfTurnUser = Deno.env.get("TURN_USERNAME");
+      const cfTurnCred = Deno.env.get("TURN_CREDENTIAL");
+      
       const iceServers: any[] = [
-        // Google STUN (free, unlimited) — helps for the lucky non-CGNAT cases
+        // Google STUN (free, unlimited)
         { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+        // Cloudflare STUN
+        { urls: "stun:stun.cloudflare.com:3478" },
       ];
 
-      // ── Primary: self-hosted coturn with time-limited HMAC credentials ──
-      // Uses TURN_HOST / TURN_SECRET (and optional TURN_REALM) you configured.
-      const turnHost = Deno.env.get("TURN_HOST");
-      const turnSecret = Deno.env.get("TURN_SECRET");
-      if (turnHost && turnSecret) {
+      // 1. Fetch Cloudflare TURN credentials from CF directly or fallback to chatr.chat API
+      if (cfTurnKeyId && cfApiToken) {
         try {
-          const { username, credential } = await makeCoturnCredential(turnSecret, userId);
-          iceServers.push(
-            { urls: `turn:${turnHost}:3478?transport=udp`, username, credential },
-            { urls: `turn:${turnHost}:3478?transport=tcp`, username, credential },
-            // 443/TLS is the key to traversing restrictive mobile firewalls
-            { urls: `turns:${turnHost}:5349?transport=tcp`, username, credential },
-            { urls: `turns:${turnHost}:443?transport=tcp`, username, credential },
-          );
-          console.log("[webrtc-signaling] ✅ coturn TURN credentials minted", { turnHost });
-        } catch (e) {
-          console.warn("[webrtc-signaling] ⚠️ coturn credential generation failed", e);
-        }
-      }
-
-      // ── Optional: Cloudflare TURN (set CLOUDFLARE_TURN_TOKEN_ID + _API_TOKEN) ──
-      const cfTokenId = Deno.env.get("CLOUDFLARE_TURN_TOKEN_ID");
-      const cfApiToken = Deno.env.get("CLOUDFLARE_TURN_API_TOKEN");
-      if (cfTokenId && cfApiToken) {
-        try {
-          const cfRes = await fetch(
-            `https://rtc.live.cloudflare.com/v1/turn/keys/${cfTokenId}/credentials/generate`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${cfApiToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ ttl: 86400 }),
-              signal: AbortSignal.timeout(3000),
+          const cfGenRes = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${cfTurnKeyId}/credentials/generate-ice-servers`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${cfApiToken}`,
+              "Content-Type": "application/json",
             },
-          );
-          if (cfRes.ok) {
-            const cf = await cfRes.json();
-            if (cf?.iceServers) {
-              const list = Array.isArray(cf.iceServers) ? cf.iceServers : [cf.iceServers];
-              iceServers.push(...list);
-              console.log("[webrtc-signaling] ✅ Cloudflare TURN credentials fetched");
-            }
+            body: JSON.stringify({ ttl: 86400 }),
+            signal: AbortSignal.timeout(4000),
+          });
+          if (cfGenRes.ok) {
+            const cfGenData = await cfGenRes.json();
+            iceServers.push(...sanitizeIceServers(cfGenData));
+            console.log("[webrtc-signaling] Cloudflare TURN credentials generated from CF API");
           } else {
-            console.warn("[webrtc-signaling] ⚠️ Cloudflare TURN failed", cfRes.status);
+            console.warn("[webrtc-signaling] Cloudflare TURN generation failed", cfGenRes.status);
           }
         } catch (e) {
-          console.warn("[webrtc-signaling] ⚠️ Cloudflare TURN fetch error", e);
+          console.warn("[webrtc-signaling] Cloudflare TURN generation error", e);
+        }
+      } else {
+        try {
+          const cfRes = await fetch("https://chatr.chat/api/turn-credentials", {
+            method: "GET",
+            signal: AbortSignal.timeout(4000),
+          });
+          if (cfRes.ok) {
+            const cfData = await cfRes.json();
+            if (cfData && cfData.iceServers) {
+              if (Array.isArray(cfData.iceServers)) {
+                iceServers.push(...sanitizeIceServers(cfData.iceServers));
+              } else {
+                iceServers.push(...sanitizeIceServers(cfData.iceServers));
+              }
+              console.log("[webrtc-signaling] Cloudflare TURN credentials fetched from API");
+            }
+          } else {
+            console.warn("[webrtc-signaling] Cloudflare TURN fetch failed", cfRes.status);
+          }
+        } catch (e) {
+          console.warn("[webrtc-signaling] Cloudflare TURN API error", e);
         }
       }
 
-      // ── Optional: Metered.ca dynamic credentials ──
-      const meteredApiKey = Deno.env.get("METERED_API_KEY");
+      // 2. Try Metered.ca for dynamic TURN credentials
       if (meteredApiKey) {
         try {
           const turnRes = await fetch(
             `https://chatr.metered.live/api/v1/turn/credentials?apiKey=${meteredApiKey}`,
-            { signal: AbortSignal.timeout(3000) },
+            { signal: AbortSignal.timeout(3000) }
           );
           if (turnRes.ok) {
             const turnServers = await turnRes.json();
             iceServers.push(...turnServers);
-            console.log("[webrtc-signaling] ✅ Metered TURN credentials fetched", { count: turnServers.length });
+            console.log("[webrtc-signaling] Metered TURN credentials fetched", { count: turnServers.length });
           }
         } catch (e) {
-          console.warn("[webrtc-signaling] ⚠️ Metered TURN fetch failed", e);
+          console.warn("[webrtc-signaling] Metered TURN fetch failed", e);
         }
       }
 
-      // ── Last-resort fallback: shared public relay (only if no TURN above) ──
-      const hasTurn = iceServers.some((s) => {
-        const u = Array.isArray(s.urls) ? s.urls.join(" ") : String(s.urls || "");
-        return u.includes("turn:") || u.includes("turns:");
+      // 3. Legacy static TURN env vars
+      if (cfTurnUrl && cfTurnUser && cfTurnCred) {
+        const cfUrls = cfTurnUrl.split(",").map((u: string) => u.trim()).filter(Boolean);
+        iceServers.push({ urls: cfUrls, username: cfTurnUser, credential: cfTurnCred });
+        console.log("[webrtc-signaling] Static TURN added from env");
+      }
+
+      // 4. Open Relay fallback - only if no TURN was added at all
+      const hasTurn = iceServers.some((s: any) => {
+        const u = Array.isArray(s.urls) ? s.urls.join(",") : (s.urls || "");
+        return u.includes("turn:");
       });
       if (!hasTurn) {
-        console.warn("[webrtc-signaling] ⚠️ No TURN configured — using public fallback relay");
         iceServers.push(
-          { urls: "turn:a.relay.metered.ca:80", username: "chatr", credential: "chatr2026" },
-          { urls: "turn:a.relay.metered.ca:80?transport=tcp", username: "chatr", credential: "chatr2026" },
-          { urls: "turn:a.relay.metered.ca:443", username: "chatr", credential: "chatr2026" },
-          { urls: "turns:a.relay.metered.ca:443?transport=tcp", username: "chatr", credential: "chatr2026" },
+          { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+          { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+          { urls: "turns:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
         );
+        console.log("[webrtc-signaling] Using Open Relay fallback TURN");
       }
 
       return new Response(JSON.stringify({ iceServers }), {
