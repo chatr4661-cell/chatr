@@ -78,8 +78,19 @@ serve(async (req) => {
   const diagnostics: Record<string, string> = {};
 
   // 1) Cloudflare TURN (preferred relay)
-  const cfAppId = Deno.env.get('CF_TURN_APP_ID');
-  const cfApiToken = Deno.env.get('CF_TURN_API_TOKEN');
+  // Trim to defend against accidental whitespace/newlines from secret entry.
+  const cfAppId = Deno.env.get('CF_TURN_APP_ID')?.trim();
+  const cfApiToken = Deno.env.get('CF_TURN_API_TOKEN')?.trim();
+
+  // Safe diagnostics: lengths + prefixes only, never the secret value itself.
+  if (cfAppId || cfApiToken) {
+    diagnostics.cf_meta = JSON.stringify({
+      appIdLen: cfAppId?.length ?? 0,
+      appIdPrefix: cfAppId?.slice(0, 4) ?? '',
+      tokenLen: cfApiToken?.length ?? 0,
+      tokenPrefix: cfApiToken?.slice(0, 5) ?? '',
+    });
+  }
 
   if (cfAppId && cfApiToken) {
     try {
