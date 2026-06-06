@@ -601,6 +601,18 @@ export class SimpleWebRTCCall {
       const [remoteStream] = event.streams;
       console.log(`📺 [WebRTC] Remote track received: ${track.kind}, id: ${track.id.slice(0,8)}, stream tracks: ${remoteStream.getTracks().length}`);
 
+      // CRITICAL: Jitter buffering for Telecom Killer 2G Voice
+      // If we are on a weak network, inject a 200ms buffer to absorb 2G packet clumps.
+      if (track.kind === 'audio' && (this.networkQuality === 'HOSTILE' || this.networkQuality === 'EXTREME_LOW')) {
+        try {
+          // @ts-ignore - playoutDelayHint is a newer API not fully typed everywhere
+          track.playoutDelayHint = 0.2;
+          console.log(`🐌 [WebRTC] Injected 200ms Jitter Buffer (playoutDelayHint) for 2G audio`);
+        } catch (e) {
+          console.warn(`⚠️ [WebRTC] Failed to set playoutDelayHint:`, e);
+        }
+      }
+
       // CRITICAL: ensure remote tracks are enabled — some browsers/WebViews
       // (notably Android WebView after renegotiation) keep them paused on attach.
       try {
@@ -1237,9 +1249,9 @@ export class SimpleWebRTCCall {
           
           // Always send answer for offers (including renegotiation)
           const answer = await this.pc.createAnswer();
-          if (this.networkQuality === 'EXTREME_LOW' && answer.sdp) {
+          if ((this.networkQuality === 'EXTREME_LOW' || this.networkQuality === 'HOSTILE') && answer.sdp) {
             answer.sdp = muneOpusForExtremeLow(answer.sdp);
-            console.log('🐌 [WebRTC] EXTREME_LOW: munged answer SDP for 6 kbps Opus');
+            console.log('🐌 [WebRTC] WEAK NETWORK: munged answer SDP for Telecom Killer 2G Voice');
           } else if (answer.sdp) {
             answer.sdp = applyOpusParameters(answer.sdp);
           }
@@ -1352,9 +1364,9 @@ export class SimpleWebRTCCall {
       markOfferCreateStart(this.callId);
       const offer = await this.pc.createOffer();
       markOfferCreated(this.callId);
-      if (this.networkQuality === 'EXTREME_LOW' && offer.sdp) {
+      if ((this.networkQuality === 'EXTREME_LOW' || this.networkQuality === 'HOSTILE') && offer.sdp) {
         offer.sdp = muneOpusForExtremeLow(offer.sdp);
-        console.log('🐌 [WebRTC] EXTREME_LOW: munged offer SDP for 6 kbps Opus');
+        console.log('🐌 [WebRTC] WEAK NETWORK: munged offer SDP for Telecom Killer 2G Voice');
       } else if (offer.sdp) {
         offer.sdp = applyOpusParameters(offer.sdp);
       }

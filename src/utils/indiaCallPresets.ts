@@ -309,20 +309,26 @@ export async function applyBitrateLimits(
 }
 
 /**
- * SDP munger for EXTREME_LOW: ultra-low Opus (6 kbps), narrowband, DTX, FEC.
+ * SDP munger for TELECOM KILLER 2G Voice.
  * Apply to both offer.sdp and answer.sdp BEFORE setLocalDescription.
  *
- * Real-world: drops effective audio payload to ~5–8 kbps with DTX silence
- * suppression — survivable on 1G/slow-2G links.
+ * Strategies:
+ * - ptime=60 & minptime=60: Drops 50 packets/sec to 16.6 packets/sec. Saves ~11 kbps in header overhead!
+ * - maxaveragebitrate=12000: Excellent wideband voice (SILK mode).
+ * - usedtx=1: Discontinuous Transmission (stops sending on silence).
+ * - useinbandfec=1: Forward Error Correction (survives 2G packet loss).
  */
 export function muneOpusForExtremeLow(sdp: string): string {
   if (!sdp) return sdp;
+  
   // Find Opus payload type
   const opusMatch = sdp.match(/a=rtpmap:(\d+)\s+opus\/\d+/i);
   if (!opusMatch) return sdp;
   const pt = opusMatch[1];
 
-  const fmtpLine = `a=fmtp:${pt} minptime=60;maxaveragebitrate=6000;maxplaybackrate=8000;stereo=0;sprop-stereo=0;useinbandfec=1;usedtx=1;cbr=0`;
+  // The ultimate 2G Telecom-Killer format parameters
+  const fmtpLine = `a=fmtp:${pt} minptime=60;ptime=60;maxaveragebitrate=12000;useinbandfec=1;usedtx=1;cbr=0`;
+  
   // Remove any existing fmtp line for this PT
   let out = sdp.replace(new RegExp(`a=fmtp:${pt}[^\\r\\n]*\\r?\\n`, 'g'), '');
   // Insert our fmtp right after the rtpmap line
@@ -330,7 +336,17 @@ export function muneOpusForExtremeLow(sdp: string): string {
     new RegExp(`(a=rtpmap:${pt}\\s+opus\\/\\d+(?:\\/\\d+)?\\r?\\n)`, 'i'),
     `$1${fmtpLine}\r\n`
   );
-  // Add b=AS bandwidth cap (kbps) on the audio m-line
-  out = out.replace(/(m=audio[^\r\n]*\r?\n)/, `$1b=AS:8\r\nb=TIAS:8000\r\n`);
+  
+  // Remove existing maxptime/ptime at session or media level that might override our ptime=60
+  out = out.replace(/a=maxptime:\d+\r?\n/g, '');
+  out = out.replace(/a=ptime:\d+\r?\n/g, '');
+  
+  // Explicitly set ptime=60 and maxptime=60 at media level for good measure
+  out = out.replace(/(m=audio[^\r\n]*\r?\n)/, `$1a=ptime:60\r\na=maxptime:60\r\n`);
+
+  // Add b=AS bandwidth cap (kbps) on the audio m-line. 
+  // 12kbps audio + ~6kbps overhead = 18kbps total limit.
+  out = out.replace(/(m=audio[^\r\n]*\r?\n)/, `$1b=AS:18\r\nb=TIAS:12000\r\n`);
+  
   return out;
 }
