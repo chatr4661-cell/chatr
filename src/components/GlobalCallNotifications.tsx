@@ -44,13 +44,11 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         localVideoRef.current.srcObject = stream;
       }
 
-      // Create peer connection
-      const configuration = {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      };
+      // Get dynamic ICE servers (Cloudflare TURN)
+      const { getTurnConfig } = await import('@/utils/webrtcSignaling');
+      const iceServers = await getTurnConfig();
+
+      const configuration = { iceServers };
 
       const peerConnection = new RTCPeerConnection(configuration);
       peerConnectionRef.current = peerConnection;
@@ -155,13 +153,11 @@ export const GlobalCallNotifications = ({ userId, username }: GlobalCallNotifica
         localVideoRef.current.srcObject = stream;
       }
 
-      // Create peer connection
-      const configuration = {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      };
+      // Get dynamic ICE servers (Cloudflare TURN)
+      const { getTurnConfig } = await import('@/utils/webrtcSignaling');
+      const iceServers = await getTurnConfig();
+
+      const configuration = { iceServers };
 
       const peerConnection = new RTCPeerConnection(configuration);
       peerConnectionRef.current = peerConnection;
