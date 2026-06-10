@@ -9,7 +9,7 @@ import {
   shift,
   size,
   useFloating
-} from "./chunk-H7U6DCJY.js";
+} from "./chunk-2OPIO6ES.js";
 import {
   useSize
 } from "./chunk-SMFEHCPM.js";
@@ -313,4 +313,4 @@ export {
   Content,
   Arrow
 };
-//# sourceMappingURL=chunk-676FRXXI.js.map
+//# sourceMappingURL=chunk-LPYM6K53.js.map

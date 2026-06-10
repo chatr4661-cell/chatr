@@ -48,7 +48,7 @@ import "./chunk-XM6L7XYF.js";
 import {
   Persistence,
   ProviderId
-} from "./chunk-DZJM4KKH.js";
+} from "./chunk-RMBOUGV7.js";
 import {
   WebPlugin
 } from "./chunk-S7OKNGPJ.js";
@@ -101,7 +101,7 @@ var FirebaseAuthenticationWeb = class _FirebaseAuthenticationWeb extends WebPlug
     };
   }
   async getPendingAuthResult() {
-    throw this.unimplemented("Not implemented on web.");
+    this.throwNotAvailableError();
   }
   async getCurrentUser() {
     const auth = getAuth();
@@ -174,7 +174,7 @@ var FirebaseAuthenticationWeb = class _FirebaseAuthenticationWeb extends WebPlug
     return this.createSignInResult(userCredential, authCredential);
   }
   async linkWithGameCenter() {
-    throw this.unimplemented("Not implemented on web.");
+    this.throwNotAvailableError();
   }
   async linkWithGithub(options) {
     const provider = new GithubAuthProvider();
@@ -232,7 +232,7 @@ var FirebaseAuthenticationWeb = class _FirebaseAuthenticationWeb extends WebPlug
     }
   }
   async linkWithPlayGames() {
-    throw this.unimplemented("Not implemented on web.");
+    this.throwNotAvailableError();
   }
   async linkWithTwitter(options) {
     const provider = new TwitterAuthProvider();
@@ -387,10 +387,10 @@ var FirebaseAuthenticationWeb = class _FirebaseAuthenticationWeb extends WebPlug
     }
   }
   async signInWithPlayGames() {
-    throw this.unimplemented("Not implemented on web.");
+    this.throwNotAvailableError();
   }
   async signInWithGameCenter() {
-    throw this.unimplemented("Not implemented on web.");
+    this.throwNotAvailableError();
   }
   async signInWithTwitter(options) {
     const provider = new TwitterAuthProvider();
@@ -529,10 +529,10 @@ var FirebaseAuthenticationWeb = class _FirebaseAuthenticationWeb extends WebPlug
     return linkWithCredential(auth.currentUser, credential);
   }
   requestAppTrackingTransparencyPermission() {
-    throw this.unimplemented("Not implemented on web.");
+    this.throwNotAvailableError();
   }
   checkAppTrackingTransparencyPermission() {
-    throw this.unimplemented("Not implemented on web.");
+    this.throwNotAvailableError();
   }
   createSignInResult(userCredential, authCredential) {
     const userResult = this.createUserResult((userCredential === null || userCredential === void 0 ? void 0 : userCredential.user) || null);
@@ -627,6 +627,9 @@ var FirebaseAuthenticationWeb = class _FirebaseAuthenticationWeb extends WebPlug
     }
     return JSON.stringify(error);
   }
+  throwNotAvailableError() {
+    throw new Error("Not available on web.");
+  }
 };
 FirebaseAuthenticationWeb.AUTH_STATE_CHANGE_EVENT = "authStateChange";
 FirebaseAuthenticationWeb.ID_TOKEN_CHANGE_EVENT = "idTokenChange";
@@ -639,4 +642,4 @@ FirebaseAuthenticationWeb.ERROR_CONFIRMATION_RESULT_MISSING = "No confirmation r
 export {
   FirebaseAuthenticationWeb
 };
-//# sourceMappingURL=web-2MOEKTXF.js.map
+//# sourceMappingURL=web-JOPAODJX.js.map
