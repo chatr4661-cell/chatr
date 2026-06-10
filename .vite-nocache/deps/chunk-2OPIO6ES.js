@@ -148,7 +148,7 @@ function rectToClientRect(rect) {
   };
 }
 
-// node_modules/@floating-ui/core/dist/floating-ui.core.mjs
+// node_modules/@floating-ui/react-dom/node_modules/@floating-ui/dom/node_modules/@floating-ui/core/dist/floating-ui.core.mjs
 function computeCoordsFromPlacement(_ref, placement, rtl) {
   let {
     reference,
@@ -1011,7 +1011,7 @@ function getFrameElement(win) {
   return win.parent && Object.getPrototypeOf(win.parent) ? win.frameElement : null;
 }
 
-// node_modules/@floating-ui/dom/dist/floating-ui.dom.mjs
+// node_modules/@floating-ui/react-dom/node_modules/@floating-ui/dom/dist/floating-ui.dom.mjs
 function getCssDimensions(element) {
   const css = getComputedStyle(element);
   let width = parseFloat(css.width) || 0;
@@ -1932,4 +1932,4 @@ export {
   arrow3 as arrow,
   Root
 };
-//# sourceMappingURL=chunk-H7U6DCJY.js.map
+//# sourceMappingURL=chunk-2OPIO6ES.js.map
