@@ -327,6 +327,51 @@ export const ContactInvitation = ({ userId, username }: ContactInvitationProps) 
           <p className="text-xs text-muted-foreground">Your friends get 50 welcome coins too</p>
         </div>
       </Card>
+
+      {/* Contact Picker Dialog */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite Contacts</DialogTitle>
+            <DialogDescription>Select contacts to invite to Chatr+ via SMS.</DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search contacts..."
+              className="pl-10"
+              value={contactSearch}
+              onChange={(e) => setContactSearch(e.target.value)}
+            />
+          </div>
+          <ScrollArea className="h-72 pr-3">
+            <div className="space-y-1">
+              {filteredContacts.map((c) => (
+                <label
+                  key={c.id}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/40 cursor-pointer"
+                >
+                  <Checkbox checked={!!selected[c.id]} onCheckedChange={() => toggleContact(c.id)} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{c.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{c.phone}</p>
+                  </div>
+                </label>
+              ))}
+              {filteredContacts.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">No contacts found</p>
+              )}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPickerOpen(false)} disabled={inviting}>Cancel</Button>
+            <Button onClick={inviteSelected} disabled={inviting || selectedCount === 0}>
+              {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Invite {selectedCount > 0 ? `(${selectedCount})` : ''}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
