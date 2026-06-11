@@ -1,13 +1,21 @@
 /**
  * CHATR ULTRA - Device AI Interface
- * Abstracts on-device AI model access across platforms
+ * Routes on-device AI access across platforms with a real cloud fallback.
+ *
+ * Priority:
+ *   1. Native Android AICore / Gemini Nano (via OnDeviceAi Capacitor plugin) — zero cost
+ *   2. Cloud fallback via the `ai-smart-reply` edge function (Lovable AI Gateway)
  */
 
-export type DeviceAIModel = 
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import { supabase } from '@/integrations/supabase/client';
+
+export type DeviceAIModel =
   | 'apple-intelligence'
   | 'gemini-nano'
   | 'samsung-gauss'
   | 'qualcomm-npu'
+  | 'cloud-gateway'
   | 'web-transformer'
   | 'local-llm';
 
@@ -36,12 +44,23 @@ export interface MultiModelResponse {
   mostAccurate: DeviceAIModel;
 }
 
+interface OnDeviceAiPluginShape {
+  checkAvailability(): Promise<{ available: boolean; status: string }>;
+  generate(options: { system?: string; prompt: string }): Promise<{ text: string }>;
+}
+
+const OnDeviceAi =
+  Capacitor.getPlatform() === 'android'
+    ? registerPlugin<OnDeviceAiPluginShape>('OnDeviceAi')
+    : null;
+
 /**
- * Device AI Service - manages on-device AI models
+ * Device AI Service - manages on-device AI models with cloud fallback
  */
 class DeviceAIService {
   private availableModels: DeviceAICapabilities[] = [];
   private initialized = false;
+  private nativeAvailable = false;
 
   /**
    * Detect and initialize available on-device AI models
@@ -50,24 +69,13 @@ class DeviceAIService {
     if (this.initialized) return;
 
     console.log('🧠 [CHATR ULTRA] Initializing device AI models...');
+    this.availableModels = [];
 
-    // Check for Apple Intelligence (iOS 18+)
-    if (this.isAppleIntelligenceAvailable()) {
+    // Detect native on-device AI (Android Gemini Nano / AICore)
+    this.nativeAvailable = await this.checkNativeAvailability();
+    if (this.nativeAvailable) {
       this.availableModels.push({
-        modelName: 'Apple Intelligence GPT',
-        modelType: 'apple-intelligence',
-        available: true,
-        maxTokens: 4096,
-        supportsStreaming: true,
-        supportsMultimodal: true,
-        latencyMs: 50,
-      });
-    }
-
-    // Check for Gemini Nano (Android)
-    if (this.isGeminiNanoAvailable()) {
-      this.availableModels.push({
-        modelName: 'Google Gemini Nano',
+        modelName: 'Google Gemini Nano (On-Device)',
         modelType: 'gemini-nano',
         available: true,
         maxTokens: 2048,
@@ -77,45 +85,19 @@ class DeviceAIService {
       });
     }
 
-    // Check for Samsung Gauss
-    if (this.isSamsungGaussAvailable()) {
-      this.availableModels.push({
-        modelName: 'Samsung Gauss',
-        modelType: 'samsung-gauss',
-        available: true,
-        maxTokens: 2048,
-        supportsStreaming: true,
-        supportsMultimodal: false,
-        latencyMs: 100,
-      });
-    }
-
-    // Check for Qualcomm NPU
-    if (this.isQualcommNPUAvailable()) {
-      this.availableModels.push({
-        modelName: 'Qualcomm AI Engine',
-        modelType: 'qualcomm-npu',
-        available: true,
-        maxTokens: 1024,
-        supportsStreaming: false,
-        supportsMultimodal: false,
-        latencyMs: 60,
-      });
-    }
-
-    // Web-based transformer (always available as fallback)
+    // Cloud gateway (always available — real inference via edge function)
     this.availableModels.push({
-      modelName: 'Web Transformer (Fallback)',
-      modelType: 'web-transformer',
+      modelName: 'Cloud AI Gateway',
+      modelType: 'cloud-gateway',
       available: true,
-      maxTokens: 512,
+      maxTokens: 4096,
       supportsStreaming: false,
       supportsMultimodal: false,
-      latencyMs: 200,
+      latencyMs: 600,
     });
 
     this.initialized = true;
-    console.log(`✅ [CHATR ULTRA] ${this.availableModels.length} AI models ready`);
+    console.log(`✅ [CHATR ULTRA] ${this.availableModels.length} AI models ready (native=${this.nativeAvailable})`);
   }
 
   /**
@@ -126,7 +108,7 @@ class DeviceAIService {
   }
 
   /**
-   * Run inference on a single device AI model
+   * Run inference on the best available model (native first, cloud fallback)
    */
   async runInference(
     prompt: string,
@@ -139,49 +121,36 @@ class DeviceAIService {
   ): Promise<DeviceAIResponse> {
     const startTime = performance.now();
 
-    // Select model (use specified or fastest available)
-    const model = modelType
-      ? this.availableModels.find(m => m.modelType === modelType)
-      : this.availableModels[0];
-
-    if (!model) {
-      throw new Error('No AI models available on device');
+    // Prefer native unless a specific cloud model was requested
+    const wantsCloud = modelType === 'cloud-gateway';
+    if (!wantsCloud && this.nativeAvailable && OnDeviceAi) {
+      try {
+        const r = await OnDeviceAi.generate({ system: options?.systemPrompt, prompt });
+        if (r.text?.trim()) {
+          return {
+            text: r.text.trim(),
+            modelUsed: 'gemini-nano',
+            latencyMs: performance.now() - startTime,
+            confidence: 0.9,
+          };
+        }
+      } catch (e) {
+        console.warn('[CHATR ULTRA] native inference failed, using cloud', e);
+      }
     }
 
-    // Route to appropriate model
-    let text = '';
-    switch (model.modelType) {
-      case 'apple-intelligence':
-        text = await this.runAppleIntelligence(prompt, options);
-        break;
-      case 'gemini-nano':
-        text = await this.runGeminiNano(prompt, options);
-        break;
-      case 'samsung-gauss':
-        text = await this.runSamsungGauss(prompt, options);
-        break;
-      case 'qualcomm-npu':
-        text = await this.runQualcommNPU(prompt, options);
-        break;
-      case 'web-transformer':
-        text = await this.runWebTransformer(prompt, options);
-        break;
-      default:
-        text = await this.runWebTransformer(prompt, options);
-    }
-
-    const latencyMs = performance.now() - startTime;
-
+    // Cloud fallback — real inference
+    const text = await this.runCloudGateway(prompt, options);
     return {
       text,
-      modelUsed: model.modelType,
-      latencyMs,
-      confidence: 0.85, // TODO: Implement confidence scoring
+      modelUsed: 'cloud-gateway',
+      latencyMs: performance.now() - startTime,
+      confidence: 0.85,
     };
   }
 
   /**
-   * Run multi-model reasoning for maximum accuracy
+   * Run on native + cloud and pick the best for maximum accuracy
    */
   async runMultiModel(
     prompt: string,
@@ -191,107 +160,95 @@ class DeviceAIService {
       systemPrompt?: string;
     }
   ): Promise<MultiModelResponse> {
-    const minModels = options?.minModels || 2;
-    const modelsToUse = this.availableModels.slice(0, Math.min(minModels, this.availableModels.length));
+    const tasks: Promise<DeviceAIResponse>[] = [this.runInference(prompt, 'cloud-gateway', options)];
+    if (this.nativeAvailable) {
+      tasks.push(this.runInference(prompt, 'gemini-nano', options));
+    }
 
-    // Run inference on all selected models in parallel
-    const responses = await Promise.all(
-      modelsToUse.map(model => this.runInference(prompt, model.modelType, options))
-    );
+    const settled = await Promise.allSettled(tasks);
+    const responses = settled
+      .filter((r): r is PromiseFulfilledResult<DeviceAIResponse> => r.status === 'fulfilled')
+      .map((r) => r.value)
+      .filter((r) => r.text);
 
-    // Compare outputs and pick best
+    if (responses.length === 0) {
+      throw new Error('No AI models produced a response');
+    }
+
     const finalAnswer = this.selectBestResponse(responses);
     const consensusScore = this.calculateConsensus(responses);
-    const mostAccurate = responses.reduce((best, curr) => 
+    const mostAccurate = responses.reduce((best, curr) =>
       curr.confidence > best.confidence ? curr : best
     ).modelUsed;
 
-    return {
-      finalAnswer,
-      modelResponses: responses,
-      consensusScore,
-      mostAccurate,
-    };
+    return { finalAnswer, modelResponses: responses, consensusScore, mostAccurate };
   }
 
-  // Platform detection methods
-  private isAppleIntelligenceAvailable(): boolean {
-    // Check for iOS 18+ with Apple Intelligence capability
-    // This would require native plugin in real implementation
-    return false; // Placeholder
-  }
-
-  private isGeminiNanoAvailable(): boolean {
-    // Check for Android with Gemini Nano
-    // This would require native plugin
-    return false; // Placeholder
-  }
-
-  private isSamsungGaussAvailable(): boolean {
-    // Check for Samsung device with Gauss AI
-    return false; // Placeholder
-  }
-
-  private isQualcommNPUAvailable(): boolean {
-    // Check for Qualcomm NPU
-    return false; // Placeholder
-  }
-
-  // Model-specific inference methods (placeholders for native implementation)
-  private async runAppleIntelligence(prompt: string, options?: any): Promise<string> {
-    // TODO: Implement native bridge to Apple Intelligence
-    throw new Error('Apple Intelligence requires native plugin');
-  }
-
-  private async runGeminiNano(prompt: string, options?: any): Promise<string> {
-    // TODO: Implement native bridge to Gemini Nano
-    throw new Error('Gemini Nano requires native plugin');
-  }
-
-  private async runSamsungGauss(prompt: string, options?: any): Promise<string> {
-    // TODO: Implement native bridge to Samsung Gauss
-    throw new Error('Samsung Gauss requires native plugin');
-  }
-
-  private async runQualcommNPU(prompt: string, options?: any): Promise<string> {
-    // TODO: Implement native bridge to Qualcomm NPU
-    throw new Error('Qualcomm NPU requires native plugin');
+  /** Check whether the native on-device AI plugin reports availability */
+  private async checkNativeAvailability(): Promise<boolean> {
+    if (!OnDeviceAi) return false;
+    try {
+      const r = await OnDeviceAi.checkAvailability();
+      return !!r.available;
+    } catch {
+      return false;
+    }
   }
 
   /**
-   * Web-based transformer fallback (works in browser)
+   * Cloud inference via the ai-smart-reply edge function (Lovable AI Gateway)
    */
-  private async runWebTransformer(prompt: string, options?: any): Promise<string> {
-    // This is a simplified fallback
-    // In production, this would use @huggingface/transformers
-    const systemPrompt = options?.systemPrompt || 'You are a helpful AI assistant.';
-    
-    // Simulate basic reasoning
-    return `${systemPrompt}\n\nQuery: ${prompt}\n\nResponse: This is a placeholder response. In production, this would use on-device transformer models via WebGPU.`;
+  private async runCloudGateway(
+    prompt: string,
+    options?: { systemPrompt?: string }
+  ): Promise<string> {
+    try {
+      const message = options?.systemPrompt
+        ? `${options.systemPrompt}\n\n${prompt}`
+        : prompt;
+      const { data, error } = await supabase.functions.invoke('ai-smart-reply', {
+        body: { message, context: [], type: 'chat' },
+      });
+      if (error) throw error;
+      return (data?.reply || data?.response || '').trim();
+    } catch (e) {
+      console.error('[CHATR ULTRA] cloud inference failed', e);
+      throw new Error('AI inference unavailable. Please check your connection and try again.');
+    }
   }
 
   /**
-   * Select best response from multiple models
+   * Select best response from multiple models (highest confidence)
    */
   private selectBestResponse(responses: DeviceAIResponse[]): string {
     if (responses.length === 0) return '';
     if (responses.length === 1) return responses[0].text;
-
-    // Pick response with highest confidence
-    return responses.reduce((best, curr) => 
+    return responses.reduce((best, curr) =>
       curr.confidence > best.confidence ? curr : best
     ).text;
   }
 
   /**
-   * Calculate consensus score across models
+   * Calculate consensus score across models via token overlap (Jaccard similarity)
    */
   private calculateConsensus(responses: DeviceAIResponse[]): number {
     if (responses.length <= 1) return 1.0;
-
-    // Simple consensus: how similar are the responses?
-    // TODO: Implement proper semantic similarity
-    return 0.75; // Placeholder
+    const tokenSets = responses.map(
+      (r) => new Set(r.text.toLowerCase().split(/\s+/).filter(Boolean))
+    );
+    let total = 0;
+    let pairs = 0;
+    for (let i = 0; i < tokenSets.length; i++) {
+      for (let j = i + 1; j < tokenSets.length; j++) {
+        const a = tokenSets[i];
+        const b = tokenSets[j];
+        const intersection = [...a].filter((t) => b.has(t)).length;
+        const union = new Set([...a, ...b]).size || 1;
+        total += intersection / union;
+        pairs++;
+      }
+    }
+    return pairs > 0 ? total / pairs : 1.0;
   }
 }
 

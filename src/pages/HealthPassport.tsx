@@ -203,13 +203,36 @@ const HealthPassport = () => {
     }
   };
 
-  const exportPassport = () => {
-    toast.info('PDF export coming soon!');
+  const [exporting, setExporting] = useState(false);
+
+  const generatePassportPdf = async (action: 'download' | 'share') => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const { buildHealthPassportPdf, deliverHealthPassportPdf } = await import('@/utils/healthPassportPdf');
+      const { data, error } = await supabase.functions.invoke('health-passport-export', {
+        body: { format: 'json' },
+      });
+      if (error) throw error;
+      if (!data?.success || !data?.data) throw new Error('Could not fetch health data');
+
+      const doc = buildHealthPassportPdf(data.data);
+      await deliverHealthPassportPdf(doc, action);
+      if (action === 'download') {
+        toast.success('Health Passport exported as PDF');
+      }
+    } catch (err: any) {
+      // Ignore user-cancelled share dialogs
+      if (err?.message?.toLowerCase?.().includes('cancel') || err?.message?.includes('AbortError')) return;
+      console.error('Passport export error:', err);
+      toast.error('Could not generate PDF. Please try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
-  const sharePassport = () => {
-    toast.info('Secure sharing coming soon!');
-  };
+  const exportPassport = () => generatePassportPdf('download');
+  const sharePassport = () => generatePassportPdf('share');
 
   if (loading) {
     return (

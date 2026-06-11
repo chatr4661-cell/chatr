@@ -3,7 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Mail, Copy, Gift, UserPlus, Share2, Users } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog';
+import { MessageSquare, Mail, Copy, Gift, Share2, Users, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createInviteLink,
@@ -20,12 +25,23 @@ interface ContactInvitationProps {
   username?: string;
 }
 
+interface PickableContact {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export const ContactInvitation = ({ userId, username }: ContactInvitationProps) => {
   const [inviteLink, setInviteLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [referralStats, setReferralStats] = useState({ count: 0, rewards: 0 });
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [contacts, setContacts] = useState<PickableContact[]>([]);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [contactSearch, setContactSearch] = useState('');
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     loadInviteLink();
@@ -91,20 +107,30 @@ export const ContactInvitation = ({ userId, username }: ContactInvitationProps) 
     setLoading(true);
     try {
       const permission = await Contacts.requestPermissions();
-      
-      if (permission.contacts === 'granted') {
-        const result = await Contacts.getContacts({
-          projection: { name: true, phones: true }
-        });
-        
-        // Show contact picker UI
-        toast.success(`Found ${result.contacts.length} contacts. Select contacts to invite.`);
-        
-        // You would implement a contact picker UI here
-        // For now, we'll just show a success message
-      } else {
+      if (permission.contacts !== 'granted') {
         toast.error('Contact permission denied');
+        return;
       }
+
+      const result = await Contacts.getContacts({ projection: { name: true, phones: true } });
+      const mapped: PickableContact[] = (result.contacts || [])
+        .map((c: any, i: number) => {
+          const phone = c.phones?.[0]?.number?.replace(/\s+/g, '') || '';
+          const name = c.name?.display || [c.name?.given, c.name?.family].filter(Boolean).join(' ') || phone;
+          return { id: c.contactId || `${i}`, name, phone };
+        })
+        .filter((c) => c.phone)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      if (mapped.length === 0) {
+        toast.error('No contacts with phone numbers found');
+        return;
+      }
+
+      setContacts(mapped);
+      setSelected({});
+      setContactSearch('');
+      setPickerOpen(true);
     } catch (error) {
       console.error('Contact sync error:', error);
       toast.error('Failed to access contacts');
@@ -112,6 +138,54 @@ export const ContactInvitation = ({ userId, username }: ContactInvitationProps) 
       setLoading(false);
     }
   };
+
+  const toggleContact = (id: string) =>
+    setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const inviteSelected = async () => {
+    const chosen = contacts.filter((c) => selected[c.id]);
+    if (chosen.length === 0) {
+      toast.error('Select at least one contact');
+      return;
+    }
+
+    setInviting(true);
+    let sent = 0;
+    try {
+      for (const contact of chosen) {
+        const { data, error } = await supabase.functions.invoke('send-invite', {
+          body: {
+            contact_name: contact.name,
+            contact_phone: contact.phone,
+            invite_method: 'sms',
+          },
+        });
+        if (!error && data?.success !== false) {
+          sent++;
+          // Open the native SMS composer as well so the user can send instantly
+          shareViaSMS(contact.phone, inviteLink, username);
+        }
+      }
+      if (sent > 0) {
+        toast.success(`Invited ${sent} contact${sent > 1 ? 's' : ''}!`);
+        setPickerOpen(false);
+        loadReferralStats();
+      } else {
+        toast.error('Could not send invites. Please try again.');
+      }
+    } catch (error) {
+      console.error('Invite error:', error);
+      toast.error('Failed to send invites');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const filteredContacts = contacts.filter((c) =>
+    c.name.toLowerCase().includes(contactSearch.toLowerCase()) || c.phone.includes(contactSearch)
+  );
+  const selectedCount = Object.values(selected).filter(Boolean).length;
+
 
   return (
     <div className="space-y-6">
@@ -253,6 +327,51 @@ export const ContactInvitation = ({ userId, username }: ContactInvitationProps) 
           <p className="text-xs text-muted-foreground">Your friends get 50 welcome coins too</p>
         </div>
       </Card>
+
+      {/* Contact Picker Dialog */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite Contacts</DialogTitle>
+            <DialogDescription>Select contacts to invite to Chatr+ via SMS.</DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search contacts..."
+              className="pl-10"
+              value={contactSearch}
+              onChange={(e) => setContactSearch(e.target.value)}
+            />
+          </div>
+          <ScrollArea className="h-72 pr-3">
+            <div className="space-y-1">
+              {filteredContacts.map((c) => (
+                <label
+                  key={c.id}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/40 cursor-pointer"
+                >
+                  <Checkbox checked={!!selected[c.id]} onCheckedChange={() => toggleContact(c.id)} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{c.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{c.phone}</p>
+                  </div>
+                </label>
+              ))}
+              {filteredContacts.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">No contacts found</p>
+              )}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPickerOpen(false)} disabled={inviting}>Cancel</Button>
+            <Button onClick={inviteSelected} disabled={inviting || selectedCount === 0}>
+              {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Invite {selectedCount > 0 ? `(${selectedCount})` : ''}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
