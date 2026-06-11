@@ -236,6 +236,75 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_rep_sessions: {
+        Row: {
+          call_id: string | null
+          caller_name: string | null
+          caller_number: string
+          caller_purpose: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          extracted_actions: Json
+          follow_up_at: string | null
+          fsm_context: Json
+          id: string
+          one_line_summary: string | null
+          reviewed_at: string | null
+          started_at: string
+          status: string
+          suggested_reply: string | null
+          summary: string | null
+          transcript: Json
+          urgency: string | null
+          user_action: string | null
+          user_id: string
+        }
+        Insert: {
+          call_id?: string | null
+          caller_name?: string | null
+          caller_number: string
+          caller_purpose?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          extracted_actions?: Json
+          follow_up_at?: string | null
+          fsm_context?: Json
+          id?: string
+          one_line_summary?: string | null
+          reviewed_at?: string | null
+          started_at?: string
+          status?: string
+          suggested_reply?: string | null
+          summary?: string | null
+          transcript?: Json
+          urgency?: string | null
+          user_action?: string | null
+          user_id: string
+        }
+        Update: {
+          call_id?: string | null
+          caller_name?: string | null
+          caller_number?: string
+          caller_purpose?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          extracted_actions?: Json
+          follow_up_at?: string | null
+          fsm_context?: Json
+          id?: string
+          one_line_summary?: string | null
+          reviewed_at?: string | null
+          started_at?: string
+          status?: string
+          suggested_reply?: string | null
+          summary?: string | null
+          transcript?: Json
+          urgency?: string | null
+          user_action?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_stickers: {
         Row: {
           created_at: string | null
@@ -1927,6 +1996,33 @@ export type Database = {
           },
         ]
       }
+      call_context_cache: {
+        Row: {
+          cached_at: string
+          caller_number: string
+          context_json: Json
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          cached_at?: string
+          caller_number: string
+          context_json: Json
+          expires_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          cached_at?: string
+          caller_number?: string
+          context_json?: Json
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       call_logs: {
         Row: {
           call_id: string
@@ -3009,6 +3105,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cce_sessions: {
+        Row: {
+          avg_quality: number | null
+          ended_at: string | null
+          final_transport: string | null
+          id: string
+          initiator_id: string | null
+          min_quality: number | null
+          peer_id: string | null
+          session_id: string
+          started_at: string
+          status: string | null
+          total_handoffs: number | null
+          transport_history: Json
+        }
+        Insert: {
+          avg_quality?: number | null
+          ended_at?: string | null
+          final_transport?: string | null
+          id?: string
+          initiator_id?: string | null
+          min_quality?: number | null
+          peer_id?: string | null
+          session_id: string
+          started_at?: string
+          status?: string | null
+          total_handoffs?: number | null
+          transport_history?: Json
+        }
+        Update: {
+          avg_quality?: number | null
+          ended_at?: string | null
+          final_transport?: string | null
+          id?: string
+          initiator_id?: string | null
+          min_quality?: number | null
+          peer_id?: string | null
+          session_id?: string
+          started_at?: string
+          status?: string | null
+          total_handoffs?: number | null
+          transport_history?: Json
+        }
+        Relationships: []
       }
       challenge_participants: {
         Row: {
@@ -13767,6 +13908,42 @@ export type Database = {
           },
         ]
       }
+      precall_rules: {
+        Row: {
+          condition_json: Json
+          created_at: string
+          decision: string
+          enabled: boolean | null
+          id: string
+          name: string
+          priority: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          condition_json: Json
+          created_at?: string
+          decision: string
+          enabled?: boolean | null
+          id?: string
+          name: string
+          priority?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          condition_json?: Json
+          created_at?: string
+          decision?: string
+          enabled?: boolean | null
+          id?: string
+          name?: string
+          priority?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       prescription_uploads: {
         Row: {
           created_at: string | null
@@ -19537,6 +19714,7 @@ export type Database = {
       }
       clean_expired_geo_cache: { Args: never; Returns: undefined }
       cleanup_disappearing_messages: { Args: never; Returns: undefined }
+      cleanup_expired_context_cache: { Args: never; Returns: undefined }
       cleanup_expired_messages: { Args: never; Returns: number }
       cleanup_expired_qr_sessions: { Args: never; Returns: undefined }
       cleanup_expired_visual_search_cache: { Args: never; Returns: undefined }
