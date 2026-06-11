@@ -3,7 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Mail, Copy, Gift, UserPlus, Share2, Users } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog';
+import { MessageSquare, Mail, Copy, Gift, Share2, Users, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createInviteLink,
@@ -20,12 +25,23 @@ interface ContactInvitationProps {
   username?: string;
 }
 
+interface PickableContact {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export const ContactInvitation = ({ userId, username }: ContactInvitationProps) => {
   const [inviteLink, setInviteLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [referralStats, setReferralStats] = useState({ count: 0, rewards: 0 });
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [contacts, setContacts] = useState<PickableContact[]>([]);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [contactSearch, setContactSearch] = useState('');
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     loadInviteLink();
