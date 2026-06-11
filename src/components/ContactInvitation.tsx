@@ -107,20 +107,30 @@ export const ContactInvitation = ({ userId, username }: ContactInvitationProps) 
     setLoading(true);
     try {
       const permission = await Contacts.requestPermissions();
-      
-      if (permission.contacts === 'granted') {
-        const result = await Contacts.getContacts({
-          projection: { name: true, phones: true }
-        });
-        
-        // Show contact picker UI
-        toast.success(`Found ${result.contacts.length} contacts. Select contacts to invite.`);
-        
-        // You would implement a contact picker UI here
-        // For now, we'll just show a success message
-      } else {
+      if (permission.contacts !== 'granted') {
         toast.error('Contact permission denied');
+        return;
       }
+
+      const result = await Contacts.getContacts({ projection: { name: true, phones: true } });
+      const mapped: PickableContact[] = (result.contacts || [])
+        .map((c: any, i: number) => {
+          const phone = c.phones?.[0]?.number?.replace(/\s+/g, '') || '';
+          const name = c.name?.display || [c.name?.given, c.name?.family].filter(Boolean).join(' ') || phone;
+          return { id: c.contactId || `${i}`, name, phone };
+        })
+        .filter((c) => c.phone)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      if (mapped.length === 0) {
+        toast.error('No contacts with phone numbers found');
+        return;
+      }
+
+      setContacts(mapped);
+      setSelected({});
+      setContactSearch('');
+      setPickerOpen(true);
     } catch (error) {
       console.error('Contact sync error:', error);
       toast.error('Failed to access contacts');
@@ -128,6 +138,54 @@ export const ContactInvitation = ({ userId, username }: ContactInvitationProps) 
       setLoading(false);
     }
   };
+
+  const toggleContact = (id: string) =>
+    setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const inviteSelected = async () => {
+    const chosen = contacts.filter((c) => selected[c.id]);
+    if (chosen.length === 0) {
+      toast.error('Select at least one contact');
+      return;
+    }
+
+    setInviting(true);
+    let sent = 0;
+    try {
+      for (const contact of chosen) {
+        const { data, error } = await supabase.functions.invoke('send-invite', {
+          body: {
+            contact_name: contact.name,
+            contact_phone: contact.phone,
+            invite_method: 'sms',
+          },
+        });
+        if (!error && data?.success !== false) {
+          sent++;
+          // Open the native SMS composer as well so the user can send instantly
+          shareViaSMS(contact.phone, inviteLink, username);
+        }
+      }
+      if (sent > 0) {
+        toast.success(`Invited ${sent} contact${sent > 1 ? 's' : ''}!`);
+        setPickerOpen(false);
+        loadReferralStats();
+      } else {
+        toast.error('Could not send invites. Please try again.');
+      }
+    } catch (error) {
+      console.error('Invite error:', error);
+      toast.error('Failed to send invites');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const filteredContacts = contacts.filter((c) =>
+    c.name.toLowerCase().includes(contactSearch.toLowerCase()) || c.phone.includes(contactSearch)
+  );
+  const selectedCount = Object.values(selected).filter(Boolean).length;
+
 
   return (
     <div className="space-y-6">
