@@ -6128,6 +6128,120 @@ export type Database = {
         }
         Relationships: []
       }
+      contacts_hash: {
+        Row: {
+          created_at: string
+          data_source: string
+          frequency: number
+          id: string
+          is_business: boolean
+          is_spam: boolean
+          last_enriched_at: string | null
+          name: string | null
+          name_confidence: number
+          opt_out: boolean
+          phone_hash: string
+          trust_score: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_source?: string
+          frequency?: number
+          id?: string
+          is_business?: boolean
+          is_spam?: boolean
+          last_enriched_at?: string | null
+          name?: string | null
+          name_confidence?: number
+          opt_out?: boolean
+          phone_hash: string
+          trust_score?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_source?: string
+          frequency?: number
+          id?: string
+          is_business?: boolean
+          is_spam?: boolean
+          last_enriched_at?: string | null
+          name?: string | null
+          name_confidence?: number
+          opt_out?: boolean
+          phone_hash?: string
+          trust_score?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contacts_name_votes: {
+        Row: {
+          created_at: string
+          id: string
+          name_display: string
+          name_normalized: string
+          phone_hash: string
+          updated_at: string
+          votes: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name_display: string
+          name_normalized: string
+          phone_hash: string
+          updated_at?: string
+          votes?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name_display?: string
+          name_normalized?: string
+          phone_hash?: string
+          updated_at?: string
+          votes?: number
+        }
+        Relationships: []
+      }
+      contacts_sync_queue: {
+        Row: {
+          consent_given: boolean
+          created_at: string
+          error: string | null
+          id: string
+          item_count: number
+          payload: Json
+          processed_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          consent_given?: boolean
+          created_at?: string
+          error?: string | null
+          id?: string
+          item_count?: number
+          payload?: Json
+          processed_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          consent_given?: boolean
+          created_at?: string
+          error?: string | null
+          id?: string
+          item_count?: number
+          payload?: Json
+          processed_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_flags: {
         Row: {
           content_id: string
@@ -13518,6 +13632,24 @@ export type Database = {
           },
         ]
       }
+      phonebook_opt_outs: {
+        Row: {
+          created_at: string
+          phone_hash: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          phone_hash: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          phone_hash?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       photo_albums: {
         Row: {
           cover_photo_url: string | null
@@ -19825,6 +19957,17 @@ export type Database = {
         }[]
       }
       get_cron_jobs_health: { Args: { name_filter?: string }; Returns: Json }
+      get_name_confidence: {
+        Args: { p_phone_hash: string }
+        Returns: {
+          frequency: number
+          is_business: boolean
+          is_spam: boolean
+          name: string
+          name_confidence: number
+          trust_score: number
+        }[]
+      }
       get_public_profile: { Args: { handle_input: string }; Returns: Json }
       get_push_token_diagnostics: { Args: never; Returns: Json }
       get_user_conversations: {
@@ -19897,6 +20040,22 @@ export type Database = {
           total_reports: number
         }[]
       }
+      lookup_name_confidence_bulk: {
+        Args: { p_phone_hashes: string[] }
+        Returns: {
+          frequency: number
+          is_business: boolean
+          is_spam: boolean
+          name: string
+          name_confidence: number
+          phone_hash: string
+          trust_score: number
+        }[]
+      }
+      phonebook_opt_out: {
+        Args: { p_phone_hash: string; p_reason?: string }
+        Returns: undefined
+      }
       process_chatr_plus_payment: {
         Args: {
           p_amount: number
@@ -19919,6 +20078,10 @@ export type Database = {
         }
         Returns: string
       }
+      process_contacts_sync_queue: {
+        Args: { p_batch_size?: number }
+        Returns: number
+      }
       process_referral_reward: {
         Args: { referral_code_param: string }
         Returns: boolean
@@ -19935,8 +20098,16 @@ export type Database = {
         Returns: Json
       }
       recompute_champions: { Args: never; Returns: number }
+      recompute_contact_hash: {
+        Args: { p_phone_hash: string }
+        Returns: undefined
+      }
       refresh_contact_intelligence: {
         Args: { p_contact_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      seed_business_number: {
+        Args: { p_name: string; p_phone_hash: string; p_trust?: number }
         Returns: undefined
       }
       sync_user_contacts: {
