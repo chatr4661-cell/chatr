@@ -60,6 +60,31 @@ export class VoiceEngine {
     }
   }
 
+  /**
+   * Speak and resolve only when this utterance ends (or errors/stops).
+   * Used to play streamed sentences sequentially in a conversation loop.
+   */
+  speakAwait(text: string, prefs: VoicePersisted): Promise<void> {
+    const clean = (text || '').trim();
+    if (!clean) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      const prevEnd = this.onEnd;
+      const prevErr = this.onError;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        this.onEnd = prevEnd;
+        this.onError = prevErr;
+        resolve();
+      };
+      this.onEnd = finish;
+      this.onError = finish;
+      this.speak(clean, prefs).catch(finish);
+    });
+  }
+
+
   private async speakElevenLabs(text: string): Promise<void> {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), FALLBACK_LATENCY_MS + 8000);
