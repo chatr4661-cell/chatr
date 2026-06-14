@@ -96,6 +96,7 @@ export const MentalHealth = lazy(() => import('@/pages/MentalHealth'));
 export const HealthReminders = lazy(() => import('@/pages/HealthReminders'));
 export const HealthRiskPredictions = lazy(() => import('@/pages/HealthRiskPredictions'));
 export const SymptomCheckerPage = lazy(() => import('@/pages/SymptomCheckerPage'));
+export const VoiceAssistant = lazy(() => import('@/pages/VoiceAssistant'));
 export const HealthWalletPage = lazy(() => import('@/pages/HealthWalletPage'));
 export const TeleconsultationPage = lazy(() => import('@/pages/TeleconsultationPage'));
 export const MedicationInteractionsPage = lazy(() => import('@/pages/MedicationInteractionsPage'));
