@@ -203,6 +203,7 @@ const App = () => {
             
             {/* Main App Routes - Critical paths kept eager */}
             <Route path="/chat" element={<Chat />} />
+            <Route path="/voice-assistant" element={<LazyRoute component={LazyPages.VoiceAssistant} />} />
             <Route path="/chat/:conversationId" element={<Chat />} />
             <Route path="/starred-messages" element={<LazyRoute component={LazyPages.StarredMessages} />} />
             <Route path="/chat/:conversationId/media" 
