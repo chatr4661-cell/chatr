@@ -406,6 +406,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     incomingCall,
     initiateCall,
     answerCall,
+    answerWithAI,
     rejectCall,
     endCall,
     isInCall: !!activeCall,
