@@ -388,7 +388,85 @@ function ActiveCallUI({
         </div>
       </div>
 
-      {/* Keypad */}
+      {/* AI / Translation status banner */}
+      {(voiceAI.aiActive || voiceAI.translateActive) && (
+        <div className="absolute top-24 inset-x-0 z-30 flex flex-col items-center gap-1 px-4">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+            voiceAI.aiActive ? 'bg-indigo-500/25 text-indigo-200' : 'bg-sky-500/25 text-sky-200'
+          }`}>
+            {voiceAI.aiActive ? <Bot className="w-3.5 h-3.5" /> : <Languages className="w-3.5 h-3.5" />}
+            {voiceAI.aiActive
+              ? (call.isInitiator ? 'AI is answering' : 'AI is talking to the caller')
+              : 'Live translation on'}
+            <span className="opacity-70">· {voiceAI.status}</span>
+          </div>
+          {voiceAI.aiActive && !call.isInitiator && (
+            <button
+              onClick={voiceAI.takeOverAI}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-slate-900 text-xs font-semibold active:scale-95"
+            >
+              <Hand className="w-3.5 h-3.5" /> Take over
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Live captions */}
+      {voiceAI.captions.length > 0 && (
+        <div className="absolute inset-x-0 bottom-44 z-20 px-4 max-h-44 overflow-y-auto flex flex-col gap-2 pointer-events-none">
+          {voiceAI.captions.slice(-4).map((c) => (
+            <div
+              key={c.id}
+              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                c.role === 'me'
+                  ? 'ml-auto bg-emerald-500/85 text-white rounded-br-md'
+                  : c.role === 'ai'
+                  ? 'mr-auto bg-indigo-500/85 text-white rounded-bl-md'
+                  : 'mr-auto bg-white/90 text-slate-900 rounded-bl-md'
+              }`}
+            >
+              {c.translated ? (
+                <>
+                  <span>{c.translated}</span>
+                  {c.original && (
+                    <span className="block text-[11px] opacity-70 mt-0.5">{c.original}</span>
+                  )}
+                </>
+              ) : (
+                c.original
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Language picker */}
+      <AnimatePresence>
+        {showLangPicker && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            className="absolute inset-x-4 bottom-44 bg-black/95 backdrop-blur-xl rounded-3xl p-4 z-40 max-h-72 overflow-y-auto"
+          >
+            <p className="text-white/70 text-xs mb-2 px-1">I speak…</p>
+            <div className="grid grid-cols-2 gap-2">
+              {STT_LANGUAGES.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => changeLang(l.code)}
+                  className={`px-3 py-2 rounded-xl text-sm text-left ${
+                    callLang === l.code ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white/90'
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showKeypad && (
           <motion.div
