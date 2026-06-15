@@ -36,6 +36,7 @@ interface CallContextType {
   }) => Promise<string | null>;
   
   answerCall: () => Promise<void>;
+  answerWithAI: () => Promise<void>;
   rejectCall: () => Promise<void>;
   endCall: () => Promise<void>;
   
