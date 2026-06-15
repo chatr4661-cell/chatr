@@ -197,6 +197,7 @@ function ActiveCallUI({
         onEnd();
         return;
       }
+      setUserId(user.id);
 
       const mgr = createWebRTCManager();
       webrtcRef.current = mgr;
