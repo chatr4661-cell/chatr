@@ -1,18 +1,26 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, PhoneOff, Volume2, Video, VideoOff, Grid3X3 } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Volume2, Video, VideoOff, Grid3X3, Languages, Bot, Hand } from 'lucide-react';
 import { useCall } from '@/contexts/CallContext';
 import { createWebRTCManager, type ConnectionState } from '@/utils/webrtcManager';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCallVoiceAI } from '@/voice/useCallVoiceAI';
+import { STT_LANGUAGES } from '@/voice/types';
+
+const CALL_LANG_KEY = 'chatr_call_lang';
+const getStoredLang = () => {
+  if (typeof window === 'undefined') return 'en-IN';
+  return localStorage.getItem(CALL_LANG_KEY) || 'en-IN';
+};
 
 /**
  * GlobalCallUI - Renders call screens globally based on CallContext
  * Automatically shows incoming call UI and active call UI
  */
 export function GlobalCallUI() {
-  const { activeCall, incomingCall, answerCall, rejectCall, endCall } = useCall();
+  const { activeCall, incomingCall, answerCall, answerWithAI, rejectCall, endCall } = useCall();
 
   // Show incoming call screen
   if (incomingCall) {
@@ -22,6 +30,7 @@ export function GlobalCallUI() {
         callerAvatar={incomingCall.partnerAvatar}
         callType={incomingCall.callType}
         onAnswer={answerCall}
+        onAnswerWithAI={answerWithAI}
         onReject={rejectCall}
       />,
       document.body
