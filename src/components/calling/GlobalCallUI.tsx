@@ -514,6 +514,22 @@ function ActiveCallUI({
             <span className="text-[10px] text-white/60">{isMuted ? 'Unmute' : 'Mute'}</span>
           </button>
 
+          {!voiceAI.aiActive && voiceAI.sttSupported && (
+            <button onClick={voiceAI.toggleTranslate} className="flex flex-col items-center gap-1">
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${voiceAI.translateActive ? 'bg-sky-500 text-white' : 'bg-white/15 text-white'}`}>
+                <Languages className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] text-white/60">Translate</span>
+            </button>
+          )}
+
+          <button onClick={() => setShowLangPicker(p => !p)} className="flex flex-col items-center gap-1">
+            <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center text-white text-[11px] font-semibold uppercase">
+              {callLang.split('-')[0]}
+            </div>
+            <span className="text-[10px] text-white/60">Language</span>
+          </button>
+
           <button onClick={() => setShowKeypad(k => !k)} className="flex flex-col items-center gap-1">
             <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center text-white">
               <Grid3X3 className="w-6 h-6" />
@@ -521,6 +537,7 @@ function ActiveCallUI({
             <span className="text-[10px] text-white/60">Keypad</span>
           </button>
         </div>
+
 
         {/* End call */}
         <div className="flex justify-center">
