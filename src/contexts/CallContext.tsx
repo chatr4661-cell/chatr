@@ -17,6 +17,7 @@ interface CallData {
   status: CallStatus;
   startTime?: Date;
   preAcquiredStream?: MediaStream | null;
+  aiMode?: boolean;
 }
 
 interface CallContextType {
