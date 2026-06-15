@@ -57,12 +57,14 @@ function IncomingCallUI({
   callerAvatar,
   callType,
   onAnswer,
+  onAnswerWithAI,
   onReject,
 }: {
   callerName: string;
   callerAvatar?: string;
   callType: 'voice' | 'video';
   onAnswer: () => void;
+  onAnswerWithAI: () => void;
   onReject: () => void;
 }) {
   return (
@@ -109,6 +111,19 @@ function IncomingCallUI({
           )}
         </button>
       </motion.div>
+
+      {/* AI Answer — let the assistant pick up when you're busy */}
+      <motion.button
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        onClick={onAnswerWithAI}
+        className="mt-10 flex items-center gap-2 px-5 py-3 rounded-full bg-indigo-500/90 text-white text-sm font-medium shadow-lg active:scale-95 transition-transform"
+      >
+        <Bot className="w-5 h-5" />
+        AI Answer
+      </motion.button>
+      <p className="text-white/40 text-[11px] mt-2">Let Chatr AI talk to the caller for you</p>
     </div>
   );
 }
