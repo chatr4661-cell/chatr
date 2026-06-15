@@ -142,6 +142,7 @@ function ActiveCallUI({
     callType: 'voice' | 'video';
     isInitiator: boolean;
     preAcquiredStream?: MediaStream | null;
+    aiMode?: boolean;
   };
   onEnd: () => void;
 }) {
@@ -153,12 +154,39 @@ function ActiveCallUI({
   const [showKeypad, setShowKeypad] = useState(false);
   const [localVideoActive, setLocalVideoActive] = useState(false);
   const [remoteVideoActive, setRemoteVideoActive] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+  const [callLang, setCallLang] = useState<string>(getStoredLang);
+  const [showLangPicker, setShowLangPicker] = useState(false);
 
   const webrtcRef = useRef<ReturnType<typeof createWebRTCManager> | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const durationRef = useRef<NodeJS.Timeout | null>(null);
+
+  const connected = connectionState === 'connected';
+
+  const setOutgoingMuted = useCallback((muted: boolean) => {
+    webrtcRef.current?.toggleAudio(!muted);
+  }, []);
+
+  // In-call AI voice layer: live translation + AI auto-answer.
+  const voiceAI = useCallVoiceAI({
+    callId: call.id,
+    userId,
+    isInitiator: call.isInitiator,
+    connected,
+    myLang: callLang,
+    initialAiAnswer: call.aiMode,
+    setOutgoingMuted,
+  });
+
+  const changeLang = useCallback((code: string) => {
+    setCallLang(code);
+    try { localStorage.setItem(CALL_LANG_KEY, code); } catch {}
+    setShowLangPicker(false);
+  }, []);
+
 
   // Initialize WebRTC
   useEffect(() => {
