@@ -17,6 +17,7 @@ interface CallData {
   status: CallStatus;
   startTime?: Date;
   preAcquiredStream?: MediaStream | null;
+  aiMode?: boolean;
 }
 
 interface CallContextType {
@@ -35,6 +36,7 @@ interface CallContextType {
   }) => Promise<string | null>;
   
   answerCall: () => Promise<void>;
+  answerWithAI: () => Promise<void>;
   rejectCall: () => Promise<void>;
   endCall: () => Promise<void>;
   
@@ -328,8 +330,40 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
-   * REJECT CALL
+   * ANSWER WITH AI — the busy user lets the AI talk to the caller on their behalf.
+   * Acquires audio so the WebRTC channel connects, but the AI voice layer drives
+   * the conversation (see useCallVoiceAI). The user can take over at any time.
    */
+  const answerWithAI = useCallback(async () => {
+    const call = incomingCallRef.current;
+    if (!call) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+      await supabase
+        .from('calls')
+        .update({ status: 'active', started_at: new Date().toISOString() })
+        .eq('id', call.id);
+
+      setActiveCall({
+        ...call,
+        status: 'connecting',
+        callType: 'voice',
+        preAcquiredStream: stream,
+        aiMode: true,
+      });
+      setIncomingCall(null);
+    } catch (err: any) {
+      console.error('[CallContext] answerWithAI error:', err);
+      if (err.name === 'NotAllowedError') {
+        toast.error('Please allow microphone access');
+      } else {
+        toast.error('Could not start AI answer');
+      }
+    }
+  }, []);
+
   const rejectCall = useCallback(async () => {
     const call = incomingCallRef.current;
     if (!call) return;
@@ -372,6 +406,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     incomingCall,
     initiateCall,
     answerCall,
+    answerWithAI,
     rejectCall,
     endCall,
     isInCall: !!activeCall,
