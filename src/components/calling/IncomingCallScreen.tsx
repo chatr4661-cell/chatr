@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, MessageSquare, Bell } from "lucide-react";
+import { Phone, MessageSquare, Bell, Bot } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { useNativeRingtone } from "@/hooks/useNativeRingtone";
@@ -14,6 +14,7 @@ interface IncomingCallScreenProps {
   onAnswer: () => void;
   onReject: () => void;
   onSendMessage?: () => void;
+  onAnswerWithAI?: () => void;
   ringtoneUrl?: string;
   callerCity?: string;
   callerCountry?: string;
