@@ -29,6 +29,7 @@ export function IncomingCallScreen({
   onAnswer,
   onReject,
   onSendMessage,
+  onAnswerWithAI,
   ringtoneUrl = "/ringtone.mp3",
   callerCity,
   callerCountry,
