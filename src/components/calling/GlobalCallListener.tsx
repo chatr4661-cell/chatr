@@ -711,6 +711,7 @@ export function GlobalCallListener() {
           onEnd={handleEndCall}
           onSwitchToVideo={handleUpgradeToVideo}
           videoEnabled={activeCall.videoEnabled}
+          aiAnswer={activeCall.aiAnswer}
         />
       </>
     );
