@@ -232,7 +232,20 @@ export function IncomingCallScreen({
         className="absolute left-0 right-0 bottom-0 px-8 z-10"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 40px)' }}
       >
+        {/* AI Answer - let Chatr AI pick up when you're busy */}
+        {onAnswerWithAI && (
+          <motion.button
+            onClick={handleAnswerWithAI}
+            whileTap={{ scale: 0.95 }}
+            className="mx-auto mb-6 flex items-center gap-2 px-5 py-2.5 rounded-full bg-indigo-500/90 backdrop-blur-xl border border-white/10 shadow-lg"
+          >
+            <Bot className="w-5 h-5 text-white" />
+            <span className="text-white text-sm font-semibold drop-shadow">AI Answer</span>
+          </motion.button>
+        )}
+
         <div className="flex items-center justify-center gap-24">
+
           {/* Decline Button */}
           <motion.button
             onClick={handleReject}
