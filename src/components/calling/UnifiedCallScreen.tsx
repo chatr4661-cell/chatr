@@ -2,8 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Mic, MicOff, PhoneOff, Volume2, Video, VideoOff, 
-  SwitchCamera, Grid3X3, MoreHorizontal, WifiOff, ZoomIn, ZoomOut
+  SwitchCamera, Grid3X3, MoreHorizontal, WifiOff, ZoomIn, ZoomOut,
+  Languages, Bot, Hand
 } from 'lucide-react';
+import { useCallVoiceAI } from '@/voice/useCallVoiceAI';
 import { SimpleWebRTCCall, hasActiveCall, getExistingCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -35,6 +37,7 @@ interface UnifiedCallScreenProps {
   onEnd: () => void;
   onSwitchToVideo?: () => void;
   videoEnabled?: boolean;
+  aiAnswer?: boolean;
 }
 
 export default function UnifiedCallScreen({
@@ -49,6 +52,7 @@ export default function UnifiedCallScreen({
   onEnd,
   onSwitchToVideo,
   videoEnabled = false,
+  aiAnswer = false,
 }: UnifiedCallScreenProps) {
   const [callState, setCallState] = useState<'connecting' | 'connected' | 'reconnecting' | 'failed'>('connecting');
   const [isMuted, setIsMuted] = useState(false);
@@ -67,8 +71,40 @@ export default function UnifiedCallScreen({
   const [survivalTier, setSurvivalTier] = useState<'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL' | null>(null);
   const [audioOnlyForced, setAudioOnlyForced] = useState(false);
   const [showVoiceNoteFallback, setShowVoiceNoteFallback] = useState(false);
-  
+
+  // ── In-call AI voice layer (live translation + AI auto-answer) ──────────────
+  const AI_LANGS = [
+    { code: 'en-IN', label: 'EN' },
+    { code: 'hi-IN', label: 'HI' },
+    { code: 'pa-IN', label: 'PA' },
+    { code: 'ta-IN', label: 'TA' },
+    { code: 'te-IN', label: 'TE' },
+    { code: 'bn-IN', label: 'BN' },
+    { code: 'mr-IN', label: 'MR' },
+  ];
+  const [myUserId, setMyUserId] = useState<string>('');
+  const [myLangIdx, setMyLangIdx] = useState(0);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const myLang = AI_LANGS[myLangIdx].code;
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user?.id) setMyUserId(data.user.id);
+    });
+  }, []);
+
+  const voiceAI = useCallVoiceAI({
+    callId,
+    userId: myUserId,
+    isInitiator,
+    connected: callState === 'connected',
+    myLang,
+    initialAiAnswer: aiAnswer,
+    setOutgoingMuted: (m) => webrtcRef.current?.toggleAudio(!m),
+  });
+
   // Video upgrade states (simplified - no request/accept flow, FaceTime-style auto)
+
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -1111,6 +1147,63 @@ export default function UnifiedCallScreen({
         )}
       </AnimatePresence>
 
+      {/* AI / Translation status pill + live captions */}
+      {(voiceAI.aiActive || voiceAI.translateActive) && (
+        <div className="absolute left-0 right-0 z-30 flex flex-col items-center gap-2 px-4"
+          style={{ bottom: controlsVisible ? '220px' : '40px' }}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-xl ${
+            voiceAI.aiActive ? 'bg-indigo-500/30 text-indigo-100' : 'bg-sky-500/30 text-sky-100'
+          }`}>
+            {voiceAI.aiActive ? <Bot className="w-3.5 h-3.5" /> : <Languages className="w-3.5 h-3.5" />}
+            {voiceAI.aiActive ? 'Chatr AI is on the call' : 'Live translation on'}
+            <span className="opacity-70">· {voiceAI.status}</span>
+            {voiceAI.aiActive && !isInitiator && (
+              <button
+                onClick={voiceAI.takeOverAI}
+                className="ml-1 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white text-black text-[10px] font-semibold"
+              >
+                <Hand className="w-3 h-3" /> Take over
+              </button>
+            )}
+          </div>
+          {voiceAI.captions.length > 0 && (
+            <div className="w-full max-w-md space-y-1">
+              {voiceAI.captions.slice(-3).map((c) => (
+                <div key={c.id} className={`text-[12px] leading-snug px-3 py-1.5 rounded-2xl backdrop-blur-xl ${
+                  c.role === 'me' ? 'bg-white/10 text-white/80 ml-auto text-right max-w-[85%]'
+                  : c.role === 'ai' ? 'bg-indigo-500/25 text-indigo-50 max-w-[85%]'
+                  : 'bg-black/40 text-white max-w-[85%]'
+                }`}>
+                  {c.translated ? (
+                    <>
+                      <span className="block opacity-60">{c.original}</span>
+                      <span className="block">{c.translated}</span>
+                    </>
+                  ) : c.original}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Language picker */}
+      {showLangPicker && (
+        <div className="absolute inset-x-4 bottom-48 bg-black/90 backdrop-blur-xl rounded-3xl p-5 z-40">
+          <p className="text-white/60 text-xs mb-3 text-center">I speak…</p>
+          <div className="grid grid-cols-4 gap-3">
+            {AI_LANGS.map((l, i) => (
+              <button key={l.code} onClick={() => { setMyLangIdx(i); setShowLangPicker(false); }}
+                className={`py-2 rounded-xl text-sm font-semibold ${
+                  i === myLangIdx ? 'bg-sky-500 text-white' : 'bg-white/10 text-white'
+                }`}>
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Bottom Controls */}
       <AnimatePresence>
         {controlsVisible && (
@@ -1121,6 +1214,35 @@ export default function UnifiedCallScreen({
             className="absolute bottom-0 inset-x-0 z-30 pb-safe"
             style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
           >
+            {/* Row 0: Translate + Language (AI voice layer) */}
+            {voiceAI.sttSupported && !voiceAI.aiActive && (
+              <div className="flex justify-center gap-6 mb-5">
+                <button
+                  onClick={voiceAI.toggleTranslate}
+                  className="flex flex-col items-center gap-1 touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 ${
+                    voiceAI.translateActive ? 'bg-sky-500 text-white' : 'bg-white/15 text-white active:bg-white/25'
+                  }`}>
+                    <Languages className="w-6 h-6" />
+                  </div>
+                  <span className="text-[10px] text-white/60">{voiceAI.translateActive ? 'Translating' : 'Translate'}</span>
+                </button>
+
+                <button
+                  onClick={() => setShowLangPicker((s) => !s)}
+                  className="flex flex-col items-center gap-1 touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div className="w-14 h-14 rounded-full bg-white/15 text-white flex items-center justify-center text-sm font-bold transition-all duration-150 active:scale-90 active:bg-white/25">
+                    {AI_LANGS[myLangIdx].label}
+                  </div>
+                  <span className="text-[10px] text-white/60">Language</span>
+                </button>
+              </div>
+            )}
+
             {/* Row 1: Speaker, Video, Mute - Butter-smooth touch */}
             <div className="flex justify-center gap-6 mb-6">
               <button 

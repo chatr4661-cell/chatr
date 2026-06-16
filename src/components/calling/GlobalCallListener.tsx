@@ -448,8 +448,22 @@ export function GlobalCallListener() {
     }
   };
 
+  // Answer the call and let Chatr AI talk to the caller (busy mode)
+  const handleAnswerWithAI = async () => {
+    if (!incomingCall) return;
+    if (isCallAcceptedByNative(incomingCall.id)) return;
+    try {
+      // AI auto-answer is always audio-only.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      setPreCallMediaStream(incomingCall.id, stream);
+      await handleAnswerDirect(true);
+    } catch (error) {
+      console.error('AI answer media request failed:', error);
+    }
+  };
+
   // Direct answer (used after media acquired or for auto-join)
-  const handleAnswerDirect = async () => {
+  const handleAnswerDirect = async (withAi = false) => {
     if (!incomingCall) return;
 
     // CRITICAL: If native already accepted, skip DB update - native already did it
@@ -467,6 +481,7 @@ export function GlobalCallListener() {
       isInitiator: false,
       partnerId: incomingCall.caller_id,
       preAcquiredStream,
+      aiAnswer: withAi,
     });
     setIncomingCall(null);
 
@@ -578,6 +593,7 @@ export function GlobalCallListener() {
           callType={incomingCall.call_type}
           onAnswer={handleAnswer}
           onReject={handleReject}
+          onAnswerWithAI={handleAnswerWithAI}
           ringtoneUrl="/ringtone.mp3"
         />
       </>
@@ -695,6 +711,7 @@ export function GlobalCallListener() {
           onEnd={handleEndCall}
           onSwitchToVideo={handleUpgradeToVideo}
           videoEnabled={activeCall.videoEnabled}
+          aiAnswer={activeCall.aiAnswer}
         />
       </>
     );

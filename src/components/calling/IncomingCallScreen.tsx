@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, MessageSquare, Bell } from "lucide-react";
+import { Phone, MessageSquare, Bell, Bot } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { useNativeRingtone } from "@/hooks/useNativeRingtone";
@@ -14,6 +14,7 @@ interface IncomingCallScreenProps {
   onAnswer: () => void;
   onReject: () => void;
   onSendMessage?: () => void;
+  onAnswerWithAI?: () => void;
   ringtoneUrl?: string;
   callerCity?: string;
   callerCountry?: string;
@@ -28,6 +29,7 @@ export function IncomingCallScreen({
   onAnswer,
   onReject,
   onSendMessage,
+  onAnswerWithAI,
   ringtoneUrl = "/ringtone.mp3",
   callerCity,
   callerCountry,
@@ -111,6 +113,20 @@ export function IncomingCallScreen({
     }
     onSendMessage?.();
   };
+
+  const handleAnswerWithAI = async () => {
+    setRingtoneEnabled(false);
+    if (hapticIntervalRef.current) {
+      clearInterval(hapticIntervalRef.current);
+      hapticIntervalRef.current = null;
+    }
+    if (Capacitor.isNativePlatform()) {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+    }
+    await new Promise(resolve => setTimeout(resolve, 150));
+    onAnswerWithAI?.();
+  };
+
 
   return (
     <div className="fixed inset-0 z-[100] overflow-hidden" style={{ 
@@ -216,7 +232,20 @@ export function IncomingCallScreen({
         className="absolute left-0 right-0 bottom-0 px-8 z-10"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 40px)' }}
       >
+        {/* AI Answer - let Chatr AI pick up when you're busy */}
+        {onAnswerWithAI && (
+          <motion.button
+            onClick={handleAnswerWithAI}
+            whileTap={{ scale: 0.95 }}
+            className="mx-auto mb-6 flex items-center gap-2 px-5 py-2.5 rounded-full bg-indigo-500/90 backdrop-blur-xl border border-white/10 shadow-lg"
+          >
+            <Bot className="w-5 h-5 text-white" />
+            <span className="text-white text-sm font-semibold drop-shadow">AI Answer</span>
+          </motion.button>
+        )}
+
         <div className="flex items-center justify-center gap-24">
+
           {/* Decline Button */}
           <motion.button
             onClick={handleReject}
