@@ -37,6 +37,7 @@ interface UnifiedCallScreenProps {
   onEnd: () => void;
   onSwitchToVideo?: () => void;
   videoEnabled?: boolean;
+  aiAnswer?: boolean;
 }
 
 export default function UnifiedCallScreen({
@@ -51,6 +52,7 @@ export default function UnifiedCallScreen({
   onEnd,
   onSwitchToVideo,
   videoEnabled = false,
+  aiAnswer = false,
 }: UnifiedCallScreenProps) {
   const [callState, setCallState] = useState<'connecting' | 'connected' | 'reconnecting' | 'failed'>('connecting');
   const [isMuted, setIsMuted] = useState(false);
