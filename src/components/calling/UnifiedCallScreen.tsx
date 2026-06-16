@@ -71,8 +71,40 @@ export default function UnifiedCallScreen({
   const [survivalTier, setSurvivalTier] = useState<'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL' | null>(null);
   const [audioOnlyForced, setAudioOnlyForced] = useState(false);
   const [showVoiceNoteFallback, setShowVoiceNoteFallback] = useState(false);
-  
+
+  // ── In-call AI voice layer (live translation + AI auto-answer) ──────────────
+  const AI_LANGS = [
+    { code: 'en-IN', label: 'EN' },
+    { code: 'hi-IN', label: 'HI' },
+    { code: 'pa-IN', label: 'PA' },
+    { code: 'ta-IN', label: 'TA' },
+    { code: 'te-IN', label: 'TE' },
+    { code: 'bn-IN', label: 'BN' },
+    { code: 'mr-IN', label: 'MR' },
+  ];
+  const [myUserId, setMyUserId] = useState<string>('');
+  const [myLangIdx, setMyLangIdx] = useState(0);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const myLang = AI_LANGS[myLangIdx].code;
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user?.id) setMyUserId(data.user.id);
+    });
+  }, []);
+
+  const voiceAI = useCallVoiceAI({
+    callId,
+    userId: myUserId,
+    isInitiator,
+    connected: callState === 'connected',
+    myLang,
+    initialAiAnswer: aiAnswer,
+    setOutgoingMuted: (m) => webrtcRef.current?.toggleAudio(!m),
+  });
+
   // Video upgrade states (simplified - no request/accept flow, FaceTime-style auto)
+
 
   const webrtcRef = useRef<SimpleWebRTCCall | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
