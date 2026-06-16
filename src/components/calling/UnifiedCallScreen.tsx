@@ -2,8 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Mic, MicOff, PhoneOff, Volume2, Video, VideoOff, 
-  SwitchCamera, Grid3X3, MoreHorizontal, WifiOff, ZoomIn, ZoomOut
+  SwitchCamera, Grid3X3, MoreHorizontal, WifiOff, ZoomIn, ZoomOut,
+  Languages, Bot, Hand
 } from 'lucide-react';
+import { useCallVoiceAI } from '@/voice/useCallVoiceAI';
 import { SimpleWebRTCCall, hasActiveCall, getExistingCall } from '@/utils/simpleWebRTC';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
