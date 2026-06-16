@@ -114,6 +114,20 @@ export function IncomingCallScreen({
     onSendMessage?.();
   };
 
+  const handleAnswerWithAI = async () => {
+    setRingtoneEnabled(false);
+    if (hapticIntervalRef.current) {
+      clearInterval(hapticIntervalRef.current);
+      hapticIntervalRef.current = null;
+    }
+    if (Capacitor.isNativePlatform()) {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+    }
+    await new Promise(resolve => setTimeout(resolve, 150));
+    onAnswerWithAI?.();
+  };
+
+
   return (
     <div className="fixed inset-0 z-[100] overflow-hidden" style={{ 
       width: '100vw', 
