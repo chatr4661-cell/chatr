@@ -593,6 +593,7 @@ export function GlobalCallListener() {
           callType={incomingCall.call_type}
           onAnswer={handleAnswer}
           onReject={handleReject}
+          onAnswerWithAI={handleAnswerWithAI}
           ringtoneUrl="/ringtone.mp3"
         />
       </>
