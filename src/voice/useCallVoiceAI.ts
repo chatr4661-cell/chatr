@@ -317,13 +317,34 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     if (!SR && nativePlatform) {
       setStatus('listening');
       NativeSpeechRecognition.requestPermissions()
-        .then(() => NativeSpeechRecognition.start({
-          language: myLangRef.current,
-          maxResults: 1,
-          partialResults: false,
-          popup: false,
-        }))
-        .then((result: any) => processFinalSpeech(result?.matches?.[0] || '', myLangRef.current))
+        .then(() =>
+          new Promise<string>((resolve) => {
+            let latest = '';
+            let done = false;
+            const finish = (text = latest) => {
+              if (done) return;
+              done = true;
+              try { NativeSpeechRecognition.removeAllListeners(); } catch {}
+              resolve(text);
+            };
+            NativeSpeechRecognition.addListener('partialResults', (data: any) => {
+              latest = data?.matches?.[0] || latest;
+            }).catch(() => {});
+            NativeSpeechRecognition.addListener('listeningState', (data: any) => {
+              if (data?.status === 'stopped') finish();
+            }).catch(() => {});
+            NativeSpeechRecognition.start({
+              language: myLangRef.current,
+              maxResults: 1,
+              partialResults: true,
+              popup: false,
+            }).then((result: any) => {
+              if (result?.matches?.[0]) finish(result.matches[0]);
+            }).catch(() => finish());
+            window.setTimeout(() => finish(), 6500);
+          })
+        )
+        .then((text) => processFinalSpeech(text, myLangRef.current))
         .catch(() => setStatus('idle'))
         .finally(() => {
           if (listeningRef.current) {
