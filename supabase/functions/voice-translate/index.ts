@@ -31,12 +31,6 @@ serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const body = await req.json().catch(() => ({}));
     const text: string = (body.text || "").toString().trim();
@@ -59,6 +53,12 @@ serve(async (req) => {
     const srcName = sourceLang ? nameFor(sourceLang) : "the detected language";
     const tgtName = nameFor(targetLang);
 
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ translated: text, targetLang, fallback: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const system =
       `You are a real-time speech interpreter on a live phone call. ` +
       `Translate the user's message from ${srcName} into ${tgtName}. ` +
@@ -69,7 +69,7 @@ serve(async (req) => {
     const upstream = await fetch(GATEWAY_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Lovable-API-Key": LOVABLE_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -82,20 +82,11 @@ serve(async (req) => {
       }),
     });
 
-    if (upstream.status === 429) {
-      return new Response(JSON.stringify({ error: "rate_limit" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (upstream.status === 402) {
-      return new Response(JSON.stringify({ error: "credits" }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
     if (!upstream.ok) {
       const detail = await upstream.text().catch(() => "");
-      return new Response(JSON.stringify({ error: `gateway_${upstream.status}`, detail }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      console.error("voice-translate gateway fallback:", upstream.status, detail);
+      return new Response(JSON.stringify({ translated: text, targetLang, fallback: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -108,9 +99,8 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("voice-translate error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ translated: "", fallback: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

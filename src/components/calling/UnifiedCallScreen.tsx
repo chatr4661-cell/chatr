@@ -1166,7 +1166,7 @@ export default function UnifiedCallScreen({
               </button>
             )}
           </div>
-          {voiceAI.captions.length > 0 && (
+          {voiceAI.aiActive && voiceAI.captions.length > 0 && (
             <div className="w-full max-w-md space-y-1">
               {voiceAI.captions.slice(-3).map((c) => (
                 <div key={c.id} className={`text-[12px] leading-snug px-3 py-1.5 rounded-2xl backdrop-blur-xl ${

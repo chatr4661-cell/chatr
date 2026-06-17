@@ -21,6 +21,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition as NativeSpeechRecognition } from '@capacitor-community/speech-recognition';
 
 export type CallVoiceMode = 'normal' | 'translate' | 'ai';
 export type CallVoiceStatus = 'idle' | 'listening' | 'thinking' | 'speaking';
@@ -34,7 +36,7 @@ export interface CallCaption {
 }
 
 interface VoiceMsg {
-  kind: 'lang' | 'translate-mode' | 'translated' | 'ai-mode' | 'transcript' | 'ai-reply';
+  kind: 'hello' | 'lang' | 'translate-mode' | 'translated' | 'ai-mode' | 'transcript' | 'ai-reply';
   from: string;
   lang?: string;
   enabled?: boolean;
@@ -61,6 +63,7 @@ const getSR = (): any | null => {
 
 const sttSupported = !!getSR();
 const ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+const nativePlatform = typeof window !== 'undefined' && Capacitor.isNativePlatform();
 
 let captionSeq = 0;
 const nextId = () => `${Date.now()}-${captionSeq++}`;
@@ -96,6 +99,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
   const [status, setStatus] = useState<CallVoiceStatus>('idle');
   const [captions, setCaptions] = useState<CallCaption[]>([]);
   const [peerLang, setPeerLang] = useState<string>('');
+  const [nativeSttReady, setNativeSttReady] = useState(nativePlatform);
 
   const modeRef = useRef(mode);
   const myLangRef = useRef(myLang);
@@ -106,9 +110,17 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
   const ttsQueueRef = useRef<Promise<void>>(Promise.resolve());
   const aiHistoryRef = useRef<{ role: 'user' | 'assistant'; text: string }[]>([]);
   const aiBusyRef = useRef(false);
+  const aiGreetingSentRef = useRef(false);
 
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { myLangRef.current = myLang; }, [myLang]);
+
+  useEffect(() => {
+    if (!nativePlatform || sttSupported) return;
+    NativeSpeechRecognition.available()
+      .then(({ available }) => setNativeSttReady(!!available))
+      .catch(() => setNativeSttReady(false));
+  }, []);
 
   const pushCaption = useCallback((c: CallCaption) => {
     setCaptions((prev) => [...prev.slice(-40), c]);
@@ -120,18 +132,29 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     if (!clean || !ttsSupported) return Promise.resolve();
     const run = () =>
       new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(safety);
+          setStatus(modeRef.current === 'normal' ? 'idle' : 'listening');
+          resolve();
+        };
+        const safety = window.setTimeout(finish, Math.max(4500, clean.length * 95));
         try {
+          window.speechSynthesis.resume();
           const u = new SpeechSynthesisUtterance(clean);
           u.lang = lang;
           const v = pickVoice(lang);
           if (v) u.voice = v;
           u.rate = 1;
           setStatus('speaking');
-          u.onend = () => resolve();
-          u.onerror = () => resolve();
+          u.onend = finish;
+          u.onerror = finish;
           window.speechSynthesis.speak(u);
+          window.setTimeout(() => window.speechSynthesis.resume(), 250);
         } catch {
-          resolve();
+          finish();
         }
       });
     ttsQueueRef.current = ttsQueueRef.current.then(run, run);
@@ -161,6 +184,27 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
       }
     },
     [],
+  );
+
+  const processFinalSpeech = useCallback(
+    async (text: string, lang = myLangRef.current) => {
+      const clean = text.trim();
+      if (!clean) return;
+      const curMode = modeRef.current;
+      if (curMode === 'translate') {
+        // My speech -> translate to the peer's language -> send. WebRTC mic is
+        // muted while this mode is on, so the other side hears only translated voice.
+        pushCaption({ id: nextId(), role: 'me', original: clean, lang });
+        const target = peerLangRef.current || 'en-IN';
+        const translated = await translate(clean, lang, target);
+        send({ kind: 'translated', text: translated, srcText: clean, srcLang: lang, lang: target });
+      } else if (curMode === 'ai' && isInitiator) {
+        // Caller talking to AI: send transcript to busy callee device, which runs the AI brain.
+        pushCaption({ id: nextId(), role: 'me', original: clean, lang });
+        send({ kind: 'transcript', text: clean, lang });
+      }
+    },
+    [isInitiator, pushCaption, send, translate],
   );
 
   // ── AI brain (streams reply sentences from the gateway) ─────────────────────
@@ -249,17 +293,67 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     [send, streamAiReply, pushCaption],
   );
 
+  const sendAiGreeting = useCallback(async () => {
+    if (aiGreetingSentRef.current) return;
+    aiGreetingSentRef.current = true;
+    const greeting = 'Hello, this is Chatr AI. They are busy right now, but I can take your message.';
+    const callerLang = peerLangRef.current || 'en-IN';
+    const spokenGreeting = await translate(greeting, 'en-IN', callerLang);
+    send({ kind: 'ai-reply', text: spokenGreeting, lang: callerLang });
+    pushCaption({ id: nextId(), role: 'ai', original: spokenGreeting, lang: callerLang });
+  }, [pushCaption, send, translate]);
+
   // ── STT (own mic) ──────────────────────────────────────────────────────────
   const stopListening = useCallback(() => {
     listeningRef.current = false;
     try { recRef.current?.abort?.(); } catch {}
+    try { NativeSpeechRecognition.stop(); } catch {}
     recRef.current = null;
   }, []);
 
   const startListening = useCallback(() => {
     const SR = getSR();
-    if (!SR) return;
     listeningRef.current = true;
+    if (!SR && nativePlatform) {
+      setStatus('listening');
+      NativeSpeechRecognition.requestPermissions()
+        .then(() =>
+          new Promise<string>((resolve) => {
+            let latest = '';
+            let done = false;
+            const finish = (text = latest) => {
+              if (done) return;
+              done = true;
+              try { NativeSpeechRecognition.removeAllListeners(); } catch {}
+              resolve(text);
+            };
+            NativeSpeechRecognition.addListener('partialResults', (data: any) => {
+              latest = data?.matches?.[0] || latest;
+            }).catch(() => {});
+            NativeSpeechRecognition.addListener('listeningState', (data: any) => {
+              if (data?.status === 'stopped') finish();
+            }).catch(() => {});
+            NativeSpeechRecognition.start({
+              language: myLangRef.current,
+              maxResults: 1,
+              partialResults: true,
+              popup: false,
+            }).then((result: any) => {
+              if (result?.matches?.[0]) finish(result.matches[0]);
+            }).catch(() => finish());
+            window.setTimeout(() => finish(), 6500);
+          })
+        )
+        .then((text) => processFinalSpeech(text, myLangRef.current))
+        .catch(() => setStatus('idle'))
+        .finally(() => {
+          if (listeningRef.current) {
+            setTimeout(() => { if (listeningRef.current) startListening(); }, 200);
+          }
+        });
+      return;
+    }
+    if (!SR) return;
     const rec = new SR();
     rec.lang = myLangRef.current;
     rec.continuous = false;
@@ -280,21 +374,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     };
     rec.onend = async () => {
       recRef.current = null;
-      const text = finalText.trim();
-      if (text) {
-        const curMode = modeRef.current;
-        if (curMode === 'translate') {
-          // My speech -> translate to the peer's language -> send.
-          pushCaption({ id: nextId(), role: 'me', original: text, lang: myLangRef.current });
-          const target = peerLangRef.current || 'en-IN';
-          const translated = await translate(text, myLangRef.current, target);
-          send({ kind: 'translated', text: translated, srcText: text, srcLang: myLangRef.current, lang: target });
-        } else if (curMode === 'ai' && isInitiator) {
-          // Caller talking to the AI: relay raw transcript to the callee.
-          pushCaption({ id: nextId(), role: 'me', original: text, lang: myLangRef.current });
-          send({ kind: 'transcript', text, lang: myLangRef.current });
-        }
-      }
+      await processFinalSpeech(finalText, myLangRef.current);
       if (listeningRef.current) {
         // keep the ear open
         setTimeout(() => { if (listeningRef.current) startListening(); }, 150);
@@ -304,15 +384,26 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     };
     recRef.current = rec;
     try { rec.start(); } catch { /* already started */ }
-  }, [isInitiator, pushCaption, translate, send]);
+  }, [processFinalSpeech]);
 
   // ── incoming realtime messages ─────────────────────────────────────────────
   const handleMessage = useCallback(
     (msg: VoiceMsg) => {
       if (!msg || msg.from === userId) return;
       switch (msg.kind) {
+        case 'hello':
+          if (!isInitiator && modeRef.current === 'ai') {
+            send({ kind: 'ai-mode', enabled: true });
+            send({ kind: 'lang', lang: myLangRef.current });
+            window.setTimeout(sendAiGreeting, 700);
+          }
+          break;
         case 'lang':
-          if (msg.lang) { peerLangRef.current = msg.lang; setPeerLang(msg.lang); }
+          if (msg.lang) {
+            peerLangRef.current = msg.lang;
+            setPeerLang(msg.lang);
+            if (!isInitiator && modeRef.current === 'ai') window.setTimeout(sendAiGreeting, 150);
+          }
           break;
         case 'translate-mode':
           if (msg.enabled) {
@@ -341,6 +432,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           if (isInitiator) {
             if (msg.enabled) {
               setMode('ai');
+              setOutgoingMuted?.(false);
               if (!listeningRef.current) startListening();
             } else {
               setMode('normal');
@@ -365,7 +457,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           break;
       }
     },
-    [userId, isInitiator, setOutgoingMuted, send, startListening, stopListening, pushCaption, speak, handleCallerTranscript],
+    [userId, isInitiator, setOutgoingMuted, send, startListening, stopListening, pushCaption, speak, handleCallerTranscript, sendAiGreeting],
   );
 
   // ── channel lifecycle ──────────────────────────────────────────────────────
@@ -378,6 +470,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     channel.subscribe((st) => {
       if (st === 'SUBSCRIBED') {
         // Announce my language so the peer can translate to me.
+        send({ kind: 'hello' });
         send({ kind: 'lang', lang: myLangRef.current });
         // If callee answered with AI, kick it off now.
         if (initialAiAnswer && !isInitiator) {
@@ -385,6 +478,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           setOutgoingMuted?.(true);
           send({ kind: 'ai-mode', enabled: true });
           send({ kind: 'lang', lang: myLangRef.current });
+          window.setTimeout(sendAiGreeting, 900);
         }
       }
     });
@@ -436,13 +530,13 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
       status,
       captions,
       peerLang,
-      sttSupported,
+      sttSupported: sttSupported || nativeSttReady,
       ttsSupported,
       translateActive: mode === 'translate',
       aiActive: mode === 'ai',
       toggleTranslate,
       takeOverAI,
     }),
-    [mode, status, captions, peerLang, toggleTranslate, takeOverAI],
+    [mode, status, captions, peerLang, nativeSttReady, toggleTranslate, takeOverAI],
   );
 }

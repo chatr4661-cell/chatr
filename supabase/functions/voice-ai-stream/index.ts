@@ -22,12 +22,6 @@ serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const body = await req.json().catch(() => ({}));
     const userText: string = (body.message || "").toString().trim();
@@ -54,32 +48,30 @@ serve(async (req) => {
       { role: "user", content: userText },
     ];
 
+    if (!LOVABLE_API_KEY) {
+      const fallback = "Sorry, they are busy right now. Please leave a short message and they will call you back.";
+      return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+      });
+    }
+
     const upstream = await fetch(GATEWAY_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Lovable-API-Key": LOVABLE_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ model, messages, stream: true }),
     });
 
-    if (upstream.status === 429) {
-      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (upstream.status === 402) {
-      return new Response(JSON.stringify({ error: "AI credits depleted. Please add credits to continue." }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
     if (!upstream.ok || !upstream.body) {
       const detail = await upstream.text().catch(() => "");
-      return new Response(JSON.stringify({ error: `AI gateway error: ${upstream.status}`, detail }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      console.error("voice-ai-stream gateway fallback:", upstream.status, detail);
+      const fallback = upstream.status === 402
+        ? "Sorry, AI calling needs workspace credits. Please leave a message and they will call back."
+        : "Sorry, they are busy right now. Please leave a short message and they will call you back.";
+      return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
       });
     }
 
@@ -94,10 +86,9 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("voice-ai-stream error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const fallback = "Sorry, they are busy right now. Please leave a short message and they will call you back.";
+    return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
     });
   }
 });
