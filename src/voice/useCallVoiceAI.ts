@@ -457,7 +457,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           setOutgoingMuted?.(true);
           send({ kind: 'ai-mode', enabled: true });
           send({ kind: 'lang', lang: myLangRef.current });
-          window.setTimeout(sendAiGreeting, 600);
+          window.setTimeout(sendAiGreeting, 900);
         }
       }
     });
