@@ -293,6 +293,14 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     [send, streamAiReply, pushCaption],
   );
 
+  const sendAiGreeting = useCallback(() => {
+    if (aiGreetingSentRef.current) return;
+    aiGreetingSentRef.current = true;
+    const greeting = 'Hello, this is Chatr AI. They are busy right now, but I can take your message.';
+    send({ kind: 'ai-reply', text: greeting, lang: peerLangRef.current || 'en-IN' });
+    pushCaption({ id: nextId(), role: 'ai', original: greeting, lang: peerLangRef.current || 'en-IN' });
+  }, [pushCaption, send]);
+
   // ── STT (own mic) ──────────────────────────────────────────────────────────
   const stopListening = useCallback(() => {
     listeningRef.current = false;
@@ -360,6 +368,13 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     (msg: VoiceMsg) => {
       if (!msg || msg.from === userId) return;
       switch (msg.kind) {
+        case 'hello':
+          if (!isInitiator && modeRef.current === 'ai') {
+            send({ kind: 'ai-mode', enabled: true });
+            send({ kind: 'lang', lang: myLangRef.current });
+            window.setTimeout(sendAiGreeting, 250);
+          }
+          break;
         case 'lang':
           if (msg.lang) { peerLangRef.current = msg.lang; setPeerLang(msg.lang); }
           break;
@@ -390,6 +405,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           if (isInitiator) {
             if (msg.enabled) {
               setMode('ai');
+              setOutgoingMuted?.(false);
               if (!listeningRef.current) startListening();
             } else {
               setMode('normal');
@@ -414,7 +430,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           break;
       }
     },
-    [userId, isInitiator, setOutgoingMuted, send, startListening, stopListening, pushCaption, speak, handleCallerTranscript],
+    [userId, isInitiator, setOutgoingMuted, send, startListening, stopListening, pushCaption, speak, handleCallerTranscript, sendAiGreeting],
   );
 
   // ── channel lifecycle ──────────────────────────────────────────────────────
@@ -427,6 +443,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     channel.subscribe((st) => {
       if (st === 'SUBSCRIBED') {
         // Announce my language so the peer can translate to me.
+        send({ kind: 'hello' });
         send({ kind: 'lang', lang: myLangRef.current });
         // If callee answered with AI, kick it off now.
         if (initialAiAnswer && !isInitiator) {
@@ -434,6 +451,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           setOutgoingMuted?.(true);
           send({ kind: 'ai-mode', enabled: true });
           send({ kind: 'lang', lang: myLangRef.current });
+          window.setTimeout(sendAiGreeting, 600);
         }
       }
     });
@@ -485,13 +503,13 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
       status,
       captions,
       peerLang,
-      sttSupported,
+      sttSupported: sttSupported || nativeSttReady,
       ttsSupported,
       translateActive: mode === 'translate',
       aiActive: mode === 'ai',
       toggleTranslate,
       takeOverAI,
     }),
-    [mode, status, captions, peerLang, toggleTranslate, takeOverAI],
+    [mode, status, captions, peerLang, nativeSttReady, toggleTranslate, takeOverAI],
   );
 }
