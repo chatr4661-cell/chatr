@@ -186,6 +186,27 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     [],
   );
 
+  const processFinalSpeech = useCallback(
+    async (text: string, lang = myLangRef.current) => {
+      const clean = text.trim();
+      if (!clean) return;
+      const curMode = modeRef.current;
+      if (curMode === 'translate') {
+        // My speech -> translate to the peer's language -> send. WebRTC mic is
+        // muted while this mode is on, so the other side hears only translated voice.
+        pushCaption({ id: nextId(), role: 'me', original: clean, lang });
+        const target = peerLangRef.current || 'en-IN';
+        const translated = await translate(clean, lang, target);
+        send({ kind: 'translated', text: translated, srcText: clean, srcLang: lang, lang: target });
+      } else if (curMode === 'ai' && isInitiator) {
+        // Caller talking to AI: send transcript to busy callee device, which runs the AI brain.
+        pushCaption({ id: nextId(), role: 'me', original: clean, lang });
+        send({ kind: 'transcript', text: clean, lang });
+      }
+    },
+    [isInitiator, pushCaption, send, translate],
+  );
+
   // ── AI brain (streams reply sentences from the gateway) ─────────────────────
   const streamAiReply = useCallback(
     async (userText: string, replyLang: string, onSentence: (s: string) => void) => {
@@ -276,13 +297,32 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
   const stopListening = useCallback(() => {
     listeningRef.current = false;
     try { recRef.current?.abort?.(); } catch {}
+    try { NativeSpeechRecognition.stop(); } catch {}
     recRef.current = null;
   }, []);
 
   const startListening = useCallback(() => {
     const SR = getSR();
-    if (!SR) return;
     listeningRef.current = true;
+    if (!SR && nativePlatform) {
+      setStatus('listening');
+      NativeSpeechRecognition.requestPermissions()
+        .then(() => NativeSpeechRecognition.start({
+          language: myLangRef.current,
+          maxResults: 1,
+          partialResults: false,
+          popup: false,
+        }))
+        .then((result: any) => processFinalSpeech(result?.matches?.[0] || '', myLangRef.current))
+        .catch(() => setStatus('idle'))
+        .finally(() => {
+          if (listeningRef.current) {
+            setTimeout(() => { if (listeningRef.current) startListening(); }, 200);
+          }
+        });
+      return;
+    }
+    if (!SR) return;
     const rec = new SR();
     rec.lang = myLangRef.current;
     rec.continuous = false;
@@ -303,21 +343,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     };
     rec.onend = async () => {
       recRef.current = null;
-      const text = finalText.trim();
-      if (text) {
-        const curMode = modeRef.current;
-        if (curMode === 'translate') {
-          // My speech -> translate to the peer's language -> send.
-          pushCaption({ id: nextId(), role: 'me', original: text, lang: myLangRef.current });
-          const target = peerLangRef.current || 'en-IN';
-          const translated = await translate(text, myLangRef.current, target);
-          send({ kind: 'translated', text: translated, srcText: text, srcLang: myLangRef.current, lang: target });
-        } else if (curMode === 'ai' && isInitiator) {
-          // Caller talking to the AI: relay raw transcript to the callee.
-          pushCaption({ id: nextId(), role: 'me', original: text, lang: myLangRef.current });
-          send({ kind: 'transcript', text, lang: myLangRef.current });
-        }
-      }
+      await processFinalSpeech(finalText, myLangRef.current);
       if (listeningRef.current) {
         // keep the ear open
         setTimeout(() => { if (listeningRef.current) startListening(); }, 150);
@@ -327,7 +353,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     };
     recRef.current = rec;
     try { rec.start(); } catch { /* already started */ }
-  }, [isInitiator, pushCaption, translate, send]);
+  }, [processFinalSpeech]);
 
   // ── incoming realtime messages ─────────────────────────────────────────────
   const handleMessage = useCallback(
