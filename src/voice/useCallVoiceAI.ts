@@ -293,13 +293,15 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     [send, streamAiReply, pushCaption],
   );
 
-  const sendAiGreeting = useCallback(() => {
+  const sendAiGreeting = useCallback(async () => {
     if (aiGreetingSentRef.current) return;
     aiGreetingSentRef.current = true;
     const greeting = 'Hello, this is Chatr AI. They are busy right now, but I can take your message.';
-    send({ kind: 'ai-reply', text: greeting, lang: peerLangRef.current || 'en-IN' });
-    pushCaption({ id: nextId(), role: 'ai', original: greeting, lang: peerLangRef.current || 'en-IN' });
-  }, [pushCaption, send]);
+    const callerLang = peerLangRef.current || 'en-IN';
+    const spokenGreeting = await translate(greeting, 'en-IN', callerLang);
+    send({ kind: 'ai-reply', text: spokenGreeting, lang: callerLang });
+    pushCaption({ id: nextId(), role: 'ai', original: spokenGreeting, lang: callerLang });
+  }, [pushCaption, send, translate]);
 
   // ── STT (own mic) ──────────────────────────────────────────────────────────
   const stopListening = useCallback(() => {
@@ -372,11 +374,15 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           if (!isInitiator && modeRef.current === 'ai') {
             send({ kind: 'ai-mode', enabled: true });
             send({ kind: 'lang', lang: myLangRef.current });
-            window.setTimeout(sendAiGreeting, 250);
+            window.setTimeout(sendAiGreeting, 700);
           }
           break;
         case 'lang':
-          if (msg.lang) { peerLangRef.current = msg.lang; setPeerLang(msg.lang); }
+          if (msg.lang) {
+            peerLangRef.current = msg.lang;
+            setPeerLang(msg.lang);
+            if (!isInitiator && modeRef.current === 'ai') window.setTimeout(sendAiGreeting, 150);
+          }
           break;
         case 'translate-mode':
           if (msg.enabled) {
