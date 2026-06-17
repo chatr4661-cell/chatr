@@ -21,6 +21,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition as NativeSpeechRecognition } from '@capacitor-community/speech-recognition';
 
 export type CallVoiceMode = 'normal' | 'translate' | 'ai';
 export type CallVoiceStatus = 'idle' | 'listening' | 'thinking' | 'speaking';
@@ -34,7 +36,7 @@ export interface CallCaption {
 }
 
 interface VoiceMsg {
-  kind: 'lang' | 'translate-mode' | 'translated' | 'ai-mode' | 'transcript' | 'ai-reply';
+  kind: 'hello' | 'lang' | 'translate-mode' | 'translated' | 'ai-mode' | 'transcript' | 'ai-reply';
   from: string;
   lang?: string;
   enabled?: boolean;
@@ -61,6 +63,7 @@ const getSR = (): any | null => {
 
 const sttSupported = !!getSR();
 const ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+const nativePlatform = typeof window !== 'undefined' && Capacitor.isNativePlatform();
 
 let captionSeq = 0;
 const nextId = () => `${Date.now()}-${captionSeq++}`;
@@ -96,6 +99,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
   const [status, setStatus] = useState<CallVoiceStatus>('idle');
   const [captions, setCaptions] = useState<CallCaption[]>([]);
   const [peerLang, setPeerLang] = useState<string>('');
+  const [nativeSttReady, setNativeSttReady] = useState(nativePlatform);
 
   const modeRef = useRef(mode);
   const myLangRef = useRef(myLang);
@@ -106,9 +110,17 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
   const ttsQueueRef = useRef<Promise<void>>(Promise.resolve());
   const aiHistoryRef = useRef<{ role: 'user' | 'assistant'; text: string }[]>([]);
   const aiBusyRef = useRef(false);
+  const aiGreetingSentRef = useRef(false);
 
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { myLangRef.current = myLang; }, [myLang]);
+
+  useEffect(() => {
+    if (!nativePlatform || sttSupported) return;
+    NativeSpeechRecognition.available()
+      .then(({ available }) => setNativeSttReady(!!available))
+      .catch(() => setNativeSttReady(false));
+  }, []);
 
   const pushCaption = useCallback((c: CallCaption) => {
     setCaptions((prev) => [...prev.slice(-40), c]);
@@ -120,18 +132,29 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     if (!clean || !ttsSupported) return Promise.resolve();
     const run = () =>
       new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(safety);
+          setStatus(modeRef.current === 'normal' ? 'idle' : 'listening');
+          resolve();
+        };
+        const safety = window.setTimeout(finish, Math.max(4500, clean.length * 95));
         try {
+          window.speechSynthesis.resume();
           const u = new SpeechSynthesisUtterance(clean);
           u.lang = lang;
           const v = pickVoice(lang);
           if (v) u.voice = v;
           u.rate = 1;
           setStatus('speaking');
-          u.onend = () => resolve();
-          u.onerror = () => resolve();
+          u.onend = finish;
+          u.onerror = finish;
           window.speechSynthesis.speak(u);
+          window.setTimeout(() => window.speechSynthesis.resume(), 250);
         } catch {
-          resolve();
+          finish();
         }
       });
     ttsQueueRef.current = ttsQueueRef.current.then(run, run);
