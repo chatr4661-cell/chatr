@@ -234,8 +234,9 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
   // ── cloud STT for one captured utterance ────────────────────────────────────
   const handleUtterance = useCallback(
     async (blob: Blob, mime: string) => {
+      const isActive = () => modeRef.current !== 'normal';
       try {
-        if (modeRef.current === 'normal') return;
+        if (!isActive()) return;
         setStatus('thinking');
         const audioBase64 = await blobToBase64(blob);
         const { data, error } = await supabase.functions.invoke('voice-stt', {
@@ -244,11 +245,11 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
         const text = !error ? (data?.text || '').toString().trim() : '';
         if (text) {
           await processFinalSpeech(text, myLangRef.current);
-        } else if (modeRef.current !== 'normal') {
+        } else if (isActive()) {
           setStatus('listening');
         }
       } catch {
-        if (modeRef.current !== 'normal') setStatus('listening');
+        if (isActive()) setStatus('listening');
       }
     },
     [processFinalSpeech],
