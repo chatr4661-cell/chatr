@@ -1,28 +1,28 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// useCallVoiceAI — in-call AI voice layer (zero-cost, on-device first)
+// useCallVoiceAI — in-call AI voice layer (cloud STT + translate, device TTS)
 //
-// Runs on BOTH peers during an active call and powers two real features over a
-// shared Supabase Realtime channel (`call-voice-{callId}`):
+// Runs on BOTH peers during an active call over a shared Supabase Realtime
+// channel (`call-voice-{callId}`) and powers two features:
 //
-//   1. LIVE TRANSLATION  — each device transcribes its OWN mic (STT) in the
-//      speaker's language, translates to the listener's language, and sends the
-//      translated text. The listener speaks it aloud (TTS) + shows a caption.
-//      Result: A speaks Punjabi, B hears Hindi, and vice-versa — naturally.
+//   1. LIVE TRANSLATION — each device captures its OWN mic, transcribes it in the
+//      cloud (Lovable AI STT), translates to the listener's language, and sends
+//      the translated text. The listener speaks it aloud (device TTS) + caption.
+//      A speaks Punjabi → B hears Hindi, and vice-versa.
 //
-//   2. AI AUTO-ANSWER    — when the busy callee taps "AI Answer", the AI talks
-//      to the caller on their behalf. The caller's device transcribes the
-//      caller's speech and relays the text; the callee's device runs the AI
-//      brain (voice-ai-stream) and relays replies, which the caller's device
-//      speaks aloud. The busy user sees a live transcript and can take over.
+//   2. AI AUTO-ANSWER — when the busy callee taps "AI Answer", the AI talks to
+//      the caller. The caller's device captures + transcribes the caller's speech
+//      and relays the text; the callee runs the AI brain (voice-ai-stream) and
+//      relays replies, which the caller's device speaks aloud.
 //
-// Audio capture (STT) uses each device's own microphone, and playback (TTS)
-// uses each device's own speaker — so the whole loop is $0 per turn.
+// CAPTURE: instead of webkitSpeechRecognition (absent in the Android WebView and
+// in conflict with the live call mic), we clone the call's existing mic track and
+// run MediaRecorder + a simple energy VAD to cut utterances, then upload each
+// utterance to the `voice-stt` edge function. Cloning the track means we keep
+// hearing the user even while the outgoing WebRTC audio is muted (translate mode).
 // ─────────────────────────────────────────────────────────────────────────────
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Capacitor } from '@capacitor/core';
-import { SpeechRecognition as NativeSpeechRecognition } from '@capacitor-community/speech-recognition';
 
 export type CallVoiceMode = 'normal' | 'translate' | 'ai';
 export type CallVoiceStatus = 'idle' | 'listening' | 'thinking' | 'speaking';
@@ -52,18 +52,20 @@ export interface UseCallVoiceAIParams {
   connected: boolean;          // start only once the call is connected
   myLang: string;              // this user's spoken language (BCP-47)
   initialAiAnswer?: boolean;   // callee answered the call with AI
+  /** The local WebRTC mic/camera stream (we clone its audio track to capture). */
+  localStream?: MediaStream | null;
   /** Mute / unmute this device's outgoing WebRTC audio track. */
   setOutgoingMuted?: (muted: boolean) => void;
 }
 
-const getSR = (): any | null => {
-  if (typeof window === 'undefined') return null;
-  return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
-};
-
-const sttSupported = !!getSR();
 const ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
-const nativePlatform = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+const recorderSupported = typeof window !== 'undefined' && typeof (window as any).MediaRecorder !== 'undefined';
+
+// VAD / capture tuning
+const VAD_RMS_THRESHOLD = 0.04;   // speech energy floor
+const VAD_SILENCE_MS = 850;       // trailing silence that ends an utterance
+const VAD_MAX_UTTERANCE_MS = 12000;
+const VAD_POLL_MS = 100;
 
 let captionSeq = 0;
 const nextId = () => `${Date.now()}-${captionSeq++}`;
@@ -92,21 +94,50 @@ function drainSentences(buffer: string): { sentences: string[]; rest: string } {
   return { sentences: sentences.filter(Boolean), rest: buffer.slice(lastIndex) };
 }
 
+function pickRecorderMime(): string {
+  if (typeof (window as any).MediaRecorder === 'undefined') return '';
+  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/ogg'];
+  for (const m of candidates) {
+    try { if ((window as any).MediaRecorder.isTypeSupported?.(m)) return m; } catch { /* ignore */ }
+  }
+  return '';
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buf = await blob.arrayBuffer();
+  const u8 = new Uint8Array(buf);
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < u8.length; i += chunk) {
+    binary += String.fromCharCode(...u8.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 export function useCallVoiceAI(params: UseCallVoiceAIParams) {
-  const { callId, userId, isInitiator, connected, myLang, initialAiAnswer, setOutgoingMuted } = params;
+  const { callId, userId, isInitiator, connected, myLang, initialAiAnswer, localStream, setOutgoingMuted } = params;
 
   const [mode, setMode] = useState<CallVoiceMode>(initialAiAnswer ? 'ai' : 'normal');
   const [status, setStatus] = useState<CallVoiceStatus>('idle');
   const [captions, setCaptions] = useState<CallCaption[]>([]);
   const [peerLang, setPeerLang] = useState<string>('');
-  const [nativeSttReady, setNativeSttReady] = useState(nativePlatform);
 
   const modeRef = useRef(mode);
   const myLangRef = useRef(myLang);
   const peerLangRef = useRef('');
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const recRef = useRef<any>(null);
+  const localStreamRef = useRef<MediaStream | null>(localStream || null);
+
+  // capture engine refs
   const listeningRef = useRef(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const captureStreamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recorderStartRef = useRef(0);
+  const vadTimerRef = useRef<number | null>(null);
+  const pendingHasSpeechRef = useRef(false);
+
+  // ai/tts refs
   const ttsQueueRef = useRef<Promise<void>>(Promise.resolve());
   const aiHistoryRef = useRef<{ role: 'user' | 'assistant'; text: string }[]>([]);
   const aiBusyRef = useRef(false);
@@ -114,19 +145,13 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
 
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { myLangRef.current = myLang; }, [myLang]);
-
-  useEffect(() => {
-    if (!nativePlatform || sttSupported) return;
-    NativeSpeechRecognition.available()
-      .then(({ available }) => setNativeSttReady(!!available))
-      .catch(() => setNativeSttReady(false));
-  }, []);
+  useEffect(() => { localStreamRef.current = localStream || null; }, [localStream]);
 
   const pushCaption = useCallback((c: CallCaption) => {
     setCaptions((prev) => [...prev.slice(-40), c]);
   }, []);
 
-  // ── localized TTS (sequential queue) ───────────────────────────────────────
+  // ── localized TTS (sequential queue, device voice) ──────────────────────────
   const speak = useCallback((text: string, lang: string): Promise<void> => {
     const clean = (text || '').trim();
     if (!clean || !ttsSupported) return Promise.resolve();
@@ -186,26 +211,179 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     [],
   );
 
+  // ── what to do with a finished transcript from my own mic ───────────────────
   const processFinalSpeech = useCallback(
     async (text: string, lang = myLangRef.current) => {
       const clean = text.trim();
       if (!clean) return;
       const curMode = modeRef.current;
       if (curMode === 'translate') {
-        // My speech -> translate to the peer's language -> send. WebRTC mic is
-        // muted while this mode is on, so the other side hears only translated voice.
         pushCaption({ id: nextId(), role: 'me', original: clean, lang });
         const target = peerLangRef.current || 'en-IN';
         const translated = await translate(clean, lang, target);
         send({ kind: 'translated', text: translated, srcText: clean, srcLang: lang, lang: target });
       } else if (curMode === 'ai' && isInitiator) {
-        // Caller talking to AI: send transcript to busy callee device, which runs the AI brain.
+        // Caller talking to AI: send transcript to busy callee, which runs the brain.
         pushCaption({ id: nextId(), role: 'me', original: clean, lang });
         send({ kind: 'transcript', text: clean, lang });
       }
     },
     [isInitiator, pushCaption, send, translate],
   );
+
+  // ── cloud STT for one captured utterance ────────────────────────────────────
+  const handleUtterance = useCallback(
+    async (blob: Blob, mime: string) => {
+      const isActive = () => modeRef.current !== 'normal';
+      try {
+        if (!isActive()) return;
+        setStatus('thinking');
+        const audioBase64 = await blobToBase64(blob);
+        const { data, error } = await supabase.functions.invoke('voice-stt', {
+          body: { audioBase64, mimeType: mime.split(';')[0], lang: myLangRef.current },
+        });
+        const text = !error ? (data?.text || '').toString().trim() : '';
+        if (text) {
+          await processFinalSpeech(text, myLangRef.current);
+        } else if (isActive()) {
+          setStatus('listening');
+        }
+      } catch {
+        if (isActive()) setStatus('listening');
+      }
+    },
+    [processFinalSpeech],
+  );
+
+  // ── capture engine (MediaRecorder + VAD on a clone of the call mic) ──────────
+  const beginRecorder = useCallback(() => {
+    const stream = captureStreamRef.current;
+    if (!stream || !listeningRef.current) return;
+    const mime = pickRecorderMime();
+    let rec: MediaRecorder;
+    try {
+      rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    } catch {
+      return;
+    }
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      const had = pendingHasSpeechRef.current;
+      pendingHasSpeechRef.current = false;
+      if (had && chunks.length) {
+        const outMime = rec.mimeType || mime || 'audio/webm';
+        void handleUtterance(new Blob(chunks, { type: outMime }), outMime);
+      }
+      if (listeningRef.current) beginRecorder();
+    };
+    recorderRef.current = rec;
+    recorderStartRef.current = Date.now();
+    try { rec.start(); } catch { /* already started */ }
+  }, [handleUtterance]);
+
+  const startCapture = useCallback(() => {
+    if (!recorderSupported) return false;
+    if (captureStreamRef.current) return true; // already running
+    const src = localStreamRef.current;
+    const track = src?.getAudioTracks?.()[0];
+    if (!track) return false;
+    let captureStream: MediaStream;
+    try {
+      captureStream = new MediaStream([track.clone()]);
+    } catch {
+      captureStream = new MediaStream([track]);
+    }
+    captureStreamRef.current = captureStream;
+
+    let speech = false;
+    let lastVoice = Date.now();
+
+    try {
+      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const ctx: AudioContext = new AC();
+      audioCtxRef.current = ctx;
+      const source = ctx.createMediaStreamSource(captureStream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.fftSize);
+
+      const tick = () => {
+        if (!listeningRef.current) return;
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        const now = Date.now();
+        if (rms > VAD_RMS_THRESHOLD) {
+          speech = true;
+          lastVoice = now;
+          if (modeRef.current !== 'normal' && status !== 'speaking') setStatus('listening');
+        }
+        const rec = recorderRef.current;
+        const elapsed = rec ? now - recorderStartRef.current : 0;
+        if (rec && rec.state === 'recording') {
+          if ((speech && now - lastVoice > VAD_SILENCE_MS) || elapsed > VAD_MAX_UTTERANCE_MS) {
+            pendingHasSpeechRef.current = speech;
+            speech = false;
+            try { rec.stop(); } catch { /* ignore */ }
+          }
+        }
+        vadTimerRef.current = window.setTimeout(tick, VAD_POLL_MS);
+      };
+
+      void ctx.resume?.();
+      beginRecorder();
+      tick();
+      return true;
+    } catch {
+      // Fallback: no WebAudio VAD — record in fixed 4s windows.
+      beginRecorder();
+      const loop = () => {
+        if (!listeningRef.current) return;
+        const rec = recorderRef.current;
+        if (rec && rec.state === 'recording') {
+          pendingHasSpeechRef.current = true;
+          try { rec.stop(); } catch { /* ignore */ }
+        }
+        vadTimerRef.current = window.setTimeout(loop, 4000);
+      };
+      vadTimerRef.current = window.setTimeout(loop, 4000);
+      return true;
+    }
+  }, [beginRecorder, status]);
+
+  const startListening = useCallback(() => {
+    if (listeningRef.current) return;
+    listeningRef.current = true;
+    if (!startCapture()) {
+      // localStream not ready yet — the [localStream] effect will retry.
+      setStatus('listening');
+    }
+  }, [startCapture]);
+
+  const stopListening = useCallback(() => {
+    listeningRef.current = false;
+    if (vadTimerRef.current) { clearTimeout(vadTimerRef.current); vadTimerRef.current = null; }
+    try { recorderRef.current?.stop(); } catch { /* ignore */ }
+    recorderRef.current = null;
+    try { captureStreamRef.current?.getTracks().forEach((t) => t.stop()); } catch { /* ignore */ }
+    captureStreamRef.current = null;
+    try { audioCtxRef.current?.close(); } catch { /* ignore */ }
+    audioCtxRef.current = null;
+    pendingHasSpeechRef.current = false;
+  }, []);
+
+  // Retry starting capture once the local stream becomes available.
+  useEffect(() => {
+    if (listeningRef.current && !captureStreamRef.current && localStream) {
+      startCapture();
+    }
+  }, [localStream, startCapture]);
 
   // ── AI brain (streams reply sentences from the gateway) ─────────────────────
   const streamAiReply = useCallback(
@@ -276,7 +454,6 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
       let full = '';
       try {
         full = await streamAiReply(text, callerLang || 'en-IN', (sentence) => {
-          // Relay each sentence to the caller's device to speak immediately.
           send({ kind: 'ai-reply', text: sentence });
           pushCaption({ id: nextId(), role: 'ai', original: sentence, lang: callerLang });
         });
@@ -303,89 +480,6 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     pushCaption({ id: nextId(), role: 'ai', original: spokenGreeting, lang: callerLang });
   }, [pushCaption, send, translate]);
 
-  // ── STT (own mic) ──────────────────────────────────────────────────────────
-  const stopListening = useCallback(() => {
-    listeningRef.current = false;
-    try { recRef.current?.abort?.(); } catch {}
-    try { NativeSpeechRecognition.stop(); } catch {}
-    recRef.current = null;
-  }, []);
-
-  const startListening = useCallback(() => {
-    const SR = getSR();
-    listeningRef.current = true;
-    if (!SR && nativePlatform) {
-      setStatus('listening');
-      NativeSpeechRecognition.requestPermissions()
-        .then(() =>
-          new Promise<string>((resolve) => {
-            let latest = '';
-            let done = false;
-            const finish = (text = latest) => {
-              if (done) return;
-              done = true;
-              try { NativeSpeechRecognition.removeAllListeners(); } catch {}
-              resolve(text);
-            };
-            NativeSpeechRecognition.addListener('partialResults', (data: any) => {
-              latest = data?.matches?.[0] || latest;
-            }).catch(() => {});
-            NativeSpeechRecognition.addListener('listeningState', (data: any) => {
-              if (data?.status === 'stopped') finish();
-            }).catch(() => {});
-            NativeSpeechRecognition.start({
-              language: myLangRef.current,
-              maxResults: 1,
-              partialResults: true,
-              popup: false,
-            }).then((result: any) => {
-              if (result?.matches?.[0]) finish(result.matches[0]);
-            }).catch(() => finish());
-            window.setTimeout(() => finish(), 6500);
-          })
-        )
-        .then((text) => processFinalSpeech(text, myLangRef.current))
-        .catch(() => setStatus('idle'))
-        .finally(() => {
-          if (listeningRef.current) {
-            setTimeout(() => { if (listeningRef.current) startListening(); }, 200);
-          }
-        });
-      return;
-    }
-    if (!SR) return;
-    const rec = new SR();
-    rec.lang = myLangRef.current;
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    let finalText = '';
-    setStatus('listening');
-
-    rec.onresult = (e: any) => {
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
-      }
-    };
-    rec.onerror = (e: any) => {
-      if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
-        listeningRef.current = false;
-      }
-    };
-    rec.onend = async () => {
-      recRef.current = null;
-      await processFinalSpeech(finalText, myLangRef.current);
-      if (listeningRef.current) {
-        // keep the ear open
-        setTimeout(() => { if (listeningRef.current) startListening(); }, 150);
-      } else {
-        setStatus('idle');
-      }
-    };
-    recRef.current = rec;
-    try { rec.start(); } catch { /* already started */ }
-  }, [processFinalSpeech]);
-
   // ── incoming realtime messages ─────────────────────────────────────────────
   const handleMessage = useCallback(
     (msg: VoiceMsg) => {
@@ -407,12 +501,11 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           break;
         case 'translate-mode':
           if (msg.enabled) {
-            // Peer turned on translation — mirror it locally.
             if (modeRef.current !== 'translate') {
               setMode('translate');
               setOutgoingMuted?.(true);
               send({ kind: 'lang', lang: myLangRef.current });
-              if (!listeningRef.current) startListening();
+              startListening();
             }
           } else if (modeRef.current === 'translate') {
             setMode('normal');
@@ -421,19 +514,17 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           }
           break;
         case 'translated':
-          // Peer's speech, already translated into my language — speak it.
           if (msg.text) {
             pushCaption({ id: nextId(), role: 'them', original: msg.srcText || '', translated: msg.text, lang: msg.lang || myLangRef.current });
             speak(msg.text, msg.lang || myLangRef.current);
           }
           break;
         case 'ai-mode':
-          // Callee enabled AI auto-answer. Caller starts relaying its speech.
           if (isInitiator) {
             if (msg.enabled) {
               setMode('ai');
               setOutgoingMuted?.(false);
-              if (!listeningRef.current) startListening();
+              startListening();
             } else {
               setMode('normal');
               setOutgoingMuted?.(false);
@@ -442,14 +533,12 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
           }
           break;
         case 'transcript':
-          // Caller's speech (callee side) — feed the AI.
           if (!isInitiator && modeRef.current === 'ai' && msg.text) {
             pushCaption({ id: nextId(), role: 'them', original: msg.text, lang: msg.lang || 'en-IN' });
             handleCallerTranscript(msg.text, msg.lang || peerLangRef.current || 'en-IN');
           }
           break;
         case 'ai-reply':
-          // AI reply (caller side) — speak it to the caller.
           if (isInitiator && msg.text) {
             pushCaption({ id: nextId(), role: 'ai', original: msg.text, lang: myLangRef.current });
             speak(msg.text, myLangRef.current);
@@ -469,10 +558,8 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     channel.on('broadcast', { event: 'voice' }, (p) => handleMessage(p.payload as VoiceMsg));
     channel.subscribe((st) => {
       if (st === 'SUBSCRIBED') {
-        // Announce my language so the peer can translate to me.
         send({ kind: 'hello' });
         send({ kind: 'lang', lang: myLangRef.current });
-        // If callee answered with AI, kick it off now.
         if (initialAiAnswer && !isInitiator) {
           setMode('ai');
           setOutgoingMuted?.(true);
@@ -487,7 +574,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
       supabase.removeChannel(channel);
       channelRef.current = null;
       stopListening();
-      try { window.speechSynthesis?.cancel(); } catch {}
+      try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, callId, userId]);
@@ -504,7 +591,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
       startListening();
     } else {
       stopListening();
-      try { window.speechSynthesis?.cancel(); } catch {}
+      try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
     }
   }, [send, setOutgoingMuted, startListening, stopListening]);
 
@@ -515,7 +602,7 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     setOutgoingMuted?.(false);
     send({ kind: 'ai-mode', enabled: false });
     aiBusyRef.current = false;
-    try { window.speechSynthesis?.cancel(); } catch {}
+    try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
     setStatus('idle');
   }, [send, setOutgoingMuted]);
 
@@ -530,13 +617,13 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
       status,
       captions,
       peerLang,
-      sttSupported: sttSupported || nativeSttReady,
+      sttSupported: recorderSupported,
       ttsSupported,
       translateActive: mode === 'translate',
       aiActive: mode === 'ai',
       toggleTranslate,
       takeOverAI,
     }),
-    [mode, status, captions, peerLang, nativeSttReady, toggleTranslate, takeOverAI],
+    [mode, status, captions, peerLang, toggleTranslate, takeOverAI],
   );
 }
