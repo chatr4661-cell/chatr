@@ -100,6 +100,7 @@ export default function UnifiedCallScreen({
     connected: callState === 'connected',
     myLang,
     initialAiAnswer: aiAnswer,
+    localStream,
     setOutgoingMuted: (m) => webrtcRef.current?.toggleAudio(!m),
   });
 
