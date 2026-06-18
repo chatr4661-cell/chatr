@@ -4,7 +4,13 @@
 // Used by both peers during a live call — keeps STT off the device so it works
 // reliably inside the Android WebView (no webkitSpeechRecognition there).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { decode as b64decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+
+function b64decode(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
