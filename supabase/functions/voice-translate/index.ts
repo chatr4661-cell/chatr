@@ -110,7 +110,58 @@ serve(async (req) => {
       }
     }
 
-    // 3) Last resort: echo original so the call keeps flowing.
+    // 3) Fallback: Google Gemini directly.
+    const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (GEMINI_KEY) {
+      const g = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text }] }],
+            generationConfig: { temperature: 0.2 },
+          }),
+        },
+      );
+      if (g.ok) {
+        const data = await g.json();
+        const translated: string = data?.candidates?.[0]?.content?.parts?.[0]?.text?.toString().trim() || "";
+        if (translated) {
+          return new Response(JSON.stringify({ translated, targetLang, provider: "gemini" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        const detail = await g.text().catch(() => "");
+        console.error("voice-translate gemini fallback error:", g.status, detail);
+      }
+    }
+
+    // 4) Fallback: OpenRouter (OpenAI-compatible).
+    const OR_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (OR_KEY) {
+      const or = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OR_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "openai/gpt-4o-mini", messages, temperature: 0.2 }),
+      });
+      if (or.ok) {
+        const data = await or.json();
+        const translated: string = data?.choices?.[0]?.message?.content?.toString().trim() || "";
+        if (translated) {
+          return new Response(JSON.stringify({ translated, targetLang, provider: "openrouter" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        const detail = await or.text().catch(() => "");
+        console.error("voice-translate openrouter fallback error:", or.status, detail);
+      }
+    }
+
+    // 5) Last resort: echo original so the call keeps flowing.
     return new Response(JSON.stringify({ translated: text, targetLang, fallback: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
