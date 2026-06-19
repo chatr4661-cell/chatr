@@ -81,7 +81,47 @@ serve(async (req) => {
       console.error("voice-ai-stream openai fallback error:", oai.status, detail);
     }
 
-    // 3) Last resort: graceful spoken fallback.
+    // 3) Fallback: OpenRouter (OpenAI-compatible streaming).
+    const OR_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (OR_KEY) {
+      const or = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OR_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "openai/gpt-4o-mini", messages, stream: true }),
+      });
+      if (or.ok && or.body) {
+        return new Response(or.body, { headers: sseHeaders });
+      }
+      const detail = await or.text().catch(() => "");
+      console.error("voice-ai-stream openrouter fallback error:", or.status, detail);
+    }
+
+    // 4) Fallback: Google Gemini (non-streaming, emitted as one SSE chunk).
+    const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (GEMINI_KEY) {
+      const sys = messages.find((m) => m.role === "system")?.content || "";
+      const contents = messages
+        .filter((m) => m.role !== "system")
+        .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+      const g = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ systemInstruction: { parts: [{ text: sys }] }, contents }),
+        },
+      );
+      if (g.ok) {
+        const data = await g.json();
+        const reply: string = data?.candidates?.[0]?.content?.parts?.[0]?.text?.toString().trim() || "";
+        if (reply) return sseOnce(reply);
+      } else {
+        const detail = await g.text().catch(() => "");
+        console.error("voice-ai-stream gemini fallback error:", g.status, detail);
+      }
+    }
+
+    // 5) Last resort: graceful spoken fallback.
     return sseOnce("Sorry, they are busy right now. Please leave a short message and they will call you back.");
   } catch (error) {
     console.error("voice-ai-stream error:", error);
