@@ -48,42 +48,41 @@ serve(async (req) => {
       { role: "user", content: userText },
     ];
 
-    if (!LOVABLE_API_KEY) {
-      const fallback = "Sorry, they are busy right now. Please leave a short message and they will call you back.";
-      return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+    const sseHeaders = { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" };
+    const sseOnce = (content: string) =>
+      new Response(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\ndata: [DONE]\n\n`, { headers: sseHeaders });
+
+    // 1) Primary: Lovable AI Gateway (streaming).
+    if (LOVABLE_API_KEY) {
+      const upstream = await fetch(GATEWAY_URL, {
+        method: "POST",
+        headers: { "Lovable-API-Key": LOVABLE_API_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages, stream: true }),
       });
-    }
-
-    const upstream = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        "Lovable-API-Key": LOVABLE_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model, messages, stream: true }),
-    });
-
-    if (!upstream.ok || !upstream.body) {
+      if (upstream.ok && upstream.body) {
+        return new Response(upstream.body, { headers: sseHeaders });
+      }
       const detail = await upstream.text().catch(() => "");
-      console.error("voice-ai-stream gateway fallback:", upstream.status, detail);
-      const fallback = upstream.status === 402
-        ? "Sorry, AI calling needs workspace credits. Please leave a message and they will call back."
-        : "Sorry, they are busy right now. Please leave a short message and they will call you back.";
-      return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
-      });
+      console.error("voice-ai-stream gateway error:", upstream.status, detail);
     }
 
-    // Pass the SSE stream straight through to the client.
-    return new Response(upstream.body, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
+    // 2) Fallback: OpenAI directly (streaming) — handles credit exhaustion.
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (OPENAI_API_KEY) {
+      const oai = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-4o-mini", messages, stream: true }),
+      });
+      if (oai.ok && oai.body) {
+        return new Response(oai.body, { headers: sseHeaders });
+      }
+      const detail = await oai.text().catch(() => "");
+      console.error("voice-ai-stream openai fallback error:", oai.status, detail);
+    }
+
+    // 3) Last resort: graceful spoken fallback.
+    return sseOnce("Sorry, they are busy right now. Please leave a short message and they will call you back.");
   } catch (error) {
     console.error("voice-ai-stream error:", error);
     const fallback = "Sorry, they are busy right now. Please leave a short message and they will call you back.";
