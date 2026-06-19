@@ -53,11 +53,7 @@ serve(async (req) => {
     const srcName = sourceLang ? nameFor(sourceLang) : "the detected language";
     const tgtName = nameFor(targetLang);
 
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ translated: text, targetLang, fallback: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+
 
     const system =
       `You are a real-time speech interpreter on a live phone call. ` +
@@ -66,35 +62,107 @@ serve(async (req) => {
       `no quotes, no transliteration, no explanations, no notes. ` +
       `Preserve tone, names, and numbers. If the text is already in ${tgtName}, return it unchanged.`;
 
-    const upstream = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        "Lovable-API-Key": LOVABLE_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: text },
-        ],
-        temperature: 0.2,
-      }),
-    });
+    const messages = [
+      { role: "system", content: system },
+      { role: "user", content: text },
+    ];
 
-    if (!upstream.ok) {
-      const detail = await upstream.text().catch(() => "");
-      console.error("voice-translate gateway fallback:", upstream.status, detail);
-      return new Response(JSON.stringify({ translated: text, targetLang, fallback: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // 1) Primary: Lovable AI Gateway.
+    if (LOVABLE_API_KEY) {
+      const upstream = await fetch(GATEWAY_URL, {
+        method: "POST",
+        headers: { "Lovable-API-Key": LOVABLE_API_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages, temperature: 0.2 }),
       });
+      if (upstream.ok) {
+        const data = await upstream.json();
+        const translated: string = data?.choices?.[0]?.message?.content?.toString().trim() || "";
+        if (translated) {
+          return new Response(JSON.stringify({ translated, targetLang }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        const detail = await upstream.text().catch(() => "");
+        console.error("voice-translate gateway error:", upstream.status, detail);
+      }
     }
 
-    const data = await upstream.json();
-    const translated: string =
-      data?.choices?.[0]?.message?.content?.toString().trim() || "";
+    // 2) Fallback: OpenAI directly (handles credit exhaustion / missing key).
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (OPENAI_API_KEY) {
+      const oai = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-4o-mini", messages, temperature: 0.2 }),
+      });
+      if (oai.ok) {
+        const data = await oai.json();
+        const translated: string = data?.choices?.[0]?.message?.content?.toString().trim() || "";
+        if (translated) {
+          return new Response(JSON.stringify({ translated, targetLang, provider: "openai" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        const detail = await oai.text().catch(() => "");
+        console.error("voice-translate openai fallback error:", oai.status, detail);
+      }
+    }
 
-    return new Response(JSON.stringify({ translated, targetLang }), {
+    // 3) Fallback: Google Gemini directly.
+    const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (GEMINI_KEY) {
+      const g = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text }] }],
+            generationConfig: { temperature: 0.2 },
+          }),
+        },
+      );
+      if (g.ok) {
+        const data = await g.json();
+        const translated: string = data?.candidates?.[0]?.content?.parts?.[0]?.text?.toString().trim() || "";
+        if (translated) {
+          return new Response(JSON.stringify({ translated, targetLang, provider: "gemini" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        const detail = await g.text().catch(() => "");
+        console.error("voice-translate gemini fallback error:", g.status, detail);
+      }
+    }
+
+    // 4) Fallback: OpenRouter (OpenAI-compatible).
+    const OR_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (OR_KEY) {
+      const or = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OR_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "openai/gpt-4o-mini", messages, temperature: 0.2 }),
+      });
+      if (or.ok) {
+        const data = await or.json();
+        const translated: string = data?.choices?.[0]?.message?.content?.toString().trim() || "";
+        if (translated) {
+          return new Response(JSON.stringify({ translated, targetLang, provider: "openrouter" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        const detail = await or.text().catch(() => "");
+        console.error("voice-translate openrouter fallback error:", or.status, detail);
+      }
+    }
+
+    // 5) Last resort: echo original so the call keeps flowing.
+    return new Response(JSON.stringify({ translated: text, targetLang, fallback: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

@@ -66,34 +66,89 @@ serve(async (req) => {
     }
 
     const ext = EXT_BY_MIME[mimeType] || "webm";
-    const blob = new Blob([bytes], { type: mimeType });
 
-    const form = new FormData();
-    form.append("model", "openai/gpt-4o-mini-transcribe");
-    form.append("file", blob, `utterance.${ext}`);
-    if (lang) form.append("language", lang);
+    const buildForm = (model: string) => {
+      const form = new FormData();
+      form.append("model", model);
+      form.append("file", new Blob([bytes], { type: mimeType }), `utterance.${ext}`);
+      if (lang) form.append("language", lang);
+      return form;
+    };
 
+    // 1) Primary: Lovable AI Gateway.
     const upstream = await fetch(GATEWAY_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}` },
-      body: form,
+      body: buildForm("openai/gpt-4o-mini-transcribe"),
     });
 
-    if (!upstream.ok) {
-      const detail = await upstream.text().catch(() => "");
-      console.error("voice-stt gateway error:", upstream.status, detail);
-      return new Response(
-        JSON.stringify({ text: "", error: `stt_${upstream.status}` }),
-        { status: upstream.status === 402 ? 402 : 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    if (upstream.ok) {
+      const data = await upstream.json().catch(() => ({}));
+      const text: string = (data?.text || "").toString().trim();
+      return new Response(JSON.stringify({ text }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const data = await upstream.json().catch(() => ({}));
-    const text: string = (data?.text || "").toString().trim();
+    const detail = await upstream.text().catch(() => "");
+    console.error("voice-stt gateway error:", upstream.status, detail);
 
-    return new Response(JSON.stringify({ text }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // 2) Fallback: call OpenAI directly (handles 402 credit exhaustion etc).
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (OPENAI_API_KEY) {
+      const oai = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: buildForm("gpt-4o-mini-transcribe"),
+      });
+      if (oai.ok) {
+        const data = await oai.json().catch(() => ({}));
+        const text: string = (data?.text || "").toString().trim();
+        return new Response(JSON.stringify({ text, provider: "openai" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const oaiDetail = await oai.text().catch(() => "");
+      console.error("voice-stt openai fallback error:", oai.status, oaiDetail);
+    }
+
+    // 3) Fallback: Google Gemini transcription (inline audio).
+    const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (GEMINI_KEY) {
+      const prompt = lang
+        ? `Transcribe this audio verbatim in its original language. Output only the transcript text.`
+        : `Transcribe this audio verbatim. Output only the transcript text.`;
+      const g = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              role: "user",
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mimeType, data: audioBase64 } },
+              ],
+            }],
+          }),
+        },
+      );
+      if (g.ok) {
+        const data = await g.json().catch(() => ({}));
+        const text: string = (data?.candidates?.[0]?.content?.parts?.[0]?.text || "").toString().trim();
+        return new Response(JSON.stringify({ text, provider: "gemini" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const gDetail = await g.text().catch(() => "");
+      console.error("voice-stt gemini fallback error:", g.status, gDetail);
+    }
+
+    return new Response(
+      JSON.stringify({ text: "", error: `stt_${upstream.status}` }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error) {
     console.error("voice-stt error:", error);
     return new Response(JSON.stringify({ text: "", error: "exception" }), {
