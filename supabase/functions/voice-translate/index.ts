@@ -53,11 +53,7 @@ serve(async (req) => {
     const srcName = sourceLang ? nameFor(sourceLang) : "the detected language";
     const tgtName = nameFor(targetLang);
 
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ translated: text, targetLang, fallback: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+
 
     const system =
       `You are a real-time speech interpreter on a live phone call. ` +
