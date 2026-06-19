@@ -112,6 +112,39 @@ serve(async (req) => {
       console.error("voice-stt openai fallback error:", oai.status, oaiDetail);
     }
 
+    // 3) Fallback: Google Gemini transcription (inline audio).
+    const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (GEMINI_KEY) {
+      const prompt = lang
+        ? `Transcribe this audio verbatim in its original language. Output only the transcript text.`
+        : `Transcribe this audio verbatim. Output only the transcript text.`;
+      const g = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              role: "user",
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mimeType, data: audioBase64 } },
+              ],
+            }],
+          }),
+        },
+      );
+      if (g.ok) {
+        const data = await g.json().catch(() => ({}));
+        const text: string = (data?.candidates?.[0]?.content?.parts?.[0]?.text || "").toString().trim();
+        return new Response(JSON.stringify({ text, provider: "gemini" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const gDetail = await g.text().catch(() => "");
+      console.error("voice-stt gemini fallback error:", g.status, gDetail);
+    }
+
     return new Response(
       JSON.stringify({ text: "", error: `stt_${upstream.status}` }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
