@@ -1809,6 +1809,42 @@ export class SimpleWebRTCCall {
     }
   }
 
+  /**
+   * Recovery path: when the partner's video stays blank after an upgrade, throw
+   * away any stale local camera track, grab a FRESH getUserMedia, and force a
+   * brand-new tagged offer/answer round. The 'video-upgrade' tag makes the
+   * partner re-enable/re-send their own camera too, so both directions recover.
+   */
+  async retryVideoUpgrade(): Promise<MediaStream | null> {
+    if (!this.pc || this.callState === 'ended') return null;
+
+    try {
+      console.log('🔁 [WebRTC] Retrying video upgrade with fresh camera + new negotiation...');
+      this.explicitRenegotiation = true;
+
+      // Force a brand-new capture — never reuse a possibly-stale/frozen track.
+      this.pendingVideoCapture = null;
+      const existingTracks = this.localStream?.getVideoTracks() || [];
+      existingTracks.forEach((t) => { try { t.stop(); } catch {} });
+
+      const freshStream = await this.getOrCreateVideoStream(true);
+      await this.attachLocalVideoTrack(freshStream);
+
+      // Force the renegotiation through even if signaling looks stable.
+      this.hasReceivedAnswer = false;
+      this.offerSent = false;
+      this.videoRenegotiationQueued = false;
+      await this.createTaggedVideoOffer();
+
+      return this.localStream;
+    } catch (error) {
+      console.error('❌ [WebRTC] Video upgrade retry failed:', error);
+      return null;
+    } finally {
+      this.explicitRenegotiation = false;
+    }
+  }
+
   sendDTMF(digit: string) {
     const sender = this.pc?.getSenders().find(s => s.track?.kind === 'audio');
     if (sender?.dtmf) {
