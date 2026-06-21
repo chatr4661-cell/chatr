@@ -110,6 +110,7 @@ export class SimpleWebRTCCall {
   private makingOffer: boolean = false;
   private pendingVideoCapture: Promise<MediaStream> | null = null;
   private videoRenegotiationQueued: boolean = false;
+  private explicitRenegotiation: boolean = false;
   private ending: boolean = false;
   private readonly VIDEO_CAPTURE_TIMEOUT_MS = 7_000;
   private processedSignalIds: Set<string> = new Set();
