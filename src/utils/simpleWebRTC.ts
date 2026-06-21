@@ -1407,25 +1407,37 @@ export class SimpleWebRTCCall {
     }
 
     try {
-      switch (signal.type) {
+      const type = signal.type === 'ice_candidate' || signal.type === 'candidate' ? 'ice-candidate' : signal.type;
+      switch (type) {
         case 'offer':
-          // For initial offers: initiators ignore (they send offers)
-          // For renegotiation: ALLOW if call is already connected (e.g., adding video)
           const isRenegotiation = this.callState === 'connected';
-          
-          if (this.isInitiator && !isRenegotiation) {
+          const readyForOffer = !this.makingOffer && (this.pc.signalingState === 'stable' || this.pc.signalingState === 'have-remote-offer');
+          const offerCollision = !readyForOffer;
+          const politePeer = !this.isInitiator;
+
+          // Perfect negotiation: caller is impolite, receiver is polite. This
+          // prevents simultaneous video-upgrade offers from leaving one side send-only.
+          if (offerCollision && !politePeer) {
+            console.log('⏭️ [WebRTC] Ignoring colliding offer (impolite peer)', this.pc.signalingState);
+            return;
+          }
+
+          if (this.isInitiator && !isRenegotiation && !offerCollision) {
             console.log('⏭️ [WebRTC] Ignoring initial offer (I am initiator)');
             return;
           }
-          
+
           // CRITICAL: Prevent duplicate answers for same offer
           // Only allow ONE answer per offer (except renegotiation)
           if (this.answerSent && !isRenegotiation) {
             console.log('⏭️ [WebRTC] Already sent initial answer, skipping duplicate offer');
             return;
           }
-          
+
           console.log(`📥 [WebRTC] Processing ${isRenegotiation ? 'RENEGOTIATION' : 'INITIAL'} OFFER...`);
+          if (offerCollision) {
+            await this.pc.setLocalDescription({ type: 'rollback' } as RTCSessionDescriptionInit);
+          }
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
 
           // FaceTime-style auto video upgrade:
@@ -1505,6 +1517,11 @@ export class SimpleWebRTCCall {
             });
             this.pendingIceCandidates.push(new RTCIceCandidate(signal.data));
           }
+          break;
+
+        case 'hangup':
+          console.log('📵 [WebRTC] Hangup signal received');
+          this.emit('ended');
           break;
           
         case 'video-request':
