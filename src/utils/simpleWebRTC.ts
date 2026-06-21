@@ -1893,7 +1893,10 @@ export class SimpleWebRTCCall {
     return this.pc;
   }
 
-  async end() {
+  async end(options: { emit?: boolean } = {}) {
+    if (this.ending || this.callState === 'ended') return;
+    this.ending = true;
+    const shouldEmit = options.emit ?? false;
     console.log('👋 [WebRTC] Ending call...');
     this.callState = 'ended';
     this.clearConnectionTimeout();
@@ -1913,7 +1916,7 @@ export class SimpleWebRTCCall {
     activeCallInstances.delete(this.callId);
 
     await this.cleanup();
-    this.emit('ended');
+    if (shouldEmit) this.emit('ended');
   }
 
 
