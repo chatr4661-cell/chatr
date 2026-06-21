@@ -1180,12 +1180,17 @@ export class SimpleWebRTCCall {
 
     this.hasReceivedAnswer = false;
     this.offerSent = false;
-    const offer = await this.pc.createOffer();
-    if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
-    (offer as any).__chatr = { reason: 'video-upgrade' };
-    await this.pc.setLocalDescription(offer);
-    await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
-    console.log('📤 [WebRTC] Sent renegotiation offer with video');
+    this.makingOffer = true;
+    try {
+      const offer = await this.pc.createOffer();
+      if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
+      (offer as any).__chatr = { reason: 'video-upgrade' };
+      await this.pc.setLocalDescription(offer);
+      await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+      console.log('📤 [WebRTC] Sent renegotiation offer with video');
+    } finally {
+      this.makingOffer = false;
+    }
   }
 
   /**
