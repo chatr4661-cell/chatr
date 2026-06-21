@@ -743,12 +743,7 @@ export default function UnifiedCallScreen({
     if (!call) return;
 
     if (!isVideoOn) {
-      // Check network policy first
-      if (!canEnableVideo()) {
-        toast.warning(uiState.message || 'Video not available on current network');
-        return;
-      }
-
+      // Video is always user-enable-able; network only affects quality, not availability.
       console.log('📹 [UnifiedCall] Enabling video (FaceTime-style)...');
 
       // Ensure the local PIP mounts so localVideoRef is available
