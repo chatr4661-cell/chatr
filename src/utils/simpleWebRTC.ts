@@ -990,12 +990,15 @@ export class SimpleWebRTCCall {
 
     try {
       console.log('🔄 [WebRTC] ICE restart...');
+      this.makingOffer = true;
       const offer = await this.pc.createOffer({ iceRestart: true });
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
     } catch (e) {
       console.error('❌ [WebRTC] ICE restart failed:', e);
       throw e;
+    } finally {
+      this.makingOffer = false;
     }
   }
 
