@@ -1381,7 +1381,8 @@ export class SimpleWebRTCCall {
           const upgradeReason = (signal.data as any)?.__chatr?.reason;
           if (isRenegotiation && upgradeReason === 'video-upgrade') {
             try {
-              const hasLocalVideo = (this.localStream?.getVideoTracks()?.length || 0) > 0;
+              const hasLocalVideo = (this.localStream?.getVideoTracks() || [])
+                .some((track) => track.readyState === 'live' && track.enabled);
               if (!hasLocalVideo) {
                 console.log('📹 [WebRTC] Auto-enabling local video for bidirectional upgrade...');
                 // No renegotiation here; we are responding with an answer.
