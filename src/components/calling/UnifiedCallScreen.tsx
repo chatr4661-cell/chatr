@@ -681,6 +681,42 @@ export default function UnifiedCallScreen({
     addVideo();
   }, [videoEnabled, localVideoActive]);
 
+  // Auto-recovery watchdog: our camera is live but the partner's video stays
+  // blank. After ~7s we re-attempt the upgrade with a fresh getUserMedia + a new
+  // offer/answer round (up to 3 times). Resolves the rare case where the reverse
+  // renegotiation is lost or the partner's track never paints.
+  useEffect(() => {
+    if (callState !== 'connected') return;
+    if (!localVideoActive) return;
+    if (remoteVideoActive) {
+      videoRetryCountRef.current = 0; // partner video is live — reset
+      return;
+    }
+    if (videoRetryCountRef.current >= 3) return;
+
+    const timer = setTimeout(async () => {
+      const call = webrtcRef.current;
+      if (!call || remoteVideoActive) return;
+      videoRetryCountRef.current += 1;
+      console.log(`🔁 [UnifiedCall] Remote video blank for 7s — retry #${videoRetryCountRef.current}/3`);
+      const stream = await call.retryVideoUpgrade();
+      if (stream && localVideoRef.current) {
+        const liveTracks = stream.getVideoTracks().filter((t) => t.readyState === 'live' && t.enabled);
+        if (liveTracks.length > 0) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.muted = true;
+          localVideoRef.current.play().catch(() => {});
+        }
+      }
+      // Re-arm the watchdog to check again after this attempt.
+      setVideoRetryTick((t) => t + 1);
+    }, 7000);
+
+    return () => clearTimeout(timer);
+  }, [callState, localVideoActive, remoteVideoActive, videoRetryTick]);
+
+
+
   const startDurationTimer = () => {
     if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     durationIntervalRef.current = setInterval(() => setDuration(d => d + 1), 1000);
