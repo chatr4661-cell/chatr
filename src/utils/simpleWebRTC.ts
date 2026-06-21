@@ -1435,7 +1435,7 @@ export class SimpleWebRTCCall {
           }
 
           console.log(`📥 [WebRTC] Processing ${isRenegotiation ? 'RENEGOTIATION' : 'INITIAL'} OFFER...`);
-          if (offerCollision) {
+          if (offerCollision && this.pc.signalingState !== 'stable') {
             await this.pc.setLocalDescription({ type: 'rollback' } as RTCSessionDescriptionInit);
           }
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
