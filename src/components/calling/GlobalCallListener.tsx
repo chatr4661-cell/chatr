@@ -338,12 +338,6 @@ export function GlobalCallListener() {
 
           console.log("📤 [GlobalCallListener] Outgoing call UPDATE:", call.id, "status:", call.status);
 
-          // If we already have an activeCall for this call, no need to reinitialize
-          if (currentActive && call.id === currentActive.id) {
-            console.log("📤 [GlobalCallListener] Call already active, ignoring update");
-            return;
-          }
-
           // Receiver rejected, missed, or call ended
           if (call.status === "ended" || call.status === "rejected" || call.status === "missed") {
             console.log("📵 [GlobalCallListener] Outgoing call ended/rejected/missed");
@@ -355,6 +349,13 @@ export function GlobalCallListener() {
             }
             
             // Silent cleanup - no toast notification needed for call outcomes
+            return;
+          }
+
+          // If we already have an activeCall for this call, no need to reinitialize
+          if (currentActive && call.id === currentActive.id) {
+            console.log("📤 [GlobalCallListener] Call already active, ignoring update");
+            return;
           }
         }
       )
