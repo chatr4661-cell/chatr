@@ -996,6 +996,151 @@ export class SimpleWebRTCCall {
     }
   }
 
+  private async getOrCreateVideoStream(preferFastStart = true): Promise<MediaStream> {
+    if (this.pendingVideoCapture) return this.pendingVideoCapture;
+
+    const attemptCapture = async () => {
+      const plans: MediaStreamConstraints[] = preferFastStart
+        ? [
+            {
+              video: {
+                width: { ideal: 1280, max: 1280 },
+                height: { ideal: 720, max: 720 },
+                frameRate: { ideal: 30, max: 30 },
+                facingMode: 'user',
+              },
+            },
+            {
+              video: {
+                width: { ideal: 640, max: 960 },
+                height: { ideal: 480, max: 540 },
+                frameRate: { ideal: 24, max: 30 },
+                facingMode: 'user',
+              },
+            },
+            { video: true },
+          ]
+        : [
+            {
+              video: {
+                width: { ideal: 1920, max: 1920 },
+                height: { ideal: 1080, max: 1080 },
+                frameRate: { ideal: 30, max: 60 },
+                facingMode: 'user',
+                aspectRatio: { ideal: 16 / 9 },
+              },
+            },
+            {
+              video: {
+                width: { ideal: 1280, max: 1280 },
+                height: { ideal: 720, max: 720 },
+                frameRate: { ideal: 30, max: 30 },
+                facingMode: 'user',
+              },
+            },
+            { video: true },
+          ];
+
+      let lastError: unknown = null;
+      for (const constraints of plans) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          const track = stream.getVideoTracks()[0];
+          if (!track) throw new Error('No video track obtained');
+          track.enabled = true;
+          const settings = track.getSettings();
+          console.log(`✅ [WebRTC] Video acquired: ${settings.width || '?'}x${settings.height || '?'}@${settings.frameRate || '?'}fps`);
+          return stream;
+        } catch (error) {
+          lastError = error;
+          console.warn('⚠️ [WebRTC] Video capture attempt failed:', error);
+        }
+      }
+
+      throw lastError || new Error('Video capture failed');
+    };
+
+    this.pendingVideoCapture = attemptCapture();
+    try {
+      return await this.pendingVideoCapture;
+    } finally {
+      this.pendingVideoCapture = null;
+    }
+  }
+
+  private async attachLocalVideoTrack(videoStream: MediaStream): Promise<MediaStream | null> {
+    if (!this.pc) return null;
+
+    const videoTrack = videoStream.getVideoTracks()[0];
+    if (!videoTrack) {
+      console.error('❌ [WebRTC] No video track obtained');
+      return null;
+    }
+    videoTrack.enabled = true;
+
+    const inactiveVideoSenders = this.pc.getSenders().filter(
+      (sender) => sender.track?.kind === 'video' && sender.track.readyState !== 'live'
+    );
+    for (const sender of inactiveVideoSenders) {
+      try { await sender.replaceTrack(null); } catch {}
+    }
+
+    const existingVideoSender = this.pc.getSenders().find(
+      (sender) => sender.track?.kind === 'video' || sender.track === null
+    );
+
+    if (existingVideoSender) {
+      await existingVideoSender.replaceTrack(videoTrack);
+      console.log('📹 [WebRTC] Replaced/attached video sender track');
+    } else {
+      const stream = this.localStream || videoStream;
+      this.pc.addTrack(videoTrack, stream);
+      console.log('📹 [WebRTC] Added new video sender track');
+    }
+
+    const previousVideoTracks = this.localStream?.getVideoTracks() || [];
+    if (this.localStream) {
+      previousVideoTracks.forEach((oldTrack) => {
+        if (oldTrack !== videoTrack) {
+          this.localStream?.removeTrack(oldTrack);
+          try { oldTrack.stop(); } catch {}
+        }
+      });
+      if (!this.localStream.getVideoTracks().includes(videoTrack)) {
+        this.localStream.addTrack(videoTrack);
+      }
+    } else {
+      this.localStream = videoStream;
+    }
+
+    this.emit('localStream', this.localStream);
+    return this.localStream;
+  }
+
+  private async createTaggedVideoOffer(): Promise<void> {
+    if (!this.pc || this.callState === 'ended') return;
+
+    if (this.pc.signalingState !== 'stable') {
+      console.log('📹 [WebRTC] Video renegotiation queued until signaling is stable:', this.pc.signalingState);
+      if (this.videoRenegotiationQueued) return;
+      this.videoRenegotiationQueued = true;
+      setTimeout(() => {
+        this.videoRenegotiationQueued = false;
+        this.createTaggedVideoOffer().catch((error) => console.warn('⚠️ [WebRTC] Queued video renegotiation failed:', error));
+      }, 500);
+      return;
+    }
+
+    this.hasReceivedAnswer = false;
+    this.offerSent = false;
+    const offer = await this.pc.createOffer();
+    if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
+    (offer as any).__chatr = { reason: 'video-upgrade' };
+    await this.pc.setLocalDescription(offer);
+    await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+    console.log('📤 [WebRTC] Sent renegotiation offer with video');
+  }
+
   /**
    * India-first: Handle network quality changes during call
    */
