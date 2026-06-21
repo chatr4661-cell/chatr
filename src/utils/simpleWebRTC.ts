@@ -1085,9 +1085,12 @@ export class SimpleWebRTCCall {
       try { await sender.replaceTrack(null); } catch {}
     }
 
-    const existingVideoSender = this.pc.getSenders().find(
-      (sender) => sender.track?.kind === 'video' || sender.track === null
-    );
+    const existingVideoSender = this.pc.getSenders().find((sender) => {
+      if (sender.track?.kind === 'video') return true;
+      if (sender.track !== null) return false;
+      const transceiver = this.pc?.getTransceivers().find((t) => t.sender === sender);
+      return transceiver?.receiver.track.kind === 'video';
+    });
 
     if (existingVideoSender) {
       const transceiver = this.pc.getTransceivers().find((t) => t.sender === existingVideoSender);
