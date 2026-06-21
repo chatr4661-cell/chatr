@@ -588,22 +588,14 @@ export default function UnifiedCallScreen({
       });
 
 
-      // Auto video enable: partner clicked video, we auto-enable too
-      call.on('videoEnableRequested', async (fromUserId: string) => {
-        console.log('📹 [UnifiedCall] Partner requested video enable - auto-enabling...');
-        try {
-          const videoStream = await webrtcRef.current?.addVideoToCall();
-          if (videoStream && localVideoRef.current) {
-            localVideoRef.current.srcObject = videoStream;
-            localVideoRef.current.muted = true;
-            await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-            setLocalVideoActive(true);
-            setIsVideoOn(true);
-            toast.success('Video enabled');
-          }
-        } catch (e) {
-          console.warn('📹 [UnifiedCall] Could not auto-enable video:', e);
-        }
+      // Partner tapped video. The actual bidirectional negotiation is handled
+      // by their tagged 'video-upgrade' offer (which auto-enables OUR camera in
+      // simpleWebRTC.handleSignal and emits 'localStream'). So here we ONLY flip
+      // the UI optimistically — we must NOT call addVideoToCall() again, or both
+      // peers renegotiate simultaneously (offer glare) and video ends up one-way.
+      call.on('videoEnableRequested', () => {
+        console.log('📹 [UnifiedCall] Partner enabled video — flipping UI (negotiation handled by their offer)');
+        setIsVideoOn(true);
       });
 
       // CRITICAL: Handle remote video track arrival (for mid-call upgrades)
@@ -743,12 +735,7 @@ export default function UnifiedCallScreen({
     if (!call) return;
 
     if (!isVideoOn) {
-      // Check network policy first
-      if (!canEnableVideo()) {
-        toast.warning(uiState.message || 'Video not available on current network');
-        return;
-      }
-
+      // Video is always user-enable-able; network only affects quality, not availability.
       console.log('📹 [UnifiedCall] Enabling video (FaceTime-style)...');
 
       // Ensure the local PIP mounts so localVideoRef is available
@@ -761,15 +748,15 @@ export default function UnifiedCallScreen({
       try {
         let videoStream: MediaStream | null = null;
 
-        if (isInitiator) {
-          // Initiator performs the renegotiation (prevents offer glare)
-          videoStream = await call.addVideoToCall();
-        } else {
-          // Non-initiator: enable local camera WITHOUT renegotiation,
-          // then ask initiator to renegotiate.
-          videoStream = await call.enableLocalVideoAfterAccept();
-          await call.sendVideoEnable();
-        }
+        // FaceTime-style symmetric upgrade: whoever taps Video drives the
+        // renegotiation (addVideoToCall sends a tagged 'video-upgrade' offer).
+        // The partner auto-enables their own camera when that offer arrives,
+        // so both directions are negotiated in a single offer/answer — no
+        // fragile "add-track-without-renegotiation" step that left one side
+        // sending only.
+        videoStream = await call.addVideoToCall();
+        // Also nudge the partner so their UI flips to video instantly.
+        call.sendVideoEnable().catch(() => {});
 
         if (videoStream && localVideoRef.current) {
           localVideoRef.current.srcObject = videoStream;
@@ -1262,26 +1249,21 @@ export default function UnifiedCallScreen({
               <button 
                 onClick={toggleVideo} 
                 className="flex flex-col items-center gap-1 touch-manipulation"
-                disabled={!videoAllowed && !isVideoOn}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 relative ${
                   isVideoOn && localVideoActive ? 'bg-emerald-500 text-white active:bg-emerald-600' 
                     : isVideoOn && !localVideoActive ? 'bg-amber-500/70 text-white animate-pulse'
-                    : !videoAllowed ? 'bg-white/5 text-white/30'
                     : 'bg-white/15 text-white active:bg-white/25'
                 }`}>
-                  {!videoAllowed ? (
-                    <WifiOff className="w-6 h-6" />
-                  ) : isVideoOn ? (
+                  {isVideoOn ? (
                     <Video className="w-6 h-6" />
                   ) : (
                     <VideoOff className="w-6 h-6" />
                   )}
                 </div>
-                <span className={`text-[10px] ${!videoAllowed ? 'text-white/30' : 'text-white/60'}`}>
-                  {!videoAllowed ? 'No Video' 
-                    : isVideoOn && localVideoActive ? 'HD Video' 
+                <span className="text-[10px] text-white/60">
+                  {isVideoOn && localVideoActive ? 'HD Video' 
                     : isVideoOn ? 'Starting...'
                     : 'Video'}
                 </span>
