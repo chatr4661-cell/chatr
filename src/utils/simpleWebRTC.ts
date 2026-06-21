@@ -124,19 +124,17 @@ export class SimpleWebRTCCall {
        // Surface SURVIVAL/WEAK/MEDIUM/GOOD to UI for emergency banners
        this.emit('survivalTier', { tier, metrics });
      },
-     onStagnantMedia: async () => {
-       try {
-         if (this.pc && this.callState === 'connected') {
-           console.warn('🔁 [WebRTC] Stagnant media — requesting ICE restart');
-           const offer = await this.pc.createOffer({ iceRestart: true });
-           if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
-           await this.pc.setLocalDescription(offer);
-           await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
-         }
-       } catch (err) {
-         console.warn('ICE restart from stagnant media failed', err);
-       }
-     },
+      onStagnantMedia: () => {
+        // ROOT-CAUSE FIX (web↔web video black / renegotiation storm):
+        // Previously this fired createOffer({iceRestart}) directly on BOTH peers
+        // with no cooldown — causing offer glare + a renegotiation storm that
+        // prevented video frames from ever stabilizing. Route through the
+        // debounced, initiator-only, 4s-cooldown path instead.
+        if (this.pc && this.callState === 'connected') {
+          console.warn('🔁 [WebRTC] Stagnant media — requesting (debounced) ICE restart');
+          this.requestIceRestart('stagnant-media');
+        }
+      },
    });
    this.mediaAdaptationEngine.start().catch((e) => console.warn('mediaAdaptation start failed', e));
  }
