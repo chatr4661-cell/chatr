@@ -1110,6 +1110,20 @@ export class SimpleWebRTCCall {
     this.applyAdaptiveVideoBitrate().catch((error) =>
       console.warn('⚠️ [WebRTC] Could not apply upgraded video bitrate:', error)
     );
+    if (!this.abrEngine && this.callState === 'connected') {
+      detectDeviceCapabilities().then((caps) => {
+        if (!this.pc || this.abrEngine) return;
+        const maxTier: VideoTier = caps.supports4K ? '4k' : caps.maxCameraHeight >= 1440 ? '1440p' : '1080p';
+        this.abrEngine = new AdaptiveBitrateEngine(this.pc, {
+          maxTier,
+          callId: this.callId,
+          userId: this.userId,
+          onTierChange: (tier, reason) => this.emit('tierChange', { tier, reason }),
+        });
+        this.abrEngine.start();
+        console.log(`🎬 [WebRTC] Video upgrade ABR engine started (${maxTier} ceiling)`);
+      }).catch((error) => console.warn('⚠️ [WebRTC] Upgraded ABR start failed:', error));
+    }
 
     const previousVideoTracks = this.localStream?.getVideoTracks() || [];
     if (this.localStream) {
