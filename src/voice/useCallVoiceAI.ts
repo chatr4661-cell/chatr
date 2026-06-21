@@ -290,7 +290,15 @@ export function useCallVoiceAI(params: UseCallVoiceAIParams) {
     if (!track) return false;
     let captureStream: MediaStream;
     try {
-      captureStream = new MediaStream([track.clone()]);
+      // Clone the mic track so we keep capturing the user even while the
+      // outgoing WebRTC audio track is muted (translate mode disables the
+      // ORIGINAL track via setOutgoingMuted). The clone is independent, so we
+      // must force-enable it — a clone inherits enabled=false from a muted
+      // source and would otherwise record digital silence (VAD never fires →
+      // nothing gets sent → translation only flows one way).
+      const cloned = track.clone();
+      cloned.enabled = true;
+      captureStream = new MediaStream([cloned]);
     } catch {
       captureStream = new MediaStream([track]);
     }
