@@ -1458,24 +1458,10 @@ export class SimpleWebRTCCall {
           }
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
 
-          // FaceTime-style auto video upgrade:
-          // If partner renegotiates specifically for video upgrade, auto-enable OUR camera too
-          const upgradeReason = (signal.data as any)?.__chatr?.reason;
-          if (isRenegotiation && upgradeReason === 'video-upgrade') {
-            try {
-              const hasLocalVideo = (this.localStream?.getVideoTracks() || [])
-                .some((track) => track.readyState === 'live' && track.enabled);
-              if (!hasLocalVideo) {
-                console.log('📹 [WebRTC] Auto-enabling local video for bidirectional upgrade...');
-                // No renegotiation here; we are responding with an answer.
-                await this.enableLocalVideoAfterAccept();
-              }
-            } catch (e) {
-              console.warn('⚠️ [WebRTC] Could not auto-enable local video:', e);
-            }
-          }
-          
-          // Always send answer for offers (including renegotiation)
+          // Always send the ANSWER FIRST so the partner's video flows immediately.
+          // Decoupling our own camera from this answer guarantees at least one
+          // direction goes live the instant the offer is processed — a slow or
+          // failed local camera can never block the partner's video.
           const answer = await this.pc.createAnswer();
           if ((this.networkQuality === 'EXTREME_LOW' || this.networkQuality === 'HOSTILE') && answer.sdp) {
             answer.sdp = muneOpusForExtremeLow(answer.sdp);
@@ -1487,13 +1473,33 @@ export class SimpleWebRTCCall {
           await this.sendSignal({ type: 'answer', data: answer, from: this.userId });
           console.log('✅ [WebRTC] ANSWER sent');
           this.answerSent = true;
-          
+
           // Process queued ICE candidates
           await this.flushPendingCandidates();
-          
+
           // Emit event so UI knows video was added
           if (isRenegotiation) {
             this.emit('renegotiationComplete');
+          }
+
+          // FaceTime-style bidirectional upgrade: once the partner's video is
+          // negotiated, bring OUR camera up as an INDEPENDENT renegotiation.
+          // Our video reaches them via its own clean offer/answer round, and
+          // perfect negotiation (polite/impolite) handles any glare. This is the
+          // key fix for one-way video: we no longer try to cram both directions
+          // into a single answer, which silently left one side send-only.
+          const upgradeReason = (signal.data as any)?.__chatr?.reason;
+          if (isRenegotiation && upgradeReason === 'video-upgrade') {
+            const hasLocalVideo = (this.localStream?.getVideoTracks() || [])
+              .some((track) => track.readyState === 'live' && track.enabled);
+            if (!hasLocalVideo) {
+              console.log('📹 [WebRTC] Auto-enabling local video via independent renegotiation...');
+              setTimeout(() => {
+                this.addVideoToCall().catch((e) =>
+                  console.warn('⚠️ [WebRTC] Receiver auto video upgrade failed:', e)
+                );
+              }, 250);
+            }
           }
           break;
 
