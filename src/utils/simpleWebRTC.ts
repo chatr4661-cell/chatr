@@ -1697,88 +1697,11 @@ export class SimpleWebRTCCall {
     }
 
     try {
-      console.log('📹 [WebRTC] Adding HD video to call (FaceTime-style)...');
-      
-      // Request HD video with progressive fallback
-      let videoStream: MediaStream;
-      try {
-        // Try 1080p HD first
-        videoStream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            width: { ideal: 1920, min: 1280, max: 1920 }, 
-            height: { ideal: 1080, min: 720, max: 1080 }, 
-            frameRate: { ideal: 30, min: 24, max: 60 },
-            facingMode: 'user',
-            aspectRatio: { ideal: 16/9 },
-          }
-        });
-        console.log('✅ [WebRTC] 1080p HD video acquired');
-      } catch (hdError: any) {
-        console.log('⚠️ [WebRTC] 1080p failed, trying 720p...');
-        try {
-          // Fallback to 720p
-          videoStream = await navigator.mediaDevices.getUserMedia({
-            video: { 
-              width: { ideal: 1280, max: 1280 }, 
-              height: { ideal: 720, max: 720 }, 
-              frameRate: { ideal: 30 },
-              facingMode: 'user' 
-            }
-          });
-          console.log('✅ [WebRTC] 720p video acquired');
-        } catch (sdError: any) {
-          console.log('⚠️ [WebRTC] 720p failed, using basic video...');
-          videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        }
-      }
-
-      const videoTrack = videoStream.getVideoTracks()[0];
-      if (!videoTrack) {
-        console.error('❌ [WebRTC] No video track obtained');
-        return null;
-      }
-      
-      console.log('📹 [WebRTC] Got video track:', videoTrack.label);
-      
-      // Check if we already have a video sender
-      const existingVideoSender = this.pc.getSenders().find(s => s.track?.kind === 'video');
-      
-      if (existingVideoSender) {
-        await existingVideoSender.replaceTrack(videoTrack);
-        console.log('📹 [WebRTC] Replaced existing video track');
-      } else {
-        // Add new video track to connection
-        const stream = this.localStream || new MediaStream([videoTrack]);
-        this.pc.addTrack(videoTrack, stream);
-        console.log('📹 [WebRTC] Added new video track to peer connection');
-      }
-      
-      // Update local stream for UI
-      if (this.localStream) {
-        const oldVideoTrack = this.localStream.getVideoTracks()[0];
-        if (oldVideoTrack) {
-          this.localStream.removeTrack(oldVideoTrack);
-          oldVideoTrack.stop();
-        }
-        this.localStream.addTrack(videoTrack);
-      } else {
-        this.localStream = videoStream;
-      }
-      
-      this.emit('localStream', this.localStream);
-
-      // Renegotiate to inform partner (tagged so receiver can auto-enable their camera too)
-      this.hasReceivedAnswer = false;
-      this.offerSent = false;
-      
-      const offer = await this.pc.createOffer();
-      if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
-      (offer as any).__chatr = { reason: 'video-upgrade' };
-      await this.pc.setLocalDescription(offer);
-      await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
-      console.log('📤 [WebRTC] Sent renegotiation offer with video');
-
-      return this.localStream;
+      console.log('📹 [WebRTC] Adding video to call (fast-start, FaceTime-style)...');
+      const videoStream = await this.getOrCreateVideoStream(true);
+      const updatedStream = await this.attachLocalVideoTrack(videoStream);
+      await this.createTaggedVideoOffer();
+      return updatedStream;
     } catch (error) {
       console.error('❌ [WebRTC] Failed to add video:', error);
       return null;
