@@ -1575,6 +1575,7 @@ export class SimpleWebRTCCall {
     try {
       console.log('📤 [WebRTC] Creating offer...');
       this.offerSent = true;
+      this.makingOffer = true;
 
       markOfferCreateStart(this.callId);
       const offer = await this.pc.createOffer();
@@ -1596,6 +1597,8 @@ export class SimpleWebRTCCall {
       markOfferCreateError(this.callId, error);
       this.offerSent = false;
       throw error;
+    } finally {
+      this.makingOffer = false;
     }
   }
 
