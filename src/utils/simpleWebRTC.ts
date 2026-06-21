@@ -555,6 +555,15 @@ export class SimpleWebRTCCall {
     });
     this.pc = new RTCPeerConnection(config);
 
+    this.pc.onnegotiationneeded = async () => {
+      if (!this.pc || !this.isInitiator || this.callState !== 'connected') return;
+      if (this.makingOffer || this.pc.signalingState !== 'stable') return;
+      console.log('🔄 [WebRTC] Negotiation needed — sending controlled upgrade offer');
+      await this.createTaggedVideoOffer().catch((error) =>
+        console.warn('⚠️ [WebRTC] Negotiation-needed offer failed:', error)
+      );
+    };
+
     // ROOT CAUSE FIX (LTE↔LTE process death): keep the WebView process alive for the
     // ENTIRE call. WebRTC state lives in this JS heap; without a foreground service the
     // OS reclaims the process when the proximity sensor blanks the screen during the
@@ -1415,7 +1424,7 @@ export class SimpleWebRTCCall {
       const type = signal.type === 'ice_candidate' || signal.type === 'candidate' ? 'ice-candidate' : signal.type;
       switch (type) {
         case 'offer':
-          const isRenegotiation = this.callState === 'connected';
+          const isRenegotiation = this.callState === 'connected' || !!this.pc.remoteDescription;
           const readyForOffer = !this.makingOffer && this.pc.signalingState === 'stable';
           const offerCollision = !readyForOffer;
           const politePeer = !this.isInitiator;
