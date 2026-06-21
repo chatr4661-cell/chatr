@@ -1257,26 +1257,21 @@ export default function UnifiedCallScreen({
               <button 
                 onClick={toggleVideo} 
                 className="flex flex-col items-center gap-1 touch-manipulation"
-                disabled={!videoAllowed && !isVideoOn}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 relative ${
                   isVideoOn && localVideoActive ? 'bg-emerald-500 text-white active:bg-emerald-600' 
                     : isVideoOn && !localVideoActive ? 'bg-amber-500/70 text-white animate-pulse'
-                    : !videoAllowed ? 'bg-white/5 text-white/30'
                     : 'bg-white/15 text-white active:bg-white/25'
                 }`}>
-                  {!videoAllowed ? (
-                    <WifiOff className="w-6 h-6" />
-                  ) : isVideoOn ? (
+                  {isVideoOn ? (
                     <Video className="w-6 h-6" />
                   ) : (
                     <VideoOff className="w-6 h-6" />
                   )}
                 </div>
-                <span className={`text-[10px] ${!videoAllowed ? 'text-white/30' : 'text-white/60'}`}>
-                  {!videoAllowed ? 'No Video' 
-                    : isVideoOn && localVideoActive ? 'HD Video' 
+                <span className="text-[10px] text-white/60">
+                  {isVideoOn && localVideoActive ? 'HD Video' 
                     : isVideoOn ? 'Starting...'
                     : 'Video'}
                 </span>
