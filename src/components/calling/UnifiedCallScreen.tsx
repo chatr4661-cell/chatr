@@ -588,22 +588,14 @@ export default function UnifiedCallScreen({
       });
 
 
-      // Auto video enable: partner clicked video, we auto-enable too
-      call.on('videoEnableRequested', async (fromUserId: string) => {
-        console.log('📹 [UnifiedCall] Partner requested video enable - auto-enabling...');
-        try {
-          const videoStream = await webrtcRef.current?.addVideoToCall();
-          if (videoStream && localVideoRef.current) {
-            localVideoRef.current.srcObject = videoStream;
-            localVideoRef.current.muted = true;
-            await localVideoRef.current.play().catch(e => console.log('Local video play:', e));
-            setLocalVideoActive(true);
-            setIsVideoOn(true);
-            toast.success('Video enabled');
-          }
-        } catch (e) {
-          console.warn('📹 [UnifiedCall] Could not auto-enable video:', e);
-        }
+      // Partner tapped video. The actual bidirectional negotiation is handled
+      // by their tagged 'video-upgrade' offer (which auto-enables OUR camera in
+      // simpleWebRTC.handleSignal and emits 'localStream'). So here we ONLY flip
+      // the UI optimistically — we must NOT call addVideoToCall() again, or both
+      // peers renegotiate simultaneously (offer glare) and video ends up one-way.
+      call.on('videoEnableRequested', () => {
+        console.log('📹 [UnifiedCall] Partner enabled video — flipping UI (negotiation handled by their offer)');
+        setIsVideoOn(true);
       });
 
       // CRITICAL: Handle remote video track arrival (for mid-call upgrades)
