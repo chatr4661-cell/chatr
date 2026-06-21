@@ -233,6 +233,7 @@ export default function UnifiedCallScreen({
 
           if (updatedCall.status === 'ended' || updatedCall.status === 'missed') {
             console.log('📵 [UnifiedCall] Call ended by partner');
+            endingRef.current = true;
             cleanup();
             onEnd();
           }
@@ -568,7 +569,9 @@ export default function UnifiedCallScreen({
 
       call.on('ended', () => {
         console.log('👋 [UnifiedCall] Ended by remote');
-        handleEndCall();
+        endingRef.current = true;
+        cleanup();
+        onEnd();
       });
 
       // FaceTime-style: When partner's renegotiation with video arrives, auto-enable our camera
