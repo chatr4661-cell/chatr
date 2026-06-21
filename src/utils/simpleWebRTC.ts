@@ -23,7 +23,7 @@ import {
 } from "./callerSignalingTracker";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
-type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
+type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'ice_candidate' | 'candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable' | 'hangup';
 
 interface Signal {
   type: SignalType;
@@ -106,8 +106,10 @@ export class SimpleWebRTCCall {
   private connectionTimeout: NodeJS.Timeout | null = null;
   private offerSent: boolean = false;
   private answerSent: boolean = false;
+  private makingOffer: boolean = false;
   private pendingVideoCapture: Promise<MediaStream> | null = null;
   private videoRenegotiationQueued: boolean = false;
+  private ending: boolean = false;
   private readonly VIDEO_CAPTURE_TIMEOUT_MS = 7_000;
   private processedSignalIds: Set<string> = new Set();
   private started: boolean = false;
