@@ -604,8 +604,7 @@ export default function UnifiedCallScreen({
       // the UI optimistically — we must NOT call addVideoToCall() again, or both
       // peers renegotiate simultaneously (offer glare) and video ends up one-way.
       call.on('videoEnableRequested', () => {
-        console.log('📹 [UnifiedCall] Partner enabled video — flipping UI (negotiation handled by their offer)');
-        setIsVideoOn(true);
+        console.log('📹 [UnifiedCall] Partner enabled video — waiting for actual negotiated tracks');
       });
 
       // CRITICAL: Handle remote video track arrival (for mid-call upgrades)
@@ -779,9 +778,6 @@ export default function UnifiedCallScreen({
             setLocalVideoActive(false);
             return;
           }
-          // Only nudge the partner after our camera is actually attached.
-          // Sending this after a capture failure leaves the other side stuck in "Starting/Sending".
-          call.sendVideoEnable().catch(() => {});
           localVideoRef.current.srcObject = videoStream;
           localVideoRef.current.muted = true;
           await localVideoRef.current.play().catch((e) => console.log('Local video play:', e));
