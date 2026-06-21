@@ -64,6 +64,7 @@ export default function UnifiedCallScreen({
   const [remoteVideoActive, setRemoteVideoActive] = useState(false);
   const [localVideoActive, setLocalVideoActive] = useState(false);
   const [localVideoStarting, setLocalVideoStarting] = useState(false);
+  const [videoRetryTick, setVideoRetryTick] = useState(0);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
   const [controlsVisible, setControlsVisible] = useState(true);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
