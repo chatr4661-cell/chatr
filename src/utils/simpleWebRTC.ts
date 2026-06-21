@@ -1102,6 +1102,12 @@ export class SimpleWebRTCCall {
       console.log('📹 [WebRTC] Added new video sender track');
     }
 
+    this.isVideo = true;
+    startNativeCallForegroundService('video');
+    this.applyAdaptiveVideoBitrate().catch((error) =>
+      console.warn('⚠️ [WebRTC] Could not apply upgraded video bitrate:', error)
+    );
+
     const previousVideoTracks = this.localStream?.getVideoTracks() || [];
     if (this.localStream) {
       previousVideoTracks.forEach((oldTrack) => {
