@@ -23,7 +23,7 @@ import {
 } from "./callerSignalingTracker";
 
 type CallState = 'connecting' | 'connected' | 'failed' | 'ended';
-type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable';
+type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'ice_candidate' | 'candidate' | 'video-request' | 'video-accept' | 'video-reject' | 'video-enable' | 'hangup';
 
 interface Signal {
   type: SignalType;
@@ -98,6 +98,7 @@ export function clearCallInstance(callId: string): void {
 export class SimpleWebRTCCall {
   private pc: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
+  private remoteStream: MediaStream | null = null;
   private signalChannel: RealtimeChannel | null = null;
   private callState: CallState = 'connecting';
   private eventHandlers: Map<string, Function[]> = new Map();
@@ -106,8 +107,10 @@ export class SimpleWebRTCCall {
   private connectionTimeout: NodeJS.Timeout | null = null;
   private offerSent: boolean = false;
   private answerSent: boolean = false;
+  private makingOffer: boolean = false;
   private pendingVideoCapture: Promise<MediaStream> | null = null;
   private videoRenegotiationQueued: boolean = false;
+  private ending: boolean = false;
   private readonly VIDEO_CAPTURE_TIMEOUT_MS = 7_000;
   private processedSignalIds: Set<string> = new Set();
   private started: boolean = false;
@@ -552,6 +555,15 @@ export class SimpleWebRTCCall {
     });
     this.pc = new RTCPeerConnection(config);
 
+    this.pc.onnegotiationneeded = async () => {
+      if (!this.pc || !this.isInitiator || this.callState !== 'connected') return;
+      if (this.makingOffer || this.pc.signalingState !== 'stable') return;
+      console.log('🔄 [WebRTC] Negotiation needed — sending controlled upgrade offer');
+      await this.createTaggedVideoOffer().catch((error) =>
+        console.warn('⚠️ [WebRTC] Negotiation-needed offer failed:', error)
+      );
+    };
+
     // ROOT CAUSE FIX (LTE↔LTE process death): keep the WebView process alive for the
     // ENTIRE call. WebRTC state lives in this JS heap; without a foreground service the
     // OS reclaims the process when the proximity sensor blanks the screen during the
@@ -599,7 +611,11 @@ export class SimpleWebRTCCall {
     // Handle remote tracks - CRITICAL for bidirectional video
     this.pc.ontrack = (event) => {
       const track = event.track;
-      const [remoteStream] = event.streams;
+      const remoteStream = event.streams[0] ?? this.remoteStream ?? new MediaStream();
+      this.remoteStream = remoteStream;
+      if (!remoteStream.getTracks().some((existing) => existing.id === track.id)) {
+        remoteStream.addTrack(track);
+      }
       console.log(`📺 [WebRTC] Remote track received: ${track.kind}, id: ${track.id.slice(0,8)}, stream tracks: ${remoteStream.getTracks().length}`);
 
       // CRITICAL: Jitter buffering for Telecom Killer 2G Voice
@@ -988,12 +1004,15 @@ export class SimpleWebRTCCall {
 
     try {
       console.log('🔄 [WebRTC] ICE restart...');
+      this.makingOffer = true;
       const offer = await this.pc.createOffer({ iceRestart: true });
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
     } catch (e) {
       console.error('❌ [WebRTC] ICE restart failed:', e);
       throw e;
+    } finally {
+      this.makingOffer = false;
     }
   }
 
@@ -1175,12 +1194,17 @@ export class SimpleWebRTCCall {
 
     this.hasReceivedAnswer = false;
     this.offerSent = false;
-    const offer = await this.pc.createOffer();
-    if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
-    (offer as any).__chatr = { reason: 'video-upgrade' };
-    await this.pc.setLocalDescription(offer);
-    await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
-    console.log('📤 [WebRTC] Sent renegotiation offer with video');
+    this.makingOffer = true;
+    try {
+      const offer = await this.pc.createOffer();
+      if (offer.sdp) offer.sdp = applyOpusParameters(offer.sdp);
+      (offer as any).__chatr = { reason: 'video-upgrade' };
+      await this.pc.setLocalDescription(offer);
+      await this.sendSignal({ type: 'offer', data: offer, from: this.userId });
+      console.log('📤 [WebRTC] Sent renegotiation offer with video');
+    } finally {
+      this.makingOffer = false;
+    }
   }
 
   /**
@@ -1397,25 +1421,37 @@ export class SimpleWebRTCCall {
     }
 
     try {
-      switch (signal.type) {
+      const type = signal.type === 'ice_candidate' || signal.type === 'candidate' ? 'ice-candidate' : signal.type;
+      switch (type) {
         case 'offer':
-          // For initial offers: initiators ignore (they send offers)
-          // For renegotiation: ALLOW if call is already connected (e.g., adding video)
-          const isRenegotiation = this.callState === 'connected';
-          
-          if (this.isInitiator && !isRenegotiation) {
+          const isRenegotiation = this.callState === 'connected' || !!this.pc.remoteDescription;
+          const readyForOffer = !this.makingOffer && this.pc.signalingState === 'stable';
+          const offerCollision = !readyForOffer;
+          const politePeer = !this.isInitiator;
+
+          // Perfect negotiation: caller is impolite, receiver is polite. This
+          // prevents simultaneous video-upgrade offers from leaving one side send-only.
+          if (offerCollision && !politePeer) {
+            console.log('⏭️ [WebRTC] Ignoring colliding offer (impolite peer)', this.pc.signalingState);
+            return;
+          }
+
+          if (this.isInitiator && !isRenegotiation && !offerCollision) {
             console.log('⏭️ [WebRTC] Ignoring initial offer (I am initiator)');
             return;
           }
-          
+
           // CRITICAL: Prevent duplicate answers for same offer
           // Only allow ONE answer per offer (except renegotiation)
           if (this.answerSent && !isRenegotiation) {
             console.log('⏭️ [WebRTC] Already sent initial answer, skipping duplicate offer');
             return;
           }
-          
+
           console.log(`📥 [WebRTC] Processing ${isRenegotiation ? 'RENEGOTIATION' : 'INITIAL'} OFFER...`);
+          if (offerCollision && this.pc.signalingState !== 'stable') {
+            await this.pc.setLocalDescription({ type: 'rollback' } as RTCSessionDescriptionInit);
+          }
           await this.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
 
           // FaceTime-style auto video upgrade:
@@ -1496,6 +1532,11 @@ export class SimpleWebRTCCall {
             this.pendingIceCandidates.push(new RTCIceCandidate(signal.data));
           }
           break;
+
+        case 'hangup':
+          console.log('📵 [WebRTC] Hangup signal received');
+          this.emit('ended');
+          break;
           
         case 'video-request':
           console.log('📹 [WebRTC] Video upgrade request received');
@@ -1548,6 +1589,7 @@ export class SimpleWebRTCCall {
     try {
       console.log('📤 [WebRTC] Creating offer...');
       this.offerSent = true;
+      this.makingOffer = true;
 
       markOfferCreateStart(this.callId);
       const offer = await this.pc.createOffer();
@@ -1569,6 +1611,8 @@ export class SimpleWebRTCCall {
       markOfferCreateError(this.callId, error);
       this.offerSent = false;
       throw error;
+    } finally {
+      this.makingOffer = false;
     }
   }
 
@@ -1863,7 +1907,10 @@ export class SimpleWebRTCCall {
     return this.pc;
   }
 
-  async end() {
+  async end(options: { emit?: boolean } = {}) {
+    if (this.ending || this.callState === 'ended') return;
+    this.ending = true;
+    const shouldEmit = options.emit ?? false;
     console.log('👋 [WebRTC] Ending call...');
     this.callState = 'ended';
     this.clearConnectionTimeout();
@@ -1883,7 +1930,7 @@ export class SimpleWebRTCCall {
     activeCallInstances.delete(this.callId);
 
     await this.cleanup();
-    this.emit('ended');
+    if (shouldEmit) this.emit('ended');
   }
 
 
@@ -1891,6 +1938,7 @@ export class SimpleWebRTCCall {
     // Stop local tracks
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
+    this.remoteStream = null;
 
     // Cleanup adaptive bitrate engine
     this.statsObserverStop?.();

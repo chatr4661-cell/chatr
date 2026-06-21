@@ -5,7 +5,6 @@ import UnifiedCallScreen from "./UnifiedCallScreen";
 import CallHandoffBanner from "./CallHandoffBanner";
 import { useCallHandoff } from "@/hooks/useCallHandoff";
 
-import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
 import { AnimatePresence } from "framer-motion";
@@ -338,12 +337,6 @@ export function GlobalCallListener() {
 
           console.log("📤 [GlobalCallListener] Outgoing call UPDATE:", call.id, "status:", call.status);
 
-          // If we already have an activeCall for this call, no need to reinitialize
-          if (currentActive && call.id === currentActive.id) {
-            console.log("📤 [GlobalCallListener] Call already active, ignoring update");
-            return;
-          }
-
           // Receiver rejected, missed, or call ended
           if (call.status === "ended" || call.status === "rejected" || call.status === "missed") {
             console.log("📵 [GlobalCallListener] Outgoing call ended/rejected/missed");
@@ -355,6 +348,13 @@ export function GlobalCallListener() {
             }
             
             // Silent cleanup - no toast notification needed for call outcomes
+            return;
+          }
+
+          // If we already have an activeCall for this call, no need to reinitialize
+          if (currentActive && call.id === currentActive.id) {
+            console.log("📤 [GlobalCallListener] Call already active, ignoring update");
+            return;
           }
         }
       )
@@ -505,17 +505,6 @@ export function GlobalCallListener() {
       .from("calls")
       .update({ status: "ended", ended_at: new Date().toISOString(), missed: false })
       .eq("id", incomingCall.id);
-
-    try {
-      await sendSignal({
-        type: "answer" as any,
-        callId: incomingCall.id,
-        data: { rejected: true },
-        to: incomingCall.caller_id,
-      });
-    } catch (error) {
-      console.error("Failed to send reject signal:", error);
-    }
 
     setIncomingCall(null);
 

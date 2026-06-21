@@ -117,6 +117,8 @@ export default function UnifiedCallScreen({
   const userIdRef = useRef<string | null>(null);
   const videoPlaybackCleanupRef = useRef<(() => void) | null>(null);
   const trackRecoveryCleanupRef = useRef<(() => void) | null>(null);
+  const cleanedUpRef = useRef(false);
+  const endingRef = useRef(false);
 
   const isVideo = callType === 'video' || isVideoOn || videoEnabled;
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -231,6 +233,7 @@ export default function UnifiedCallScreen({
 
           if (updatedCall.status === 'ended' || updatedCall.status === 'missed') {
             console.log('📵 [UnifiedCall] Call ended by partner');
+            endingRef.current = true;
             cleanup();
             onEnd();
           }
@@ -566,7 +569,9 @@ export default function UnifiedCallScreen({
 
       call.on('ended', () => {
         console.log('👋 [UnifiedCall] Ended by remote');
-        handleEndCall();
+        endingRef.current = true;
+        cleanup();
+        onEnd();
       });
 
       // FaceTime-style: When partner's renegotiation with video arrives, auto-enable our camera
@@ -599,8 +604,7 @@ export default function UnifiedCallScreen({
       // the UI optimistically — we must NOT call addVideoToCall() again, or both
       // peers renegotiate simultaneously (offer glare) and video ends up one-way.
       call.on('videoEnableRequested', () => {
-        console.log('📹 [UnifiedCall] Partner enabled video — flipping UI (negotiation handled by their offer)');
-        setIsVideoOn(true);
+        console.log('📹 [UnifiedCall] Partner enabled video — waiting for actual negotiated tracks');
       });
 
       // CRITICAL: Handle remote video track arrival (for mid-call upgrades)
@@ -691,6 +695,8 @@ export default function UnifiedCallScreen({
   };
 
   const handleEndCall = async () => {
+    if (endingRef.current) return;
+    endingRef.current = true;
     cleanup();
     
     // Notify native shell
@@ -705,6 +711,8 @@ export default function UnifiedCallScreen({
   };
 
   const cleanup = () => {
+    if (cleanedUpRef.current) return;
+    cleanedUpRef.current = true;
     if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     
@@ -770,9 +778,6 @@ export default function UnifiedCallScreen({
             setLocalVideoActive(false);
             return;
           }
-          // Only nudge the partner after our camera is actually attached.
-          // Sending this after a capture failure leaves the other side stuck in "Starting/Sending".
-          call.sendVideoEnable().catch(() => {});
           localVideoRef.current.srcObject = videoStream;
           localVideoRef.current.muted = true;
           await localVideoRef.current.play().catch((e) => console.log('Local video play:', e));
