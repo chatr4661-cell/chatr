@@ -1090,6 +1090,10 @@ export class SimpleWebRTCCall {
     );
 
     if (existingVideoSender) {
+      const transceiver = this.pc.getTransceivers().find((t) => t.sender === existingVideoSender);
+      if (transceiver && transceiver.direction !== 'sendrecv') {
+        transceiver.direction = 'sendrecv';
+      }
       await existingVideoSender.replaceTrack(videoTrack);
       console.log('📹 [WebRTC] Replaced/attached video sender track');
     } else {
