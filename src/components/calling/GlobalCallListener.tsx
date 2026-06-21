@@ -5,7 +5,6 @@ import UnifiedCallScreen from "./UnifiedCallScreen";
 import CallHandoffBanner from "./CallHandoffBanner";
 import { useCallHandoff } from "@/hooks/useCallHandoff";
 
-import { sendSignal } from "@/utils/webrtcSignaling";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
 import { AnimatePresence } from "framer-motion";
@@ -506,17 +505,6 @@ export function GlobalCallListener() {
       .from("calls")
       .update({ status: "ended", ended_at: new Date().toISOString(), missed: false })
       .eq("id", incomingCall.id);
-
-    try {
-      await sendSignal({
-        type: "answer" as any,
-        callId: incomingCall.id,
-        data: { rejected: true },
-        to: incomingCall.caller_id,
-      });
-    } catch (error) {
-      console.error("Failed to send reject signal:", error);
-    }
 
     setIncomingCall(null);
 
