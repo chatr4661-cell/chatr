@@ -114,6 +114,7 @@ export default function UnifiedCallScreen({
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null); // Must be a DOM element for mobile autoplay
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const videoRetryCountRef = useRef(0);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const userIdRef = useRef<string | null>(null);
   const videoPlaybackCleanupRef = useRef<(() => void) | null>(null);
