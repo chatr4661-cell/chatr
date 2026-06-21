@@ -755,10 +755,11 @@ export default function UnifiedCallScreen({
         // fragile "add-track-without-renegotiation" step that left one side
         // sending only.
         videoStream = await call.addVideoToCall();
-        // Also nudge the partner so their UI flips to video instantly.
-        call.sendVideoEnable().catch(() => {});
 
         if (videoStream && localVideoRef.current) {
+          // Only nudge the partner after our camera is actually attached.
+          // Sending this after a capture failure leaves the other side stuck in "Starting/Sending".
+          call.sendVideoEnable().catch(() => {});
           localVideoRef.current.srcObject = videoStream;
           localVideoRef.current.muted = true;
           await localVideoRef.current.play().catch((e) => console.log('Local video play:', e));
