@@ -1929,6 +1929,7 @@ export class SimpleWebRTCCall {
     // Stop local tracks
     this.localStream?.getTracks().forEach(t => t.stop());
     this.localStream = null;
+    this.remoteStream = null;
 
     // Cleanup adaptive bitrate engine
     this.statsObserverStop?.();
