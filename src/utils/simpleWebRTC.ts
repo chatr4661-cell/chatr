@@ -1411,7 +1411,7 @@ export class SimpleWebRTCCall {
       switch (type) {
         case 'offer':
           const isRenegotiation = this.callState === 'connected';
-          const readyForOffer = !this.makingOffer && (this.pc.signalingState === 'stable' || this.pc.signalingState === 'have-remote-offer');
+          const readyForOffer = !this.makingOffer && this.pc.signalingState === 'stable';
           const offerCollision = !readyForOffer;
           const politePeer = !this.isInitiator;
 
