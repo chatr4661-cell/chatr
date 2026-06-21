@@ -1794,6 +1794,9 @@ export class SimpleWebRTCCall {
 
     try {
       console.log('📹 [WebRTC] Adding video to call (fast-start, FaceTime-style)...');
+      // Drive the renegotiation ourselves; suppress the automatic
+      // onnegotiationneeded offer so we never send two competing offers.
+      this.explicitRenegotiation = true;
       const videoStream = await this.getOrCreateVideoStream(true);
       const updatedStream = await this.attachLocalVideoTrack(videoStream);
       await this.createTaggedVideoOffer();
@@ -1801,6 +1804,8 @@ export class SimpleWebRTCCall {
     } catch (error) {
       console.error('❌ [WebRTC] Failed to add video:', error);
       return null;
+    } finally {
+      this.explicitRenegotiation = false;
     }
   }
 
