@@ -1272,18 +1272,18 @@ export default function UnifiedCallScreen({
               >
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 relative ${
                   isVideoOn && localVideoActive ? 'bg-emerald-500 text-white active:bg-emerald-600' 
-                    : isVideoOn && !localVideoActive ? 'bg-amber-500/70 text-white animate-pulse'
+                    : localVideoStarting ? 'bg-amber-500/70 text-white animate-pulse'
                     : 'bg-white/15 text-white active:bg-white/25'
                 }`}>
-                  {isVideoOn ? (
+                  {isVideoOn || localVideoStarting ? (
                     <Video className="w-6 h-6" />
                   ) : (
                     <VideoOff className="w-6 h-6" />
                   )}
                 </div>
                 <span className="text-[10px] text-white/60">
-                  {isVideoOn && localVideoActive ? 'HD Video' 
-                    : isVideoOn ? 'Starting...'
+                  {isVideoOn && localVideoActive ? 'Video on' 
+                    : localVideoStarting ? 'Starting...'
                     : 'Video'}
                 </span>
               </button>
