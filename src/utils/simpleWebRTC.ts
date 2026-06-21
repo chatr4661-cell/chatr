@@ -558,6 +558,9 @@ export class SimpleWebRTCCall {
 
     this.pc.onnegotiationneeded = async () => {
       if (!this.pc || !this.isInitiator || this.callState !== 'connected') return;
+      // When we explicitly drive a renegotiation (addVideoToCall), skip the
+      // automatic one to avoid sending two competing offers (offer glare).
+      if (this.explicitRenegotiation) return;
       if (this.makingOffer || this.pc.signalingState !== 'stable') return;
       console.log('🔄 [WebRTC] Negotiation needed — sending controlled upgrade offer');
       await this.createTaggedVideoOffer().catch((error) =>
