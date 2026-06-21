@@ -98,6 +98,7 @@ export function clearCallInstance(callId: string): void {
 export class SimpleWebRTCCall {
   private pc: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
+  private remoteStream: MediaStream | null = null;
   private signalChannel: RealtimeChannel | null = null;
   private callState: CallState = 'connecting';
   private eventHandlers: Map<string, Function[]> = new Map();
@@ -601,7 +602,11 @@ export class SimpleWebRTCCall {
     // Handle remote tracks - CRITICAL for bidirectional video
     this.pc.ontrack = (event) => {
       const track = event.track;
-      const [remoteStream] = event.streams;
+      const remoteStream = event.streams[0] ?? this.remoteStream ?? new MediaStream();
+      this.remoteStream = remoteStream;
+      if (!remoteStream.getTracks().some((existing) => existing.id === track.id)) {
+        remoteStream.addTrack(track);
+      }
       console.log(`📺 [WebRTC] Remote track received: ${track.kind}, id: ${track.id.slice(0,8)}, stream tracks: ${remoteStream.getTracks().length}`);
 
       // CRITICAL: Jitter buffering for Telecom Killer 2G Voice
