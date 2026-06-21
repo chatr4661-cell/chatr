@@ -106,6 +106,8 @@ export class SimpleWebRTCCall {
   private connectionTimeout: NodeJS.Timeout | null = null;
   private offerSent: boolean = false;
   private answerSent: boolean = false;
+  private pendingVideoCapture: Promise<MediaStream> | null = null;
+  private videoRenegotiationQueued: boolean = false;
   private processedSignalIds: Set<string> = new Set();
   private started: boolean = false;
   private instanceId: string; // For debugging
