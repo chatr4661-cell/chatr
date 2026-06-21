@@ -117,6 +117,8 @@ export default function UnifiedCallScreen({
   const userIdRef = useRef<string | null>(null);
   const videoPlaybackCleanupRef = useRef<(() => void) | null>(null);
   const trackRecoveryCleanupRef = useRef<(() => void) | null>(null);
+  const cleanedUpRef = useRef(false);
+  const endingRef = useRef(false);
 
   const isVideo = callType === 'video' || isVideoOn || videoEnabled;
   const isMobile = Capacitor.isNativePlatform() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
