@@ -63,6 +63,7 @@ export default function UnifiedCallScreen({
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [remoteVideoActive, setRemoteVideoActive] = useState(false);
   const [localVideoActive, setLocalVideoActive] = useState(false);
+  const [localVideoStarting, setLocalVideoStarting] = useState(false);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
   const [controlsVisible, setControlsVisible] = useState(true);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -312,18 +313,22 @@ export default function UnifiedCallScreen({
         console.log('📹 [UnifiedCall] Local stream received/updated');
         setLocalStream(stream);
         if (localVideoRef.current) {
-          const videoTracks = stream.getVideoTracks();
+          const videoTracks = stream.getVideoTracks().filter((track) => track.readyState === 'live' && track.enabled);
           if (videoTracks.length > 0) {
             // Always rebind srcObject so camera switch gets the fresh stream
             localVideoRef.current.srcObject = stream;
             localVideoRef.current.muted = true;
             localVideoRef.current.play().catch(e => console.log('Local video play:', e));
             setLocalVideoActive(true);
+            setLocalVideoStarting(false);
             // Mirror front camera, don't mirror rear
             const facing = (videoTracks[0].getSettings().facingMode) || call.getCurrentFacingMode?.() || 'user';
             localVideoRef.current.style.transform = facing === 'environment'
               ? 'translateZ(0)'
               : 'scaleX(-1) translateZ(0)';
+          } else {
+            localVideoRef.current.srcObject = null;
+            setLocalVideoActive(false);
           }
         }
       });
@@ -740,7 +745,8 @@ export default function UnifiedCallScreen({
 
       // Ensure the local PIP mounts so localVideoRef is available
       setIsVideoOn(true);
-      setLocalVideoActive(true);
+      setLocalVideoStarting(true);
+      setLocalVideoActive(false);
 
       // Wait a frame so the <video ref={localVideoRef}> is mounted
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -757,23 +763,34 @@ export default function UnifiedCallScreen({
         videoStream = await call.addVideoToCall();
 
         if (videoStream && localVideoRef.current) {
+          const hasLiveVideo = videoStream.getVideoTracks().some((track) => track.readyState === 'live' && track.enabled);
+          if (!hasLiveVideo) {
+            setIsVideoOn(false);
+            setLocalVideoStarting(false);
+            setLocalVideoActive(false);
+            return;
+          }
           // Only nudge the partner after our camera is actually attached.
           // Sending this after a capture failure leaves the other side stuck in "Starting/Sending".
           call.sendVideoEnable().catch(() => {});
           localVideoRef.current.srcObject = videoStream;
           localVideoRef.current.muted = true;
           await localVideoRef.current.play().catch((e) => console.log('Local video play:', e));
+          setLocalVideoStarting(false);
+          setLocalVideoActive(true);
           toast.success('Video enabled');
           return;
         }
 
         // If we got here, we failed to attach preview
         setIsVideoOn(false);
+        setLocalVideoStarting(false);
         setLocalVideoActive(false);
         toast.error('Could not enable video');
       } catch (e) {
         console.error('📹 [UnifiedCall] Video enable failed:', e);
         setIsVideoOn(false);
+        setLocalVideoStarting(false);
         setLocalVideoActive(false);
         toast.error('Camera access failed');
       }
@@ -781,6 +798,7 @@ export default function UnifiedCallScreen({
       // Turn off video
       console.log('📹 [UnifiedCall] Disabling video...');
       setIsVideoOn(false);
+      setLocalVideoStarting(false);
       call.toggleVideo(false);
       setLocalVideoActive(false);
       if (localVideoRef.current) {
@@ -1254,18 +1272,18 @@ export default function UnifiedCallScreen({
               >
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 relative ${
                   isVideoOn && localVideoActive ? 'bg-emerald-500 text-white active:bg-emerald-600' 
-                    : isVideoOn && !localVideoActive ? 'bg-amber-500/70 text-white animate-pulse'
+                    : localVideoStarting ? 'bg-amber-500/70 text-white animate-pulse'
                     : 'bg-white/15 text-white active:bg-white/25'
                 }`}>
-                  {isVideoOn ? (
+                  {isVideoOn || localVideoStarting ? (
                     <Video className="w-6 h-6" />
                   ) : (
                     <VideoOff className="w-6 h-6" />
                   )}
                 </div>
                 <span className="text-[10px] text-white/60">
-                  {isVideoOn && localVideoActive ? 'HD Video' 
-                    : isVideoOn ? 'Starting...'
+                  {isVideoOn && localVideoActive ? 'Video on' 
+                    : localVideoStarting ? 'Starting...'
                     : 'Video'}
                 </span>
               </button>

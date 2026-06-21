@@ -108,6 +108,7 @@ export class SimpleWebRTCCall {
   private answerSent: boolean = false;
   private pendingVideoCapture: Promise<MediaStream> | null = null;
   private videoRenegotiationQueued: boolean = false;
+  private readonly VIDEO_CAPTURE_TIMEOUT_MS = 7_000;
   private processedSignalIds: Set<string> = new Set();
   private started: boolean = false;
   private instanceId: string; // For debugging
@@ -999,6 +1000,20 @@ export class SimpleWebRTCCall {
   private async getOrCreateVideoStream(preferFastStart = true): Promise<MediaStream> {
     if (this.pendingVideoCapture) return this.pendingVideoCapture;
 
+    const withTimeout = async (promise: Promise<MediaStream>, ms: number): Promise<MediaStream> => {
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      try {
+        return await Promise.race([
+          promise,
+          new Promise<MediaStream>((_, reject) => {
+            timer = setTimeout(() => reject(new DOMException('Camera start timed out', 'AbortError')), ms);
+          }),
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    };
+
     const attemptCapture = async () => {
       const plans: MediaStreamConstraints[] = preferFastStart
         ? [
@@ -1044,7 +1059,7 @@ export class SimpleWebRTCCall {
       let lastError: unknown = null;
       for (const constraints of plans) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          const stream = await withTimeout(navigator.mediaDevices.getUserMedia(constraints), this.VIDEO_CAPTURE_TIMEOUT_MS);
           const track = stream.getVideoTracks()[0];
           if (!track) throw new Error('No video track obtained');
           track.enabled = true;
