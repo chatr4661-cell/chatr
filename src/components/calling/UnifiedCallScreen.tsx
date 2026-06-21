@@ -756,15 +756,15 @@ export default function UnifiedCallScreen({
       try {
         let videoStream: MediaStream | null = null;
 
-        if (isInitiator) {
-          // Initiator performs the renegotiation (prevents offer glare)
-          videoStream = await call.addVideoToCall();
-        } else {
-          // Non-initiator: enable local camera WITHOUT renegotiation,
-          // then ask initiator to renegotiate.
-          videoStream = await call.enableLocalVideoAfterAccept();
-          await call.sendVideoEnable();
-        }
+        // FaceTime-style symmetric upgrade: whoever taps Video drives the
+        // renegotiation (addVideoToCall sends a tagged 'video-upgrade' offer).
+        // The partner auto-enables their own camera when that offer arrives,
+        // so both directions are negotiated in a single offer/answer — no
+        // fragile "add-track-without-renegotiation" step that left one side
+        // sending only.
+        videoStream = await call.addVideoToCall();
+        // Also nudge the partner so their UI flips to video instantly.
+        call.sendVideoEnable().catch(() => {});
 
         if (videoStream && localVideoRef.current) {
           localVideoRef.current.srcObject = videoStream;
