@@ -696,6 +696,8 @@ export default function UnifiedCallScreen({
   };
 
   const handleEndCall = async () => {
+    if (endingRef.current) return;
+    endingRef.current = true;
     cleanup();
     
     // Notify native shell
@@ -710,6 +712,8 @@ export default function UnifiedCallScreen({
   };
 
   const cleanup = () => {
+    if (cleanedUpRef.current) return;
+    cleanedUpRef.current = true;
     if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     
