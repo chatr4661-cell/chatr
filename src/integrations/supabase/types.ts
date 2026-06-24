@@ -6062,6 +6062,51 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_label_frequencies: {
+        Row: {
+          created_at: string
+          frequency_count: number
+          hashed_number: string
+          normalized_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          frequency_count?: number
+          hashed_number: string
+          normalized_label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          frequency_count?: number
+          hashed_number?: string
+          normalized_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contact_label_votes: {
+        Row: {
+          created_at: string
+          hashed_number: string
+          hashed_uploader: string
+          normalized_label: string
+        }
+        Insert: {
+          created_at?: string
+          hashed_number: string
+          hashed_uploader: string
+          normalized_label: string
+        }
+        Update: {
+          created_at?: string
+          hashed_number?: string
+          hashed_uploader?: string
+          normalized_label?: string
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -7161,6 +7206,21 @@ export type Database = {
           slot_minutes?: number
           start_time?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      dpdp_opt_outs: {
+        Row: {
+          created_at: string
+          hashed_number: string
+        }
+        Insert: {
+          created_at?: string
+          hashed_number: string
+        }
+        Update: {
+          created_at?: string
+          hashed_number?: string
         }
         Relationships: []
       }
@@ -20030,16 +20090,21 @@ export type Database = {
         Returns: boolean
       }
       is_micro_task_admin: { Args: { check_user_id: string }; Returns: boolean }
-      lookup_caller_id: {
-        Args: { p_phone: string }
-        Returns: {
-          community_label: string
-          community_name: string
-          most_common_type: string
-          spam_percentage: number
-          total_reports: number
-        }[]
-      }
+      lookup_caller_id:
+        | {
+            Args: { p_hashed_number: string; p_raw_number: string }
+            Returns: Json
+          }
+        | {
+            Args: { p_phone: string }
+            Returns: {
+              community_label: string
+              community_name: string
+              most_common_type: string
+              spam_percentage: number
+              total_reports: number
+            }[]
+          }
       lookup_name_confidence_bulk: {
         Args: { p_phone_hashes: string[] }
         Returns: {
