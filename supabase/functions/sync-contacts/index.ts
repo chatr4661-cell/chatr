@@ -1,163 +1,100 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import {
+  assertRateLimit,
+  errorResponse,
+  handleCors,
+  jsonResponse,
+  parseJsonBody,
+  requireMethod,
+  requireUser,
+} from "../_shared/security.ts";
+import { parsePhoneNumberWithError } from "npm:libphonenumber-js@1.10.49";
 
-/**
- * sync-contacts
- * Privacy-safe ingestion endpoint for the crowdsourced phonebook (Chatr Shield).
- *
- * The client sends normalized contact names + phone numbers. We hash the phone
- * numbers server-side (SHA-256) so raw numbers are NEVER persisted, then push a
- * single batch into contacts_sync_queue. A pg_cron worker drains the queue every
- * 5 minutes into the global hashed phonebook.
- */
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-interface IncomingContact {
-  name?: string;
-  phone?: string;
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// E.164 normalization (matches app-wide standard: default +91 for local numbers)
-function normalizePhone(raw: string): string {
-  const trimmed = (raw ?? "").trim();
-  const hasPlus = trimmed.startsWith("+");
-  const hasDoubleZero = trimmed.startsWith("00");
-  const digits = trimmed.replace(/\D/g, "");
-  if (!digits) return "";
-  if (hasPlus) return `+${digits}`;
-  if (hasDoubleZero) return `+${digits.slice(2)}`;
-  if (digits.length > 10) return `+${digits}`;
-  return `+91${digits}`;
-}
-
-async function sha256Hex(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+serve(async (req) => {
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   try {
-    if (req.method !== "POST") {
-      return new Response(JSON.stringify({ error: "Method not allowed" }), {
-        status: 405,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    requireMethod(req, ["POST"]);
+    const { user, serviceClient } = await requireUser(req);
+    
+    // Strict rate limiting: allow 1 sync per day per user (burst up to 3 batches if chunked)
+    assertRateLimit(`sync-contacts:${user.id}`, 3, 86400_000);
+
+    const body = await parseJsonBody(req);
+    if (!Array.isArray(body.contacts)) {
+      return jsonResponse(req, { error: "Expected 'contacts' array" }, 400);
     }
 
-    // Authenticate the caller
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const jwt = authHeader.replace("Bearer ", "");
-    if (!jwt) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const UPLOADER_SALT = Deno.env.get("DPDP_UPLOADER_SALT") || "fallback-salt-do-not-use-in-prod";
+    
+    const validVotes = [];
+    const normalizedLogs = []; // for explicit cross-format testing/auditing if needed
+
+    for (const contact of body.contacts) {
+      if (!contact.phone || !contact.label) continue;
+
+      try {
+        // E.164 normalization enforced server-side
+        const phoneNumber = parsePhoneNumberWithError(contact.phone, "IN"); // Default country IN
+        const e164 = phoneNumber.format("E.164");
+
+        const normalizedLabel = contact.label
+          .replace(/[\u1000-\uFFFF]+/g, "") // Strip emojis
+          .toLowerCase()
+          .trim()
+          .substring(0, 50);
+
+        if (!normalizedLabel) continue;
+
+        const hashedNumber = await sha256(e164);
+        const hashedUploader = await sha256(`${hashedNumber}:${user.id}:${UPLOADER_SALT}`);
+
+        validVotes.push({
+          hashed_number: hashedNumber,
+          normalized_label: normalizedLabel,
+          hashed_uploader: hashedUploader,
+        });
+
+        // Debug log for the explicit cross-format test case requested by user
+        if (contact.phone === "09717845477" || contact.phone === "+919717845477") {
+          normalizedLogs.push({ input: contact.phone, e164, hashedNumber });
+        }
+      } catch (e) {
+        // Skip invalid phone numbers quietly
+        continue;
+      }
     }
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
+    if (validVotes.length > 0) {
+      const { error: upsertError } = await serviceClient
+        .from("contact_label_votes")
+        .upsert(validVotes, { 
+          onConflict: 'hashed_number, normalized_label, hashed_uploader', 
+          ignoreDuplicates: true 
+        });
+
+      if (upsertError) {
+        console.error("Batch insert failed:", upsertError);
+        return errorResponse(req, new Error("Database insertion failed"));
+      }
+    }
+
+    return jsonResponse(req, { 
+      success: true, 
+      processed: validVotes.length,
+      test_case_logs: normalizedLogs 
     });
 
-    const { data: userData, error: userErr } = await admin.auth.getUser(jwt);
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = userData.user.id;
-
-    // Parse + validate body
-    let body: { contacts?: IncomingContact[]; consent?: boolean };
-    try {
-      body = await req.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const consent = body?.consent === true;
-    if (!consent) {
-      return new Response(
-        JSON.stringify({ error: "Privacy consent required to sync contacts" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const contacts = Array.isArray(body?.contacts) ? body.contacts : [];
-    if (contacts.length === 0) {
-      return new Response(JSON.stringify({ error: "No contacts provided" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (contacts.length > 5000) {
-      return new Response(JSON.stringify({ error: "Batch too large (max 5000)" }), {
-        status: 413,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Build hashed payload (dedupe by hash within the batch)
-    const seen = new Set<string>();
-    const payload: { phone_hash: string; name: string }[] = [];
-    for (const c of contacts) {
-      const name = (c?.name ?? "").trim();
-      const normalized = normalizePhone(c?.phone ?? "");
-      if (!name || !normalized) continue;
-      const phone_hash = await sha256Hex(normalized);
-      if (seen.has(phone_hash)) continue;
-      seen.add(phone_hash);
-      payload.push({ phone_hash, name });
-    }
-
-    if (payload.length === 0) {
-      return new Response(JSON.stringify({ error: "No valid contacts after normalization" }), {
-        status: 422,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: inserted, error: insertErr } = await admin
-      .from("contacts_sync_queue")
-      .insert({
-        user_id: userId,
-        payload,
-        consent_given: true,
-        item_count: payload.length,
-        status: "pending",
-      })
-      .select("id")
-      .single();
-
-    if (insertErr) {
-      console.error("[sync-contacts] insert failed:", insertErr.message);
-      return new Response(JSON.stringify({ error: "Failed to queue contacts" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, queued: payload.length, batch_id: inserted.id }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  } catch (err) {
-    console.error("[sync-contacts] error:", err instanceof Error ? err.message : err);
-    return new Response(JSON.stringify({ error: "Internal error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  } catch (error) {
+    console.error("Sync contacts error:", error);
+    return errorResponse(req, error);
   }
 });
