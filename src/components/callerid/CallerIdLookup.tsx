@@ -6,14 +6,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { ReportCallerSheet } from './ReportCallerSheet';
+import { normalizeToInternational, hashPhoneNumber } from '@/utils/phoneHashUtil';
 
 interface CallerIdResult {
-  community_name: string | null;
-  spam_percentage: number;
-  total_reports: number;
-  community_label: string;
-  most_common_type: string;
+  name: string;
+  trust_score: number;
+  spam_reports: number;
+  opted_out: boolean;
 }
+
+const deriveLabel = (r: CallerIdResult): string => {
+  if (r.spam_reports >= 5) return 'Confirmed Spam';
+  if (r.spam_reports >= 3) return 'Likely Spam';
+  if (r.spam_reports >= 1) return 'Suspected Spam';
+  if (r.trust_score >= 80) return 'Verified Safe';
+  return 'Unknown';
+};
 
 export const CallerIdLookup: React.FC = () => {
   const [phone, setPhone] = useState('');
@@ -29,10 +37,19 @@ export const CallerIdLookup: React.FC = () => {
     setResult(null);
 
     try {
-      const { data, error } = await supabase.rpc('lookup_caller_id', { p_phone: phone.trim() });
+      const rawNumber = normalizeToInternational(phone.trim());
+      const hashedNumber = await hashPhoneNumber(phone.trim());
+
+      const { data, error } = await supabase.rpc('lookup_caller_id', {
+        p_hashed_number: hashedNumber,
+        p_raw_number: rawNumber,
+      });
       if (error) throw error;
-      if (data && data.length > 0) {
-        setResult(data[0]);
+
+      const res = data as unknown as CallerIdResult | null;
+      // Treat as "found" only when we actually have a community name or spam history
+      if (res && (res.name !== 'Unknown Caller' || res.spam_reports > 0)) {
+        setResult(res);
       } else {
         setNotFound(true);
       }
@@ -70,49 +87,50 @@ export const CallerIdLookup: React.FC = () => {
         </Button>
       </div>
 
-      {result && (
-        <Card className="border-2">
-          <CardContent className="pt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-lg font-bold">{result.community_name || phone}</p>
-                <p className="text-sm text-muted-foreground">{phone}</p>
+      {result && (() => {
+        const label = result.opted_out ? 'Unknown' : deriveLabel(result);
+        const style = getLabelStyle(label);
+        const Icon = style.icon;
+        return (
+          <Card className="border-2">
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-lg font-bold">{result.name || phone}</p>
+                  <p className="text-sm text-muted-foreground">{phone}</p>
+                </div>
+                <Badge className={`${style.color} px-3 py-1`}>
+                  <Icon className="w-3 h-3 mr-1" />
+                  {label}
+                </Badge>
               </div>
-              {(() => {
-                const style = getLabelStyle(result.community_label);
-                const Icon = style.icon;
-                return (
-                  <Badge className={`${style.color} px-3 py-1`}>
-                    <Icon className="w-3 h-3 mr-1" />
-                    {result.community_label}
-                  </Badge>
-                );
-              })()}
-            </div>
 
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-2 rounded-lg bg-muted">
-                <p className="text-2xl font-bold">{result.total_reports}</p>
-                <p className="text-xs text-muted-foreground">Reports</p>
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="p-2 rounded-lg bg-muted">
+                  <p className="text-2xl font-bold text-red-500">{result.spam_reports}</p>
+                  <p className="text-xs text-muted-foreground">Spam Reports</p>
+                </div>
+                <div className="p-2 rounded-lg bg-muted">
+                  <p className="text-2xl font-bold">{result.trust_score}</p>
+                  <p className="text-xs text-muted-foreground">Trust Score</p>
+                </div>
               </div>
-              <div className="p-2 rounded-lg bg-muted">
-                <p className="text-2xl font-bold text-red-500">{Math.round(result.spam_percentage)}%</p>
-                <p className="text-xs text-muted-foreground">Spam</p>
-              </div>
-              <div className="p-2 rounded-lg bg-muted">
-                <p className="text-2xl font-bold capitalize">{result.most_common_type}</p>
-                <p className="text-xs text-muted-foreground">Type</p>
-              </div>
-            </div>
 
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1" onClick={() => setReportOpen(true)}>
-                <Flag className="w-3 h-3 mr-1" /> Report
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              {result.opted_out && (
+                <p className="text-xs text-muted-foreground text-center">
+                  This number opted out of the community phonebook.
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => setReportOpen(true)}>
+                  <Flag className="w-3 h-3 mr-1" /> Report
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {notFound && (
         <Card>
