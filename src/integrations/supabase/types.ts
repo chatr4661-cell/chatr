@@ -3549,6 +3549,69 @@ export type Database = {
           },
         ]
       }
+      chat_folder_items: {
+        Row: {
+          added_at: string
+          conversation_id: string
+          folder_id: string
+        }
+        Insert: {
+          added_at?: string
+          conversation_id: string
+          folder_id: string
+        }
+        Update: {
+          added_at?: string
+          conversation_id?: string
+          folder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_folder_items_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_folder_items_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chatr_api_usage: {
         Row: {
           api_name: string
@@ -6365,9 +6428,11 @@ export type Database = {
       conversation_participants: {
         Row: {
           conversation_id: string | null
+          custom_notification_sound: string | null
           id: string
           is_archived: boolean | null
           is_muted: boolean | null
+          is_pinned: boolean
           joined_at: string | null
           last_read_at: string | null
           role: string | null
@@ -6375,9 +6440,11 @@ export type Database = {
         }
         Insert: {
           conversation_id?: string | null
+          custom_notification_sound?: string | null
           id?: string
           is_archived?: boolean | null
           is_muted?: boolean | null
+          is_pinned?: boolean
           joined_at?: string | null
           last_read_at?: string | null
           role?: string | null
@@ -6385,9 +6452,11 @@ export type Database = {
         }
         Update: {
           conversation_id?: string | null
+          custom_notification_sound?: string | null
           id?: string
           is_archived?: boolean | null
           is_muted?: boolean | null
+          is_pinned?: boolean
           joined_at?: string | null
           last_read_at?: string | null
           role?: string | null
@@ -14300,6 +14369,7 @@ export type Database = {
           call_ringtone: string | null
           contacts_synced: boolean | null
           created_at: string | null
+          default_notification_sound: string | null
           delivery_address: Json | null
           discovery_enabled: boolean | null
           email: string
@@ -14342,6 +14412,9 @@ export type Database = {
           primary_handle: string | null
           privacy_settings: Json | null
           profile_completed_at: string | null
+          profile_cover_url: string | null
+          profile_theme_color: string | null
+          profile_theme_style: string | null
           public_key: string | null
           qr_code_token: string | null
           referral_code: string | null
@@ -14364,6 +14437,7 @@ export type Database = {
           call_ringtone?: string | null
           contacts_synced?: boolean | null
           created_at?: string | null
+          default_notification_sound?: string | null
           delivery_address?: Json | null
           discovery_enabled?: boolean | null
           email: string
@@ -14406,6 +14480,9 @@ export type Database = {
           primary_handle?: string | null
           privacy_settings?: Json | null
           profile_completed_at?: string | null
+          profile_cover_url?: string | null
+          profile_theme_color?: string | null
+          profile_theme_style?: string | null
           public_key?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
@@ -14428,6 +14505,7 @@ export type Database = {
           call_ringtone?: string | null
           contacts_synced?: boolean | null
           created_at?: string | null
+          default_notification_sound?: string | null
           delivery_address?: Json | null
           discovery_enabled?: boolean | null
           email?: string
@@ -14470,6 +14548,9 @@ export type Database = {
           primary_handle?: string | null
           privacy_settings?: Json | null
           profile_completed_at?: string | null
+          profile_cover_url?: string | null
+          profile_theme_color?: string | null
+          profile_theme_style?: string | null
           public_key?: string | null
           qr_code_token?: string | null
           referral_code?: string | null
