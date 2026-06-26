@@ -3505,6 +3505,106 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_members: {
+        Row: {
+          channel_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_messages: {
+        Row: {
+          channel_id: string
+          content: string | null
+          created_at: string
+          id: string
+          media_url: string | null
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          channel_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          sender_id: string
+        }
+        Update: {
+          channel_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_brand_triggers: {
         Row: {
           brand_id: string | null
@@ -20164,6 +20264,10 @@ export type Database = {
       increment_job_views: { Args: { job_id: string }; Returns: undefined }
       is_business_owner: {
         Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_channel_admin: {
+        Args: { _channel_id: string; _user_id: string }
         Returns: boolean
       }
       is_conversation_participant: {
