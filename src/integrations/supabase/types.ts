@@ -1224,6 +1224,86 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_logs: {
+        Row: {
+          action_taken: string
+          created_at: string
+          id: string
+          rule_id: string
+          time_saved_seconds: number
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_taken: string
+          created_at?: string
+          id?: string
+          rule_id: string
+          time_saved_seconds?: number
+          trigger_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: string
+          created_at?: string
+          id?: string
+          rule_id?: string
+          time_saved_seconds?: number
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rules: {
+        Row: {
+          action_type: string
+          actions: Json | null
+          conditions: Json | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string | null
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          actions?: Json | null
+          conditions?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          trigger_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          actions?: Json | null
+          conditions?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       backup_history: {
         Row: {
           backup_key: string
@@ -20197,6 +20277,7 @@ export type Database = {
       }
       generate_sso_token: { Args: { app_id_param: string }; Returns: string }
       generate_user_referral_code: { Args: never; Returns: string }
+      get_automation_metrics: { Args: { p_user_id: string }; Returns: Json }
       get_brand_for_object: {
         Args: { p_object_type: string; p_user_id?: string }
         Returns: {
