@@ -12300,6 +12300,47 @@ export type Database = {
           },
         ]
       }
+      message_security_scans: {
+        Row: {
+          detections: Json
+          explanation: Json | null
+          id: string
+          message_id: string
+          overall_level: string
+          overall_score: number
+          recommended_action: string | null
+          scanned_at: string | null
+        }
+        Insert: {
+          detections?: Json
+          explanation?: Json | null
+          id?: string
+          message_id: string
+          overall_level?: string
+          overall_score?: number
+          recommended_action?: string | null
+          scanned_at?: string | null
+        }
+        Update: {
+          detections?: Json
+          explanation?: Json | null
+          id?: string
+          message_id?: string
+          overall_level?: string
+          overall_score?: number
+          recommended_action?: string | null
+          scanned_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_security_scans_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_tasks: {
         Row: {
           assignee_id: string | null
