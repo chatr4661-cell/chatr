@@ -20252,6 +20252,16 @@ export type Database = {
       }
       get_public_profile: { Args: { handle_input: string }; Returns: Json }
       get_push_token_diagnostics: { Args: never; Returns: Json }
+      get_universal_timeline: {
+        Args: { p_conversation_id: string; p_limit?: number; p_offset?: number }
+        Returns: Database["public"]["CompositeTypes"]["timeline_item"][]
+        SetofOptions: {
+          from: "*"
+          to: "timeline_item"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_user_conversations: {
         Args: never
         Returns: {
@@ -20459,7 +20469,13 @@ export type Database = {
       vendor_type: "restaurant" | "deal_merchant" | "healthcare_provider"
     }
     CompositeTypes: {
-      [_ in never]: never
+      timeline_item: {
+        id: string | null
+        timeline_type: string | null
+        created_at: string | null
+        sender_id: string | null
+        payload: Json | null
+      }
     }
   }
 }
