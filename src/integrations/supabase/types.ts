@@ -17123,6 +17123,110 @@ export type Database = {
           },
         ]
       }
+      session_room_participants: {
+        Row: {
+          call_id: string | null
+          id: string
+          joined_at: string
+          left_at: string | null
+          room_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          call_id?: string | null
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          room_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          call_id?: string | null
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          room_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_room_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_room_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_room_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "missed_calls_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_room_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "session_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_room_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_rooms: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          host_id: string | null
+          id: string
+          max_participants: number | null
+          room_name: string | null
+          session_goal: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          host_id?: string | null
+          id?: string
+          max_participants?: number | null
+          room_name?: string | null
+          session_goal: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          host_id?: string | null
+          id?: string
+          max_participants?: number | null
+          room_name?: string | null
+          session_goal?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_rooms_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       smart_push_log: {
         Row: {
           ai_reasoning: string | null
@@ -20780,6 +20884,14 @@ export type Database = {
         Returns: boolean
       }
       is_micro_task_admin: { Args: { check_user_id: string }; Returns: boolean }
+      is_session_room_host: {
+        Args: { _room_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_session_room_member: {
+        Args: { _room_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
