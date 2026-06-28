@@ -20269,6 +20269,59 @@ export type Database = {
           },
         ]
       }
+      workspace_tasks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          estimated_time_seconds: number | null
+          id: string
+          metadata: Json | null
+          state: string
+          status: string | null
+          task_type: string
+          title: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_time_seconds?: number | null
+          id?: string
+          metadata?: Json | null
+          state: string
+          status?: string | null
+          task_type: string
+          title: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_time_seconds?: number | null
+          id?: string
+          metadata?: Json | null
+          state?: string
+          status?: string | null
+          task_type?: string
+          title?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_tasks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_templates: {
         Row: {
           category: string
