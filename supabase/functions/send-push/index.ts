@@ -82,7 +82,8 @@ serve(async (req) => {
   }
 
   try {
-    const { token, title, body, data } = await req.json()
+    const { token, title, body, data, platform } = await req.json()
+    const isAndroid = (platform || 'android').toLowerCase() === 'android'
 
     if (!token) {
       return new Response(
