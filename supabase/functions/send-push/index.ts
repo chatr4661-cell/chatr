@@ -120,20 +120,32 @@ serve(async (req) => {
       },
     }
 
-    // Add notification if title/body provided
-    if (title || body) {
+    // Build the data payload (string values only). On Android we put title/body
+    // here too so the native app builds the notification on messages_visible_v2.
+    const dataPayload: Record<string, string> = {}
+    if (data) {
+      for (const [k, v] of Object.entries(data)) {
+        if (v !== null && v !== undefined) dataPayload[k] = String(v)
+      }
+    }
+
+    if (isAndroid) {
+      // DATA-ONLY for Android — no notification block, so Firebase won't auto-post.
+      dataPayload.title = title || dataPayload.title || 'Chatr'
+      dataPayload.body = body || dataPayload.body || ''
+      dataPayload.android_channel_id = dataPayload.android_channel_id || 'messages_visible_v2'
+    } else if (title || body) {
+      // iOS/web: OS-rendered notification.
       message.message.notification = {
         title: title || 'Chatr',
         body: body || '',
       }
     }
 
-    // Add data payload (must be string values)
-    if (data) {
-      message.message.data = Object.fromEntries(
-        Object.entries(data).map(([k, v]) => [k, String(v)])
-      )
+    if (Object.keys(dataPayload).length > 0) {
+      message.message.data = dataPayload
     }
+
 
     // Special handling for call notifications
     if (data?.type === 'call' || data?.type === 'incoming_call') {
