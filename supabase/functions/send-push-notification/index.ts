@@ -85,6 +85,8 @@ serve(async (req) => {
           title: String(title || ''),
           body: String(body || ''),
           notificationType: String(notificationType || 'general'),
+          // Native app builds the notification on this channel (data-only on Android)
+          android_channel_id: 'messages_visible_v2',
           timestamp: new Date().toISOString(),
         };
         if (data && typeof data === 'object') {
@@ -93,6 +95,7 @@ serve(async (req) => {
           }
         }
 
+        const isAndroid = (t.platform || 'android').toLowerCase() === 'android';
         const result = await sendFcmV1Message({
           projectId,
           accessToken,
@@ -101,8 +104,11 @@ serve(async (req) => {
           message: {
             data: dataPayload,
             android: { priority: 'HIGH' },
+            // iOS/web get an OS-rendered notification; Android stays data-only.
+            ...(isAndroid ? {} : { notification: { title: String(title || ''), body: String(body || '') } }),
           },
         });
+
 
         if (!result.success) {
           if (result.isUnregistered) {
