@@ -105,6 +105,7 @@ serve(async (req) => {
           fcmToken: device_token,
           functionName: FN,
           message: {
+            // DATA-ONLY on Android — native app builds the notification.
             data: {
               type: 'referral_join',
               title: '🎉 Friend Joined Chatr!',
@@ -112,13 +113,14 @@ serve(async (req) => {
               newUserId: String(newUserId),
               coinsEarned: '50',
               route: '/chatr-points',
+              android_channel_id: 'messages_visible_v2',
               timestamp: Date.now().toString(),
             },
             android: {
               priority: 'HIGH',
-              notification: { channel_id: 'chatr_general' },
             },
           },
+
         });
         if (!result.success) {
           if (result.isUnregistered) {

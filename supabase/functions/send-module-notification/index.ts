@@ -119,6 +119,8 @@ serve(async (req) => {
       body,
       route: data?.route || '/',
       action: data?.action || 'view',
+      // Native app builds the notification on this channel (data-only on Android)
+      android_channel_id: channelId,
     };
     if (data) {
       for (const [k, v] of Object.entries(data)) {
@@ -127,20 +129,26 @@ serve(async (req) => {
     }
 
     for (const tokenRecord of tokens) {
+      const isAndroid = (tokenRecord.platform || 'android').toLowerCase() === 'android';
       const result = await sendFcmV1Message({
         projectId,
         accessToken,
         fcmToken: tokenRecord.device_token,
         functionName: FN,
         message: {
+          // DATA-ONLY on Android so the native app builds the notification.
+          // iOS/web keep a notification block for OS-rendered alerts.
           data: dataPayload,
           android: {
             priority,
             ttl: '3600s',
-            notification: { channel_id: channelId },
           },
+          ...(isAndroid
+            ? {}
+            : { notification: { title, body } }),
         },
       });
+
 
       if (result.success) {
         successCount++;
