@@ -2709,6 +2709,56 @@ export type Database = {
           },
         ]
       }
+      candidates: {
+        Row: {
+          applied_for: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          phone: string | null
+          rating: number | null
+          resume_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applied_for?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          phone?: string | null
+          rating?: number | null
+          resume_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applied_for?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          rating?: number | null
+          resume_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_applied_for_fkey"
+            columns: ["applied_for"]
+            isOneToOne: false
+            referencedRelation: "requisitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       caregiver_alerts: {
         Row: {
           alert_type: string
@@ -15346,6 +15396,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      requisitions: {
+        Row: {
+          created_at: string
+          department: string
+          description: string | null
+          id: string
+          location: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department: string
+          description?: string | null
+          id?: string
+          location: string
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string
+          description?: string | null
+          id?: string
+          location?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       restaurant_details: {
         Row: {
