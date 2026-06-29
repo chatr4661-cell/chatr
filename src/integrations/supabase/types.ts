@@ -516,6 +516,41 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          last_used_at: string | null
+          name: string
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          last_used_at?: string | null
+          name: string
+          profile_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          last_used_at?: string | null
+          name?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_analytics: {
         Row: {
           app_id: string | null
@@ -1699,6 +1734,119 @@ export type Database = {
           },
         ]
       }
+      business_call_logs: {
+        Row: {
+          caller_number: string
+          created_at: string
+          direction: string
+          duration_seconds: number
+          id: string
+          profile_id: string
+          receiver_number: string
+          recording_url: string | null
+          routing_workflow_id: string | null
+          status: string
+          transcription: string | null
+        }
+        Insert: {
+          caller_number: string
+          created_at?: string
+          direction: string
+          duration_seconds?: number
+          id?: string
+          profile_id: string
+          receiver_number: string
+          recording_url?: string | null
+          routing_workflow_id?: string | null
+          status: string
+          transcription?: string | null
+        }
+        Update: {
+          caller_number?: string
+          created_at?: string
+          direction?: string
+          duration_seconds?: number
+          id?: string
+          profile_id?: string
+          receiver_number?: string
+          recording_url?: string | null
+          routing_workflow_id?: string | null
+          status?: string
+          transcription?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_call_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_call_logs_routing_workflow_id_fkey"
+            columns: ["routing_workflow_id"]
+            isOneToOne: false
+            referencedRelation: "business_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_campaigns: {
+        Row: {
+          audience_segment: string
+          click_count: number
+          content: string | null
+          created_at: string
+          id: string
+          name: string
+          open_count: number
+          profile_id: string
+          scheduled_for: string | null
+          sent_count: number
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          audience_segment: string
+          click_count?: number
+          content?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          open_count?: number
+          profile_id: string
+          scheduled_for?: string | null
+          sent_count?: number
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          audience_segment?: string
+          click_count?: number
+          content?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          open_count?: number
+          profile_id?: string
+          scheduled_for?: string | null
+          sent_count?: number
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_campaigns_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_catalog: {
         Row: {
           business_id: string
@@ -2070,6 +2218,53 @@ export type Database = {
           {
             foreignKeyName: "business_team_members_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_workflows: {
+        Row: {
+          created_at: string
+          description: string | null
+          edges: Json
+          id: string
+          name: string
+          nodes: Json
+          profile_id: string
+          run_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          edges?: Json
+          id?: string
+          name: string
+          nodes?: Json
+          profile_id: string
+          run_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          edges?: Json
+          id?: string
+          name?: string
+          nodes?: Json
+          profile_id?: string
+          run_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_workflows_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -19943,6 +20138,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      webhooks: {
+        Row: {
+          created_at: string
+          endpoint_url: string
+          events: string[]
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          name: string
+          profile_id: string
+          secret: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint_url: string
+          events?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          name: string
+          profile_id: string
+          secret: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint_url?: string
+          events?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          name?: string
+          profile_id?: string
+          secret?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhooks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webrtc_signals: {
         Row: {
