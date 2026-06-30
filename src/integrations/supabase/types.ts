@@ -6120,6 +6120,87 @@ export type Database = {
           },
         ]
       }
+      communication_events: {
+        Row: {
+          call_id: string | null
+          candidate_id: string | null
+          conversation_id: string | null
+          correlation_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          source: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          call_id?: string | null
+          candidate_id?: string | null
+          conversation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          source?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string | null
+          candidate_id?: string | null
+          conversation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          source?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_events_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_events_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_events_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "missed_calls_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_events_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communities: {
         Row: {
           category: string | null
@@ -13353,6 +13434,102 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "app_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mobile_action_queue: {
+        Row: {
+          action_type: string
+          attempts: number
+          call_id: string | null
+          candidate_id: string | null
+          claimed_at: string | null
+          completed_at: string | null
+          conversation_id: string | null
+          correlation_id: string | null
+          created_at: string
+          error_text: string | null
+          id: string
+          payload: Json
+          scheduled_for: string
+          status: string
+          target_device_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          attempts?: number
+          call_id?: string | null
+          candidate_id?: string | null
+          claimed_at?: string | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          error_text?: string | null
+          id?: string
+          payload?: Json
+          scheduled_for?: string
+          status?: string
+          target_device_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          attempts?: number
+          call_id?: string | null
+          candidate_id?: string | null
+          claimed_at?: string | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          error_text?: string | null
+          id?: string
+          payload?: Json
+          scheduled_for?: string
+          status?: string
+          target_device_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobile_action_queue_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobile_action_queue_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobile_action_queue_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "missed_calls_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobile_action_queue_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobile_action_queue_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
