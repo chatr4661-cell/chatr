@@ -91,9 +91,10 @@ export function CreateLeadDialog({ businessId, open, onOpenChange, onLeadCreated
     } catch (error: any) {
       console.error('Error creating lead:', error);
       
-      if (error.errors) {
+      const zodIssues = error.issues || error.errors;
+      if (zodIssues) {
         const fieldErrors: Record<string, string> = {};
-        error.errors.forEach((err: any) => {
+        zodIssues.forEach((err: any) => {
           if (err.path) {
             fieldErrors[err.path[0]] = err.message;
           }
