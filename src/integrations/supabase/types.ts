@@ -8385,6 +8385,75 @@ export type Database = {
           },
         ]
       }
+      execution_queue: {
+        Row: {
+          capability: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          error: Json | null
+          execution_id: string | null
+          id: string
+          max_retries: number | null
+          metadata: Json | null
+          payload: Json
+          priority: number | null
+          provider: string | null
+          retry_count: number | null
+          scheduled_at: string | null
+          started_at: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string | null
+          worker_id: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          capability: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error?: Json | null
+          execution_id?: string | null
+          id?: string
+          max_retries?: number | null
+          metadata?: Json | null
+          payload?: Json
+          priority?: number | null
+          provider?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+          worker_id?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          capability?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error?: Json | null
+          execution_id?: string | null
+          id?: string
+          max_retries?: number | null
+          metadata?: Json | null
+          payload?: Json
+          priority?: number | null
+          provider?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+          worker_id?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: []
+      }
       expert_sessions: {
         Row: {
           created_at: string | null
