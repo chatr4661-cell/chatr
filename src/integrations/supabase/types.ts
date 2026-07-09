@@ -1328,6 +1328,42 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          changes: Json
+          correlation_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          changes?: Json
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          changes?: Json
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json
+        }
+        Relationships: []
+      }
       automation_logs: {
         Row: {
           action_taken: string
@@ -2296,6 +2332,7 @@ export type Database = {
       business_workflows: {
         Row: {
           created_at: string
+          current_version_id: string | null
           description: string | null
           edges: Json
           id: string
@@ -2305,9 +2342,11 @@ export type Database = {
           run_count: number
           status: string
           updated_at: string
+          version: number
         }
         Insert: {
           created_at?: string
+          current_version_id?: string | null
           description?: string | null
           edges?: Json
           id?: string
@@ -2317,9 +2356,11 @@ export type Database = {
           run_count?: number
           status?: string
           updated_at?: string
+          version?: number
         }
         Update: {
           created_at?: string
+          current_version_id?: string | null
           description?: string | null
           edges?: Json
           id?: string
@@ -2329,6 +2370,7 @@ export type Database = {
           run_count?: number
           status?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -16732,6 +16774,36 @@ export type Database = {
         }
         Relationships: []
       }
+      secrets_vault: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          key_name: string
+          updated_at: string
+          vault_ref: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          key_name: string
+          updated_at?: string
+          vault_ref: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          key_name?: string
+          updated_at?: string
+          vault_ref?: string
+        }
+        Relationships: []
+      }
       seller_analytics: {
         Row: {
           avg_response_time_seconds: number | null
@@ -20760,6 +20832,175 @@ export type Database = {
           weight_kg?: number | null
         }
         Relationships: []
+      }
+      workflow_approvals: {
+        Row: {
+          approver_id: string | null
+          created_at: string
+          decided_at: string | null
+          id: string
+          reason: string | null
+          requested_by: string | null
+          run_id: string | null
+          status: string
+          step_index: number
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          approver_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          reason?: string | null
+          requested_by?: string | null
+          run_id?: string | null
+          status?: string
+          step_index?: number
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          approver_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          reason?: string | null
+          requested_by?: string | null
+          run_id?: string | null
+          status?: string
+          step_index?: number
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_approvals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_approvals_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "business_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_runs: {
+        Row: {
+          completed_at: string | null
+          correlation_id: string
+          created_at: string
+          created_by: string | null
+          duration_ms: number | null
+          error: string | null
+          id: string
+          input: Json
+          metrics: Json
+          output: Json
+          started_at: string | null
+          status: string
+          trigger_type: string | null
+          updated_at: string
+          version: number | null
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          correlation_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input?: Json
+          metrics?: Json
+          output?: Json
+          started_at?: string | null
+          status?: string
+          trigger_type?: string | null
+          updated_at?: string
+          version?: number | null
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          correlation_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input?: Json
+          metrics?: Json
+          output?: Json
+          started_at?: string | null
+          status?: string
+          trigger_type?: string | null
+          updated_at?: string
+          version?: number | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "business_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          edges: Json
+          id: string
+          name: string
+          nodes: Json
+          status: string
+          version: number
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          edges?: Json
+          id?: string
+          name: string
+          nodes?: Json
+          status?: string
+          version: number
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          edges?: Json
+          id?: string
+          name?: string
+          nodes?: Json
+          status?: string
+          version?: number
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_versions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "business_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_activities: {
         Row: {
