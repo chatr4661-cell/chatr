@@ -76,6 +76,75 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_sessions: {
+        Row: {
+          agent_id: string
+          context_tokens: number | null
+          created_at: string | null
+          entities: Json | null
+          goals: Json | null
+          id: string
+          last_active_at: string | null
+          memory_references: Json | null
+          messages: Json | null
+          model_used: string | null
+          mood: string | null
+          open_tasks: Json | null
+          pinned_context: string | null
+          session_name: string | null
+          summary: string | null
+          topics: Json | null
+          total_messages: number | null
+          updated_at: string | null
+          user_id: string
+          workspace_state: Json | null
+        }
+        Insert: {
+          agent_id: string
+          context_tokens?: number | null
+          created_at?: string | null
+          entities?: Json | null
+          goals?: Json | null
+          id?: string
+          last_active_at?: string | null
+          memory_references?: Json | null
+          messages?: Json | null
+          model_used?: string | null
+          mood?: string | null
+          open_tasks?: Json | null
+          pinned_context?: string | null
+          session_name?: string | null
+          summary?: string | null
+          topics?: Json | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id: string
+          workspace_state?: Json | null
+        }
+        Update: {
+          agent_id?: string
+          context_tokens?: number | null
+          created_at?: string | null
+          entities?: Json | null
+          goals?: Json | null
+          id?: string
+          last_active_at?: string | null
+          memory_references?: Json | null
+          messages?: Json | null
+          model_used?: string | null
+          mood?: string | null
+          open_tasks?: Json | null
+          pinned_context?: string | null
+          session_name?: string | null
+          summary?: string | null
+          topics?: Json | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id?: string
+          workspace_state?: Json | null
+        }
+        Relationships: []
+      }
       ai_agent_analytics: {
         Row: {
           agent_id: string
