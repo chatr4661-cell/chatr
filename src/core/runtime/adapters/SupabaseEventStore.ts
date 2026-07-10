@@ -85,12 +85,16 @@ export class SupabaseEventStore implements IEventStoreAdapter {
         { event: 'INSERT', schema: 'public', table: 'platform_events' },
         (payload) => {
           const row: any = payload.new;
+          const ctx = row.execution_context || {};
           const event: CHATREvent = {
             id: row.id,
             type: row.type,
             payload: row.payload,
-            timestamp: row.execution_context?.timestamp || new Date(row.created_at).getTime(),
-            priority: row.execution_context?.priority || 1,
+            timestamp: ctx.timestamp || new Date(row.created_at).getTime(),
+            priority: ctx.priority ?? 1,
+            traceId: ctx.traceId,
+            correlationId: ctx.correlationId,
+            workflowId: ctx.workflowId,
             source: 'supabase-realtime',
             persist: false, // already persisted
           };
@@ -102,6 +106,9 @@ export class SupabaseEventStore implements IEventStoreAdapter {
             persist: false,
             timestamp: event.timestamp,
             priority: event.priority,
+            traceId: event.traceId,
+            correlationId: event.correlationId,
+            workflowId: event.workflowId,
           });
         },
       )
