@@ -401,6 +401,53 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_traces: {
+        Row: {
+          created_at: string | null
+          execution_context: Json
+          id: string
+          instance_id: string | null
+          latency_ms: number
+          model_id: string
+          prompt: string
+          provider_id: string
+          response: string | null
+          tokens_used: number
+        }
+        Insert: {
+          created_at?: string | null
+          execution_context?: Json
+          id?: string
+          instance_id?: string | null
+          latency_ms: number
+          model_id: string
+          prompt: string
+          provider_id: string
+          response?: string | null
+          tokens_used?: number
+        }
+        Update: {
+          created_at?: string | null
+          execution_context?: Json
+          id?: string
+          instance_id?: string | null
+          latency_ms?: number
+          model_id?: string
+          prompt?: string
+          provider_id?: string
+          response?: string | null
+          tokens_used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_traces_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_state"
+            referencedColumns: ["instance_id"]
+          },
+        ]
+      }
       album_photos: {
         Row: {
           album_id: string
@@ -1481,6 +1528,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      benchmark_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_name: string
+          p50_val: number | null
+          p95_val: number | null
+          p99_val: number | null
+          provider: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_name: string
+          p50_val?: number | null
+          p95_val?: number | null
+          p99_val?: number | null
+          provider: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_name?: string
+          p50_val?: number | null
+          p95_val?: number | null
+          p99_val?: number | null
+          provider?: string
+        }
+        Relationships: []
       }
       blocked_contacts: {
         Row: {
@@ -3584,6 +3661,39 @@ export type Database = {
           status?: string | null
           total_handoffs?: number | null
           transport_history?: Json
+        }
+        Relationships: []
+      }
+      certification_history: {
+        Row: {
+          contract_version: string
+          created_at: string | null
+          id: string
+          provider: string
+          provider_version: string
+          release_approved: boolean
+          report_data: Json
+          verdict: string
+        }
+        Insert: {
+          contract_version: string
+          created_at?: string | null
+          id?: string
+          provider: string
+          provider_version: string
+          release_approved?: boolean
+          report_data: Json
+          verdict: string
+        }
+        Update: {
+          contract_version?: string
+          created_at?: string | null
+          id?: string
+          provider?: string
+          provider_version?: string
+          release_approved?: boolean
+          report_data?: Json
+          verdict?: string
         }
         Relationships: []
       }
@@ -7377,6 +7487,47 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dead_letters: {
+        Row: {
+          created_at: string | null
+          error_code: string
+          error_message: string
+          event_id: string | null
+          id: string
+          last_retry_at: string | null
+          resolved: boolean
+          retry_count: number
+        }
+        Insert: {
+          created_at?: string | null
+          error_code: string
+          error_message: string
+          event_id?: string | null
+          id?: string
+          last_retry_at?: string | null
+          resolved?: boolean
+          retry_count?: number
+        }
+        Update: {
+          created_at?: string | null
+          error_code?: string
+          error_message?: string
+          event_id?: string | null
+          id?: string
+          last_retry_at?: string | null
+          resolved?: boolean
+          retry_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dead_letters_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "platform_events"
             referencedColumns: ["id"]
           },
         ]
@@ -14674,6 +14825,74 @@ export type Database = {
           },
         ]
       }
+      platform_audit_logs: {
+        Row: {
+          action: string
+          actor: string
+          created_at: string | null
+          details: Json
+          event_id: string | null
+          id: string
+          resource: string
+        }
+        Insert: {
+          action: string
+          actor: string
+          created_at?: string | null
+          details?: Json
+          event_id?: string | null
+          id?: string
+          resource: string
+        }
+        Update: {
+          action?: string
+          actor?: string
+          created_at?: string | null
+          details?: Json
+          event_id?: string | null
+          id?: string
+          resource?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_audit_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "platform_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_events: {
+        Row: {
+          created_at: string | null
+          execution_context: Json
+          id: string
+          payload: Json
+          stream_id: string
+          type: string
+          version: number
+        }
+        Insert: {
+          created_at?: string | null
+          execution_context?: Json
+          id?: string
+          payload?: Json
+          stream_id: string
+          type: string
+          version: number
+        }
+        Update: {
+          created_at?: string | null
+          execution_context?: Json
+          id?: string
+          payload?: Json
+          stream_id?: string
+          type?: string
+          version?: number
+        }
+        Relationships: []
+      }
       point_earning_rules: {
         Row: {
           created_at: string | null
@@ -15511,6 +15730,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      provider_runs: {
+        Row: {
+          action: string
+          created_at: string | null
+          execution_context: Json
+          id: string
+          latency_ms: number
+          provider_id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          execution_context?: Json
+          id?: string
+          latency_ms: number
+          provider_id: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          execution_context?: Json
+          id?: string
+          latency_ms?: number
+          provider_id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+        }
+        Relationships: []
       }
       provider_services: {
         Row: {
@@ -20890,6 +21145,73 @@ export type Database = {
           },
         ]
       }
+      workflow_checkpoints: {
+        Row: {
+          created_at: string | null
+          id: string
+          instance_id: string | null
+          node_id: string
+          state_snapshot: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          node_id: string
+          state_snapshot?: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          node_id?: string
+          state_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_checkpoints_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_state"
+            referencedColumns: ["instance_id"]
+          },
+        ]
+      }
+      workflow_metrics: {
+        Row: {
+          created_at: string | null
+          duration_ms: number
+          id: string
+          instance_id: string | null
+          nodes_executed: number
+          tokens_used: number
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms: number
+          id?: string
+          instance_id?: string | null
+          nodes_executed: number
+          tokens_used?: number
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number
+          id?: string
+          instance_id?: string | null
+          nodes_executed?: number
+          tokens_used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_metrics_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_state"
+            referencedColumns: ["instance_id"]
+          },
+        ]
+      }
       workflow_runs: {
         Row: {
           completed_at: string | null
@@ -20954,6 +21276,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workflow_state: {
+        Row: {
+          context: Json
+          created_at: string | null
+          current_node: string | null
+          definition_id: string
+          execution_context: Json
+          instance_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string | null
+          current_node?: string | null
+          definition_id: string
+          execution_context?: Json
+          instance_id: string
+          status: string
+          updated_at?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string | null
+          current_node?: string | null
+          definition_id?: string
+          execution_context?: Json
+          instance_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       workflow_versions: {
         Row: {
