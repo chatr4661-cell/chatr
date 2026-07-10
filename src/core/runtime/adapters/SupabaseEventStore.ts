@@ -25,6 +25,9 @@ export class SupabaseEventStore implements IEventStoreAdapter {
       execution_context: {
         timestamp: e.timestamp,
         priority: e.priority,
+        traceId: e.traceId,
+        correlationId: e.correlationId,
+        workflowId: e.workflowId,
       },
     }));
 
