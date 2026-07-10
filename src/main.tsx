@@ -15,3 +15,8 @@ if (!rootElement) {
 
 // Clear the instant skeleton and mount React
 createRoot(rootElement).render(<App />);
+
+// Stage 1.3: register durable event-store adapter + realtime broadcast (non-blocking)
+import('./core/services/ServiceAdapters')
+  .then(({ initServiceAdapters }) => initServiceAdapters())
+  .catch((err) => console.error('[main] ServiceAdapters init failed:', err));
