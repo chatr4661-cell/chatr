@@ -22,7 +22,18 @@ export async function initServiceAdapters(): Promise<void> {
     // Enable Realtime bindings (Stage 1.3)
     eventStore.enableRealtimeBroadcast();
 
+    // Stage 1.5: register Live (Zero-Mock) capability providers
+    const { WorkflowSDK } = await import('../sdk/WorkflowSDK');
+    const { LiveHRProvider } = await import('../capabilities/hr/LiveHRProvider');
+    const { LiveTravelProvider } = await import('../capabilities/travel/LiveTravelProvider');
+    const { LiveFinanceProvider } = await import('../capabilities/finance/LiveFinanceProvider');
+
+    WorkflowSDK.register(LiveHRProvider);
+    WorkflowSDK.register(LiveTravelProvider);
+    WorkflowSDK.register(LiveFinanceProvider);
+
     console.info('[ServiceAdapters] Event store adapter registered');
+    console.info('[ServiceAdapters] Live providers registered: hr, travel, finance');
   } catch (err) {
     initialized = false;
     console.error('[ServiceAdapters] Failed to initialize adapters:', err);
