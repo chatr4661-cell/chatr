@@ -38,19 +38,20 @@ export function ChaosWidget() {
       // We write a raw checkpoint directly to simulate an engine that died after step 1
       const checkpointStart = performance.now();
       await supabase.from('workflow_state').insert({
-        workflow_id: correlationId,
-        node_id: 'payment_processing',
+        instance_id: correlationId,
+        definition_id: 'chaos_drill',
+        current_node: 'payment_processing',
         status: 'suspended',
-        context_data: { simulated: 'crash' },
+        context: { simulated: 'crash' },
       });
 
       // Simulate engine reboot fetching orphaned workflows
       const { data: recovered } = await supabase
         .from('workflow_state')
-        .select('*')
+        .select('instance_id')
         .eq('status', 'suspended')
-        .eq('workflow_id', correlationId)
-        .single();
+        .eq('instance_id', correlationId)
+        .maybeSingle();
 
       const recoveryTime = Math.round(performance.now() - checkpointStart);
       drillResults.push({
@@ -60,7 +61,7 @@ export function ChaosWidget() {
       });
 
       // Cleanup
-      await supabase.from('workflow_state').delete().eq('workflow_id', correlationId);
+      await supabase.from('workflow_state').delete().eq('instance_id', correlationId);
 
       setResults(drillResults);
     } catch (e: any) {
