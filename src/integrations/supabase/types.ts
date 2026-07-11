@@ -18887,6 +18887,93 @@ export type Database = {
           },
         ]
       }
+      testbed_finance_ledgers: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          metadata: Json | null
+          status: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          transaction_type?: string
+        }
+        Relationships: []
+      }
+      testbed_hr_candidates: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          resume_url: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          resume_url?: string | null
+          role: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          resume_url?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      testbed_travel_bookings: {
+        Row: {
+          created_at: string
+          destination: string
+          employee_id: string
+          end_date: string
+          estimated_cost: number
+          id: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          destination: string
+          employee_id: string
+          end_date: string
+          estimated_cost: number
+          id?: string
+          start_date: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          destination?: string
+          employee_id?: string
+          end_date?: string
+          estimated_cost?: number
+          id?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: []
+      }
       therapy_sessions: {
         Row: {
           amount: number | null
