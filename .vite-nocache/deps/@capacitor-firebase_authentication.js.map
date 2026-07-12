@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../../node_modules/@capacitor-firebase/authentication/src/index.ts"],
-  "sourcesContent": ["import { registerPlugin } from '@capacitor/core';\n\nimport type { FirebaseAuthenticationPlugin } from './definitions';\n\nconst FirebaseAuthentication = registerPlugin<FirebaseAuthenticationPlugin>(\n  'FirebaseAuthentication',\n  {\n    web: () => import('./web').then(m => new m.FirebaseAuthenticationWeb()),\n  },\n);\n\nexport * from './definitions';\nexport { FirebaseAuthentication };\n"],
-  "mappings": ";;;;;;;;;;AAIA,IAAM,yBAAyB,eAC7B,0BACA;EACE,KAAK,MAAM,OAAO,mBAAO,EAAE,KAAK,OAAK,IAAI,EAAE,0BAAyB,CAAE;CACvE;",
-  "names": []
-}

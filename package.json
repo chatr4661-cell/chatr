@@ -13,7 +13,7 @@
     "start": "tsx server/src/server.ts",
     "dev:android": "vite --host 0.0.0.0 --port 8080",
     "android:live": "node scripts/android-live.cjs",
-    "build": "vite build",
+    "build": "npm run certify && vite build",
     "build:dev": "vite build --mode development",
     "lint": "node scripts/lint-governance.cjs",
     "lint:raw": "eslint src supabase/functions scripts --ext .ts,.tsx,.js,.cjs",
@@ -21,7 +21,8 @@
     "signaling:validate": "node scripts/validate-signaling-config.cjs",
     "edge:functions:audit": "node scripts/edge-function-governance.cjs",
     "edge:functions:update-baseline": "node scripts/edge-function-governance.cjs --update-baseline",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "certify": "tsx src/scripts/certify.ts"
   },
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^4.0.1",
