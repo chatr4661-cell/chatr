@@ -19654,6 +19654,33 @@ export type Database = {
           },
         ]
       }
+      user_dimensions: {
+        Row: {
+          created_at: string | null
+          dimension_type: string
+          dimension_value: string
+          id: string
+          priority: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dimension_type: string
+          dimension_value: string
+          id?: string
+          priority?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dimension_type?: string
+          dimension_value?: string
+          id?: string
+          priority?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_discovery_profiles: {
         Row: {
           allow_calls_from: string
