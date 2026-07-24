@@ -1672,6 +1672,54 @@ export type Database = {
           },
         ]
       }
+      bos_records: {
+        Row: {
+          archived_at: string | null
+          capability_id: string
+          created_at: string
+          created_by: string
+          current_status: string | null
+          data: Json
+          deleted_at: string | null
+          history: Json
+          id: string
+          object_name: string
+          pending_policy: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          capability_id: string
+          created_at?: string
+          created_by?: string
+          current_status?: string | null
+          data?: Json
+          deleted_at?: string | null
+          history?: Json
+          id: string
+          object_name: string
+          pending_policy?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          capability_id?: string
+          created_at?: string
+          created_by?: string
+          current_status?: string | null
+          data?: Json
+          deleted_at?: string | null
+          history?: Json
+          id?: string
+          object_name?: string
+          pending_policy?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brand_impressions: {
         Row: {
           brand_id: string | null
@@ -2408,10 +2456,12 @@ export type Database = {
       }
       business_workflows: {
         Row: {
+          active_version_id: string | null
           created_at: string
           current_version_id: string | null
           description: string | null
           edges: Json
+          graph: Json | null
           id: string
           name: string
           nodes: Json
@@ -2422,10 +2472,12 @@ export type Database = {
           version: number
         }
         Insert: {
+          active_version_id?: string | null
           created_at?: string
           current_version_id?: string | null
           description?: string | null
           edges?: Json
+          graph?: Json | null
           id?: string
           name: string
           nodes?: Json
@@ -2436,10 +2488,12 @@ export type Database = {
           version?: number
         }
         Update: {
+          active_version_id?: string | null
           created_at?: string
           current_version_id?: string | null
           description?: string | null
           edges?: Json
+          graph?: Json | null
           id?: string
           name?: string
           nodes?: Json
@@ -2451,6 +2505,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "business_workflows_active_version_id_fkey"
+            columns: ["active_version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "business_workflows_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -2458,6 +2519,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      calendar_events: {
+        Row: {
+          attendees: Json | null
+          created_at: string | null
+          description: string | null
+          end_at: string
+          id: string
+          start_at: string
+          title: string
+          workspace_id: string | null
+        }
+        Insert: {
+          attendees?: Json | null
+          created_at?: string | null
+          description?: string | null
+          end_at: string
+          id?: string
+          start_at: string
+          title: string
+          workspace_id?: string | null
+        }
+        Update: {
+          attendees?: Json | null
+          created_at?: string | null
+          description?: string | null
+          end_at?: string
+          id?: string
+          start_at?: string
+          title?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
       }
       call_context_cache: {
         Row: {
@@ -8534,6 +8628,107 @@ export type Database = {
         }
         Relationships: []
       }
+      enterprise_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          capability_id: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string
+          severity: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          capability_id: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          severity: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          capability_id?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enterprise_audit_logs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "enterprise_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enterprise_audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enterprise_users: {
+        Row: {
+          ai_executive_access: boolean | null
+          created_at: string | null
+          department: string | null
+          first_name: string
+          id: string
+          last_login: string | null
+          last_name: string
+          mfa_enabled: boolean | null
+          organization_id: string
+          role: Database["public"]["Enums"]["enterprise_role_type"] | null
+          team: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_executive_access?: boolean | null
+          created_at?: string | null
+          department?: string | null
+          first_name: string
+          id: string
+          last_login?: string | null
+          last_name: string
+          mfa_enabled?: boolean | null
+          organization_id: string
+          role?: Database["public"]["Enums"]["enterprise_role_type"] | null
+          team?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_executive_access?: boolean | null
+          created_at?: string | null
+          department?: string | null
+          first_name?: string
+          id?: string
+          last_login?: string | null
+          last_name?: string
+          mfa_enabled?: boolean | null
+          organization_id?: string
+          role?: Database["public"]["Enums"]["enterprise_role_type"] | null
+          team?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enterprise_users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       error_logs: {
         Row: {
           component: string | null
@@ -11045,6 +11240,141 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      kernel_events: {
+        Row: {
+          actor_id: string
+          aggregate_id: string
+          aggregate_type: string
+          causation_id: string | null
+          correlation_id: string | null
+          event_id: string
+          event_type: string
+          expected_version: number
+          global_sequence: number
+          metadata: Json
+          payload: Json
+          stream_id: string
+          tenant_id: string
+          timestamp: string
+        }
+        Insert: {
+          actor_id: string
+          aggregate_id: string
+          aggregate_type: string
+          causation_id?: string | null
+          correlation_id?: string | null
+          event_id?: string
+          event_type: string
+          expected_version: number
+          global_sequence?: number
+          metadata?: Json
+          payload?: Json
+          stream_id: string
+          tenant_id: string
+          timestamp?: string
+        }
+        Update: {
+          actor_id?: string
+          aggregate_id?: string
+          aggregate_type?: string
+          causation_id?: string | null
+          correlation_id?: string | null
+          event_id?: string
+          event_type?: string
+          expected_version?: number
+          global_sequence?: number
+          metadata?: Json
+          payload?: Json
+          stream_id?: string
+          tenant_id?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      kg_edges: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          relation: string
+          source_node_id: string
+          target_node_id: string
+          tenant_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          metadata?: Json
+          relation: string
+          source_node_id: string
+          target_node_id: string
+          tenant_id: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          relation?: string
+          source_node_id?: string
+          target_node_id?: string
+          tenant_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kg_edges_source_node_id_fkey"
+            columns: ["source_node_id"]
+            isOneToOne: false
+            referencedRelation: "kg_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kg_edges_target_node_id_fkey"
+            columns: ["target_node_id"]
+            isOneToOne: false
+            referencedRelation: "kg_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kg_nodes: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          name: string
+          node_type: string
+          source_capability: string | null
+          source_object_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          metadata?: Json
+          name: string
+          node_type: string
+          source_capability?: string | null
+          source_object_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          node_type?: string
+          source_capability?: string | null
+          source_object_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       kyc_documents: {
         Row: {
@@ -14284,6 +14614,7 @@ export type Database = {
           delivery_status: string | null
           description: string
           id: string
+          is_read: boolean | null
           last_attempt_at: string | null
           max_retries: number
           metadata: Json | null
@@ -14301,6 +14632,7 @@ export type Database = {
           delivery_status?: string | null
           description: string
           id?: string
+          is_read?: boolean | null
           last_attempt_at?: string | null
           max_retries?: number
           metadata?: Json | null
@@ -14318,6 +14650,7 @@ export type Database = {
           delivery_status?: string | null
           description?: string
           id?: string
+          is_read?: boolean | null
           last_attempt_at?: string | null
           max_retries?: number
           metadata?: Json | null
@@ -14561,6 +14894,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organizations: {
+        Row: {
+          created_at: string | null
+          domain: string
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain: string
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      os_events: {
+        Row: {
+          confidence: number | null
+          event_type: string
+          id: string
+          level: string
+          payload: Json
+          platform_version: string
+          producer_version: string
+          provenance: string | null
+          schema_version: string
+          source_subsystem: string
+          timestamp: string
+          verification_status: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          event_type: string
+          id?: string
+          level: string
+          payload?: Json
+          platform_version?: string
+          producer_version?: string
+          provenance?: string | null
+          schema_version?: string
+          source_subsystem: string
+          timestamp?: string
+          verification_status?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          event_type?: string
+          id?: string
+          level?: string
+          payload?: Json
+          platform_version?: string
+          producer_version?: string
+          provenance?: string | null
+          schema_version?: string
+          source_subsystem?: string
+          timestamp?: string
+          verification_status?: string | null
+        }
+        Relationships: []
       }
       otp_verifications: {
         Row: {
@@ -21430,9 +21832,14 @@ export type Database = {
           created_by: string | null
           description: string | null
           edges: Json
+          graph_checksum: string | null
           id: string
+          manifest: Json | null
           name: string
           nodes: Json
+          parent_version_id: string | null
+          published_at: string | null
+          published_by: string | null
           status: string
           version: number
           workflow_id: string
@@ -21442,9 +21849,14 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           edges?: Json
+          graph_checksum?: string | null
           id?: string
+          manifest?: Json | null
           name: string
           nodes?: Json
+          parent_version_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
           status?: string
           version: number
           workflow_id: string
@@ -21454,14 +21866,26 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           edges?: Json
+          graph_checksum?: string | null
           id?: string
+          manifest?: Json | null
           name?: string
           nodes?: Json
+          parent_version_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
           status?: string
           version?: number
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_versions_parent_version_id_fkey"
+            columns: ["parent_version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_versions_workflow_id_fkey"
             columns: ["workflow_id"]
@@ -22294,6 +22718,12 @@ export type Database = {
         | "referral_referrer_bonus"
         | "referral_signup_bonus"
         | "manual_adjustment"
+      enterprise_role_type:
+        | "Administrator"
+        | "Developer"
+        | "Auditor"
+        | "User"
+        | "System"
       home_solutions_category: "worker" | "interior" | "material"
       home_solutions_status:
         | "pending"
@@ -22462,6 +22892,13 @@ export const Constants = {
         "referral_referrer_bonus",
         "referral_signup_bonus",
         "manual_adjustment",
+      ],
+      enterprise_role_type: [
+        "Administrator",
+        "Developer",
+        "Auditor",
+        "User",
+        "System",
       ],
       home_solutions_category: ["worker", "interior", "material"],
       home_solutions_status: [
