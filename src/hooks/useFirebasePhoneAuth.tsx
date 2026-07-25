@@ -236,13 +236,21 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   const completeSupabaseSession = async (firebaseUid: string): Promise<boolean> => {
     const normalizedPhone = phoneNumber.replace(/\s/g, '');
 
+    const backendUrl = import.meta.env.VITE_SUPABASE_URL;
+    const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    if (!backendUrl || !publishableKey) {
+      throw new Error('Authentication service is not configured. Please contact support.');
+    }
+
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/firebase-phone-auth`,
+      `${backendUrl}/functions/v1/firebase-phone-auth`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'Authorization': `Bearer ${publishableKey}`,
+          'apikey': publishableKey,
         },
         body: JSON.stringify({
           phone_number: normalizedPhone,
@@ -251,17 +259,31 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       }
     );
 
-    const data = await response.json();
+    const responseText = await response.text();
+    let data: { error?: string; session?: { access_token?: string; refresh_token?: string } } = {};
 
-    if (!response.ok || data.error) {
-      throw new Error(data.error || 'Authentication failed');
+    if (responseText) {
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.error('[Auth Exchange] Non-JSON response:', response.status, responseText.slice(0, 200));
+      }
     }
 
-    if (data.session) {
+    if (!response.ok || data.error) {
+      if (response.status === 404) {
+        throw new Error('Authentication service is unavailable. Please contact support.');
+      }
+      throw new Error(data.error || `Authentication failed (${response.status}). Please try again.`);
+    }
+
+    if (data.session?.access_token && data.session.refresh_token) {
       await supabase.auth.setSession({
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
       });
+    } else {
+      throw new Error('Authentication completed without a valid session. Please try again.');
     }
 
     return true;
