@@ -34,9 +34,32 @@ async function callGemini(
       console.error(`Gemini ${model} failed: ${res.status} ${await res.text()}`);
       break;
     }
+  // Fallback: Lovable AI Gateway (no user key needed)
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey },
+      body: JSON.stringify({
+        model: "google/gemini-3.6-flash",
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: userText },
+        ],
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (text) return text as string;
+    } else {
+      console.error(`Lovable gateway failed: ${res.status} ${await res.text()}`);
+    }
   }
   return null;
 }
+
 
 // Structured prompts for the legacy action-based callers (useAIChatFeatures)
 const ACTIONS: Record<string, { system: string; user: (b: any) => string }> = {
