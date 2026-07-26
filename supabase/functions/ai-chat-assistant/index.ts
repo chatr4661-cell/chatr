@@ -8,12 +8,12 @@ const corsHeaders = {
 const MODELS = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro-latest"];
 
 async function callGemini(
-  apiKey: string,
+  apiKey: string | undefined,
   systemInstruction: string,
   userText: string,
   jsonMode = false,
 ): Promise<string | null> {
-  for (const model of MODELS) {
+  for (const model of apiKey ? MODELS : []) {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
@@ -100,7 +100,6 @@ serve(async (req) => {
     const { action, prompt, messageText, system_prompt, messages } = body ?? {};
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GOOGLE_GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) return json({ error: "GEMINI_API_KEY not set" }, 500);
 
     // Structured action path — keeps existing app features working
     if (action && ACTIONS[action]) {
