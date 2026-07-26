@@ -33,9 +33,11 @@ async function callGemini(
     } else if (res.status !== 404) {
       console.error(`Gemini ${model} failed: ${res.status} ${await res.text()}`);
       break;
+    }
   }
 
   // Fallback: Lovable AI Gateway (no user key needed)
+
 
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   if (lovableKey) {
