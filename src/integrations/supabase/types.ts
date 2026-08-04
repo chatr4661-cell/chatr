@@ -1447,6 +1447,24 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_exchange_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          phone_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone_key?: string
+        }
+        Relationships: []
+      }
       automation_logs: {
         Row: {
           action_taken: string
