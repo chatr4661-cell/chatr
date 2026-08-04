@@ -219,71 +219,12 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     }
   };
 
-  /**
-   * Exchange a verified Firebase user for a Supabase session via edge function.
-   */
-  const completeSupabaseSession = async (firebaseUid: string): Promise<boolean> => {
-    const normalizedPhone = phoneNumber.replace(/\s/g, '');
-
-    const backendUrl = import.meta.env.VITE_SUPABASE_URL;
-    const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!backendUrl || !publishableKey) {
-      throw new Error('Authentication service is not configured. Please contact support.');
-    }
-
-    const response = await fetch(
-      `${backendUrl}/functions/v1/firebase-phone-auth`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publishableKey}`,
-          'apikey': publishableKey,
-        },
-        body: JSON.stringify({
-          phone_number: normalizedPhone,
-          firebase_uid: firebaseUid,
-        }),
-      }
-    );
-
-    const responseText = await response.text();
-    let data: { error?: string; session?: { access_token?: string; refresh_token?: string } } = {};
-
-    if (responseText) {
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        console.error('[Auth Exchange] Non-JSON response:', response.status, responseText.slice(0, 200));
-      }
-    }
-
-    if (!response.ok || data.error) {
-      if (response.status === 404) {
-        throw new Error('Authentication service is unavailable. Please contact support.');
-      }
-      throw new Error(data.error || `Authentication failed (${response.status}). Please try again.`);
-    }
-
-    if (data.session?.access_token && data.session.refresh_token) {
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-    } else {
-      throw new Error('Authentication completed without a valid session. Please try again.');
-    }
-
-    return true;
-  };
-
   const verifyOTP = useCallback(async (otp: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
     try {
-      let firebaseUid: string | undefined;
+      let idToken: string | undefined;
 
       if (isNative) {
         if (!verificationIdRef.current) {
@@ -296,8 +237,8 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
           verificationId: verificationIdRef.current,
           verificationCode: otp,
         });
-        const { user } = await FirebaseAuthentication.getCurrentUser();
-        firebaseUid = user?.uid;
+        const tokenResult = await FirebaseAuthentication.getIdToken({ forceRefresh: true });
+        idToken = tokenResult?.token;
       } else {
         if (!confirmationResultRef.current) {
           setError('Session expired. Please try again.');
@@ -306,15 +247,24 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         }
         // Step 1: Verify OTP with Firebase web SDK (~1-2s)
         const result = await confirmationResultRef.current.confirm(otp);
-        firebaseUid = result.user.uid;
+        idToken = await result.user.getIdToken(true);
       }
 
-      if (!firebaseUid) {
+      if (!idToken) {
         throw new Error('Verification failed');
       }
 
-      // Step 2: Exchange for a Supabase session
-      await completeSupabaseSession(firebaseUid);
+      // Step 2: Exchange the Google-verified ID token for a backend session.
+      // The server re-verifies the token and mints the session — the client
+      // never holds or derives a credential.
+      await exchangeFirebaseSession({ phoneNumber, idToken });
+
+      // Step 3: Register this device against the shared device_sessions table.
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await registerCurrentDevice({ userId: user.id });
+      }
+
 
       setLoading(false);
       return true;
