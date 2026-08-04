@@ -31,12 +31,13 @@ export const setSessionFromTokens = async (accessToken: string, refreshToken: st
 };
 
 /**
- * Exchange a verified Firebase user for a backend JWT session via the shared
- * edge function. Identical for all domains — no per-domain duplication.
+ * Exchange a Google-verified Firebase ID token for a backend JWT session via
+ * the shared edge function. Identical for all domains — no per-domain
+ * duplication, and no client-side credential derivation of any kind.
  */
 export const exchangeFirebaseSession = async (params: {
   phoneNumber: string;
-  firebaseUid: string;
+  idToken: string;
 }): Promise<void> => {
   const { url, publishableKey } = backendConfig;
   if (!url || !publishableKey) {
@@ -52,9 +53,10 @@ export const exchangeFirebaseSession = async (params: {
     },
     body: JSON.stringify({
       phone_number: params.phoneNumber.replace(/\s/g, ''),
-      firebase_uid: params.firebaseUid,
+      firebase_id_token: params.idToken,
     }),
   });
+
 
   const responseText = await response.text();
   let data: { error?: string; session?: { access_token?: string; refresh_token?: string } } = {};
