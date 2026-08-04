@@ -8,6 +8,8 @@ import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth } from './firebase';
 import { supabase } from '@/integrations/supabase/client';
+import { exchangeFirebaseSession } from './SessionManager';
+import { registerCurrentDevice } from './DeviceManager';
 
 // On native (Android/iOS) Firebase verifies the phone number through
 // Play Integrity / APNs — NO web reCAPTCHA and NO authorized-domain check.
