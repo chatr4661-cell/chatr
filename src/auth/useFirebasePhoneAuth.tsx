@@ -83,42 +83,31 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   }, [countdown]);
 
   /**
-   * INSTANT CHECK: 1-second timeout for existing user check
+   * Entry point from the phone screen.
+   *
+   * SECURITY: there is deliberately NO phone-number-derived credential path
+   * here. A phone number is public information and must never act as a
+   * password. Returning users get their fast path from a restored backend
+   * session (see SessionManager/AuthProvider); anyone without a valid session
+   * must prove ownership of the number via OTP.
    */
   const checkPhoneAndProceed = useCallback(async (phone: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     setPhoneNumber(phone);
 
-    const normalizedPhone = phone.replace(/\s/g, '');
-    const email = `${normalizedPhone.replace(/\+/g, '')}@chatr.local`;
-
-    try {
-      // FAST CHECK: 1-second timeout for instant login
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1000);
-      
-      const { data } = await supabase.auth.signInWithPassword({
-        email,
-        password: normalizedPhone,
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (data?.session) {
-        setIsExistingUser(true);
-        console.log('✅ [Auth] Welcome back');
-        setLoading(false);
-        return true;
-      }
-    } catch {
-      // Continue to OTP
+    // A live session means the device is already authenticated — no OTP needed.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      setIsExistingUser(true);
+      setLoading(false);
+      return true;
     }
 
-    // New user - send OTP immediately
     setIsExistingUser(false);
     return await sendOTP(phone);
   }, []);
+
 
   /**
    * Native phone verification (Android/iOS) — uses the device's native
