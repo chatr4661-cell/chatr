@@ -62,10 +62,7 @@ async function verifyFirebaseIdToken(idToken: string) {
   return { uid: user.localId as string, phoneNumber: user.phoneNumber as string };
 }
 
-serve_handler();
-
-function serve_handler() {
-  Deno.serve(async (req) => {
+Deno.serve(async (req) => {
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
@@ -197,6 +194,5 @@ function serve_handler() {
       const message = error instanceof Error ? error.message : "Unknown error";
       console.error("[phone-auth] unexpected error:", message);
       return json({ error: "Authentication failed. Please try again." }, 500);
-    }
-  });
-}
+  }
+});
