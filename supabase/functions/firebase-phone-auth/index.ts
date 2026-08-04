@@ -194,5 +194,5 @@ Deno.serve(async (req) => {
       const message = error instanceof Error ? error.message : "Unknown error";
       console.error("[phone-auth] unexpected error:", message);
       return json({ error: "Authentication failed. Please try again." }, 500);
-  }
+    }
 });
