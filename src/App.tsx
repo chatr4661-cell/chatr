@@ -339,15 +339,16 @@ const App = () => {
             <Route path="/prechu-ai" element={<ProtectedLazyRoute component={LazyPages.PrechuAI} />} />
             <Route path="/job/:id" element={<Navigate to="/jobs" replace />} />
             <Route path="/notifications" element={<LazyRoute component={LazyPages.Notifications} />} />
-            <Route path="/notification-settings" element={<LazyRoute component={LazyPages.NotificationSettings} />} />
-            <Route path="/notifications/settings" element={<LazyRoute component={LazyPages.NotificationSettings} />} />
-            <Route path="/notifications/digest-settings" element={<LazyRoute component={LazyPages.DigestNotificationSettings} />} />
+            <Route path="/notification-settings" element={<ProtectedLazyRoute component={LazyPages.NotificationSettings} />} />
+            <Route path="/notifications/settings" element={<ProtectedLazyRoute component={LazyPages.NotificationSettings} />} />
+            <Route path="/notifications/digest-settings" element={<ProtectedLazyRoute component={LazyPages.DigestNotificationSettings} />} />
             <Route path="/notifications/health" element={<LazyRoute component={LazyPages.NotificationHealth} />} />
-            <Route path="/notifications/smart" element={<LazyRoute component={LazyPages.SmartPushPreferences} />} />
+            <Route path="/notifications/smart" element={<ProtectedLazyRoute component={LazyPages.SmartPushPreferences} />} />
             <Route path="/notifications/templates" element={<Navigate to="/notifications" replace />} />
-            <Route path="/settings" element={<LazyRoute component={LazyPages.Settings} />} />
-            <Route path="/settings/voice" element={<LazyRoute component={LazyPages.VoiceSettings} />} />
-            <Route path="/device-management" element={<LazyRoute component={LazyPages.DeviceManagement} />} />
+            <Route path="/settings" element={<ProtectedLazyRoute component={LazyPages.Settings} />} />
+            <Route path="/settings/voice" element={<ProtectedLazyRoute component={LazyPages.VoiceSettings} />} />
+            <Route path="/device-management" element={<ProtectedLazyRoute component={LazyPages.DeviceManagement} />} />
+
             <Route path="/bluetooth-test" element={<LazyRoute component={LazyPages.BluetoothTest} />} />
             
             {/* AI Command Center (CEO portal) */}
