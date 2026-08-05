@@ -36,7 +36,8 @@ const digitsOnly = (phone: string) => phone.replace(/[^\d]/g, "");
 const canonicalEmail = (phone: string) => `${digitsOnly(phone)}@chatr.local`;
 
 const randomPassword = () => {
-  const bytes = new Uint8Array(48);
+  // 32 random bytes -> 64 hex chars, safely under Supabase's 72-char password cap.
+  const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 };
