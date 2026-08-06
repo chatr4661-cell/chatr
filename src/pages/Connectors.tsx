@@ -41,6 +41,30 @@ export default function Connectors() {
 
   const connectedCount = byConnector.size;
 
+  /** Raw errors stay here: dev builds, or ?diagnostics=1 for support sessions. */
+  const showDiagnostics =
+    import.meta.env.DEV ||
+    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('diagnostics'));
+
+  const diagnostics = useMemo(
+    () =>
+      [...byConnector.values()]
+        .filter((c) => !!c.last_error)
+        .map((c) => ({
+          connectorId: c.connector_id,
+          message: String(c.last_error).slice(0, 300),
+          configIssue: isConfigurationError(c.last_error),
+        })),
+    [byConnector],
+  );
+
+  useEffect(() => {
+    diagnostics.forEach((d) =>
+      console.warn(`[connectors] ${d.connectorId} ${d.configIssue ? 'configuration' : 'runtime'}: ${d.message}`),
+    );
+  }, [diagnostics]);
+
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur-xl">
