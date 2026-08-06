@@ -62,7 +62,9 @@ export function describeConnector(
     };
   }
 
-  const configIssue = isConfigurationError(connection.last_error);
+  // A live connection wins over any stale configuration error left on the row.
+  const configIssue =
+    connection.status !== 'connected' && isConfigurationError(connection.last_error);
   const diagnostic = connection.last_error ?? null;
 
   if (options.busy) {
