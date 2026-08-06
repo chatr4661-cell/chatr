@@ -21,6 +21,8 @@ interface ProviderConfig {
   clientSecretEnv?: string;
   apiKeyEnv?: string;
   scopes?: string[];
+  rateLimitPerMinute?: number;
+  webhooks?: boolean;
   extraAuthParams?: Record<string, string>;
   /** capability -> provider request + normalizer */
   endpoints?: Record<string, {
@@ -886,7 +888,7 @@ serve(async (req) => {
                 credentials_updated_at: creds?.updated_at ?? null,
               },
               webhooks: {
-                supported: Boolean(cfg.endpoints) && Boolean(connection.connector_id),
+                supported: Boolean(cfg.webhooks),
                 last_event_at: lastWebhook?.created_at ?? null,
                 last_event_type: lastWebhook?.event_type ?? null,
               },
