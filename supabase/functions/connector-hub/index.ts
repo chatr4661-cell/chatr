@@ -760,7 +760,15 @@ serve(async (req) => {
         if (!connection) return json({ status: "disconnected", health: "unknown" });
         try {
           const endpoint = Object.values(config.endpoints ?? {})[0];
-          if (endpoint) await providerFetch(connectorId, connection.id, endpoint.path);
+          if (endpoint) {
+            await providerFetch(connectorId, connection.id, endpoint.path, {
+              method: endpoint.method ?? "GET",
+              ...(endpoint.method === "POST"
+                ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
+                : {}),
+            });
+          }
+
           await svc().from("connector_connections").update({ health: "healthy", last_error: null }).eq("id", connection.id);
           return json({ status: "connected", health: "healthy" });
         } catch (error) {
