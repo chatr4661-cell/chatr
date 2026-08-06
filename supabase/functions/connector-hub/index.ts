@@ -33,6 +33,11 @@ interface ProviderConfig {
     /** Static JSON body for POST-style list calls. */
     requestBody?: unknown;
     list: (body: any) => any[];
+    /** Providers that list bare IDs (Gmail) hydrate full items before mapping. */
+    hydrate?: (
+      items: any[],
+      fetchOne: (path: string) => Promise<any>,
+    ) => Promise<any[]>;
     map: (item: any) => Record<string, unknown>;
     searchPath?: (q: string) => string;
     searchBody?: (q: string) => unknown;
@@ -56,7 +61,41 @@ const PROVIDERS: Record<string, ProviderConfig> = {
         path: "/users/me/messages?maxResults=25",
         recordType: "message",
         list: (b) => b.messages ?? [],
-        map: (m) => ({ external_id: m.id, title: m.snippet ?? "Email", metadata: m }),
+        // Gmail list returns only {id, threadId} — hydrate metadata before mapping.
+        hydrate: async (items, fetchOne) => {
+          const full: any[] = [];
+          for (const item of items) {
+            try {
+              full.push(
+                await fetchOne(
+                  `/users/me/messages/${item.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Date`,
+                ),
+              );
+            } catch (_) {
+              full.push(item);
+            }
+          }
+          return full;
+        },
+        map: (m) => {
+          const headers: any[] = m.payload?.headers ?? [];
+          const header = (name: string) =>
+            headers.find((h) => String(h.name).toLowerCase() === name)?.value ?? null;
+          return {
+            external_id: m.id,
+            title: header("subject") ?? m.snippet ?? "Email",
+            body: m.snippet ?? null,
+            author: header("from"),
+            participants: [header("from"), header("to")].filter(Boolean),
+            url: m.threadId ? `https://mail.google.com/mail/u/0/#inbox/${m.threadId}` : null,
+            occurred_at: m.internalDate
+              ? new Date(Number(m.internalDate)).toISOString()
+              : header("date")
+                ? new Date(header("date") as string).toISOString()
+                : null,
+            metadata: { thread_id: m.threadId, label_ids: m.labelIds ?? [] },
+          };
+        },
         searchPath: (q) => `/users/me/messages?maxResults=25&q=${encodeURIComponent(q)}`,
       },
     },
@@ -664,6 +703,53 @@ async function upsertRecords(
   return rows.length;
 }
 
+/** Pulls every (or one) capability for a connection into the unified record table. */
+async function runSync(connection: any, capability?: string) {
+  const connectorId = connection.connector_id;
+  const config = PROVIDERS[connectorId] ?? {};
+  const caps = capability ? [capability] : Object.keys(config.endpoints ?? {});
+  const results: any[] = [];
+  const failures: string[] = [];
+
+  for (const cap of caps) {
+    const endpoint = config.endpoints?.[cap];
+    if (!endpoint) continue;
+    try {
+      const payload = await providerFetch(connectorId, connection.id, endpoint.path, {
+        method: endpoint.method ?? "GET",
+        ...(endpoint.method === "POST"
+          ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
+          : {}),
+      });
+
+      let items = endpoint.list(payload);
+      if (endpoint.hydrate && items.length) {
+        items = await endpoint.hydrate(items, (p) => providerFetch(connectorId, connection.id, p));
+      }
+      const upserted = await upsertRecords(connection, cap, endpoint.recordType, items.map(endpoint.map));
+      console.log(`[sync] ${connectorId}/${cap} fetched=${items.length} upserted=${upserted}`);
+      results.push({ capability: cap, fetched: items.length, upserted });
+    } catch (error) {
+      const message = String((error as Error).message).slice(0, 500);
+      console.error(`[sync] ${connectorId}/${cap} failed: ${message}`);
+      failures.push(`${cap}: ${message}`);
+      results.push({ capability: cap, fetched: 0, upserted: 0, error: message });
+    }
+  }
+
+  const allFailed = failures.length > 0 && failures.length === results.length;
+  await svc().from("connector_connections")
+    .update({
+      // Only claim a successful sync when at least one capability pulled data.
+      ...(allFailed ? {} : { last_synced_at: new Date().toISOString() }),
+      health: failures.length === 0 ? "healthy" : allFailed ? "failing" : "degraded",
+      last_error: failures.length ? failures.join(" | ").slice(0, 500) : null,
+    })
+    .eq("id", connection.id);
+
+  return { results, errors: failures };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -727,7 +813,15 @@ serve(async (req) => {
           ...(identity ? { display_name: maskAccount(identity) } : {}),
         })
         .eq("id", stateRow.id);
+      console.log(`[oauth] callback complete connector=${stateRow.connector_id} connection=${stateRow.id}`);
 
+      // Initial sync so the Universal Inbox has data immediately after connecting.
+      try {
+        const initial = await runSync({ ...stateRow, status: "connected" });
+        console.log(`[oauth] initial sync ${stateRow.connector_id}: ${JSON.stringify(initial.results)}`);
+      } catch (syncError) {
+        console.error("initial sync failed", syncError);
+      }
 
       const back = String(stateRow.settings?.redirect_to ?? "/connectors");
       const sep = back.includes("?") ? "&" : "?";
@@ -951,25 +1045,7 @@ serve(async (req) => {
           .from("connector_connections").select("*").eq("id", body.connection_id).eq("user_id", user.id).maybeSingle();
         if (!connection) return json({ error: "Connection not found", status: 404 }, 200);
 
-        const caps = body.capability ? [body.capability] : Object.keys(config.endpoints ?? {});
-        const results: unknown[] = [];
-        for (const cap of caps) {
-          const endpoint = config.endpoints?.[cap];
-          if (!endpoint) continue;
-          const payload = await providerFetch(connectorId, connection.id, endpoint.path, {
-            method: endpoint.method ?? "GET",
-            ...(endpoint.method === "POST"
-              ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
-              : {}),
-          });
-
-          const items = endpoint.list(payload);
-          const upserted = await upsertRecords(connection, cap, endpoint.recordType, items.map(endpoint.map));
-          results.push({ capability: cap, fetched: items.length, upserted });
-        }
-        await svc().from("connector_connections")
-          .update({ last_synced_at: new Date().toISOString(), health: "healthy" }).eq("id", connection.id);
-        return json({ results });
+        return json(await runSync(connection, body.capability));
       }
 
       case "search": {
@@ -991,7 +1067,11 @@ serve(async (req) => {
             : {}),
         });
 
-        const records = endpoint.list(payload).map((item: any) => ({
+        let found = endpoint.list(payload);
+        if (endpoint.hydrate && found.length) {
+          found = await endpoint.hydrate(found, (p) => providerFetch(connectorId, connection.id, p));
+        }
+        const records = found.map((item: any) => ({
           ...endpoint.map(item),
           record_type: endpoint.recordType,
           capability: cap,
