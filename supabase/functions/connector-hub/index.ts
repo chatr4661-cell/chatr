@@ -782,7 +782,13 @@ serve(async (req) => {
         for (const cap of caps) {
           const endpoint = config.endpoints?.[cap];
           if (!endpoint) continue;
-          const payload = await providerFetch(connectorId, connection.id, endpoint.path);
+          const payload = await providerFetch(connectorId, connection.id, endpoint.path, {
+            method: endpoint.method ?? "GET",
+            ...(endpoint.method === "POST"
+              ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
+              : {}),
+          });
+
           const items = endpoint.list(payload);
           const upserted = await upsertRecords(connection, cap, endpoint.recordType, items.map(endpoint.map));
           results.push({ capability: cap, fetched: items.length, upserted });
