@@ -16,13 +16,8 @@ import {
 } from '@/connectors';
 
 import { CAPABILITY_GROUPS, useConnectors } from '@/hooks/useConnectors';
+import { describeConnector, isConfigurationError } from '@/components/connectors/connectorStatus';
 
-const HEALTH_LABEL: Record<string, string> = {
-  healthy: 'Working',
-  degraded: 'Needs attention',
-  failing: 'Not working',
-  unknown: 'Not synced yet',
-};
 
 export default function Connectors() {
   const navigate = useNavigate();
