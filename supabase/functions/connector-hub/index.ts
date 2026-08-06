@@ -697,10 +697,22 @@ serve(async (req) => {
 
 
       const grantedScopes = String(token.scope ?? config.scopes?.join(" ") ?? "").split(/[\s,]+/).filter(Boolean);
+      const identity =
+        (await resolveAccountLabel(stateRow.connector_id, token.access_token)) ??
+        token.owner?.user?.person?.email ??
+        null;
       await svc()
         .from("connector_connections")
-        .update({ status: "connected", health: "healthy", scopes: grantedScopes, last_error: null })
+        .update({
+          status: "connected",
+          health: "healthy",
+          scopes: grantedScopes,
+          last_error: null,
+          last_synced_at: stateRow.last_synced_at ?? null,
+          ...(identity ? { display_name: maskAccount(identity) } : {}),
+        })
         .eq("id", stateRow.id);
+
 
       const back = String(stateRow.settings?.redirect_to ?? "/connectors");
       const sep = back.includes("?") ? "&" : "?";
