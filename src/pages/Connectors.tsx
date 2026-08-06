@@ -16,7 +16,7 @@ import {
 } from '@/connectors';
 
 import { CAPABILITY_GROUPS, useConnectors } from '@/hooks/useConnectors';
-import { describeConnector, isConfigurationError } from '@/components/connectors/connectorStatus';
+import { describeConnector, isConfigurationError, lastSyncLabel } from '@/components/connectors/connectorStatus';
 
 
 export default function Connectors() {
@@ -216,7 +216,7 @@ export default function Connectors() {
                         <div className="min-w-0">
                           <dt className="opacity-70">Provider</dt>
                           <dd className="truncate font-medium text-foreground">
-                            {definition.provider ?? definition.name}
+                            {definition.vendor ?? definition.name}
                           </dd>
                         </div>
                         <div className="min-w-0">
