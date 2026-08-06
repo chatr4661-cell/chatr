@@ -580,6 +580,50 @@ async function providerFetch(connectorId: string, connectionId: string, path: st
   }
 }
 
+/** Best-effort account identity so the UI can show which account is linked. */
+const IDENTITY: Record<string, { url: string; pick: (b: any) => string | undefined }> = {
+  gmail: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email ?? b.name },
+  google_calendar: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email },
+  google_drive: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email },
+  google_contacts: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email },
+  google_meet: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email },
+  outlook: { url: "https://graph.microsoft.com/v1.0/me", pick: (b) => b.mail ?? b.userPrincipalName },
+  outlook_calendar: { url: "https://graph.microsoft.com/v1.0/me", pick: (b) => b.mail ?? b.userPrincipalName },
+  onedrive: { url: "https://graph.microsoft.com/v1.0/me", pick: (b) => b.mail ?? b.userPrincipalName },
+  microsoft_teams: { url: "https://graph.microsoft.com/v1.0/me", pick: (b) => b.mail ?? b.userPrincipalName },
+  slack: { url: "https://slack.com/api/auth.test", pick: (b) => (b.ok ? `${b.user}@${b.team}` : undefined) },
+  github: { url: "https://api.github.com/user", pick: (b) => b.email ?? b.login },
+  hubspot: { url: "https://api.hubapi.com/oauth/v1/access-tokens", pick: (b) => b.user },
+  zoom: { url: "https://api.zoom.us/v2/users/me", pick: (b) => b.email },
+  asana: { url: "https://app.asana.com/api/1.0/users/me", pick: (b) => b.data?.email },
+  dropbox: { url: "https://api.dropboxapi.com/2/users/get_current_account", pick: (b) => b.email },
+};
+
+/** Masks an email/handle for display: arjun@gmail.com -> ar***@gmail.com */
+function maskAccount(value?: string | null): string | null {
+  if (!value) return null;
+  const [local, domain] = String(value).split("@");
+  const head = local.slice(0, 2);
+  const masked = `${head}${local.length > 2 ? "***" : ""}`;
+  return domain ? `${masked}@${domain}` : masked;
+}
+
+async function resolveAccountLabel(connectorId: string, accessToken: string): Promise<string | null> {
+  const identity = IDENTITY[connectorId];
+  if (!identity) return null;
+  try {
+    const res = await fetch(identity.url, {
+      method: connectorId === "dropbox" ? "POST" : "GET",
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const body = await res.json().catch(() => ({}));
+    return identity.pick(body) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 
 async function upsertRecords(
   connection: any,
