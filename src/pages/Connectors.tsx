@@ -188,18 +188,47 @@ export default function Connectors() {
 
                   {/* Health strip — only what a customer can act on. */}
                   {connection && (
-                    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-muted/40 px-2.5 py-1.5 text-[11px]">
-                      <span className="inline-flex items-center gap-1.5 font-medium">
-                        <span className={`h-1.5 w-1.5 rounded-full ${status.dotClass}`} />
-                        {status.label}
-                      </span>
-                      <span className="text-muted-foreground">{status.hint}</span>
-                      <span className="text-muted-foreground">
-                        {definition.capabilities.length} capabilit
-                        {definition.capabilities.length === 1 ? 'y' : 'ies'}
-                      </span>
+                    <div className="mt-2.5 space-y-1 rounded-xl bg-muted/40 px-2.5 py-2 text-[11px]">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="inline-flex items-center gap-1.5 font-medium">
+                          {status.state === 'connected' ? (
+                            <Check className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            <span className={`h-1.5 w-1.5 rounded-full ${status.dotClass}`} />
+                          )}
+                          {status.label}
+                        </span>
+                        <span className="text-muted-foreground">{status.hint}</span>
+                      </div>
+                      <dl className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-muted-foreground sm:grid-cols-4">
+                        <div className="min-w-0">
+                          <dt className="opacity-70">Last sync</dt>
+                          <dd className="truncate font-medium text-foreground">
+                            {lastSyncLabel(connection) ?? 'never'}
+                          </dd>
+                        </div>
+                        <div className="min-w-0">
+                          <dt className="opacity-70">Capabilities</dt>
+                          <dd className="truncate font-medium text-foreground">
+                            {definition.capabilities.length}
+                          </dd>
+                        </div>
+                        <div className="min-w-0">
+                          <dt className="opacity-70">Provider</dt>
+                          <dd className="truncate font-medium text-foreground">
+                            {definition.provider ?? definition.name}
+                          </dd>
+                        </div>
+                        <div className="min-w-0">
+                          <dt className="opacity-70">Account</dt>
+                          <dd className="truncate font-medium text-foreground">
+                            {connection.display_name ?? connection.account_label ?? '—'}
+                          </dd>
+                        </div>
+                      </dl>
                     </div>
                   )}
+
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {connection ? (
