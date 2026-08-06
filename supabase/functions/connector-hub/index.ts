@@ -1050,7 +1050,11 @@ serve(async (req) => {
             : {}),
         });
 
-        const records = endpoint.list(payload).map((item: any) => ({
+        let found = endpoint.list(payload);
+        if (endpoint.hydrate && found.length) {
+          found = await endpoint.hydrate(found, (p) => providerFetch(connectorId, connection.id, p));
+        }
+        const records = found.map((item: any) => ({
           ...endpoint.map(item),
           record_type: endpoint.recordType,
           capability: cap,
