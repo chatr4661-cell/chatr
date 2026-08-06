@@ -177,12 +177,22 @@ export default function Connectors() {
                     </div>
                   )}
 
-                  
-
-
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {connection ? (
                       <>
+                        {(needsReconnect || status.isConfigIssue) && (
+                          <Button
+                            size="sm"
+                            className="h-8 rounded-lg"
+                            disabled={busy}
+                            onClick={() => connect(definition.id)}
+                          >
+                            <Plug className="h-4 w-4" />
+                            <span className="ml-1.5 text-xs">
+                              {status.isConfigIssue ? 'Connect' : 'Reconnect'}
+                            </span>
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="secondary"
@@ -216,6 +226,7 @@ export default function Connectors() {
                       </Button>
                     )}
                   </div>
+
                 </div>
               </div>
             </Card>
