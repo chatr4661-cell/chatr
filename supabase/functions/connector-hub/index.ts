@@ -523,10 +523,39 @@ async function accessTokenFor(connectorId: string, connectionId: string): Promis
   return body.access_token;
 }
 
-async function providerFetch(connectorId: string, connectionId: string, path: string, init: RequestInit = {}) {
+/** Atlassian cloud ids and Salesforce instance urls are per-account, resolved once and cached in the vault. */
+async function resolveBaseAndPath(connectorId: string, connectionId: string, path: string, token: string) {
   const config = PROVIDERS[connectorId] ?? {};
+
+  if (connectorId === "salesforce") {
+    const creds: any = await Vault.get(connectionId);
+    const instance = creds?.extra?.instance_url;
+    if (!instance) throw new Error("Salesforce instance URL missing — reconnect the account");
+    return { base: String(instance), path };
+  }
+
+  if (path.includes("{cloud}")) {
+    const creds: any = await Vault.get(connectionId);
+    let cloudId = creds?.extra?.cloud_id;
+    if (!cloudId) {
+      const res = await fetch("https://api.atlassian.com/oauth/token/accessible-resources", {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      });
+      const sites = await res.json().catch(() => []);
+      cloudId = Array.isArray(sites) ? sites[0]?.id : undefined;
+      if (!cloudId) throw new Error("No accessible Atlassian site for this account");
+      await Vault.put(connectionId, { extra: { ...(creds?.extra ?? {}), cloud_id: cloudId } });
+    }
+    return { base: config.apiBase!, path: path.replace("{cloud}", String(cloudId)) };
+  }
+
   if (!config.apiBase) throw new Error(`Connector "${connectorId}" has no API base configured`);
+  return { base: config.apiBase, path };
+}
+
+async function providerFetch(connectorId: string, connectionId: string, path: string, init: RequestInit = {}) {
   const token = await accessTokenFor(connectorId, connectionId);
+  const { base, path: resolvedPath } = await resolveBaseAndPath(connectorId, connectionId, path, token);
 
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -539,8 +568,9 @@ async function providerFetch(connectorId: string, connectionId: string, path: st
     headers.Authorization = `Bearer ${token}`;
   }
   if (connectorId === "notion") headers["Notion-Version"] = "2022-06-28";
+  if (connectorId === "github") headers["X-GitHub-Api-Version"] = "2022-11-28";
 
-  const res = await fetch(`${config.apiBase}${path}`, { ...init, headers });
+  const res = await fetch(`${base}${resolvedPath}`, { ...init, headers });
   const text = await res.text();
   if (!res.ok) throw Object.assign(new Error(`[${res.status}] ${text}`), { status: res.status });
   try {
@@ -549,6 +579,7 @@ async function providerFetch(connectorId: string, connectionId: string, path: st
     return {};
   }
 }
+
 
 async function upsertRecords(
   connection: any,
