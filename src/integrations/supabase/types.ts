@@ -308,6 +308,93 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_execution_log: {
+        Row: {
+          capability_id: string
+          created_at: string | null
+          duration_ms: number
+          estimated_cost: number | null
+          execution_id: string
+          id: string
+          model: string
+          provider_id: string
+          status: string
+          tenant_id: string | null
+          trace_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          capability_id: string
+          created_at?: string | null
+          duration_ms: number
+          estimated_cost?: number | null
+          execution_id: string
+          id?: string
+          model: string
+          provider_id: string
+          status: string
+          tenant_id?: string | null
+          trace_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          capability_id?: string
+          created_at?: string | null
+          duration_ms?: number
+          estimated_cost?: number | null
+          execution_id?: string
+          id?: string
+          model?: string
+          provider_id?: string
+          status?: string
+          tenant_id?: string | null
+          trace_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_models: {
+        Row: {
+          cost_rank: number | null
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          latency_rank: number | null
+          model_name: string
+          provider: string
+          supports_chat: boolean | null
+          supports_streaming: boolean | null
+          supports_tools: boolean | null
+          supports_vision: boolean | null
+        }
+        Insert: {
+          cost_rank?: number | null
+          created_at?: string | null
+          enabled?: boolean | null
+          id: string
+          latency_rank?: number | null
+          model_name: string
+          provider?: string
+          supports_chat?: boolean | null
+          supports_streaming?: boolean | null
+          supports_tools?: boolean | null
+          supports_vision?: boolean | null
+        }
+        Update: {
+          cost_rank?: number | null
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          latency_rank?: number | null
+          model_name?: string
+          provider?: string
+          supports_chat?: boolean | null
+          supports_streaming?: boolean | null
+          supports_tools?: boolean | null
+          supports_vision?: boolean | null
+        }
+        Relationships: []
+      }
       ai_moments: {
         Row: {
           conversation_snippet: string
@@ -6873,6 +6960,260 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      connector_connections: {
+        Row: {
+          account_label: string | null
+          capabilities: string[]
+          connector_id: string
+          created_at: string
+          display_name: string | null
+          health: string
+          id: string
+          last_error: string | null
+          last_synced_at: string | null
+          scopes: string[]
+          settings: Json
+          status: string
+          sync_cursor: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_label?: string | null
+          capabilities?: string[]
+          connector_id: string
+          created_at?: string
+          display_name?: string | null
+          health?: string
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          scopes?: string[]
+          settings?: Json
+          status?: string
+          sync_cursor?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_label?: string | null
+          capabilities?: string[]
+          connector_id?: string
+          created_at?: string
+          display_name?: string | null
+          health?: string
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          scopes?: string[]
+          settings?: Json
+          status?: string
+          sync_cursor?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      connector_credentials: {
+        Row: {
+          access_token: string | null
+          connection_id: string
+          created_at: string
+          expires_at: string | null
+          extra: Json
+          id: string
+          refresh_token: string | null
+          token_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          connection_id: string
+          created_at?: string
+          expires_at?: string | null
+          extra?: Json
+          id?: string
+          refresh_token?: string | null
+          token_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          connection_id?: string
+          created_at?: string
+          expires_at?: string | null
+          extra?: Json
+          id?: string
+          refresh_token?: string | null
+          token_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connector_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "connector_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connector_records: {
+        Row: {
+          author: string | null
+          body: string | null
+          capability: string
+          connection_id: string
+          connector_id: string
+          created_at: string
+          external_id: string
+          id: string
+          metadata: Json
+          occurred_at: string | null
+          participants: Json
+          record_type: string
+          title: string | null
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          author?: string | null
+          body?: string | null
+          capability: string
+          connection_id: string
+          connector_id: string
+          created_at?: string
+          external_id: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string | null
+          participants?: Json
+          record_type: string
+          title?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          author?: string | null
+          body?: string | null
+          capability?: string
+          connection_id?: string
+          connector_id?: string
+          created_at?: string
+          external_id?: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string | null
+          participants?: Json
+          record_type?: string
+          title?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connector_records_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connector_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connector_sync_runs: {
+        Row: {
+          capability: string
+          connection_id: string
+          duration_ms: number | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          items_fetched: number
+          items_upserted: number
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          capability: string
+          connection_id: string
+          duration_ms?: number | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          items_fetched?: number
+          items_upserted?: number
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          capability?: string
+          connection_id?: string
+          duration_ms?: number | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          items_fetched?: number
+          items_upserted?: number
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connector_sync_runs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connector_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connector_webhook_events: {
+        Row: {
+          connection_id: string | null
+          connector_id: string
+          error: string | null
+          event_type: string | null
+          id: string
+          payload: Json
+          processed: boolean
+          received_at: string
+        }
+        Insert: {
+          connection_id?: string | null
+          connector_id: string
+          error?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean
+          received_at?: string
+        }
+        Update: {
+          connection_id?: string | null
+          connector_id?: string
+          error?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connector_webhook_events_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connector_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_intelligence: {
         Row: {
@@ -21062,6 +21403,33 @@ export type Database = {
           },
         ]
       }
+      user_ai_keys: {
+        Row: {
+          created_at: string | null
+          encrypted_key: string
+          id: string
+          provider: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          encrypted_key: string
+          id?: string
+          provider?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          encrypted_key?: string
+          id?: string
+          provider?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_name: string | null
@@ -23170,6 +23538,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workspace_ai_keys: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          encrypted_key: string
+          id: string
+          priority: number | null
+          provider: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          encrypted_key: string
+          id?: string
+          priority?: number | null
+          provider?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          encrypted_key?: string
+          id?: string
+          priority?: number | null
+          provider?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
       }
       workspace_broadcasts: {
         Row: {
