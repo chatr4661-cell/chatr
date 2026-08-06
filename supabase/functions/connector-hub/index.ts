@@ -326,7 +326,23 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     apiBase: "https://api.dropboxapi.com/2",
     clientIdEnv: "DROPBOX_CONNECTOR_CLIENT_ID", clientSecretEnv: "DROPBOX_CONNECTOR_CLIENT_SECRET",
     extraAuthParams: { token_access_type: "offline" },
+    endpoints: {
+      "files.read": {
+        path: "/files/list_folder",
+        method: "POST",
+        requestBody: { path: "", recursive: false, limit: 100 },
+        recordType: "file",
+        list: (b) => b.entries ?? [],
+        map: (f) => ({
+          external_id: f.id ?? f.path_lower, title: f.name,
+          occurred_at: f.server_modified ?? null, metadata: f,
+        }),
+        searchPath: () => "/files/search_v2",
+        searchBody: (q) => ({ query: q, options: { max_results: 50 } }),
+      },
+    },
   },
+
   stripe: {
     apiKeyEnv: "STRIPE_SECRET_KEY", apiBase: "https://api.stripe.com/v1",
     endpoints: {
