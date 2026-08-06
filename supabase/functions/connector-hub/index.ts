@@ -289,10 +289,41 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     authUrl: "https://api.notion.com/v1/oauth/authorize", tokenUrl: "https://api.notion.com/v1/oauth/token",
     apiBase: "https://api.notion.com/v1",
     clientIdEnv: "NOTION_CONNECTOR_CLIENT_ID", clientSecretEnv: "NOTION_CONNECTOR_CLIENT_SECRET",
+    extraAuthParams: { owner: "user" },
+    endpoints: {
+      "docs.read": {
+        path: "/search",
+        method: "POST",
+        requestBody: { page_size: 50, sort: { direction: "descending", timestamp: "last_edited_time" } },
+        recordType: "document",
+        list: (b) => b.results ?? [],
+        map: (p) => ({
+          external_id: p.id,
+          title:
+            p.properties?.title?.title?.[0]?.plain_text ??
+            p.properties?.Name?.title?.[0]?.plain_text ??
+            p.title?.[0]?.plain_text ?? "Notion page",
+          url: p.url, occurred_at: p.last_edited_time, metadata: p,
+        }),
+        searchPath: () => "/search",
+        searchBody: (q) => ({ query: q, page_size: 50 }),
+      },
+    },
   },
   trello: {
     authUrl: "https://trello.com/1/authorize", apiBase: "https://api.trello.com/1",
     clientIdEnv: "TRELLO_CONNECTOR_CLIENT_ID", clientSecretEnv: "TRELLO_CONNECTOR_CLIENT_SECRET",
+    endpoints: {
+      "tasks.read": {
+        path: "/members/me/cards?limit=100",
+        recordType: "task",
+        list: (b) => (Array.isArray(b) ? b : []),
+        map: (c) => ({
+          external_id: c.id, title: c.name, body: c.desc, url: c.shortUrl,
+          occurred_at: c.dateLastActivity ?? c.due ?? null, metadata: c,
+        }),
+      },
+    },
   },
   asana: {
     authUrl: "https://app.asana.com/-/oauth_authorize", tokenUrl: "https://app.asana.com/-/oauth_token",
@@ -301,13 +332,18 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     scopes: ["default"],
     endpoints: {
       "tasks.read": {
-        path: "/tasks?limit=50&assignee=me&workspace=",
+        path: "/tasks?limit=50&assignee=me&opt_fields=name,notes,due_on,completed,permalink_url,modified_at",
         recordType: "task",
         list: (b) => b.data ?? [],
-        map: (t) => ({ external_id: t.gid, title: t.name, metadata: t }),
+        map: (t) => ({
+          external_id: t.gid, title: t.name, body: t.notes, url: t.permalink_url,
+          occurred_at: t.modified_at ?? t.due_on ?? null, metadata: t,
+        }),
+        searchPath: (q) => `/tasks?limit=50&assignee=me&opt_fields=name,notes,permalink_url&text=${encodeURIComponent(q)}`,
       },
     },
   },
+
   zoom: {
     authUrl: "https://zoom.us/oauth/authorize", tokenUrl: "https://zoom.us/oauth/token",
     apiBase: "https://api.zoom.us/v2",
