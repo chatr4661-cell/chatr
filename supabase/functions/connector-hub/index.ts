@@ -46,6 +46,7 @@ const MS = "https://login.microsoftonline.com/common/oauth2/v2.0";
 
 const PROVIDERS: Record<string, ProviderConfig> = {
   gmail: {
+    rateLimitPerMinute: 240, webhooks: true,
     authUrl: G, tokenUrl: GT, apiBase: "https://gmail.googleapis.com/gmail/v1",
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
     scopes: ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"],
@@ -61,6 +62,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   google_calendar: {
+    rateLimitPerMinute: 240, webhooks: true,
     authUrl: G, tokenUrl: GT, apiBase: "https://www.googleapis.com/calendar/v3",
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
     scopes: ["https://www.googleapis.com/auth/calendar"],
@@ -96,6 +98,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
 
   google_drive: {
+    rateLimitPerMinute: 240, webhooks: true,
     authUrl: G, tokenUrl: GT, apiBase: "https://www.googleapis.com/drive/v3",
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
     scopes: ["https://www.googleapis.com/auth/drive"],
@@ -131,6 +134,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   outlook: {
+    rateLimitPerMinute: 180, webhooks: true,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
     scopes: ["offline_access", "Mail.Read", "Mail.Send", "Contacts.Read"],
@@ -161,6 +165,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   microsoft_teams: {
+    rateLimitPerMinute: 120,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
     scopes: ["offline_access", "Chat.Read"],
@@ -174,6 +179,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   onedrive: {
+    rateLimitPerMinute: 180,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
     scopes: ["offline_access", "Files.ReadWrite"],
@@ -187,6 +193,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   slack: {
+    rateLimitPerMinute: 60, webhooks: true,
     authUrl: "https://slack.com/oauth/v2/authorize", tokenUrl: "https://slack.com/api/oauth.v2.access",
     apiBase: "https://slack.com/api",
     clientIdEnv: "SLACK_CONNECTOR_CLIENT_ID", clientSecretEnv: "SLACK_CONNECTOR_CLIENT_SECRET",
@@ -215,6 +222,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   github: {
+    rateLimitPerMinute: 120, webhooks: true,
     authUrl: "https://github.com/login/oauth/authorize", tokenUrl: "https://github.com/login/oauth/access_token",
     apiBase: "https://api.github.com",
     clientIdEnv: "GITHUB_CONNECTOR_CLIENT_ID", clientSecretEnv: "GITHUB_CONNECTOR_CLIENT_SECRET",
@@ -250,6 +258,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   jira: {
+    rateLimitPerMinute: 60,
     authUrl: "https://auth.atlassian.com/authorize", tokenUrl: "https://auth.atlassian.com/oauth/token",
     apiBase: "https://api.atlassian.com",
     clientIdEnv: "ATLASSIAN_CONNECTOR_CLIENT_ID", clientSecretEnv: "ATLASSIAN_CONNECTOR_CLIENT_SECRET",
@@ -271,6 +280,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   confluence: {
+    rateLimitPerMinute: 60,
     authUrl: "https://auth.atlassian.com/authorize", tokenUrl: "https://auth.atlassian.com/oauth/token",
     apiBase: "https://api.atlassian.com",
     clientIdEnv: "ATLASSIAN_CONNECTOR_CLIENT_ID", clientSecretEnv: "ATLASSIAN_CONNECTOR_CLIENT_SECRET",
@@ -289,6 +299,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   salesforce: {
+    rateLimitPerMinute: 60,
     authUrl: "https://login.salesforce.com/services/oauth2/authorize",
     tokenUrl: "https://login.salesforce.com/services/oauth2/token",
     clientIdEnv: "SALESFORCE_CONNECTOR_CLIENT_ID", clientSecretEnv: "SALESFORCE_CONNECTOR_CLIENT_SECRET",
@@ -312,6 +323,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
 
   hubspot: {
+    rateLimitPerMinute: 100,
     authUrl: "https://app.hubspot.com/oauth/authorize", tokenUrl: "https://api.hubapi.com/oauth/v1/token",
     apiBase: "https://api.hubapi.com",
     clientIdEnv: "HUBSPOT_CONNECTOR_CLIENT_ID", clientSecretEnv: "HUBSPOT_CONNECTOR_CLIENT_SECRET",
@@ -330,6 +342,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   notion: {
+    rateLimitPerMinute: 60,
     authUrl: "https://api.notion.com/v1/oauth/authorize", tokenUrl: "https://api.notion.com/v1/oauth/token",
     apiBase: "https://api.notion.com/v1",
     clientIdEnv: "NOTION_CONNECTOR_CLIENT_ID", clientSecretEnv: "NOTION_CONNECTOR_CLIENT_SECRET",
@@ -389,6 +402,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
 
   zoom: {
+    rateLimitPerMinute: 60,
     authUrl: "https://zoom.us/oauth/authorize", tokenUrl: "https://zoom.us/oauth/token",
     apiBase: "https://api.zoom.us/v2",
     clientIdEnv: "ZOOM_CONNECTOR_CLIENT_ID", clientSecretEnv: "ZOOM_CONNECTOR_CLIENT_SECRET",
