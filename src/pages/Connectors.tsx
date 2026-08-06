@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Check, Loader2, Plug, RefreshCw, ShieldCheck, Unplug } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -16,13 +16,8 @@ import {
 } from '@/connectors';
 
 import { CAPABILITY_GROUPS, useConnectors } from '@/hooks/useConnectors';
+import { describeConnector, isConfigurationError } from '@/components/connectors/connectorStatus';
 
-const HEALTH_LABEL: Record<string, string> = {
-  healthy: 'Working',
-  degraded: 'Needs attention',
-  failing: 'Not working',
-  unknown: 'Not synced yet',
-};
 
 export default function Connectors() {
   const navigate = useNavigate();
@@ -45,6 +40,30 @@ export default function Connectors() {
   }, [definitions, group, query]);
 
   const connectedCount = byConnector.size;
+
+  /** Raw errors stay here: dev builds, or ?diagnostics=1 for support sessions. */
+  const showDiagnostics =
+    import.meta.env.DEV ||
+    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('diagnostics'));
+
+  const diagnostics = useMemo(
+    () =>
+      [...byConnector.values()]
+        .filter((c) => !!c.last_error)
+        .map((c) => ({
+          connectorId: c.connector_id,
+          message: String(c.last_error).slice(0, 300),
+          configIssue: isConfigurationError(c.last_error),
+        })),
+    [byConnector],
+  );
+
+  useEffect(() => {
+    diagnostics.forEach((d) =>
+      console.warn(`[connectors] ${d.connectorId} ${d.configIssue ? 'configuration' : 'runtime'}: ${d.message}`),
+    );
+  }, [diagnostics]);
+
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -104,9 +123,11 @@ export default function Connectors() {
 
         {visible.map((definition) => {
           const connection = byConnector.get(definition.id);
-          const state = connection ? health(connection) : null;
           const busy = busyId === definition.id;
           const comingSoon = definition.availability !== 'available';
+          const status = describeConnector(connection, { busy });
+          const needsReconnect = status.state === 'action_required' || status.state === 'failed';
+
 
           return (
             <Card key={definition.id} className="rounded-2xl border-border/60 p-4">
@@ -133,11 +154,12 @@ export default function Connectors() {
                         {definition.availability === 'community' ? 'Community' : 'Coming soon'}
                       </Badge>
                     )}
-                    {connection && (
-                      <Badge variant="outline" className="h-5 text-[10px]">
-                        {HEALTH_LABEL[state ?? 'unknown']}
-                      </Badge>
+                    {connection && status.state === 'connected' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                        <ShieldCheck className="h-3 w-3" /> Healthy
+                      </span>
                     )}
+
                     {(() => {
                       const report = certifyConnector(definition);
                       return report.passed ? (
@@ -164,13 +186,37 @@ export default function Connectors() {
                     ))}
                   </ul>
 
-                  {connection?.last_error && (
-                    <p className="mt-2 line-clamp-2 text-[11px] text-destructive">{connection.last_error}</p>
+                  {/* Health strip — only what a customer can act on. */}
+                  {connection && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-muted/40 px-2.5 py-1.5 text-[11px]">
+                      <span className="inline-flex items-center gap-1.5 font-medium">
+                        <span className={`h-1.5 w-1.5 rounded-full ${status.dotClass}`} />
+                        {status.label}
+                      </span>
+                      <span className="text-muted-foreground">{status.hint}</span>
+                      <span className="text-muted-foreground">
+                        {definition.capabilities.length} capabilit
+                        {definition.capabilities.length === 1 ? 'y' : 'ies'}
+                      </span>
+                    </div>
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {connection ? (
                       <>
+                        {(needsReconnect || status.isConfigIssue) && (
+                          <Button
+                            size="sm"
+                            className="h-8 rounded-lg"
+                            disabled={busy}
+                            onClick={() => connect(definition.id)}
+                          >
+                            <Plug className="h-4 w-4" />
+                            <span className="ml-1.5 text-xs">
+                              {status.isConfigIssue ? 'Connect' : 'Reconnect'}
+                            </span>
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="secondary"
@@ -204,6 +250,7 @@ export default function Connectors() {
                       </Button>
                     )}
                   </div>
+
                 </div>
               </div>
             </Card>
@@ -221,6 +268,22 @@ export default function Connectors() {
             smallest set of permissions each capability needs, and you can disconnect at any time.
           </span>
         </div>
+
+        {/* Developer diagnostics — raw provider/config errors, never shown to customers. */}
+        {diagnostics.length > 0 && showDiagnostics && (
+          <details className="rounded-xl border border-border/60 p-3 text-[11px]">
+            <summary className="cursor-pointer font-medium">Developer diagnostics ({diagnostics.length})</summary>
+            <ul className="mt-2 space-y-1.5">
+              {diagnostics.map((d) => (
+                <li key={d.connectorId} className="font-mono leading-snug text-muted-foreground">
+                  <span className="text-foreground">{d.connectorId}</span>
+                  {d.configIssue ? ' · configuration' : ' · runtime'} — {d.message}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
       </main>
     </div>
   );
