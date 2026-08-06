@@ -179,7 +179,7 @@ export default function Connectors() {
                     </div>
                   )}
 
-                  {!connection && needsReconnect === false && status.state === 'not_connected' && null}
+                  
 
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
