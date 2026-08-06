@@ -642,7 +642,15 @@ serve(async (req) => {
         refresh_token: token.refresh_token ?? null,
         token_type: token.token_type ?? "Bearer",
         expires_at: token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : null,
+        // Per-account routing details some providers only return at grant time.
+        extra: {
+          ...(token.instance_url ? { instance_url: token.instance_url } : {}),
+          ...(token.bot_user_id ? { bot_user_id: token.bot_user_id } : {}),
+          ...(token.team?.id ? { team_id: token.team.id } : {}),
+          ...(token.workspace_id ? { workspace_id: token.workspace_id } : {}),
+        },
       });
+
 
       const grantedScopes = String(token.scope ?? config.scopes?.join(" ") ?? "").split(/[\s,]+/).filter(Boolean);
       await svc()
