@@ -655,7 +655,7 @@ serve(async (req) => {
       const grantedScopes = String(token.scope ?? config.scopes?.join(" ") ?? "").split(/[\s,]+/).filter(Boolean);
       await svc()
         .from("connector_connections")
-        .update({ status: "connected", health: "healthy", scopes: grantedScopes })
+        .update({ status: "connected", health: "healthy", scopes: grantedScopes, last_error: null })
         .eq("id", stateRow.id);
 
       const back = String(stateRow.settings?.redirect_to ?? "/connectors");
