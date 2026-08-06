@@ -724,7 +724,6 @@ serve(async (req) => {
           health: "healthy",
           scopes: grantedScopes,
           last_error: null,
-          last_synced_at: stateRow.last_synced_at ?? null,
           ...(identity ? { display_name: maskAccount(identity) } : {}),
         })
         .eq("id", stateRow.id);
