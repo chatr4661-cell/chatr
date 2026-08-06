@@ -244,6 +244,22 @@ export default function Connectors() {
             smallest set of permissions each capability needs, and you can disconnect at any time.
           </span>
         </div>
+
+        {/* Developer diagnostics — raw provider/config errors, never shown to customers. */}
+        {diagnostics.length > 0 && showDiagnostics && (
+          <details className="rounded-xl border border-border/60 p-3 text-[11px]">
+            <summary className="cursor-pointer font-medium">Developer diagnostics ({diagnostics.length})</summary>
+            <ul className="mt-2 space-y-1.5">
+              {diagnostics.map((d) => (
+                <li key={d.connectorId} className="font-mono leading-snug text-muted-foreground">
+                  <span className="text-foreground">{d.connectorId}</span>
+                  {d.configIssue ? ' · configuration' : ' · runtime'} — {d.message}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
       </main>
     </div>
   );
