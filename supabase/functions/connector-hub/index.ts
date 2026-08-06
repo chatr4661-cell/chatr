@@ -801,7 +801,16 @@ serve(async (req) => {
         const endpoint = config.endpoints?.[cap];
         if (!endpoint) return json({ records: [] });
         const path = endpoint.searchPath ? endpoint.searchPath(String(body.query ?? "")) : endpoint.path;
-        const payload = await providerFetch(connectorId, connection.id, path);
+        const searchBody = endpoint.searchBody
+          ? endpoint.searchBody(String(body.query ?? ""))
+          : endpoint.requestBody;
+        const payload = await providerFetch(connectorId, connection.id, path, {
+          method: endpoint.method ?? "GET",
+          ...(endpoint.method === "POST"
+            ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(searchBody ?? {}) }
+            : {}),
+        });
+
         const records = endpoint.list(payload).map((item: any) => ({
           ...endpoint.map(item),
           record_type: endpoint.recordType,
