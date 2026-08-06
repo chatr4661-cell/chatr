@@ -61,7 +61,41 @@ const PROVIDERS: Record<string, ProviderConfig> = {
         path: "/users/me/messages?maxResults=25",
         recordType: "message",
         list: (b) => b.messages ?? [],
-        map: (m) => ({ external_id: m.id, title: m.snippet ?? "Email", metadata: m }),
+        // Gmail list returns only {id, threadId} — hydrate metadata before mapping.
+        hydrate: async (items, fetchOne) => {
+          const full: any[] = [];
+          for (const item of items) {
+            try {
+              full.push(
+                await fetchOne(
+                  `/users/me/messages/${item.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Date`,
+                ),
+              );
+            } catch (_) {
+              full.push(item);
+            }
+          }
+          return full;
+        },
+        map: (m) => {
+          const headers: any[] = m.payload?.headers ?? [];
+          const header = (name: string) =>
+            headers.find((h) => String(h.name).toLowerCase() === name)?.value ?? null;
+          return {
+            external_id: m.id,
+            title: header("subject") ?? m.snippet ?? "Email",
+            body: m.snippet ?? null,
+            author: header("from"),
+            participants: [header("from"), header("to")].filter(Boolean),
+            url: m.threadId ? `https://mail.google.com/mail/u/0/#inbox/${m.threadId}` : null,
+            occurred_at: m.internalDate
+              ? new Date(Number(m.internalDate)).toISOString()
+              : header("date")
+                ? new Date(header("date") as string).toISOString()
+                : null,
+            metadata: { thread_id: m.threadId, label_ids: m.labelIds ?? [] },
+          };
+        },
         searchPath: (q) => `/users/me/messages?maxResults=25&q=${encodeURIComponent(q)}`,
       },
     },
