@@ -26,11 +26,17 @@ interface ProviderConfig {
   endpoints?: Record<string, {
     path: string;
     recordType: string;
+    /** Provider verb; a few providers (Notion, Dropbox, Slack search) list via POST. */
+    method?: "GET" | "POST";
+    /** Static JSON body for POST-style list calls. */
+    requestBody?: unknown;
     list: (body: any) => any[];
     map: (item: any) => Record<string, unknown>;
     searchPath?: (q: string) => string;
+    searchBody?: (q: string) => unknown;
   }>;
 }
+
 
 const G = "https://accounts.google.com/o/oauth2/v2/auth";
 const GT = "https://oauth2.googleapis.com/token";
