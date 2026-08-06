@@ -6,7 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PermissionManager, type CapabilityGroup } from '@/connectors';
+import {
+  PermissionManager,
+  certifyConnector,
+  maturityOf,
+  MATURITY_BLURB,
+  MATURITY_LABEL,
+  type CapabilityGroup,
+} from '@/connectors';
+
 import { CAPABILITY_GROUPS, useConnectors } from '@/hooks/useConnectors';
 
 const HEALTH_LABEL: Record<string, string> = {
