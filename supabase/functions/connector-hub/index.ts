@@ -33,6 +33,11 @@ interface ProviderConfig {
     /** Static JSON body for POST-style list calls. */
     requestBody?: unknown;
     list: (body: any) => any[];
+    /** Providers that list bare IDs (Gmail) hydrate full items before mapping. */
+    hydrate?: (
+      items: any[],
+      fetchOne: (path: string) => Promise<any>,
+    ) => Promise<any[]>;
     map: (item: any) => Record<string, unknown>;
     searchPath?: (q: string) => string;
     searchBody?: (q: string) => unknown;
