@@ -216,7 +216,7 @@ export default function Connectors() {
                         <div className="min-w-0">
                           <dt className="opacity-70">Provider</dt>
                           <dd className="truncate font-medium text-foreground">
-                            {definition.vendor ?? definition.name}
+                            {definition.name}
                           </dd>
                         </div>
                         <div className="min-w-0">
