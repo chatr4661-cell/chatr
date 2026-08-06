@@ -26,11 +26,17 @@ interface ProviderConfig {
   endpoints?: Record<string, {
     path: string;
     recordType: string;
+    /** Provider verb; a few providers (Notion, Dropbox, Slack search) list via POST. */
+    method?: "GET" | "POST";
+    /** Static JSON body for POST-style list calls. */
+    requestBody?: unknown;
     list: (body: any) => any[];
     map: (item: any) => Record<string, unknown>;
     searchPath?: (q: string) => string;
+    searchBody?: (q: string) => unknown;
   }>;
 }
+
 
 const G = "https://accounts.google.com/o/oauth2/v2/auth";
 const GT = "https://oauth2.googleapis.com/token";
@@ -74,7 +80,19 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
     scopes: ["https://www.googleapis.com/auth/calendar.events"],
     extraAuthParams: { access_type: "offline", prompt: "consent" },
+    endpoints: {
+      "meetings.read": {
+        path: "/calendars/primary/events?maxResults=50&singleEvents=true&orderBy=startTime",
+        recordType: "event",
+        list: (b) => (b.items ?? []).filter((e: any) => e.conferenceData || e.hangoutLink),
+        map: (e) => ({
+          external_id: e.id, title: e.summary ?? "Meeting", body: e.description,
+          url: e.hangoutLink ?? e.htmlLink, occurred_at: e.start?.dateTime ?? e.start?.date, metadata: e,
+        }),
+      },
+    },
   },
+
   google_drive: {
     authUrl: G, tokenUrl: GT, apiBase: "https://www.googleapis.com/drive/v3",
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
@@ -235,6 +253,20 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     clientIdEnv: "ATLASSIAN_CONNECTOR_CLIENT_ID", clientSecretEnv: "ATLASSIAN_CONNECTOR_CLIENT_SECRET",
     scopes: ["read:jira-work", "write:jira-work", "offline_access"],
     extraAuthParams: { audience: "api.atlassian.com", prompt: "consent" },
+    endpoints: {
+      "issues.read": {
+        // {cloud} is resolved per connection from /oauth/token/accessible-resources.
+        path: "/ex/jira/{cloud}/rest/api/3/search?maxResults=50&jql=assignee=currentUser()%20order%20by%20updated%20DESC",
+        recordType: "issue",
+        list: (b) => b.issues ?? [],
+        map: (i) => ({
+          external_id: i.id, title: `${i.key} ${i.fields?.summary ?? ""}`.trim(),
+          body: i.fields?.status?.name, occurred_at: i.fields?.updated, metadata: i,
+        }),
+        searchPath: (q) =>
+          `/ex/jira/{cloud}/rest/api/3/search?maxResults=50&jql=${encodeURIComponent(`text ~ "${q}" order by updated DESC`)}`,
+      },
+    },
   },
   confluence: {
     authUrl: "https://auth.atlassian.com/authorize", tokenUrl: "https://auth.atlassian.com/oauth/token",
@@ -242,13 +274,41 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     clientIdEnv: "ATLASSIAN_CONNECTOR_CLIENT_ID", clientSecretEnv: "ATLASSIAN_CONNECTOR_CLIENT_SECRET",
     scopes: ["read:confluence-content.all", "offline_access"],
     extraAuthParams: { audience: "api.atlassian.com", prompt: "consent" },
+    endpoints: {
+      "docs.read": {
+        path: "/ex/confluence/{cloud}/wiki/api/v2/pages?limit=50",
+        recordType: "document",
+        list: (b) => b.results ?? [],
+        map: (p) => ({
+          external_id: String(p.id), title: p.title,
+          occurred_at: p.version?.createdAt ?? null, metadata: p,
+        }),
+      },
+    },
   },
   salesforce: {
     authUrl: "https://login.salesforce.com/services/oauth2/authorize",
     tokenUrl: "https://login.salesforce.com/services/oauth2/token",
     clientIdEnv: "SALESFORCE_CONNECTOR_CLIENT_ID", clientSecretEnv: "SALESFORCE_CONNECTOR_CLIENT_SECRET",
     scopes: ["api", "refresh_token"],
+    endpoints: {
+      "crm.read": {
+        // {instance} resolves to the org instance_url captured at OAuth time.
+        path: "/services/data/v60.0/query?q=" +
+          encodeURIComponent("SELECT Id, Name, StageName, Amount, LastModifiedDate FROM Opportunity ORDER BY LastModifiedDate DESC LIMIT 50"),
+        recordType: "deal",
+        list: (b) => b.records ?? [],
+        map: (d) => ({
+          external_id: d.Id, title: d.Name, body: d.StageName,
+          occurred_at: d.LastModifiedDate, metadata: d,
+        }),
+        searchPath: (q) =>
+          "/services/data/v60.0/query?q=" +
+          encodeURIComponent(`SELECT Id, Name, StageName, LastModifiedDate FROM Opportunity WHERE Name LIKE '%${q.replace(/'/g, "")}%' LIMIT 50`),
+      },
+    },
   },
+
   hubspot: {
     authUrl: "https://app.hubspot.com/oauth/authorize", tokenUrl: "https://api.hubapi.com/oauth/v1/token",
     apiBase: "https://api.hubapi.com",
@@ -271,10 +331,41 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     authUrl: "https://api.notion.com/v1/oauth/authorize", tokenUrl: "https://api.notion.com/v1/oauth/token",
     apiBase: "https://api.notion.com/v1",
     clientIdEnv: "NOTION_CONNECTOR_CLIENT_ID", clientSecretEnv: "NOTION_CONNECTOR_CLIENT_SECRET",
+    extraAuthParams: { owner: "user" },
+    endpoints: {
+      "docs.read": {
+        path: "/search",
+        method: "POST",
+        requestBody: { page_size: 50, sort: { direction: "descending", timestamp: "last_edited_time" } },
+        recordType: "document",
+        list: (b) => b.results ?? [],
+        map: (p) => ({
+          external_id: p.id,
+          title:
+            p.properties?.title?.title?.[0]?.plain_text ??
+            p.properties?.Name?.title?.[0]?.plain_text ??
+            p.title?.[0]?.plain_text ?? "Notion page",
+          url: p.url, occurred_at: p.last_edited_time, metadata: p,
+        }),
+        searchPath: () => "/search",
+        searchBody: (q) => ({ query: q, page_size: 50 }),
+      },
+    },
   },
   trello: {
     authUrl: "https://trello.com/1/authorize", apiBase: "https://api.trello.com/1",
     clientIdEnv: "TRELLO_CONNECTOR_CLIENT_ID", clientSecretEnv: "TRELLO_CONNECTOR_CLIENT_SECRET",
+    endpoints: {
+      "tasks.read": {
+        path: "/members/me/cards?limit=100",
+        recordType: "task",
+        list: (b) => (Array.isArray(b) ? b : []),
+        map: (c) => ({
+          external_id: c.id, title: c.name, body: c.desc, url: c.shortUrl,
+          occurred_at: c.dateLastActivity ?? c.due ?? null, metadata: c,
+        }),
+      },
+    },
   },
   asana: {
     authUrl: "https://app.asana.com/-/oauth_authorize", tokenUrl: "https://app.asana.com/-/oauth_token",
@@ -283,13 +374,18 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     scopes: ["default"],
     endpoints: {
       "tasks.read": {
-        path: "/tasks?limit=50&assignee=me&workspace=",
+        path: "/tasks?limit=50&assignee=me&opt_fields=name,notes,due_on,completed,permalink_url,modified_at",
         recordType: "task",
         list: (b) => b.data ?? [],
-        map: (t) => ({ external_id: t.gid, title: t.name, metadata: t }),
+        map: (t) => ({
+          external_id: t.gid, title: t.name, body: t.notes, url: t.permalink_url,
+          occurred_at: t.modified_at ?? t.due_on ?? null, metadata: t,
+        }),
+        searchPath: (q) => `/tasks?limit=50&assignee=me&opt_fields=name,notes,permalink_url&text=${encodeURIComponent(q)}`,
       },
     },
   },
+
   zoom: {
     authUrl: "https://zoom.us/oauth/authorize", tokenUrl: "https://zoom.us/oauth/token",
     apiBase: "https://api.zoom.us/v2",
@@ -308,7 +404,23 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     apiBase: "https://api.dropboxapi.com/2",
     clientIdEnv: "DROPBOX_CONNECTOR_CLIENT_ID", clientSecretEnv: "DROPBOX_CONNECTOR_CLIENT_SECRET",
     extraAuthParams: { token_access_type: "offline" },
+    endpoints: {
+      "files.read": {
+        path: "/files/list_folder",
+        method: "POST",
+        requestBody: { path: "", recursive: false, limit: 100 },
+        recordType: "file",
+        list: (b) => b.entries ?? [],
+        map: (f) => ({
+          external_id: f.id ?? f.path_lower, title: f.name,
+          occurred_at: f.server_modified ?? null, metadata: f,
+        }),
+        searchPath: () => "/files/search_v2",
+        searchBody: (q) => ({ query: q, options: { max_results: 50 } }),
+      },
+    },
   },
+
   stripe: {
     apiKeyEnv: "STRIPE_SECRET_KEY", apiBase: "https://api.stripe.com/v1",
     endpoints: {
@@ -411,10 +523,39 @@ async function accessTokenFor(connectorId: string, connectionId: string): Promis
   return body.access_token;
 }
 
-async function providerFetch(connectorId: string, connectionId: string, path: string, init: RequestInit = {}) {
+/** Atlassian cloud ids and Salesforce instance urls are per-account, resolved once and cached in the vault. */
+async function resolveBaseAndPath(connectorId: string, connectionId: string, path: string, token: string) {
   const config = PROVIDERS[connectorId] ?? {};
+
+  if (connectorId === "salesforce") {
+    const creds: any = await Vault.get(connectionId);
+    const instance = creds?.extra?.instance_url;
+    if (!instance) throw new Error("Salesforce instance URL missing — reconnect the account");
+    return { base: String(instance), path };
+  }
+
+  if (path.includes("{cloud}")) {
+    const creds: any = await Vault.get(connectionId);
+    let cloudId = creds?.extra?.cloud_id;
+    if (!cloudId) {
+      const res = await fetch("https://api.atlassian.com/oauth/token/accessible-resources", {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      });
+      const sites = await res.json().catch(() => []);
+      cloudId = Array.isArray(sites) ? sites[0]?.id : undefined;
+      if (!cloudId) throw new Error("No accessible Atlassian site for this account");
+      await Vault.put(connectionId, { extra: { ...(creds?.extra ?? {}), cloud_id: cloudId } });
+    }
+    return { base: config.apiBase!, path: path.replace("{cloud}", String(cloudId)) };
+  }
+
   if (!config.apiBase) throw new Error(`Connector "${connectorId}" has no API base configured`);
+  return { base: config.apiBase, path };
+}
+
+async function providerFetch(connectorId: string, connectionId: string, path: string, init: RequestInit = {}) {
   const token = await accessTokenFor(connectorId, connectionId);
+  const { base, path: resolvedPath } = await resolveBaseAndPath(connectorId, connectionId, path, token);
 
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -427,8 +568,9 @@ async function providerFetch(connectorId: string, connectionId: string, path: st
     headers.Authorization = `Bearer ${token}`;
   }
   if (connectorId === "notion") headers["Notion-Version"] = "2022-06-28";
+  if (connectorId === "github") headers["X-GitHub-Api-Version"] = "2022-11-28";
 
-  const res = await fetch(`${config.apiBase}${path}`, { ...init, headers });
+  const res = await fetch(`${base}${resolvedPath}`, { ...init, headers });
   const text = await res.text();
   if (!res.ok) throw Object.assign(new Error(`[${res.status}] ${text}`), { status: res.status });
   try {
@@ -437,6 +579,7 @@ async function providerFetch(connectorId: string, connectionId: string, path: st
     return {};
   }
 }
+
 
 async function upsertRecords(
   connection: any,
@@ -499,7 +642,15 @@ serve(async (req) => {
         refresh_token: token.refresh_token ?? null,
         token_type: token.token_type ?? "Bearer",
         expires_at: token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : null,
+        // Per-account routing details some providers only return at grant time.
+        extra: {
+          ...(token.instance_url ? { instance_url: token.instance_url } : {}),
+          ...(token.bot_user_id ? { bot_user_id: token.bot_user_id } : {}),
+          ...(token.team?.id ? { team_id: token.team.id } : {}),
+          ...(token.workspace_id ? { workspace_id: token.workspace_id } : {}),
+        },
       });
+
 
       const grantedScopes = String(token.scope ?? config.scopes?.join(" ") ?? "").split(/[\s,]+/).filter(Boolean);
       await svc()
@@ -617,7 +768,15 @@ serve(async (req) => {
         if (!connection) return json({ status: "disconnected", health: "unknown" });
         try {
           const endpoint = Object.values(config.endpoints ?? {})[0];
-          if (endpoint) await providerFetch(connectorId, connection.id, endpoint.path);
+          if (endpoint) {
+            await providerFetch(connectorId, connection.id, endpoint.path, {
+              method: endpoint.method ?? "GET",
+              ...(endpoint.method === "POST"
+                ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
+                : {}),
+            });
+          }
+
           await svc().from("connector_connections").update({ health: "healthy", last_error: null }).eq("id", connection.id);
           return json({ status: "connected", health: "healthy" });
         } catch (error) {
@@ -639,7 +798,13 @@ serve(async (req) => {
         for (const cap of caps) {
           const endpoint = config.endpoints?.[cap];
           if (!endpoint) continue;
-          const payload = await providerFetch(connectorId, connection.id, endpoint.path);
+          const payload = await providerFetch(connectorId, connection.id, endpoint.path, {
+            method: endpoint.method ?? "GET",
+            ...(endpoint.method === "POST"
+              ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
+              : {}),
+          });
+
           const items = endpoint.list(payload);
           const upserted = await upsertRecords(connection, cap, endpoint.recordType, items.map(endpoint.map));
           results.push({ capability: cap, fetched: items.length, upserted });
@@ -658,7 +823,16 @@ serve(async (req) => {
         const endpoint = config.endpoints?.[cap];
         if (!endpoint) return json({ records: [] });
         const path = endpoint.searchPath ? endpoint.searchPath(String(body.query ?? "")) : endpoint.path;
-        const payload = await providerFetch(connectorId, connection.id, path);
+        const searchBody = endpoint.searchBody
+          ? endpoint.searchBody(String(body.query ?? ""))
+          : endpoint.requestBody;
+        const payload = await providerFetch(connectorId, connection.id, path, {
+          method: endpoint.method ?? "GET",
+          ...(endpoint.method === "POST"
+            ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(searchBody ?? {}) }
+            : {}),
+        });
+
         const records = endpoint.list(payload).map((item: any) => ({
           ...endpoint.map(item),
           record_type: endpoint.recordType,
