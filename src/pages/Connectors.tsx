@@ -135,11 +135,12 @@ export default function Connectors() {
                         {definition.availability === 'community' ? 'Community' : 'Coming soon'}
                       </Badge>
                     )}
-                    {connection && (
-                      <Badge variant="outline" className="h-5 text-[10px]">
-                        {HEALTH_LABEL[state ?? 'unknown']}
-                      </Badge>
+                    {connection && status.state === 'connected' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                        <ShieldCheck className="h-3 w-3" /> Healthy
+                      </span>
                     )}
+
                     {(() => {
                       const report = certifyConnector(definition);
                       return report.passed ? (
