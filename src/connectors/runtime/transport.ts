@@ -14,7 +14,8 @@ export interface HubRequest {
     | 'status'
     | 'sync'
     | 'search'
-    | 'execute';
+    | 'execute'
+    | 'diagnostics';
   connector_id: string;
   connection_id?: string;
   capability?: string;
@@ -24,6 +25,8 @@ export interface HubRequest {
   account_label?: string;
   credentials?: Record<string, string>;
   redirect_to?: string;
+  /** diagnostics only: run a live latency probe against the provider. */
+  probe?: boolean;
 }
 
 export async function callHub<T = any>(
