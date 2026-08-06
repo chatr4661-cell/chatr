@@ -144,6 +144,7 @@ export const PrechuAI = lazy(() => import('@/pages/PrechuAI'));
 
 // Marketplace & Services
 export const Connectors = lazy(() => import('@/pages/Connectors'));
+export const ConnectorDiagnostics = lazy(() => import('@/pages/ConnectorDiagnostics'));
 export const Marketplace = lazy(() => import('@/pages/Marketplace'));
 export const ServiceListing = lazy(() => import('@/pages/ServiceListing'));
 export const HomeServices = lazy(() => import('@/pages/HomeServices'));

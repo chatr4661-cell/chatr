@@ -21,6 +21,8 @@ interface ProviderConfig {
   clientSecretEnv?: string;
   apiKeyEnv?: string;
   scopes?: string[];
+  rateLimitPerMinute?: number;
+  webhooks?: boolean;
   extraAuthParams?: Record<string, string>;
   /** capability -> provider request + normalizer */
   endpoints?: Record<string, {
@@ -44,6 +46,7 @@ const MS = "https://login.microsoftonline.com/common/oauth2/v2.0";
 
 const PROVIDERS: Record<string, ProviderConfig> = {
   gmail: {
+    rateLimitPerMinute: 240, webhooks: true,
     authUrl: G, tokenUrl: GT, apiBase: "https://gmail.googleapis.com/gmail/v1",
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
     scopes: ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"],
@@ -59,6 +62,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   google_calendar: {
+    rateLimitPerMinute: 240, webhooks: true,
     authUrl: G, tokenUrl: GT, apiBase: "https://www.googleapis.com/calendar/v3",
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
     scopes: ["https://www.googleapis.com/auth/calendar"],
@@ -94,6 +98,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
 
   google_drive: {
+    rateLimitPerMinute: 240, webhooks: true,
     authUrl: G, tokenUrl: GT, apiBase: "https://www.googleapis.com/drive/v3",
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
     scopes: ["https://www.googleapis.com/auth/drive"],
@@ -129,6 +134,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   outlook: {
+    rateLimitPerMinute: 180, webhooks: true,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
     scopes: ["offline_access", "Mail.Read", "Mail.Send", "Contacts.Read"],
@@ -159,6 +165,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   microsoft_teams: {
+    rateLimitPerMinute: 120,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
     scopes: ["offline_access", "Chat.Read"],
@@ -172,6 +179,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   onedrive: {
+    rateLimitPerMinute: 180,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
     scopes: ["offline_access", "Files.ReadWrite"],
@@ -185,6 +193,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   slack: {
+    rateLimitPerMinute: 60, webhooks: true,
     authUrl: "https://slack.com/oauth/v2/authorize", tokenUrl: "https://slack.com/api/oauth.v2.access",
     apiBase: "https://slack.com/api",
     clientIdEnv: "SLACK_CONNECTOR_CLIENT_ID", clientSecretEnv: "SLACK_CONNECTOR_CLIENT_SECRET",
@@ -213,6 +222,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   github: {
+    rateLimitPerMinute: 120, webhooks: true,
     authUrl: "https://github.com/login/oauth/authorize", tokenUrl: "https://github.com/login/oauth/access_token",
     apiBase: "https://api.github.com",
     clientIdEnv: "GITHUB_CONNECTOR_CLIENT_ID", clientSecretEnv: "GITHUB_CONNECTOR_CLIENT_SECRET",
@@ -248,6 +258,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   jira: {
+    rateLimitPerMinute: 60,
     authUrl: "https://auth.atlassian.com/authorize", tokenUrl: "https://auth.atlassian.com/oauth/token",
     apiBase: "https://api.atlassian.com",
     clientIdEnv: "ATLASSIAN_CONNECTOR_CLIENT_ID", clientSecretEnv: "ATLASSIAN_CONNECTOR_CLIENT_SECRET",
@@ -269,6 +280,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   confluence: {
+    rateLimitPerMinute: 60,
     authUrl: "https://auth.atlassian.com/authorize", tokenUrl: "https://auth.atlassian.com/oauth/token",
     apiBase: "https://api.atlassian.com",
     clientIdEnv: "ATLASSIAN_CONNECTOR_CLIENT_ID", clientSecretEnv: "ATLASSIAN_CONNECTOR_CLIENT_SECRET",
@@ -287,6 +299,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   salesforce: {
+    rateLimitPerMinute: 60,
     authUrl: "https://login.salesforce.com/services/oauth2/authorize",
     tokenUrl: "https://login.salesforce.com/services/oauth2/token",
     clientIdEnv: "SALESFORCE_CONNECTOR_CLIENT_ID", clientSecretEnv: "SALESFORCE_CONNECTOR_CLIENT_SECRET",
@@ -310,6 +323,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
 
   hubspot: {
+    rateLimitPerMinute: 100,
     authUrl: "https://app.hubspot.com/oauth/authorize", tokenUrl: "https://api.hubapi.com/oauth/v1/token",
     apiBase: "https://api.hubapi.com",
     clientIdEnv: "HUBSPOT_CONNECTOR_CLIENT_ID", clientSecretEnv: "HUBSPOT_CONNECTOR_CLIENT_SECRET",
@@ -328,6 +342,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     },
   },
   notion: {
+    rateLimitPerMinute: 60,
     authUrl: "https://api.notion.com/v1/oauth/authorize", tokenUrl: "https://api.notion.com/v1/oauth/token",
     apiBase: "https://api.notion.com/v1",
     clientIdEnv: "NOTION_CONNECTOR_CLIENT_ID", clientSecretEnv: "NOTION_CONNECTOR_CLIENT_SECRET",
@@ -387,6 +402,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
 
   zoom: {
+    rateLimitPerMinute: 60,
     authUrl: "https://zoom.us/oauth/authorize", tokenUrl: "https://zoom.us/oauth/token",
     apiBase: "https://api.zoom.us/v2",
     clientIdEnv: "ZOOM_CONNECTOR_CLIENT_ID", clientSecretEnv: "ZOOM_CONNECTOR_CLIENT_SECRET",
@@ -580,6 +596,50 @@ async function providerFetch(connectorId: string, connectionId: string, path: st
   }
 }
 
+/** Best-effort account identity so the UI can show which account is linked. */
+const IDENTITY: Record<string, { url: string; pick: (b: any) => string | undefined }> = {
+  gmail: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email ?? b.name },
+  google_calendar: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email },
+  google_drive: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email },
+  google_contacts: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email },
+  google_meet: { url: "https://www.googleapis.com/oauth2/v3/userinfo", pick: (b) => b.email },
+  outlook: { url: "https://graph.microsoft.com/v1.0/me", pick: (b) => b.mail ?? b.userPrincipalName },
+  outlook_calendar: { url: "https://graph.microsoft.com/v1.0/me", pick: (b) => b.mail ?? b.userPrincipalName },
+  onedrive: { url: "https://graph.microsoft.com/v1.0/me", pick: (b) => b.mail ?? b.userPrincipalName },
+  microsoft_teams: { url: "https://graph.microsoft.com/v1.0/me", pick: (b) => b.mail ?? b.userPrincipalName },
+  slack: { url: "https://slack.com/api/auth.test", pick: (b) => (b.ok ? `${b.user}@${b.team}` : undefined) },
+  github: { url: "https://api.github.com/user", pick: (b) => b.email ?? b.login },
+  hubspot: { url: "https://api.hubapi.com/oauth/v1/access-tokens", pick: (b) => b.user },
+  zoom: { url: "https://api.zoom.us/v2/users/me", pick: (b) => b.email },
+  asana: { url: "https://app.asana.com/api/1.0/users/me", pick: (b) => b.data?.email },
+  dropbox: { url: "https://api.dropboxapi.com/2/users/get_current_account", pick: (b) => b.email },
+};
+
+/** Masks an email/handle for display: arjun@gmail.com -> ar***@gmail.com */
+function maskAccount(value?: string | null): string | null {
+  if (!value) return null;
+  const [local, domain] = String(value).split("@");
+  const head = local.slice(0, 2);
+  const masked = `${head}${local.length > 2 ? "***" : ""}`;
+  return domain ? `${masked}@${domain}` : masked;
+}
+
+async function resolveAccountLabel(connectorId: string, accessToken: string): Promise<string | null> {
+  const identity = IDENTITY[connectorId];
+  if (!identity) return null;
+  try {
+    const res = await fetch(identity.url, {
+      method: connectorId === "dropbox" ? "POST" : "GET",
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const body = await res.json().catch(() => ({}));
+    return identity.pick(body) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 
 async function upsertRecords(
   connection: any,
@@ -653,10 +713,21 @@ serve(async (req) => {
 
 
       const grantedScopes = String(token.scope ?? config.scopes?.join(" ") ?? "").split(/[\s,]+/).filter(Boolean);
+      const identity =
+        (await resolveAccountLabel(stateRow.connector_id, token.access_token)) ??
+        token.owner?.user?.person?.email ??
+        null;
       await svc()
         .from("connector_connections")
-        .update({ status: "connected", health: "healthy", scopes: grantedScopes, last_error: null })
+        .update({
+          status: "connected",
+          health: "healthy",
+          scopes: grantedScopes,
+          last_error: null,
+          ...(identity ? { display_name: maskAccount(identity) } : {}),
+        })
         .eq("id", stateRow.id);
+
 
       const back = String(stateRow.settings?.redirect_to ?? "/connectors");
       const sep = back.includes("?") ? "&" : "?";
@@ -762,7 +833,94 @@ serve(async (req) => {
         return json({ disconnected: true });
       }
 
+      // Internal platform diagnostics: never returns tokens, only their shape.
+      case "diagnostics": {
+        const { data: connections } = await svc()
+          .from("connector_connections")
+          .select("*")
+          .eq("user_id", user.id);
+
+        const rows = await Promise.all(
+          (connections ?? []).map(async (connection: any) => {
+            const cfg = PROVIDERS[connection.connector_id] ?? {};
+            const creds: any = await Vault.get(connection.id);
+
+            const { data: lastWebhook } = await svc()
+              .from("connector_webhook_events")
+              .select("created_at,event_type")
+              .eq("connector_id", connection.connector_id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            const { data: runs } = await svc()
+              .from("connector_sync_runs")
+              .select("status,duration_ms,items_upserted,created_at,capability,error")
+              .eq("connection_id", connection.id)
+              .order("created_at", { ascending: false })
+              .limit(10);
+
+            let latencyMs: number | null = null;
+            let probeError: string | null = null;
+            if (body.probe) {
+              const endpoint = Object.values(cfg.endpoints ?? {})[0];
+              if (endpoint) {
+                const startedAt = Date.now();
+                try {
+                  await providerFetch(connection.connector_id, connection.id, endpoint.path, {
+                    method: endpoint.method ?? "GET",
+                    ...(endpoint.method === "POST"
+                      ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
+                      : {}),
+                  });
+                  latencyMs = Date.now() - startedAt;
+                } catch (error) {
+                  latencyMs = Date.now() - startedAt;
+                  probeError = String((error as Error).message).slice(0, 300);
+                }
+              }
+            }
+
+            const durations = (runs ?? []).map((r: any) => r.duration_ms).filter((n: any) => typeof n === "number");
+
+            return {
+              connection_id: connection.id,
+              connector_id: connection.connector_id,
+              account: connection.display_name ?? connection.account_label,
+              status: connection.status,
+              health: connection.health,
+              scopes: connection.scopes ?? [],
+              last_error: connection.last_error,
+              last_synced_at: connection.last_synced_at,
+              auth: {
+                kind: cfg.apiKeyEnv ? "api_key" : cfg.authUrl ? "oauth2" : "credentials",
+                has_access_token: Boolean(creds?.access_token) || Boolean(cfg.apiKeyEnv),
+                has_refresh_token: Boolean(creds?.refresh_token),
+                token_expires_at: creds?.expires_at ?? null,
+                token_expired: creds?.expires_at ? new Date(creds.expires_at).getTime() < Date.now() : false,
+                credentials_updated_at: creds?.updated_at ?? null,
+              },
+              webhooks: {
+                supported: Boolean(cfg.webhooks),
+                last_event_at: lastWebhook?.created_at ?? null,
+                last_event_type: lastWebhook?.event_type ?? null,
+              },
+              rate_limit_per_minute: cfg.rateLimitPerMinute ?? null,
+              latency_ms: latencyMs,
+              probe_error: probeError,
+              recent_runs: runs ?? [],
+              avg_duration_ms: durations.length
+                ? Math.round(durations.reduce((a: number, b: number) => a + b, 0) / durations.length)
+                : null,
+            };
+          }),
+        );
+
+        return json({ diagnostics: rows, generated_at: new Date().toISOString() });
+      }
+
       case "status": {
+
         const { data: connection } = await svc()
           .from("connector_connections").select("*").eq("id", body.connection_id).eq("user_id", user.id).maybeSingle();
         if (!connection) return json({ status: "disconnected", health: "unknown" });

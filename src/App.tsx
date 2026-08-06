@@ -256,6 +256,7 @@ const App = () => {
             
             {/* Marketplace & Engagement */}
             <Route path="/connectors" element={<ProtectedLazyRoute component={LazyPages.Connectors} />} />
+            <Route path="/connectors/diagnostics" element={<ProtectedLazyRoute component={LazyPages.ConnectorDiagnostics} />} />
             <Route path="/marketplace" element={<LazyRoute component={LazyPages.Marketplace} />} />
             <Route path="/marketplace/checkout" element={<LazyRoute component={LazyPages.MarketplaceCheckout} />} />
             <Route path="/marketplace/order-success" element={<LazyRoute component={LazyPages.OrderSuccessPage} />} />

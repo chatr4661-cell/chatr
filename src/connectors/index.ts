@@ -8,4 +8,5 @@ export * from './sdk/createConnector';
 export * from './runtime/resilience';
 export * from './runtime/connections';
 export * from './runtime/SyncEngine';
+export * from './runtime/diagnostics';
 
