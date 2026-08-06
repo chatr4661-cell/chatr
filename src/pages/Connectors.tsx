@@ -111,8 +111,15 @@ export default function Connectors() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h2 className="truncate text-sm font-semibold">{definition.name}</h2>
+                    <Badge
+                      variant={maturityOf(definition) === 'production' ? 'default' : 'secondary'}
+                      className="h-5 text-[10px]"
+                      title={MATURITY_BLURB[maturityOf(definition)]}
+                    >
+                      {MATURITY_LABEL[maturityOf(definition)]}
+                    </Badge>
                     {comingSoon && (
                       <Badge variant="secondary" className="h-5 text-[10px]">
                         {definition.availability === 'community' ? 'Community' : 'Coming soon'}
@@ -123,7 +130,19 @@ export default function Connectors() {
                         {HEALTH_LABEL[state ?? 'unknown']}
                       </Badge>
                     )}
+                    {(() => {
+                      const report = certifyConnector(definition);
+                      return report.passed ? (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
+                          title="Passes the connector certification contract"
+                        >
+                          <ShieldCheck className="h-3 w-3" /> Certified
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
+
                   <p className="mt-0.5 text-xs text-muted-foreground">{definition.summary}</p>
 
                   <ul className="mt-2 flex flex-wrap gap-1.5">
