@@ -80,7 +80,19 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
     scopes: ["https://www.googleapis.com/auth/calendar.events"],
     extraAuthParams: { access_type: "offline", prompt: "consent" },
+    endpoints: {
+      "meetings.read": {
+        path: "/calendars/primary/events?maxResults=50&singleEvents=true&orderBy=startTime",
+        recordType: "event",
+        list: (b) => (b.items ?? []).filter((e: any) => e.conferenceData || e.hangoutLink),
+        map: (e) => ({
+          external_id: e.id, title: e.summary ?? "Meeting", body: e.description,
+          url: e.hangoutLink ?? e.htmlLink, occurred_at: e.start?.dateTime ?? e.start?.date, metadata: e,
+        }),
+      },
+    },
   },
+
   google_drive: {
     authUrl: G, tokenUrl: GT, apiBase: "https://www.googleapis.com/drive/v3",
     clientIdEnv: "GOOGLE_CONNECTOR_CLIENT_ID", clientSecretEnv: "GOOGLE_CONNECTOR_CLIENT_SECRET",
