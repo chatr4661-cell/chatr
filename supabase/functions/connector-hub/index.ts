@@ -813,7 +813,15 @@ serve(async (req) => {
           ...(identity ? { display_name: maskAccount(identity) } : {}),
         })
         .eq("id", stateRow.id);
+      console.log(`[oauth] callback complete connector=${stateRow.connector_id} connection=${stateRow.id}`);
 
+      // Initial sync so the Universal Inbox has data immediately after connecting.
+      try {
+        const initial = await runSync({ ...stateRow, status: "connected" });
+        console.log(`[oauth] initial sync ${stateRow.connector_id}: ${JSON.stringify(initial.results)}`);
+      } catch (syncError) {
+        console.error("initial sync failed", syncError);
+      }
 
       const back = String(stateRow.settings?.redirect_to ?? "/connectors");
       const sep = back.includes("?") ? "&" : "?";
