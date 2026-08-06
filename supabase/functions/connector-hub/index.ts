@@ -818,7 +818,94 @@ serve(async (req) => {
         return json({ disconnected: true });
       }
 
+      // Internal platform diagnostics: never returns tokens, only their shape.
+      case "diagnostics": {
+        const { data: connections } = await svc()
+          .from("connector_connections")
+          .select("*")
+          .eq("user_id", user.id);
+
+        const rows = await Promise.all(
+          (connections ?? []).map(async (connection: any) => {
+            const cfg = PROVIDERS[connection.connector_id] ?? {};
+            const creds: any = await Vault.get(connection.id);
+
+            const { data: lastWebhook } = await svc()
+              .from("connector_webhook_events")
+              .select("created_at,event_type")
+              .eq("connector_id", connection.connector_id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            const { data: runs } = await svc()
+              .from("connector_sync_runs")
+              .select("status,duration_ms,items_upserted,created_at,capability,error")
+              .eq("connection_id", connection.id)
+              .order("created_at", { ascending: false })
+              .limit(10);
+
+            let latencyMs: number | null = null;
+            let probeError: string | null = null;
+            if (body.probe) {
+              const endpoint = Object.values(cfg.endpoints ?? {})[0];
+              if (endpoint) {
+                const startedAt = Date.now();
+                try {
+                  await providerFetch(connection.connector_id, connection.id, endpoint.path, {
+                    method: endpoint.method ?? "GET",
+                    ...(endpoint.method === "POST"
+                      ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
+                      : {}),
+                  });
+                  latencyMs = Date.now() - startedAt;
+                } catch (error) {
+                  latencyMs = Date.now() - startedAt;
+                  probeError = String((error as Error).message).slice(0, 300);
+                }
+              }
+            }
+
+            const durations = (runs ?? []).map((r: any) => r.duration_ms).filter((n: any) => typeof n === "number");
+
+            return {
+              connection_id: connection.id,
+              connector_id: connection.connector_id,
+              account: connection.display_name ?? connection.account_label,
+              status: connection.status,
+              health: connection.health,
+              scopes: connection.scopes ?? [],
+              last_error: connection.last_error,
+              last_synced_at: connection.last_synced_at,
+              auth: {
+                kind: cfg.apiKeyEnv ? "api_key" : cfg.authUrl ? "oauth2" : "credentials",
+                has_access_token: Boolean(creds?.access_token) || Boolean(cfg.apiKeyEnv),
+                has_refresh_token: Boolean(creds?.refresh_token),
+                token_expires_at: creds?.expires_at ?? null,
+                token_expired: creds?.expires_at ? new Date(creds.expires_at).getTime() < Date.now() : false,
+                credentials_updated_at: creds?.updated_at ?? null,
+              },
+              webhooks: {
+                supported: Boolean(cfg.endpoints) && Boolean(connection.connector_id),
+                last_event_at: lastWebhook?.created_at ?? null,
+                last_event_type: lastWebhook?.event_type ?? null,
+              },
+              rate_limit_per_minute: cfg.rateLimitPerMinute ?? null,
+              latency_ms: latencyMs,
+              probe_error: probeError,
+              recent_runs: runs ?? [],
+              avg_duration_ms: durations.length
+                ? Math.round(durations.reduce((a: number, b: number) => a + b, 0) / durations.length)
+                : null,
+            };
+          }),
+        );
+
+        return json({ diagnostics: rows, generated_at: new Date().toISOString() });
+      }
+
       case "status": {
+
         const { data: connection } = await svc()
           .from("connector_connections").select("*").eq("id", body.connection_id).eq("user_id", user.id).maybeSingle();
         if (!connection) return json({ status: "disconnected", health: "unknown" });
