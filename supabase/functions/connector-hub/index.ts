@@ -253,6 +253,20 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     clientIdEnv: "ATLASSIAN_CONNECTOR_CLIENT_ID", clientSecretEnv: "ATLASSIAN_CONNECTOR_CLIENT_SECRET",
     scopes: ["read:jira-work", "write:jira-work", "offline_access"],
     extraAuthParams: { audience: "api.atlassian.com", prompt: "consent" },
+    endpoints: {
+      "issues.read": {
+        // {cloud} is resolved per connection from /oauth/token/accessible-resources.
+        path: "/ex/jira/{cloud}/rest/api/3/search?maxResults=50&jql=assignee=currentUser()%20order%20by%20updated%20DESC",
+        recordType: "issue",
+        list: (b) => b.issues ?? [],
+        map: (i) => ({
+          external_id: i.id, title: `${i.key} ${i.fields?.summary ?? ""}`.trim(),
+          body: i.fields?.status?.name, occurred_at: i.fields?.updated, metadata: i,
+        }),
+        searchPath: (q) =>
+          `/ex/jira/{cloud}/rest/api/3/search?maxResults=50&jql=${encodeURIComponent(`text ~ "${q}" order by updated DESC`)}`,
+      },
+    },
   },
   confluence: {
     authUrl: "https://auth.atlassian.com/authorize", tokenUrl: "https://auth.atlassian.com/oauth/token",
@@ -260,13 +274,41 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     clientIdEnv: "ATLASSIAN_CONNECTOR_CLIENT_ID", clientSecretEnv: "ATLASSIAN_CONNECTOR_CLIENT_SECRET",
     scopes: ["read:confluence-content.all", "offline_access"],
     extraAuthParams: { audience: "api.atlassian.com", prompt: "consent" },
+    endpoints: {
+      "docs.read": {
+        path: "/ex/confluence/{cloud}/wiki/api/v2/pages?limit=50",
+        recordType: "document",
+        list: (b) => b.results ?? [],
+        map: (p) => ({
+          external_id: String(p.id), title: p.title,
+          occurred_at: p.version?.createdAt ?? null, metadata: p,
+        }),
+      },
+    },
   },
   salesforce: {
     authUrl: "https://login.salesforce.com/services/oauth2/authorize",
     tokenUrl: "https://login.salesforce.com/services/oauth2/token",
     clientIdEnv: "SALESFORCE_CONNECTOR_CLIENT_ID", clientSecretEnv: "SALESFORCE_CONNECTOR_CLIENT_SECRET",
     scopes: ["api", "refresh_token"],
+    endpoints: {
+      "crm.read": {
+        // {instance} resolves to the org instance_url captured at OAuth time.
+        path: "/services/data/v60.0/query?q=" +
+          encodeURIComponent("SELECT Id, Name, StageName, Amount, LastModifiedDate FROM Opportunity ORDER BY LastModifiedDate DESC LIMIT 50"),
+        recordType: "deal",
+        list: (b) => b.records ?? [],
+        map: (d) => ({
+          external_id: d.Id, title: d.Name, body: d.StageName,
+          occurred_at: d.LastModifiedDate, metadata: d,
+        }),
+        searchPath: (q) =>
+          "/services/data/v60.0/query?q=" +
+          encodeURIComponent(`SELECT Id, Name, StageName, LastModifiedDate FROM Opportunity WHERE Name LIKE '%${q.replace(/'/g, "")}%' LIMIT 50`),
+      },
+    },
   },
+
   hubspot: {
     authUrl: "https://app.hubspot.com/oauth/authorize", tokenUrl: "https://api.hubapi.com/oauth/v1/token",
     apiBase: "https://api.hubapi.com",
