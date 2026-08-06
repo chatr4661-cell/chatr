@@ -1037,45 +1037,7 @@ serve(async (req) => {
           .from("connector_connections").select("*").eq("id", body.connection_id).eq("user_id", user.id).maybeSingle();
         if (!connection) return json({ error: "Connection not found", status: 404 }, 200);
 
-        const caps = body.capability ? [body.capability] : Object.keys(config.endpoints ?? {});
-        const results: unknown[] = [];
-        const failures: string[] = [];
-        for (const cap of caps) {
-          const endpoint = config.endpoints?.[cap];
-          if (!endpoint) continue;
-          try {
-            const payload = await providerFetch(connectorId, connection.id, endpoint.path, {
-              method: endpoint.method ?? "GET",
-              ...(endpoint.method === "POST"
-                ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint.requestBody ?? {}) }
-                : {}),
-            });
-
-            let items = endpoint.list(payload);
-            if (endpoint.hydrate && items.length) {
-              items = await endpoint.hydrate(items, (p) => providerFetch(connectorId, connection.id, p));
-            }
-            const upserted = await upsertRecords(connection, cap, endpoint.recordType, items.map(endpoint.map));
-            console.log(`[sync] ${connectorId}/${cap} fetched=${items.length} upserted=${upserted}`);
-            results.push({ capability: cap, fetched: items.length, upserted });
-          } catch (error) {
-            const message = String((error as Error).message).slice(0, 500);
-            console.error(`[sync] ${connectorId}/${cap} failed: ${message}`);
-            failures.push(`${cap}: ${message}`);
-            results.push({ capability: cap, fetched: 0, upserted: 0, error: message });
-          }
-        }
-
-        const allFailed = failures.length > 0 && failures.length === results.length;
-        await svc().from("connector_connections")
-          .update({
-            // Only claim a successful sync when at least one capability pulled data.
-            ...(allFailed ? {} : { last_synced_at: new Date().toISOString() }),
-            health: failures.length === 0 ? "healthy" : allFailed ? "failing" : "degraded",
-            last_error: failures.length ? failures.join(" | ").slice(0, 500) : null,
-          })
-          .eq("id", connection.id);
-        return json({ results, errors: failures });
+        return json(await runSync(connection, body.capability));
       }
 
       case "search": {
