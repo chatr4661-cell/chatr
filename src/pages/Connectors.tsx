@@ -164,9 +164,23 @@ export default function Connectors() {
                     ))}
                   </ul>
 
-                  {connection?.last_error && (
-                    <p className="mt-2 line-clamp-2 text-[11px] text-destructive">{connection.last_error}</p>
+                  {/* Health strip — only what a customer can act on. */}
+                  {connection && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-muted/40 px-2.5 py-1.5 text-[11px]">
+                      <span className="inline-flex items-center gap-1.5 font-medium">
+                        <span className={`h-1.5 w-1.5 rounded-full ${status.dotClass}`} />
+                        {status.label}
+                      </span>
+                      <span className="text-muted-foreground">{status.hint}</span>
+                      <span className="text-muted-foreground">
+                        {definition.capabilities.length} capabilit
+                        {definition.capabilities.length === 1 ? 'y' : 'ies'}
+                      </span>
+                    </div>
                   )}
+
+                  {!connection && needsReconnect === false && status.state === 'not_connected' && null}
+
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {connection ? (
