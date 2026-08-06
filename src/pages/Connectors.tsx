@@ -78,6 +78,15 @@ export default function Connectors() {
               {connectedCount} connected · {counts.available} available · {counts.coming_soon} coming soon
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 rounded-lg text-xs"
+            onClick={() => navigate('/connectors/diagnostics')}
+          >
+            Diagnostics
+          </Button>
+
         </div>
 
         <div className="mx-auto max-w-3xl px-4 pb-3">
