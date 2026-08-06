@@ -104,9 +104,11 @@ export default function Connectors() {
 
         {visible.map((definition) => {
           const connection = byConnector.get(definition.id);
-          const state = connection ? health(connection) : null;
           const busy = busyId === definition.id;
           const comingSoon = definition.availability !== 'available';
+          const status = describeConnector(connection, { busy });
+          const needsReconnect = status.state === 'action_required' || status.state === 'failed';
+
 
           return (
             <Card key={definition.id} className="rounded-2xl border-border/60 p-4">
