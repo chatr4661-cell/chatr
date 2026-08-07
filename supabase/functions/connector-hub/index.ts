@@ -925,6 +925,209 @@ async function runSync(connection: any, capability?: string) {
   return { results, errors: failures };
 }
 
+const need = (value: unknown, field: string) => {
+  if (value === undefined || value === null || value === "") {
+    throw Object.assign(new Error(`Missing required field "${field}"`), { status: 400 });
+  }
+  return value;
+};
+
+const recipients = (value: unknown) =>
+  (Array.isArray(value) ? value : [value])
+    .filter(Boolean)
+    .map((address) => ({ emailAddress: { address: String(address) } }));
+
+/**
+ * Semantic write actions. The client calls `execute(connectionId, action, payload)`
+ * and the hub translates it into the provider's real request.
+ */
+const ACTIONS: Record<
+  string,
+  Record<string, (p: Record<string, any>) => { path: string; method?: string; body?: unknown }>
+> = {
+  outlook: {
+    send_mail: (p) => ({
+      path: "/me/sendMail",
+      method: "POST",
+      body: {
+        message: {
+          subject: String(need(p.subject, "subject")),
+          body: { contentType: p.html ? "HTML" : "Text", content: String(need(p.body, "body")) },
+          toRecipients: recipients(need(p.to, "to")),
+          ...(p.cc ? { ccRecipients: recipients(p.cc) } : {}),
+          ...(p.bcc ? { bccRecipients: recipients(p.bcc) } : {}),
+        },
+        saveToSentItems: p.save_to_sent !== false,
+      },
+    }),
+    reply: (p) => ({
+      path: `/me/messages/${String(need(p.message_id, "message_id"))}/reply`,
+      method: "POST",
+      body: { comment: String(need(p.body, "body")) },
+    }),
+    forward: (p) => ({
+      path: `/me/messages/${String(need(p.message_id, "message_id"))}/forward`,
+      method: "POST",
+      body: { toRecipients: recipients(need(p.to, "to")), comment: String(p.body ?? "") },
+    }),
+    mark_read: (p) => ({
+      path: `/me/messages/${String(need(p.message_id, "message_id"))}`,
+      method: "PATCH",
+      body: { isRead: p.is_read !== false },
+    }),
+  },
+  outlook_calendar: {
+    create_event: (p) => ({
+      path: "/me/events",
+      method: "POST",
+      body: {
+        subject: String(need(p.title, "title")),
+        body: { contentType: "Text", content: String(p.description ?? "") },
+        start: { dateTime: String(need(p.start, "start")), timeZone: p.time_zone ?? "UTC" },
+        end: { dateTime: String(need(p.end, "end")), timeZone: p.time_zone ?? "UTC" },
+        ...(p.location ? { location: { displayName: String(p.location) } } : {}),
+        ...(p.attendees
+          ? {
+              attendees: (Array.isArray(p.attendees) ? p.attendees : [p.attendees]).map((a: any) => ({
+                emailAddress: { address: String(a) },
+                type: "required",
+              })),
+            }
+          : {}),
+        ...(p.online_meeting ? { isOnlineMeeting: true, onlineMeetingProvider: "teamsForBusiness" } : {}),
+      },
+    }),
+    update_event: (p) => ({
+      path: `/me/events/${String(need(p.event_id, "event_id"))}`,
+      method: "PATCH",
+      body: {
+        ...(p.title ? { subject: String(p.title) } : {}),
+        ...(p.start ? { start: { dateTime: String(p.start), timeZone: p.time_zone ?? "UTC" } } : {}),
+        ...(p.end ? { end: { dateTime: String(p.end), timeZone: p.time_zone ?? "UTC" } } : {}),
+      },
+    }),
+    cancel_event: (p) => ({
+      path: `/me/events/${String(need(p.event_id, "event_id"))}`,
+      method: "DELETE",
+    }),
+  },
+  google_calendar: {
+    create_event: (p) => ({
+      path: `/calendars/${encodeURIComponent(String(p.calendar_id ?? "primary"))}/events${p.online_meeting ? "?conferenceDataVersion=1" : ""}`,
+      method: "POST",
+      body: {
+        summary: String(need(p.title, "title")),
+        description: p.description ?? undefined,
+        location: p.location ?? undefined,
+        start: { dateTime: String(need(p.start, "start")), timeZone: p.time_zone ?? "UTC" },
+        end: { dateTime: String(need(p.end, "end")), timeZone: p.time_zone ?? "UTC" },
+        ...(p.attendees
+          ? {
+              attendees: (Array.isArray(p.attendees) ? p.attendees : [p.attendees]).map((a: any) => ({
+                email: String(a),
+              })),
+            }
+          : {}),
+        ...(p.online_meeting
+          ? {
+              conferenceData: {
+                createRequest: {
+                  requestId: crypto.randomUUID(),
+                  conferenceSolutionKey: { type: "hangoutsMeet" },
+                },
+              },
+            }
+          : {}),
+      },
+    }),
+    update_event: (p) => ({
+      path: `/calendars/${encodeURIComponent(String(p.calendar_id ?? "primary"))}/events/${String(need(p.event_id, "event_id"))}`,
+      method: "PATCH",
+      body: {
+        ...(p.title ? { summary: String(p.title) } : {}),
+        ...(p.start ? { start: { dateTime: String(p.start), timeZone: p.time_zone ?? "UTC" } } : {}),
+        ...(p.end ? { end: { dateTime: String(p.end), timeZone: p.time_zone ?? "UTC" } } : {}),
+      },
+    }),
+    cancel_event: (p) => ({
+      path: `/calendars/${encodeURIComponent(String(p.calendar_id ?? "primary"))}/events/${String(need(p.event_id, "event_id"))}`,
+      method: "DELETE",
+    }),
+  },
+  microsoft_teams: {
+    send_message: (p) => ({
+      path: `/chats/${String(need(p.chat_id, "chat_id"))}/messages`,
+      method: "POST",
+      body: {
+        body: {
+          contentType: p.html ? "html" : "text",
+          content: String(need(p.body, "body")),
+        },
+      },
+    }),
+    send_channel_message: (p) => ({
+      path: `/teams/${String(need(p.team_id, "team_id"))}/channels/${String(need(p.channel_id, "channel_id"))}/messages`,
+      method: "POST",
+      body: {
+        body: { contentType: p.html ? "html" : "text", content: String(need(p.body, "body")) },
+      },
+    }),
+    reply: (p) => ({
+      path: `/teams/${String(need(p.team_id, "team_id"))}/channels/${String(need(p.channel_id, "channel_id"))}/messages/${String(need(p.message_id, "message_id"))}/replies`,
+      method: "POST",
+      body: { body: { contentType: "text", content: String(need(p.body, "body")) } },
+    }),
+  },
+  whatsapp: {
+    send_message: (p) => ({
+      path: "/{phone_number_id}/messages",
+      method: "POST",
+      body: {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: String(need(p.to, "to")).replace(/[^\d]/g, ""),
+        type: "text",
+        text: { preview_url: p.preview_url !== false, body: String(need(p.body, "body")) },
+      },
+    }),
+    send_template: (p) => ({
+      path: "/{phone_number_id}/messages",
+      method: "POST",
+      body: {
+        messaging_product: "whatsapp",
+        to: String(need(p.to, "to")).replace(/[^\d]/g, ""),
+        type: "template",
+        template: {
+          name: String(need(p.template, "template")),
+          language: { code: p.language ?? "en_US" },
+          ...(p.variables
+            ? {
+                components: [
+                  {
+                    type: "body",
+                    parameters: (Array.isArray(p.variables) ? p.variables : [p.variables]).map((v: any) => ({
+                      type: "text",
+                      text: String(v),
+                    })),
+                  },
+                ],
+              }
+            : {}),
+        },
+      },
+    }),
+    mark_read: (p) => ({
+      path: "/{phone_number_id}/messages",
+      method: "POST",
+      body: {
+        messaging_product: "whatsapp",
+        status: "read",
+        message_id: String(need(p.message_id, "message_id")),
+      },
+    }),
+  },
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
