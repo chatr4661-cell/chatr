@@ -1213,14 +1213,44 @@ serve(async (req) => {
   // ---- Provider webhooks (no user JWT) ----
   if (url.pathname.includes("/webhook/")) {
     const connectorId = url.pathname.split("/webhook/")[1];
+
+    // Meta/WhatsApp subscription handshake.
+    if (req.method === "GET") {
+      const verifyToken = Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
+      const mode = url.searchParams.get("hub.mode");
+      const token = url.searchParams.get("hub.verify_token");
+      const challenge = url.searchParams.get("hub.challenge");
+      if (mode === "subscribe" && verifyToken && token === verifyToken) {
+        return new Response(challenge ?? "", { status: 200, headers: corsHeaders });
+      }
+      return new Response("forbidden", { status: 403, headers: corsHeaders });
+    }
+
     const payload = await req.json().catch(() => ({}));
     await svc().from("connector_webhook_events").insert({
       connector_id: connectorId,
-      event_type: payload?.type ?? payload?.event ?? null,
+      event_type: payload?.type ?? payload?.event ?? payload?.object ?? null,
       payload,
     });
+
+    // WhatsApp has no pollable history, so inbound webhooks are ingested immediately.
+    if (connectorId === "whatsapp") {
+      const { data: connections } = await svc()
+        .from("connector_connections")
+        .select("*")
+        .eq("connector_id", "whatsapp");
+      for (const connection of connections ?? []) {
+        try {
+          await syncWhatsAppFromWebhooks(connection);
+        } catch (error) {
+          console.error("[whatsapp] webhook ingest failed", error);
+        }
+      }
+    }
+
     return json({ received: true });
   }
+
 
   try {
     const user = await getUser(req);
