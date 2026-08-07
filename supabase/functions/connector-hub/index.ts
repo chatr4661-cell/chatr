@@ -717,6 +717,12 @@ async function resolveBaseAndPath(connectorId: string, connectionId: string, pat
     return { base: config.apiBase!, path: path.replace("{cloud}", String(cloudId)) };
   }
 
+  if (connectorId === "whatsapp" && path.includes("{phone_number_id}")) {
+    const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+    if (!phoneNumberId) throw new Error("Missing WHATSAPP_PHONE_NUMBER_ID secret");
+    return { base: config.apiBase!, path: path.replace("{phone_number_id}", phoneNumberId) };
+  }
+
   if (!config.apiBase) throw new Error(`Connector "${connectorId}" has no API base configured`);
   return { base: config.apiBase, path };
 }
