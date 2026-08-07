@@ -1258,15 +1258,32 @@ serve(async (req) => {
         const { data: connection } = await svc()
           .from("connector_connections").select("*").eq("id", body.connection_id).eq("user_id", user.id).maybeSingle();
         if (!connection) return json({ error: "Connection not found", status: 404 }, 200);
-        const payload = (body.payload ?? {}) as { path?: string; method?: string; body?: unknown };
+
+        // Semantic action (send_mail, send_message, create_event...) or a raw path call.
+        const providerAction = body.provider_action ? String(body.provider_action) : null;
+        let payload = (body.payload ?? {}) as { path?: string; method?: string; body?: unknown };
+
+        if (providerAction) {
+          const builder = ACTIONS[connectorId]?.[providerAction];
+          if (!builder) {
+            return json({ error: `Unsupported action "${providerAction}" for ${connectorId}`, status: 400 }, 200);
+          }
+          try {
+            payload = builder((body.payload ?? {}) as Record<string, any>);
+          } catch (error) {
+            return json({ error: String((error as Error).message), status: 400 }, 200);
+          }
+        }
+
         if (!payload.path) return json({ error: "execute requires payload.path", status: 400 }, 200);
         const result = await providerFetch(connectorId, connection.id, payload.path, {
           method: payload.method ?? "POST",
           headers: { "Content-Type": "application/json" },
           body: payload.body ? JSON.stringify(payload.body) : undefined,
         });
-        return json(result);
+        return json({ ok: true, ...(result && typeof result === "object" ? result : { result }) });
       }
+
 
       default:
         return json({ error: `Unknown action "${body.action}"`, status: 400 }, 200);
