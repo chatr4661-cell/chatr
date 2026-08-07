@@ -28,7 +28,7 @@ export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
     groups: ['communication'],
     capabilities: ['email.read', 'email.send', 'contacts.read'],
     auth: 'oauth2',
-    scopes: ['offline_access', 'Mail.Read', 'Mail.Send', 'Contacts.Read'],
+    scopes: ['offline_access', 'User.Read', 'Mail.Read', 'Mail.Send', 'Contacts.Read'],
     availability: 'available',
     apiBase: 'https://graph.microsoft.com/v1.0',
     webhooks: true,
