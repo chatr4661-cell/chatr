@@ -176,7 +176,11 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 180, webhooks: true,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "openid", "profile", "email", "User.Read", "Mail.Read", "Mail.Send", "Contacts.Read"],
+    scopes: [
+      "openid", "profile", "email", "offline_access", "User.Read",
+      "Mail.Read", "Mail.ReadWrite", "Mail.Send",
+      "Contacts.Read",
+    ],
     endpoints: {
       "email.read": {
         path: "/me/messages?$top=25&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,webLink,isRead,conversationId",
