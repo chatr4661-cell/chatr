@@ -63,6 +63,7 @@ export type HealthState = 'unknown' | 'healthy' | 'degraded' | 'failing';
 export type RecordType =
   | 'message'
   | 'event'
+  | 'channel'
   | 'file'
   | 'contact'
   | 'task'
