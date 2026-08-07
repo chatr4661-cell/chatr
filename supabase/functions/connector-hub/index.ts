@@ -219,7 +219,10 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 180,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "openid", "profile", "email", "User.Read", "Calendars.ReadWrite"],
+    scopes: [
+      "openid", "profile", "email", "offline_access", "User.Read",
+      "Calendars.ReadWrite",
+    ],
     endpoints: {
       "calendar.read": {
         path: "/me/events?$top=50&$orderby=start/dateTime&$select=id,subject,bodyPreview,start,end,location,organizer,attendees,webLink,onlineMeeting",
