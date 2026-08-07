@@ -12,6 +12,7 @@ export type Capability =
   | 'chat.read'
   | 'chat.send'
   | 'chat.threads'
+  | 'chat.channels'
   | 'calendar.read'
   | 'calendar.write'
   | 'meetings.create'
@@ -62,6 +63,7 @@ export type HealthState = 'unknown' | 'healthy' | 'degraded' | 'failing';
 export type RecordType =
   | 'message'
   | 'event'
+  | 'channel'
   | 'file'
   | 'contact'
   | 'task'

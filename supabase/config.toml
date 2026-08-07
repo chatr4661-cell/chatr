@@ -143,3 +143,6 @@ verify_jwt = false
 
 [functions.store-call-memory]
 verify_jwt = false
+
+[functions.connector-hub]
+verify_jwt = false

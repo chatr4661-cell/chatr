@@ -176,30 +176,62 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 180, webhooks: true,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "Mail.Read", "Mail.Send", "Contacts.Read"],
+    scopes: ["offline_access", "openid", "profile", "email", "User.Read", "Mail.Read", "Mail.Send", "Contacts.Read"],
     endpoints: {
       "email.read": {
-        path: "/me/messages?$top=25",
+        path: "/me/messages?$top=25&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,webLink,isRead,conversationId",
         recordType: "message",
         list: (b) => b.value ?? [],
         map: (m) => ({
-          external_id: m.id, title: m.subject, body: m.bodyPreview,
-          author: m.from?.emailAddress?.address, occurred_at: m.receivedDateTime, metadata: m,
+          external_id: m.id,
+          title: m.subject ?? "(no subject)",
+          body: m.bodyPreview ?? null,
+          author: m.from?.emailAddress?.address ?? null,
+          participants: [
+            m.from?.emailAddress?.address,
+            ...(m.toRecipients ?? []).map((r: any) => r.emailAddress?.address),
+          ].filter(Boolean),
+          url: m.webLink ?? null,
+          occurred_at: m.receivedDateTime ?? null,
+          metadata: { is_read: m.isRead ?? null, conversation_id: m.conversationId ?? null },
         }),
         searchPath: (q) => `/me/messages?$top=25&$search="${encodeURIComponent(q)}"`,
+      },
+      "contacts.read": {
+        path: "/me/contacts?$top=100&$select=id,displayName,emailAddresses,mobilePhone,businessPhones",
+        recordType: "contact",
+        list: (b) => b.value ?? [],
+        map: (c) => ({
+          external_id: c.id,
+          title: c.displayName ?? "Contact",
+          body: c.emailAddresses?.[0]?.address ?? c.mobilePhone ?? c.businessPhones?.[0] ?? null,
+          participants: (c.emailAddresses ?? []).map((e: any) => e.address).filter(Boolean),
+          metadata: c,
+        }),
       },
     },
   },
   outlook_calendar: {
+    rateLimitPerMinute: 180,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "Calendars.ReadWrite"],
+    scopes: ["offline_access", "openid", "profile", "email", "User.Read", "Calendars.ReadWrite"],
     endpoints: {
       "calendar.read": {
-        path: "/me/events?$top=50",
+        path: "/me/events?$top=50&$orderby=start/dateTime&$select=id,subject,bodyPreview,start,end,location,organizer,attendees,webLink,onlineMeeting",
         recordType: "event",
         list: (b) => b.value ?? [],
-        map: (e) => ({ external_id: e.id, title: e.subject, occurred_at: e.start?.dateTime, metadata: e }),
+        map: (e) => ({
+          external_id: e.id,
+          title: e.subject ?? "Event",
+          body: e.bodyPreview ?? null,
+          author: e.organizer?.emailAddress?.address ?? null,
+          participants: (e.attendees ?? []).map((a: any) => a.emailAddress?.address).filter(Boolean),
+          url: e.onlineMeeting?.joinUrl ?? e.webLink ?? null,
+          occurred_at: e.start?.dateTime ? new Date(`${e.start.dateTime}Z`).toISOString() : null,
+          metadata: { end: e.end ?? null, location: e.location?.displayName ?? null },
+        }),
+        searchPath: (q) => `/me/events?$top=50&$search="${encodeURIComponent(q)}"`,
       },
     },
   },
@@ -207,13 +239,94 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 120,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "Chat.Read"],
+    scopes: [
+      "offline_access", "openid", "profile", "email", "User.Read",
+      "Chat.Read", "Chat.ReadWrite", "Team.ReadBasic.All", "Channel.ReadBasic.All", "ChannelMessage.Read.All",
+    ],
     endpoints: {
       "chat.read": {
-        path: "/me/chats?$top=25",
+        path: "/me/chats?$top=15&$expand=members",
         recordType: "message",
         list: (b) => b.value ?? [],
-        map: (c) => ({ external_id: c.id, title: c.topic ?? "Teams chat", occurred_at: c.lastUpdatedDateTime, metadata: c }),
+        // Graph lists chats, not messages — hydrate the recent messages of each chat.
+        hydrate: async (chats, fetchOne) => {
+          const messages: any[] = [];
+          for (const chat of chats) {
+            const chatName =
+              chat.topic ??
+              (chat.members ?? [])
+                .map((m: any) => m.displayName)
+                .filter(Boolean)
+                .slice(0, 3)
+                .join(", ") ??
+              "Teams chat";
+            try {
+              const page = await fetchOne(`/chats/${chat.id}/messages?$top=10`);
+              for (const message of page.value ?? []) {
+                if (message.messageType && message.messageType !== "message") continue;
+                messages.push({ ...message, __chat: { id: chat.id, name: chatName } });
+              }
+            } catch (_) {
+              messages.push({
+                id: chat.id,
+                __chat: { id: chat.id, name: chatName },
+                lastUpdatedDateTime: chat.lastUpdatedDateTime,
+                body: { content: null },
+              });
+            }
+          }
+          return messages;
+        },
+        map: (m) => {
+          const text = String(m.body?.content ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          return {
+            external_id: m.id,
+            title: m.__chat?.name ?? "Teams chat",
+            body: text || null,
+            author: m.from?.user?.displayName ?? m.from?.application?.displayName ?? null,
+            url: m.webUrl ?? null,
+            occurred_at: m.createdDateTime ?? m.lastModifiedDateTime ?? m.lastUpdatedDateTime ?? null,
+            metadata: { chat_id: m.__chat?.id ?? null, importance: m.importance ?? null },
+          };
+        },
+      },
+      "chat.channels": {
+        path: "/me/joinedTeams",
+        recordType: "channel",
+        list: (b) => b.value ?? [],
+        hydrate: async (teams, fetchOne) => {
+          const channels: any[] = [];
+          for (const team of teams) {
+            try {
+              const page = await fetchOne(`/teams/${team.id}/channels`);
+              for (const channel of page.value ?? []) {
+                channels.push({ ...channel, __team: { id: team.id, name: team.displayName } });
+              }
+            } catch (_) { /* team without channel access */ }
+          }
+          return channels;
+        },
+        map: (c) => ({
+          external_id: c.id,
+          title: `${c.__team?.name ?? "Team"} / ${c.displayName ?? "channel"}`,
+          body: c.description ?? null,
+          url: c.webUrl ?? null,
+          metadata: { team_id: c.__team?.id ?? null },
+        }),
+      },
+    },
+  },
+  whatsapp: {
+    rateLimitPerMinute: 120, webhooks: true,
+    apiKeyEnv: "WHATSAPP_ACCESS_TOKEN", apiBase: "https://graph.facebook.com/v21.0",
+    endpoints: {
+      // WhatsApp Cloud API has no message-list endpoint; inbound messages arrive
+      // via webhooks and are ingested by the whatsapp sync branch in runSync.
+      "chat.read": {
+        path: "/{phone_number_id}",
+        recordType: "message",
+        list: () => [],
+        map: (m) => m,
       },
     },
   },
@@ -604,6 +717,12 @@ async function resolveBaseAndPath(connectorId: string, connectionId: string, pat
     return { base: config.apiBase!, path: path.replace("{cloud}", String(cloudId)) };
   }
 
+  if (connectorId === "whatsapp" && path.includes("{phone_number_id}")) {
+    const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+    if (!phoneNumberId) throw new Error("Missing WHATSAPP_PHONE_NUMBER_ID secret");
+    return { base: config.apiBase!, path: path.replace("{phone_number_id}", phoneNumberId) };
+  }
+
   if (!config.apiBase) throw new Error(`Connector "${connectorId}" has no API base configured`);
   return { base: config.apiBase, path };
 }
@@ -703,6 +822,53 @@ async function upsertRecords(
   return rows.length;
 }
 
+/**
+ * WhatsApp Cloud API cannot be polled for history — inbound messages land on the
+ * webhook endpoint. Sync therefore drains stored webhook events into records.
+ */
+async function syncWhatsAppFromWebhooks(connection: any) {
+  const { data: events } = await svc()
+    .from("connector_webhook_events")
+    .select("id,payload,created_at")
+    .eq("connector_id", "whatsapp")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const records: Record<string, unknown>[] = [];
+  for (const event of events ?? []) {
+    const entries = (event.payload as any)?.entry ?? [];
+    for (const entry of entries) {
+      for (const change of entry.changes ?? []) {
+        const value = change.value ?? {};
+        const contacts: any[] = value.contacts ?? [];
+        for (const message of value.messages ?? []) {
+          const contact = contacts.find((c) => c.wa_id === message.from);
+          const text =
+            message.text?.body ??
+            message.button?.text ??
+            message.interactive?.list_reply?.title ??
+            message.caption ??
+            `[${message.type ?? "message"}]`;
+          records.push({
+            external_id: message.id,
+            title: contact?.profile?.name ?? message.from ?? "WhatsApp",
+            body: text,
+            author: message.from ?? null,
+            participants: [message.from, value.metadata?.display_phone_number].filter(Boolean),
+            occurred_at: message.timestamp
+              ? new Date(Number(message.timestamp) * 1000).toISOString()
+              : event.created_at,
+            metadata: { type: message.type ?? null, direction: "inbound", wa_id: message.from ?? null },
+          });
+        }
+      }
+    }
+  }
+
+  const upserted = await upsertRecords(connection, "chat.read", "message", records);
+  return { results: [{ capability: "chat.read", fetched: records.length, upserted }], errors: [] as string[] };
+}
+
 /** Pulls every (or one) capability for a connection into the unified record table. */
 async function runSync(connection: any, capability?: string) {
   const connectorId = connection.connector_id;
@@ -710,6 +876,15 @@ async function runSync(connection: any, capability?: string) {
   const caps = capability ? [capability] : Object.keys(config.endpoints ?? {});
   const results: any[] = [];
   const failures: string[] = [];
+
+  if (connectorId === "whatsapp") {
+    const outcome = await syncWhatsAppFromWebhooks(connection);
+    await svc().from("connector_connections")
+      .update({ last_synced_at: new Date().toISOString(), health: "healthy", last_error: null })
+      .eq("id", connection.id);
+    return outcome;
+  }
+
 
   for (const cap of caps) {
     const endpoint = config.endpoints?.[cap];
@@ -749,6 +924,209 @@ async function runSync(connection: any, capability?: string) {
 
   return { results, errors: failures };
 }
+
+const need = (value: unknown, field: string) => {
+  if (value === undefined || value === null || value === "") {
+    throw Object.assign(new Error(`Missing required field "${field}"`), { status: 400 });
+  }
+  return value;
+};
+
+const recipients = (value: unknown) =>
+  (Array.isArray(value) ? value : [value])
+    .filter(Boolean)
+    .map((address) => ({ emailAddress: { address: String(address) } }));
+
+/**
+ * Semantic write actions. The client calls `execute(connectionId, action, payload)`
+ * and the hub translates it into the provider's real request.
+ */
+const ACTIONS: Record<
+  string,
+  Record<string, (p: Record<string, any>) => { path: string; method?: string; body?: unknown }>
+> = {
+  outlook: {
+    send_mail: (p) => ({
+      path: "/me/sendMail",
+      method: "POST",
+      body: {
+        message: {
+          subject: String(need(p.subject, "subject")),
+          body: { contentType: p.html ? "HTML" : "Text", content: String(need(p.body, "body")) },
+          toRecipients: recipients(need(p.to, "to")),
+          ...(p.cc ? { ccRecipients: recipients(p.cc) } : {}),
+          ...(p.bcc ? { bccRecipients: recipients(p.bcc) } : {}),
+        },
+        saveToSentItems: p.save_to_sent !== false,
+      },
+    }),
+    reply: (p) => ({
+      path: `/me/messages/${String(need(p.message_id, "message_id"))}/reply`,
+      method: "POST",
+      body: { comment: String(need(p.body, "body")) },
+    }),
+    forward: (p) => ({
+      path: `/me/messages/${String(need(p.message_id, "message_id"))}/forward`,
+      method: "POST",
+      body: { toRecipients: recipients(need(p.to, "to")), comment: String(p.body ?? "") },
+    }),
+    mark_read: (p) => ({
+      path: `/me/messages/${String(need(p.message_id, "message_id"))}`,
+      method: "PATCH",
+      body: { isRead: p.is_read !== false },
+    }),
+  },
+  outlook_calendar: {
+    create_event: (p) => ({
+      path: "/me/events",
+      method: "POST",
+      body: {
+        subject: String(need(p.title, "title")),
+        body: { contentType: "Text", content: String(p.description ?? "") },
+        start: { dateTime: String(need(p.start, "start")), timeZone: p.time_zone ?? "UTC" },
+        end: { dateTime: String(need(p.end, "end")), timeZone: p.time_zone ?? "UTC" },
+        ...(p.location ? { location: { displayName: String(p.location) } } : {}),
+        ...(p.attendees
+          ? {
+              attendees: (Array.isArray(p.attendees) ? p.attendees : [p.attendees]).map((a: any) => ({
+                emailAddress: { address: String(a) },
+                type: "required",
+              })),
+            }
+          : {}),
+        ...(p.online_meeting ? { isOnlineMeeting: true, onlineMeetingProvider: "teamsForBusiness" } : {}),
+      },
+    }),
+    update_event: (p) => ({
+      path: `/me/events/${String(need(p.event_id, "event_id"))}`,
+      method: "PATCH",
+      body: {
+        ...(p.title ? { subject: String(p.title) } : {}),
+        ...(p.start ? { start: { dateTime: String(p.start), timeZone: p.time_zone ?? "UTC" } } : {}),
+        ...(p.end ? { end: { dateTime: String(p.end), timeZone: p.time_zone ?? "UTC" } } : {}),
+      },
+    }),
+    cancel_event: (p) => ({
+      path: `/me/events/${String(need(p.event_id, "event_id"))}`,
+      method: "DELETE",
+    }),
+  },
+  google_calendar: {
+    create_event: (p) => ({
+      path: `/calendars/${encodeURIComponent(String(p.calendar_id ?? "primary"))}/events${p.online_meeting ? "?conferenceDataVersion=1" : ""}`,
+      method: "POST",
+      body: {
+        summary: String(need(p.title, "title")),
+        description: p.description ?? undefined,
+        location: p.location ?? undefined,
+        start: { dateTime: String(need(p.start, "start")), timeZone: p.time_zone ?? "UTC" },
+        end: { dateTime: String(need(p.end, "end")), timeZone: p.time_zone ?? "UTC" },
+        ...(p.attendees
+          ? {
+              attendees: (Array.isArray(p.attendees) ? p.attendees : [p.attendees]).map((a: any) => ({
+                email: String(a),
+              })),
+            }
+          : {}),
+        ...(p.online_meeting
+          ? {
+              conferenceData: {
+                createRequest: {
+                  requestId: crypto.randomUUID(),
+                  conferenceSolutionKey: { type: "hangoutsMeet" },
+                },
+              },
+            }
+          : {}),
+      },
+    }),
+    update_event: (p) => ({
+      path: `/calendars/${encodeURIComponent(String(p.calendar_id ?? "primary"))}/events/${String(need(p.event_id, "event_id"))}`,
+      method: "PATCH",
+      body: {
+        ...(p.title ? { summary: String(p.title) } : {}),
+        ...(p.start ? { start: { dateTime: String(p.start), timeZone: p.time_zone ?? "UTC" } } : {}),
+        ...(p.end ? { end: { dateTime: String(p.end), timeZone: p.time_zone ?? "UTC" } } : {}),
+      },
+    }),
+    cancel_event: (p) => ({
+      path: `/calendars/${encodeURIComponent(String(p.calendar_id ?? "primary"))}/events/${String(need(p.event_id, "event_id"))}`,
+      method: "DELETE",
+    }),
+  },
+  microsoft_teams: {
+    send_message: (p) => ({
+      path: `/chats/${String(need(p.chat_id, "chat_id"))}/messages`,
+      method: "POST",
+      body: {
+        body: {
+          contentType: p.html ? "html" : "text",
+          content: String(need(p.body, "body")),
+        },
+      },
+    }),
+    send_channel_message: (p) => ({
+      path: `/teams/${String(need(p.team_id, "team_id"))}/channels/${String(need(p.channel_id, "channel_id"))}/messages`,
+      method: "POST",
+      body: {
+        body: { contentType: p.html ? "html" : "text", content: String(need(p.body, "body")) },
+      },
+    }),
+    reply: (p) => ({
+      path: `/teams/${String(need(p.team_id, "team_id"))}/channels/${String(need(p.channel_id, "channel_id"))}/messages/${String(need(p.message_id, "message_id"))}/replies`,
+      method: "POST",
+      body: { body: { contentType: "text", content: String(need(p.body, "body")) } },
+    }),
+  },
+  whatsapp: {
+    send_message: (p) => ({
+      path: "/{phone_number_id}/messages",
+      method: "POST",
+      body: {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: String(need(p.to, "to")).replace(/[^\d]/g, ""),
+        type: "text",
+        text: { preview_url: p.preview_url !== false, body: String(need(p.body, "body")) },
+      },
+    }),
+    send_template: (p) => ({
+      path: "/{phone_number_id}/messages",
+      method: "POST",
+      body: {
+        messaging_product: "whatsapp",
+        to: String(need(p.to, "to")).replace(/[^\d]/g, ""),
+        type: "template",
+        template: {
+          name: String(need(p.template, "template")),
+          language: { code: p.language ?? "en_US" },
+          ...(p.variables
+            ? {
+                components: [
+                  {
+                    type: "body",
+                    parameters: (Array.isArray(p.variables) ? p.variables : [p.variables]).map((v: any) => ({
+                      type: "text",
+                      text: String(v),
+                    })),
+                  },
+                ],
+              }
+            : {}),
+        },
+      },
+    }),
+    mark_read: (p) => ({
+      path: "/{phone_number_id}/messages",
+      method: "POST",
+      body: {
+        messaging_product: "whatsapp",
+        status: "read",
+        message_id: String(need(p.message_id, "message_id")),
+      },
+    }),
+  },
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -835,14 +1213,44 @@ serve(async (req) => {
   // ---- Provider webhooks (no user JWT) ----
   if (url.pathname.includes("/webhook/")) {
     const connectorId = url.pathname.split("/webhook/")[1];
+
+    // Meta/WhatsApp subscription handshake.
+    if (req.method === "GET") {
+      const verifyToken = Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
+      const mode = url.searchParams.get("hub.mode");
+      const token = url.searchParams.get("hub.verify_token");
+      const challenge = url.searchParams.get("hub.challenge");
+      if (mode === "subscribe" && verifyToken && token === verifyToken) {
+        return new Response(challenge ?? "", { status: 200, headers: corsHeaders });
+      }
+      return new Response("forbidden", { status: 403, headers: corsHeaders });
+    }
+
     const payload = await req.json().catch(() => ({}));
     await svc().from("connector_webhook_events").insert({
       connector_id: connectorId,
-      event_type: payload?.type ?? payload?.event ?? null,
+      event_type: payload?.type ?? payload?.event ?? payload?.object ?? null,
       payload,
     });
+
+    // WhatsApp has no pollable history, so inbound webhooks are ingested immediately.
+    if (connectorId === "whatsapp") {
+      const { data: connections } = await svc()
+        .from("connector_connections")
+        .select("*")
+        .eq("connector_id", "whatsapp");
+      for (const connection of connections ?? []) {
+        try {
+          await syncWhatsAppFromWebhooks(connection);
+        } catch (error) {
+          console.error("[whatsapp] webhook ingest failed", error);
+        }
+      }
+    }
+
     return json({ received: true });
   }
+
 
   try {
     const user = await getUser(req);
@@ -1083,15 +1491,32 @@ serve(async (req) => {
         const { data: connection } = await svc()
           .from("connector_connections").select("*").eq("id", body.connection_id).eq("user_id", user.id).maybeSingle();
         if (!connection) return json({ error: "Connection not found", status: 404 }, 200);
-        const payload = (body.payload ?? {}) as { path?: string; method?: string; body?: unknown };
+
+        // Semantic action (send_mail, send_message, create_event...) or a raw path call.
+        const providerAction = body.provider_action ? String(body.provider_action) : null;
+        let payload = (body.payload ?? {}) as { path?: string; method?: string; body?: unknown };
+
+        if (providerAction) {
+          const builder = ACTIONS[connectorId]?.[providerAction];
+          if (!builder) {
+            return json({ error: `Unsupported action "${providerAction}" for ${connectorId}`, status: 400 }, 200);
+          }
+          try {
+            payload = builder((body.payload ?? {}) as Record<string, any>);
+          } catch (error) {
+            return json({ error: String((error as Error).message), status: 400 }, 200);
+          }
+        }
+
         if (!payload.path) return json({ error: "execute requires payload.path", status: 400 }, 200);
         const result = await providerFetch(connectorId, connection.id, payload.path, {
           method: payload.method ?? "POST",
           headers: { "Content-Type": "application/json" },
           body: payload.body ? JSON.stringify(payload.body) : undefined,
         });
-        return json(result);
+        return json({ ok: true, ...(result && typeof result === "object" ? result : { result }) });
       }
+
 
       default:
         return json({ error: `Unknown action "${body.action}"`, status: 400 }, 200);

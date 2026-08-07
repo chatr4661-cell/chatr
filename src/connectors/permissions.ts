@@ -11,6 +11,7 @@ const CAPABILITY_LABELS: Record<Capability, string> = {
   'chat.read': 'Read your chats and channels',
   'chat.send': 'Post messages for you',
   'chat.threads': 'Reply in threads',
+  'chat.channels': 'List your teams and channels',
   'calendar.read': 'See your calendar',
   'calendar.write': 'Create and edit events',
   'meetings.create': 'Create meetings',
