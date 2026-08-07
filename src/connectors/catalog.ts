@@ -128,7 +128,7 @@ export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
     groups: ['calendar'],
     capabilities: ['calendar.read', 'calendar.write'],
     auth: 'oauth2',
-    scopes: ['offline_access', 'Calendars.ReadWrite'],
+    scopes: ['offline_access', 'User.Read', 'Calendars.ReadWrite'],
     availability: 'available',
     apiBase: 'https://graph.microsoft.com/v1.0',
     rateLimitPerMinute: 180,
