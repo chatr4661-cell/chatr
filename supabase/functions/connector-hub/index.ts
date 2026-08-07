@@ -342,7 +342,10 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 180,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "Files.ReadWrite"],
+    scopes: [
+      "openid", "profile", "email", "offline_access", "User.Read",
+      "Files.ReadWrite",
+    ],
     endpoints: {
       "files.read": {
         path: "/me/drive/root/children",
