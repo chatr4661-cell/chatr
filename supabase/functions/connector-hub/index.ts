@@ -176,30 +176,62 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 180, webhooks: true,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "Mail.Read", "Mail.Send", "Contacts.Read"],
+    scopes: ["offline_access", "openid", "profile", "email", "User.Read", "Mail.Read", "Mail.Send", "Contacts.Read"],
     endpoints: {
       "email.read": {
-        path: "/me/messages?$top=25",
+        path: "/me/messages?$top=25&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,webLink,isRead,conversationId",
         recordType: "message",
         list: (b) => b.value ?? [],
         map: (m) => ({
-          external_id: m.id, title: m.subject, body: m.bodyPreview,
-          author: m.from?.emailAddress?.address, occurred_at: m.receivedDateTime, metadata: m,
+          external_id: m.id,
+          title: m.subject ?? "(no subject)",
+          body: m.bodyPreview ?? null,
+          author: m.from?.emailAddress?.address ?? null,
+          participants: [
+            m.from?.emailAddress?.address,
+            ...(m.toRecipients ?? []).map((r: any) => r.emailAddress?.address),
+          ].filter(Boolean),
+          url: m.webLink ?? null,
+          occurred_at: m.receivedDateTime ?? null,
+          metadata: { is_read: m.isRead ?? null, conversation_id: m.conversationId ?? null },
         }),
         searchPath: (q) => `/me/messages?$top=25&$search="${encodeURIComponent(q)}"`,
+      },
+      "contacts.read": {
+        path: "/me/contacts?$top=100&$select=id,displayName,emailAddresses,mobilePhone,businessPhones",
+        recordType: "contact",
+        list: (b) => b.value ?? [],
+        map: (c) => ({
+          external_id: c.id,
+          title: c.displayName ?? "Contact",
+          body: c.emailAddresses?.[0]?.address ?? c.mobilePhone ?? c.businessPhones?.[0] ?? null,
+          participants: (c.emailAddresses ?? []).map((e: any) => e.address).filter(Boolean),
+          metadata: c,
+        }),
       },
     },
   },
   outlook_calendar: {
+    rateLimitPerMinute: 180,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "Calendars.ReadWrite"],
+    scopes: ["offline_access", "openid", "profile", "email", "User.Read", "Calendars.ReadWrite"],
     endpoints: {
       "calendar.read": {
-        path: "/me/events?$top=50",
+        path: "/me/events?$top=50&$orderby=start/dateTime&$select=id,subject,bodyPreview,start,end,location,organizer,attendees,webLink,onlineMeeting",
         recordType: "event",
         list: (b) => b.value ?? [],
-        map: (e) => ({ external_id: e.id, title: e.subject, occurred_at: e.start?.dateTime, metadata: e }),
+        map: (e) => ({
+          external_id: e.id,
+          title: e.subject ?? "Event",
+          body: e.bodyPreview ?? null,
+          author: e.organizer?.emailAddress?.address ?? null,
+          participants: (e.attendees ?? []).map((a: any) => a.emailAddress?.address).filter(Boolean),
+          url: e.onlineMeeting?.joinUrl ?? e.webLink ?? null,
+          occurred_at: e.start?.dateTime ? new Date(`${e.start.dateTime}Z`).toISOString() : null,
+          metadata: { end: e.end ?? null, location: e.location?.displayName ?? null },
+        }),
+        searchPath: (q) => `/me/events?$top=50&$search="${encodeURIComponent(q)}"`,
       },
     },
   },
@@ -207,13 +239,94 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 120,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "Chat.Read"],
+    scopes: [
+      "offline_access", "openid", "profile", "email", "User.Read",
+      "Chat.Read", "Chat.ReadWrite", "Team.ReadBasic.All", "Channel.ReadBasic.All", "ChannelMessage.Read.All",
+    ],
     endpoints: {
       "chat.read": {
-        path: "/me/chats?$top=25",
+        path: "/me/chats?$top=15&$expand=members",
         recordType: "message",
         list: (b) => b.value ?? [],
-        map: (c) => ({ external_id: c.id, title: c.topic ?? "Teams chat", occurred_at: c.lastUpdatedDateTime, metadata: c }),
+        // Graph lists chats, not messages — hydrate the recent messages of each chat.
+        hydrate: async (chats, fetchOne) => {
+          const messages: any[] = [];
+          for (const chat of chats) {
+            const chatName =
+              chat.topic ??
+              (chat.members ?? [])
+                .map((m: any) => m.displayName)
+                .filter(Boolean)
+                .slice(0, 3)
+                .join(", ") ??
+              "Teams chat";
+            try {
+              const page = await fetchOne(`/chats/${chat.id}/messages?$top=10`);
+              for (const message of page.value ?? []) {
+                if (message.messageType && message.messageType !== "message") continue;
+                messages.push({ ...message, __chat: { id: chat.id, name: chatName } });
+              }
+            } catch (_) {
+              messages.push({
+                id: chat.id,
+                __chat: { id: chat.id, name: chatName },
+                lastUpdatedDateTime: chat.lastUpdatedDateTime,
+                body: { content: null },
+              });
+            }
+          }
+          return messages;
+        },
+        map: (m) => {
+          const text = String(m.body?.content ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          return {
+            external_id: m.id,
+            title: m.__chat?.name ?? "Teams chat",
+            body: text || null,
+            author: m.from?.user?.displayName ?? m.from?.application?.displayName ?? null,
+            url: m.webUrl ?? null,
+            occurred_at: m.createdDateTime ?? m.lastModifiedDateTime ?? m.lastUpdatedDateTime ?? null,
+            metadata: { chat_id: m.__chat?.id ?? null, importance: m.importance ?? null },
+          };
+        },
+      },
+      "chat.channels": {
+        path: "/me/joinedTeams",
+        recordType: "channel",
+        list: (b) => b.value ?? [],
+        hydrate: async (teams, fetchOne) => {
+          const channels: any[] = [];
+          for (const team of teams) {
+            try {
+              const page = await fetchOne(`/teams/${team.id}/channels`);
+              for (const channel of page.value ?? []) {
+                channels.push({ ...channel, __team: { id: team.id, name: team.displayName } });
+              }
+            } catch (_) { /* team without channel access */ }
+          }
+          return channels;
+        },
+        map: (c) => ({
+          external_id: c.id,
+          title: `${c.__team?.name ?? "Team"} / ${c.displayName ?? "channel"}`,
+          body: c.description ?? null,
+          url: c.webUrl ?? null,
+          metadata: { team_id: c.__team?.id ?? null },
+        }),
+      },
+    },
+  },
+  whatsapp: {
+    rateLimitPerMinute: 120, webhooks: true,
+    apiKeyEnv: "WHATSAPP_ACCESS_TOKEN", apiBase: "https://graph.facebook.com/v21.0",
+    endpoints: {
+      // WhatsApp Cloud API has no message-list endpoint; inbound messages arrive
+      // via webhooks and are ingested by the whatsapp sync branch in runSync.
+      "chat.read": {
+        path: "/{phone_number_id}",
+        recordType: "message",
+        list: () => [],
+        map: (m) => m,
       },
     },
   },
