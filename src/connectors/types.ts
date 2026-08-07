@@ -12,6 +12,7 @@ export type Capability =
   | 'chat.read'
   | 'chat.send'
   | 'chat.threads'
+  | 'chat.channels'
   | 'calendar.read'
   | 'calendar.write'
   | 'meetings.create'
