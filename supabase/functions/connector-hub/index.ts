@@ -247,8 +247,9 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
     scopes: [
-      "offline_access", "openid", "profile", "email", "User.Read",
-      "Chat.Read", "Chat.ReadWrite", "Team.ReadBasic.All", "Channel.ReadBasic.All", "ChannelMessage.Read.All",
+      "openid", "profile", "email", "offline_access", "User.Read",
+      "Chat.Read", "Chat.ReadWrite",
+      "Team.ReadBasic.All", "Channel.ReadBasic.All", "ChannelMessage.Read.All",
     ],
     endpoints: {
       "chat.read": {
