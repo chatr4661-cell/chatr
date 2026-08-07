@@ -822,6 +822,53 @@ async function upsertRecords(
   return rows.length;
 }
 
+/**
+ * WhatsApp Cloud API cannot be polled for history — inbound messages land on the
+ * webhook endpoint. Sync therefore drains stored webhook events into records.
+ */
+async function syncWhatsAppFromWebhooks(connection: any) {
+  const { data: events } = await svc()
+    .from("connector_webhook_events")
+    .select("id,payload,created_at")
+    .eq("connector_id", "whatsapp")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const records: Record<string, unknown>[] = [];
+  for (const event of events ?? []) {
+    const entries = (event.payload as any)?.entry ?? [];
+    for (const entry of entries) {
+      for (const change of entry.changes ?? []) {
+        const value = change.value ?? {};
+        const contacts: any[] = value.contacts ?? [];
+        for (const message of value.messages ?? []) {
+          const contact = contacts.find((c) => c.wa_id === message.from);
+          const text =
+            message.text?.body ??
+            message.button?.text ??
+            message.interactive?.list_reply?.title ??
+            message.caption ??
+            `[${message.type ?? "message"}]`;
+          records.push({
+            external_id: message.id,
+            title: contact?.profile?.name ?? message.from ?? "WhatsApp",
+            body: text,
+            author: message.from ?? null,
+            participants: [message.from, value.metadata?.display_phone_number].filter(Boolean),
+            occurred_at: message.timestamp
+              ? new Date(Number(message.timestamp) * 1000).toISOString()
+              : event.created_at,
+            metadata: { type: message.type ?? null, direction: "inbound", wa_id: message.from ?? null },
+          });
+        }
+      }
+    }
+  }
+
+  const upserted = await upsertRecords(connection, "chat.read", "message", records);
+  return { results: [{ capability: "chat.read", fetched: records.length, upserted }], errors: [] as string[] };
+}
+
 /** Pulls every (or one) capability for a connection into the unified record table. */
 async function runSync(connection: any, capability?: string) {
   const connectorId = connection.connector_id;
@@ -829,6 +876,15 @@ async function runSync(connection: any, capability?: string) {
   const caps = capability ? [capability] : Object.keys(config.endpoints ?? {});
   const results: any[] = [];
   const failures: string[] = [];
+
+  if (connectorId === "whatsapp") {
+    const outcome = await syncWhatsAppFromWebhooks(connection);
+    await svc().from("connector_connections")
+      .update({ last_synced_at: new Date().toISOString(), health: "healthy", last_error: null })
+      .eq("id", connection.id);
+    return outcome;
+  }
+
 
   for (const cap of caps) {
     const endpoint = config.endpoints?.[cap];
