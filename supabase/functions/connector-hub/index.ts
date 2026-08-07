@@ -176,7 +176,11 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 180, webhooks: true,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "openid", "profile", "email", "User.Read", "Mail.Read", "Mail.Send", "Contacts.Read"],
+    scopes: [
+      "openid", "profile", "email", "offline_access", "User.Read",
+      "Mail.Read", "Mail.ReadWrite", "Mail.Send",
+      "Contacts.Read",
+    ],
     endpoints: {
       "email.read": {
         path: "/me/messages?$top=25&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,webLink,isRead,conversationId",
@@ -215,7 +219,10 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 180,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "openid", "profile", "email", "User.Read", "Calendars.ReadWrite"],
+    scopes: [
+      "openid", "profile", "email", "offline_access", "User.Read",
+      "Calendars.ReadWrite",
+    ],
     endpoints: {
       "calendar.read": {
         path: "/me/events?$top=50&$orderby=start/dateTime&$select=id,subject,bodyPreview,start,end,location,organizer,attendees,webLink,onlineMeeting",
@@ -240,8 +247,9 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
     scopes: [
-      "offline_access", "openid", "profile", "email", "User.Read",
-      "Chat.Read", "Chat.ReadWrite", "Team.ReadBasic.All", "Channel.ReadBasic.All", "ChannelMessage.Read.All",
+      "openid", "profile", "email", "offline_access", "User.Read",
+      "Chat.Read", "Chat.ReadWrite",
+      "Team.ReadBasic.All", "Channel.ReadBasic.All", "ChannelMessage.Read.All",
     ],
     endpoints: {
       "chat.read": {
@@ -334,7 +342,10 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     rateLimitPerMinute: 180,
     authUrl: `${MS}/authorize`, tokenUrl: `${MS}/token`, apiBase: "https://graph.microsoft.com/v1.0",
     clientIdEnv: "MICROSOFT_CONNECTOR_CLIENT_ID", clientSecretEnv: "MICROSOFT_CONNECTOR_CLIENT_SECRET",
-    scopes: ["offline_access", "Files.ReadWrite"],
+    scopes: [
+      "openid", "profile", "email", "offline_access", "User.Read",
+      "Files.ReadWrite",
+    ],
     endpoints: {
       "files.read": {
         path: "/me/drive/root/children",
