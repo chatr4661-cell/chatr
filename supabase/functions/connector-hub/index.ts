@@ -183,7 +183,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     ],
     endpoints: {
       "email.read": {
-        path: "/me/messages?$top=25&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,webLink,isRead,conversationId",
+        path: "/me/mailFolders/inbox/messages?$top=100&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,webLink,isRead,conversationId",
         recordType: "message",
         list: (b) => b.value ?? [],
         map: (m) => ({
