@@ -169,10 +169,16 @@ export const generateSitemapIndexXML = (files: SitemapFile[]): string => {
  */
 export const generateSitemapXML = (): string => {
   const entries = generateSitemapEntries();
-  const files = buildSitemapPartitions(entries);
-  if (files.length <= 1) return urlsetXml(entries);
-  return generateSitemapIndexXML(files);
+  // Below the protocol cap the root sitemap is ONE flat urlset — the single
+  // production source of truth. Partitioning + an index only kick in above it.
+  if (entries.length <= SITEMAP_MAX_URLS) return urlsetXml(entries);
+  return generateSitemapIndexXML(buildSitemapPartitions(entries));
 };
+
+/** True when the URL count forces partitioning (and therefore an index). */
+export const needsPartitioning = (
+  entries: SitemapEntry[] = generateSitemapEntries(),
+): boolean => entries.length > SITEMAP_MAX_URLS;
 
 // ── robots.txt ─────────────────────────────────────────────────────────────
 
@@ -249,6 +255,6 @@ export const getSitemapData = () => {
     indexableCount: entries.length,
     noindexPrefixCount: ROBOTS_DISALLOW.length,
     partitionCount: files.length,
-    usesIndex: files.length > 1,
+    usesIndex: entries.length > SITEMAP_MAX_URLS,
   };
 };
