@@ -1,60 +1,112 @@
-# CHATR.CHAT — SEO Foundation Hardening
+# CHATR.CHAT — SEO Engine (production)
 
-Single source of truth: `src/config/seo.ts`.
+Single sources of truth:
 
-## What changed
+| Concern | File |
+| --- | --- |
+| Route copy + indexability | `src/config/seo.ts` |
+| Domain ownership + GSC properties | `src/config/seoDomains.ts` |
+| Per-route cluster / section / intent / real lastmod | `src/config/seoRoutes.ts` |
+| Topic clusters + internal link graph | `src/config/seoClusters.ts` |
+| sitemap.xml + robots.txt generation | `src/utils/sitemapGenerator.ts` |
+| Head tags, canonical, JSON-LD | `src/components/SEOHead.tsx` |
 
-| Area | Before | Now |
-| --- | --- | --- |
-| Domain | mix of `chatr.lovable.app` and `chatr.chat` | `https://chatr.chat` only (`PRODUCTION_ORIGIN`) |
-| Canonical | static tag in `index.html` on every route, duplicated by Helmet | per-route, absolute, self-referencing, query/hash stripped |
-| robots.txt | hand-written, drifted from routes | generated from route classification |
-| sitemap.xml | legacy domain, private routes included | generated; 27 indexable public URLs only |
-| Robots meta | indexable by default | **noindex by default**, index only for `INDEXABLE_PUBLIC` |
-| Structured data | fake `AggregateRating` (4.9/325 and 4.8/10000), fake `itunes app-id=1234567890`, unverified twitter:data | removed; only verifiable Organization / WebApplication / WebPage / BreadcrumbList |
+## Commands
 
-## Route classification (`src/config/seo.ts`)
+```
+npm run seo:sitemap                     # regenerate sitemap + robots (also runs on predev/prebuild)
+npm run seo:audit                       # 206 deterministic checks; exits non-zero on failure
+npm run seo:audit -- --live             # additionally probes https://chatr.chat
+npm run seo:audit -- --live --origin=http://localhost:8080
+```
 
-- `INDEXABLE_PUBLIC` — marketing, informational, legal, and the new landing pages.
-- `NOINDEX_PRIVATE` — authenticated surfaces (chat, calls, health records, wallet, settings, admin, portals).
-- `NOINDEX_UTILITY` — transactional/utility (checkout, order tracking, QR login, onboarding, diagnostics).
+## Truth rules (enforced, not aspirational)
 
-Anything not explicitly listed as public is treated as noindex. Adding a public
-page = add one entry to `PUBLIC_ROUTES`; robots.txt, sitemap.xml and the robots
-meta tag all follow automatically.
+- **No fabricated metrics.** No ratings, review counts, download counts or user
+  numbers are published anywhere.
+- **No fabricated freshness.** `<lastmod>` is emitted *only* when
+  `seoRoutes.ts` records a real content-change date. It is never derived from
+  build or generation time, so a rebuild cannot fake freshness. Routes without
+  a known content date omit `<lastmod>` entirely.
+- **No fabricated search data.** `seo-gsc-sync` reports `NOT_CONNECTED`,
+  `NO_PROPERTY`, `NO_REPORTED_DATA` or `FORBIDDEN` honestly. Absent data is
+  "no reported data", never "zero visibility". Rows are stored verbatim from
+  Google with no smoothing or modelling.
+- **No modelled attribution.** `src/utils/seoAttribution.ts` stores only the
+  landing path, referrer, UTM parameters and a search query when the referrer
+  actually exposes one. Missing signals stay `null`.
 
-## Regeneration
+## Multi-domain safety
 
-`scripts/generate-sitemap.ts` runs on `predev` and `prebuild`, writing
-`public/sitemap.xml` and `public/robots.txt`. Run manually with
-`npm run seo:sitemap`.
+`seoDomains.ts` marks exactly one domain as `owned: true` — `https://chatr.chat`,
+the domain this repository builds. `chatrchat.in`, `talentxcel.in` and
+`talentxcel.net` are declared for planning and property mapping, but this build
+never emits their URLs in a sitemap, canonical or OG tag. The audit fails if a
+second owned domain appears, or if any forbidden host
+(`chatr.lovable.app`, `*.vercel.app`, `localhost`, staging) leaks into
+`index.html`, robots.txt or the sitemap.
 
-`lastmod` is a build-time date, not a per-page content timestamp — it is
-deliberately uniform and should not be read as a content-change signal.
+## Sitemap architecture (scales to millions)
 
-## Landing pages (extensible pattern)
+- URLs are partitioned by section (`pages`, `guides`, `use-cases`, `articles`)
+  and hard-capped at 50,000 per file: `public/sitemaps/<section>-<n>.xml`.
+- `public/sitemap.xml` is a `<sitemapindex>` when more than one partition
+  exists, and a plain `<urlset>` when only one does. Both are valid.
+- Partitioning is deterministic: the same route set always produces identical
+  file names and ordering, so diffs are meaningful.
+- Current state: 27 indexable URLs across 2 partitions.
 
-`src/components/seo/SeoLandingLayout.tsx` provides canonical, robots, OG,
-breadcrumbs, `WebPage` schema, visible FAQ blocks and an internal-linking
-section. Two pages use it:
+## robots.txt policy
 
-- `/chatr/whatsapp-candidate-screening`
-- `/chatr/universal-inbox-ai`
+- `User-agent: *` → `Allow: /`, with explicit `Disallow` for every private,
+  authenticated, transactional and utility prefix. Nothing is blanket-blocked.
+- Action/duplicate parameter URLs (`?utm_source=`, `?ref=`, `?session=`,
+  `?token=`, `/api/`) are disallowed so they never index as separate URLs.
+- Search and retrieval crawlers (Googlebot, Bingbot, DuckDuckBot,
+  OAI-SearchBot, PerplexityBot, ChatGPT-User) are allowed — they can send real
+  visitors. Training-only crawlers (Google-Extended, GPTBot, CCBot) are opted
+  out. The policy table lives in `CRAWLER_POLICY`.
 
-New landing pages: create a page that renders `SeoLandingLayout`, register it in
-`src/routes/lazyPages.tsx` + `src/App.tsx`, and add the path to `PUBLIC_ROUTES`.
+## Internal link graph
 
-## Truthfulness rules
+Every indexable page belongs to exactly one cluster with a hub page. A page
+links to its hub, up to three siblings and the homepage; hubs additionally link
+across to neighbouring hubs. Global nav/footer links (`/about`, `/help`,
+`/contact`, `/download`, legal pages) are counted as real links. The audit
+fails on any orphan page or any page pointing at a non-existent cluster.
 
-No ratings, review counts, download counts or user numbers are published
-anywhere, because none are independently verifiable. `FAQPage` schema is emitted
-only when the questions are visibly rendered on the page. Support telephone and
-social profiles are emitted only when a real value exists in
-`src/config/seo.ts`.
+## Search Console
 
-## Not done (needs SSR)
+Edge function: `supabase/functions/seo-gsc-sync/index.ts`.
 
-This is a static Vite SPA. Social-preview crawlers (LinkedIn, Slack, Facebook)
-do not execute JS, so they see only `index.html` — per-page social previews are
-not accurate for them. Googlebot does execute JS and sees the per-route tags.
+Resolution order is list → match → select: it lists verified properties, keeps
+only those covering `https://chatr.chat`, and returns `SELECTION_REQUIRED` with
+candidates rather than guessing when several match. Metrics upsert on
+`(site_url, metric_date, page, query, country, device)`, so repeated syncs are
+idempotent. The 2-day reporting lag is respected.
+
+**Current state: no Google Search Console connection is linked to this
+workspace.** Until one is connected, the function logs `NOT_CONNECTED` and the
+Control Tower shows that state instead of numbers.
+
+## Control Tower
+
+`/admin/seo` (`src/pages/SeoControlTower.tsx`, `noindex`) shows measured state
+only: indexable URL count, partition count, blocked prefix count, cluster and
+orphan counts, the raw GSC sync log including errors, and observed arrivals.
+Where data is unavailable it says so.
+
+## Data model
+
+`seo_attribution`, `seo_pages`, `seo_opportunities`, `seo_gsc_sync`,
+`seo_search_metrics` — all with RLS; reads restricted to admin/CEO except the
+public page inventory, and anonymous visitors may only insert their own
+arrival row. `seo_opportunities` requires `evidence` plus `evidence_source`, so
+an opportunity cannot exist without a traceable reason.
+
+## Known limitation
+
+This is a static Vite SPA. Social-preview crawlers that do not execute JS
+(LinkedIn, Slack, Facebook) see only `index.html`, so per-page social previews
+are not accurate for them. Googlebot executes JS and sees the per-route tags.
 Fixing per-page previews properly requires SSR.
