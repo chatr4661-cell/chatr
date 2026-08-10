@@ -28,7 +28,7 @@
     "seo:sitemap": "tsx scripts/generate-sitemap.ts",
     "seo:audit": "tsx scripts/seo-audit.ts",
     "seo:verify": "tsx scripts/verify-seo-endpoints.ts",
-    "postbuild": "cross-env-shim SEO_VERIFY_SOFT_FAIL=1 tsx scripts/verify-seo-endpoints.ts"
+    "postbuild": "SEO_VERIFY_SOFT_FAIL=1 tsx scripts/verify-seo-endpoints.ts"
   },
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^4.0.1",
