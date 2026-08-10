@@ -81,7 +81,16 @@ const SubdomainRedirect = () => {
 
   // Signed-out visitors (including crawlers) get the public marketing homepage.
   // Signed-in users keep the existing in-app dashboard untouched.
-  const [session, setSession] = React.useState<'loading' | 'in' | 'out'>('loading');
+  const hasStoredSession = React.useMemo(() => {
+    try {
+      return Object.keys(localStorage).some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    } catch {
+      return false;
+    }
+  }, []);
+  const [session, setSession] = React.useState<'loading' | 'in' | 'out'>(
+    hasStoredSession ? 'loading' : 'out',
+  );
 
   React.useEffect(() => {
     let active = true;
@@ -104,6 +113,7 @@ const SubdomainRedirect = () => {
   }
 
   if (session === 'in') return <Index />;
+  if (session === 'loading') return <PageLoader />;
 
   return (
     <Suspense fallback={<PageLoader />}>
