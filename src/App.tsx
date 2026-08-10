@@ -79,11 +79,47 @@ const SubdomainRedirect = () => {
     return null;
   }, []);
 
+  // Signed-out visitors (including crawlers) get the public marketing homepage.
+  // Signed-in users keep the existing in-app dashboard untouched.
+  const hasStoredSession = React.useMemo(() => {
+    try {
+      return Object.keys(localStorage).some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    } catch {
+      return false;
+    }
+  }, []);
+  const [session, setSession] = React.useState<'loading' | 'in' | 'out'>(
+    hasStoredSession ? 'loading' : 'out',
+  );
+
+  React.useEffect(() => {
+    let active = true;
+    import('@/integrations/supabase/client').then(({ supabase }) => {
+      supabase.auth.getSession().then(({ data }) => {
+        if (active) setSession(data.session ? 'in' : 'out');
+      });
+      const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+        if (active) setSession(s ? 'in' : 'out');
+      });
+      return () => sub.subscription.unsubscribe();
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   if (redirectInfo) {
     return <Navigate to={redirectInfo.to} replace />;
   }
 
-  return <Index />;
+  if (session === 'in') return <Index />;
+  if (session === 'loading') return <PageLoader />;
+
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <LazyPages.PublicHome />
+    </Suspense>
+  );
 };
 
 // Wrapper for lazy routes with Suspense
@@ -171,6 +207,9 @@ const App = () => {
             <Route path="/about" element={<LazyRoute component={LazyPages.About} />} />
             <Route path="/chatr/whatsapp-candidate-screening" element={<LazyRoute component={LazyPages.WhatsAppCandidateScreening} />} />
             <Route path="/chatr/universal-inbox-ai" element={<LazyRoute component={LazyPages.UniversalInboxAi} />} />
+            <Route path="/chatr/ai-messaging-assistant" element={<LazyRoute component={LazyPages.AiMessagingAssistant} />} />
+            <Route path="/chatr/ai-agents" element={<LazyRoute component={LazyPages.SeoAiAgents} />} />
+            <Route path="/chatr/business-messaging" element={<LazyRoute component={LazyPages.BusinessMessaging} />} />
             <Route path="/admin/seo" element={<LazyRoute component={LazyPages.SeoControlTower} />} />
             <Route path="/help" element={<LazyRoute component={LazyPages.Help} />} />
             <Route path="/contact" element={<LazyRoute component={LazyPages.Contact} />} />

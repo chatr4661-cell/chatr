@@ -79,7 +79,7 @@ export const internalLinksFor = (path: string): InternalLink[] => {
   }
   for (const sibling of clusterMembers(meta.cluster)) {
     if (sibling === path || sibling === cluster?.hub) continue;
-    if (links.length >= 4) break;
+    if (links.length >= 6) break;
     links.push({ to: sibling, anchor: titleOf(sibling) });
   }
   // A hub also links across to neighbouring hubs, so no hub is left unlinked.

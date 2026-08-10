@@ -98,6 +98,34 @@ export const ROUTE_META: Record<string, RouteMeta> = {
     lastModified: '2026-08-10',
   }),
 
+  '/chatr/ai-messaging-assistant': page('ai-assistant', 'ai messaging assistant', {
+    section: 'use-cases',
+    relatedIntents: [
+      'ai that summarises long chat threads',
+      'ai drafted replies in messaging app',
+      'translate chat and calls between languages',
+    ],
+    lastModified: '2026-08-10',
+  }),
+  '/chatr/ai-agents': page('ai-agents', 'ai agents for messaging', {
+    section: 'use-cases',
+    relatedIntents: [
+      'automate routine customer replies',
+      'ai agent with human handoff',
+      'whatsapp business ai agent',
+    ],
+    lastModified: '2026-08-10',
+  }),
+  '/chatr/business-messaging': page('business-communication', 'business messaging shared inbox', {
+    section: 'use-cases',
+    relatedIntents: [
+      'shared team inbox for whatsapp and email',
+      'verified business account messaging',
+      'small business customer messaging app',
+    ],
+    lastModified: '2026-08-10',
+  }),
+
   '/terms': page('ai-workspace', 'chatr terms of service'),
   '/privacy': page('ai-workspace', 'chatr privacy policy'),
   '/refund': page('ai-workspace', 'chatr refund policy'),
