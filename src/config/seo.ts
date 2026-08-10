@@ -15,9 +15,9 @@ export const PRODUCTION_ORIGIN = 'https://chatr.chat';
 export const SITE_NAME = 'Chatr+';
 export const ORGANIZATION_NAME = 'Talentxcel Services Pvt Ltd';
 
-export const DEFAULT_TITLE = 'Chatr+ — The AI Superapp for India';
+export const DEFAULT_TITLE = 'Chatr — AI Messaging App & Universal Inbox';
 export const DEFAULT_DESCRIPTION =
-  'Chatr+ brings messaging, calling, AI assistants, a universal inbox, healthcare access, jobs and local services together in one app built for India.';
+  'Chatr is an AI-powered messaging app and universal inbox: read Gmail, Outlook, WhatsApp Business, Slack and Teams in one place, with AI summaries, drafted replies and agents. Sign in with your phone number.';
 
 /** Real asset committed in /public. */
 export const DEFAULT_OG_IMAGE = '/chatr-logo.png';
@@ -266,6 +266,30 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     title: 'Universal Inbox with AI — Chatr+',
     description:
       'Bring Gmail, Outlook, WhatsApp, Slack and Teams into one Chatr+ inbox, with AI summaries and replies across every channel.',
+    changefreq: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/chatr/ai-messaging-assistant',
+    title: 'AI Messaging Assistant — Chatr',
+    description:
+      'Use an AI assistant inside your own conversations in Chatr: summarise long threads, draft replies in your tone and translate a chat between languages.',
+    changefreq: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/chatr/ai-agents',
+    title: 'AI Agents for Messaging — Chatr',
+    description:
+      'Set up AI agents in Chatr that answer routine messages, ask qualifying questions and hand a conversation to a person the moment it needs one.',
+    changefreq: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/chatr/business-messaging',
+    title: 'Business Messaging and Shared Inbox — Chatr',
+    description:
+      'Run customer conversations from a verified Chatr official account with a shared team inbox across email, WhatsApp Business, Slack and Teams.',
     changefreq: 'monthly',
     priority: 0.7,
   },

@@ -207,6 +207,9 @@ const App = () => {
             <Route path="/about" element={<LazyRoute component={LazyPages.About} />} />
             <Route path="/chatr/whatsapp-candidate-screening" element={<LazyRoute component={LazyPages.WhatsAppCandidateScreening} />} />
             <Route path="/chatr/universal-inbox-ai" element={<LazyRoute component={LazyPages.UniversalInboxAi} />} />
+            <Route path="/chatr/ai-messaging-assistant" element={<LazyRoute component={LazyPages.AiMessagingAssistant} />} />
+            <Route path="/chatr/ai-agents" element={<LazyRoute component={LazyPages.SeoAiAgents} />} />
+            <Route path="/chatr/business-messaging" element={<LazyRoute component={LazyPages.BusinessMessaging} />} />
             <Route path="/admin/seo" element={<LazyRoute component={LazyPages.SeoControlTower} />} />
             <Route path="/help" element={<LazyRoute component={LazyPages.Help} />} />
             <Route path="/contact" element={<LazyRoute component={LazyPages.Contact} />} />
