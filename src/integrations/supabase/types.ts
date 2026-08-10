@@ -19227,6 +19227,225 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_attribution: {
+        Row: {
+          created_at: string
+          first_touch: Json | null
+          has_external_signal: boolean
+          host: string
+          id: string
+          landing_path: string
+          last_touch: Json | null
+          referrer_host: string | null
+          search_query: string | null
+          session_id: string
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string
+          first_touch?: Json | null
+          has_external_signal?: boolean
+          host: string
+          id?: string
+          landing_path: string
+          last_touch?: Json | null
+          referrer_host?: string | null
+          search_query?: string | null
+          session_id: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string
+          first_touch?: Json | null
+          has_external_signal?: boolean
+          host?: string
+          id?: string
+          landing_path?: string
+          last_touch?: Json | null
+          referrer_host?: string | null
+          search_query?: string | null
+          session_id?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
+      seo_gsc_sync: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          range_end: string | null
+          range_start: string | null
+          rows_stored: number
+          site_url: string | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          range_end?: string | null
+          range_start?: string | null
+          rows_stored?: number
+          site_url?: string | null
+          started_at?: string
+          status: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          range_end?: string | null
+          range_start?: string | null
+          rows_stored?: number
+          site_url?: string | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      seo_opportunities: {
+        Row: {
+          action: string
+          cluster: string | null
+          created_at: string
+          domain: string
+          evidence: Json
+          evidence_source: string
+          id: string
+          intent: string
+          status: string
+          target_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          cluster?: string | null
+          created_at?: string
+          domain: string
+          evidence?: Json
+          evidence_source: string
+          id?: string
+          intent: string
+          status?: string
+          target_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          cluster?: string | null
+          created_at?: string
+          domain?: string
+          evidence?: Json
+          evidence_source?: string
+          id?: string
+          intent?: string
+          status?: string
+          target_path?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_pages: {
+        Row: {
+          cluster: string
+          content_last_modified: string | null
+          created_at: string
+          description: string | null
+          domain: string
+          id: string
+          is_indexable: boolean
+          path: string
+          primary_intent: string | null
+          section: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          cluster: string
+          content_last_modified?: string | null
+          created_at?: string
+          description?: string | null
+          domain: string
+          id?: string
+          is_indexable?: boolean
+          path: string
+          primary_intent?: string | null
+          section?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cluster?: string
+          content_last_modified?: string | null
+          created_at?: string
+          description?: string | null
+          domain?: string
+          id?: string
+          is_indexable?: boolean
+          path?: string
+          primary_intent?: string | null
+          section?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_search_metrics: {
+        Row: {
+          clicks: number
+          country: string
+          ctr: number
+          device: string
+          id: string
+          impressions: number
+          metric_date: string
+          page: string
+          position: number
+          query: string
+          site_url: string
+          synced_at: string
+        }
+        Insert: {
+          clicks?: number
+          country?: string
+          ctr?: number
+          device?: string
+          id?: string
+          impressions?: number
+          metric_date: string
+          page?: string
+          position?: number
+          query?: string
+          site_url: string
+          synced_at?: string
+        }
+        Update: {
+          clicks?: number
+          country?: string
+          ctr?: number
+          device?: string
+          id?: string
+          impressions?: number
+          metric_date?: string
+          page?: string
+          position?: number
+          query?: string
+          site_url?: string
+          synced_at?: string
+        }
+        Relationships: []
+      }
       service_bookings: {
         Row: {
           accepted_at: string | null
