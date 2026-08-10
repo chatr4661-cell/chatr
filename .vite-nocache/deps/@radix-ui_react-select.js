@@ -1,10 +1,10 @@
 "use client";
 import {
-  VISUALLY_HIDDEN_STYLES
-} from "./chunk-FEPBK7EZ.js";
-import {
   clamp
 } from "./chunk-TCQMTAGU.js";
+import {
+  VISUALLY_HIDDEN_STYLES
+} from "./chunk-FEPBK7EZ.js";
 import {
   usePrevious
 } from "./chunk-5CYKUGYT.js";

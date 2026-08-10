@@ -7757,6 +7757,7 @@ export type Database = {
       }
       crm_activities: {
         Row: {
+          action_items: Json[] | null
           activity_type: string
           assigned_to: string | null
           business_id: string
@@ -7766,14 +7767,18 @@ export type Database = {
           description: string | null
           duration_minutes: number | null
           id: string
+          intent_detected: string | null
+          key_takeaways: string[] | null
           lead_id: string
           outcome: string | null
           scheduled_at: string | null
+          sentiment: string | null
           status: string | null
           subject: string
           updated_at: string | null
         }
         Insert: {
+          action_items?: Json[] | null
           activity_type: string
           assigned_to?: string | null
           business_id: string
@@ -7783,14 +7788,18 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           id?: string
+          intent_detected?: string | null
+          key_takeaways?: string[] | null
           lead_id: string
           outcome?: string | null
           scheduled_at?: string | null
+          sentiment?: string | null
           status?: string | null
           subject: string
           updated_at?: string | null
         }
         Update: {
+          action_items?: Json[] | null
           activity_type?: string
           assigned_to?: string | null
           business_id?: string
@@ -7800,9 +7809,12 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           id?: string
+          intent_detected?: string | null
+          key_takeaways?: string[] | null
           lead_id?: string
           outcome?: string | null
           scheduled_at?: string | null
+          sentiment?: string | null
           status?: string | null
           subject?: string
           updated_at?: string | null
@@ -7833,6 +7845,186 @@ export type Database = {
             foreignKeyName: "crm_activities_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_agent_tasks: {
+        Row: {
+          attempts: number | null
+          business_id: string
+          created_at: string | null
+          error_log: string | null
+          id: string
+          lead_id: string | null
+          lease_expires_at: string | null
+          lease_owner: string | null
+          max_attempts: number | null
+          payload: Json | null
+          result: Json | null
+          status: string
+          task_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          business_id: string
+          created_at?: string | null
+          error_log?: string | null
+          id?: string
+          lead_id?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          max_attempts?: number | null
+          payload?: Json | null
+          result?: Json | null
+          status?: string
+          task_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          business_id?: string
+          created_at?: string | null
+          error_log?: string | null
+          id?: string
+          lead_id?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          max_attempts?: number | null
+          payload?: Json | null
+          result?: Json | null
+          status?: string
+          task_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_agent_tasks_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_agent_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_evidence_ledger: {
+        Row: {
+          business_id: string
+          confidence_score: number | null
+          field_name: string
+          id: string
+          lead_id: string
+          quoted_snippet: string
+          retrieved_at: string | null
+          source_url: string
+        }
+        Insert: {
+          business_id: string
+          confidence_score?: number | null
+          field_name: string
+          id?: string
+          lead_id: string
+          quoted_snippet: string
+          retrieved_at?: string | null
+          source_url: string
+        }
+        Update: {
+          business_id?: string
+          confidence_score?: number | null
+          field_name?: string
+          id?: string
+          lead_id?: string
+          quoted_snippet?: string
+          retrieved_at?: string | null
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_evidence_ledger_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_evidence_ledger_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_lead_dossiers: {
+        Row: {
+          business_id: string
+          company_size: string | null
+          competitors: string[] | null
+          created_at: string | null
+          estimated_revenue: string | null
+          executive_summary: string | null
+          funding_info: Json | null
+          id: string
+          industry: string | null
+          key_decision_makers: Json[] | null
+          lead_id: string
+          pain_points: string[] | null
+          tech_stack: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_id: string
+          company_size?: string | null
+          competitors?: string[] | null
+          created_at?: string | null
+          estimated_revenue?: string | null
+          executive_summary?: string | null
+          funding_info?: Json | null
+          id?: string
+          industry?: string | null
+          key_decision_makers?: Json[] | null
+          lead_id: string
+          pain_points?: string[] | null
+          tech_stack?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          company_size?: string | null
+          competitors?: string[] | null
+          created_at?: string | null
+          estimated_revenue?: string | null
+          executive_summary?: string | null
+          funding_info?: Json | null
+          id?: string
+          industry?: string | null
+          key_decision_makers?: Json[] | null
+          lead_id?: string
+          pain_points?: string[] | null
+          tech_stack?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_dossiers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_dossiers_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
