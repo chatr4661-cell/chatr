@@ -1,4 +1,8 @@
 import {
+  Persistence,
+  ProviderId
+} from "./chunk-RMBOUGV7.js";
+import {
   EmailAuthProvider,
   FacebookAuthProvider,
   GithubAuthProvider,
@@ -45,10 +49,6 @@ import {
   verifyBeforeUpdateEmail
 } from "./chunk-RKQUBVBC.js";
 import "./chunk-XM6L7XYF.js";
-import {
-  Persistence,
-  ProviderId
-} from "./chunk-RMBOUGV7.js";
 import {
   WebPlugin
 } from "./chunk-S7OKNGPJ.js";
@@ -642,4 +642,4 @@ FirebaseAuthenticationWeb.ERROR_CONFIRMATION_RESULT_MISSING = "No confirmation r
 export {
   FirebaseAuthenticationWeb
 };
-//# sourceMappingURL=web-JOPAODJX.js.map
+//# sourceMappingURL=web-OH6JCCJF.js.map

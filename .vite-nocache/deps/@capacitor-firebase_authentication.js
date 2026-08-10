@@ -9,7 +9,7 @@ import "./chunk-V4OQ3NZ2.js";
 
 // node_modules/@capacitor-firebase/authentication/dist/esm/index.js
 var FirebaseAuthentication = registerPlugin("FirebaseAuthentication", {
-  web: () => import("./web-JOPAODJX.js").then((m) => new m.FirebaseAuthenticationWeb())
+  web: () => import("./web-OH6JCCJF.js").then((m) => new m.FirebaseAuthenticationWeb())
 });
 export {
   FirebaseAuthentication,

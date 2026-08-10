@@ -1,0 +1,22 @@
+name: Verify SEO endpoints
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify sitemap.xml and robots.txt
+        run: npx -y tsx scripts/verify-seo-endpoints.ts
+        env:
+          SEO_VERIFY_BASE_URL: https://chatr.chat
