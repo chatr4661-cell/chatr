@@ -4,7 +4,16 @@
   "framework": "vite",
   "installCommand": "npm install --legacy-peer-deps",
 
-  "rewrites": [
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.chatr.chat" }],
+      "destination": "https://chatr.chat/:path*",
+      "permanent": true
+    }
+  ],
+
+
     {
       "source": "/assets/:path*",
       "destination": "/assets/:path*"
