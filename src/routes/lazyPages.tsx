@@ -304,6 +304,8 @@ export const OfficialAccounts = lazy(() => import('@/pages/OfficialAccounts'));
 
 // Static Pages
 export const About = lazy(() => import('@/pages/About'));
+export const WhatsAppCandidateScreening = lazy(() => import('@/pages/seo/WhatsAppCandidateScreening'));
+export const UniversalInboxAi = lazy(() => import('@/pages/seo/UniversalInboxAi'));
 export const Help = lazy(() => import('@/pages/Help'));
 export const Contact = lazy(() => import('@/pages/Contact'));
 export const Download = lazy(() => import('@/pages/Download'));
