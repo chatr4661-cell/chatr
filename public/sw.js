@@ -94,13 +94,13 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches aggressively
 self.addEventListener('activate', (event) => {
-  console.log('SW v6 activating...');
+  console.log('SW v7 activating...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           // Delete any cache that doesn't match current version
-          if (!cacheName.includes('v6')) {
+          if (!cacheName.includes('v7')) {
             console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
