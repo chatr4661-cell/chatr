@@ -4,10 +4,10 @@
  */
 
 // Cache version - increment to force update
-const CACHE_NAME = 'chatr-cache-v6';
-const RUNTIME_CACHE = 'chatr-runtime-v6';
-const IMAGE_CACHE = 'chatr-images-v6';
-const API_CACHE = 'chatr-api-v6';
+const CACHE_NAME = 'chatr-cache-v7';
+const RUNTIME_CACHE = 'chatr-runtime-v7';
+const IMAGE_CACHE = 'chatr-images-v7';
+const API_CACHE = 'chatr-api-v7';
 
 const STATIC_ASSETS = [
   '/',
