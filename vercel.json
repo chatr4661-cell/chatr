@@ -13,18 +13,39 @@
     }
   ],
 
-
+  "rewrites": [
     {
       "source": "/assets/:path*",
       "destination": "/assets/:path*"
     },
     {
-      "source": "/((?!api/|assets/|sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|ringtone\\.mp3).*)",
+      "source": "/((?!api/|assets/|sitemap\\.xml|sitemaps/|sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|llms\\.txt|ringtone\\.mp3).*)",
       "destination": "/index.html"
     }
   ],
 
   "headers": [
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/xml; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/sitemaps/(.*)\\.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/xml; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
     {
       "source": "/assets/(.*)\\.js",
       "headers": [
