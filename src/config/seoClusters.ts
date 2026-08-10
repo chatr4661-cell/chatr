@@ -82,19 +82,43 @@ export const internalLinksFor = (path: string): InternalLink[] => {
     if (links.length >= 4) break;
     links.push({ to: sibling, anchor: titleOf(sibling) });
   }
+  // A hub also links across to neighbouring hubs, so no hub is left unlinked.
+  if (cluster?.hub === path) {
+    for (const other of CHATR_CLUSTERS) {
+      if (other.hub === path) continue;
+      if (links.length >= 7) break;
+      links.push({ to: other.hub, anchor: titleOf(other.hub) });
+    }
+  }
   if (path !== '/') links.push({ to: '/', anchor: 'Chatr+' });
   return links;
 };
 
-/** Every indexable path that no other indexable page links to. */
+/**
+ * Links present in the global footer / header on every page. These are real
+ * site-wide links, so pages reachable through them are not orphans.
+ */
+export const GLOBAL_NAV_LINKS: string[] = [
+  '/about',
+  '/help',
+  '/contact',
+  '/download',
+  '/terms',
+  '/privacy',
+  '/refund',
+  '/disclaimer',
+];
+
+/** Every indexable path that no other indexable page and no global nav links to. */
 export const findOrphanPages = (): string[] => {
   const indexable = Object.keys(ROUTE_META);
-  const linkedTo = new Set<string>();
+  const linkedTo = new Set<string>(GLOBAL_NAV_LINKS);
   for (const from of indexable) {
     for (const link of internalLinksFor(from)) linkedTo.add(link.to);
   }
   return indexable.filter((p) => p !== '/' && !linkedTo.has(p));
 };
+
 
 /** Paths whose declared cluster does not exist. */
 export const findClusterViolations = (): string[] =>
