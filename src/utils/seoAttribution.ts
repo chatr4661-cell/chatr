@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 const FIRST_TOUCH_KEY = 'chatr.seo.firstTouch';
 const SESSION_KEY = 'chatr.seo.sessionId';
@@ -106,8 +107,8 @@ export const captureAcquisition = async (): Promise<void> => {
       user_id: auth?.user?.id ?? null,
       host: window.location.host,
       landing_path: current.landing_path,
-      first_touch: first as unknown as Record<string, unknown>,
-      last_touch: current as unknown as Record<string, unknown>,
+      first_touch: first as unknown as Json,
+      last_touch: current as unknown as Json,
       referrer_host: current.referrer_host,
       utm_source: current.utm_source,
       utm_medium: current.utm_medium,
