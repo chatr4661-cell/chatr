@@ -20,3 +20,8 @@ createRoot(rootElement).render(<App />);
 import('./core/services/ServiceAdapters')
   .then(({ initServiceAdapters }) => initServiceAdapters())
   .catch((err) => console.error('[main] ServiceAdapters init failed:', err));
+
+// Organic acquisition attribution: records only real referrer/UTM signals.
+import('./utils/seoAttribution')
+  .then(({ captureAcquisition }) => captureAcquisition())
+  .catch(() => {/* attribution is best-effort and never user-visible */});
