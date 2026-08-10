@@ -1,151 +1,115 @@
 /**
- * Sitemap Generator for CHATR
- * Auto-generates sitemap.xml from valid routes
+ * CHATR Sitemap Generator — SINGLE SOURCE OF TRUTH.
+ *
+ * Routes and metadata come from src/config/seo.ts (PUBLIC_ROUTES).
+ * Only INDEXABLE_PUBLIC routes are emitted. Dynamic (:param) routes,
+ * authenticated, private, transactional and utility routes are excluded.
+ *
+ * scripts/generate-sitemap.ts writes the output to public/sitemap.xml on
+ * predev/prebuild, so the served file can never drift from this module.
  */
 
-import { VALID_ROUTES } from './deepLinkHandler';
+import {
+  PRODUCTION_ORIGIN,
+  PUBLIC_ROUTES,
+  ROBOTS_DISALLOW,
+  canonicalPath,
+  isIndexable,
+} from '@/config/seo';
 
-const BASE_URL = 'https://chatr.chat';
-
-interface SitemapEntry {
+export interface SitemapEntry {
   loc: string;
   lastmod: string;
-  changefreq: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+  changefreq:
+    | 'always'
+    | 'hourly'
+    | 'daily'
+    | 'weekly'
+    | 'monthly'
+    | 'yearly'
+    | 'never';
   priority: number;
 }
 
-// Route priority mapping
-const ROUTE_PRIORITIES: Record<string, number> = {
-  '/': 1.0,
-  '/auth': 0.8,
-  '/chat': 0.9,
-  '/health': 0.9,
-  '/care': 0.9,
-  '/jobs': 0.9,
-  '/ai-browser': 0.9,
-  '/chatr-wallet': 0.8,
-  '/communities': 0.8,
-  '/chatr-games': 0.8,
-  '/chatr-studio': 0.8,
-  '/marketplace': 0.8,
-  '/about': 0.7,
-  '/help': 0.7,
-  '/contact': 0.7,
-  '/terms': 0.5,
-  '/privacy-policy': 0.5,
-  '/refund': 0.4,
-  '/disclaimer': 0.4,
+/** Today's date (UTC) — never a fabricated historical date. */
+const today = () => new Date().toISOString().split('T')[0];
+
+export const getIndexableRoutes = (): string[] => {
+  const seen = new Set<string>();
+  for (const route of PUBLIC_ROUTES) {
+    const path = canonicalPath(route.path);
+    if (path.includes(':') || path.includes('*')) continue;
+    if (!isIndexable(path)) continue;
+    seen.add(path);
+  }
+  return Array.from(seen);
 };
 
-// Route change frequency mapping
-const ROUTE_CHANGEFREQ: Record<string, SitemapEntry['changefreq']> = {
-  '/': 'daily',
-  '/chat': 'always',
-  '/jobs': 'daily',
-  '/health': 'weekly',
-  '/care': 'weekly',
-  '/ai-browser': 'daily',
-  '/communities': 'daily',
-  '/chatr-games': 'weekly',
-  '/stories': 'hourly',
-  '/about': 'monthly',
-  '/terms': 'yearly',
-  '/privacy-policy': 'yearly',
-};
-
-// Routes to exclude from sitemap (auth-protected or dynamic)
-const EXCLUDED_ROUTES = [
-  '/admin',
-  '/provider-portal',
-  '/provider-register',
-  '/device-management',
-  '/geofence-history',
-  '/notification-settings',
-  '/account',
-  '/qr-login',
-  '/onboarding',
-];
-
-// Filter out dynamic routes (with :param)
-const getStaticRoutes = (): string[] => {
-  return VALID_ROUTES.filter(route => {
-    // Exclude routes with dynamic segments
-    if (route.includes(':')) return false;
-    // Exclude auth-protected routes
-    if (EXCLUDED_ROUTES.includes(route)) return false;
-    return true;
-  });
-};
-
-// Generate sitemap entries
 export const generateSitemapEntries = (): SitemapEntry[] => {
-  const routes = getStaticRoutes();
-  const today = new Date().toISOString().split('T')[0];
+  const lastmod = today();
+  const seen = new Set<string>();
+  const entries: SitemapEntry[] = [];
 
-  return routes.map(route => ({
-    loc: `${BASE_URL}${route}`,
-    lastmod: today,
-    changefreq: ROUTE_CHANGEFREQ[route] || 'weekly',
-    priority: ROUTE_PRIORITIES[route] || 0.6,
-  }));
+  for (const route of PUBLIC_ROUTES) {
+    const path = canonicalPath(route.path);
+    if (path.includes(':') || path.includes('*')) continue;
+    if (!isIndexable(path)) continue;
+    if (seen.has(path)) continue;
+    seen.add(path);
+
+    entries.push({
+      loc: `${PRODUCTION_ORIGIN}${path === '/' ? '/' : path}`,
+      lastmod,
+      changefreq: route.changefreq,
+      priority: route.priority,
+    });
+  }
+
+  return entries;
 };
 
-// Generate sitemap XML string
+const escapeXml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 export const generateSitemapXML = (): string => {
   const entries = generateSitemapEntries();
-  
-  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-  
-  entries.forEach(entry => {
-    xml += '  <url>\n';
-    xml += `    <loc>${entry.loc}</loc>\n`;
-    xml += `    <lastmod>${entry.lastmod}</lastmod>\n`;
-    xml += `    <changefreq>${entry.changefreq}</changefreq>\n`;
-    xml += `    <priority>${entry.priority}</priority>\n`;
-    xml += '  </url>\n';
-  });
-  
-  xml += '</urlset>';
-  
-  return xml;
+
+  const urls = entries.map((entry) =>
+    [
+      '  <url>',
+      `    <loc>${escapeXml(entry.loc)}</loc>`,
+      `    <lastmod>${entry.lastmod}</lastmod>`,
+      `    <changefreq>${entry.changefreq}</changefreq>`,
+      `    <priority>${entry.priority.toFixed(1)}</priority>`,
+      '  </url>',
+    ].join('\n'),
+  );
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls,
+    '</urlset>',
+    '',
+  ].join('\n');
 };
 
-// Generate robots.txt content
-export const generateRobotsTxt = (): string => {
-  return `# CHATR Robots.txt
-User-agent: *
-Allow: /
+export const generateRobotsTxt = (): string =>
+  [
+    '# CHATR robots.txt',
+    'User-agent: *',
+    'Allow: /',
+    '',
+    '# Private, authenticated, transactional and utility routes',
+    ...ROBOTS_DISALLOW.map((path) => `Disallow: ${path}`),
+    '',
+    `Sitemap: ${PRODUCTION_ORIGIN}/sitemap.xml`,
+    '',
+  ].join('\n');
 
-# Sitemaps
-Sitemap: ${BASE_URL}/sitemap.xml
-
-# Disallow admin and auth routes
-Disallow: /admin
-Disallow: /provider-portal
-Disallow: /device-management
-Disallow: /qr-login
-Disallow: /onboarding
-
-# Allow crawling of main content
-Allow: /health
-Allow: /care
-Allow: /jobs
-Allow: /ai-browser
-Allow: /communities
-Allow: /chatr-games
-Allow: /chatr-studio
-Allow: /marketplace
-Allow: /about
-Allow: /help
-Allow: /contact
-`;
-};
-
-// Export sitemap data for API endpoint
 export const getSitemapData = () => ({
   xml: generateSitemapXML(),
   robots: generateRobotsTxt(),
   entries: generateSitemapEntries(),
-  totalRoutes: getStaticRoutes().length,
+  totalRoutes: getIndexableRoutes().length,
 });

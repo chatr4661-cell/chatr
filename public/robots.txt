@@ -1,29 +1,56 @@
-# CHATR Robots.txt
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# CHATR robots.txt
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://chatr.lovable.app/sitemap.xml
-
-# Disallow admin and auth-protected routes
+# Private, authenticated, transactional and utility routes
+Disallow: /account
 Disallow: /admin
+Disallow: /apply
+Disallow: /auth
+Disallow: /bluetooth-test
+Disallow: /booking
+Disallow: /business
+Disallow: /call-history
+Disallow: /calls
+Disallow: /capture
+Disallow: /chat
+Disallow: /command-center
+Disallow: /connectors
+Disallow: /contacts
+Disallow: /desktop
+Disallow: /developer-portal
+Disallow: /device-management
+Disallow: /doctor-onboarding
+Disallow: /doctor-portal
+Disallow: /food-checkout
+Disallow: /geofence-history
+Disallow: /geofences
+Disallow: /global-contacts
+Disallow: /health-passport
+Disallow: /health-wallet
+Disallow: /join
+Disallow: /kyc-verification
+Disallow: /lab-reports
+Disallow: /launcher
+Disallow: /marketplace/checkout
+Disallow: /marketplace/order-success
+Disallow: /mcp-console
+Disallow: /notification-settings
+Disallow: /notifications
+Disallow: /onboarding
+Disallow: /order-history
+Disallow: /order-tracking
+Disallow: /os-detection
+Disallow: /provider
 Disallow: /provider-portal
 Disallow: /provider-register
-Disallow: /device-management
 Disallow: /qr-login
-Disallow: /onboarding
-Disallow: /account
-Disallow: /notification-settings
-Disallow: /geofence-history
+Disallow: /qr-payment
+Disallow: /seller
+Disallow: /settings
+Disallow: /smart-inbox
+Disallow: /stealth-mode
+Disallow: /subscription
+Disallow: /vendor
+
+Sitemap: https://chatr.chat/sitemap.xml

@@ -22,7 +22,10 @@
     "edge:functions:audit": "node scripts/edge-function-governance.cjs",
     "edge:functions:update-baseline": "node scripts/edge-function-governance.cjs --update-baseline",
     "preview": "vite preview",
-    "certify": "tsx src/scripts/certify.ts"
+    "certify": "tsx src/scripts/certify.ts",
+    "predev": "tsx scripts/generate-sitemap.ts",
+    "prebuild": "tsx scripts/generate-sitemap.ts",
+    "seo:sitemap": "tsx scripts/generate-sitemap.ts"
   },
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^4.0.1",
