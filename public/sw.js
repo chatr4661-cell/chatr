@@ -4,10 +4,10 @@
  */
 
 // Cache version - increment to force update
-const CACHE_NAME = 'chatr-cache-v6';
-const RUNTIME_CACHE = 'chatr-runtime-v6';
-const IMAGE_CACHE = 'chatr-images-v6';
-const API_CACHE = 'chatr-api-v6';
+const CACHE_NAME = 'chatr-cache-v7';
+const RUNTIME_CACHE = 'chatr-runtime-v7';
+const IMAGE_CACHE = 'chatr-images-v7';
+const API_CACHE = 'chatr-api-v7';
 
 const STATIC_ASSETS = [
   '/',
@@ -94,13 +94,13 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches aggressively
 self.addEventListener('activate', (event) => {
-  console.log('SW v6 activating...');
+  console.log('SW v7 activating...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           // Delete any cache that doesn't match current version
-          if (!cacheName.includes('v6')) {
+          if (!cacheName.includes('v7')) {
             console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
@@ -150,73 +150,6 @@ self.addEventListener('fetch', (event) => {
 
   // Everything else - stale while revalidate
   event.respondWith(cacheStrategies.staleWhileRevalidate(request, RUNTIME_CACHE));
-});
-    event.respondWith(
-      caches.open(IMAGE_CACHE).then(cache => {
-        return cache.match(request).then(response => {
-          return response || fetch(request).then(fetchResponse => {
-            cache.put(request, fetchResponse.clone());
-            return fetchResponse;
-          }).catch(() => {
-            // Return placeholder if offline
-            return new Response('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="#ccc" width="200" height="200"/></svg>', {
-              headers: { 'Content-Type': 'image/svg+xml' }
-            });
-          });
-        });
-      })
-    );
-    return;
-  }
-
-  // Handle navigation requests (cache first with network update)
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      caches.match(request)
-        .then(response => {
-          if (response) {
-            // Update cache in background
-            fetch(request).then(fetchResponse => {
-              caches.open(CACHE_NAME).then(cache => {
-                cache.put(request, fetchResponse);
-              });
-            }).catch(() => {});
-            return response;
-          }
-          return fetch(request);
-        })
-        .catch(() => {
-          // Offline fallback
-          return caches.match('/index.html');
-        })
-    );
-    return;
-  }
-
-  // Handle all other requests (cache first, network fallback)
-  event.respondWith(
-    caches.match(request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(request).then(fetchResponse => {
-          // Cache successful responses
-          if (fetchResponse.status === 200) {
-            const responseClone = fetchResponse.clone();
-            caches.open(RUNTIME_CACHE).then(cache => {
-              cache.put(request, responseClone);
-            });
-          }
-          return fetchResponse;
-        });
-      })
-      .catch(() => {
-        if (request.destination === 'document') {
-          return caches.match('/index.html');
-        }
-      })
-  );
 });
 
 // Background Sync - handle offline messages
