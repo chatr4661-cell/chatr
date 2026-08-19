@@ -15,7 +15,7 @@ export const PRODUCTION_ORIGIN = 'https://chatr.chat';
 export const SITE_NAME = 'Chatr+';
 export const ORGANIZATION_NAME = 'Talentxcel Services Pvt Ltd';
 
-export const DEFAULT_TITLE = 'Chatr — AI Messaging App & Universal Inbox';
+export const DEFAULT_TITLE = 'AI Messaging App with a Universal Inbox — Chatr';
 export const DEFAULT_DESCRIPTION =
   'Chatr is an AI-powered messaging app and universal inbox: read Gmail, Outlook, WhatsApp Business, Slack and Teams in one place, with AI summaries, drafted replies and agents. Sign in with your phone number.';
 
@@ -119,7 +119,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/download',
-    title: 'Download Chatr+ — Android and web app',
+    title: 'Download the Chatr App for Android — Free Sign-In by Phone',
     description:
       'Get Chatr+ on Android or open it in your browser. One account for messaging, calls, AI assistants, healthcare and local services.',
     changefreq: 'monthly',
@@ -127,7 +127,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/ai-assistant',
-    title: 'Chatr+ AI Assistant — Ask, draft and summarise',
+    title: 'AI Assistant for Your Chats — Summarise, Draft, Ask | Chatr',
     description:
       'The Chatr+ AI assistant answers questions, drafts replies and summarises long threads in plain language, on the same app you already chat in.',
     changefreq: 'monthly',
@@ -135,7 +135,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/ai-agents',
-    title: 'Chatr+ AI Agents — Automate replies and routine work',
+    title: 'AI Agents That Reply for You — Set Up in Minutes | Chatr',
     description:
       'Build AI agents in Chatr+ that answer routine questions, screen enquiries and hand off to a human when a conversation needs one.',
     changefreq: 'monthly',
@@ -143,7 +143,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/ai-browser',
-    title: 'Chatr+ AI Browser — Search the web conversationally',
+    title: 'AI Browser — Ask a Question, Get an Answer with Sources | Chatr',
     description:
       'Ask a question and get a readable answer with the sources behind it, then carry the result straight into a Chatr+ conversation.',
     changefreq: 'monthly',
@@ -151,7 +151,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/health',
-    title: 'Chatr+ Health Hub — Track health in one place',
+    title: 'Keep Health Records, Reports and Reminders in One App | Chatr',
     description:
       'Keep vitals, lab reports, medicine reminders and health records together in Chatr+, and move from a record to a consultation without switching apps.',
     changefreq: 'monthly',
@@ -159,7 +159,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/care',
-    title: 'Chatr+ Care Access — Book doctors and consultations',
+    title: 'Book a Doctor or Online Consultation Near You | Chatr Care',
     description:
       'Find verified doctors and clinics, book an appointment or a teleconsultation, and keep prescriptions and follow-ups in your Chatr+ health record.',
     changefreq: 'weekly',
@@ -175,7 +175,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/jobs',
-    title: 'Jobs on Chatr+ — Apply and get screened faster',
+    title: 'Apply for Jobs by Chat — No Long Forms | Chatr Jobs',
     description:
       'Browse openings, apply in a few taps and let AI screening move your application forward without long forms or email chains.',
     changefreq: 'daily',
@@ -207,7 +207,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/communities',
-    title: 'Chatr+ Communities — Groups built around interests',
+    title: 'Community Groups for Your Area and Profession | Chatr',
     description:
       'Join and run communities for neighbourhoods, professions, health topics and campuses, with moderation and group tools built in.',
     changefreq: 'weekly',
@@ -290,6 +290,38 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     title: 'Business Messaging and Shared Inbox — Chatr',
     description:
       'Run customer conversations from a verified Chatr official account with a shared team inbox across email, WhatsApp Business, Slack and Teams.',
+    changefreq: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/chatr/live-call-translation',
+    title: 'Live Call Translation Between Languages — Chatr',
+    description:
+      'Speak your own language on a call and let the other person hear it in theirs. Chatr translates speech in both directions during a voice or video call, with captions you can read as you talk.',
+    changefreq: 'monthly',
+    priority: 0.8,
+  },
+  {
+    path: '/chatr/ai-call-answering',
+    title: 'Let AI Answer the Call When You Are Busy — Chatr',
+    description:
+      'Tap AI Answer instead of declining. A Chatr assistant picks up the call, talks to the caller in plain language, finds out why they rang and leaves you the summary.',
+    changefreq: 'monthly',
+    priority: 0.8,
+  },
+  {
+    path: '/chatr/spam-call-protection',
+    title: 'Spam and Scam Call Protection with Caller ID — Chatr',
+    description:
+      "Look up an unknown number, see how many people reported it as spam or a scam, and report the ones that reach you. Chatr's caller ID is built from what the community reports.",
+    changefreq: 'weekly',
+    priority: 0.7,
+  },
+  {
+    path: '/chatr/calls-on-slow-networks',
+    title: 'Voice and Video Calls That Work on a Weak Signal — Chatr',
+    description:
+      'Chatr calls are built for real Indian networks: low-bitrate audio for 2G, video quality that adapts as the signal moves, and a call that resumes instead of ending when the connection drops for a moment.',
     changefreq: 'monthly',
     priority: 0.7,
   },

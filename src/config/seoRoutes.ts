@@ -126,6 +126,43 @@ export const ROUTE_META: Record<string, RouteMeta> = {
     lastModified: '2026-08-10',
   }),
 
+  '/chatr/live-call-translation': page('calling-intelligence', 'live call translation between languages', {
+    section: 'use-cases',
+    relatedIntents: [
+      'real time voice translation phone call',
+      'talk to someone who speaks another language on a call',
+      'hindi punjabi call translation app',
+    ],
+    lastModified: '2026-08-19',
+  }),
+  '/chatr/ai-call-answering': page('calling-intelligence', 'ai answers my phone call', {
+    section: 'use-cases',
+    relatedIntents: [
+      'ai call screening when busy',
+      'ai assistant takes a message from caller',
+      'alternative to declining a call',
+    ],
+    lastModified: '2026-08-19',
+  }),
+  '/chatr/spam-call-protection': page('calling-intelligence', 'spam and scam call protection', {
+    section: 'use-cases',
+    relatedIntents: [
+      'who called me from this number',
+      'report a spam caller',
+      'community caller id app',
+    ],
+    lastModified: '2026-08-19',
+  }),
+  '/chatr/calls-on-slow-networks': page('calling-intelligence', 'calls that work on slow networks', {
+    section: 'use-cases',
+    relatedIntents: [
+      'voice call on 2g network',
+      'video call weak signal',
+      'call reconnects after signal drop',
+    ],
+    lastModified: '2026-08-19',
+  }),
+
   '/terms': page('ai-workspace', 'chatr terms of service'),
   '/privacy': page('ai-workspace', 'chatr privacy policy'),
   '/refund': page('ai-workspace', 'chatr refund policy'),

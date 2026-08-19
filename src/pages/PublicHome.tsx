@@ -3,6 +3,9 @@ import {
   ArrowRight,
   Bot,
   Inbox,
+  Languages,
+  PhoneCall,
+
   MessageSquare,
   Building2,
   ShieldCheck,
@@ -54,6 +57,20 @@ const capabilities = [
     linkLabel: 'AI agents in Chatr',
   },
   {
+    icon: Languages,
+    title: 'Calls that cross languages',
+    body: 'Turn on translation during a voice or video call and each person speaks and hears their own language, with captions alongside the audio.',
+    to: '/chatr/live-call-translation',
+    linkLabel: 'Live call translation',
+  },
+  {
+    icon: PhoneCall,
+    title: 'Calling with an assistant',
+    body: 'When you cannot pick up, AI Answer takes the call, speaks to the caller and leaves you the summary instead of a missed-call entry.',
+    to: '/chatr/ai-call-answering',
+    linkLabel: 'How AI call answering works',
+  },
+  {
     icon: Building2,
     title: 'Business communication',
     body: 'Official accounts, a shared team inbox and connected business channels so enquiries, orders and follow-ups are handled by a team rather than one phone.',
@@ -78,7 +95,18 @@ const useCases = [
     body: 'One place to read and reply, with AI summaries for the threads that grew while you were away.',
     to: '/ai-assistant',
   },
+  {
+    title: 'People on weak networks',
+    body: 'Audio encoded for very low bandwidth, video that adapts as the signal moves, and a call that resumes after a short drop.',
+    to: '/chatr/calls-on-slow-networks',
+  },
+  {
+    title: 'Anyone tired of unknown numbers',
+    body: 'Look up a number against community spam reports before answering, and report the calls that reach you.',
+    to: '/chatr/spam-call-protection',
+  },
 ];
+
 
 const PublicHome = () => {
   const homepageSchema = {

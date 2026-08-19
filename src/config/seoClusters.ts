@@ -29,6 +29,7 @@ export const CHATR_CLUSTERS: SeoCluster[] = [
   { id: 'ai-productivity', label: 'AI productivity', hub: '/ai-browser', domain: 'chatr.chat' },
   { id: 'business-automation', label: 'Business automation', hub: '/ai-agents', domain: 'chatr.chat' },
   { id: 'ai-workspace', label: 'AI workspace', hub: '/', domain: 'chatr.chat' },
+  { id: 'calling-intelligence', label: 'AI calling', hub: '/chatr/live-call-translation', domain: 'chatr.chat' },
 ];
 
 /**

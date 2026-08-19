@@ -309,6 +309,10 @@ export const UniversalInboxAi = lazy(() => import('@/pages/seo/UniversalInboxAi'
 export const AiMessagingAssistant = lazy(() => import('@/pages/seo/AiMessagingAssistant'));
 export const SeoAiAgents = lazy(() => import('@/pages/seo/AiAgents'));
 export const BusinessMessaging = lazy(() => import('@/pages/seo/BusinessMessaging'));
+export const LiveCallTranslation = lazy(() => import('@/pages/seo/LiveCallTranslation'));
+export const AiCallAnswering = lazy(() => import('@/pages/seo/AiCallAnswering'));
+export const SpamCallProtection = lazy(() => import('@/pages/seo/SpamCallProtection'));
+export const CallsOnSlowNetworks = lazy(() => import('@/pages/seo/CallsOnSlowNetworks'));
 export const PublicHome = lazy(() => import('@/pages/PublicHome'));
 export const SeoControlTower = lazy(() => import('@/pages/SeoControlTower'));
 export const Help = lazy(() => import('@/pages/Help'));
