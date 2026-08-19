@@ -46,6 +46,61 @@
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     },
+
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/>; rel=\"canonical\"" }
+      ]
+    },
+    {
+      "source": "/about",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/about>; rel=\"canonical\"" }
+      ]
+    },
+    {
+      "source": "/help",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/help>; rel=\"canonical\"" }
+      ]
+    },
+    {
+      "source": "/download",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/download>; rel=\"canonical\"" }
+      ]
+    },
+    {
+      "source": "/ai-browser",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/ai-browser>; rel=\"canonical\"" }
+      ]
+    },
+    {
+      "source": "/communities",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/communities>; rel=\"canonical\"" }
+      ]
+    },
+    {
+      "source": "/local-jobs",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/local-jobs>; rel=\"canonical\"" }
+      ]
+    },
+    {
+      "source": "/terms",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/terms>; rel=\"canonical\"" }
+      ]
+    },
+    {
+      "source": "/disclaimer",
+      "headers": [
+        { "key": "Link", "value": "<https://chatr.chat/disclaimer>; rel=\"canonical\"" }
+      ]
+    },
     {
       "source": "/assets/(.*)\\.js",
       "headers": [
