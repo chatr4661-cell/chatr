@@ -136,6 +136,30 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://chatr.chat/chatr/live-call-translation</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://chatr.chat/chatr/ai-call-answering</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://chatr.chat/chatr/spam-call-protection</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://chatr.chat/chatr/calls-on-slow-networks</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://chatr.chat/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
