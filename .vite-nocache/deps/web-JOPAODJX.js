@@ -44,11 +44,11 @@ import {
   updateProfile,
   verifyBeforeUpdateEmail
 } from "./chunk-RKQUBVBC.js";
+import "./chunk-XM6L7XYF.js";
 import {
   Persistence,
   ProviderId
 } from "./chunk-RMBOUGV7.js";
-import "./chunk-XM6L7XYF.js";
 import {
   WebPlugin
 } from "./chunk-S7OKNGPJ.js";
@@ -642,4 +642,4 @@ FirebaseAuthenticationWeb.ERROR_CONFIRMATION_RESULT_MISSING = "No confirmation r
 export {
   FirebaseAuthenticationWeb
 };
-//# sourceMappingURL=web-PXFTZFU5.js.map
+//# sourceMappingURL=web-JOPAODJX.js.map
