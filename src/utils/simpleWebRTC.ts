@@ -1338,8 +1338,9 @@ export class SimpleWebRTCCall {
         
         // Process ICE candidates for both roles (in ascending order for proper sequencing)
         const candidates = signals
-          .filter(s => s.signal_type === 'ice-candidate')
+          .filter(s => ['ice-candidate', 'ice_candidate', 'candidate'].includes(s.signal_type))
           .reverse(); // Reverse to process oldest first
+
           
         console.log(`📥 [WebRTC] Processing ${candidates.length} ICE candidates`);
         for (const c of candidates) {
@@ -1417,6 +1418,61 @@ export class SimpleWebRTCCall {
       }, 3000);
     });
   }
+
+  /**
+   * CROSS-DOMAIN RELIABILITY: Realtime can silently fail (blocked websockets,
+   * proxy/CDN interference on alternate hosts). Poll the signals table as a
+   * fallback so offers/answers/ICE always get delivered. Stops once the peer
+   * connection is connected, or after the safety window.
+   */
+  private startSignalPolling() {
+    if (this.signalPollInterval) return;
+
+    const startedAt = Date.now();
+    this.signalPollInterval = setInterval(async () => {
+      const connected =
+        this.pc?.connectionState === 'connected' ||
+        this.pc?.iceConnectionState === 'connected' ||
+        this.pc?.iceConnectionState === 'completed';
+
+      if (connected || Date.now() - startedAt > 60000) {
+        this.stopSignalPolling();
+        return;
+      }
+
+      try {
+        const { data: signals } = await supabase
+          .from('webrtc_signals')
+          .select('*')
+          .eq('call_id', this.callId)
+          .eq('to_user', this.userId)
+          .order('created_at', { ascending: true });
+
+        if (!signals?.length) return;
+
+        for (const s of signals) {
+          if (this.processedSignalIds.has(s.id)) continue;
+          this.processedSignalIds.add(s.id);
+          console.log('📥 [WebRTC] Signal received via polling fallback:', s.signal_type);
+          await this.handleSignal({
+            type: s.signal_type as SignalType,
+            data: s.signal_data,
+            from: s.from_user,
+          });
+        }
+      } catch (err) {
+        console.warn('⚠️ [WebRTC] Signal polling error:', err);
+      }
+    }, 1200);
+  }
+
+  private stopSignalPolling() {
+    if (this.signalPollInterval) {
+      clearInterval(this.signalPollInterval);
+      this.signalPollInterval = null;
+    }
+  }
+
 
   private async handleSignal(signal: Signal) {
     if (!this.pc) {
