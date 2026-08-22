@@ -1338,8 +1338,9 @@ export class SimpleWebRTCCall {
         
         // Process ICE candidates for both roles (in ascending order for proper sequencing)
         const candidates = signals
-          .filter(s => s.signal_type === 'ice-candidate')
+          .filter(s => ['ice-candidate', 'ice_candidate', 'candidate'].includes(s.signal_type))
           .reverse(); // Reverse to process oldest first
+
           
         console.log(`📥 [WebRTC] Processing ${candidates.length} ICE candidates`);
         for (const c of candidates) {
