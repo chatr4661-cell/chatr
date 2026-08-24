@@ -353,6 +353,157 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_memory_business: {
+        Row: {
+          content: string
+          created_at: string | null
+          embedding: Json | null
+          entity_id: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+          record_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          embedding?: Json | null
+          entity_id: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          record_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          embedding?: Json | null
+          entity_id?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_memory_business_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "sys_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_memory_business_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_memory_conversation: {
+        Row: {
+          content: string
+          created_at: string | null
+          embedding: Json | null
+          id: string
+          metadata: Json | null
+          organization_id: string
+          participants: Json
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          embedding?: Json | null
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          participants: Json
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          embedding?: Json | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          participants?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_memory_conversation_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_memory_knowledge: {
+        Row: {
+          content: string
+          created_at: string | null
+          document_id: string | null
+          embedding: Json | null
+          id: string
+          metadata: Json | null
+          organization_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          document_id?: string | null
+          embedding?: Json | null
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          document_id?: string | null
+          embedding?: Json | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_memory_knowledge_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_memory_personal: {
+        Row: {
+          content: string
+          created_at: string | null
+          embedding: Json | null
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          embedding?: Json | null
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          embedding?: Json | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_models: {
         Row: {
           cost_rank: number | null
@@ -20819,6 +20970,306 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_ai_policies: {
+        Row: {
+          capability_type: string
+          created_at: string | null
+          fallback_allowed: boolean | null
+          fallback_provider: string | null
+          id: string
+          organization_id: string
+          policy_json: Json | null
+          preferred_provider: string
+        }
+        Insert: {
+          capability_type: string
+          created_at?: string | null
+          fallback_allowed?: boolean | null
+          fallback_provider?: string | null
+          id?: string
+          organization_id: string
+          policy_json?: Json | null
+          preferred_provider: string
+        }
+        Update: {
+          capability_type?: string
+          created_at?: string | null
+          fallback_allowed?: boolean | null
+          fallback_provider?: string | null
+          id?: string
+          organization_id?: string
+          policy_json?: Json | null
+          preferred_provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ai_policies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_attributes: {
+        Row: {
+          created_at: string | null
+          entity_id: string
+          id: string
+          name: string
+          type: string
+          validation_json: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id: string
+          id?: string
+          name: string
+          type: string
+          validation_json?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string
+          id?: string
+          name?: string
+          type?: string
+          validation_json?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_attributes_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "sys_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_business_graph_edges: {
+        Row: {
+          created_at: string | null
+          id: string
+          relationship_type: string
+          source_node_id: string
+          target_node_id: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          relationship_type: string
+          source_node_id: string
+          target_node_id: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          relationship_type?: string
+          source_node_id?: string
+          target_node_id?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_business_graph_edges_source_node_id_fkey"
+            columns: ["source_node_id"]
+            isOneToOne: false
+            referencedRelation: "sys_business_graph_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sys_business_graph_edges_target_node_id_fkey"
+            columns: ["target_node_id"]
+            isOneToOne: false
+            referencedRelation: "sys_business_graph_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_business_graph_nodes: {
+        Row: {
+          created_at: string | null
+          entity_id: string
+          id: string
+          label: string | null
+          organization_id: string
+          record_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id: string
+          id?: string
+          label?: string | null
+          organization_id: string
+          record_id: string
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string
+          id?: string
+          label?: string | null
+          organization_id?: string
+          record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_business_graph_nodes_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "sys_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sys_business_graph_nodes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_business_units: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_business_units_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_departments: {
+        Row: {
+          business_unit_id: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          business_unit_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          business_unit_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_departments_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "sys_business_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_entities: {
+        Row: {
+          created_at: string | null
+          id: string
+          module_id: string
+          name: string
+          state_machine_json: Json | null
+          table_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          module_id: string
+          name: string
+          state_machine_json?: Json | null
+          table_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          module_id?: string
+          name?: string
+          state_machine_json?: Json | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_entities_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "sys_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_event_store: {
+        Row: {
+          actor_id: string | null
+          aggregate_id: string
+          aggregate_type: string
+          created_at: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+          payload: Json
+          version: number
+        }
+        Insert: {
+          actor_id?: string | null
+          aggregate_id: string
+          aggregate_type: string
+          created_at?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          payload: Json
+          version?: number
+        }
+        Update: {
+          actor_id?: string | null
+          aggregate_id?: string
+          aggregate_type?: string
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          payload?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_event_store_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sys_knowledge_edges: {
         Row: {
           created_at: string | null
@@ -20906,6 +21357,41 @@ export type Database = {
           {
             foreignKeyName: "sys_knowledge_nodes_org_id_fkey"
             columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_modules: {
+        Row: {
+          config_json: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          config_json?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          config_json?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_modules_organization_id_fkey"
+            columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "sys_organizations"
             referencedColumns: ["id"]
@@ -21032,6 +21518,154 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_tenant_users: {
+        Row: {
+          business_unit_id: string | null
+          created_at: string | null
+          department_id: string | null
+          id: string
+          organization_id: string | null
+          role: string
+          team_id: string | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          business_unit_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          id?: string
+          organization_id?: string | null
+          role?: string
+          team_id?: string | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          business_unit_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          id?: string
+          organization_id?: string | null
+          role?: string
+          team_id?: string | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_tenant_users_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "sys_business_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sys_tenant_users_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "sys_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sys_tenant_users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sys_tenant_users_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "sys_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sys_tenant_users_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "sys_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_views: {
+        Row: {
+          behavior_json: Json | null
+          created_at: string | null
+          entity_id: string
+          id: string
+          layout_json: Json | null
+          name: string
+          theme_json: Json | null
+          type: string
+        }
+        Insert: {
+          behavior_json?: Json | null
+          created_at?: string | null
+          entity_id: string
+          id?: string
+          layout_json?: Json | null
+          name: string
+          theme_json?: Json | null
+          type: string
+        }
+        Update: {
+          behavior_json?: Json | null
+          created_at?: string | null
+          entity_id?: string
+          id?: string
+          layout_json?: Json | null
+          name?: string
+          theme_json?: Json | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_views_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "sys_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_workflows: {
+        Row: {
+          created_at: string | null
+          entity_id: string | null
+          id: string
+          name: string
+          trigger_type: string
+          workflow_json: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          name: string
+          trigger_type: string
+          workflow_json?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          name?: string
+          trigger_type?: string
+          workflow_json?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_workflows_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "sys_entities"
             referencedColumns: ["id"]
           },
         ]
@@ -24605,6 +25239,20 @@ export type Database = {
         Returns: undefined
       }
       increment_job_views: { Args: { job_id: string }; Returns: undefined }
+      install_capability: {
+        Args: {
+          p_capability_id: string
+          p_capability_name: string
+          p_capability_type: string
+          p_color?: string
+          p_config?: Json
+          p_icon_name?: string
+          p_structure?: Json
+          p_version?: string
+          p_workspace_path: string
+        }
+        Returns: Json
+      }
       is_business_owner: {
         Args: { _business_id: string; _user_id: string }
         Returns: boolean
@@ -24719,6 +25367,7 @@ export type Database = {
         Args: { p_name: string; p_phone_hash: string; p_trust?: number }
         Returns: undefined
       }
+      seed_recruitment_demo: { Args: never; Returns: undefined }
       sync_user_contacts: {
         Args: { contact_list: Json; user_uuid: string }
         Returns: undefined
@@ -24739,6 +25388,7 @@ export type Database = {
         }
         Returns: string
       }
+      uninstall_capability: { Args: { p_capability_id: string }; Returns: Json }
       update_cache_hit_count: { Args: never; Returns: undefined }
     }
     Enums: {

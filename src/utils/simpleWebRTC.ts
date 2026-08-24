@@ -100,6 +100,7 @@ export class SimpleWebRTCCall {
   private localStream: MediaStream | null = null;
   private remoteStream: MediaStream | null = null;
   private signalChannel: RealtimeChannel | null = null;
+  private signalPollInterval: ReturnType<typeof setInterval> | null = null;
   private callState: CallState = 'connecting';
   private eventHandlers: Map<string, Function[]> = new Map();
   private pendingIceCandidates: RTCIceCandidate[] = [];
