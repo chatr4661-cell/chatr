@@ -30,7 +30,12 @@ export const CHATR_CLUSTERS: SeoCluster[] = [
   { id: 'business-automation', label: 'Business automation', hub: '/ai-agents', domain: 'chatr.chat' },
   { id: 'ai-workspace', label: 'AI workspace', hub: '/', domain: 'chatr.chat' },
   { id: 'calling-intelligence', label: 'AI calling', hub: '/chatr/live-call-translation', domain: 'chatr.chat' },
+  { id: 'city-pages', label: 'Chatr by city', hub: '/chatr/locations', domain: 'chatr.chat' },
+  { id: 'language-pairs', label: 'Call translation languages', hub: '/chatr/translate', domain: 'chatr.chat' },
 ];
+
+/** Hubs that intentionally link to every member of their cluster (directories). */
+export const DIRECTORY_HUBS = ['/chatr/locations', '/chatr/translate'];
 
 /**
  * Clusters owned by the Talentxcel domains. Declared for planning only — this
@@ -75,6 +80,15 @@ export const internalLinksFor = (path: string): InternalLink[] => {
     PUBLIC_ROUTES.find((r) => r.path === p)?.title.split(' — ')[0] ?? p;
 
   const links: InternalLink[] = [];
+  // Directory hubs enumerate every member so no programmatic page is orphaned.
+  if (DIRECTORY_HUBS.includes(path)) {
+    for (const member of clusterMembers(meta.cluster)) {
+      if (member === path) continue;
+      links.push({ to: member, anchor: titleOf(member) });
+    }
+    links.push({ to: '/', anchor: 'Chatr+' });
+    return links;
+  }
   if (cluster && cluster.hub !== path) {
     links.push({ to: cluster.hub, anchor: titleOf(cluster.hub) });
   }
@@ -100,6 +114,8 @@ export const internalLinksFor = (path: string): InternalLink[] => {
  * site-wide links, so pages reachable through them are not orphans.
  */
 export const GLOBAL_NAV_LINKS: string[] = [
+  '/chatr/locations',
+  '/chatr/translate',
   '/about',
   '/help',
   '/contact',

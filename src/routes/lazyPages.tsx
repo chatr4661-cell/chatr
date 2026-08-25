@@ -313,6 +313,10 @@ export const LiveCallTranslation = lazy(() => import('@/pages/seo/LiveCallTransl
 export const AiCallAnswering = lazy(() => import('@/pages/seo/AiCallAnswering'));
 export const SpamCallProtection = lazy(() => import('@/pages/seo/SpamCallProtection'));
 export const CallsOnSlowNetworks = lazy(() => import('@/pages/seo/CallsOnSlowNetworks'));
+export const SeoCityUseCase = lazy(() => import('@/pages/seo/CityUseCase'));
+export const SeoLanguagePair = lazy(() => import('@/pages/seo/LanguagePair'));
+export const SeoLocationsDirectory = lazy(() => import('@/pages/seo/LocationsDirectory'));
+export const SeoTranslateDirectory = lazy(() => import('@/pages/seo/TranslateDirectory'));
 export const PublicHome = lazy(() => import('@/pages/PublicHome'));
 export const SeoControlTower = lazy(() => import('@/pages/SeoControlTower'));
 export const Help = lazy(() => import('@/pages/Help'));

@@ -53,6 +53,20 @@ export const Footer = () => {
             >
               Disclaimer
             </Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link
+              to="/chatr/locations"
+              className="text-muted-foreground/70 hover:text-primary transition-colors"
+            >
+              Cities
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link
+              to="/chatr/translate"
+              className="text-muted-foreground/70 hover:text-primary transition-colors"
+            >
+              Call translation
+            </Link>
           </div>
         </div>
       </div>

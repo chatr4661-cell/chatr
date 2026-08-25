@@ -214,6 +214,11 @@ const App = () => {
             <Route path="/chatr/ai-call-answering" element={<LazyRoute component={LazyPages.AiCallAnswering} />} />
             <Route path="/chatr/spam-call-protection" element={<LazyRoute component={LazyPages.SpamCallProtection} />} />
             <Route path="/chatr/calls-on-slow-networks" element={<LazyRoute component={LazyPages.CallsOnSlowNetworks} />} />
+            {/* Programmatic SEO families — order matters: hubs before params */}
+            <Route path="/chatr/locations" element={<LazyRoute component={LazyPages.SeoLocationsDirectory} />} />
+            <Route path="/chatr/translate" element={<LazyRoute component={LazyPages.SeoTranslateDirectory} />} />
+            <Route path="/chatr/translate/:pair" element={<LazyRoute component={LazyPages.SeoLanguagePair} />} />
+            <Route path="/chatr/:useCase/:city" element={<LazyRoute component={LazyPages.SeoCityUseCase} />} />
             <Route path="/admin/seo" element={<LazyRoute component={LazyPages.SeoControlTower} />} />
             <Route path="/help" element={<LazyRoute component={LazyPages.Help} />} />
             <Route path="/contact" element={<LazyRoute component={LazyPages.Contact} />} />
