@@ -10,6 +10,8 @@
  *  - only social profiles that genuinely belong to CHATR / Talentxcel
  */
 
+import { PROGRAMMATIC_ROUTES } from './seoPrograms';
+
 export const PRODUCTION_ORIGIN = 'https://chatr.chat';
 
 export const SITE_NAME = 'Chatr+';
@@ -354,6 +356,9 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     changefreq: 'yearly',
     priority: 0.3,
   },
+
+  // Programmatic families: city x use-case pages and language-pair pages.
+  ...PROGRAMMATIC_ROUTES,
 ];
 
 const PUBLIC_PATHS = new Set(PUBLIC_ROUTES.map((r) => r.path));
