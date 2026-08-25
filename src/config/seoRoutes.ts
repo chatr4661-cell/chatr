@@ -14,6 +14,11 @@
  */
 
 import type { SeoDomainId } from './seoDomains';
+import {
+  CITY_USE_CASE_ROUTES,
+  DIRECTORY_ROUTES,
+  LANGUAGE_PAIR_ROUTES,
+} from './seoPrograms';
 
 /** Sitemap partition a URL belongs to. Each partition is capped at 50,000 URLs. */
 export type SitemapSection = 'pages' | 'guides' | 'use-cases' | 'articles';
@@ -168,6 +173,33 @@ export const ROUTE_META: Record<string, RouteMeta> = {
   '/refund': page('ai-workspace', 'chatr refund policy'),
   '/disclaimer': page('ai-workspace', 'chatr disclaimer'),
 };
+
+/**
+ * Programmatic metadata. These pages are generated from real city / language
+ * data and have no known content-change timestamp, so they deliberately omit
+ * `lastModified` (and therefore <lastmod> in the sitemap).
+ */
+for (const route of DIRECTORY_ROUTES) {
+  ROUTE_META[route.path] = page(
+    route.path === '/chatr/locations' ? 'city-pages' : 'language-pairs',
+    route.path === '/chatr/locations'
+      ? 'chatr calling and messaging by city'
+      : 'call translation language pairs',
+    { section: 'guides', schemaType: 'CollectionPage' },
+  );
+}
+
+for (const route of CITY_USE_CASE_ROUTES) {
+  ROUTE_META[route.path] = page('city-pages', route.title.replace(' — Chatr', '').toLowerCase(), {
+    section: 'use-cases',
+  });
+}
+
+for (const route of LANGUAGE_PAIR_ROUTES) {
+  ROUTE_META[route.path] = page('language-pairs', route.title.replace(' — Chatr', '').toLowerCase(), {
+    section: 'use-cases',
+  });
+}
 
 export const getRouteMeta = (path: string): RouteMeta | undefined => ROUTE_META[path];
 
