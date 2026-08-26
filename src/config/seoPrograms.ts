@@ -393,9 +393,35 @@ export const LANGUAGE_PAIR_ROUTES: PublicRoute[] = LANGUAGE_PAIRS.map((pair) => 
   priority: 0.6,
 }));
 
+
+// ── Language pair × city ──────────────────────────────────────────────────
+// The deepest programmatic family: how a specific language pair is used in a
+// specific city. Same truth rules — only the city name, its state, the two
+// language names and the languages commonly spoken there are ever stated.
+
+export const languageCityPath = (pairSlug: string, citySlug: string) =>
+  `/chatr/translate/${pairSlug}/${citySlug}`;
+
+export const languageCityTitle = (pair: SeoLanguagePair, city: SeoCity) =>
+  `${pair.from.name} to ${pair.to.name} Call Translation in ${city.name} — Chatr`;
+
+export const languageCityDescription = (pair: SeoLanguagePair, city: SeoCity) =>
+  `Speak ${pair.from.name} and let the other person hear ${pair.to.name} on a live call in ${city.name}, ${city.state}. Chatr translates both directions during voice and video calls, with captions.`;
+
+export const LANGUAGE_CITY_ROUTES: PublicRoute[] = LANGUAGE_PAIRS.flatMap((pair) =>
+  SEO_CITIES.map((city) => ({
+    path: languageCityPath(pair.slug, city.slug),
+    title: languageCityTitle(pair, city),
+    description: languageCityDescription(pair, city),
+    changefreq: 'monthly' as ChangeFreq,
+    priority: 0.5,
+  })),
+);
+
 /** Everything this module contributes to PUBLIC_ROUTES. */
 export const PROGRAMMATIC_ROUTES: PublicRoute[] = [
   ...DIRECTORY_ROUTES,
   ...CITY_USE_CASE_ROUTES,
   ...LANGUAGE_PAIR_ROUTES,
+  ...LANGUAGE_CITY_ROUTES,
 ];
