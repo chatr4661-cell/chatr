@@ -8,6 +8,7 @@
 
 import { PUBLIC_ROUTES } from './seo';
 import { ROUTE_META } from './seoRoutes';
+import { LANGUAGE_PAIRS, SEO_CITIES, getSeoCity, languageCityPath } from './seoPrograms';
 
 export interface SeoCluster {
   id: string;
@@ -32,6 +33,7 @@ export const CHATR_CLUSTERS: SeoCluster[] = [
   { id: 'calling-intelligence', label: 'AI calling', hub: '/chatr/live-call-translation', domain: 'chatr.chat' },
   { id: 'city-pages', label: 'Chatr by city', hub: '/chatr/locations', domain: 'chatr.chat' },
   { id: 'language-pairs', label: 'Call translation languages', hub: '/chatr/translate', domain: 'chatr.chat' },
+  { id: 'language-cities', label: 'Call translation by city', hub: '/chatr/translate', domain: 'chatr.chat' },
 ];
 
 /** Hubs that intentionally link to every member of their cluster (directories). */
@@ -57,6 +59,13 @@ export const TALENTXCEL_CLUSTERS: SeoCluster[] = [
 export const getCluster = (id: string): SeoCluster | undefined =>
   CHATR_CLUSTERS.find((c) => c.id === id);
 
+/**
+ * Slugs of every language pair, used to route the deep /chatr/translate/:pair
+ * and /chatr/translate/:pair/:city families without scanning ROUTE_META
+ * (that family alone has tens of thousands of members).
+ */
+const PAIR_SLUGS = new Set(LANGUAGE_PAIRS.map((p) => p.slug));
+
 export const clusterMembers = (id: string): string[] =>
   Object.entries(ROUTE_META)
     .filter(([, meta]) => meta.cluster === id)
@@ -75,6 +84,36 @@ export interface InternalLink {
 export const internalLinksFor = (path: string): InternalLink[] => {
   const meta = ROUTE_META[path];
   if (!meta) return [];
+
+  // Deep translate families are resolved structurally, not by scanning the
+  // cluster, so the link graph stays O(1) at 100k+ URLs.
+  if (path.startsWith('/chatr/translate/')) {
+    const [pairSlug, citySlug] = path.slice('/chatr/translate/'.length).split('/');
+    if (PAIR_SLUGS.has(pairSlug) && !citySlug) {
+      // A pair page enumerates its city children, so none of them is orphaned.
+      return [
+        { to: '/chatr/translate', anchor: 'Call translation languages' },
+        ...SEO_CITIES.map((c) => ({
+          to: languageCityPath(pairSlug, c.slug),
+          anchor: `${pairSlug.replace('-to-', ' to ')} in ${c.name}`,
+        })),
+        { to: '/', anchor: 'Chatr+' },
+      ];
+    }
+    if (PAIR_SLUGS.has(pairSlug) && citySlug && getSeoCity(citySlug)) {
+      const city = getSeoCity(citySlug)!;
+      const nearby = SEO_CITIES.filter((c) => c.state === city.state && c.slug !== city.slug).slice(0, 3);
+      return [
+        { to: `/chatr/translate/${pairSlug}`, anchor: pairSlug.replace('-to-', ' to ') },
+        { to: '/chatr/translate', anchor: 'Call translation languages' },
+        ...nearby.map((c) => ({
+          to: languageCityPath(pairSlug, c.slug),
+          anchor: `${pairSlug.replace('-to-', ' to ')} in ${c.name}`,
+        })),
+        { to: '/', anchor: 'Chatr+' },
+      ];
+    }
+  }
   const cluster = getCluster(meta.cluster);
   const titleOf = (p: string) =>
     PUBLIC_ROUTES.find((r) => r.path === p)?.title.split(' — ')[0] ?? p;
