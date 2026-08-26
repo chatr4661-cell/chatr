@@ -304,7 +304,20 @@ export const SEO_LANGUAGES: SeoLanguage[] = [
   { slug: 'odia', name: 'Odia', native: 'ଓଡ଼ିଆ' },
   { slug: 'assamese', name: 'Assamese', native: 'অসমীয়া' },
   { slug: 'urdu', name: 'Urdu', native: 'اردو' },
+  { slug: 'bhojpuri', name: 'Bhojpuri', native: 'भोजपुरी' },
+  { slug: 'maithili', name: 'Maithili', native: 'मैथिली' },
+  { slug: 'rajasthani', name: 'Rajasthani', native: 'राजस्थानी' },
+  { slug: 'haryanvi', name: 'Haryanvi', native: 'हरियाणवी' },
+  { slug: 'konkani', name: 'Konkani', native: 'कोंकणी' },
+  { slug: 'tulu', name: 'Tulu', native: 'ತುಳು' },
+  { slug: 'nepali', name: 'Nepali', native: 'नेपाली' },
+  { slug: 'kashmiri', name: 'Kashmiri', native: 'کٲشُر' },
+  { slug: 'sindhi', name: 'Sindhi', native: 'سنڌي' },
+  { slug: 'dogri', name: 'Dogri', native: 'डोगरी' },
+  { slug: 'manipuri', name: 'Manipuri', native: 'মৈতৈলোন্' },
+  { slug: 'santali', name: 'Santali', native: 'ᱥᱟᱱᱛᱟᱲᱤ' },
 ];
+
 
 const LANGUAGE_BY_SLUG = new Map(SEO_LANGUAGES.map((l) => [l.slug, l]));
 
