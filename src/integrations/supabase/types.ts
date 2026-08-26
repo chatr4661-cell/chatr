@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -10032,6 +10032,3172 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      fin_account_mappings: {
+        Row: {
+          accounting_standard: string
+          conditions: Json
+          created_at: string
+          credit_account_id: string
+          debit_account_id: string
+          event_subtype: string | null
+          event_type: string
+          fin_organization_id: string
+          id: string
+          is_active: boolean
+          legal_entity_id: string | null
+          policy_id: string | null
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          accounting_standard: string
+          conditions?: Json
+          created_at?: string
+          credit_account_id: string
+          debit_account_id: string
+          event_subtype?: string | null
+          event_type: string
+          fin_organization_id: string
+          id?: string
+          is_active?: boolean
+          legal_entity_id?: string | null
+          policy_id?: string | null
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          accounting_standard?: string
+          conditions?: Json
+          created_at?: string
+          credit_account_id?: string
+          debit_account_id?: string
+          event_subtype?: string | null
+          event_type?: string
+          fin_organization_id?: string
+          id?: string
+          is_active?: boolean
+          legal_entity_id?: string | null
+          policy_id?: string | null
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_account_mappings_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_account_mappings_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_account_mappings_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_account_mappings_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_account_mappings_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounting_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_accounting_policies: {
+        Row: {
+          accounting_standard: string
+          approval_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          author_id: string
+          created_at: string
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          fin_organization_id: string
+          id: string
+          legal_entity_id: string | null
+          name: string
+          policy_type: string
+          rule_definition: Json
+          status: string
+          supersedes_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          accounting_standard: string
+          approval_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          author_id: string
+          created_at?: string
+          description?: string | null
+          effective_from: string
+          effective_to?: string | null
+          fin_organization_id: string
+          id?: string
+          legal_entity_id?: string | null
+          name: string
+          policy_type: string
+          rule_definition?: Json
+          status?: string
+          supersedes_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          accounting_standard?: string
+          approval_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          author_id?: string
+          created_at?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          fin_organization_id?: string
+          id?: string
+          legal_entity_id?: string | null
+          name?: string
+          policy_type?: string
+          rule_definition?: Json
+          status?: string
+          supersedes_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_accounting_policies_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_approvals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accounting_policies_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accounting_policies_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accounting_policies_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounting_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_accounts: {
+        Row: {
+          account_subtype: string | null
+          account_type: string
+          accounting_standard: string | null
+          allow_direct_posting: boolean
+          code: string
+          created_at: string
+          depth: number
+          description: string | null
+          fin_organization_id: string
+          fs_mapping: string | null
+          id: string
+          is_active: boolean
+          is_system_account: boolean
+          legal_entity_id: string | null
+          name: string
+          normal_balance: string
+          parent_account_id: string | null
+          require_dimensions: Json | null
+          tags: Json | null
+          updated_at: string
+        }
+        Insert: {
+          account_subtype?: string | null
+          account_type: string
+          accounting_standard?: string | null
+          allow_direct_posting?: boolean
+          code: string
+          created_at?: string
+          depth?: number
+          description?: string | null
+          fin_organization_id: string
+          fs_mapping?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_account?: boolean
+          legal_entity_id?: string | null
+          name: string
+          normal_balance: string
+          parent_account_id?: string | null
+          require_dimensions?: Json | null
+          tags?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          account_subtype?: string | null
+          account_type?: string
+          accounting_standard?: string | null
+          allow_direct_posting?: boolean
+          code?: string
+          created_at?: string
+          depth?: number
+          description?: string | null
+          fin_organization_id?: string
+          fs_mapping?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_account?: boolean
+          legal_entity_id?: string | null
+          name?: string
+          normal_balance?: string
+          parent_account_id?: string | null
+          require_dimensions?: Json | null
+          tags?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_accounts_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accounts_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accounts_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_accruals: {
+        Row: {
+          accrual_number: string
+          accrual_type: string
+          ai_confidence: number | null
+          ai_estimated: boolean
+          ai_rationale: string | null
+          amount: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          expense_account_id: string
+          fin_organization_id: string
+          id: string
+          journal_entry_id: string | null
+          legal_entity_id: string
+          liability_account_id: string
+          period_id: string
+          reversal_date: string
+          reversal_entry_id: string | null
+          source_event_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          accrual_number: string
+          accrual_type: string
+          ai_confidence?: number | null
+          ai_estimated?: boolean
+          ai_rationale?: string | null
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expense_account_id: string
+          fin_organization_id: string
+          id?: string
+          journal_entry_id?: string | null
+          legal_entity_id: string
+          liability_account_id: string
+          period_id: string
+          reversal_date: string
+          reversal_entry_id?: string | null
+          source_event_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          accrual_number?: string
+          accrual_type?: string
+          ai_confidence?: number | null
+          ai_estimated?: boolean
+          ai_rationale?: string | null
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expense_account_id?: string
+          fin_organization_id?: string
+          id?: string
+          journal_entry_id?: string | null
+          legal_entity_id?: string
+          liability_account_id?: string
+          period_id?: string
+          reversal_date?: string
+          reversal_entry_id?: string | null
+          source_event_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_accruals_expense_account_id_fkey"
+            columns: ["expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accruals_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accruals_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accruals_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accruals_liability_account_id_fkey"
+            columns: ["liability_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accruals_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "fin_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accruals_reversal_entry_id_fkey"
+            columns: ["reversal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_accruals_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "fin_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bank_accounts: {
+        Row: {
+          account_name: string
+          account_number_mask: string
+          account_type: string
+          bank_name: string
+          created_at: string
+          currency: string
+          current_ledger_balance: number
+          current_statement_balance: number
+          fin_organization_id: string
+          gl_account_id: string
+          id: string
+          ifsc_or_routing: string | null
+          is_active: boolean
+          last_reconciled_at: string | null
+          legal_entity_id: string
+          opening_balance: number
+          unreconciled_amount: number
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number_mask: string
+          account_type?: string
+          bank_name: string
+          created_at?: string
+          currency?: string
+          current_ledger_balance?: number
+          current_statement_balance?: number
+          fin_organization_id: string
+          gl_account_id: string
+          id?: string
+          ifsc_or_routing?: string | null
+          is_active?: boolean
+          last_reconciled_at?: string | null
+          legal_entity_id: string
+          opening_balance?: number
+          unreconciled_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number_mask?: string
+          account_type?: string
+          bank_name?: string
+          created_at?: string
+          currency?: string
+          current_ledger_balance?: number
+          current_statement_balance?: number
+          fin_organization_id?: string
+          gl_account_id?: string
+          id?: string
+          ifsc_or_routing?: string | null
+          is_active?: boolean
+          last_reconciled_at?: string | null
+          legal_entity_id?: string
+          opening_balance?: number
+          unreconciled_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_accounts_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_accounts_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_accounts_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bank_statements: {
+        Row: {
+          bank_account_id: string
+          closing_balance: number
+          created_at: string
+          end_date: string
+          id: string
+          matched_count: number
+          opening_balance: number
+          source_file_name: string | null
+          source_file_url: string | null
+          start_date: string
+          statement_number: string
+          status: string
+          total_credits: number
+          total_debits: number
+          transaction_count: number
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          bank_account_id: string
+          closing_balance: number
+          created_at?: string
+          end_date: string
+          id?: string
+          matched_count?: number
+          opening_balance: number
+          source_file_name?: string | null
+          source_file_url?: string | null
+          start_date: string
+          statement_number: string
+          status?: string
+          total_credits?: number
+          total_debits?: number
+          transaction_count?: number
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          bank_account_id?: string
+          closing_balance?: number
+          created_at?: string
+          end_date?: string
+          id?: string
+          matched_count?: number
+          opening_balance?: number
+          source_file_name?: string | null
+          source_file_url?: string | null
+          start_date?: string
+          statement_number?: string
+          status?: string
+          total_credits?: number
+          total_debits?: number
+          transaction_count?: number
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_statements_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bank_transactions: {
+        Row: {
+          ai_match_confidence: number | null
+          ai_proposed_rule: string | null
+          amount: number
+          bank_account_id: string
+          created_at: string
+          currency: string
+          description: string
+          id: string
+          match_status: string
+          matched_journal_entry_id: string | null
+          matched_payment_id: string | null
+          payee_payer: string | null
+          reference_number: string | null
+          running_balance: number | null
+          source_event_id: string | null
+          statement_id: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+          value_date: string | null
+        }
+        Insert: {
+          ai_match_confidence?: number | null
+          ai_proposed_rule?: string | null
+          amount: number
+          bank_account_id: string
+          created_at?: string
+          currency?: string
+          description: string
+          id?: string
+          match_status?: string
+          matched_journal_entry_id?: string | null
+          matched_payment_id?: string | null
+          payee_payer?: string | null
+          reference_number?: string | null
+          running_balance?: number | null
+          source_event_id?: string | null
+          statement_id?: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at?: string
+          value_date?: string | null
+        }
+        Update: {
+          ai_match_confidence?: number | null
+          ai_proposed_rule?: string | null
+          amount?: number
+          bank_account_id?: string
+          created_at?: string
+          currency?: string
+          description?: string
+          id?: string
+          match_status?: string
+          matched_journal_entry_id?: string | null
+          matched_payment_id?: string | null
+          payee_payer?: string | null
+          reference_number?: string | null
+          running_balance?: number | null
+          source_event_id?: string | null
+          statement_id?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+          value_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_transactions_matched_journal_entry_id_fkey"
+            columns: ["matched_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_transactions_matched_payment_id_fkey"
+            columns: ["matched_payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_transactions_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "fin_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_transactions_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bill_lines: {
+        Row: {
+          bill_id: string
+          created_at: string
+          department_id: string | null
+          description: string
+          expense_account_id: string
+          id: string
+          line_number: number
+          line_total: number
+          project_id: string | null
+          quantity: number
+          tax_amount: number
+          tax_rate: number
+          unit_price: number
+        }
+        Insert: {
+          bill_id: string
+          created_at?: string
+          department_id?: string | null
+          description: string
+          expense_account_id: string
+          id?: string
+          line_number: number
+          line_total?: number
+          project_id?: string | null
+          quantity?: number
+          tax_amount?: number
+          tax_rate?: number
+          unit_price?: number
+        }
+        Update: {
+          bill_id?: string
+          created_at?: string
+          department_id?: string | null
+          description?: string
+          expense_account_id?: string
+          id?: string
+          line_number?: number
+          line_total?: number
+          project_id?: string | null
+          quantity?: number
+          tax_amount?: number
+          tax_rate?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bill_lines_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "sys_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bill_lines_expense_account_id_fkey"
+            columns: ["expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bills: {
+        Row: {
+          amount_due: number
+          amount_paid: number
+          approval_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attachment_url: string | null
+          bill_date: string
+          bill_number: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_date: string
+          duplicate_hash: string | null
+          fin_organization_id: string
+          fx_rate: number
+          id: string
+          journal_entry_id: string | null
+          legal_entity_id: string
+          notes: string | null
+          source_event_id: string | null
+          status: string
+          subtotal: number
+          tax_total: number
+          total: number
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          amount_due?: number
+          amount_paid?: number
+          approval_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attachment_url?: string | null
+          bill_date: string
+          bill_number: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date: string
+          duplicate_hash?: string | null
+          fin_organization_id: string
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          legal_entity_id: string
+          notes?: string | null
+          source_event_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_total?: number
+          total?: number
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          amount_due?: number
+          amount_paid?: number
+          approval_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attachment_url?: string | null
+          bill_date?: string
+          bill_number?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date?: string
+          duplicate_hash?: string | null
+          fin_organization_id?: string
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          legal_entity_id?: string
+          notes?: string | null
+          source_event_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_total?: number
+          total?: number
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bills_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_approvals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bills_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bills_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bills_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bills_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "fin_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "fin_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_close_checklists: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          completed_tasks: number
+          completion_pct: number
+          created_at: string
+          fin_organization_id: string
+          id: string
+          legal_entity_id: string
+          period_id: string
+          status: string
+          title: string
+          total_tasks: number
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          completed_tasks?: number
+          completion_pct?: number
+          created_at?: string
+          fin_organization_id: string
+          id?: string
+          legal_entity_id: string
+          period_id: string
+          status?: string
+          title: string
+          total_tasks?: number
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          completed_tasks?: number
+          completion_pct?: number
+          created_at?: string
+          fin_organization_id?: string
+          id?: string
+          legal_entity_id?: string
+          period_id?: string
+          status?: string
+          title?: string
+          total_tasks?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_close_checklists_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_close_checklists_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_close_checklists_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "fin_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_close_tasks: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          checklist_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          is_automated: boolean
+          notes: string | null
+          sequence_order: number
+          status: string
+          task_code: string
+          task_name: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          checklist_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          is_automated?: boolean
+          notes?: string | null
+          sequence_order?: number
+          status?: string
+          task_code: string
+          task_name: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          checklist_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          is_automated?: boolean
+          notes?: string | null
+          sequence_order?: number
+          status?: string
+          task_code?: string
+          task_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_close_tasks_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "fin_close_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_contract_amendments: {
+        Row: {
+          amendment_number: number
+          amendment_type: string
+          approval_id: string | null
+          approved_by: string | null
+          contract_id: string
+          created_at: string
+          description: string
+          effective_date: string
+          id: string
+          new_transaction_price: number
+          old_transaction_price: number
+          price_adjustment: number
+          treatment: string
+        }
+        Insert: {
+          amendment_number: number
+          amendment_type: string
+          approval_id?: string | null
+          approved_by?: string | null
+          contract_id: string
+          created_at?: string
+          description: string
+          effective_date: string
+          id?: string
+          new_transaction_price: number
+          old_transaction_price: number
+          price_adjustment?: number
+          treatment?: string
+        }
+        Update: {
+          amendment_number?: number
+          amendment_type?: string
+          approval_id?: string | null
+          approved_by?: string | null
+          contract_id?: string
+          created_at?: string
+          description?: string
+          effective_date?: string
+          id?: string
+          new_transaction_price?: number
+          old_transaction_price?: number
+          price_adjustment?: number
+          treatment?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_contract_amendments_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_approvals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_contract_amendments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "fin_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_contracts: {
+        Row: {
+          accounting_standard: string
+          ai_confidence: number | null
+          ai_interpreted: boolean
+          ai_rationale: string | null
+          allocated_price: number
+          attachment_url: string | null
+          billing_frequency: string
+          contract_number: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          deferred_revenue: number
+          end_date: string
+          fin_organization_id: string
+          fx_rate: number
+          id: string
+          legal_entity_id: string
+          notes: string | null
+          payment_terms_days: number
+          recognized_revenue: number
+          source_event_id: string | null
+          start_date: string
+          status: string
+          title: string
+          transaction_price: number
+          unbilled_revenue: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          accounting_standard?: string
+          ai_confidence?: number | null
+          ai_interpreted?: boolean
+          ai_rationale?: string | null
+          allocated_price?: number
+          attachment_url?: string | null
+          billing_frequency?: string
+          contract_number: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          deferred_revenue?: number
+          end_date: string
+          fin_organization_id: string
+          fx_rate?: number
+          id?: string
+          legal_entity_id: string
+          notes?: string | null
+          payment_terms_days?: number
+          recognized_revenue?: number
+          source_event_id?: string | null
+          start_date: string
+          status?: string
+          title: string
+          transaction_price: number
+          unbilled_revenue?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          accounting_standard?: string
+          ai_confidence?: number | null
+          ai_interpreted?: boolean
+          ai_rationale?: string | null
+          allocated_price?: number
+          attachment_url?: string | null
+          billing_frequency?: string
+          contract_number?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          deferred_revenue?: number
+          end_date?: string
+          fin_organization_id?: string
+          fx_rate?: number
+          id?: string
+          legal_entity_id?: string
+          notes?: string | null
+          payment_terms_days?: number
+          recognized_revenue?: number
+          source_event_id?: string | null
+          start_date?: string
+          status?: string
+          title?: string
+          transaction_price?: number
+          unbilled_revenue?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_contracts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "fin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_contracts_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_contracts_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_contracts_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "fin_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_credit_notes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          credit_note_number: string
+          currency: string
+          customer_id: string
+          fin_organization_id: string
+          fx_rate: number
+          id: string
+          issue_date: string
+          journal_entry_id: string | null
+          legal_entity_id: string
+          reason: string | null
+          status: string
+          total: number
+          unapplied_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          credit_note_number: string
+          currency?: string
+          customer_id: string
+          fin_organization_id: string
+          fx_rate?: number
+          id?: string
+          issue_date: string
+          journal_entry_id?: string | null
+          legal_entity_id: string
+          reason?: string | null
+          status?: string
+          total?: number
+          unapplied_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          credit_note_number?: string
+          currency?: string
+          customer_id?: string
+          fin_organization_id?: string
+          fx_rate?: number
+          id?: string
+          issue_date?: string
+          journal_entry_id?: string | null
+          legal_entity_id?: string
+          reason?: string | null
+          status?: string
+          total?: number
+          unapplied_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_credit_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "fin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_credit_notes_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_credit_notes_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_credit_notes_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_customers: {
+        Row: {
+          billing_address: Json
+          billing_email: string | null
+          created_at: string
+          credit_hold: boolean
+          credit_limit: number
+          currency: string
+          customer_code: string
+          fin_organization_id: string
+          id: string
+          is_active: boolean
+          legal_entity_id: string | null
+          name: string
+          notes: string | null
+          payment_terms_days: number
+          risk_rating: string
+          tags: Json | null
+          tax_identifier: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_address?: Json
+          billing_email?: string | null
+          created_at?: string
+          credit_hold?: boolean
+          credit_limit?: number
+          currency?: string
+          customer_code: string
+          fin_organization_id: string
+          id?: string
+          is_active?: boolean
+          legal_entity_id?: string | null
+          name: string
+          notes?: string | null
+          payment_terms_days?: number
+          risk_rating?: string
+          tags?: Json | null
+          tax_identifier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_address?: Json
+          billing_email?: string | null
+          created_at?: string
+          credit_hold?: boolean
+          credit_limit?: number
+          currency?: string
+          customer_code?: string
+          fin_organization_id?: string
+          id?: string
+          is_active?: boolean
+          legal_entity_id?: string | null
+          name?: string
+          notes?: string | null
+          payment_terms_days?: number
+          risk_rating?: string
+          tags?: Json | null
+          tax_identifier?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_customers_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_customers_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_events: {
+        Row: {
+          causation_id: string | null
+          correlation_id: string | null
+          created_at: string
+          error_detail: string | null
+          event_type: string
+          event_version: string
+          fin_organization_id: string
+          id: string
+          idempotency_key: string
+          legal_entity_id: string | null
+          payload: Json
+          processed_at: string | null
+          processing_status: string
+          retry_count: number
+          schema_version: string
+          source_object_id: string | null
+          source_object_type: string | null
+          source_system: string
+        }
+        Insert: {
+          causation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          error_detail?: string | null
+          event_type: string
+          event_version?: string
+          fin_organization_id: string
+          id?: string
+          idempotency_key: string
+          legal_entity_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          processing_status?: string
+          retry_count?: number
+          schema_version?: string
+          source_object_id?: string | null
+          source_object_type?: string | null
+          source_system: string
+        }
+        Update: {
+          causation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          error_detail?: string | null
+          event_type?: string
+          event_version?: string
+          fin_organization_id?: string
+          id?: string
+          idempotency_key?: string
+          legal_entity_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          processing_status?: string
+          retry_count?: number
+          schema_version?: string
+          source_object_id?: string | null
+          source_object_type?: string | null
+          source_system?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_events_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_events_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_fixed_assets: {
+        Row: {
+          accum_dep_account_id: string
+          accumulated_depreciation: number
+          acquisition_cost: number
+          acquisition_date: string
+          asset_account_id: string
+          asset_name: string
+          asset_number: string
+          category: string
+          created_at: string
+          dep_expense_account_id: string
+          depreciation_method: string
+          fin_organization_id: string
+          id: string
+          legal_entity_id: string
+          net_book_value: number
+          salvage_value: number
+          status: string
+          updated_at: string
+          useful_life_months: number
+        }
+        Insert: {
+          accum_dep_account_id: string
+          accumulated_depreciation?: number
+          acquisition_cost: number
+          acquisition_date: string
+          asset_account_id: string
+          asset_name: string
+          asset_number: string
+          category: string
+          created_at?: string
+          dep_expense_account_id: string
+          depreciation_method?: string
+          fin_organization_id: string
+          id?: string
+          legal_entity_id: string
+          net_book_value: number
+          salvage_value?: number
+          status?: string
+          updated_at?: string
+          useful_life_months: number
+        }
+        Update: {
+          accum_dep_account_id?: string
+          accumulated_depreciation?: number
+          acquisition_cost?: number
+          acquisition_date?: string
+          asset_account_id?: string
+          asset_name?: string
+          asset_number?: string
+          category?: string
+          created_at?: string
+          dep_expense_account_id?: string
+          depreciation_method?: string
+          fin_organization_id?: string
+          id?: string
+          legal_entity_id?: string
+          net_book_value?: number
+          salvage_value?: number
+          status?: string
+          updated_at?: string
+          useful_life_months?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_fixed_assets_accum_dep_account_id_fkey"
+            columns: ["accum_dep_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_fixed_assets_asset_account_id_fkey"
+            columns: ["asset_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_fixed_assets_dep_expense_account_id_fkey"
+            columns: ["dep_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_fixed_assets_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_fixed_assets_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_fx_rates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          fin_organization_id: string
+          from_currency: string
+          id: string
+          notes: string | null
+          rate: number
+          rate_type: string
+          source: string
+          to_currency: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_date: string
+          fin_organization_id: string
+          from_currency: string
+          id?: string
+          notes?: string | null
+          rate: number
+          rate_type?: string
+          source?: string
+          to_currency: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          fin_organization_id?: string
+          from_currency?: string
+          id?: string
+          notes?: string | null
+          rate?: number
+          rate_type?: string
+          source?: string
+          to_currency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_fx_rates_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_integrity_reports: {
+        Row: {
+          anomalies: Json
+          ap_gl_diff: number
+          ar_gl_diff: number
+          cash_gl_diff: number
+          fin_organization_id: string
+          id: string
+          integrity_score: number
+          passed_checks: number
+          snapshot_at: string
+          status: string
+          total_checks: number
+        }
+        Insert: {
+          anomalies?: Json
+          ap_gl_diff?: number
+          ar_gl_diff?: number
+          cash_gl_diff?: number
+          fin_organization_id: string
+          id?: string
+          integrity_score?: number
+          passed_checks?: number
+          snapshot_at?: string
+          status?: string
+          total_checks?: number
+        }
+        Update: {
+          anomalies?: Json
+          ap_gl_diff?: number
+          ar_gl_diff?: number
+          cash_gl_diff?: number
+          fin_organization_id?: string
+          id?: string
+          integrity_score?: number
+          passed_checks?: number
+          snapshot_at?: string
+          status?: string
+          total_checks?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_integrity_reports_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_intercompany_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string
+          elimination_entry_id: string | null
+          fin_organization_id: string
+          from_journal_entry_id: string | null
+          from_legal_entity_id: string
+          id: string
+          status: string
+          to_journal_entry_id: string | null
+          to_legal_entity_id: string
+          transaction_date: string
+          transaction_number: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          description: string
+          elimination_entry_id?: string | null
+          fin_organization_id: string
+          from_journal_entry_id?: string | null
+          from_legal_entity_id: string
+          id?: string
+          status?: string
+          to_journal_entry_id?: string | null
+          to_legal_entity_id: string
+          transaction_date: string
+          transaction_number: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string
+          elimination_entry_id?: string | null
+          fin_organization_id?: string
+          from_journal_entry_id?: string | null
+          from_legal_entity_id?: string
+          id?: string
+          status?: string
+          to_journal_entry_id?: string | null
+          to_legal_entity_id?: string
+          transaction_date?: string
+          transaction_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_intercompany_transactions_elimination_entry_id_fkey"
+            columns: ["elimination_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_intercompany_transactions_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_intercompany_transactions_from_journal_entry_id_fkey"
+            columns: ["from_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_intercompany_transactions_from_legal_entity_id_fkey"
+            columns: ["from_legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_intercompany_transactions_to_journal_entry_id_fkey"
+            columns: ["to_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_intercompany_transactions_to_legal_entity_id_fkey"
+            columns: ["to_legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_invoice_lines: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string
+          discount_amount: number
+          id: string
+          invoice_id: string
+          line_number: number
+          line_total: number
+          project_id: string | null
+          quantity: number
+          revenue_account_id: string
+          tax_amount: number
+          tax_rate: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description: string
+          discount_amount?: number
+          id?: string
+          invoice_id: string
+          line_number: number
+          line_total?: number
+          project_id?: string | null
+          quantity?: number
+          revenue_account_id: string
+          tax_amount?: number
+          tax_rate?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string
+          discount_amount?: number
+          id?: string
+          invoice_id?: string
+          line_number?: number
+          line_total?: number
+          project_id?: string | null
+          quantity?: number
+          revenue_account_id?: string
+          tax_amount?: number
+          tax_rate?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoice_lines_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "sys_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_revenue_account_id_fkey"
+            columns: ["revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_invoices: {
+        Row: {
+          amount_due: number
+          amount_paid: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          discount_total: number
+          due_date: string
+          fin_organization_id: string
+          fx_rate: number
+          id: string
+          invoice_number: string
+          issue_date: string
+          journal_entry_id: string | null
+          legal_entity_id: string
+          notes: string | null
+          pdf_url: string | null
+          source_event_id: string | null
+          status: string
+          subtotal: number
+          tax_total: number
+          terms: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          amount_due?: number
+          amount_paid?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          discount_total?: number
+          due_date: string
+          fin_organization_id: string
+          fx_rate?: number
+          id?: string
+          invoice_number: string
+          issue_date: string
+          journal_entry_id?: string | null
+          legal_entity_id: string
+          notes?: string | null
+          pdf_url?: string | null
+          source_event_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_total?: number
+          terms?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_due?: number
+          amount_paid?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          discount_total?: number
+          due_date?: string
+          fin_organization_id?: string
+          fx_rate?: number
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          journal_entry_id?: string | null
+          legal_entity_id?: string
+          notes?: string | null
+          pdf_url?: string | null
+          source_event_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_total?: number
+          terms?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "fin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "fin_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_journal_entries: {
+        Row: {
+          accounting_standard: string
+          ai_confidence: number | null
+          ai_proposed: boolean
+          ai_rationale: string | null
+          approval_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          entry_number: string
+          entry_type: string
+          fin_organization_id: string
+          functional_currency: string
+          fx_date: string | null
+          fx_rate: number
+          fx_rate_functional: number
+          fx_rate_reporting: number
+          fx_rate_source: string
+          id: string
+          legal_entity_id: string
+          memo: string | null
+          period_id: string
+          policy_version_id: string | null
+          posted_at: string | null
+          posted_by: string | null
+          posting_date: string
+          reference: string | null
+          reporting_currency: string
+          reversal_date: string | null
+          reversal_of_id: string | null
+          reversed_by_id: string | null
+          source_event_id: string | null
+          source_id: string | null
+          source_type: string
+          source_url: string | null
+          status: string
+          tags: Json | null
+          transaction_currency: string
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          accounting_standard: string
+          ai_confidence?: number | null
+          ai_proposed?: boolean
+          ai_rationale?: string | null
+          approval_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          entry_number: string
+          entry_type?: string
+          fin_organization_id: string
+          functional_currency: string
+          fx_date?: string | null
+          fx_rate?: number
+          fx_rate_functional?: number
+          fx_rate_reporting?: number
+          fx_rate_source?: string
+          id?: string
+          legal_entity_id: string
+          memo?: string | null
+          period_id: string
+          policy_version_id?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          posting_date: string
+          reference?: string | null
+          reporting_currency?: string
+          reversal_date?: string | null
+          reversal_of_id?: string | null
+          reversed_by_id?: string | null
+          source_event_id?: string | null
+          source_id?: string | null
+          source_type: string
+          source_url?: string | null
+          status?: string
+          tags?: Json | null
+          transaction_currency: string
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          accounting_standard?: string
+          ai_confidence?: number | null
+          ai_proposed?: boolean
+          ai_rationale?: string | null
+          approval_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          entry_number?: string
+          entry_type?: string
+          fin_organization_id?: string
+          functional_currency?: string
+          fx_date?: string | null
+          fx_rate?: number
+          fx_rate_functional?: number
+          fx_rate_reporting?: number
+          fx_rate_source?: string
+          id?: string
+          legal_entity_id?: string
+          memo?: string | null
+          period_id?: string
+          policy_version_id?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          posting_date?: string
+          reference?: string | null
+          reporting_currency?: string
+          reversal_date?: string | null
+          reversal_of_id?: string | null
+          reversed_by_id?: string | null
+          source_event_id?: string | null
+          source_id?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          tags?: Json | null
+          transaction_currency?: string
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_journal_entries_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_approvals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "fin_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_policy_version_id_fkey"
+            columns: ["policy_version_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounting_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_reversal_of_id_fkey"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "fin_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_journal_lines: {
+        Row: {
+          account_id: string
+          contract_id: string | null
+          cost_center: string | null
+          credit_amount: number
+          currency: string
+          customer_id: string | null
+          debit_amount: number
+          department_id: string | null
+          functional_credit: number
+          functional_debit: number
+          id: string
+          journal_entry_id: string
+          legal_entity_id: string | null
+          line_number: number
+          memo: string | null
+          project_id: string | null
+          reporting_credit: number
+          reporting_debit: number
+          vendor_id: string | null
+        }
+        Insert: {
+          account_id: string
+          contract_id?: string | null
+          cost_center?: string | null
+          credit_amount?: number
+          currency: string
+          customer_id?: string | null
+          debit_amount?: number
+          department_id?: string | null
+          functional_credit?: number
+          functional_debit?: number
+          id?: string
+          journal_entry_id: string
+          legal_entity_id?: string | null
+          line_number: number
+          memo?: string | null
+          project_id?: string | null
+          reporting_credit?: number
+          reporting_debit?: number
+          vendor_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          contract_id?: string | null
+          cost_center?: string | null
+          credit_amount?: number
+          currency?: string
+          customer_id?: string | null
+          debit_amount?: number
+          department_id?: string | null
+          functional_credit?: number
+          functional_debit?: number
+          id?: string
+          journal_entry_id?: string
+          legal_entity_id?: string | null
+          line_number?: number
+          memo?: string | null
+          project_id?: string | null
+          reporting_credit?: number
+          reporting_debit?: number
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_lines_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "sys_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_lines_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_lines_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_legal_entities: {
+        Row: {
+          accounting_standard: string
+          created_at: string
+          entity_code: string
+          fin_organization_id: string
+          functional_currency: string
+          id: string
+          is_active: boolean
+          is_consolidating: boolean
+          jurisdiction: string
+          legal_name: string
+          parent_entity_id: string | null
+          registration_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          accounting_standard?: string
+          created_at?: string
+          entity_code: string
+          fin_organization_id: string
+          functional_currency?: string
+          id?: string
+          is_active?: boolean
+          is_consolidating?: boolean
+          jurisdiction?: string
+          legal_name: string
+          parent_entity_id?: string | null
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accounting_standard?: string
+          created_at?: string
+          entity_code?: string
+          fin_organization_id?: string
+          functional_currency?: string
+          id?: string
+          is_active?: boolean
+          is_consolidating?: boolean
+          jurisdiction?: string
+          legal_name?: string
+          parent_entity_id?: string | null
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_legal_entities_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_legal_entities_parent_entity_id_fkey"
+            columns: ["parent_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_organizations: {
+        Row: {
+          accounting_standard: string
+          approval_threshold_amount: number
+          approval_threshold_currency: string
+          base_currency: string
+          created_at: string
+          fiscal_year_start_day: number
+          fiscal_year_start_month: number
+          id: string
+          legal_name: string
+          mandatory_hitl_operations: Json
+          multi_currency_enabled: boolean
+          reporting_currency: string
+          settings: Json
+          sys_organization_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          accounting_standard?: string
+          approval_threshold_amount?: number
+          approval_threshold_currency?: string
+          base_currency?: string
+          created_at?: string
+          fiscal_year_start_day?: number
+          fiscal_year_start_month?: number
+          id?: string
+          legal_name: string
+          mandatory_hitl_operations?: Json
+          multi_currency_enabled?: boolean
+          reporting_currency?: string
+          settings?: Json
+          sys_organization_id: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          accounting_standard?: string
+          approval_threshold_amount?: number
+          approval_threshold_currency?: string
+          base_currency?: string
+          created_at?: string
+          fiscal_year_start_day?: number
+          fiscal_year_start_month?: number
+          id?: string
+          legal_name?: string
+          mandatory_hitl_operations?: Json
+          multi_currency_enabled?: boolean
+          reporting_currency?: string
+          settings?: Json
+          sys_organization_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_organizations_sys_organization_id_fkey"
+            columns: ["sys_organization_id"]
+            isOneToOne: true
+            referencedRelation: "sys_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_payment_allocations: {
+        Row: {
+          allocated_amount: number
+          bill_id: string | null
+          created_at: string
+          discount_amount: number
+          fee_amount: number
+          fx_gain_loss: number
+          id: string
+          invoice_id: string | null
+          payment_id: string
+        }
+        Insert: {
+          allocated_amount: number
+          bill_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          fee_amount?: number
+          fx_gain_loss?: number
+          id?: string
+          invoice_id?: string | null
+          payment_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          bill_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          fee_amount?: number
+          fx_gain_loss?: number
+          id?: string
+          invoice_id?: string | null
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_payment_allocations_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_payments: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          fin_organization_id: string
+          functional_amount: number
+          fx_rate: number
+          id: string
+          journal_entry_id: string | null
+          legal_entity_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          payment_number: string
+          payment_type: string
+          reference_number: string | null
+          source_event_id: string | null
+          status: string
+          unapplied_amount: number
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          fin_organization_id: string
+          functional_amount?: number
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          legal_entity_id: string
+          notes?: string | null
+          payment_date: string
+          payment_method?: string
+          payment_number: string
+          payment_type: string
+          reference_number?: string | null
+          source_event_id?: string | null
+          status?: string
+          unapplied_amount?: number
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          fin_organization_id?: string
+          functional_amount?: number
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          legal_entity_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          payment_number?: string
+          payment_type?: string
+          reference_number?: string | null
+          source_event_id?: string | null
+          status?: string
+          unapplied_amount?: number
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_payments_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "fin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payments_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payments_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payments_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "fin_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "fin_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_performance_obligations: {
+        Row: {
+          ai_proposed: boolean
+          ai_rationale: string | null
+          allocated_price: number
+          contract_id: string
+          created_at: string
+          deferred_rev_account_id: string
+          description: string | null
+          end_date: string
+          id: string
+          milestone_condition: string | null
+          obligation_number: number
+          recognition_method: string
+          revenue_account_id: string
+          satisfaction_status: string
+          satisfied_at: string | null
+          satisfied_by: string | null
+          standalone_selling_price: number
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_proposed?: boolean
+          ai_rationale?: string | null
+          allocated_price?: number
+          contract_id: string
+          created_at?: string
+          deferred_rev_account_id: string
+          description?: string | null
+          end_date: string
+          id?: string
+          milestone_condition?: string | null
+          obligation_number: number
+          recognition_method?: string
+          revenue_account_id: string
+          satisfaction_status?: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          standalone_selling_price?: number
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_proposed?: boolean
+          ai_rationale?: string | null
+          allocated_price?: number
+          contract_id?: string
+          created_at?: string
+          deferred_rev_account_id?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          milestone_condition?: string | null
+          obligation_number?: number
+          recognition_method?: string
+          revenue_account_id?: string
+          satisfaction_status?: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          standalone_selling_price?: number
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_performance_obligations_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "fin_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_performance_obligations_deferred_rev_account_id_fkey"
+            columns: ["deferred_rev_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_performance_obligations_revenue_account_id_fkey"
+            columns: ["revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_periods: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          end_date: string
+          fin_organization_id: string
+          id: string
+          legal_entity_id: string | null
+          notes: string | null
+          period_name: string
+          period_type: string
+          reopen_approval_id: string | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          soft_closed_at: string | null
+          soft_closed_by: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          end_date: string
+          fin_organization_id: string
+          id?: string
+          legal_entity_id?: string | null
+          notes?: string | null
+          period_name: string
+          period_type: string
+          reopen_approval_id?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          soft_closed_at?: string | null
+          soft_closed_by?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          end_date?: string
+          fin_organization_id?: string
+          id?: string
+          legal_entity_id?: string | null
+          notes?: string | null
+          period_name?: string
+          period_type?: string
+          reopen_approval_id?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          soft_closed_at?: string | null
+          soft_closed_by?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_periods_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_periods_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_periods_reopen_approval_id_fkey"
+            columns: ["reopen_approval_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_approvals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_prepaids: {
+        Row: {
+          amortized_amount: number
+          created_at: string
+          currency: string
+          duration_months: number
+          end_date: string
+          expense_account_id: string
+          fin_organization_id: string
+          id: string
+          legal_entity_id: string
+          monthly_amortization: number
+          prepaid_asset_account_id: string
+          prepaid_number: string
+          remaining_amount: number
+          start_date: string
+          status: string
+          title: string
+          total_amount: number
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amortized_amount?: number
+          created_at?: string
+          currency?: string
+          duration_months: number
+          end_date: string
+          expense_account_id: string
+          fin_organization_id: string
+          id?: string
+          legal_entity_id: string
+          monthly_amortization: number
+          prepaid_asset_account_id: string
+          prepaid_number: string
+          remaining_amount: number
+          start_date: string
+          status?: string
+          title: string
+          total_amount: number
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amortized_amount?: number
+          created_at?: string
+          currency?: string
+          duration_months?: number
+          end_date?: string
+          expense_account_id?: string
+          fin_organization_id?: string
+          id?: string
+          legal_entity_id?: string
+          monthly_amortization?: number
+          prepaid_asset_account_id?: string
+          prepaid_number?: string
+          remaining_amount?: number
+          start_date?: string
+          status?: string
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_prepaids_expense_account_id_fkey"
+            columns: ["expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_prepaids_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_prepaids_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_prepaids_prepaid_asset_account_id_fkey"
+            columns: ["prepaid_asset_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_prepaids_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "fin_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_reconciliation_exceptions: {
+        Row: {
+          ai_proposal: Json | null
+          bank_transaction_id: string
+          created_at: string
+          exception_type: string
+          id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          suggested_action: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_proposal?: Json | null
+          bank_transaction_id: string
+          created_at?: string
+          exception_type: string
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          suggested_action?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_proposal?: Json | null
+          bank_transaction_id?: string
+          created_at?: string
+          exception_type?: string
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          suggested_action?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_reconciliation_exceptions_bank_transaction_id_fkey"
+            columns: ["bank_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_reconciliation_matches: {
+        Row: {
+          approved_by: string | null
+          bank_amount: number
+          bank_transaction_id: string
+          confidence_score: number
+          created_at: string
+          fee_difference: number
+          id: string
+          is_approved: boolean
+          journal_line_id: string | null
+          ledger_amount: number
+          match_rule: string
+          payment_id: string | null
+          session_id: string | null
+          variance: number
+        }
+        Insert: {
+          approved_by?: string | null
+          bank_amount: number
+          bank_transaction_id: string
+          confidence_score?: number
+          created_at?: string
+          fee_difference?: number
+          id?: string
+          is_approved?: boolean
+          journal_line_id?: string | null
+          ledger_amount: number
+          match_rule: string
+          payment_id?: string | null
+          session_id?: string | null
+          variance?: number
+        }
+        Update: {
+          approved_by?: string | null
+          bank_amount?: number
+          bank_transaction_id?: string
+          confidence_score?: number
+          created_at?: string
+          fee_difference?: number
+          id?: string
+          is_approved?: boolean
+          journal_line_id?: string | null
+          ledger_amount?: number
+          match_rule?: string
+          payment_id?: string | null
+          session_id?: string | null
+          variance?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_reconciliation_matches_bank_transaction_id_fkey"
+            columns: ["bank_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reconciliation_matches_journal_line_id_fkey"
+            columns: ["journal_line_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reconciliation_matches_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reconciliation_matches_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "fin_reconciliation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_reconciliation_sessions: {
+        Row: {
+          as_of_date: string
+          bank_account_id: string
+          created_at: string
+          created_by: string | null
+          gl_cash_balance: number
+          id: string
+          matched_credits_total: number
+          matched_debits_total: number
+          notes: string | null
+          period_id: string
+          signed_off_at: string | null
+          signed_off_by: string | null
+          statement_ending_balance: number
+          statement_id: string | null
+          status: string
+          unreconciled_difference: number
+          updated_at: string
+        }
+        Insert: {
+          as_of_date: string
+          bank_account_id: string
+          created_at?: string
+          created_by?: string | null
+          gl_cash_balance: number
+          id?: string
+          matched_credits_total?: number
+          matched_debits_total?: number
+          notes?: string | null
+          period_id: string
+          signed_off_at?: string | null
+          signed_off_by?: string | null
+          statement_ending_balance: number
+          statement_id?: string | null
+          status?: string
+          unreconciled_difference?: number
+          updated_at?: string
+        }
+        Update: {
+          as_of_date?: string
+          bank_account_id?: string
+          created_at?: string
+          created_by?: string | null
+          gl_cash_balance?: number
+          id?: string
+          matched_credits_total?: number
+          matched_debits_total?: number
+          notes?: string | null
+          period_id?: string
+          signed_off_at?: string | null
+          signed_off_by?: string | null
+          statement_ending_balance?: number
+          statement_id?: string | null
+          status?: string
+          unreconciled_difference?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_reconciliation_sessions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reconciliation_sessions_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "fin_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reconciliation_sessions_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_revenue_schedules: {
+        Row: {
+          contract_id: string
+          created_at: string
+          currency: string
+          fx_rate: number
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          obligation_id: string
+          period_id: string | null
+          recognized_amount: number
+          recognized_at: string | null
+          schedule_number: number
+          scheduled_amount: number
+          scheduled_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          currency?: string
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          obligation_id: string
+          period_id?: string | null
+          recognized_amount?: number
+          recognized_at?: string | null
+          schedule_number: number
+          scheduled_amount: number
+          scheduled_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          currency?: string
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          obligation_id?: string
+          period_id?: string | null
+          recognized_amount?: number
+          recognized_at?: string | null
+          schedule_number?: number
+          scheduled_amount?: number
+          scheduled_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_revenue_schedules_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "fin_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_revenue_schedules_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_revenue_schedules_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_performance_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_revenue_schedules_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "fin_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_vendors: {
+        Row: {
+          bank_details: Json | null
+          billing_address: Json
+          created_at: string
+          currency: string
+          email: string | null
+          fin_organization_id: string
+          id: string
+          is_1099_eligible: boolean
+          is_active: boolean
+          legal_entity_id: string | null
+          name: string
+          payment_terms_days: number
+          tax_identifier: string | null
+          tds_category: string | null
+          updated_at: string
+          vendor_code: string
+        }
+        Insert: {
+          bank_details?: Json | null
+          billing_address?: Json
+          created_at?: string
+          currency?: string
+          email?: string | null
+          fin_organization_id: string
+          id?: string
+          is_1099_eligible?: boolean
+          is_active?: boolean
+          legal_entity_id?: string | null
+          name: string
+          payment_terms_days?: number
+          tax_identifier?: string | null
+          tds_category?: string | null
+          updated_at?: string
+          vendor_code: string
+        }
+        Update: {
+          bank_details?: Json | null
+          billing_address?: Json
+          created_at?: string
+          currency?: string
+          email?: string | null
+          fin_organization_id?: string
+          id?: string
+          is_1099_eligible?: boolean
+          is_active?: boolean
+          legal_entity_id?: string | null
+          name?: string
+          payment_terms_days?: number
+          tax_identifier?: string | null
+          tds_category?: string | null
+          updated_at?: string
+          vendor_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_vendors_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_vendors_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       finance_expenses: {
         Row: {
@@ -24992,6 +28158,63 @@ export type Database = {
           },
         ]
       }
+      fin_ledger_balances: {
+        Row: {
+          account_code: string | null
+          account_id: string | null
+          account_name: string | null
+          account_type: string | null
+          currency: string | null
+          entry_count: number | null
+          fin_organization_id: string | null
+          functional_net_balance: number | null
+          functional_total_credit: number | null
+          functional_total_debit: number | null
+          last_posted_at: string | null
+          legal_entity_id: string | null
+          net_debit_balance: number | null
+          normal_balance: string | null
+          period_end: string | null
+          period_id: string | null
+          period_name: string | null
+          period_start: string | null
+          reporting_net_balance: number | null
+          reporting_total_credit: number | null
+          reporting_total_debit: number | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_journal_entries_fin_organization_id_fkey"
+            columns: ["fin_organization_id"]
+            isOneToOne: false
+            referencedRelation: "fin_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "fin_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "fin_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       missed_calls_view: {
         Row: {
           call_type: string | null
@@ -25096,6 +28319,51 @@ export type Database = {
         Returns: undefined
       }
       expire_old_inter_app_messages: { Args: never; Returns: undefined }
+      fin_calculate_90_day_cash_forecast: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
+      fin_generate_financial_statements: {
+        Args: { p_entity_id: string; p_org_id: string; p_period_id: string }
+        Returns: Json
+      }
+      fin_generate_straight_line_schedules: {
+        Args: { p_obligation_id: string }
+        Returns: number
+      }
+      fin_get_period_for_date: {
+        Args: { p_date: string; p_entity_id: string; p_org_id: string }
+        Returns: string
+      }
+      fin_initialize_close_checklist: {
+        Args: { p_entity_id: string; p_period_id: string }
+        Returns: string
+      }
+      fin_match_bank_transactions: {
+        Args: { p_bank_account_id: string }
+        Returns: Json
+      }
+      fin_next_entry_number: {
+        Args: { p_org_id: string; p_year?: number }
+        Returns: string
+      }
+      fin_post_journal_entry: {
+        Args: { p_entry_id: string; p_posted_by: string }
+        Returns: Json
+      }
+      fin_recognize_schedule_item: {
+        Args: { p_schedule_id: string; p_user_id: string }
+        Returns: Json
+      }
+      fin_reconcile_subledgers_to_gl: {
+        Args: { p_entity_id?: string; p_org_id: string }
+        Returns: Json
+      }
+      fin_run_integrity_check: { Args: { p_org_id: string }; Returns: Json }
+      fin_run_revenue_integrity_check: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       find_emotion_matches: {
         Args: { p_emotion: string; p_user_id: string }
         Returns: {
@@ -25222,13 +28490,15 @@ export type Database = {
           otheruser: Json
         }[]
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { _role: string; _user_id: string }; Returns: boolean }
       haversine_distance_km: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
@@ -25239,6 +28509,22 @@ export type Database = {
         Returns: undefined
       }
       increment_job_views: { Args: { job_id: string }; Returns: undefined }
+      insert_finance_account_helper: {
+        Args: {
+          p_allow_post?: boolean
+          p_code: string
+          p_depth?: number
+          p_fin_org_id: string
+          p_fs?: string
+          p_name: string
+          p_normal: string
+          p_parent?: string
+          p_std?: string
+          p_subtype?: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       install_capability: {
         Args: {
           p_capability_id: string
@@ -25366,6 +28652,10 @@ export type Database = {
       seed_business_number: {
         Args: { p_name: string; p_phone_hash: string; p_trust?: number }
         Returns: undefined
+      }
+      seed_default_chart_of_accounts: {
+        Args: { p_fin_org_id: string }
+        Returns: number
       }
       seed_recruitment_demo: { Args: never; Returns: undefined }
       sync_user_contacts: {

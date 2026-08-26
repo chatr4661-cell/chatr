@@ -17,7 +17,9 @@ import type { SeoDomainId } from './seoDomains';
 import {
   CITY_USE_CASE_ROUTES,
   DIRECTORY_ROUTES,
+  LANGUAGE_CITY_ROUTES,
   LANGUAGE_PAIR_ROUTES,
+
 } from './seoPrograms';
 
 /** Sitemap partition a URL belongs to. Each partition is capped at 50,000 URLs. */
@@ -191,6 +193,12 @@ for (const route of DIRECTORY_ROUTES) {
 
 for (const route of CITY_USE_CASE_ROUTES) {
   ROUTE_META[route.path] = page('city-pages', route.title.replace(' — Chatr', '').toLowerCase(), {
+    section: 'use-cases',
+  });
+}
+
+for (const route of LANGUAGE_CITY_ROUTES) {
+  ROUTE_META[route.path] = page('language-cities', route.title.replace(' — Chatr', '').toLowerCase(), {
     section: 'use-cases',
   });
 }

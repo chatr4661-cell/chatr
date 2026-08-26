@@ -304,7 +304,20 @@ export const SEO_LANGUAGES: SeoLanguage[] = [
   { slug: 'odia', name: 'Odia', native: 'ଓଡ଼ିଆ' },
   { slug: 'assamese', name: 'Assamese', native: 'অসমীয়া' },
   { slug: 'urdu', name: 'Urdu', native: 'اردو' },
+  { slug: 'bhojpuri', name: 'Bhojpuri', native: 'भोजपुरी' },
+  { slug: 'maithili', name: 'Maithili', native: 'मैथिली' },
+  { slug: 'rajasthani', name: 'Rajasthani', native: 'राजस्थानी' },
+  { slug: 'haryanvi', name: 'Haryanvi', native: 'हरियाणवी' },
+  { slug: 'konkani', name: 'Konkani', native: 'कोंकणी' },
+  { slug: 'tulu', name: 'Tulu', native: 'ತುಳು' },
+  { slug: 'nepali', name: 'Nepali', native: 'नेपाली' },
+  { slug: 'kashmiri', name: 'Kashmiri', native: 'کٲشُر' },
+  { slug: 'sindhi', name: 'Sindhi', native: 'سنڌي' },
+  { slug: 'dogri', name: 'Dogri', native: 'डोगरी' },
+  { slug: 'manipuri', name: 'Manipuri', native: 'মৈতৈলোন্' },
+  { slug: 'santali', name: 'Santali', native: 'ᱥᱟᱱᱛᱟᱲᱤ' },
 ];
+
 
 const LANGUAGE_BY_SLUG = new Map(SEO_LANGUAGES.map((l) => [l.slug, l]));
 
@@ -380,9 +393,35 @@ export const LANGUAGE_PAIR_ROUTES: PublicRoute[] = LANGUAGE_PAIRS.map((pair) => 
   priority: 0.6,
 }));
 
+
+// ── Language pair × city ──────────────────────────────────────────────────
+// The deepest programmatic family: how a specific language pair is used in a
+// specific city. Same truth rules — only the city name, its state, the two
+// language names and the languages commonly spoken there are ever stated.
+
+export const languageCityPath = (pairSlug: string, citySlug: string) =>
+  `/chatr/translate/${pairSlug}/${citySlug}`;
+
+export const languageCityTitle = (pair: SeoLanguagePair, city: SeoCity) =>
+  `${pair.from.name} to ${pair.to.name} Call Translation in ${city.name} — Chatr`;
+
+export const languageCityDescription = (pair: SeoLanguagePair, city: SeoCity) =>
+  `Speak ${pair.from.name} and let the other person hear ${pair.to.name} on a live call in ${city.name}, ${city.state}. Chatr translates both directions during voice and video calls, with captions.`;
+
+export const LANGUAGE_CITY_ROUTES: PublicRoute[] = LANGUAGE_PAIRS.flatMap((pair) =>
+  SEO_CITIES.map((city) => ({
+    path: languageCityPath(pair.slug, city.slug),
+    title: languageCityTitle(pair, city),
+    description: languageCityDescription(pair, city),
+    changefreq: 'monthly' as ChangeFreq,
+    priority: 0.5,
+  })),
+);
+
 /** Everything this module contributes to PUBLIC_ROUTES. */
 export const PROGRAMMATIC_ROUTES: PublicRoute[] = [
   ...DIRECTORY_ROUTES,
   ...CITY_USE_CASE_ROUTES,
   ...LANGUAGE_PAIR_ROUTES,
+  ...LANGUAGE_CITY_ROUTES,
 ];
