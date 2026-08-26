@@ -315,6 +315,7 @@ export const SpamCallProtection = lazy(() => import('@/pages/seo/SpamCallProtect
 export const CallsOnSlowNetworks = lazy(() => import('@/pages/seo/CallsOnSlowNetworks'));
 export const SeoCityUseCase = lazy(() => import('@/pages/seo/CityUseCase'));
 export const SeoLanguagePair = lazy(() => import('@/pages/seo/LanguagePair'));
+export const SeoLanguageCity = lazy(() => import('@/pages/seo/LanguageCity'));
 export const SeoLocationsDirectory = lazy(() => import('@/pages/seo/LocationsDirectory'));
 export const SeoTranslateDirectory = lazy(() => import('@/pages/seo/TranslateDirectory'));
 export const PublicHome = lazy(() => import('@/pages/PublicHome'));

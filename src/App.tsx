@@ -218,6 +218,7 @@ const App = () => {
             <Route path="/chatr/locations" element={<LazyRoute component={LazyPages.SeoLocationsDirectory} />} />
             <Route path="/chatr/translate" element={<LazyRoute component={LazyPages.SeoTranslateDirectory} />} />
             <Route path="/chatr/translate/:pair" element={<LazyRoute component={LazyPages.SeoLanguagePair} />} />
+            <Route path="/chatr/translate/:pair/:city" element={<LazyRoute component={LazyPages.SeoLanguageCity} />} />
             <Route path="/chatr/:useCase/:city" element={<LazyRoute component={LazyPages.SeoCityUseCase} />} />
             <Route path="/admin/seo" element={<LazyRoute component={LazyPages.SeoControlTower} />} />
             <Route path="/help" element={<LazyRoute component={LazyPages.Help} />} />
