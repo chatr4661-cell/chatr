@@ -17,7 +17,9 @@ import type { SeoDomainId } from './seoDomains';
 import {
   CITY_USE_CASE_ROUTES,
   DIRECTORY_ROUTES,
+  LANGUAGE_CITY_ROUTES,
   LANGUAGE_PAIR_ROUTES,
+
 } from './seoPrograms';
 
 /** Sitemap partition a URL belongs to. Each partition is capped at 50,000 URLs. */
