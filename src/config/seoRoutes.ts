@@ -195,6 +195,12 @@ for (const route of CITY_USE_CASE_ROUTES) {
   });
 }
 
+for (const route of LANGUAGE_CITY_ROUTES) {
+  ROUTE_META[route.path] = page('language-cities', route.title.replace(' — Chatr', '').toLowerCase(), {
+    section: 'use-cases',
+  });
+}
+
 for (const route of LANGUAGE_PAIR_ROUTES) {
   ROUTE_META[route.path] = page('language-pairs', route.title.replace(' — Chatr', '').toLowerCase(), {
     section: 'use-cases',
