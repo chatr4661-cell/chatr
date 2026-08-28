@@ -44,21 +44,73 @@ export const exchangeFirebaseSession = async (params: {
     throw new Error('Authentication service is not configured. Please contact support.');
   }
 
-  const response = await fetch(`${url}/functions/v1/${SESSION_EXCHANGE_FUNCTION}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${publishableKey}`,
-      apikey: publishableKey,
-    },
-    body: JSON.stringify({
-      phone_number: params.phoneNumber.replace(/\s/g, ''),
-      firebase_id_token: params.idToken,
-    }),
+  const endpoint = `${url}/functions/v1/${SESSION_EXCHANGE_FUNCTION}`;
+  const body = JSON.stringify({
+    phone_number: params.phoneNumber.replace(/\s/g, ''),
+    firebase_id_token: params.idToken,
   });
 
+  // Mobile Safari aborts in-flight requests when the user leaves the tab to
+  // read the SMS ("TypeError: Load failed"). Wait until the page is visible
+  // again, then retry with backoff before surfacing an error.
+  const whenVisible = async () => {
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') return;
+    await new Promise<void>((resolve) => {
+      const onVisible = () => {
+        if (document.visibilityState === 'visible') {
+          document.removeEventListener('visibilitychange', onVisible);
+          resolve();
+        }
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      setTimeout(() => {
+        document.removeEventListener('visibilitychange', onVisible);
+        resolve();
+      }, 8000);
+    });
+  };
 
-  const responseText = await response.text();
+  const attempt = async (): Promise<Response> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+      return await fetch(endpoint, {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${publishableKey}`,
+          apikey: publishableKey,
+        },
+        body,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  let response: Response | null = null;
+  let networkError: unknown = null;
+
+  for (let i = 0; i < 3; i++) {
+    await whenVisible();
+    try {
+      response = await attempt();
+      networkError = null;
+      break;
+    } catch (err) {
+      networkError = err;
+      await new Promise((r) => setTimeout(r, 600 * (i + 1)));
+    }
+  }
+
+  if (!response) {
+    console.error('[Auth Exchange] Network failure:', networkError);
+    throw new Error('Network problem while signing you in. Please tap Verify again.');
+  }
+
+  const responseText = await response.text().catch(() => '');
   let data: { error?: string; session?: { access_token?: string; refresh_token?: string } } = {};
 
   if (responseText) {
