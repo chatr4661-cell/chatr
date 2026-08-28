@@ -262,20 +262,29 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       await exchangeFirebaseSession({ phoneNumber, idToken });
 
       // Step 3: Register this device against the shared device_sessions table.
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await registerCurrentDevice({ userId: user.id });
+      // Never let this optional step fail an otherwise successful sign-in.
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await registerCurrentDevice({ userId: user.id });
+        }
+      } catch (deviceErr) {
+        console.warn('[OTP Verify] Device registration skipped:', deviceErr);
       }
-
 
       setLoading(false);
       return true;
     } catch (err: any) {
       console.error('[OTP Verify] Error:', err);
       const codeStr: string = err?.code || err?.message || '';
-      const msg = /invalid.*(verification|code)|code.*invalid/i.test(codeStr)
-        ? 'Invalid code. Please check and try again.'
-        : err.message || 'Verification failed';
+      let msg: string;
+      if (/invalid.*(verification|code)|code.*invalid/i.test(codeStr)) {
+        msg = 'Invalid code. Please check and try again.';
+      } else if (/load failed|failed to fetch|network|abort/i.test(codeStr)) {
+        msg = 'Network problem while signing you in. Please tap Verify again.';
+      } else {
+        msg = err?.message || 'Verification failed';
+      }
       setError(msg);
       setLoading(false);
       return false;
