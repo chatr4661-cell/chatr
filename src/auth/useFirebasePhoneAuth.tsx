@@ -48,6 +48,11 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   // Native flow
   const verificationIdRef = useRef<string | null>(null);
+  // Keep the already verified Firebase token while the backend session exchange
+  // retries. OTPs are single-use, so confirming the same code again after a
+  // transient exchange failure incorrectly produces auth/code-expired.
+  const verifiedIdTokenRef = useRef<string | null>(null);
+  const verificationInFlightRef = useRef(false);
 
   // PRE-INITIALIZE reCAPTCHA on mount for instant OTP (web only)
   useEffect(() => {
@@ -117,6 +122,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
    */
   const sendOTPNative = async (phone: string): Promise<boolean> => {
     try {
+      verifiedIdTokenRef.current = null;
       const verificationId = await new Promise<string>(async (resolve, reject) => {
         let codeListener: { remove: () => Promise<void> } | null = null;
         try {
@@ -169,6 +175,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     }
 
     try {
+      verifiedIdTokenRef.current = null;
       // Use pre-initialized reCAPTCHA or create new one
       if (!recaptchaVerifierRef.current) {
         const container = document.getElementById('recaptcha-container');
@@ -222,13 +229,15 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
   };
 
   const verifyOTP = useCallback(async (otp: string): Promise<boolean> => {
+    if (verificationInFlightRef.current) return false;
+    verificationInFlightRef.current = true;
     setLoading(true);
     setError(null);
 
     try {
-      let idToken: string | undefined;
+      let idToken: string | undefined = verifiedIdTokenRef.current ?? undefined;
 
-      if (isNative) {
+      if (!idToken && isNative) {
         if (!verificationIdRef.current) {
           setError('Session expired. Please try again.');
           setLoading(false);
@@ -241,7 +250,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         });
         const tokenResult = await FirebaseAuthentication.getIdToken({ forceRefresh: true });
         idToken = tokenResult?.token;
-      } else {
+      } else if (!idToken) {
         if (!confirmationResultRef.current) {
           setError('Session expired. Please try again.');
           setLoading(false);
@@ -255,6 +264,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       if (!idToken) {
         throw new Error('Verification failed');
       }
+      verifiedIdTokenRef.current = idToken;
 
       // Step 2: Exchange the Google-verified ID token for a backend session.
       // The server re-verifies the token and mints the session — the client
@@ -287,6 +297,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       }
 
       setLoading(false);
+      verifiedIdTokenRef.current = null;
       return true;
     } catch (err: any) {
       console.error('[OTP Verify] Error:', err);
@@ -294,6 +305,9 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       let msg: string;
       if (/invalid.*(verification|code)|code.*invalid/i.test(codeStr)) {
         msg = 'Invalid code. Please check and try again.';
+      } else if (/code-expired|session-expired|expired/i.test(codeStr)) {
+        msg = 'This code has expired. Please request a new OTP.';
+        setCountdown(0);
       } else if (/load failed|failed to fetch|network|abort/i.test(codeStr)) {
         msg = 'Network problem while signing you in. Please tap Verify again.';
       } else {
@@ -302,11 +316,16 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       setError(msg);
       setLoading(false);
       return false;
+    } finally {
+      verificationInFlightRef.current = false;
     }
   }, [phoneNumber]);
 
   const resendOTP = useCallback(async (): Promise<boolean> => {
     if (countdown > 0) return false;
+    verifiedIdTokenRef.current = null;
+    confirmationResultRef.current = null;
+    verificationIdRef.current = null;
     if (!isNative) {
       recaptchaVerifierRef.current = null;
       setRecaptchaReady(false);
@@ -324,6 +343,8 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     setFailedAttempts(0);
     confirmationResultRef.current = null;
     verificationIdRef.current = null;
+    verifiedIdTokenRef.current = null;
+    verificationInFlightRef.current = false;
   }, []);
 
   return {
