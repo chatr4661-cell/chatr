@@ -259,7 +259,21 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       // Step 2: Exchange the Google-verified ID token for a backend session.
       // The server re-verifies the token and mints the session — the client
       // never holds or derives a credential.
-      await exchangeFirebaseSession({ phoneNumber, idToken });
+      try {
+        await exchangeFirebaseSession({ phoneNumber, idToken });
+      } catch (exchangeError: unknown) {
+        // The Firebase OTP has already succeeded at this point. Contain every
+        // backend exchange failure inside this hook so it can never escape to
+        // the application error boundary (notably Safari's "Load failed").
+        const detail = exchangeError instanceof Error ? exchangeError.message : '';
+        const message = /load failed|failed to fetch|network|abort/i.test(detail)
+          ? 'Network problem while signing you in. Please tap Verify again.'
+          : detail || 'Authentication failed. Please tap Verify again.';
+        console.error('[OTP Verify] Session exchange failed:', exchangeError);
+        setError(message);
+        setLoading(false);
+        return false;
+      }
 
       // Step 3: Register this device against the shared device_sessions table.
       // Never let this optional step fail an otherwise successful sign-in.
