@@ -139,11 +139,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation - stale while revalidate for instant page loads
+  // Navigation - ALWAYS network first.
+  // Serving a stale index.html points the browser at hashed JS chunks that no
+  // longer exist after a deploy, which breaks the app shell. Cache is fallback only.
   if (request.mode === 'navigate') {
     event.respondWith(
-      cacheStrategies.staleWhileRevalidate(request, CACHE_NAME)
+      cacheStrategies.networkFirst(request, CACHE_NAME, 6000)
         .then(response => response || caches.match('/index.html'))
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }
