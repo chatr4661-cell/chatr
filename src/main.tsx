@@ -1,3 +1,7 @@
+// CRITICAL: self-heal stale deploys (missing JS chunks) before anything else
+import { installChunkRecovery } from './utils/chunkRecovery';
+installChunkRecovery();
+
 // CRITICAL: Import hybrid optimizations FIRST for instant skeleton
 import './utils/hybridAppOptimizations';
 import { warmIceCredentials } from './utils/iceTransportStrategy';
