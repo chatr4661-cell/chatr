@@ -1,38 +1,38 @@
 {
-  "id": "com.chatr.app",
+  "id": "./",
   "name": "Chatr+",
   "short_name": "Chatr+",
   "description": "Chat, Earn, Create, and Grow — All in One App. The AI Superapp for India.",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6200ee",
   "orientation": "portrait",
-  "scope": "/",
+  "scope": "./",
   "lang": "en",
   "dir": "ltr",
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "./icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "./icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "./icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "./icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -40,21 +40,21 @@
   ],
   "screenshots": [
     {
-      "src": "/assets/screenshots/screenshot-chat.png",
+      "src": "./assets/screenshots/screenshot-chat.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Chat and messaging interface"
     },
     {
-      "src": "/assets/screenshots/screenshot-settings.png",
+      "src": "./assets/screenshots/screenshot-settings.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Settings and preferences"
     },
     {
-      "src": "/assets/screenshots/screenshot-groups.png",
+      "src": "./assets/screenshots/screenshot-groups.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
@@ -67,19 +67,19 @@
       "name": "New Chat",
       "short_name": "Chat",
       "description": "Start a new conversation",
-      "url": "/chat",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+      "url": "./chat",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Settings",
       "short_name": "Settings",
       "description": "Manage app settings",
-      "url": "/account",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+      "url": "./account",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "share_target": {
-    "action": "/chat",
+    "action": "./chat",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
@@ -96,19 +96,19 @@
   },
   "file_handlers": [
     {
-      "action": "/firebase-chat",
+      "action": "./firebase-chat",
       "accept": {
         "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
         "video/*": [".mp4", ".webm"]
       },
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }],
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }],
       "launch_type": "single-client"
     }
   ],
   "protocol_handlers": [
     {
       "protocol": "web+chatr",
-      "url": "/firebase-chat?url=%s"
+      "url": "./firebase-chat?url=%s"
     }
   ],
   "launch_handler": {
@@ -130,14 +130,14 @@
       "type": "application/json",
       "screenshots": [
         {
-          "src": "/icons/icon-512x512.png",
+          "src": "./icons/icon-512x512.png",
           "sizes": "512x512",
           "label": "Quick message widget"
         }
       ],
       "icons": [
         {
-          "src": "/icons/icon-192x192.png",
+          "src": "./icons/icon-192x192.png",
           "sizes": "192x192"
         }
       ],
@@ -146,7 +146,7 @@
     }
   ],
   "note_taking": {
-    "new_note_url": "/firebase-chat?note=new"
+    "new_note_url": "./firebase-chat?note=new"
   },
   "related_applications": [
     {
