@@ -144,24 +144,10 @@ const App = () => {
 
   // Register service worker once on mount
   useEffect(() => {
-    let registered = false;
-    
     const initServiceWorker = async () => {
-      if (registered) return;
-      
-      if ('serviceWorker' in navigator) {
-        const existing = await navigator.serviceWorker.getRegistration();
-        if (existing) {
-          console.log('✅ Service Worker already registered');
-          registered = true;
-          return;
-        }
-      }
-      
       const registration = await registerServiceWorker();
       if (registration) {
         console.log('✅ Service Worker initialized for push notifications');
-        registered = true;
       }
     };
     
