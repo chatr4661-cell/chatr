@@ -4,10 +4,10 @@
  */
 
 // Cache version - increment to force update
-const CACHE_NAME = 'chatr-cache-v7';
-const RUNTIME_CACHE = 'chatr-runtime-v7';
-const IMAGE_CACHE = 'chatr-images-v7';
-const API_CACHE = 'chatr-api-v7';
+const CACHE_NAME = 'chatr-cache-v8';
+const RUNTIME_CACHE = 'chatr-runtime-v8';
+const IMAGE_CACHE = 'chatr-images-v8';
+const API_CACHE = 'chatr-api-v8';
 
 const STATIC_ASSETS = [
   '/',
@@ -94,13 +94,13 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches aggressively
 self.addEventListener('activate', (event) => {
-  console.log('SW v7 activating...');
+  console.log('SW v8 activating...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           // Delete any cache that doesn't match current version
-          if (!cacheName.includes('v7')) {
+          if (!cacheName.includes('v8')) {
             console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
