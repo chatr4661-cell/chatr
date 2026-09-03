@@ -17,8 +17,6 @@ const messaging = firebase.messaging();
 // Handle background messages (when app is closed or in background)
 messaging.onBackgroundMessage((payload) => {
   console.log('📬 Background message received:', payload);
-messaging.onBackgroundMessage((payload) => {
-  console.log('📬 Background message received:', payload);
 
   // Backend sends DATA-ONLY messages, so read from data first, then notification block.
   const d = payload.data || {};

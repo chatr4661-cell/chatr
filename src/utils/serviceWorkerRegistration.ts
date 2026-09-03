@@ -11,24 +11,36 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
+    // The canonical-host redirect includes /sw.js. Browsers reject redirected
+    // service-worker scripts, so never register while still on the legacy host.
+    if (window.location.hostname === 'www.chatr.chat') {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+      return null;
+    }
+
     // Check if already registered
     const existing = await navigator.serviceWorker.getRegistration('/');
-    if (existing) {
+    if (existing?.active?.scriptURL.endsWith('/firebase-messaging-sw.js')) {
       console.log('✅ Service Worker already active');
       // Silently try to update - don't throw if it fails
       existing.update().catch(() => {});
       return existing;
     }
 
-    // Check if sw.js exists before attempting registration
-    const swCheck = await fetch('/sw.js', { method: 'HEAD' }).catch(() => null);
+    // Retire a legacy app-shell worker before installing the notification worker.
+    if (existing) await existing.unregister();
+
+    const workerUrl = new URL('./firebase-messaging-sw.js', window.location.origin).toString();
+    const swCheck = await fetch(workerUrl, { method: 'HEAD', redirect: 'error' }).catch(() => null);
     if (!swCheck || !swCheck.ok) {
       console.log('⚠️ Service Worker file not available, skipping registration');
       return null;
     }
 
-    // Register the main service worker (handles both caching and push)
-    const registration = await navigator.serviceWorker.register('/sw.js', {
+    // This worker handles background call/message notifications only. It does
+    // not cache the app shell, so deployments cannot retain stale HTML.
+    const registration = await navigator.serviceWorker.register(workerUrl, {
       scope: '/',
       updateViaCache: 'none'
     });
