@@ -19,7 +19,7 @@
       "destination": "/assets/:path*"
     },
     {
-      "source": "/((?!api/|assets/|sitemap\\.xml|sitemaps/|sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|llms\\.txt|ringtone\\.mp3).*)",
+      "source": "/((?!api/|assets/|sitemap\\.xml|sitemaps/|sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|llms\\.txt|ringtone\\.mp3|\\.well-known/|security\\.txt).*)",
       "destination": "/index.html"
     }
   ],
@@ -44,6 +44,13 @@
       "headers": [
         { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(\\.well-known/)?security\\.txt",
+      "headers": [
+        { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]
     },
 
