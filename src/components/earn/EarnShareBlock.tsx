@@ -144,7 +144,7 @@ export function MissionShareButton({ taskId, taskTitle, rewardRupees }: MissionS
   }, []);
 
   const handleShare = async () => {
-    const url = `${SHARE_BASE}/earn?mission=${taskId}${code ? `&ref=${code}` : ''}`;
+    const url = `${SHARE_BASE}/earn?mission=${taskId}${code ? `&ref=${code}` : ''}&utm_source=referral&utm_medium=share&utm_campaign=mission`;
     const text = `🔥 Quick ₹${rewardRupees} task on Chatr: "${taskTitle}". Grab it before it's gone — ${url}`;
     if (navigator.share) {
       try { await navigator.share({ title: taskTitle, text, url }); return; } catch {}
