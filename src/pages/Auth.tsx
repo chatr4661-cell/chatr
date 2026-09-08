@@ -76,10 +76,12 @@ const Auth = () => {
               
              console.log('[AUTH] User signed in:', profile.username || profile.email);
               
-              if (isAdmin) {
+              if (redirectPath) {
+                navigate(redirectPath, { replace: true });
+              } else if (isAdmin) {
                 navigate('/admin', { replace: true });
               } else {
-                navigate(redirectPath || '/', { replace: true });
+                navigate('/', { replace: true });
               }
               return;
             }
