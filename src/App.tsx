@@ -26,6 +26,7 @@ import { useUISpeedBudget } from "./hooks/useUISpeedBudget";
 // ============================================
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import OAuthConsent from "./pages/OAuthConsent";
 import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import Calls from "./pages/Calls";
