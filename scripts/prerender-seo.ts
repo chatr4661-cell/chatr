@@ -79,7 +79,7 @@ const renderHead = (target: Target) => {
 
 const renderBody = (target: Target) => {
   const heading = target.title.replace(/\s+—\s+Chatr\+?$/, '');
-  const links = [...siblingsFor(target), ...HUBS.map(([p, t]) => ({ path: p, title: t, description: '' }))]
+  const links = [...siblingsFor(target.path), ...HUBS.map(([p, t]) => ({ path: p, title: t, description: '' }))]
     .map((l) => `<li><a href="${l.path}">${escapeHtml(l.title.replace(/\s+—\s+Chatr\+?$/, ''))}</a></li>`)
     .join('');
 
