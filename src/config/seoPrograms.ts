@@ -418,10 +418,18 @@ export const LANGUAGE_CITY_ROUTES: PublicRoute[] = LANGUAGE_PAIRS.flatMap((pair)
   })),
 );
 
-/** Everything this module contributes to PUBLIC_ROUTES. */
+/**
+ * Everything this module contributes to PUBLIC_ROUTES.
+ *
+ * LANGUAGE_CITY_ROUTES (language pair x city, ~100k URLs) is deliberately
+ * EXCLUDED. Submitting that many near-identical client-rendered URLs consumed
+ * the entire crawl budget and Google classified them as duplicate /
+ * crawled-not-indexed. The routes still resolve in the app, but they are not
+ * advertised in the sitemap and default to noindex, so crawling concentrates
+ * on the pages that are prerendered with unique content.
+ */
 export const PROGRAMMATIC_ROUTES: PublicRoute[] = [
   ...DIRECTORY_ROUTES,
   ...CITY_USE_CASE_ROUTES,
   ...LANGUAGE_PAIR_ROUTES,
-  ...LANGUAGE_CITY_ROUTES,
 ];
