@@ -291,6 +291,10 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           await registerCurrentDevice({ userId: user.id });
+
+          // Step 4: Attribute a stored invite code (?ref=) to this user.
+          // Fire-and-forget — referral failures never affect sign-in.
+          void claimStoredReferral(user.id);
         }
       } catch (deviceErr) {
         console.warn('[OTP Verify] Device registration skipped:', deviceErr);
