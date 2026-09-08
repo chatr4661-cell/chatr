@@ -77,6 +77,88 @@ const renderHead = (target: Target) => {
   ].join('\n    ');
 };
 
+type PageKind = 'translation' | 'location' | 'ai-answering' | 'download' | 'generic';
+
+const classify = (path: string): PageKind => {
+  if (path.startsWith('/chatr/translate/')) return 'translation';
+  if (path.startsWith('/chatr/locations/')) return 'location';
+  if (/ai-call-answering|ai-agents|ai-messaging/.test(path)) return 'ai-answering';
+  if (/download|whatsapp-alternative/.test(path)) return 'download';
+  return 'generic';
+};
+
+const section = (title: string, inner: string) =>
+  `<section><h2>${escapeHtml(title)}</h2>${inner}</section>`;
+
+const list = (items: string[]) => `<ul>${items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
+const steps = (items: string[]) => `<ol>${items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ol>`;
+
+/** Intent-matched content blocks so every prerendered page is genuinely useful. */
+const contentFor = (kind: PageKind, heading: string): string => {
+  switch (kind) {
+    case 'translation': {
+      const pair = heading.replace(/\s*call translation.*/i, '');
+      return [
+        section(`How ${pair} call translation works`, steps([
+          'Start a voice or video call in Chatr — no special equipment needed.',
+          'Speak naturally in your language. Chatr translates speech in real time.',
+          'The other person hears the translation in their own language, and you hear theirs in yours.',
+          'Both sides talk naturally — no reading text, no passing the phone.',
+        ])),
+        section('Why people use it', list([
+          'Talk to family, customers, or colleagues who speak a different language.',
+          'Works on slow networks — built for real Indian network conditions.',
+          'Private by design: calls are encrypted end to end.',
+          'Free to start — download the Android app and call in minutes.',
+        ])),
+        section('Common questions', [
+          ['Do both people need the app?', 'Yes — both sides install Chatr so the call connects securely.'],
+          ['Does it work on 2G or 3G?', 'Yes. Chatr adapts audio quality automatically to keep the call alive on weak networks.'],
+          ['Is my voice recorded?', 'No. Translation happens during the call and audio is not stored.'],
+        ].map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`).join('')),
+      ].join('');
+    }
+    case 'location':
+      return [
+        section('What you can do with Chatr here', list([
+          'Free HD voice and video calls, even on slow networks.',
+          'Live call translation across 25+ Indian and world languages.',
+          'AI answers your calls when you are busy and summarises what you missed.',
+          'Private, encrypted messaging with your existing contacts.',
+        ])),
+        section('Get started', steps([
+          'Download Chatr for Android from the official download page.',
+          'Verify your phone number — it takes under a minute.',
+          'Your contacts who already use Chatr appear automatically.',
+        ])),
+      ].join('');
+    case 'ai-answering':
+      return [
+        section('How AI call answering works', steps([
+          'When you are busy, tap "AI Answer" on an incoming call.',
+          'Chatr\'s AI speaks to the caller naturally in their language.',
+          'You get a summary and transcript of the call when you are free.',
+        ])),
+        section('Built for real life', list([
+          'Never miss a customer call while you are in a meeting or driving.',
+          'Screen unknown callers before you decide to pick up.',
+          'Works in multiple Indian languages.',
+        ])),
+      ].join('');
+    case 'download':
+      return [
+        section('Why Chatr', list([
+          'Free encrypted calling and messaging.',
+          'Live call translation — speak your language, they hear theirs.',
+          'AI call answering when you are busy.',
+          'Made in India, built for Indian networks.',
+        ])),
+      ].join('');
+    default:
+      return '';
+  }
+};
+
 const renderBody = (target: Target) => {
   const heading = target.title.replace(/\s+—\s+Chatr\+?$/, '');
   const links = [...siblingsFor(target.path), ...HUBS.map(([p, t]) => ({ path: p, title: t, description: '' }))]
@@ -87,6 +169,7 @@ const renderBody = (target: Target) => {
     '<div data-prerender="seo">',
     `<h1>${escapeHtml(heading)}</h1>`,
     `<p>${escapeHtml(target.description)}</p>`,
+    contentFor(classify(target.path), heading),
     `<nav aria-label="Related pages"><ul>${links}</ul></nav>`,
     '</div>',
   ].join('');
