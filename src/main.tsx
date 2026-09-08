@@ -2,6 +2,10 @@
 import { installChunkRecovery } from './utils/chunkRecovery';
 installChunkRecovery();
 
+// Capture ?ref= invite codes and UTM tags before any routing strips them
+import { captureReferralFromUrl } from './utils/referralCapture';
+captureReferralFromUrl();
+
 // CRITICAL: Import hybrid optimizations FIRST for instant skeleton
 import './utils/hybridAppOptimizations';
 import { warmIceCredentials } from './utils/iceTransportStrategy';

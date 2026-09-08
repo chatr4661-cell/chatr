@@ -9,6 +9,7 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth } from './firebase';
 import { supabase } from '@/integrations/supabase/client';
 import { exchangeFirebaseSession } from './SessionManager';
+import { claimStoredReferral } from '@/utils/referralCapture';
 import { registerCurrentDevice } from './DeviceManager';
 
 // On native (Android/iOS) Firebase verifies the phone number through
@@ -291,6 +292,10 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           await registerCurrentDevice({ userId: user.id });
+
+          // Step 4: Attribute a stored invite code (?ref=) to this user.
+          // Fire-and-forget — referral failures never affect sign-in.
+          void claimStoredReferral(user.id);
         }
       } catch (deviceErr) {
         console.warn('[OTP Verify] Device registration skipped:', deviceErr);

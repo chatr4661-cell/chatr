@@ -47,7 +47,10 @@ export function EarnShareBlock() {
     return () => { mounted = false; };
   }, []);
 
-  const link = code ? `${SHARE_BASE}/?ref=${code}` : SHARE_BASE;
+  // UTM tags let analytics show exactly which shares bring new users.
+  const link = code
+    ? `${SHARE_BASE}/?ref=${code}&utm_source=referral&utm_medium=share&utm_campaign=invite`
+    : SHARE_BASE;
   const message = `🚀 I'm earning real ₹ on Chatr — just by listening to short clips & rating things. Use my code ${code ?? ''} and we both get ${REFERRAL_BONUS_COINS} coins. ${link}`;
 
   const onCopy = async () => {
@@ -141,7 +144,7 @@ export function MissionShareButton({ taskId, taskTitle, rewardRupees }: MissionS
   }, []);
 
   const handleShare = async () => {
-    const url = `${SHARE_BASE}/earn?mission=${taskId}${code ? `&ref=${code}` : ''}`;
+    const url = `${SHARE_BASE}/earn?mission=${taskId}${code ? `&ref=${code}` : ''}&utm_source=referral&utm_medium=share&utm_campaign=mission`;
     const text = `🔥 Quick ₹${rewardRupees} task on Chatr: "${taskTitle}". Grab it before it's gone — ${url}`;
     if (navigator.share) {
       try { await navigator.share({ title: taskTitle, text, url }); return; } catch {}
