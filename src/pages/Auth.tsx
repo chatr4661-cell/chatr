@@ -21,6 +21,15 @@ const Auth = () => {
   const [userId, setUserId] = React.useState<string | undefined>();
   const onboarding = useOnboarding(userId);
 
+  // Preserve a same-origin ?next= target (used by the agent-integration consent flow)
+  React.useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (next && next.startsWith('/') && !next.startsWith('//')) {
+      sessionStorage.setItem('auth_redirect', next);
+    }
+  }, []);
+
+
   React.useEffect(() => {
     const checkSession = async () => {
       try {
