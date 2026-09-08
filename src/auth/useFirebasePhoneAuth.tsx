@@ -9,6 +9,7 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth } from './firebase';
 import { supabase } from '@/integrations/supabase/client';
 import { exchangeFirebaseSession } from './SessionManager';
+import { claimStoredReferral } from '@/utils/referralCapture';
 import { registerCurrentDevice } from './DeviceManager';
 
 // On native (Android/iOS) Firebase verifies the phone number through

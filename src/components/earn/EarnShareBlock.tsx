@@ -47,7 +47,10 @@ export function EarnShareBlock() {
     return () => { mounted = false; };
   }, []);
 
-  const link = code ? `${SHARE_BASE}/?ref=${code}` : SHARE_BASE;
+  // UTM tags let analytics show exactly which shares bring new users.
+  const link = code
+    ? `${SHARE_BASE}/?ref=${code}&utm_source=referral&utm_medium=share&utm_campaign=invite`
+    : SHARE_BASE;
   const message = `🚀 I'm earning real ₹ on Chatr — just by listening to short clips & rating things. Use my code ${code ?? ''} and we both get ${REFERRAL_BONUS_COINS} coins. ${link}`;
 
   const onCopy = async () => {
