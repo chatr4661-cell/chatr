@@ -21,6 +21,15 @@ const Auth = () => {
   const [userId, setUserId] = React.useState<string | undefined>();
   const onboarding = useOnboarding(userId);
 
+  // Preserve a same-origin ?next= target (used by the agent-integration consent flow)
+  React.useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (next && next.startsWith('/') && !next.startsWith('//')) {
+      sessionStorage.setItem('auth_redirect', next);
+    }
+  }, []);
+
+
   React.useEffect(() => {
     const checkSession = async () => {
       try {
@@ -67,10 +76,12 @@ const Auth = () => {
               
              console.log('[AUTH] User signed in:', profile.username || profile.email);
               
-              if (isAdmin) {
+              if (redirectPath) {
+                navigate(redirectPath, { replace: true });
+              } else if (isAdmin) {
                 navigate('/admin', { replace: true });
               } else {
-                navigate(redirectPath || '/', { replace: true });
+                navigate('/', { replace: true });
               }
               return;
             }
