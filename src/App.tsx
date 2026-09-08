@@ -188,6 +188,7 @@ const App = () => {
             
             <Route path="/launcher" element={<ProtectedLazyRoute component={LazyPages.Launcher} />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/download" element={<LazyRoute component={LazyPages.Download} />} />
             <Route path="/install" element={<LazyRoute component={LazyPages.Install} />} />
             <Route path="/onboarding" element={<LazyRoute component={LazyPages.Onboarding} />} />
