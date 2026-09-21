@@ -16,7 +16,7 @@ if (new URL(sourceUrl).host === new URL(targetUrl).host) throw new Error('Source
 
 const source = createClient(sourceUrl, sourceKey, { auth: { persistSession: false } });
 const target = createClient(targetUrl, targetKey, { auth: { persistSession: false } });
-const workDir = process.env.MIGRATION_WORK_DIR || '.migration-work';
+const workDir = process.env.MIGRATION_WORK_DIR || '/tmp/chatr-backend-migration';
 const checkpointPath = join(workDir, 'storage-checkpoint.json');
 await mkdir(dirname(checkpointPath), { recursive: true });
 

@@ -6,7 +6,7 @@ This package migrates CHATR from the current managed backend to a Supabase-owned
 
 - 284 ordered database migrations in `supabase/migrations/`
 - 120 Edge Function entrypoints in `supabase/functions/`
-- preflight, inventory, export, import, function-deployment, and verification scripts
+- preflight, inventory, conflict-safe export/import, Storage copy, function-deployment, and verification scripts
 - explicit handling for authentication, Storage objects, Realtime, scheduled jobs, secrets, mobile apps, connectors, and MCP
 
 ## Hard stop: source database credentials
@@ -38,7 +38,7 @@ The scripts are complete for a source backend for which the owner has a direct P
 
 ## Required environment values
 
-Copy `scripts/backend-migration/migration.env.example` to a file outside the repository, fill it in, then source it in your terminal.
+Copy `scripts/backend-migration/migration.env.example` to a file outside the repository, fill it in, then source it in your terminal. The default work directory is also outside the repository.
 
 ```bash
 set -a
@@ -103,7 +103,7 @@ This requires the source direct database URL:
 npm run backend:migration:export
 ```
 
-The export produces a custom-format data archive, source row-count manifest, and checksums under `.migration-work/export/`. It does not export database passwords or Edge Function secrets.
+The export produces a compressed SQL archive using explicit inserts with `ON CONFLICT DO NOTHING`, a source row-count manifest, and checksums under the private work directory. This prevents migration-seeded rows from being overwritten. It does not export Storage object metadata, database passwords, or Edge Function secrets.
 
 ### 5. Import rows
 
@@ -113,7 +113,7 @@ Only run after schema deployment and preflight show the destination is safe:
 npm run backend:migration:import
 ```
 
-Authentication identities are included only when the source export has access to the `auth` schema. If they are unavailable, users must reauthenticate and the Firebase phone bridge must lazily recreate identities.
+Authentication identities are included only when the source export has access to the `auth` schema and the destination permits their import. If they are unavailable, users must reauthenticate and the Firebase phone bridge must lazily recreate identities. Import failures in the managed `auth` schema are a hard stop; do not bypass them by disabling integrity checks.
 
 ### 6. Copy Storage objects
 
@@ -121,7 +121,7 @@ Authentication identities are included only when the source export has access to
 npm run backend:migration:storage
 ```
 
-The copier preserves object paths, content types, and cache controls. Bucket declarations and policies come from migrations; binary objects do not.
+The copier preserves object paths, content types, and cache controls. Bucket declarations and policies come from migrations; neither Storage metadata nor binary objects are imported by the database-row archive.
 
 Expected buckets include `chat-media`, `screenshots`, and `voice-notes`, plus buckets declared by later migrations. Private objects require both source and destination service-role keys.
 

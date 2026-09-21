@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-WORK_DIR="${MIGRATION_WORK_DIR:-$ROOT_DIR/.migration-work}"
+WORK_DIR="${MIGRATION_WORK_DIR:-/tmp/chatr-backend-migration}"
 
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 note() { printf '==> %s\n' "$*"; }

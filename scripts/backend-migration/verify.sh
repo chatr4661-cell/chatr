@@ -7,9 +7,22 @@ assert_distinct_backends
 OUT="$WORK_DIR/verify"
 mkdir -p "$OUT"
 
-QUERY="select schemaname, relname, n_live_tup from pg_stat_user_tables where schemaname in ('public','auth','storage') order by 1,2"
-psql "$SOURCE_DATABASE_URL" -X -AtF $'\t' -c "$QUERY" > "$OUT/source-row-counts.tsv"
-psql "$TARGET_DATABASE_URL" -X -AtF $'\t' -c "$QUERY" > "$OUT/target-row-counts.tsv"
+exact_counts() {
+  local database_url="$1"
+  psql "$database_url" -X -AtF $'\t' <<'SQL'
+select format(
+  'select %L, %L, count(*) from %I.%I;',
+  schemaname, tablename, schemaname, tablename
+)
+from pg_tables
+where schemaname in ('public','auth')
+order by schemaname, tablename
+\gexec
+SQL
+}
+
+exact_counts "$SOURCE_DATABASE_URL" > "$OUT/source-row-counts.tsv"
+exact_counts "$TARGET_DATABASE_URL" > "$OUT/target-row-counts.tsv"
 
 psql "$SOURCE_DATABASE_URL" -X -AtF $'\t' <<'SQL' > "$OUT/source-objects.tsv"
 select 'table', schemaname, tablename from pg_tables where schemaname='public'
