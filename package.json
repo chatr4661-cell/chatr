@@ -28,6 +28,13 @@
     "seo:sitemap": "tsx scripts/generate-sitemap.ts",
     "seo:audit": "tsx scripts/seo-audit.ts",
     "seo:verify": "tsx scripts/verify-seo-endpoints.ts",
+    "backend:migration:inventory": "bash scripts/backend-migration/inventory.sh",
+    "backend:migration:preflight": "bash scripts/backend-migration/preflight.sh",
+    "backend:migration:export": "bash scripts/backend-migration/export-source.sh",
+    "backend:migration:import": "bash scripts/backend-migration/import-target.sh",
+    "backend:migration:storage": "node scripts/backend-migration/copy-storage.mjs",
+    "backend:migration:functions": "bash scripts/backend-migration/deploy-functions.sh",
+    "backend:migration:verify": "bash scripts/backend-migration/verify.sh",
     "postbuild": "tsx scripts/prerender-seo.ts && SEO_VERIFY_SOFT_FAIL=1 tsx scripts/verify-seo-endpoints.ts"
   },
   "dependencies": {
