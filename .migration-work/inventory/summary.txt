@@ -1,0 +1,6 @@
+migrations=284
+edge_functions=120
+storage_migrations=16
+realtime_migrations=28
+http_hook_migrations=5
+destructive_history_files=5

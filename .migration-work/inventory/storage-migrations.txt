@@ -1,0 +1,16 @@
+/dev-server/supabase/migrations/20251003124736_47d917f5-83b7-4776-9ee3-16e138f69962.sql
+/dev-server/supabase/migrations/20251003133546_a7a90d8d-0be4-459a-a526-0cc6949eb54d.sql
+/dev-server/supabase/migrations/20251006092848_e83a8ee9-8ecc-474c-ae80-0475e431b3a0.sql
+/dev-server/supabase/migrations/20251009101234_0d13e3a9-897c-4edd-86cc-dd02fa6afed6.sql
+/dev-server/supabase/migrations/20251009173034_3fcb8f58-da9e-4a72-8ec5-913c1dfe1b05.sql
+/dev-server/supabase/migrations/20251010013055_57f77065-cfb1-4d1c-aee3-2eac4ff3f286.sql
+/dev-server/supabase/migrations/20251010021101_988c59f3-5070-4f44-9b31-d2249cb70440.sql
+/dev-server/supabase/migrations/20251020043610_e32ff286-4bb1-4813-9a5b-da82afea8bbf.sql
+/dev-server/supabase/migrations/20251029010214_66e17c81-0f33-43ca-8e76-cb2919207e99.sql
+/dev-server/supabase/migrations/20251103143746_c8051507-4020-4f52-a2ed-575a9ee33f90.sql
+/dev-server/supabase/migrations/20251103145916_6a97fcd7-5b24-4183-9ad7-9587abd95857.sql
+/dev-server/supabase/migrations/20251103151139_4eb48b9e-ee0e-427e-885f-9befa6c2e3d1.sql
+/dev-server/supabase/migrations/20251203164248_22e2cd30-fd35-4644-b696-fe47cc98779e.sql
+/dev-server/supabase/migrations/20251203173343_7afc0965-61ad-4081-a7a1-5b4afbb0df42.sql
+/dev-server/supabase/migrations/20260521102507_a6b60cef-61f5-4e35-9f8c-4c9c37fb5423.sql
+/dev-server/supabase/migrations/20260706081718_37d36ad7-2f02-400b-ad87-289e12853762.sql

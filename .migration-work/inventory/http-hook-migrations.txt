@@ -1,0 +1,5 @@
+/dev-server/supabase/migrations/20251008174846_930caf5e-10e8-45d2-8273-5d10aac04647.sql
+/dev-server/supabase/migrations/20251010023805_8f715c77-99c5-42e0-a6d2-3a1983a1c332.sql
+/dev-server/supabase/migrations/20251010024126_6ca73fb3-984b-4721-9467-3d2078e62ea2.sql
+/dev-server/supabase/migrations/20251227090602_232cf158-9215-46ad-967d-8fb2eeb9ae29.sql
+/dev-server/supabase/migrations/20260217052903_960d9cf4-7a52-4e05-80e5-5c0cf3729e7c.sql

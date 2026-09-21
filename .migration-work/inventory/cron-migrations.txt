@@ -1,0 +1,2 @@
+/dev-server/supabase/migrations/20251010013000_b50ed926-563f-4021-a7b3-04ae63e1ee4c.sql
+/dev-server/supabase/migrations/20260613055422_a3613f29-f6aa-414f-9f1f-e5d93891acd1.sql
