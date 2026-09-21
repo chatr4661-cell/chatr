@@ -13955,6 +13955,51 @@ export type Database = {
           },
         ]
       }
+      growth_actions: {
+        Row: {
+          action_id: string
+          action_type: string
+          completed_at: string | null
+          country: string | null
+          created_at: string | null
+          expected_impact: string
+          priority: string
+          query: string | null
+          result_telemetry: Json | null
+          source: string
+          status: string
+          target_page: string | null
+        }
+        Insert: {
+          action_id?: string
+          action_type: string
+          completed_at?: string | null
+          country?: string | null
+          created_at?: string | null
+          expected_impact: string
+          priority?: string
+          query?: string | null
+          result_telemetry?: Json | null
+          source: string
+          status?: string
+          target_page?: string | null
+        }
+        Update: {
+          action_id?: string
+          action_type?: string
+          completed_at?: string | null
+          country?: string | null
+          created_at?: string | null
+          expected_impact?: string
+          priority?: string
+          query?: string | null
+          result_telemetry?: Json | null
+          source?: string
+          status?: string
+          target_page?: string | null
+        }
+        Relationships: []
+      }
       growth_assets: {
         Row: {
           campaign_id: string | null
@@ -14095,6 +14140,87 @@ export type Database = {
         }
         Relationships: []
       }
+      growth_events: {
+        Row: {
+          anonymous_id: string
+          browser: string | null
+          call_duration_sec: number | null
+          call_id: string | null
+          campaign: string | null
+          category: string
+          client_timestamp: number
+          country: string | null
+          device: string | null
+          event_id: string
+          event_type: string
+          landing_page: string
+          language: string | null
+          medium: string | null
+          metadata: Json | null
+          occurred_at: string
+          referral_code: string | null
+          referral_user_id: string | null
+          referrer: string | null
+          room_id: string | null
+          server_timestamp: string
+          session_id: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          anonymous_id: string
+          browser?: string | null
+          call_duration_sec?: number | null
+          call_id?: string | null
+          campaign?: string | null
+          category: string
+          client_timestamp: number
+          country?: string | null
+          device?: string | null
+          event_id?: string
+          event_type: string
+          landing_page: string
+          language?: string | null
+          medium?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          referral_code?: string | null
+          referral_user_id?: string | null
+          referrer?: string | null
+          room_id?: string | null
+          server_timestamp?: string
+          session_id: string
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          anonymous_id?: string
+          browser?: string | null
+          call_duration_sec?: number | null
+          call_id?: string | null
+          campaign?: string | null
+          category?: string
+          client_timestamp?: number
+          country?: string | null
+          device?: string | null
+          event_id?: string
+          event_type?: string
+          landing_page?: string
+          language?: string | null
+          medium?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          referral_code?: string | null
+          referral_user_id?: string | null
+          referrer?: string | null
+          room_id?: string | null
+          server_timestamp?: string
+          session_id?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       growth_memory: {
         Row: {
           confidence: number | null
@@ -14130,6 +14256,207 @@ export type Database = {
           version?: number
         }
         Relationships: []
+      }
+      gsc_opportunities: {
+        Row: {
+          clicks: number
+          commercial_intent: string
+          country: string | null
+          created_at: string | null
+          ctr: number
+          current_position: number
+          impressions: number
+          opportunity_id: string
+          opportunity_score: number
+          property_id: string | null
+          quadrant: string
+          query: string
+          recommended_action: string
+          status: string
+          target_page: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          clicks: number
+          commercial_intent?: string
+          country?: string | null
+          created_at?: string | null
+          ctr: number
+          current_position: number
+          impressions: number
+          opportunity_id?: string
+          opportunity_score: number
+          property_id?: string | null
+          quadrant: string
+          query: string
+          recommended_action: string
+          status?: string
+          target_page?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          clicks?: number
+          commercial_intent?: string
+          country?: string | null
+          created_at?: string | null
+          ctr?: number
+          current_position?: number
+          impressions?: number
+          opportunity_id?: string
+          opportunity_score?: number
+          property_id?: string | null
+          quadrant?: string
+          query?: string
+          recommended_action?: string
+          status?: string
+          target_page?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gsc_opportunities_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "gsc_properties"
+            referencedColumns: ["property_id"]
+          },
+        ]
+      }
+      gsc_properties: {
+        Row: {
+          auth_status: string
+          avg_ctr: number | null
+          avg_position: number | null
+          created_at: string | null
+          display_name: string
+          last_sync_at: string | null
+          property_id: string
+          total_clicks_30d: number | null
+          total_impressions_30d: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_status?: string
+          avg_ctr?: number | null
+          avg_position?: number | null
+          created_at?: string | null
+          display_name: string
+          last_sync_at?: string | null
+          property_id: string
+          total_clicks_30d?: number | null
+          total_impressions_30d?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_status?: string
+          avg_ctr?: number | null
+          avg_position?: number | null
+          created_at?: string | null
+          display_name?: string
+          last_sync_at?: string | null
+          property_id?: string
+          total_clicks_30d?: number | null
+          total_impressions_30d?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      gsc_queries: {
+        Row: {
+          clicks: number
+          country: string
+          created_at: string | null
+          ctr: number
+          device: string
+          id: number
+          impressions: number
+          page: string
+          position: number
+          property_id: string | null
+          query: string
+          sync_date: string
+        }
+        Insert: {
+          clicks?: number
+          country?: string
+          created_at?: string | null
+          ctr?: number
+          device?: string
+          id?: number
+          impressions?: number
+          page: string
+          position?: number
+          property_id?: string | null
+          query: string
+          sync_date: string
+        }
+        Update: {
+          clicks?: number
+          country?: string
+          created_at?: string | null
+          ctr?: number
+          device?: string
+          id?: number
+          impressions?: number
+          page?: string
+          position?: number
+          property_id?: string | null
+          query?: string
+          sync_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gsc_queries_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "gsc_properties"
+            referencedColumns: ["property_id"]
+          },
+        ]
+      }
+      gsc_sync_runs: {
+        Row: {
+          completed_at: string | null
+          date_end: string
+          date_start: string
+          error_message: string | null
+          property_id: string | null
+          rows_synced: number | null
+          run_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          date_end: string
+          date_start: string
+          error_message?: string | null
+          property_id?: string | null
+          rows_synced?: number | null
+          run_id?: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          date_end?: string
+          date_start?: string
+          error_message?: string | null
+          property_id?: string | null
+          rows_synced?: number | null
+          run_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gsc_sync_runs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "gsc_properties"
+            referencedColumns: ["property_id"]
+          },
+        ]
       }
       health_challenge_participants: {
         Row: {
@@ -22763,6 +23090,27 @@ export type Database = {
         }
         Relationships: []
       }
+      server_abuse_limits: {
+        Row: {
+          action_type: string
+          rate_key: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          action_type: string
+          rate_key: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          action_type?: string
+          rate_key?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       service_bookings: {
         Row: {
           accepted_at: string | null
@@ -28270,6 +28618,10 @@ export type Database = {
           bmi_value: number
         }[]
       }
+      calculate_gsc_opportunities: {
+        Args: { p_property_id: string }
+        Returns: number
+      }
       check_api_limit: {
         Args: { api: string; daily_max?: number }
         Returns: Json
@@ -28313,6 +28665,14 @@ export type Database = {
       encrypt_kyc_value: {
         Args: { user_id: string; value: string }
         Returns: string
+      }
+      enforce_server_abuse_limit: {
+        Args: {
+          p_action: string
+          p_client_identifier: string
+          p_destination_hash?: string
+        }
+        Returns: Json
       }
       ensure_user_points_exists: {
         Args: { p_user_id: string }
