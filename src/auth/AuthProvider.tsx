@@ -52,8 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     void (async () => {
       const s = await getSession();
       setSession(s as Session | null);
-      await hydrate((s as Session | null)?.user?.id);
       setLoading(false);
+      await hydrate((s as Session | null)?.user?.id);
     })();
 
     return () => subscription.unsubscribe();

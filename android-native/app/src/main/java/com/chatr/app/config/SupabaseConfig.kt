@@ -18,8 +18,8 @@ object SupabaseConfig {
     // 👇 ENTER YOUR SUPABASE CREDENTIALS HERE 👇
     // ============================================
     
-    const val SUPABASE_URL = "https://sbayuqgomlflmxgicplz.supabase.co"
-    const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiYXl1cWdvbWxmbG14Z2ljcGx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTc2MDAsImV4cCI6MjA3NDk5MzYwMH0.gVSObpMtsv5W2nuLBHKT8G1_hXIprWXdn5l7Bnnj7jw"
+    const val SUPABASE_URL = "https://nuuuqazaoaozgblmvkzn.supabase.co"
+    const val SUPABASE_ANON_KEY = "sb_publishable_HRiuUoHejwLnOdITsW36Ew_ZSZ513Tw"
     
     // ============================================
     // 👆 ENTER YOUR SUPABASE CREDENTIALS ABOVE 👆

@@ -35,8 +35,8 @@ android {
         }
 
         // Build config fields for Supabase
-        buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "https://sbayuqgomlflmxgicplz.supabase.co")}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiYXl1cWdvbWxmbG14Z2ljcGx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTc2MDAsImV4cCI6MjA3NDk5MzYwMH0.gVSObpMtsv5W2nuLBHKT8G1_hXIprWXdn5l7Bnnj7jw")}\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "https://nuuuqazaoaozgblmvkzn.supabase.co")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "sb_publishable_HRiuUoHejwLnOdITsW36Ew_ZSZ513Tw")}\"")
         buildConfigField("String", "WEB_BASE_URL", "\"${localProperties.getProperty("WEB_BASE_URL", "https://chatr.chat")}\"")
         
         // Room schema export

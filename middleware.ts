@@ -8,9 +8,8 @@ export const config = {
   matcher: '/((?!api/|assets/|_next/|.*\\..*).*)',
 };
 
-const SUPABASE_URL = 'https://sbayuqgomlflmxgicplz.supabase.co';
-const SUPABASE_ANON =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiYXl1cWdvbWxmbG14Z2ljcGx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTc2MDAsImV4cCI6MjA3NDk5MzYwMH0.gVSObpMtsv5W2nuLBHKT8G1_hXIprWXdn5l7Bnnj7jw';
+const SUPABASE_URL = 'https://nuuuqazaoaozgblmvkzn.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_HRiuUoHejwLnOdITsW36Ew_ZSZ513Tw';
 const ORIGIN = 'https://chatr.chat';
 
 // Reserved top-level routes that must never be treated as a handle.

@@ -6,8 +6,20 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
+const hasLocalSession = () => {
+  try {
+    return Object.keys(localStorage).some(
+      (k) => k.startsWith('sb-') && k.endsWith('-auth-token') && !!localStorage.getItem(k)
+    );
+  } catch {
+    return false;
+  }
+};
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(() =>
+    hasLocalSession() ? true : null
+  );
   const location = useLocation();
 
   React.useEffect(() => {
