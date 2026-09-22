@@ -83,11 +83,20 @@ fun AuthScreen(
                 Log.d(TAG, "Auto-verification completed")
                 FirebaseAuth.getInstance().signInWithCredential(credential)
                     .addOnSuccessListener { result ->
-                        val uid = result.user?.uid
-                        if (uid != null) {
-                            viewModel.verifyOtpWithFirebaseUid(phoneNumber, uid)
+                        val user = result.user
+                        if (user != null) {
+                            user.getIdToken(true).addOnSuccessListener { tokenResult ->
+                                val idToken = tokenResult.token
+                                if (idToken != null) {
+                                    viewModel.verifyOtpWithFirebaseToken(phoneNumber, idToken)
+                                } else {
+                                    localError = "Failed to secure the verified session"
+                                }
+                            }.addOnFailureListener { e ->
+                                localError = e.message ?: "Failed to secure the verified session"
+                            }
                         } else {
-                            localError = "Failed to get user ID"
+                            localError = "Failed to get verified user"
                         }
                     }
                     .addOnFailureListener { e ->
@@ -184,12 +193,21 @@ fun AuthScreen(
         val credential = PhoneAuthProvider.getCredential(verId, otpCode)
         FirebaseAuth.getInstance().signInWithCredential(credential)
             .addOnSuccessListener { result ->
-                val uid = result.user?.uid
-                if (uid != null) {
+                val user = result.user
+                if (user != null) {
                     Log.d(TAG, "Firebase auth success, syncing with backend...")
-                    viewModel.verifyOtpWithFirebaseUid(phoneNumber, uid)
+                    user.getIdToken(true).addOnSuccessListener { tokenResult ->
+                        val idToken = tokenResult.token
+                        if (idToken != null) {
+                            viewModel.verifyOtpWithFirebaseToken(phoneNumber, idToken)
+                        } else {
+                            localError = "Failed to secure the verified session"
+                        }
+                    }.addOnFailureListener { e ->
+                        localError = e.message ?: "Failed to secure the verified session"
+                    }
                 } else {
-                    localError = "Failed to get user ID"
+                    localError = "Failed to get verified user"
                 }
             }
             .addOnFailureListener { e ->
