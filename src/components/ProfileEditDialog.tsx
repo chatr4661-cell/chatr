@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Upload, Loader2, Check, Save } from 'lucide-react';
+import { compressImage } from '@/utils/imageCompression';
 
 interface Profile {
   id: string;
@@ -171,16 +172,36 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
+    // Reset input
+    e.target.value = '';
+
+    // Instant optimistic preview
+    const preview = URL.createObjectURL(file);
+    setAvatarUrl(preview);
+    setUploading(true);
+
     try {
-      setUploading(true);
-      
+      let uploadPayload: File = file;
+      try {
+        uploadPayload = await compressImage(file, {
+          maxSizeMB: 0.15,
+          maxWidthOrHeight: 512,
+          quality: 0.85
+        });
+      } catch (err) {
+        console.warn('[ProfileEditDialog] Compression fallback:', err);
+      }
+
       // Upload to Supabase storage
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}-${Date.now()}.${fileExt}`;
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const filePath = `avatars/${userId}-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('social-media')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, uploadPayload, { 
+          contentType: uploadPayload.type || 'image/jpeg',
+          upsert: true 
+        });
 
       if (uploadError) throw uploadError;
 
@@ -205,12 +226,19 @@ export const ProfileEditDialog = ({ profile, open, onOpenChange, onProfileUpdate
 
       if (updateError) throw updateError;
 
+      await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+      }).catch(() => {});
+
       setAvatarUrl(publicUrl);
       toast.success('Avatar updated!');
+      window.dispatchEvent(new CustomEvent('profile-updated', { detail: { avatar_url: publicUrl } }));
       onProfileUpdated();
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to upload avatar');
+      // Revert to original profile avatar
+      setAvatarUrl(profile?.avatar_url || null);
     } finally {
       setUploading(false);
     }

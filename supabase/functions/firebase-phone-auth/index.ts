@@ -184,6 +184,19 @@ Deno.serve(async (req) => {
         }
         userId = created.user.id;
         isNewUser = true;
+
+        // Ensure profile row exists immediately
+        try {
+          await supabaseAdmin.from("profiles").upsert({
+            id: userId,
+            phone_number: phoneNumber,
+            username: phoneNumber,
+            email,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "id" });
+        } catch (e) {
+          console.warn("[phone-auth] profile upsert warning:", e);
+        }
       }
 
       // Sign in with the freshly rotated, server-only password.

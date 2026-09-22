@@ -25,10 +25,11 @@ export const ConnectedAccounts = () => {
           .from('profiles')
           .select('email, phone_number')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         const googleEmail = user.user_metadata?.email;
         const googleConnected = user.app_metadata?.provider === 'google' || !!googleEmail;
+        const phoneNumber = profile?.phone_number || user.user_metadata?.phone_number || user.phone;
         
         const connectedAccounts: ConnectedAccount[] = [];
 
@@ -43,12 +44,12 @@ export const ConnectedAccounts = () => {
         }
 
         // Phone number
-        if (profile?.phone_number) {
+        if (phoneNumber) {
           connectedAccounts.push({
             type: 'phone',
-            value: profile.phone_number,
+            value: phoneNumber,
             connected: true,
-            primary: user.app_metadata?.provider === 'phone',
+            primary: !googleConnected || user.app_metadata?.provider === 'phone',
           });
         }
 

@@ -61,7 +61,21 @@ const DesktopLayout: React.FC = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    const handleProfileUpdated = (e: any) => {
+      const newAvatar = e.detail?.avatar_url;
+      if (newAvatar !== undefined) {
+        setProfile((prev: any) => prev ? { ...prev, avatar_url: newAvatar } : prev);
+      }
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) fetchProfile(session.user.id);
+      });
+    };
+    window.addEventListener('profile-updated', handleProfileUpdated);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('profile-updated', handleProfileUpdated);
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
