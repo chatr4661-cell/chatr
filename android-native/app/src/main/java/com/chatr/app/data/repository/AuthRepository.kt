@@ -173,18 +173,19 @@ class AuthRepository @Inject constructor(
      * After Firebase verifies OTP, call firebase-phone-auth edge function
      * Mirrors web: fetch(`${SUPABASE_URL}/functions/v1/firebase-phone-auth`)
      */
-    suspend fun verifyOtp(phoneNumber: String, firebaseUid: String): Result<AuthResponse> {
+    suspend fun verifyOtp(phoneNumber: String, firebaseIdToken: String): Result<AuthResponse> {
         return withContext(Dispatchers.IO) {
             try {
                 val json = JSONObject().apply {
                     put("phone_number", phoneNumber)
-                    put("firebase_uid", firebaseUid)
+                    put("firebase_id_token", firebaseIdToken)
                 }
                 
                 val request = Request.Builder()
                     .url("${SupabaseConfig.SUPABASE_URL}/functions/v1/firebase-phone-auth")
                     .post(json.toString().toRequestBody("application/json".toMediaType()))
                     .addHeader("Authorization", "Bearer ${SupabaseConfig.SUPABASE_ANON_KEY}")
+                    .addHeader("apikey", SupabaseConfig.SUPABASE_ANON_KEY)
                     .addHeader("Content-Type", "application/json")
                     .build()
                 

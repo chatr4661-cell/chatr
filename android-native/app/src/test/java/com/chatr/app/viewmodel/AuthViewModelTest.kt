@@ -63,10 +63,10 @@ class AuthViewModelTest {
     }
     
     @Test
-    fun `verifyOtpWithFirebaseUid success updates authenticated state`() = runTest {
+    fun `verifyOtpWithFirebaseToken success updates authenticated state`() = runTest {
         coEvery { authRepository.verifyOtp(any(), any()) } returns Result.success(mockk(relaxed = true))
         
-        viewModel.verifyOtpWithFirebaseUid("+919999999999", "firebase_uid_123")
+        viewModel.verifyOtpWithFirebaseToken("+919999999999", "firebase_id_token_123")
         testDispatcher.scheduler.advanceUntilIdle()
         
         val isAuthenticated = viewModel.isAuthenticated.first()
@@ -74,10 +74,10 @@ class AuthViewModelTest {
     }
     
     @Test
-    fun `verifyOtpWithFirebaseUid failure shows error and stays on OTP step`() = runTest {
+    fun `verifyOtpWithFirebaseToken failure shows error and stays on OTP step`() = runTest {
         coEvery { authRepository.verifyOtp(any(), any()) } returns Result.failure(Exception("Invalid OTP"))
         
-        viewModel.verifyOtpWithFirebaseUid("+919999999999", "wrong_uid")
+        viewModel.verifyOtpWithFirebaseToken("+919999999999", "wrong_token")
         testDispatcher.scheduler.advanceUntilIdle()
         
         val state = viewModel.uiState.first()

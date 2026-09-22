@@ -129,12 +129,17 @@ export const FirebasePhoneAuth: React.FC = () => {
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (phoneNumber.length < 10) {
+    const countryDigits = countryCode.replace(/\D/g, '');
+    let nationalDigits = phoneNumber.replace(/\D/g, '').replace(/^0+/, '');
+    if (nationalDigits.startsWith(countryDigits) && nationalDigits.length > 10) {
+      nationalDigits = nationalDigits.slice(countryDigits.length);
+    }
+    const fullPhone = `+${countryDigits}${nationalDigits}`;
+
+    if (nationalDigits.length < 7 || fullPhone.replace(/\D/g, '').length > 15) {
       return;
     }
 
-    const fullPhone = `${countryCode}${phoneNumber}`;
     await checkPhoneAndProceed(fullPhone);
   };
 
@@ -154,10 +159,6 @@ export const FirebasePhoneAuth: React.FC = () => {
 
   return (
     <>
-      {/* Hidden reCAPTCHA container */}
-      <style>{`
-        .grecaptcha-badge { visibility: hidden !important; }
-      `}</style>
       <div id="recaptcha-container" />
 
       <Card className="w-full bg-white/90 backdrop-blur-sm border-white/20 shadow-xl">
