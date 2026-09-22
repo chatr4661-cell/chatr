@@ -76,9 +76,11 @@ const HighlightText = ({ text, query }: { text: string; query: string }) => {
 interface PlatformUser {
   id: string;
   username: string;
+  full_name?: string;
   avatar_url?: string;
   phone_number?: string;
   is_online?: boolean;
+  isSelf?: boolean;
 }
 
 interface CachedContacts {
@@ -108,6 +110,9 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
   });
   const [platformUsers, setPlatformUsers] = useState<PlatformUser[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<PlatformUser[]>([]);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{ id: string; username: string; full_name?: string; avatar_url?: string } | null>(null);
+  const [emptyPhoneInput, setEmptyPhoneInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [startingChat, setStartingChat] = useState<string | null>(null);
@@ -303,6 +308,42 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
   }, [userId]);
 
+  // Load initial suggested users and current user's profile
+  useEffect(() => {
+    if (!userId) return;
+    const loadInitData = async () => {
+      try {
+        const [{ data: myProf }, { data: suggested }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('id, username, full_name, avatar_url')
+            .eq('id', userId)
+            .maybeSingle(),
+          supabase
+            .from('profiles')
+            .select('id, username, full_name, avatar_url, phone_number, is_online')
+            .neq('id', userId)
+            .limit(10)
+        ]);
+
+        if (myProf) setCurrentUserProfile(myProf);
+        if (suggested) {
+          setSuggestedUsers(suggested.map(p => ({
+            id: p.id,
+            username: p.full_name || p.username || 'Chatr User',
+            full_name: p.full_name,
+            avatar_url: p.avatar_url,
+            phone_number: p.phone_number,
+            is_online: p.is_online
+          })));
+        }
+      } catch (e) {
+        console.error('Error loading initial chat data:', e);
+      }
+    };
+    loadInitData();
+  }, [userId]);
+
   // Search platform users (all Chatr users)
   const searchPlatformUsers = useCallback(async (query: string, requestId: number) => {
     if (!query.trim() || query.length < 2) {
@@ -310,8 +351,8 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
       return;
     }
 
-    const cleanQuery = query.replace(/^[@#]/, '').trim().toLowerCase();
-    const cacheKey = `${searchMode}:${cleanQuery}`;
+    const cleanQuery = query.replace(/^[@#]/, '').trim();
+    const cacheKey = `${searchMode}:${cleanQuery.toLowerCase()}`;
     const cached = platformSearchCacheRef.current.get(cacheKey);
     if (cached && Date.now() - cached.savedAt < PLATFORM_SEARCH_CACHE_TTL_MS) {
       if (requestId === platformSearchRequestRef.current) {
@@ -324,26 +365,44 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     setSearchingPlatform(true);
     try {
       const digitsOnlyQuery = cleanQuery.replace(/\D/g, '');
-      const searchTerms = searchMode === 'numbers'
-        ? Array.from(new Set([cleanQuery, digitsOnlyQuery, digitsOnlyQuery.slice(-10)].filter(Boolean)))
-        : [cleanQuery];
+      const last10 = digitsOnlyQuery.length >= 10 ? digitsOnlyQuery.slice(-10) : digitsOnlyQuery;
+
+      const searchTerms = Array.from(new Set([
+        cleanQuery,
+        cleanQuery.toLowerCase(),
+        digitsOnlyQuery,
+        last10,
+        last10.length === 10 ? `+91${last10}` : null,
+        last10.length === 10 ? `91${last10}` : null
+      ].filter(Boolean))) as string[];
+
       const filters = searchTerms.flatMap(term => [
         `username.ilike.%${term}%`,
+        `full_name.ilike.%${term}%`,
         `phone_number.ilike.%${term}%`,
         `phone_search.ilike.%${term}%`
       ]).join(',');
       
-      // Search by username or phone number
+      // Search by username, full_name, or phone number
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, phone_number, is_online')
-        .neq('id', userId)
+        .select('id, username, full_name, avatar_url, phone_number, is_online')
         .or(filters)
-        .limit(15);
+        .limit(20);
       
       if (error) throw error;
 
-      const users = data || [];
+      const rawUsers = data || [];
+      const users: PlatformUser[] = rawUsers.map(p => ({
+        id: p.id,
+        username: p.id === userId ? `${p.full_name || p.username || 'You'} (You)` : (p.full_name || p.username || 'Chatr User'),
+        full_name: p.full_name,
+        avatar_url: p.avatar_url,
+        phone_number: p.phone_number,
+        is_online: p.is_online,
+        isSelf: p.id === userId
+      }));
+
       platformSearchCacheRef.current.set(cacheKey, { savedAt: Date.now(), users });
       if (platformSearchCacheRef.current.size > PLATFORM_SEARCH_CACHE_LIMIT) {
         const oldestKey = platformSearchCacheRef.current.keys().next().value;
@@ -419,13 +478,86 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
       onConversationSelect(data, {
         id: user.id,
-        username: user.username,
+        username: user.isSelf ? `${user.full_name || user.username} (You)` : (user.full_name || user.username),
         avatar_url: user.avatar_url,
         is_online: user.is_online
       });
       setSearchQuery('');
     } catch (error) {
       console.error('Error starting chat:', error);
+      toast.error('Failed to start conversation');
+    } finally {
+      setStartingChat(null);
+    }
+  };
+
+  // Start self chat (WhatsApp "Message yourself")
+  const handleStartSelfChat = async () => {
+    if (!userId) return;
+    setStartingChat('self');
+    try {
+      const { data, error } = await supabase.rpc('create_direct_conversation', {
+        other_user_id: userId
+      });
+      if (error) throw error;
+      onConversationSelect(data, {
+        id: userId,
+        username: `${currentUserProfile?.full_name || currentUserProfile?.username || 'You'} (You)`,
+        avatar_url: currentUserProfile?.avatar_url
+      });
+      setSearchQuery('');
+    } catch (error) {
+      console.error('Error starting self chat:', error);
+      toast.error('Failed to start conversation');
+    } finally {
+      setStartingChat(null);
+    }
+  };
+
+  // Start chat with any phone number
+  const handleDirectPhoneChat = async (phone: string) => {
+    const digitsOnly = phone.replace(/\D/g, '');
+    if (digitsOnly.length < 10) {
+      toast.error('Please enter a valid 10-digit phone number');
+      return;
+    }
+    const last10 = digitsOnly.slice(-10);
+    setStartingChat('direct-phone');
+
+    try {
+      const { data: matched, error } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url, phone_number, phone_search')
+        .or(`phone_search.ilike.%${last10}%,phone_number.ilike.%${last10}%`)
+        .limit(1);
+
+      if (error) throw error;
+
+      if (matched && matched.length > 0) {
+        const u = matched[0];
+        const { data: convId, error: convErr } = await supabase.rpc('create_direct_conversation', {
+          other_user_id: u.id
+        });
+        if (convErr) throw convErr;
+        const displayName = u.id === userId
+          ? `${u.full_name || u.username || 'You'} (You)`
+          : (u.full_name || u.username || 'Chatr User');
+        onConversationSelect(convId, {
+          id: u.id,
+          username: displayName,
+          avatar_url: u.avatar_url
+        });
+        setSearchQuery('');
+        setEmptyPhoneInput('');
+        toast.success(`Chat opened with ${displayName}`);
+      } else {
+        const fullPhone = digitsOnly.length === 10 ? `91${digitsOnly}` : digitsOnly;
+        const invite = encodeURIComponent("Hey! Join me on Chatr - India's super app for messaging, calling & more: https://chatr.chat");
+        window.open(`https://wa.me/${fullPhone}?text=${invite}`, '_blank');
+        toast.info(`Opening WhatsApp to chat with +${fullPhone}...`);
+      }
+    } catch (err) {
+      console.error('Direct phone chat error:', err);
       toast.error('Failed to start conversation');
     } finally {
       setStartingChat(null);
@@ -631,15 +763,124 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         )}
       </div>
 
-      {/* Empty state */}
+      {/* Empty state - WhatsApp-grade friendly dashboard */}
       {!isSearching && searchResults.conversations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center flex-1 p-8">
-          <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-semibold">No conversations yet</p>
-          <p className="text-sm text-muted-foreground text-center">
-            Tap the contacts icon above to find friends and start chatting!
-          </p>
-        </div>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-4 max-w-lg mx-auto space-y-4">
+            {/* WhatsApp Hero Card */}
+            <div className="text-center py-3 space-y-1.5">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                <MessageCircle className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">Welcome to Chatr!</h3>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                Fast, secure messaging like WhatsApp. Start chatting with contacts or enter any phone number.
+              </p>
+            </div>
+
+            {/* Direct Phone Number Input */}
+            <div className="p-3 bg-card border rounded-2xl shadow-sm space-y-2">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                Message Any Phone Number
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-muted/60 rounded-xl px-2.5 h-10 text-xs font-semibold text-muted-foreground shrink-0">
+                  🇮🇳 +91
+                </div>
+                <Input
+                  placeholder="Enter 10-digit mobile number"
+                  value={emptyPhoneInput}
+                  onChange={(e) => setEmptyPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && emptyPhoneInput.length >= 10) {
+                      handleDirectPhoneChat(emptyPhoneInput);
+                    }
+                  }}
+                  className="h-10 text-sm rounded-xl"
+                />
+                <Button
+                  className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shrink-0"
+                  onClick={() => handleDirectPhoneChat(emptyPhoneInput)}
+                  disabled={emptyPhoneInput.length < 10 || startingChat === 'direct-phone'}
+                >
+                  {startingChat === 'direct-phone' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    'Chat'
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Message Yourself (WhatsApp feature) */}
+            {currentUserProfile && (
+              <div
+                onClick={() => handleStartSelfChat()}
+                className="flex items-center gap-3 p-3 bg-card border rounded-2xl hover:bg-accent/40 cursor-pointer transition-all shadow-sm"
+              >
+                <Avatar className="w-10 h-10 border-2 border-emerald-500/20">
+                  <AvatarImage src={currentUserProfile.avatar_url} />
+                  <AvatarFallback className="bg-emerald-500/10 text-emerald-600 font-bold text-sm">
+                    {(currentUserProfile.full_name || currentUserProfile.username)?.[0]?.toUpperCase() || 'Y'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">
+                    {currentUserProfile.full_name || currentUserProfile.username} (You)
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Message yourself · Notes, media & links
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                  Notes
+                </span>
+              </div>
+            )}
+
+            {/* Suggested People on Chatr */}
+            {suggestedUsers.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    People on Chatr
+                  </p>
+                  <span className="text-[11px] text-muted-foreground">Tap to message</span>
+                </div>
+                <div className="space-y-1 bg-card border rounded-2xl p-1 shadow-sm">
+                  {suggestedUsers.map(u => (
+                    <div
+                      key={u.id}
+                      onClick={() => handleStartChatWithUser(u)}
+                      className="flex items-center gap-3 p-2.5 hover:bg-accent/50 cursor-pointer transition-colors rounded-xl"
+                    >
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={u.avatar_url} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+                          {u.username?.[0]?.toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{u.username}</p>
+                        {u.phone_number && (
+                          <p className="text-xs text-muted-foreground truncate">{u.phone_number}</p>
+                        )}
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-medium"
+                      >
+                        Message
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       ) : isSearching && !hasResults ? (
         <div className="flex flex-col items-center justify-center flex-1 p-8">
           {searchingPlatform ? (
@@ -719,31 +960,41 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                       </p>
                     )}
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 bg-primary/10 rounded-full text-primary">Message</span>
+                  <span className="text-[10px] px-2.5 py-1 bg-emerald-500/10 rounded-full text-emerald-600 font-medium">
+                    {user.isSelf ? 'Notes' : 'Message'}
+                  </span>
                   {startingChat === user.id && <Loader2 className="w-4 h-4 animate-spin" />}
                 </div>
               ))}
             </div>
           )}
 
-          {/* Unknown numbers section */}
+          {/* Unknown numbers section (WhatsApp-style direct chat) */}
           {isSearching && searchResults.unknownNumbers.length > 0 && (
             <div className="px-3 py-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">Unknown Numbers</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">Message Phone Number</p>
               {searchResults.unknownNumbers.map(number => (
                 <div
                   key={number}
-                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/40 cursor-pointer transition-colors rounded-xl"
+                  onClick={() => handleDirectPhoneChat(number)}
+                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/40 cursor-pointer transition-colors rounded-xl border border-dashed border-emerald-500/30 bg-emerald-500/5"
                 >
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <Phone className="w-4 h-4 text-muted-foreground" />
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+                    <Phone className="w-4 h-4" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">+{number}</p>
-                    <p className="text-xs text-muted-foreground">Not in contacts</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">Chat with +{number.length === 10 ? `91 ${number}` : number}</p>
+                    <p className="text-xs text-muted-foreground">Tap to message or invite via WhatsApp</p>
                   </div>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs">
-                    <UserPlus className="w-3 h-3 mr-1" /> Add
+                  <Button 
+                    size="sm" 
+                    className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDirectPhoneChat(number);
+                    }}
+                  >
+                    Chat
                   </Button>
                 </div>
               ))}

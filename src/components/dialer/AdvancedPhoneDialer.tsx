@@ -147,22 +147,37 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
       try {
         let profiles: any[] = [];
         
-        if (isPhoneQuery && cleanedPhone.length >= 3) {
-          // Search by phone number (normalized column)
+        if (isPhoneQuery && cleanedPhone.length >= 2) {
+          const digitsOnly = cleanedPhone.replace(/\D/g, '');
+          const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+          const searchVariants = Array.from(new Set([
+            cleanedPhone,
+            digitsOnly,
+            last10,
+            last10.length === 10 ? `+91${last10}` : null,
+            last10.length === 10 ? `91${last10}` : null
+          ].filter(Boolean))) as string[];
+
+          const orFilters = searchVariants.flatMap(v => [
+            `phone_search.ilike.%${v}%`,
+            `phone_number.ilike.%${v}%`,
+            `username.ilike.%${v}%`,
+            `full_name.ilike.%${v}%`
+          ]).join(',');
+
+          // Do NOT exclude currentUserId so user can test dialing their own number
           const { data } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, phone_number, phone_search')
-            .or(`phone_search.ilike.%${cleanedPhone}%,phone_number.ilike.%${cleanedPhone}%`)
-            .neq('id', currentUserId || '')
+            .select('id, username, full_name, avatar_url, phone_number, phone_search')
+            .or(orFilters)
             .limit(10);
           profiles = data || [];
         } else {
           // Search by username/name
           const { data } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, phone_number, phone_search')
+            .select('id, username, full_name, avatar_url, phone_number, phone_search')
             .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
-            .neq('id', currentUserId || '')
             .limit(10);
           profiles = data || [];
         }
@@ -170,9 +185,12 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
         if (profiles.length > 0) {
           const users = profiles.map(p => ({
             id: p.id,
-            username: p.username || 'Unknown',
+            username: p.id === currentUserId
+              ? `${p.full_name || p.username || 'You'} (You)`
+              : (p.full_name || p.username || 'Unknown'),
             avatar_url: p.avatar_url || undefined,
             phone: p.phone_search || p.phone_number || undefined,
+            isSelf: p.id === currentUserId
           }));
           setMatchingUsers(users);
         } else {
@@ -411,12 +429,11 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
     } else if (dialedNumber.length === 0) {
       toast.error('Enter a number or username to call');
     } else {
-      // Check if it's a valid phone number for PSTN call
       const cleanedNumber = dialedNumber.replace(/[\s\-()]/g, '');
-      if (/^\+?\d{10,15}$/.test(cleanedNumber)) {
-        toast.info('PSTN calling coming soon - try a CHATR username');
+      if (/^\+?\d{7,15}$/.test(cleanedNumber)) {
+        handleNonChatrCall(dialedNumber);
       } else {
-        toast.error('No CHATR user found with this number');
+        toast.error('No user found with this number');
       }
     }
   };
@@ -504,6 +521,11 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
   const handleNonChatrCall = (phone: string, name?: string) => {
     setNonChatrTarget({ phone, name });
     setShowNonChatrDialog(true);
+  };
+
+  const callCellular = (phone: string) => {
+    window.location.href = `tel:${phone.replace(/\s/g, '')}`;
+    setShowNonChatrDialog(false);
   };
 
   const sendSMS = (phone: string) => {
@@ -726,8 +748,33 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                         Not on Chatr
                       </Badge>
                     </div>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 text-xs gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                        onClick={() => openWhatsApp(dialedNumber)}
+                        title="Open in WhatsApp"
+                      >
+                        WhatsApp
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 text-xs gap-1 text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                        onClick={() => callCellular(dialedNumber)}
+                        title="Direct phone call"
+                      >
+                        <Phone className="h-3 w-3" />
+                        Call
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 text-xs gap-1"
+                        onClick={() => inviteToChatr(dialedNumber)}
+                        title="Send SMS invite"
+                      >
                         <Send className="h-3 w-3" />
                         Invite
                       </Button>
@@ -1191,11 +1238,19 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 text-green-600 border-green-200 hover:bg-green-50"
+              className="w-full justify-start gap-3 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
               onClick={() => nonChatrTarget && openWhatsApp(nonChatrTarget.phone)}
             >
               <ExternalLink className="h-4 w-4" />
-              Open WhatsApp
+              Call / Chat via WhatsApp
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+              onClick={() => nonChatrTarget && callCellular(nonChatrTarget.phone)}
+            >
+              <Phone className="h-4 w-4" />
+              Regular Mobile Call
             </Button>
             <Button
               variant="default"
@@ -1203,7 +1258,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
               onClick={() => nonChatrTarget && inviteToChatr(nonChatrTarget.phone)}
             >
               <UserPlus className="h-4 w-4" />
-              Invite to Chatr (recommended)
+              Invite to Chatr
             </Button>
           </div>
         </DialogContent>

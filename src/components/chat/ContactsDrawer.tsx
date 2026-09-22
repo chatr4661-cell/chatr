@@ -35,15 +35,28 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [startingChat, setStartingChat] = useState<string | null>(null);
+  const [directPhone, setDirectPhone] = useState('');
+  const [myProfile, setMyProfile] = useState<{ id: string; username: string; full_name?: string; avatar_url?: string } | null>(null);
   const isNative = Capacitor.isNativePlatform();
 
-  // Load ALL contacts when drawer opens
+  // Load ALL contacts when drawer opens (Device contacts + Platform users + My profile)
   const loadContacts = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     
     try {
-      // Load from contacts table (device synced)
+      // 0. Load my own profile for "Message yourself"
+      const { data: myProf } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (myProf) {
+        setMyProfile(myProf);
+      }
+
+      // 1. Load from contacts table (device synced)
       const { data: phoneContacts } = await supabase
         .from('contacts')
         .select('id, contact_name, contact_phone, contact_user_id, is_registered')
@@ -63,6 +76,28 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
             phone: c.contact_phone,
             is_on_chatr: c.is_registered,
             chatr_user_id: c.contact_user_id
+          });
+        }
+      });
+
+      // 2. Also load registered platform users so web users always have contacts
+      const { data: platformProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, phone_number, avatar_url')
+        .neq('id', userId)
+        .limit(100);
+
+      platformProfiles?.forEach(p => {
+        const key = p.id;
+        if (!seen.has(key)) {
+          seen.add(key);
+          allContacts.push({
+            id: p.id,
+            name: p.full_name || p.username || 'Chatr User',
+            phone: p.phone_number || undefined,
+            avatar_url: p.avatar_url || undefined,
+            is_on_chatr: true,
+            chatr_user_id: p.id
           });
         }
       });
@@ -214,6 +249,83 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
     }
   };
 
+  // Start chat directly with any phone number
+  const handleDirectPhoneChat = async (phoneToUse?: string) => {
+    const rawNumber = phoneToUse || directPhone;
+    const digitsOnly = rawNumber.replace(/\D/g, '');
+    if (digitsOnly.length < 10) {
+      toast.error('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    const last10 = digitsOnly.slice(-10);
+    setStartingChat('direct');
+
+    try {
+      const { data: matchedUsers, error: searchErr } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url, phone_number, phone_search')
+        .or(`phone_search.ilike.%${last10}%,phone_number.ilike.%${last10}%`)
+        .limit(1);
+
+      if (searchErr) throw searchErr;
+
+      const userMatch = matchedUsers?.[0];
+
+      if (userMatch) {
+        const { data: convId, error: convErr } = await supabase.rpc('create_direct_conversation', {
+          other_user_id: userMatch.id
+        });
+
+        if (convErr) throw convErr;
+
+        const displayName = userMatch.id === userId
+          ? `${userMatch.full_name || userMatch.username || 'You'} (You)`
+          : (userMatch.full_name || userMatch.username || 'Chatr User');
+
+        onStartChat(convId, displayName, userMatch.avatar_url);
+        setOpen(false);
+        setDirectPhone('');
+        toast.success(`Chat opened with ${displayName}`);
+      } else {
+        const inviteText = `Hey! Join me on Chatr - India's super app for messaging, calling & more: https://chatr.chat`;
+        const fullPhone = digitsOnly.length === 10 ? `91${digitsOnly}` : digitsOnly;
+        window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(inviteText)}`, '_blank');
+        toast.info(`Inviting +${fullPhone} via WhatsApp...`);
+      }
+    } catch (err: any) {
+      console.error('Error starting direct phone chat:', err);
+      toast.error('Failed to start conversation');
+    } finally {
+      setStartingChat(null);
+    }
+  };
+
+  // Start self chat (WhatsApp "Message yourself")
+  const handleStartSelfChat = async () => {
+    if (!userId) return;
+    setStartingChat('self');
+    try {
+      const { data, error } = await supabase.rpc('create_direct_conversation', {
+        other_user_id: userId
+      });
+
+      if (error) throw error;
+
+      onStartChat(
+        data,
+        `${myProfile?.full_name || myProfile?.username || 'You'} (You)`,
+        myProfile?.avatar_url
+      );
+      setOpen(false);
+    } catch (err) {
+      console.error('Error starting self chat:', err);
+      toast.error('Failed to start chat');
+    } finally {
+      setStartingChat(null);
+    }
+  };
+
   useEffect(() => {
     if (open) {
       loadContacts();
@@ -270,7 +382,36 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-140px)]">
+        {/* WhatsApp-style Direct Phone Chat */}
+        <div className="p-3 bg-muted/30 border-b space-y-2">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+            Start Chat with Phone Number
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-background border rounded-lg px-2 h-9 text-xs text-muted-foreground shrink-0 font-medium">
+              🇮🇳 +91
+            </div>
+            <Input
+              placeholder="Enter 10-digit mobile number"
+              value={directPhone}
+              onChange={(e) => setDirectPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && directPhone.length >= 10) handleDirectPhoneChat();
+              }}
+              className="h-9 text-sm"
+            />
+            <Button
+              size="sm"
+              className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 font-medium px-3"
+              onClick={() => handleDirectPhoneChat()}
+              disabled={directPhone.length < 10 || startingChat === 'direct'}
+            >
+              {startingChat === 'direct' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Chat'}
+            </Button>
+          </div>
+        </div>
+
+        <ScrollArea className="h-[calc(100vh-190px)]">
           {loading ? (
             <div className="flex items-center justify-center p-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -294,6 +435,36 @@ export const ContactsDrawer = ({ userId, onStartChat, children }: ContactsDrawer
             </div>
           ) : (
             <div>
+              {/* Message Yourself (WhatsApp feature) */}
+              {myProfile && (
+                <div
+                  onClick={() => handleStartSelfChat()}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 cursor-pointer transition-colors border-b bg-primary/5"
+                >
+                  <Avatar className="w-10 h-10 border border-primary/20">
+                    <AvatarImage src={myProfile.avatar_url} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                      {(myProfile.full_name || myProfile.username)?.[0]?.toUpperCase() || 'Y'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">
+                      {myProfile.full_name || myProfile.username} (You)
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      Message yourself · Notes, links, photos
+                    </p>
+                  </div>
+                  {startingChat === 'self' ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  ) : (
+                    <span className="text-[10px] px-2 py-0.5 bg-primary/15 text-primary font-medium rounded-full">
+                      You
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Referral Stats */}
               <div className="p-3 border-b">
                 <ReferralStats userId={userId} />
