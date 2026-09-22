@@ -69,37 +69,50 @@ const ChatEnhancedContent = () => {
   // Voice AI side-effects (replaces former render-null <VoiceInterface /> component)
   useVoiceInterface();
   
-  // Sync URL param to state when it changes
+  const [otherUser, setOtherUser] = React.useState<any>(null);
+
+  // Sync URL param to state and load conversation participant
   React.useEffect(() => {
+    const targetConvId = urlConversationId || activeConversationId;
     if (urlConversationId && urlConversationId !== activeConversationId) {
       setActiveConversationId(urlConversationId);
-      // Load other user info for the conversation
-      const loadConversationUser = async () => {
-        if (!user?.id) return;
+    }
+    
+    if (!targetConvId || !user?.id) return;
+
+    const loadConversationUser = async () => {
+      try {
         const { data } = await supabase
           .from('conversation_participants')
           .select('user_id')
-          .eq('conversation_id', urlConversationId)
+          .eq('conversation_id', targetConvId)
           .neq('user_id', user.id)
           .limit(1)
-          .single();
+          .maybeSingle();
         
-        if (data?.user_id) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url, is_online')
-            .eq('id', data.user_id)
-            .single();
-          
-          if (profile) {
-            setOtherUser(profile);
-          }
+        const targetUserId = data?.user_id || user.id;
+        const isSelfChat = !data?.user_id || data.user_id === user.id;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url, is_online, phone_number, status, last_seen, created_at')
+          .eq('id', targetUserId)
+          .maybeSingle();
+        
+        if (profile) {
+          setOtherUser({
+            ...profile,
+            username: isSelfChat ? `${profile.full_name || profile.username || 'You'} (You)` : (profile.full_name || profile.username || 'Chatr User'),
+            isSelf: isSelfChat
+          });
         }
-      };
-      loadConversationUser();
-    }
-  }, [urlConversationId, user?.id]);
-  const [otherUser, setOtherUser] = React.useState<any>(null);
+      } catch (err) {
+        console.error('Error loading conversation user:', err);
+      }
+    };
+
+    loadConversationUser();
+  }, [urlConversationId, activeConversationId, user?.id]);
   const [loading, setLoading] = React.useState(true);
   const [showClusterCreator, setShowClusterCreator] = React.useState(false);
   const [showPulseCreator, setShowPulseCreator] = React.useState(false);

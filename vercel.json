@@ -19,6 +19,14 @@
       "destination": "/assets/:path*"
     },
     {
+      "source": "/(.*)/assets/:path*",
+      "destination": "/assets/:path*"
+    },
+    {
+      "source": "/(.*)/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
       "source": "/((?!api/|assets/|sitemap\\.xml|sitemaps/|sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|llms\\.txt|ringtone\\.mp3|\\.well-known/|security\\.txt).*)",
       "destination": "/index.html"
     }

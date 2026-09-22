@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   bundledWebRuntime: false,
   server: {
-    url: 'https://6d6a8a57-1c02-4ddc-bd7f-2c0ec6dd878a.lovableproject.com?forceHideBadge=true',
+    url: 'https://chatr.chat',
     cleartext: true
   },
   plugins: {

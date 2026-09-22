@@ -5,8 +5,8 @@ import { componentTagger } from "lovable-tagger";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 export default defineConfig(({ mode }) => ({
-  // CRITICAL: Use relative paths for Capacitor file:// protocol
-  base: './',
+  // Web SPA requires root base '/' so nested routes (/chat/:id, /calls, /settings) resolve assets correctly
+  base: process.env.CAPACITOR_BUILD === 'true' ? './' : '/',
   server: {
     host: "::",
     port: 8080,

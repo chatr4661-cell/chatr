@@ -8,6 +8,30 @@
         canonicalUrl.hostname = 'chatr.chat';
         window.location.replace(canonicalUrl.toString());
       }
+      // Self-heal stale asset chunks or wrong MIME type responses immediately
+      window.addEventListener('error', function(e) {
+        var msg = (e && e.message ? e.message : '').toLowerCase();
+        if (msg.indexOf('failed to load module script') !== -1 || msg.indexOf('mime type') !== -1 || msg.indexOf('failed to fetch dynamically imported module') !== -1) {
+          var flag = 'chatr_asset_auto_recover';
+          var last = Number(sessionStorage.getItem(flag) || 0);
+          if (Date.now() - last > 30000) {
+            sessionStorage.setItem(flag, String(Date.now()));
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                names.forEach(function(name) { caches.delete(name); });
+              });
+            }
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                regs.forEach(function(reg) { reg.unregister(); });
+              });
+            }
+            setTimeout(function() {
+              window.location.reload();
+            }, 100);
+          }
+        }
+      });
     </script>
     <!-- Google tag (gtag.js) — CHATR Web stream, single authoritative GA4 install -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-VLPQHWR1T2"></script>
@@ -34,7 +58,6 @@
     
     <!-- Reduce layout shift -->
     <meta name="color-scheme" content="light dark">
-    <meta name="color-scheme" content="light dark">
     <meta name="format-detection" content="telephone=no">
     
     <!-- Primary Meta Tags -->
@@ -49,7 +72,7 @@
     <!-- Favicon & Icons -->
     <link rel="icon" href="https://chatr.chat/favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="https://chatr.chat/assets/chatrplus-logo512.png">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="/manifest.json">
     
     <!-- Theme Colors -->
     <meta name="theme-color" content="#0066FF">
