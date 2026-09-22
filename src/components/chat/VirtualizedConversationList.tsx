@@ -81,9 +81,32 @@ interface PlatformUser {
   is_online?: boolean;
 }
 
+interface CachedContacts {
+  savedAt: number;
+  contacts: Contact[];
+}
+
+interface CachedPlatformSearch {
+  savedAt: number;
+  users: PlatformUser[];
+}
+
+const CONTACT_CACHE_TTL_MS = 10 * 60 * 1000;
+const PLATFORM_SEARCH_CACHE_TTL_MS = 60 * 1000;
+const PLATFORM_SEARCH_CACHE_LIMIT = 20;
+
 export const VirtualizedConversationList = ({ userId, onConversationSelect }: VirtualizedConversationListProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>(() => {
+    try {
+      const cached = localStorage.getItem(`chatr-contacts-${userId}`);
+      if (!cached) return [];
+      const parsed = JSON.parse(cached) as CachedContacts;
+      return Date.now() - parsed.savedAt < CONTACT_CACHE_TTL_MS ? parsed.contacts : [];
+    } catch {
+      return [];
+    }
+  });
   const [platformUsers, setPlatformUsers] = useState<PlatformUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +114,8 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const [searchingPlatform, setSearchingPlatform] = useState(false);
   const { getCachedConversations, setCachedConversations } = useConversationCache();
   const inputRef = useRef<HTMLInputElement>(null);
+  const platformSearchRequestRef = useRef(0);
+  const platformSearchCacheRef = useRef<Map<string, CachedPlatformSearch>>(new Map());
   
   // Real-time presence from context
   const { isUserOnline } = useChatContext();
@@ -268,6 +293,10 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         }));
         
         setContacts(enrichedContacts);
+        localStorage.setItem(`chatr-contacts-${userId}`, JSON.stringify({
+          savedAt: Date.now(),
+          contacts: enrichedContacts
+        } satisfies CachedContacts));
       }
     } catch (error) {
       console.error('Error loading contacts:', error);
@@ -275,15 +304,25 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   }, [userId]);
 
   // Search platform users (all Chatr users)
-  const searchPlatformUsers = useCallback(async (query: string) => {
+  const searchPlatformUsers = useCallback(async (query: string, requestId: number) => {
     if (!query.trim() || query.length < 2) {
-      setPlatformUsers([]);
+      if (requestId === platformSearchRequestRef.current) setPlatformUsers([]);
       return;
     }
-    
+
+    const cleanQuery = query.replace(/^[@#]/, '').trim().toLowerCase();
+    const cacheKey = `${searchMode}:${cleanQuery}`;
+    const cached = platformSearchCacheRef.current.get(cacheKey);
+    if (cached && Date.now() - cached.savedAt < PLATFORM_SEARCH_CACHE_TTL_MS) {
+      if (requestId === platformSearchRequestRef.current) {
+        setPlatformUsers(cached.users);
+        setSearchingPlatform(false);
+      }
+      return;
+    }
+
     setSearchingPlatform(true);
     try {
-      const cleanQuery = query.replace(/^[@#]/, '').trim().toLowerCase();
       const digitsOnlyQuery = cleanQuery.replace(/\D/g, '');
       const searchTerms = searchMode === 'numbers'
         ? Array.from(new Set([cleanQuery, digitsOnlyQuery, digitsOnlyQuery.slice(-10)].filter(Boolean)))
@@ -303,25 +342,34 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         .limit(15);
       
       if (error) throw error;
-      
-      setPlatformUsers(data || []);
+
+      const users = data || [];
+      platformSearchCacheRef.current.set(cacheKey, { savedAt: Date.now(), users });
+      if (platformSearchCacheRef.current.size > PLATFORM_SEARCH_CACHE_LIMIT) {
+        const oldestKey = platformSearchCacheRef.current.keys().next().value;
+        if (oldestKey) platformSearchCacheRef.current.delete(oldestKey);
+      }
+
+      if (requestId === platformSearchRequestRef.current) setPlatformUsers(users);
     } catch (error) {
       console.error('Error searching platform users:', error);
-      setPlatformUsers([]);
+      if (requestId === platformSearchRequestRef.current) setPlatformUsers([]);
     } finally {
-      setSearchingPlatform(false);
+      if (requestId === platformSearchRequestRef.current) setSearchingPlatform(false);
     }
   }, [userId, searchMode]);
 
   // Debounced platform search
   useEffect(() => {
+    const requestId = ++platformSearchRequestRef.current;
     const timer = setTimeout(() => {
       if (searchQuery.trim().length >= 2) {
-        searchPlatformUsers(searchQuery);
+        searchPlatformUsers(searchQuery, requestId);
       } else {
         setPlatformUsers([]);
+        setSearchingPlatform(false);
       }
-    }, 300);
+    }, 120);
     
     return () => clearTimeout(timer);
   }, [searchQuery, searchPlatformUsers]);
@@ -407,8 +455,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   useEffect(() => {
     if (!userId) return;
     loadConversations();
-    // Defer contacts loading to not block initial render
-    const contactsTimer = setTimeout(loadContacts, 1000);
+    loadContacts();
 
     const channel = supabase
       .channel('conv-updates-realtime', {
@@ -422,7 +469,6 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
     // Remove aggressive 5s polling - rely on realtime only
     return () => {
-      clearTimeout(contactsTimer);
       if (pendingReloadRef.current) clearTimeout(pendingReloadRef.current);
       supabase.removeChannel(channel);
     };
