@@ -131,21 +131,41 @@ Deno.serve(async (req) => {
       // Canonical user lookup for this phone number (shared by every CHATR
       // domain/client — chatr.chat, chatrchat.in, native apps).
       let userId: string | null = null;
+      let existingMetadata: Record<string, unknown> = {};
       let isNewUser = false;
 
       // Paginate defensively so lookup stays correct as the user base grows.
       for (let page = 1; page <= 50 && !userId; page++) {
         const { data } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
         const match = data?.users?.find((u) => u.email === email);
-        if (match) userId = match.id;
+        if (match) {
+          userId = match.id;
+          existingMetadata = (match.user_metadata ?? {}) as Record<string, unknown>;
+        }
         if (!data || (data.users?.length ?? 0) < 1000) break;
       }
 
       if (userId) {
+        if (!existingMetadata.full_name && !existingMetadata.name) {
+          const { data: prof } = await supabaseAdmin
+            .from("profiles")
+            .select("full_name")
+            .eq("id", userId)
+            .maybeSingle();
+          if (prof?.full_name) {
+            existingMetadata.full_name = prof.full_name;
+            existingMetadata.name = prof.full_name;
+          }
+        }
+
         const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
           password,
           phone_confirm: true,
-          user_metadata: { phone_number: phoneNumber, firebase_uid: claims.uid },
+          user_metadata: {
+            ...existingMetadata,
+            phone_number: phoneNumber,
+            firebase_uid: claims.uid,
+          },
         });
         if (updateError) {
           console.error("[phone-auth] credential rotation failed:", updateError.message);
