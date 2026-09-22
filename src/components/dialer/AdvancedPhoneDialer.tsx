@@ -119,40 +119,78 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const directoryRef = useRef<Contact[]>([]);
 
-  // Initialize
+  // Initialize and load cached directory immediately (0ms start)
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem('chatr_dialer_directory');
+      if (cached) {
+        const parsed = JSON.parse(cached) as Contact[];
+        directoryRef.current = parsed;
+        setAllUsers(parsed);
+      }
+    } catch {}
     loadData();
   }, []);
 
-  // Search for CHATR users when typing
+  // Instant 0ms in-memory search + background Supabase search when typing
   useEffect(() => {
+    const query = activeTab === 'keypad' ? dialedNumber : searchQuery;
+    if (!query || query.trim().length < 2) {
+      setMatchingUsers([]);
+      setSearching(false);
+      return;
+    }
+
+    const cleanQuery = query.trim();
+    const cleanDigits = cleanQuery.replace(/\D/g, '');
+    const isPhoneQuery = /^[\d\s+\-()]+$/.test(cleanQuery.replace(/\s/g, ''));
+    const last10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
+
+    // 1. INSTANT (0ms) matching against local in-memory directory
+    let localFound = false;
+    const directory = directoryRef.current;
+    if (directory.length > 0) {
+      const localMatches = directory.filter(contact => {
+        const phone = (contact.phone || '').replace(/\D/g, '');
+        const name = (contact.username || '').toLowerCase();
+        const qLower = cleanQuery.toLowerCase();
+
+        if (isPhoneQuery && cleanDigits.length >= 2) {
+          return (
+            phone.includes(cleanDigits) ||
+            phone.includes(last10) ||
+            (cleanDigits.length >= 4 && last10.includes(phone.slice(-10)))
+          );
+        }
+
+        return name.includes(qLower) || phone.includes(cleanDigits);
+      });
+
+      if (localMatches.length > 0) {
+        localFound = true;
+        setMatchingUsers(localMatches.slice(0, 10));
+      } else {
+        setMatchingUsers([]);
+      }
+    } else {
+      setMatchingUsers([]);
+    }
+
+    // 2. Fast background database search (100ms debounce)
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    const query = activeTab === 'keypad' ? dialedNumber : searchQuery;
-    if (!query || query.length < 2) {
-      setMatchingUsers([]);
-      return;
-    }
-
-    // Check if query looks like a phone number (digits, +, spaces, dashes)
-    const isPhoneQuery = /^[\d\s+\-()]+$/.test(query.replace(/\s/g, ''));
-    const cleanedPhone = query.replace(/[\s\-()]/g, '');
-
-    // Debounce search
     searchTimeoutRef.current = setTimeout(async () => {
       setSearching(true);
       try {
         let profiles: any[] = [];
         
-        if (isPhoneQuery && cleanedPhone.length >= 2) {
-          const digitsOnly = cleanedPhone.replace(/\D/g, '');
-          const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+        if (isPhoneQuery && cleanDigits.length >= 2) {
           const searchVariants = Array.from(new Set([
-            cleanedPhone,
-            digitsOnly,
+            cleanDigits,
             last10,
             last10.length === 10 ? `+91${last10}` : null,
             last10.length === 10 ? `91${last10}` : null
@@ -165,7 +203,6 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             `full_name.ilike.%${v}%`
           ]).join(',');
 
-          // Do NOT exclude currentUserId so user can test dialing their own number
           const { data } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url, phone_number, phone_search')
@@ -173,27 +210,41 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             .limit(10);
           profiles = data || [];
         } else {
-          // Search by username/name
           const { data } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url, phone_number, phone_search')
-            .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+            .or(`username.ilike.%${cleanQuery}%,full_name.ilike.%${cleanQuery}%`)
             .limit(10);
           profiles = data || [];
         }
 
         if (profiles.length > 0) {
-          const users = profiles.map(p => ({
+          const remoteUsers = profiles.map(p => ({
             id: p.id,
             username: p.id === currentUserId
               ? `${p.full_name || p.username || 'You'} (You)`
-              : (p.full_name || p.username || 'Unknown'),
+              : (p.full_name || p.username || 'Chatr User'),
             avatar_url: p.avatar_url || undefined,
-            phone: p.phone_search || p.phone_number || undefined,
+            phone: p.phone_number || p.phone_search || undefined,
             isSelf: p.id === currentUserId
           }));
-          setMatchingUsers(users);
-        } else {
+
+          setMatchingUsers(remoteUsers);
+
+          // Update directory cache
+          const existingIds = new Set(directoryRef.current.map(c => c.id));
+          const updatedContacts = [...directoryRef.current];
+          remoteUsers.forEach(u => {
+            if (!existingIds.has(u.id)) {
+              existingIds.add(u.id);
+              updatedContacts.push(u);
+            }
+          });
+          directoryRef.current = updatedContacts;
+          try {
+            localStorage.setItem('chatr_dialer_directory', JSON.stringify(updatedContacts));
+          } catch {}
+        } else if (!localFound) {
           setMatchingUsers([]);
         }
       } catch (error) {
@@ -201,7 +252,7 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
       } finally {
         setSearching(false);
       }
-    }, 300);
+    }, 100);
 
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -212,107 +263,137 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setCurrentUserId(user.id);
+      const currentId = user?.id;
+      if (currentId) setCurrentUserId(currentId);
 
       // Load contacts from multiple sources
       let loadedContacts: Contact[] = [];
       const addedIds = new Set<string>();
 
-      // 1. Load from user_contacts table
-      const { data: userContactsData } = await supabase
-        .from('user_contacts')
-        .select('contact_user_id, display_name')
-        .eq('user_id', user.id);
+      if (currentId) {
+        // 1. Load from user_contacts table
+        const { data: userContactsData } = await supabase
+          .from('user_contacts')
+          .select('contact_user_id, display_name')
+          .eq('user_id', currentId);
 
-      if (userContactsData && userContactsData.length > 0) {
-        const contactIds = userContactsData.map(c => c.contact_user_id).filter(Boolean);
-        if (contactIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url, phone_number')
-            .in('id', contactIds);
-          
-          (profiles || []).forEach(p => {
-            if (!addedIds.has(p.id)) {
-              const contact = userContactsData.find(c => c.contact_user_id === p.id);
-              loadedContacts.push({
-                id: p.id,
-                username: contact?.display_name || p.username || 'Unknown',
-                avatar_url: p.avatar_url || undefined,
-                phone: p.phone_number || undefined,
-              });
-              addedIds.add(p.id);
-            }
-          });
+        if (userContactsData && userContactsData.length > 0) {
+          const contactIds = userContactsData.map(c => c.contact_user_id).filter(Boolean);
+          if (contactIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, username, avatar_url, phone_number')
+              .in('id', contactIds);
+            
+            (profiles || []).forEach(p => {
+              if (!addedIds.has(p.id)) {
+                const contact = userContactsData.find(c => c.contact_user_id === p.id);
+                loadedContacts.push({
+                  id: p.id,
+                  username: contact?.display_name || p.username || 'Unknown',
+                  avatar_url: p.avatar_url || undefined,
+                  phone: p.phone_number || undefined,
+                });
+                addedIds.add(p.id);
+              }
+            });
+          }
         }
-      }
 
-      // 2. Load synced device contacts that are registered users
-      const { data: deviceContacts } = await supabase
-        .from('contacts')
-        .select('contact_user_id, contact_name, contact_phone')
-        .eq('user_id', user.id)
-        .eq('is_registered', true)
-        .not('contact_user_id', 'is', null);
+        // 2. Load synced device contacts that are registered users
+        const { data: deviceContacts } = await supabase
+          .from('contacts')
+          .select('contact_user_id, contact_name, contact_phone')
+          .eq('user_id', currentId)
+          .eq('is_registered', true)
+          .not('contact_user_id', 'is', null);
 
-      if (deviceContacts && deviceContacts.length > 0) {
-        const contactUserIds = deviceContacts.map(c => c.contact_user_id).filter(Boolean) as string[];
-        if (contactUserIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url, phone_number')
-            .in('id', contactUserIds);
-          
-          (profiles || []).forEach(p => {
-            if (!addedIds.has(p.id)) {
-              const dc = deviceContacts.find(c => c.contact_user_id === p.id);
-              loadedContacts.push({
-                id: p.id,
-                username: dc?.contact_name || p.username || 'Unknown',
-                avatar_url: p.avatar_url || undefined,
-                phone: dc?.contact_phone || p.phone_number || undefined,
-              });
-              addedIds.add(p.id);
-            }
-          });
+        if (deviceContacts && deviceContacts.length > 0) {
+          const contactUserIds = deviceContacts.map(c => c.contact_user_id).filter(Boolean) as string[];
+          if (contactUserIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, username, avatar_url, phone_number')
+              .in('id', contactUserIds);
+            
+            (profiles || []).forEach(p => {
+              if (!addedIds.has(p.id)) {
+                const dc = deviceContacts.find(c => c.contact_user_id === p.id);
+                loadedContacts.push({
+                  id: p.id,
+                  username: dc?.contact_name || p.username || 'Unknown',
+                  avatar_url: p.avatar_url || undefined,
+                  phone: dc?.contact_phone || p.phone_number || undefined,
+                });
+                addedIds.add(p.id);
+              }
+            });
+          }
         }
-      }
 
-      // 3. Load from existing conversations (people you've chatted with)
-      const { data: convParticipants } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id);
-
-      if (convParticipants && convParticipants.length > 0) {
-        const convIds = convParticipants.map(p => p.conversation_id);
-        const { data: otherParticipants } = await supabase
+        // 3. Load from existing conversations (people you've chatted with)
+        const { data: convParticipants } = await supabase
           .from('conversation_participants')
-          .select('user_id, profiles!inner(id, username, avatar_url, phone_number)')
-          .in('conversation_id', convIds)
-          .neq('user_id', user.id);
+          .select('conversation_id')
+          .eq('user_id', currentId);
 
-        if (otherParticipants) {
-          otherParticipants.forEach((p: any) => {
-            const profile = p.profiles;
-            if (profile && !addedIds.has(profile.id)) {
-              loadedContacts.push({
-                id: profile.id,
-                username: profile.username || 'Unknown',
-                avatar_url: profile.avatar_url || undefined,
-                phone: profile.phone_number || undefined,
-              });
-              addedIds.add(profile.id);
-            }
-          });
+        if (convParticipants && convParticipants.length > 0) {
+          const convIds = convParticipants.map(p => p.conversation_id);
+          const { data: otherParticipants } = await supabase
+            .from('conversation_participants')
+            .select('user_id, profiles!inner(id, username, avatar_url, phone_number)')
+            .in('conversation_id', convIds)
+            .neq('user_id', currentId);
+
+          if (otherParticipants) {
+            otherParticipants.forEach((p: any) => {
+              const profile = p.profiles;
+              if (profile && !addedIds.has(profile.id)) {
+                loadedContacts.push({
+                  id: profile.id,
+                  username: profile.username || 'Unknown',
+                  avatar_url: profile.avatar_url || undefined,
+                  phone: profile.phone_number || undefined,
+                });
+                addedIds.add(profile.id);
+              }
+            });
+          }
         }
+      }
+
+      // 4. Preload registered platform directory for instant 0ms search (WhatsApp / Telegram speed)
+      const { data: platformProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url, phone_number, phone_search')
+        .limit(300);
+
+      if (platformProfiles) {
+        platformProfiles.forEach(p => {
+          if (!addedIds.has(p.id)) {
+            const isSelf = currentId ? p.id === currentId : false;
+            loadedContacts.push({
+              id: p.id,
+              username: isSelf
+                ? `${p.full_name || p.username || 'You'} (You)`
+                : (p.full_name || p.username || 'Chatr User'),
+              avatar_url: p.avatar_url || undefined,
+              phone: p.phone_number || p.phone_search || undefined,
+              isSelf
+            });
+            addedIds.add(p.id);
+          }
+        });
       }
 
       // Sort alphabetically
       loadedContacts.sort((a, b) => a.username.localeCompare(b.username));
       setContacts(loadedContacts);
       setAllUsers(loadedContacts);
+      directoryRef.current = loadedContacts;
+      try {
+        localStorage.setItem('chatr_dialer_directory', JSON.stringify(loadedContacts));
+      } catch {}
 
       // Load favorites from localStorage with loaded contacts
       const savedFavorites = JSON.parse(localStorage.getItem('chatr_favorites') || '[]');
@@ -488,14 +569,18 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
 
   // Update input hint based on context
   useEffect(() => {
+    const digitsOnly = dialedNumber.replace(/\D/g, '');
+    const isPhone = /^[\d\s+\-()]+$/.test(dialedNumber.replace(/\s/g, ''));
     if (!dialedNumber) {
       setInputHint('Dial a number or search someone on Chatr');
-    } else if (searching) {
-      setInputHint('Checking availability...');
     } else if (matchingUsers.length > 0) {
       setInputHint('Available on Chatr · Free internet call');
-    } else if (/^[\d\s+\-()]+$/.test(dialedNumber.replace(/\s/g, ''))) {
-      setInputHint('Not on Chatr · Call via SMS or WhatsApp');
+    } else if (searching) {
+      setInputHint('Searching directory...');
+    } else if (isPhone && digitsOnly.length >= 10) {
+      setInputHint('Not on Chatr yet · Call via WhatsApp, Cellular or SMS');
+    } else if (isPhone) {
+      setInputHint('Dial 10-digit number or name');
     } else {
       setInputHint('Search by username or phone number');
     }
@@ -680,13 +765,8 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
             {/* Matching CHATR users */}
             {dialedNumber.length >= 2 && (
               <div className="mt-3 w-full max-w-sm">
-                {searching ? (
-                  <div className="flex items-center justify-center gap-2 py-2">
-                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-muted-foreground">Checking availability...</span>
-                  </div>
-                ) : matchingUsers.length > 0 ? (
-                  <ScrollArea className="max-h-32">
+                {matchingUsers.length > 0 ? (
+                  <ScrollArea className="max-h-36">
                     {matchingUsers.slice(0, 4).map(user => (
                       <motion.button
                         key={user.id}
@@ -702,8 +782,18 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 text-left">
-                          <p className="text-sm font-medium">{user.username}</p>
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-500/10 text-green-600 border-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium">{user.username}</p>
+                            {user.isSelf && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/30 text-primary">
+                                You
+                              </Badge>
+                            )}
+                          </div>
+                          {user.phone && (
+                            <p className="text-xs text-muted-foreground">{user.phone}</p>
+                          )}
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-500/10 text-green-600 border-0 mt-0.5">
                             <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
                             On Chatr
                           </Badge>
@@ -732,7 +822,12 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                       </motion.button>
                     ))}
                   </ScrollArea>
-                ) : dialedNumber.length >= 3 && /^[\d\s+\-()]+$/.test(dialedNumber.replace(/\s/g, '')) ? (
+                ) : searching ? (
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-muted-foreground">Searching Chatr directory...</span>
+                  </div>
+                ) : dialedNumber.replace(/\D/g, '').length >= 10 ? (
                   <motion.button
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -780,10 +875,6 @@ export function AdvancedPhoneDialer({ onCall }: AdvancedPhoneDialerProps) {
                       </Button>
                     </div>
                   </motion.button>
-                ) : dialedNumber.length >= 2 ? (
-                  <p className="text-center text-sm text-muted-foreground py-2">
-                    No Chatr users found
-                  </p>
                 ) : null}
               </div>
             )}
