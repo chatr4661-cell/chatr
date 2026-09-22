@@ -3,9 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Camera, Upload, Trash2, Loader2 } from 'lucide-react';
+import { Camera, Upload, Trash2, Loader2, User, Phone, Check, Sparkles, Smile } from 'lucide-react';
 import { compressImage } from '@/utils/imageCompression';
 
 interface ProfileData {
@@ -16,6 +15,16 @@ interface ProfileData {
   status: string;
   avatar_url: string;
 }
+
+const STATUS_PRESETS = [
+  'Hey there! I am using Chatr',
+  'Available',
+  'Busy',
+  'At work',
+  'In a meeting',
+  'Battery about to die',
+  'Urgent calls only'
+];
 
 export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) => {
   const [userId, setUserId] = useState<string | undefined>(initialUserId);
@@ -31,7 +40,10 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Resolve user ID if not provided via props
   useEffect(() => {
@@ -67,36 +79,26 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
   const loadProfile = async (uid: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('full_name, username, email, phone_number, status, avatar_url')
         .eq('id', uid)
         .maybeSingle();
 
-      // Also get session user metadata as fallback
       const { data: { session } } = await supabase.auth.getSession();
       const meta = session?.user?.user_metadata || {};
 
-      if (data) {
-        setProfile({
-          full_name: data.full_name || meta.full_name || meta.name || '',
-          username: data.username || meta.username || '',
-          email: data.email || session?.user?.email || '',
-          phone_number: data.phone_number || meta.phone_number || session?.user?.phone || '',
-          status: data.status || 'Hey there! I am using Chatr',
-          avatar_url: data.avatar_url || meta.avatar_url || ''
-        });
-      } else {
-        // Profile row hasn't been created yet, use auth metadata
-        setProfile({
-          full_name: meta.full_name || meta.name || '',
-          username: meta.username || meta.phone_number || '',
-          email: session?.user?.email || '',
-          phone_number: meta.phone_number || session?.user?.phone || '',
-          status: 'Hey there! I am using Chatr',
-          avatar_url: meta.avatar_url || ''
-        });
-      }
+      const rawAvatar = data?.avatar_url || meta.avatar_url;
+      const cleanAvatar = (rawAvatar && rawAvatar !== 'null' && rawAvatar !== 'undefined') ? rawAvatar : '';
+
+      setProfile({
+        full_name: data?.full_name || meta.full_name || meta.name || '',
+        username: data?.username || meta.username || meta.phone_number || '',
+        email: data?.email || session?.user?.email || '',
+        phone_number: data?.phone_number || meta.phone_number || session?.user?.phone || '',
+        status: data?.status || 'Hey there! I am using Chatr',
+        avatar_url: cleanAvatar
+      });
     } catch (error) {
       console.error('[ProfileSettings] Error loading profile:', error);
     } finally {
@@ -104,40 +106,39 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
     }
   };
 
-  // 3. Fast WhatsApp-style avatar upload: Instant optimistic preview + fast client compression + upload
-  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
+  // 3. Fast WhatsApp-style avatar upload with client-side compression (< 100ms)
+  const processAndUploadAvatar = async (file: File) => {
+    if (!userId) {
+      toast.error('Please log in to update your photo');
+      return;
+    }
 
-    // Reset input value so re-selecting the same file triggers onChange
-    e.target.value = '';
-
-    // Instant local preview in 0ms (WhatsApp feel)
+    // Instant local preview (WhatsApp zero-wait visual feedback)
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
     setUploading(true);
 
     try {
-      // Fast client-side resize & compression (< 50ms)
+      // Compress image client-side to max 512x512 JPEG (~50-80KB)
       let uploadPayload: File = file;
       try {
         uploadPayload = await compressImage(file, {
-          maxSizeMB: 0.15, // ~150KB max
-          maxWidthOrHeight: 512, // perfect WhatsApp avatar resolution
+          maxSizeMB: 0.15,
+          maxWidthOrHeight: 512,
           quality: 0.85
         });
       } catch (compErr) {
-        console.warn('[ProfileSettings] Image compression fallback to original:', compErr);
+        console.warn('[ProfileSettings] Compression fallback:', compErr);
       }
 
-      // Upload to public 'social-media' bucket
-      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileExt = 'jpg';
       const filePath = `avatars/${userId}-${Date.now()}.${fileExt}`;
 
+      // Upload to public 'social-media' storage bucket
       const { error: uploadError } = await supabase.storage
         .from('social-media')
         .upload(filePath, uploadPayload, {
-          contentType: uploadPayload.type || 'image/jpeg',
+          contentType: 'image/jpeg',
           upsert: true
         });
 
@@ -148,30 +149,35 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
         .from('social-media')
         .getPublicUrl(filePath);
 
-      // Save to public.profiles via upsert
+      // Save to public.profiles
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert({
           id: userId,
           avatar_url: publicUrl,
+          full_name: profile.full_name || '',
+          username: profile.username || '',
+          phone_number: profile.phone_number || '',
+          email: profile.email || '',
+          status: profile.status || 'Hey there! I am using Chatr',
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
 
       if (updateError) throw updateError;
 
-      // Also update auth user metadata so session stays in sync everywhere
+      // Sync auth user metadata
       await supabase.auth.updateUser({
         data: { avatar_url: publicUrl }
-      }).catch(err => console.warn('[ProfileSettings] Metadata update warning:', err));
+      }).catch(() => {});
 
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
       setPreviewUrl(null);
       toast.success('Profile photo updated!');
 
-      // Notify other components (navbars, sidebars)
+      // Notify global layout
       window.dispatchEvent(new CustomEvent('profile-updated', { detail: { avatar_url: publicUrl } }));
     } catch (error: any) {
-      console.error('[ProfileSettings] Error uploading avatar:', error);
+      console.error('[ProfileSettings] Avatar upload failed:', error);
       setPreviewUrl(null);
       toast.error(error.message || 'Failed to upload photo. Please try again.');
     } finally {
@@ -179,9 +185,17 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processAndUploadAvatar(file);
+    }
+    e.target.value = '';
+  };
+
   // 4. Remove Photo handler
   const handleRemovePhoto = async () => {
-    if (!userId || (!profile.avatar_url && !previewUrl)) return;
+    if (!userId) return;
 
     setUploading(true);
     try {
@@ -190,6 +204,11 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
         .upsert({
           id: userId,
           avatar_url: '',
+          full_name: profile.full_name || '',
+          username: profile.username || '',
+          phone_number: profile.phone_number || '',
+          email: profile.email || '',
+          status: profile.status || 'Hey there! I am using Chatr',
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
 
@@ -212,11 +231,16 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
   };
 
   // 5. Save Changes handler
-  const updateProfile = async () => {
+  const updateProfile = async (overrideData?: Partial<ProfileData>) => {
     if (!userId) {
       toast.error('Session not found. Please log in again.');
       return;
     }
+
+    const payload = {
+      ...profile,
+      ...(overrideData || {})
+    };
 
     setSaving(true);
     try {
@@ -224,9 +248,12 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
         .from('profiles')
         .upsert({
           id: userId,
-          full_name: profile.full_name,
-          username: profile.username,
-          status: profile.status,
+          full_name: payload.full_name || '',
+          username: payload.username || '',
+          avatar_url: payload.avatar_url || '',
+          phone_number: payload.phone_number || '',
+          email: payload.email || '',
+          status: payload.status || 'Hey there! I am using Chatr',
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
 
@@ -234,183 +261,273 @@ export const ProfileSettings = ({ userId: initialUserId }: { userId?: string }) 
 
       await supabase.auth.updateUser({
         data: {
-          full_name: profile.full_name,
-          name: profile.full_name,
-          username: profile.username
+          full_name: payload.full_name,
+          name: payload.full_name,
+          username: payload.username
         }
       }).catch(() => {});
 
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
       toast.success('Profile updated successfully');
       window.dispatchEvent(new CustomEvent('profile-updated'));
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ProfileSettings] Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(error.message || 'Failed to update profile');
     } finally {
       setSaving(false);
     }
   };
 
-  const displayAvatar = previewUrl || profile.avatar_url;
-  const initialLetter = (profile.full_name?.[0] || profile.username?.[0] || 'U').toUpperCase();
+  const currentAvatar = previewUrl || (profile.avatar_url && profile.avatar_url !== 'null' ? profile.avatar_url : null);
+  const initialLetter = (profile.full_name?.[0] || profile.username?.[0] || '').toUpperCase();
 
   return (
-    <div className="space-y-6">
-      {/* Hidden file input for native / web file picker */}
+    <div className="space-y-6 max-w-xl mx-auto">
+      {/* Hidden file inputs: standard file picker + direct camera capture */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={handleAvatarSelect}
+        onChange={handleFileChange}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="user"
+        className="hidden"
+        onChange={handleFileChange}
       />
 
-      {/* WhatsApp-Style Avatar Card */}
-      <div className="flex items-center gap-6 p-4 rounded-xl bg-card border border-border shadow-sm">
-        <div 
-          onClick={() => !uploading && fileInputRef.current?.click()}
-          className="relative group cursor-pointer rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          title="Click to change profile photo"
-        >
-          <Avatar className="w-24 h-24 border-2 border-primary/20 transition-transform group-hover:scale-105">
-            {displayAvatar ? (
-              <AvatarImage src={displayAvatar} alt="Profile" className="object-cover" />
-            ) : null}
-            <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-              {initialLetter}
-            </AvatarFallback>
-          </Avatar>
-
-          {/* Hover / Upload overlay */}
-          <div className={`absolute inset-0 bg-black/40 flex flex-col items-center justify-center transition-opacity rounded-full ${
-            uploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          }`}>
-            {uploading ? (
-              <Loader2 className="w-6 h-6 text-white animate-spin" />
+      {/* WhatsApp Profile Avatar Section */}
+      <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-card border border-border shadow-sm">
+        <div className="relative group mb-4">
+          {/* Circular Avatar */}
+          <div
+            onClick={() => !uploading && fileInputRef.current?.click()}
+            className="w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-500/20 shadow-md cursor-pointer relative bg-muted flex items-center justify-center transition-transform group-hover:scale-105"
+            title="Click to change profile photo"
+          >
+            {currentAvatar ? (
+              <img
+                src={currentAvatar}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                onError={() => setProfile(prev => ({ ...prev, avatar_url: '' }))}
+              />
+            ) : initialLetter ? (
+              <div className="w-full h-full flex items-center justify-center bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 text-4xl font-semibold">
+                {initialLetter}
+              </div>
             ) : (
-              <>
-                <Camera className="w-6 h-6 text-white" />
-                <span className="text-[10px] text-white font-medium mt-1">CHANGE</span>
-              </>
+              <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-muted-foreground">
+                <User className="w-16 h-16 stroke-[1.2]" />
+              </div>
             )}
+
+            {/* Hover Camera Overlay (WhatsApp Web Style) */}
+            <div className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center transition-opacity rounded-full ${
+              uploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}>
+              {uploading ? (
+                <>
+                  <Loader2 className="w-7 h-7 text-white animate-spin mb-1" />
+                  <span className="text-[11px] text-white font-medium tracking-wide">SAVING...</span>
+                </>
+              ) : (
+                <>
+                  <Camera className="w-7 h-7 text-white mb-1" />
+                  <span className="text-[10px] text-white font-semibold uppercase tracking-wider text-center px-2">
+                    {currentAvatar ? 'Change Photo' : 'Add Photo'}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
+
+          {/* Floating Camera Button (WhatsApp Mobile Style) */}
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute bottom-1 right-1 p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg border-2 border-background transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
+            title="Upload photo"
+          >
+            <Camera className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div>
-            <h3 className="font-semibold text-foreground text-base">
-              {profile.full_name || profile.username || 'Your Profile'}
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              JPG, PNG, WebP • Auto-compressed for ultra-fast load
-            </p>
-          </div>
+        {/* Action Buttons under Avatar */}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="h-8 text-xs font-medium rounded-full px-4 border-emerald-500/30 hover:bg-emerald-500/10"
+          >
+            {uploading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1.5" />}
+            {uploading ? 'Uploading...' : 'Upload Photo'}
+          </Button>
 
-          <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => cameraInputRef.current?.click()}
+            className="h-8 text-xs font-medium rounded-full px-3"
+          >
+            <Camera className="w-3.5 h-3.5 mr-1.5" />
+            Camera
+          </Button>
+
+          {currentAvatar && (
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
               disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="h-8 text-xs font-medium"
+              onClick={handleRemovePhoto}
+              className="h-8 text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full px-3"
             >
-              {uploading ? (
-                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5 mr-1.5" />
-              )}
-              {uploading ? 'Uploading...' : 'Change Photo'}
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              Remove
             </Button>
-
-            {displayAvatar && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={uploading}
-                onClick={handleRemovePhoto}
-                className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-1" />
-                Remove
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Profile Form */}
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="full_name" className="text-sm font-medium">Full Name</Label>
+      {/* WhatsApp Profile Details Card */}
+      <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-6">
+        {/* Your Name (WhatsApp Style) */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="full_name" className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              Your Name
+            </Label>
+            {savedSuccess && (
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <Check className="w-3 h-3" /> Saved
+              </span>
+            )}
+          </div>
           <Input
             id="full_name"
-            placeholder="Enter your name (e.g. Chatr User)"
+            placeholder="Enter your name"
             value={profile.full_name}
             onChange={(e) => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
-            className="mt-1"
+            onKeyDown={(e) => e.key === 'Enter' && updateProfile()}
+            className="text-base py-2.5 bg-background"
           />
+          <p className="text-xs text-muted-foreground">
+            This is not your username or pin. This name will be visible to your Chatr contacts.
+          </p>
         </div>
 
-        <div>
-          <Label htmlFor="username" className="text-sm font-medium">Username</Label>
-          <Input
-            id="username"
-            placeholder="Enter unique username"
-            value={profile.username}
-            onChange={(e) => setProfile(prev => ({ ...prev, username: e.target.value }))}
-            className="mt-1"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="status" className="text-sm font-medium">About / Status</Label>
+        {/* About / Status (WhatsApp Style) */}
+        <div className="space-y-2">
+          <Label htmlFor="status" className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <Smile className="w-3.5 h-3.5" /> About
+          </Label>
           <Input
             id="status"
             placeholder="Hey there! I am using Chatr"
             value={profile.status}
             onChange={(e) => setProfile(prev => ({ ...prev, status: e.target.value }))}
-            className="mt-1"
+            onKeyDown={(e) => e.key === 'Enter' && updateProfile()}
+            className="text-sm bg-background"
           />
+
+          {/* Quick preset chips */}
+          <div className="pt-1">
+            <p className="text-[11px] text-muted-foreground mb-1.5 font-medium">Quick Select:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {STATUS_PRESETS.map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => {
+                    setProfile(prev => ({ ...prev, status: st }));
+                    updateProfile({ status: st });
+                  }}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                    profile.status === st
+                      ? 'bg-emerald-600 text-white border-emerald-600 font-medium shadow-sm'
+                      : 'bg-muted/50 hover:bg-muted text-foreground border-border/80'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {profile.phone_number && (
-          <div>
-            <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+        {/* Username / Handle */}
+        <div className="space-y-1.5">
+          <Label htmlFor="username" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Username
+          </Label>
+          <div className="relative">
+            <span className="absolute left-3 top-2.5 text-sm text-muted-foreground">@</span>
             <Input
-              id="phone"
-              value={profile.phone_number}
-              disabled
-              className="mt-1 opacity-70 bg-muted cursor-not-allowed"
+              id="username"
+              placeholder="username"
+              value={profile.username.replace(/^@/, '')}
+              onChange={(e) => setProfile(prev => ({ ...prev, username: e.target.value.replace(/^@/, '') }))}
+              onKeyDown={(e) => e.key === 'Enter' && updateProfile()}
+              className="pl-7 text-sm bg-background"
             />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Unique handle for mentions, direct search, and profile links.
+          </p>
+        </div>
+
+        {/* Phone Number (Verified & Read-only) */}
+        {profile.phone_number && (
+          <div className="space-y-1.5 pt-2 border-t border-border">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-emerald-600" /> Phone Number
+            </Label>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
+              <span className="font-mono text-sm font-medium text-foreground">
+                {profile.phone_number}
+              </span>
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <Check className="w-3 h-3" /> Registered
+              </span>
+            </div>
           </div>
         )}
 
-        <div>
-          <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-          <Input
-            id="email"
-            value={profile.email.endsWith('@chatr.local') ? '' : profile.email}
-            placeholder={profile.email.endsWith('@chatr.local') ? 'Phone account (no email linked)' : ''}
-            disabled
-            className="mt-1 opacity-70 bg-muted cursor-not-allowed"
-          />
+        {/* Save Changes Button */}
+        <div className="pt-2">
+          <Button
+            type="button"
+            onClick={() => updateProfile()}
+            disabled={saving || loading}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl shadow-md transition-all active:scale-[0.99]"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving Profile...
+              </>
+            ) : savedSuccess ? (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Saved!
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
         </div>
-
-        <Button 
-          onClick={updateProfile} 
-          disabled={saving || loading} 
-          className="w-full mt-2 font-medium"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save Changes'
-          )}
-        </Button>
       </div>
     </div>
   );
