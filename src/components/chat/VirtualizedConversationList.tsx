@@ -99,7 +99,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const searchMode = useMemo(() => {
     if (searchQuery.startsWith('@')) return 'people';
     if (searchQuery.startsWith('#')) return 'groups';
-    if (/^\d+$/.test(searchQuery.trim())) return 'numbers';
+    if (/^\+?[\d\s()-]+$/.test(searchQuery.trim())) return 'numbers';
     return 'all';
   }, [searchQuery]);
 
@@ -284,13 +284,22 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     setSearchingPlatform(true);
     try {
       const cleanQuery = query.replace(/^[@#]/, '').trim().toLowerCase();
+      const digitsOnlyQuery = cleanQuery.replace(/\D/g, '');
+      const searchTerms = searchMode === 'numbers'
+        ? Array.from(new Set([cleanQuery, digitsOnlyQuery, digitsOnlyQuery.slice(-10)].filter(Boolean)))
+        : [cleanQuery];
+      const filters = searchTerms.flatMap(term => [
+        `username.ilike.%${term}%`,
+        `phone_number.ilike.%${term}%`,
+        `phone_search.ilike.%${term}%`
+      ]).join(',');
       
       // Search by username or phone number
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username, avatar_url, phone_number, is_online')
         .neq('id', userId)
-        .or(`username.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%`)
+        .or(filters)
         .limit(15);
       
       if (error) throw error;
@@ -302,7 +311,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     } finally {
       setSearchingPlatform(false);
     }
-  }, [userId]);
+  }, [userId, searchMode]);
 
   // Debounced platform search
   useEffect(() => {
@@ -428,7 +437,9 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
   // Smart search filtering
   const searchResults = useMemo(() => {
-    const cleanQuery = searchQuery.replace(/^[@#]/, '').toLowerCase().trim();
+    const cleanQuery = searchMode === 'numbers'
+      ? searchQuery.replace(/\D/g, '')
+      : searchQuery.replace(/^[@#]/, '').toLowerCase().trim();
     
     if (!cleanQuery) {
       // No search - show all conversations
