@@ -9,4 +9,7 @@
 
 - [x] Diagnose phone verification against the new `nuuuqazaoaozgblmvkzn` backend
 - [ ] Reconnect the app safely without editing generated environment files — blocked until the new project is connected in Lovable
-- [ ] Deploy `firebase-phone-auth` and verify OTP sign-in — blocked because the function returns 404 on the new backend
+- [x] Confirm `firebase-phone-auth` is reachable on the selected backend
+- [x] Harden web OTP formatting, reCAPTCHA reset, and Firebase error handling
+- [x] Replace Android's rejected Firebase UID exchange with a verified Firebase ID token
+- [ ] Verify real SMS delivery and completed sign-in with user-controlled numbers — requires live OTP tests after backend reconnection

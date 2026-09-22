@@ -185,6 +185,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: failedAttempts >= 2 ? 'normal' : 'invisible',
         });
+        await recaptchaVerifierRef.current.render();
       }
 
       const confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaVerifierRef.current);
@@ -206,16 +207,19 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       
       if (err.code === 'auth/invalid-phone-number') {
         msg = 'Invalid phone number';
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (err.code === 'auth/too-many-requests' || err.code === 'auth/quota-exceeded') {
         msg = 'Too many attempts. Please wait and try again.';
         waitTime = 180;
       } else if (
         err.code === 'auth/captcha-check-failed' ||
+        err.code === 'auth/missing-client-identifier' ||
         err.message?.includes('Hostname')
       ) {
-        // This domain is not listed in Firebase Authorized Domains.
-        // Add the app's current domain in Firebase Console → Authentication → Settings.
-        msg = `This app's domain (${window.location.hostname}) is not authorized for OTP. Please add it to Firebase Authorized Domains.`;
+        msg = 'Phone verification check failed. Please refresh and try again.';
+      } else if (err.code === 'auth/app-not-authorized') {
+        msg = 'Phone sign-in is not enabled for this app.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        msg = 'Phone sign-in is temporarily unavailable.';
       } else if (err.code === 'auth/network-request-failed') {
         msg = 'Network error. Check your connection and try again.';
       }
@@ -224,7 +228,9 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       if (waitTime > 0) setCountdown(waitTime);
       setStep('phone');
       setLoading(false);
+      recaptchaVerifierRef.current?.clear();
       recaptchaVerifierRef.current = null;
+      setRecaptchaReady(false);
       return false;
     }
   };
@@ -332,6 +338,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     confirmationResultRef.current = null;
     verificationIdRef.current = null;
     if (!isNative) {
+      recaptchaVerifierRef.current?.clear();
       recaptchaVerifierRef.current = null;
       setRecaptchaReady(false);
     }
@@ -350,6 +357,9 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
     verificationIdRef.current = null;
     verifiedIdTokenRef.current = null;
     verificationInFlightRef.current = false;
+    recaptchaVerifierRef.current?.clear();
+    recaptchaVerifierRef.current = null;
+    setRecaptchaReady(false);
   }, []);
 
   return {

@@ -60,7 +60,7 @@ sealed class AuthState {
  *    - Existing users: signInWithPassword(email: {phone}@chatr.local, password: phone)
  *    - New users: Firebase OTP flow
  * 2. Firebase verifies OTP on client
- * 3. verifyOtpWithFirebaseUid() - Call firebase-phone-auth edge function
+ * 3. verifyOtpWithFirebaseToken() - Call firebase-phone-auth edge function
  * 4. Edge function creates/updates Supabase user and returns session
  * 5. Session saved to SecureStore for native app access
  */
@@ -217,9 +217,9 @@ class AuthViewModel @Inject constructor(
      * 4. supabase.auth.setSession() - Sets the session (lines 198-202)
      * 
      * @param phoneNumber The verified phone number
-     * @param firebaseUid The Firebase user UID from successful OTP verification
+     * @param firebaseIdToken The signed Firebase ID token from successful OTP verification
      */
-    fun verifyOtpWithFirebaseUid(phoneNumber: String, firebaseUid: String) {
+    fun verifyOtpWithFirebaseToken(phoneNumber: String, firebaseIdToken: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true, 
@@ -230,7 +230,7 @@ class AuthViewModel @Inject constructor(
             val normalizedPhone = phoneNumber.replace("\\s".toRegex(), "")
             
             // Call edge function (mirrors web fetch to firebase-phone-auth)
-            authRepository.verifyOtp(normalizedPhone, firebaseUid)
+            authRepository.verifyOtp(normalizedPhone, firebaseIdToken)
                 .onSuccess { response ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -264,7 +264,7 @@ class AuthViewModel @Inject constructor(
      * Legacy method - redirects to new flow
      */
     fun verifyOtp(phoneNumber: String, otp: String) {
-        verifyOtpWithFirebaseUid(phoneNumber, otp)
+        verifyOtpWithFirebaseToken(phoneNumber, otp)
     }
     
     /**
