@@ -7,6 +7,6 @@
 
 ## Backend reconnection
 
-- [ ] Diagnose phone verification against the new `nuuuqazaoaozgblmvkzn` backend
-- [ ] Reconnect the app safely without editing generated environment files
-- [ ] Verify OTP sign-in reaches the intended backend
+- [x] Diagnose phone verification against the new `nuuuqazaoaozgblmvkzn` backend
+- [ ] Reconnect the app safely without editing generated environment files — blocked until the new project is connected in Lovable
+- [ ] Deploy `firebase-phone-auth` and verify OTP sign-in — blocked because the function returns 404 on the new backend
