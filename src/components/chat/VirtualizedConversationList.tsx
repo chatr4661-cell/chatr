@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, Pin, BellOff, Archive, UserPlus, Users, Mail, Hash, AtSign } from 'lucide-react';
+import { MessageCircle, Loader2, Phone, Video, Check, CheckCheck, Pin, BellOff, Archive, UserPlus, Users, Mail, Hash, AtSign, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConversationCache } from '@/hooks/useConversationCache';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,6 +12,7 @@ import { ConversationListSkeleton } from './ConversationListSkeleton';
 import { ConversationContextMenu } from './ConversationContextMenu';
 import { UnreadBadge } from './UnreadBadge';
 import { useChatContext } from '@/contexts/ChatContext';
+import { cn } from '@/lib/utils';
 
 interface Contact {
   id: string;
@@ -35,9 +36,12 @@ interface Conversation {
   other_user?: {
     id: string;
     username: string;
+    full_name?: string;
     avatar_url?: string;
     is_online: boolean;
     phone_number?: string;
+    last_seen?: string;
+    is_self?: boolean;
   };
   last_message?: {
     content: string;
@@ -156,10 +160,78 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     return content;
   };
 
-  // Helper to format display names
-  const formatDisplayName = (name: string | undefined) => {
-    if (!name) return 'Unknown';
-    return name.split('@')[0].replace(/^\d+/, '').trim() || name;
+  // Helper to detect raw phone number or auto-generated username
+  const isPhoneOrGenerated = (str?: string) => {
+    if (!str) return false;
+    const clean = str.replace(/\s/g, '');
+    return /^(\+?\d{7,15}|User_[a-f0-9]+)$/i.test(clean);
+  };
+
+  // Helper to format clean phone numbers
+  const formatCleanPhone = (phone?: string) => {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    }
+    if (digits.length === 12 && digits.startsWith('91')) {
+      return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+    }
+    if (phone.startsWith('+')) return phone;
+    return `+${phone}`;
+  };
+
+  // Helper to format display names with WhatsApp-grade priority:
+  // 1. Saved Contact Book Name
+  // 2. Profile Full Name
+  // 3. Custom Username
+  // 4. Clean Formatted Phone
+  const getConversationTitle = (conv: Conversation): string => {
+    if (conv.is_group) return conv.group_name || 'Group Chat';
+    if (!conv.other_user) return 'Chat';
+    if (conv.other_user.is_self) return 'Message Yourself (Notes)';
+
+    const otherId = conv.other_user.id;
+    const otherPhone = (conv.other_user.phone_number || '').replace(/\D/g, '');
+
+    // 1. Check local / device saved contacts
+    const savedContact = contacts.find(c => 
+      (c.contact_user_id && c.contact_user_id === otherId) ||
+      (c.contact_phone && otherPhone && c.contact_phone.replace(/\D/g, '') === otherPhone)
+    );
+    if (savedContact?.contact_name && savedContact.contact_name.trim()) {
+      return savedContact.contact_name.trim();
+    }
+
+    // 2. Check profile full_name
+    if (conv.other_user.full_name && conv.other_user.full_name.trim() && !isPhoneOrGenerated(conv.other_user.full_name)) {
+      return conv.other_user.full_name.trim();
+    }
+
+    // 3. Check profile username if not phone number
+    if (conv.other_user.username && !isPhoneOrGenerated(conv.other_user.username)) {
+      return conv.other_user.username.trim();
+    }
+
+    // 4. Format clean phone number
+    const rawNum = conv.other_user.phone_number || conv.other_user.username;
+    if (rawNum) {
+      return formatCleanPhone(rawNum);
+    }
+
+    return 'Chatr User';
+  };
+
+  // Helper to get initials (e.g. "Vishwajeet Nayak" -> "VN", never "+")
+  const getAvatarInitials = (name: string): string => {
+    if (!name) return '';
+    // If it starts with a plus (phone number), don't show '+' as an initial!
+    if (/^\+?\d/.test(name.trim())) return '';
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.trim().slice(0, 2).toUpperCase();
   };
 
   const loadConversations = useCallback(async () => {
@@ -225,9 +297,8 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           .limit(convIds.length),
         supabase
           .from('conversation_participants')
-          .select('conversation_id, user_id, profiles!inner(id, username, avatar_url, is_online)')
+          .select('conversation_id, user_id, profiles!inner(id, username, full_name, avatar_url, phone_number, is_online, last_seen)')
           .in('conversation_id', convIds)
-          .neq('user_id', userId)
       ]);
 
       const lastMessageMap = new Map();
@@ -239,8 +310,12 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
       const otherUserMap = new Map();
       participantsResult.data?.forEach((p: any) => {
-        if (!otherUserMap.has(p.conversation_id)) {
-          otherUserMap.set(p.conversation_id, p.profiles);
+        const existing = otherUserMap.get(p.conversation_id);
+        if (!existing || existing.id === userId) {
+          otherUserMap.set(p.conversation_id, {
+            ...p.profiles,
+            is_self: p.user_id === userId
+          });
         }
       });
 
@@ -646,13 +721,17 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
       if (searchMode === 'people' && conv.is_group) return false;
       if (searchMode === 'groups' && !conv.is_group) return false;
       
-      const name = conv.is_group ? conv.group_name : conv.other_user?.username;
+      const name = getConversationTitle(conv);
+      const rawUsername = conv.other_user?.username || '';
+      const rawFullName = conv.other_user?.full_name || '';
       const phone = conv.other_user?.phone_number || '';
       const lastMsg = conv.last_message?.content || '';
       
-      // Match name, phone, or message content
+      // Match resolved name, username, full_name, phone, or message content
       return (
-        name?.toLowerCase().includes(cleanQuery) ||
+        name.toLowerCase().includes(cleanQuery) ||
+        rawUsername.toLowerCase().includes(cleanQuery) ||
+        rawFullName.toLowerCase().includes(cleanQuery) ||
         phone.includes(cleanQuery) ||
         lastMsg.toLowerCase().includes(cleanQuery)
       );
@@ -1008,14 +1087,16 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">Chats</p>
               )}
               {searchResults.conversations.map(conv => {
-                const rawDisplayName = conv.is_group ? conv.group_name : (conv.other_user?.username || 'User');
-                const displayName = formatDisplayName(rawDisplayName);
+                const displayName = getConversationTitle(conv);
+                const avatarInitials = getAvatarInitials(displayName);
                 const lastMessage = conv.last_message;
                 const isRead = lastMessage?.read_at != null;
                 const isSent = lastMessage?.sender_id === userId;
                 const messagePreview = lastMessage?.content ? formatMessageContent(lastMessage.content) : 'Start chatting';
-                // Use real-time presence instead of stale database value
-                const isOnline = conv.other_user?.id ? isUserOnline(conv.other_user.id) : false;
+                // Check both real-time presence and database status
+                const isOnline = conv.other_user?.id 
+                  ? (isUserOnline(conv.other_user.id) || !!conv.other_user.is_online)
+                  : false;
                 const isPinned = pinnedConversations.includes(conv.id);
 
                 return (
@@ -1033,17 +1114,23 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                         onConversationSelect(conv.id, conv.other_user);
                         setSearchQuery(''); // Clear search after selection
                       }}
-                      className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 border-b conversation-item"
+                      className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 border-b conversation-item hover:bg-muted/40"
                     >
                       <div className="relative">
                         <Avatar className="w-12 h-12 ring-2 ring-transparent hover:ring-primary/20 transition-all">
                           <AvatarImage src={conv.is_group ? conv.group_icon_url : conv.other_user?.avatar_url} />
                           <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-semibold">
-                            {displayName?.[0]?.toUpperCase() || '?'}
+                            {avatarInitials || <User className="w-5 h-5 text-primary/70" />}
                           </AvatarFallback>
                         </Avatar>
-                        {!conv.is_group && isOnline && (
-                          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background shadow-sm online-indicator" />
+                        {!conv.is_group && (
+                          <div 
+                            className={cn(
+                              "absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-background shadow-sm",
+                              isOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/30"
+                            )}
+                            title={isOnline ? "Online" : "Offline"}
+                          />
                         )}
                         {/* Unread Badge */}
                         <UnreadBadge count={conv.unread_count || 0} />
@@ -1052,9 +1139,25 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline mb-1">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <p className={`font-semibold truncate ${!isRead && !isSent ? 'text-foreground' : ''}`}>
+                            <p className={`font-semibold text-sm truncate ${!isRead && !isSent ? 'text-foreground font-bold' : ''}`}>
                               <HighlightText text={displayName} query={searchQuery} />
                             </p>
+                            {conv.other_user?.is_self && (
+                              <span className="text-[10px] px-1.5 py-0.2 bg-primary/10 text-primary font-medium rounded-full shrink-0">
+                                You
+                              </span>
+                            )}
+                            {!conv.is_group && isOnline && (
+                              <span className="text-[10px] px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium rounded-full flex items-center gap-1 shrink-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                Online
+                              </span>
+                            )}
+                            {!conv.is_group && !isOnline && conv.other_user?.last_seen && (
+                              <span className="text-[10px] text-muted-foreground/80 shrink-0">
+                                · {formatDistanceToNow(new Date(conv.other_user.last_seen), { addSuffix: true }).replace('about ', '')}
+                              </span>
+                            )}
                             {isPinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
                             {conv.is_muted && <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />}
                             {conv.is_group && <Users className="h-3 w-3 text-muted-foreground shrink-0" />}
@@ -1063,13 +1166,20 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
                             {lastMessage?.created_at && formatDistanceToNow(new Date(lastMessage.created_at), { addSuffix: true }).replace('about ', '').replace(' ago', '')}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          {isSent && lastMessage && (
-                            isRead ? <CheckCheck className="h-3 w-3 text-blue-500 shrink-0" /> : <Check className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1 min-w-0 flex-1">
+                            {isSent && lastMessage && (
+                              isRead ? <CheckCheck className="h-3 w-3 text-blue-500 shrink-0" /> : <Check className="h-3 w-3 text-muted-foreground shrink-0" />
+                            )}
+                            <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                              <HighlightText text={messagePreview} query={searchQuery} />
+                            </p>
+                          </div>
+                          {conv.other_user?.phone_number && displayName !== conv.other_user.phone_number && !conv.is_group && (
+                            <span className="text-[11px] text-muted-foreground/60 shrink-0 hidden sm:inline">
+                              {formatCleanPhone(conv.other_user.phone_number)}
+                            </span>
                           )}
-                          <p className={`text-sm truncate ${!isRead && !isSent ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                            <HighlightText text={messagePreview} query={searchQuery} />
-                          </p>
                         </div>
                       </div>
                     </div>

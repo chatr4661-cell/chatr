@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetworkStatus } from '@/components/NetworkStatus';
 import { clearPreCallMediaStream, setPreCallMediaStream } from '@/utils/preCallMedia';
@@ -61,7 +63,7 @@ import { MessageSearchSheet } from '@/components/chat/MessageSearchSheet';
 import { FormattedText } from '@/hooks/useMessageFormatting';
 
 const ChatEnhancedContent = () => {
-  const { user, session, isAuthReady } = useChatContext();
+  const { user, session, isAuthReady, isUserOnline } = useChatContext();
   const navigate = useNavigate();
   const location = useLocation();
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
@@ -70,6 +72,38 @@ const ChatEnhancedContent = () => {
   useVoiceInterface();
   
   const [otherUser, setOtherUser] = React.useState<any>(null);
+
+  // Helper to detect raw phone or auto-generated username
+  const isPhoneOrGenerated = (str?: string) => {
+    if (!str) return false;
+    const clean = str.replace(/\s/g, '');
+    return /^(\+?\d{7,15}|User_[a-f0-9]+)$/i.test(clean);
+  };
+
+  // Helper to format clean phone numbers
+  const formatCleanPhone = (phone?: string) => {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    }
+    if (digits.length === 12 && digits.startsWith('91')) {
+      return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+    }
+    if (phone.startsWith('+')) return phone;
+    return `+${phone}`;
+  };
+
+  // Helper to get initials (never returns raw '+')
+  const getAvatarInitials = (name?: string): string => {
+    if (!name) return '';
+    if (/^\+?\d/.test(name.trim())) return '';
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.trim().slice(0, 2).toUpperCase();
+  };
 
   // Sync URL param to state and load conversation participant
   React.useEffect(() => {
@@ -930,19 +964,53 @@ const ChatEnhancedContent = () => {
                 {otherUser && (
                   <button 
                     onClick={() => setShowContactInfo(true)}
-                    className="flex items-center gap-2 flex-1 min-w-0 hover:bg-muted/30 rounded-lg p-1 -m-1 transition-colors"
+                    className="flex items-center gap-2.5 flex-1 min-w-0 hover:bg-muted/30 rounded-lg p-1 -m-1 transition-colors"
                   >
-                    <Avatar className="w-8 h-8 shrink-0">
-                      <AvatarImage src={otherUser.avatar_url} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary text-xs">
-                        {otherUser.username?.[0]?.toUpperCase() || '?'}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="w-9 h-9 shrink-0 ring-2 ring-primary/10">
+                        <AvatarImage src={otherUser.avatar_url} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary font-semibold text-xs">
+                          {getAvatarInitials(otherUser.full_name || otherUser.username) || <User className="w-4 h-4 text-primary" />}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div 
+                        className={cn(
+                          "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background",
+                          (isUserOnline(otherUser.id) || otherUser.is_online) ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"
+                        )}
+                        title={(isUserOnline(otherUser.id) || otherUser.is_online) ? "Online" : "Offline"}
+                      />
+                    </div>
                     <div className="min-w-0 flex-1 text-left">
-                      <p className="font-semibold text-xs truncate">{otherUser.username}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {otherUser.is_online ? 'Online' : 'Offline'}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-sm truncate">
+                          {otherUser.full_name || (otherUser.username && !isPhoneOrGenerated(otherUser.username) ? otherUser.username : null) || formatCleanPhone(otherUser.phone_number || otherUser.username)}
+                        </p>
+                        {otherUser.isSelf && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 text-primary border-primary/30">
+                            You
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px]">
+                        {(isUserOnline(otherUser.id) || otherUser.is_online) ? (
+                          <span className="text-emerald-500 font-medium flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Online
+                          </span>
+                        ) : otherUser.last_seen ? (
+                          <span className="text-muted-foreground">
+                            Last seen {formatDistanceToNow(new Date(otherUser.last_seen), { addSuffix: true }).replace('about ', '')}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Offline</span>
+                        )}
+                        {otherUser.phone_number && otherUser.full_name && (
+                          <span className="text-muted-foreground/60 hidden sm:inline">
+                            · {formatCleanPhone(otherUser.phone_number)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 )}
