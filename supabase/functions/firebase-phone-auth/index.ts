@@ -160,11 +160,14 @@ Deno.serve(async (req) => {
 
         const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
           password,
+          email,
+          email_confirm: true,
           phone_confirm: true,
           user_metadata: {
             ...existingMetadata,
             phone_number: phoneNumber,
             firebase_uid: claims.uid,
+            email_verified: true,
           },
         });
         if (updateError) {
@@ -210,14 +213,41 @@ Deno.serve(async (req) => {
         password,
       });
 
-      if (signInError || !signIn?.session) {
+      let session = signIn?.session;
+      let authUser = signIn?.user;
+
+      if (!session) {
+        console.warn("[phone-auth] signInWithPassword failed, attempting generateLink fallback:", signInError?.message);
+        try {
+          const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+            type: "magiclink",
+            email,
+          });
+          const tokenHash = (linkData as any)?.properties?.hashed_token || (linkData as any)?.hashed_token;
+          if (tokenHash) {
+            const { data: verified, error: verifyErr } = await supabaseClient.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: "email",
+            });
+            if (!verifyErr && verified?.session) {
+              session = verified.session;
+              authUser = verified.user;
+              console.log("[phone-auth] session recovered via verifyOtp");
+            }
+          }
+        } catch (e) {
+          console.warn("[phone-auth] verifyOtp fallback failed:", e);
+        }
+      }
+
+      if (!session) {
         console.error("[phone-auth] session mint failed:", signInError?.message);
         return json({ error: "Authentication failed. Please try again." }, 400);
       }
 
       return json({
-        session: signIn.session,
-        user: signIn.user,
+        session,
+        user: authUser,
         isNewUser,
       });
     } catch (error: unknown) {
