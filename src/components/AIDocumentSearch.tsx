@@ -49,13 +49,13 @@ export const AIDocumentSearch = ({ conversationId }: AIDocumentSearchProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full h-8 w-8" title="AI Search">
+        <Button variant="ghost" size="icon" className="rounded-full h-8 w-8" title="SI Search">
           <Search className="h-5 w-5 text-primary" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>AI Document Search</DialogTitle>
+          <DialogTitle>SI Document Search</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">

@@ -19,7 +19,8 @@
 
 const DEFAULT_BASE_URL = "https://chatr.chat";
 const TIMEOUT_MS = Number(process.env.SEO_VERIFY_TIMEOUT_MS ?? 15000);
-const SOFT_FAIL = process.env.SEO_VERIFY_SOFT_FAIL === "1";
+const softFailArg = process.argv.includes("--soft-fail");
+const SOFT_FAIL = softFailArg || process.env.SEO_VERIFY_SOFT_FAIL === "1";
 
 const baseArg = process.argv.find((a) => a.startsWith("--base="))?.slice("--base=".length);
 const BASE_URL = (baseArg || process.env.SEO_VERIFY_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");

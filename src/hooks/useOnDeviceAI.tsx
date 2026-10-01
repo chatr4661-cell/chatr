@@ -3,7 +3,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * On-device AI hook — routes to Android AICore (Gemini Nano) when available,
+ * On-device SI hook — routes to Android AICore (Gemini Nano) when available,
  * falls back to cloud (summarize-chat / smart-compose edge fns) otherwise.
  *
  * Zero server cost on supported devices (Pixel 8+/Galaxy S24+).

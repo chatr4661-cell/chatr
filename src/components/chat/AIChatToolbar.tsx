@@ -48,7 +48,7 @@ export const AIChatToolbar: React.FC<AIChatToolbarProps> = ({
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-primary" />
-          AI Assistant
+          SI Assistant
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         

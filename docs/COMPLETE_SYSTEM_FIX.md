@@ -53,8 +53,8 @@
 Per user request, will merge overlapping features:
 
 ### Health Hub (New)
-Merges: AI Assistant + Wellness + Reminders + Passport + Lab Reports
-Features: AI Symptom Checker 2.0, Predictive Analytics, Health Coach
+Merges: SI Assistant + Wellness + Reminders + Passport + Lab Reports
+Features: SI Symptom Checker 2.0, Predictive Analytics, Health Coach
 
 ### Care Access (New)
 Merges: Booking + Emergency + Allied Healthcare + Marketplace + Provider

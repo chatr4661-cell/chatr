@@ -53,13 +53,13 @@ export const AISmartReplyPanel = ({ lastMessage, onSelectReply }: AISmartReplyPa
           className="w-full h-9 flex items-center justify-center gap-2 text-xs hover:bg-primary/5"
         >
           <Sparkles className="h-4 w-4 text-primary" />
-          {loading ? 'Generating...' : 'Generate AI Smart Replies'}
+          {loading ? 'Generating...' : 'Generate SI Smart Replies'}
         </Button>
       ) : (
         <>
           <div className="flex items-center gap-2 py-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-xs text-muted-foreground font-medium">AI Suggestions</span>
+            <span className="text-xs text-muted-foreground font-medium">SI Suggestions</span>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             {replies.map((reply, index) => (

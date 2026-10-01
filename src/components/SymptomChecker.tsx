@@ -109,10 +109,10 @@ export default function SymptomChecker() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="w-6 h-6 text-purple-600" />
-            AI Symptom Checker
+            SI Symptom Checker
           </CardTitle>
           <CardDescription>
-            AI-powered triage to help guide your care. Not a substitute for professional medical advice.
+            SI-powered triage to help guide your care. Not a substitute for professional medical advice.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -295,7 +295,7 @@ export default function SymptomChecker() {
         <CardContent className="pt-6">
           <p className="text-sm text-amber-800">
             <AlertCircle className="w-4 h-4 inline mr-2" />
-            <strong>Medical Disclaimer:</strong> This AI assessment is for informational purposes only 
+            <strong>Medical Disclaimer:</strong> This SI assessment is for informational purposes only 
             and is not a substitute for professional medical advice, diagnosis, or treatment. 
             Always consult a qualified healthcare provider for medical concerns.
           </p>

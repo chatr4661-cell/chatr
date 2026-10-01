@@ -37,8 +37,8 @@ export const QuickAccessMenu: React.FC<QuickAccessMenuProps> = ({ className }) =
     },
     {
       id: 'ai-assistant',
-      title: 'AI Assistant',
-      description: 'Chat with health AI',
+      title: 'SI Assistant',
+      description: 'Chat with health SI',
       icon: Bot,
       color: 'from-purple-500 to-pink-500',
       route: '/ai-assistant',

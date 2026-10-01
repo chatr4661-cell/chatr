@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { SEOHead } from '@/components/SEOHead';
 import { Button } from '@/components/ui/button';
+import { PublicHeader } from '@/components/navigation/PublicHeader';
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
@@ -162,7 +163,7 @@ const PublicHome = () => {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between selection:bg-primary/20">
       <SEOHead
         title={DEFAULT_TITLE}
         description={DEFAULT_DESCRIPTION}
@@ -170,6 +171,8 @@ const PublicHome = () => {
         noIndex={false}
         schemaData={homepageSchema}
       />
+
+      <PublicHeader />
 
       <main className="mx-auto max-w-4xl px-4 pb-24 pt-8">
         {/* Hero */}
@@ -336,6 +339,8 @@ const PublicHome = () => {
           <h2 className="mb-3 text-lg font-semibold">Explore Chatr</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
+              { to: '/direct-chat', label: 'Direct chat without saving number' },
+              { to: '/lookup', label: 'Caller ID & spam phone lookup' },
               { to: '/chatr/universal-inbox-ai', label: 'Universal inbox with AI' },
               { to: '/chatr/ai-messaging-assistant', label: 'AI messaging assistant' },
               { to: '/chatr/ai-agents', label: 'AI agents' },
@@ -366,7 +371,7 @@ const PublicHome = () => {
           Chatr — A product of Talentxcel Services Pvt Ltd
         </p>
       </main>
-    </>
+    </div>
   );
 };
 

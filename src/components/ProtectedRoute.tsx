@@ -54,6 +54,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Redirect to auth if not authenticated
   if (!isAuthenticated) {
+    try {
+      const target = location.pathname + location.search;
+      if (target && target !== '/auth' && target !== '/') {
+        sessionStorage.setItem('auth_redirect', target);
+      }
+    } catch {
+      // ignore
+    }
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

@@ -64,7 +64,7 @@ fun HomeScreen(
             QuickAction("Contacts", Icons.Default.Contacts, "contacts", true),
             QuickAction("Calls", Icons.Default.Call, "calls", true),
             QuickAction("Dhandha", Icons.Default.Store, "dhandha"),
-            QuickAction("AI Assistant", Icons.Default.AutoAwesome, "ai"),
+            QuickAction("SI Assistant", Icons.Default.AutoAwesome, "ai"),
             QuickAction("Games", Icons.Default.SportsEsports, "games"),
             QuickAction("Health Hub", Icons.Default.HealthAndSafety, "health"),
             QuickAction("Food", Icons.Default.Restaurant, "food"),

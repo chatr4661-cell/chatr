@@ -93,11 +93,26 @@ async function querySearchAnalytics(token, siteUrl) {
   return await res.json();
 }
 
+async function submitSitemap(token, siteUrl, sitemapUrl) {
+  const siteUrlEnc = encodeURIComponent(siteUrl);
+  const sitemapUrlEnc = encodeURIComponent(sitemapUrl);
+  const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${siteUrlEnc}/sitemaps/${sitemapUrlEnc}`;
+  const res = await fetch(endpoint, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  console.log(`Sitemap submission for ${sitemapUrl}: HTTP ${res.status}`);
+}
+
 async function main() {
   const token = await getAccessToken('https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/webmasters.readonly');
   console.log('✅ Google API Access token obtained successfully');
 
   const site = 'sc-domain:chatr.chat';
+
+  console.log(`\n=== 0. SUBMITTING SITEMAP to GSC ===`);
+  await submitSitemap(token, site, 'https://chatr.chat/sitemap.xml');
+
   console.log(`\n=== 1. SEARCH ANALYTICS (Last 28 Days) for ${site} ===`);
   const analytics = await querySearchAnalytics(token, site);
   if (analytics.rows && analytics.rows.length > 0) {
@@ -112,9 +127,9 @@ async function main() {
   console.log(`\n=== 2. URL INSPECTION for Key Pages ===`);
   const testUrls = [
     'https://chatr.chat/',
+    'https://chatr.chat/direct-chat',
+    'https://chatr.chat/lookup',
     'https://chatr.chat/chatr/live-call-translation/mumbai',
-    'https://chatr.chat/chatr/live-call-translation/delhi',
-    'https://chatr.chat/chatr/translate/hindi-to-punjabi',
     'https://chatr.chat/about'
   ];
 

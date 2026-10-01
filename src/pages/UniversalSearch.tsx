@@ -399,7 +399,7 @@ const UniversalSearch = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-lg font-bold">Universal AI Search</h1>
+              <h1 className="text-lg font-bold">Universal SI Search</h1>
               <p className="text-xs text-muted-foreground">Ask Anything. Find Everything. Instantly.</p>
             </div>
             {/* Location indicator removed for cleaner UI */}
@@ -523,7 +523,7 @@ const UniversalSearch = () => {
               )}
               {visualResults.ai_recommendations && (
                 <div>
-                  <p className="text-xs font-medium mb-1">AI Recommendations:</p>
+                  <p className="text-xs font-medium mb-1">SI Recommendations:</p>
                   <p className="text-xs text-muted-foreground">{visualResults.ai_recommendations}</p>
                 </div>
               )}
@@ -537,7 +537,7 @@ const UniversalSearch = () => {
           <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-xs font-medium text-primary uppercase tracking-wide">AI Answer</span>
+              <span className="text-xs font-medium text-primary uppercase tracking-wide">SI Answer</span>
             </div>
 
             {webResults.synthesis ? (
@@ -552,7 +552,7 @@ const UniversalSearch = () => {
                   <AISummaryContent content="" images={webResults.images} />
                 )}
                 <p className="text-sm text-muted-foreground">
-                  AI summary is temporarily unavailable. Showing verified sources below.
+                  SI summary is temporarily unavailable. Showing verified sources below.
                 </p>
               </div>
             )}
@@ -564,7 +564,7 @@ const UniversalSearch = () => {
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground font-medium mb-1">Searching the web at lightning speed...</p>
-            <p className="text-xs text-muted-foreground">Powered by DuckDuckGo + AI</p>
+            <p className="text-xs text-muted-foreground">Powered by DuckDuckGo + SI</p>
           </div>
         ) : results.length === 0 && searchQuery ? (
           <div className="text-center py-16">

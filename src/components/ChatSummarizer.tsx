@@ -81,7 +81,7 @@ export const ChatSummarizer = ({ messages }: ChatSummarizerProps) => {
               Conversation Summary
             </DialogTitle>
             <DialogDescription>
-              AI-generated summary of your conversation
+              SI-generated summary of your conversation
             </DialogDescription>
           </DialogHeader>
 

@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { PRODUCTION_ORIGIN } from '@/config/seo';
+import { PublicHeader } from '@/components/navigation/PublicHeader';
 
 export default function DirectChatPage() {
   const canonicalUrl = `${PRODUCTION_ORIGIN}/direct-chat`;
@@ -103,6 +104,8 @@ export default function DirectChatPage() {
         <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
+
+      <PublicHeader />
 
       {/* Main Container */}
       <main className="container max-w-5xl mx-auto px-4 py-8 md:py-12 space-y-12">

@@ -461,7 +461,7 @@ fun AuthScreen(
             ) {
                 Text("Secure", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Fast", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("AI Powered", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("SI Powered", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             
             Spacer(modifier = Modifier.height(8.dp))

@@ -95,7 +95,10 @@ export const ConversionActionBar = ({ pageTitle, useCaseLabel, cityName }: Conve
             {/* Primary CTA */}
             <Button
               size="sm"
-              onClick={() => navigate('/auth')}
+              onClick={() => {
+                sessionStorage.setItem('auth_redirect', window.location.pathname);
+                navigate('/auth');
+              }}
               className="h-9 rounded-xl bg-emerald-600 px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 sm:px-4"
             >
               <MessageCircle className="mr-1.5 h-4 w-4" />

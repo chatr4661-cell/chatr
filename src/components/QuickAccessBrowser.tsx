@@ -16,10 +16,10 @@ export const QuickAccessBrowser = () => {
         </div>
         <div>
           <h3 className="font-semibold text-lg flex items-center gap-2">
-            AI Browser
+            SI Browser
             <Sparkles className="h-4 w-4 text-primary" />
           </h3>
-          <p className="text-sm text-muted-foreground">Search with AI • Browse the web</p>
+          <p className="text-sm text-muted-foreground">Search with SI • Browse the web</p>
         </div>
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">

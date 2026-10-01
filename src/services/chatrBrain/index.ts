@@ -1,6 +1,6 @@
 /**
  * CHATR BRAIN - Main Orchestrator
- * The unified AI brain that routes to all agents
+ * The unified SI brain that routes to all agents
  */
 
 import { 
@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * CHATR Brain Orchestrator
- * The central AI routing and coordination system
+ * The central SI routing and coordination system
  */
 class ChatrBrainService {
   private initialized = false;
@@ -71,7 +71,7 @@ class ChatrBrainService {
     // Step 4: Build system prompt for primary agent
     const systemPrompt = buildSystemPrompt(agents[0], agentContext);
 
-    // Step 5: Call AI with multi-agent awareness
+    // Step 5: Call SI with multi-agent awareness
     const aiResponse = await this.callAI(
       request.query,
       systemPrompt,
@@ -118,7 +118,7 @@ class ChatrBrainService {
   }
 
   /**
-   * Call AI service with context
+   * Call SI service with context
    */
   private async callAI(
     query: string,

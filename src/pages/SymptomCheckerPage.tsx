@@ -18,7 +18,7 @@ export default function SymptomCheckerPage() {
             </Button>
           </div>
           <h1 className="text-3xl font-bold mb-2">Symptom Checker</h1>
-          <p className="text-purple-100">AI-powered health triage assistant</p>
+          <p className="text-purple-100">SI-powered health triage assistant</p>
         </div>
       </div>
 

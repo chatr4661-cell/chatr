@@ -330,8 +330,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
-   * ANSWER WITH AI — the busy user lets the AI talk to the caller on their behalf.
-   * Acquires audio so the WebRTC channel connects, but the AI voice layer drives
+   * ANSWER WITH SI — the busy user lets the SI talk to the caller on their behalf.
+   * Acquires audio so the WebRTC channel connects, but the SI voice layer drives
    * the conversation (see useCallVoiceAI). The user can take over at any time.
    */
   const answerWithAI = useCallback(async () => {
@@ -359,7 +359,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (err.name === 'NotAllowedError') {
         toast.error('Please allow microphone access');
       } else {
-        toast.error('Could not start AI answer');
+        toast.error('Could not start SI answer');
       }
     }
   }, []);

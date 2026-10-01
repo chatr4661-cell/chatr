@@ -734,14 +734,14 @@ const Index = () => {
   return (
     <>
       <SEOHead
-        title="Chatr+ — India's AI Superapp"
-        description="Chat, calls, healthcare, jobs, payments and local services — all in one AI superapp built for India."
-        keywords="chatr, superapp, india, messaging app, healthcare app, job search, food delivery, AI assistant, local services, telemedicine"
+        title="Chatr+ — India's SI Superapp"
+        description="Chat, calls, healthcare, jobs, payments and local services — all in one SI superapp built for India."
+        keywords="chatr, superapp, india, messaging app, healthcare app, job search, food delivery, SI assistant, local services, telemedicine"
         schemaData={{
           "@context": "https://schema.org",
           "@type": "MobileApplication",
           "name": "Chatr+",
-          "description": "India's AI Superapp - Chat, Healthcare, Jobs & More",
+          "description": "India's SI Superapp - Chat, Healthcare, Jobs & More",
           "applicationCategory": "LifestyleApplication",
           "operatingSystem": "Android, iOS, Web",
           "offers": {

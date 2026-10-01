@@ -1,6 +1,6 @@
 /**
  * CHATR ULTRA Hook
- * Main interface for on-device AI across all CHATR modules
+ * Main interface for on-device SI across all CHATR modules
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -57,7 +57,7 @@ export function useChatrUltra(): ChatrUltraHook {
     const initialize = async () => {
       console.log('🚀 [CHATR ULTRA] Initializing...');
       
-      // Initialize device AI
+      // Initialize device SI
       await deviceAI.initialize();
       setAvailableModels(deviceAI.getAvailableModels());
       

@@ -19,9 +19,9 @@ export const useAIChatFeatures = () => {
       
       if (data?.error) {
         if (data.error.includes('Rate limit')) {
-          toast.error('AI rate limit reached. Please wait a moment.');
+          toast.error('SI rate limit reached. Please wait a moment.');
         } else if (data.error.includes('credits')) {
-          toast.error('AI credits depleted. Please add credits to continue.');
+          toast.error('SI credits depleted. Please add credits to continue.');
         } else {
           toast.error(data.error);
         }

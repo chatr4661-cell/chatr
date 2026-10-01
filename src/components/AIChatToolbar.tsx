@@ -65,7 +65,7 @@ export const AIChatToolbar = ({ messages, onCreateTask }: AIChatToolbarProps) =>
     <div className="flex gap-2 items-center p-3 bg-gradient-to-r from-primary/5 to-primary/10 border-t border-primary/20">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Wand2 className="h-4 w-4 text-primary" />
-        <span className="font-medium">AI Tools:</span>
+        <span className="font-medium">SI Tools:</span>
       </div>
 
       {/* Summarize */}

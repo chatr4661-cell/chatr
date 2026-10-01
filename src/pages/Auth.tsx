@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { FirebasePhoneAuth } from '@/components/FirebasePhoneAuth';
@@ -17,17 +17,23 @@ import { motion } from 'framer-motion';
 const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = React.useState(true);
   const [userId, setUserId] = React.useState<string | undefined>();
   const onboarding = useOnboarding(userId);
 
-  // Preserve a same-origin ?next= target (used by the agent-integration consent flow)
+  // Preserve redirect targets (from router state, query params, or previous sessions)
   React.useEffect(() => {
+    const from = (location.state as any)?.from;
+    const fromPath = typeof from === 'string' ? from : from?.pathname ? `${from.pathname}${from.search || ''}` : null;
+    if (fromPath && fromPath.startsWith('/') && !fromPath.startsWith('//') && fromPath !== '/auth') {
+      sessionStorage.setItem('auth_redirect', fromPath);
+    }
     const next = new URLSearchParams(window.location.search).get('next');
     if (next && next.startsWith('/') && !next.startsWith('//')) {
       sessionStorage.setItem('auth_redirect', next);
     }
-  }, []);
+  }, [location]);
 
 
   React.useEffect(() => {

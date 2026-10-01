@@ -107,7 +107,7 @@ export const DeviceAIStatus = ({
             </TooltipTrigger>
             <TooltipContent>
               <p className="text-xs">Apple Intelligence Ready</p>
-              <p className="text-xs text-muted-foreground">Your {deviceInfo.deviceName} has on-device AI</p>
+              <p className="text-xs text-muted-foreground">Your {deviceInfo.deviceName} has on-device SI</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -126,7 +126,7 @@ export const DeviceAIStatus = ({
             </TooltipTrigger>
             <TooltipContent>
               <p className="text-xs">Gemini Nano Available</p>
-              <p className="text-xs text-muted-foreground">On-device AI on your {deviceInfo.deviceName}</p>
+              <p className="text-xs text-muted-foreground">On-device SI on your {deviceInfo.deviceName}</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -144,7 +144,7 @@ export const DeviceAIStatus = ({
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
-              <p className="text-xs">AI Model Cached Locally</p>
+              <p className="text-xs">SI Model Cached Locally</p>
               <p className="text-xs text-muted-foreground">Faster responses, works offline</p>
             </TooltipContent>
           </Tooltip>

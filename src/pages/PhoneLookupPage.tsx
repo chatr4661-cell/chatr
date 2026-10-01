@@ -16,6 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { PRODUCTION_ORIGIN } from '@/config/seo';
+import { PublicHeader } from '@/components/navigation/PublicHeader';
 
 export default function PhoneLookupPage() {
   const canonicalUrl = `${PRODUCTION_ORIGIN}/lookup`;
@@ -102,6 +103,8 @@ export default function PhoneLookupPage() {
         <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
+
+      <PublicHeader />
 
       {/* Main Content */}
       <main className="container max-w-4xl mx-auto px-4 py-8 md:py-12 space-y-12">

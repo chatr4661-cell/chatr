@@ -134,7 +134,7 @@ export const VisualSearchUpload = ({ onSearchComplete }: { onSearchComplete: (re
 
         {uploading && (
           <p className="text-xs text-muted-foreground mt-4">
-            Analyzing image with AI...
+            Analyzing image with SI...
           </p>
         )}
       </div>

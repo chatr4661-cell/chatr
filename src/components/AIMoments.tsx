@@ -130,7 +130,7 @@ export const AIMoments = ({ conversationSnippet, onClear }: AIMomentsProps) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">AI Moments</h3>
+            <h3 className="font-semibold">SI Moments</h3>
           </div>
           <Button size="sm" onClick={() => setShowCreate(!showCreate)}>
             Create

@@ -17,7 +17,7 @@
 ### 3. Architecture Problems
 - **Feature Overlap**: 17 separate features with overlap
 - **Poor Discovery**: Users can't find features
-- **Scattered AI**: AI features not integrated
+- **Scattered SI**: SI features not integrated
 - **No Unified Experience**: Disjointed user journey
 
 ## Complete Solution
@@ -35,11 +35,11 @@
 Creating 5 main hubs:
 
 #### 1. **Health Hub** - `/health`
-**Merges**: AI Assistant + Wellness + Reminders + Passport + Lab Reports
+**Merges**: SI Assistant + Wellness + Reminders + Passport + Lab Reports
 **New Features**:
-- AI Symptom Checker 2.0
+- SI Symptom Checker 2.0
 - Predictive Health Analytics
-- Personal AI Health Coach
+- Personal SI Health Coach
 - Smart Medication Reminders
 - Unified Health Dashboard
 
