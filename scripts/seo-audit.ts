@@ -19,6 +19,7 @@ import {
   generateRobotsTxt,
   generateSitemapEntries,
   getIndexableRoutes,
+  needsPartitioning,
 } from '../src/utils/sitemapGenerator';
 
 const argv = process.argv.slice(2);
@@ -158,7 +159,9 @@ if (live) {
   await probe('/');
   await probe('/robots.txt');
   await probe('/sitemap.xml');
-  for (const file of files) await probe(file.path);
+  if (needsPartitioning(entries)) {
+    for (const file of files) await probe(file.path);
+  }
   await probe('/chatr/whatsapp-candidate-screening');
   await probe('/chatr/universal-inbox-ai');
 } else {
