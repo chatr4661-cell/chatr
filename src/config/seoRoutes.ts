@@ -59,6 +59,27 @@ export const ROUTE_META: Record<string, RouteMeta> = {
   '/download': page('ai-workspace', 'download chatr app', {
     schemaType: 'SoftwareApplication',
   }),
+  '/direct-chat': page('direct-chat', 'direct chat without saving number', {
+    section: 'guides',
+    schemaType: 'SoftwareApplication',
+    relatedIntents: [
+      'message phone number directly',
+      'chat without saving contact',
+      'send message without saving phone number',
+    ],
+    lastModified: '2026-10-01',
+  }),
+  '/lookup': page('caller-lookup', 'check unknown phone number spam caller id', {
+    section: 'guides',
+    schemaType: 'SoftwareApplication',
+    relatedIntents: [
+      'phone number lookup',
+      'who called me from this number',
+      'check spam caller',
+      'community caller id',
+    ],
+    lastModified: '2026-10-01',
+  }),
 
   '/ai-assistant': page('ai-assistant', 'ai assistant for messaging'),
   '/ai-agents': page('ai-agents', 'ai agents that reply automatically'),

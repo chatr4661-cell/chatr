@@ -34,6 +34,8 @@ export const CHATR_CLUSTERS: SeoCluster[] = [
   { id: 'city-pages', label: 'Chatr by city', hub: '/chatr/locations', domain: 'chatr.chat' },
   { id: 'language-pairs', label: 'Call translation languages', hub: '/chatr/translate', domain: 'chatr.chat' },
   { id: 'language-cities', label: 'Call translation by city', hub: '/chatr/translate', domain: 'chatr.chat' },
+  { id: 'direct-chat', label: 'Direct chat without saving number', hub: '/direct-chat', domain: 'chatr.chat' },
+  { id: 'caller-lookup', label: 'Phone number caller ID lookup', hub: '/lookup', domain: 'chatr.chat' },
 ];
 
 /** Hubs that intentionally link to every member of their cluster (directories). */
@@ -159,6 +161,8 @@ export const GLOBAL_NAV_LINKS: string[] = [
   '/help',
   '/contact',
   '/download',
+  '/direct-chat',
+  '/lookup',
   '/terms',
   '/privacy',
   '/refund',

@@ -119,36 +119,17 @@ async function main() {
   const queryPageRows = await fetchGSCData(googleToken, siteUrl, ['query', 'page']);
   console.log(`Received ${queryPageRows.length} query+page rows from GSC`);
 
-  let upsertedCount = 0;
+  // 1. Group & Aggregate by query for gsc_queries (matching uq_gsc_query_property_query_country_device)
+  const queryMap = new Map();
+  const searchMetricsRows = [];
+
   for (const row of queryPageRows) {
     const query = row.keys[0] || '';
     const page = row.keys[1] || '';
     if (!query) continue;
 
-    // Upsert into gsc_queries
-    const { error: qErr } = await supabase.from('gsc_queries').upsert({
-      property_id: siteUrl,
-      sync_date: syncDate,
-      query,
-      page,
-      country: 'ALL',
-      device: 'ALL',
-      clicks: Math.round(row.clicks || 0),
-      impressions: Math.round(row.impressions || 0),
-      ctr: row.ctr || 0,
-      position: row.position || 0,
-      data_source: 'gsc_api',
-      synced_at: new Date().toISOString()
-    }, { onConflict: 'property_id,query,country,device' });
-
-    if (qErr) {
-      console.warn(`gsc_queries upsert notice for '${query}':`, qErr.message);
-    } else {
-      upsertedCount++;
-    }
-
-    // Upsert into seo_search_metrics
-    await supabase.from('seo_search_metrics').upsert({
+    // Prepare seo_search_metrics row
+    searchMetricsRows.push({
       site_url: siteUrl,
       metric_date: syncDate,
       page,
@@ -160,10 +141,76 @@ async function main() {
       ctr: row.ctr || 0,
       position: row.position || 0,
       synced_at: new Date().toISOString()
-    }, { onConflict: 'site_url,metric_date,page,query,country,device' });
+    });
+
+    if (!queryMap.has(query)) {
+      queryMap.set(query, {
+        property_id: siteUrl,
+        sync_date: syncDate,
+        query,
+        page,
+        country: 'ALL',
+        device: 'ALL',
+        clicks: 0,
+        impressions: 0,
+        weightedPosition: 0,
+        maxImpressions: 0,
+        data_source: 'gsc_api'
+      });
+    }
+    const entry = queryMap.get(query);
+    const impr = Math.round(row.impressions || 0);
+    const clk = Math.round(row.clicks || 0);
+    entry.clicks += clk;
+    entry.impressions += impr;
+    entry.weightedPosition += (row.position || 0) * (impr || 1);
+    if (impr >= entry.maxImpressions) {
+      entry.page = page;
+      entry.maxImpressions = impr;
+    }
   }
 
-  console.log(`✅ Successfully stored ${upsertedCount} search queries in Supabase database!`);
+  // Calculate final aggregated values
+  const aggregatedQueries = [];
+  for (const entry of queryMap.values()) {
+    const totalImpr = entry.impressions || 1;
+    aggregatedQueries.push({
+      property_id: entry.property_id,
+      sync_date: entry.sync_date,
+      query: entry.query,
+      page: entry.page,
+      country: entry.country,
+      device: entry.device,
+      clicks: entry.clicks,
+      impressions: entry.impressions,
+      ctr: entry.impressions > 0 ? Number((entry.clicks / entry.impressions).toFixed(4)) : 0,
+      position: Number((entry.weightedPosition / totalImpr).toFixed(2)),
+      data_source: entry.data_source,
+      synced_at: new Date().toISOString()
+    });
+  }
+
+  console.log(`Upserting ${aggregatedQueries.length} aggregated queries into gsc_queries...`);
+  // Batch upsert to gsc_queries
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < aggregatedQueries.length; i += CHUNK_SIZE) {
+    const chunk = aggregatedQueries.slice(i, i + CHUNK_SIZE);
+    const { error: qErr } = await supabase.from('gsc_queries').upsert(chunk, {
+      onConflict: 'property_id,query,country,device'
+    });
+    if (qErr) console.warn('gsc_queries batch notice:', qErr.message);
+  }
+
+  console.log(`Upserting ${searchMetricsRows.length} query-page rows into seo_search_metrics...`);
+  // Batch upsert to seo_search_metrics
+  for (let i = 0; i < searchMetricsRows.length; i += CHUNK_SIZE) {
+    const chunk = searchMetricsRows.slice(i, i + CHUNK_SIZE);
+    await supabase.from('seo_search_metrics').upsert(chunk, {
+      onConflict: 'site_url,metric_date,page,query,country,device'
+    });
+  }
+
+  console.log(`✅ Successfully stored ${aggregatedQueries.length} search queries in Supabase database!`);
 
   // 2. Trigger calculate_gsc_opportunities if RPC exists
   try {

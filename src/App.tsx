@@ -210,6 +210,13 @@ const App = () => {
             <Route path="/chatr/translate/:pair" element={<LazyRoute component={LazyPages.SeoLanguagePair} />} />
             <Route path="/chatr/translate/:pair/:city" element={<LazyRoute component={LazyPages.SeoLanguageCity} />} />
             <Route path="/chatr/:useCase/:city" element={<LazyRoute component={LazyPages.SeoCityUseCase} />} />
+            {/* Interactive Utility Tools (Product-Led SEO) */}
+            <Route path="/direct-chat" element={<LazyRoute component={LazyPages.DirectChatPage} />} />
+            <Route path="/chat-without-saving-number" element={<Navigate to="/direct-chat" replace />} />
+            <Route path="/send-message-without-saving-number" element={<Navigate to="/direct-chat" replace />} />
+            <Route path="/direct-message-phone-number" element={<Navigate to="/direct-chat" replace />} />
+            <Route path="/lookup" element={<LazyRoute component={LazyPages.PhoneLookupPage} />} />
+            <Route path="/phone-lookup" element={<Navigate to="/lookup" replace />} />
             <Route path="/admin/seo" element={<LazyRoute component={LazyPages.SeoControlTower} />} />
             <Route path="/help" element={<LazyRoute component={LazyPages.Help} />} />
             <Route path="/contact" element={<LazyRoute component={LazyPages.Contact} />} />

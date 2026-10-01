@@ -123,7 +123,7 @@ const contentFor = (kind: PageKind, heading: string): string => {
         section('What you can do with Chatr here', list([
           'Free HD voice and video calls, even on slow networks.',
           'Live call translation across 25+ Indian and world languages.',
-          'AI answers your calls when you are busy and summarises what you missed.',
+          'SI answers your calls when you are busy and summarises what you missed.',
           'Private, encrypted messaging with your existing contacts.',
         ])),
         section('Get started', steps([
@@ -134,9 +134,9 @@ const contentFor = (kind: PageKind, heading: string): string => {
       ].join('');
     case 'ai-answering':
       return [
-        section('How AI call answering works', steps([
-          'When you are busy, tap "AI Answer" on an incoming call.',
-          'Chatr\'s AI speaks to the caller naturally in their language.',
+        section('How SI call answering works', steps([
+          'When you are busy, tap "SI Answer" on an incoming call.',
+          'Chatr\'s SI speaks to the caller naturally in their language.',
           'You get a summary and transcript of the call when you are free.',
         ])),
         section('Built for real life', list([
@@ -150,7 +150,7 @@ const contentFor = (kind: PageKind, heading: string): string => {
         section('Why Chatr', list([
           'Free encrypted calling and messaging.',
           'Live call translation — speak your language, they hear theirs.',
-          'AI call answering when you are busy.',
+          'SI call answering when you are busy.',
           'Made in India, built for Indian networks.',
         ])),
       ].join('');
